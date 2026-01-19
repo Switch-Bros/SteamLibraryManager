@@ -110,7 +110,6 @@ class GameTreeWidget(QTreeWidget):
                     game_text += f" ({game.playtime_hours}h)"
                 if game.is_favorite():
                     game_text += " ⭐"
-
                 game_item = QTreeWidgetItem(category_item, [game_text])
                 game_item.setData(0, Qt.ItemDataRole.UserRole, game)
 

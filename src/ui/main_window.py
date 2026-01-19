@@ -486,7 +486,7 @@ class MainWindow(QMainWindow):
             else:
                 games = self.game_manager.get_uncategorized_games()
         else:
-            # Nutze die Games die dem Dialog übergeben wurden!
+            # Nutze die Games, die dem Dialog übergeben wurden!
             games = self.dialog_games if self.dialog_games else self.game_manager.get_uncategorized_games()
 
         methods = settings['methods']

@@ -25,3 +25,5 @@ black>=23.0.0
 flake8>=6.0.0
 
 # NOTE: CustomTkinter has been REMOVED - now using PyQt6 instead!
+
+pyqt6-sip
