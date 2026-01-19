@@ -32,6 +32,10 @@ from src.ui.metadata_dialogs import (
     MetadataRestoreDialog
 )
 from src.utils.i18n import t
+from src.ui.settings_dialog import SettingsDialog
+from src.ui.game_details_widget import GameDetailsWidget
+from src.ui.steam_login_dialog import SteamLoginDialog
+from src.utils.i18n import init_i18n
 
 
 class GameTreeWidget(QTreeWidget):
@@ -113,6 +117,8 @@ class MainWindow(QMainWindow):
         self.appinfo_manager: Optional[AppInfoManager] = None
         self.appinfo_data: Optional[Dict] = None
         self.selected_games: List[Game] = []
+        self.current_ui_language = config.UI_LANGUAGE
+        self.dialog_games: List[Game] = []  # Für Auto-Categorize Dialog
 
         # ✨ NEW: Track games passed to dialog
         self.dialog_games: List[Game] = []
@@ -146,12 +152,12 @@ class MainWindow(QMainWindow):
         menubar.setCornerWidget(self.user_label, Qt.Corner.TopRightCorner)
 
         # === TOOLBAR ===
-        toolbar = QToolBar()
-        self.addToolBar(toolbar)
-        toolbar.addAction(f"🔄 {t('ui.toolbar.refresh')}", self.refresh_data)
-        toolbar.addAction(f"🏷️ {t('ui.toolbar.auto_categorize')}", self.auto_categorize)
-        toolbar.addSeparator()
-        toolbar.addAction(f"⚙️ {t('ui.toolbar.settings')}", self.show_settings)
+        self.toolbar = QToolBar()
+        self.addToolBar(self.toolbar)
+        self.toolbar.addAction(f"🔄 {t('ui.toolbar.refresh')}", self.refresh_data)
+        self.toolbar.addAction(f"🏷️ {t('ui.toolbar.auto_categorize')}", self.auto_categorize)
+        self.toolbar.addSeparator()
+        self.toolbar.addAction(f"⚙️ {t('ui.toolbar.settings')}", self.show_settings)
 
         # === MAIN CONTENT ===
         central = QWidget()
@@ -189,27 +195,11 @@ class MainWindow(QMainWindow):
 
         splitter.addWidget(left_widget)
 
-        # === RIGHT: Game Details ===
-        right_widget = QWidget()
-        right_layout = QVBoxLayout(right_widget)
-        right_layout.setContentsMargins(10, 10, 10, 10)
-
-        self.details_title = QLabel(t('ui.game_details.title'))
-        self.details_title.setFont(QFont("Arial", 16, QFont.Weight.Bold))
-        right_layout.addWidget(self.details_title)
-
-        self.details_scroll = QScrollArea()
-        self.details_scroll.setWidgetResizable(True)
-        self.details_content = QWidget()
-        self.details_layout = QVBoxLayout(self.details_content)
-        self.details_scroll.setWidget(self.details_content)
-        right_layout.addWidget(self.details_scroll)
-
-        self.details_placeholder = QLabel("Select a game to view details")
-        self.details_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.details_layout.addWidget(self.details_placeholder)
-
-        splitter.addWidget(right_widget)
+        # === RIGHT: Game Details Widget ===
+        self.details_widget = GameDetailsWidget()
+        self.details_widget.category_changed.connect(self._on_category_changed_from_details)
+        self.details_widget.edit_metadata.connect(self.edit_game_metadata)
+        splitter.addWidget(self.details_widget)
         splitter.setSizes([450, 950])
         layout.addWidget(splitter)
 
@@ -254,7 +244,7 @@ class MainWindow(QMainWindow):
             return
 
         self.game_manager.merge_with_localconfig(self.vdf_parser)
-        self.steam_scraper = SteamStoreScraper(config.CACHE_DIR)
+        self.steam_scraper = SteamStoreScraper(config.CACHE_DIR, config.TAGS_LANGUAGE)
 
         # Load metadata
         if config.STEAM_PATH:
@@ -309,39 +299,8 @@ class MainWindow(QMainWindow):
     def on_game_selected(self, game: Game):
         """Spiel wurde geklickt"""
         self.selected_game = game
-        self._show_game_details(game)
-
-    def _show_game_details(self, game: Game):
-        """Zeige Spiel-Details"""
-        self.details_placeholder.hide()
-        for i in reversed(range(self.details_layout.count())):
-            widget = self.details_layout.itemAt(i).widget()
-            if widget and widget != self.details_placeholder:
-                widget.deleteLater()
-
-        self.details_title.setText(game.name)
-
-        self._add_detail("App ID", game.app_id)
-        self._add_detail(t('ui.game_details.playtime'), f"{game.playtime_hours}h")
-        if game.developer:
-            self._add_detail(t('ui.game_details.developer'), game.developer)
-        if game.publisher:
-            self._add_detail(t('ui.game_details.publisher'), game.publisher)
-
-        # Categories
-        label = QLabel(t('ui.game_details.categories_label'))
-        label.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-        self.details_layout.addWidget(label)
-
-        all_categories = sorted(self.game_manager.get_all_categories().keys())
-        for cat in all_categories:
-            if cat != 'favorite':
-                cb = QCheckBox(cat)
-                cb.setChecked(game.has_category(cat))
-                cb.stateChanged.connect(lambda state, c=cat, g=game: self.toggle_category(g, c, state))
-                self.details_layout.addWidget(cb)
-
-        self.details_layout.addStretch()
+        all_categories = list(self.game_manager.get_all_categories().keys())
+        self.details_widget.set_game(game, all_categories)
 
     def _add_detail(self, label: str, value: str):
         """Detail-Zeile hinzufügen"""
@@ -371,6 +330,28 @@ class MainWindow(QMainWindow):
         self.vdf_parser.save()
         self._populate_categories()
         self.set_status(f"Updated {game.name}")
+
+    def _on_category_changed_from_details(self, app_id: str, category: str, checked: bool):
+        """Category toggled in details widget"""
+        game = self.game_manager.get_game(app_id)
+        if not game:
+            return
+
+        if checked:
+            if category not in game.categories:
+                game.categories.append(category)
+                self.vdf_parser.add_app_category(app_id, category)
+        else:
+            if category in game.categories:
+                game.categories.remove(category)
+                self.vdf_parser.remove_app_category(app_id, category)
+
+        self.vdf_parser.save()
+        self._populate_categories()
+
+        # Update details widget
+        all_categories = list(self.game_manager.get_all_categories().keys())
+        self.details_widget.set_game(game, all_categories)
 
     def on_game_right_click(self, game: Game, pos):
         """Rechtsklick auf Spiel"""
@@ -476,11 +457,9 @@ class MainWindow(QMainWindow):
         self._show_auto_categorize_dialog(games, category)
 
     def _show_auto_categorize_dialog(self, games: List[Game], category_name: Optional[str]):
-        """Zeige Auto-Categorize Dialog mit korrekten Games"""
-        # ✨ Store games for later use
-        self.dialog_games = games
+        self.dialog_games = games  # Speichern für _do_auto_categorize
         dialog = AutoCategorizeDialog(self, games, len(self.game_manager.games),
-                                     self._do_auto_categorize, category_name)
+                                      self._do_auto_categorize, category_name)
         dialog.exec()
 
     # ✅ FIX 4: _do_auto_categorize nutzt JETZT die richtigen Games!
@@ -497,7 +476,15 @@ class MainWindow(QMainWindow):
 
         # ✅ KORRIGIERT: Nutze die richtigen Games!
         if settings['scope'] == 'all':
-            games = self.game_manager.get_all_games()
+            # ✅ FIX: Nutze dialog_games statt selected_games!
+            if settings['scope'] == 'all':
+                games = self.game_manager.get_all_games()
+            elif self.dialog_games:
+                games = self.dialog_games
+            elif self.selected_games:
+                games = self.selected_games
+            else:
+                games = self.game_manager.get_uncategorized_games()
         else:
             # Nutze die Games die dem Dialog übergeben wurden!
             games = self.dialog_games if self.dialog_games else self.game_manager.get_uncategorized_games()
@@ -637,7 +624,103 @@ class MainWindow(QMainWindow):
         self._load_data()
 
     def show_settings(self):
-        QMessageBox.information(self, "TODO", "Settings dialog coming soon")
+        """Settings Dialog öffnen"""
+        dialog = SettingsDialog(self)
+
+        # Connect language changed signal for LIVE update
+        dialog.language_changed.connect(self._on_ui_language_changed_live)
+
+        if dialog.exec():
+            settings = dialog.get_settings()
+            if settings:
+                self._apply_settings(settings)
+
+    def _on_ui_language_changed_live(self, new_language: str):
+        """UI Language changed in Settings - refresh UI LIVE"""
+        config.UI_LANGUAGE = new_language
+
+        # Reload i18n
+        init_i18n(new_language)
+
+        # Refresh UI
+        self._refresh_menubar()
+        self._refresh_toolbar()
+        self.set_status(t('ui.status.ready'))
+
+    def _refresh_menubar(self):
+        """Refresh menu bar texts"""
+        menubar = self.menuBar()
+        menubar.clear()
+
+        # File Menu
+        file_menu = menubar.addMenu(t('ui.menu.file'))
+        file_menu.addAction(t('ui.menu.refresh'), self.refresh_data)
+        file_menu.addSeparator()
+        file_menu.addAction(t('ui.menu.exit'), self.close)
+
+        # Tools Menu
+        tools_menu = menubar.addMenu(t('ui.toolbar.metadata'))
+        tools_menu.addAction(f"✏️ {t('ui.toolbar.bulk_edit')}", self.bulk_edit_metadata)
+        tools_menu.addAction(f"🔄 {t('ui.toolbar.restore_changes')}", self.restore_metadata_changes)
+
+        # Help Menu
+        help_menu = menubar.addMenu(t('ui.menu.help'))
+        help_menu.addAction(t('ui.menu.settings'), self.show_settings)
+
+        # User label
+        self.user_label.setText(t('ui.status.not_logged_in'))
+
+    def _refresh_toolbar(self):
+        """Refresh toolbar texts"""
+        # Clear
+        self.toolbar.clear()
+
+        # Rebuild
+        self.toolbar.addAction(f"🔄 {t('ui.toolbar.refresh')}", self.refresh_data)
+        self.toolbar.addAction(f"🏷️ {t('ui.toolbar.auto_categorize')}", self.auto_categorize)
+        self.toolbar.addSeparator()
+        self.toolbar.addAction(f"⚙️ {t('ui.toolbar.settings')}", self.show_settings)
+
+    def _apply_settings(self, settings: dict):
+        """Apply settings"""
+        # Update config
+        config.UI_LANGUAGE = settings['ui_language']
+        config.TAGS_LANGUAGE = settings['tags_language']
+        config.TAGS_PER_GAME = settings['tags_per_game']
+        config.IGNORE_COMMON_TAGS = settings['ignore_common_tags']
+
+        if settings['steam_path']:
+            config.STEAM_PATH = Path(settings['steam_path'])
+
+        # Update Steam Scraper language
+        if self.steam_scraper:
+            self.steam_scraper.set_language(config.TAGS_LANGUAGE)
+
+        # Save to data file (not .env!)
+        self._save_settings(settings)
+
+        QMessageBox.information(
+            self,
+            t('ui.dialogs.success'),
+            f"Settings saved!\n\n"
+            f"UI Language: {settings['ui_language']}\n"
+            f"Tags Language: {settings['tags_language']}"
+        )
+
+    def _save_settings(self, settings: dict):
+        """Save settings to data file"""
+        import json
+        settings_file = config.DATA_DIR / 'settings.json'
+
+        data = {
+            'ui_language': settings['ui_language'],
+            'tags_language': settings['tags_language'],
+            'tags_per_game': settings['tags_per_game'],
+            'ignore_common_tags': settings['ignore_common_tags']
+        }
+
+        with open(settings_file, 'w') as f:
+            json.dump(data, f, indent=2)
 
     def set_status(self, text: str):
         self.statusbar.showMessage(text)
