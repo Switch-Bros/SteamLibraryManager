@@ -1,0 +1,42 @@
+{
+  "app": {
+    "name": "Steam Library Manager",
+    "version": "1.0.0"
+  },
+  "ui": {
+    "main": {
+      "title": "Steam Library Manager",
+      "games_count": "{count} games",
+      "search_placeholder": "Search games...",
+      "expand_all": "Expand All",
+      "collapse_all": "Collapse All"
+    },
+    "menu": {
+      "file": "File",
+      "login": "Login to Steam",
+      "settings": "Settings",
+      "exit": "Exit"
+    },
+    "toolbar": {
+      "refresh": "Refresh",
+      "add_category": "Add Category",
+      "auto_categorize": "Auto-Categorize",
+      "settings": "Settings"
+    },
+    "categories": {
+      "title": "Categories",
+      "all_games": "All Games",
+      "favorites": "Favorites",
+      "hidden": "Hidden",
+      "uncategorized": "Uncategorized"
+    },
+    "game_details": {
+      "title": "Game Details",
+      "categories_label": "Categories"
+    },
+    "status": {
+      "ready": "Ready",
+      "not_logged_in": "Not logged in"
+    }
+  }
+}

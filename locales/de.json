@@ -1,0 +1,42 @@
+{
+  "app": {
+    "name": "Steam Bibliotheks-Manager",
+    "version": "1.0.0"
+  },
+  "ui": {
+    "main": {
+      "title": "Steam Bibliotheks-Manager",
+      "games_count": "{count} Spiele",
+      "search_placeholder": "Spiele durchsuchen...",
+      "expand_all": "Alle ausklappen",
+      "collapse_all": "Alle einklappen"
+    },
+    "menu": {
+      "file": "Datei",
+      "login": "Bei Steam anmelden",
+      "settings": "Einstellungen",
+      "exit": "Beenden"
+    },
+    "toolbar": {
+      "refresh": "Aktualisieren",
+      "add_category": "Kategorie hinzufügen",
+      "auto_categorize": "Auto-Kategorisierung",
+      "settings": "Einstellungen"
+    },
+    "categories": {
+      "title": "Kategorien",
+      "all_games": "Alle Spiele",
+      "favorites": "Favoriten",
+      "hidden": "Versteckt",
+      "uncategorized": "Unkategorisiert"
+    },
+    "game_details": {
+      "title": "Spiel-Details",
+      "categories_label": "Kategorien"
+    },
+    "status": {
+      "ready": "Bereit",
+      "not_logged_in": "Nicht angemeldet"
+    }
+  }
+}
