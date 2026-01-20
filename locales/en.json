@@ -93,6 +93,16 @@
       "playtime": "Playtime",
       "last_update": "Last Update",
       "proton_db": "ProtonDB",
+      "proton_tiers": {
+        "native": "Native",
+        "platinum": "Platinum",
+        "gold": "Gold",
+        "silver": "Silver",
+        "bronze": "Bronze",
+        "borked": "Borked",
+        "pending": "Pending",
+        "unknown": "Unknown"
+      },
       "steam_db": "SteamDB Rating",
       "reviews": "Reviews",
       "developer": "Developer",
@@ -147,7 +157,7 @@
       "option_ignore_common": "Ignore common tags (Multiplayer, etc.)",
       "apply_group": "Apply To",
       "scope_category": "All games in '{name}' ({count})",
-      "scope_uncategorized": "Uncategorized games ({count})",
+      "scope_uncategorized": "Unkategorisierte games ({count})",
       "scope_all": "Entire Library ({count} games)",
       "warning_backup": "⚠️ A backup of your localconfig.vdf will be created automatically.",
       "estimate_label": "Estimated time: {time}\n({games} games, {methods} methods)",
@@ -230,31 +240,31 @@
       "bulk_success": "Successfully updated {count} games",
       "restore_success": "Successfully restored {count} modifications",
       "categorize_complete": "Categorization complete using {methods} method(s)! Backup: {backup}"
+    },
+    "status": {
+      "ready": "Ready",
+      "loading": "Loading...",
+      "loaded": "Loaded {count} games",
+      "selected": "Selected: {name}",
+      "selected_multiple": "{count} games selected",
+      "found_results": "Found {count} results",
+      "no_results": "No results found",
+      "updated": "Updated: {name}",
+      "backup_created": "Backup created: {name}",
+      "applying_changes": "Applying changes...",
+      "not_logged_in": "Not logged in",
+      "localconfig_not_found": "localconfig.vdf not found. Please login.",
+      "api_warning": "Warning: No STEAM_API_KEY found. Some features limited.",
+      "api_error": "Could not load games from API."
+    },
+    "errors": {
+      "steam_not_found": "Steam installation not found. Please set the path in Settings.",
+      "no_users": "No Steam users found.",
+      "localconfig_not_found": "localconfig.vdf not found.",
+      "localconfig_load_error": "Failed to load localconfig.vdf",
+      "no_api_key": "Steam API key not configured.",
+      "api_load_error": "Failed to load games from Steam API"
     }
-  },
-  "status": {
-    "ready": "Ready",
-    "loading": "Loading...",
-    "loaded": "Loaded {count} games",
-    "selected": "Selected: {name}",
-    "selected_multiple": "{count} games selected",
-    "found_results": "Found {count} results",
-    "no_results": "No results found",
-    "updated": "Updated: {name}",
-    "backup_created": "Backup created: {name}",
-    "applying_changes": "Applying changes...",
-    "not_logged_in": "Not logged in",
-    "localconfig_not_found": "localconfig.vdf not found. Please login.",
-    "api_warning": "Warning: No STEAM_API_KEY found. Some features limited.",
-    "api_error": "Could not load games from API."
-  },
-  "errors": {
-    "steam_not_found": "Steam installation not found. Please set the path in Settings.",
-    "no_users": "No Steam users found.",
-    "localconfig_not_found": "localconfig.vdf not found.",
-    "localconfig_load_error": "Failed to load localconfig.vdf",
-    "no_api_key": "Steam API key not configured.",
-    "api_load_error": "Failed to load games from Steam API"
   },
   "logs": {
     "appinfo": {

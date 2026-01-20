@@ -1,5 +1,5 @@
 """
-Game Manager - Real Data Fetching (Reviews & Last Update)
+Game Manager - With Native ProtonDB Integration
 Speichern als: src/core/game_manager.py
 """
 
@@ -35,11 +35,11 @@ class Game:
     name_overridden: bool = False
 
     # Erweiterte Daten
-    proton_db_rating: str = ""
+    proton_db_rating: str = ""  # "platinum", "gold", "native", etc.
     steam_db_rating: str = ""
     review_score: str = ""
     review_count: int = 0
-    last_updated: str = ""  # Timestamp oder String
+    last_updated: str = ""
     steam_grid_db_url: str = ""
 
     def __post_init__(self):
@@ -119,11 +119,9 @@ class GameManager:
     def apply_metadata_overrides(self, appinfo_manager):
         modifications = appinfo_manager.load_appinfo()
         count = 0
-
         for app_id, meta in modifications.items():
             if app_id in self.games:
                 game = self.games[app_id]
-
                 if meta.get('name'):
                     game.name = meta['name']
                     game.name_overridden = True
@@ -136,7 +134,6 @@ class GameManager:
                 if meta.get('developer'): game.developer = meta['developer']
                 if meta.get('publisher'): game.publisher = meta['publisher']
                 if meta.get('release_date'): game.release_year = meta['release_date']
-
                 count += 1
 
         if count > 0:
@@ -159,12 +156,8 @@ class GameManager:
         print(t('logs.manager.merged', count=len(self.games)))
 
     def apply_appinfo_data(self, appinfo_data: Dict):
-        """
-        Nimmt Daten aus appinfo.vdf (Last Updated) und packt sie ins Game Objekt.
-        """
         for app_id, data in appinfo_data.items():
             if app_id in self.games:
-                # common -> last_updated (Unix Timestamp)
                 if 'common' in data and 'last_updated' in data['common']:
                     ts = data['common']['last_updated']
                     try:
@@ -200,23 +193,21 @@ class GameManager:
         return categories
 
     def fetch_game_details(self, app_id: str) -> bool:
-        """Hole detaillierte Infos (Store + Reviews)"""
         if app_id not in self.games: return False
 
-        # 1. Store Data (Details)
+        # 1. Store Data
         self._fetch_store_data(app_id)
-
-        # 2. Review Data (Bewertungen)
+        # 2. Review Data
         self._fetch_review_stats(app_id)
+        # 3. ProtonDB Data (NEU!)
+        self._fetch_proton_rating(app_id)
 
         return True
 
     def _fetch_store_data(self, app_id: str):
-        # Cache Check
         cache_file = self.cache_dir / 'store_data' / f'{app_id}.json'
 
         if cache_file.exists():
-            # Cache < 7 Tage
             cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
             if cache_age < timedelta(days=7):
                 with open(cache_file, 'r') as f:
@@ -232,7 +223,6 @@ class GameManager:
 
             if app_id in data and data[app_id]['success']:
                 game_data = data[app_id]['data']
-                # Cache
                 cache_file.parent.mkdir(exist_ok=True)
                 with open(cache_file, 'w') as f:
                     json.dump(game_data, f)
@@ -241,8 +231,6 @@ class GameManager:
             pass
 
     def _fetch_review_stats(self, app_id: str):
-        """Hole Review Score von Steam"""
-        # Cache Check (Reviews ändern sich, also nur 24h Cache)
         cache_file = self.cache_dir / 'store_data' / f'{app_id}_reviews.json'
 
         if cache_file.exists():
@@ -259,10 +247,43 @@ class GameManager:
             data = response.json()
 
             if 'query_summary' in data:
-                # Cache
                 with open(cache_file, 'w') as f:
                     json.dump(data, f)
                 self._apply_review_data(app_id, data)
+        except:
+            pass
+
+    def _fetch_proton_rating(self, app_id: str):
+        """Hole ProtonDB Rating"""
+        # 7 Tage Cache für ProtonDB
+        cache_file = self.cache_dir / 'store_data' / f'{app_id}_proton.json'
+
+        if cache_file.exists():
+            cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
+            if cache_age < timedelta(days=7):
+                with open(cache_file, 'r') as f:
+                    data = json.load(f)
+                    if app_id in self.games:
+                        self.games[app_id].proton_db_rating = data.get('tier', 'unknown')
+                return
+
+        try:
+            url = f'https://www.protondb.com/api/v1/reports/summaries/{app_id}.json'
+            response = requests.get(url, timeout=3)
+
+            if response.status_code == 200:
+                data = response.json()
+                tier = data.get('tier', 'unknown')
+
+                with open(cache_file, 'w') as f:
+                    json.dump({'tier': tier}, f)
+
+                if app_id in self.games:
+                    self.games[app_id].proton_db_rating = tier
+            else:
+                # 404 means game not found on ProtonDB
+                if app_id in self.games:
+                    self.games[app_id].proton_db_rating = 'unknown'
         except:
             pass
 
@@ -271,11 +292,9 @@ class GameManager:
         game = self.games[app_id]
 
         summary = data.get('query_summary', {})
-        # review_score_desc: "Very Positive", "Mixed", etc.
         game.review_score = summary.get('review_score_desc', 'Unknown')
         game.review_count = summary.get('total_reviews', 0)
 
-        # SteamDB Rating Approximation (Simple Wilson Score logic is complex, using percent for now)
         positive = summary.get('total_positive', 0)
         total = summary.get('total_reviews', 0)
         if total > 0:
@@ -291,7 +310,7 @@ class GameManager:
 
             release = data.get('release_date', {})
             if release.get('date'):
-                game.release_year = release['date']  # Nimm das ganze Datum
+                game.release_year = release['date']
 
         genres = data.get('genres', [])
         game.genres = [g['description'] for g in genres]
