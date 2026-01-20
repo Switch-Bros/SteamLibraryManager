@@ -1,5 +1,5 @@
 """
-Configuration - Auto-Detect SteamID
+Configuration - Auto-Detect SteamID & SteamGridDB Support (Clean)
 Speichern als: src/config.py
 """
 import os
@@ -7,7 +7,7 @@ import json
 import base64
 from pathlib import Path
 from dataclasses import dataclass
-from typing import Optional, List, Tuple
+from typing import Optional, Tuple
 
 
 @dataclass
@@ -17,20 +17,16 @@ class Config:
     CACHE_DIR: Path = DATA_DIR / 'cache'
     SETTINGS_FILE: Path = DATA_DIR / 'settings.json'
 
-    # Defaults
     UI_LANGUAGE: str = 'en'
     TAGS_LANGUAGE: str = 'en'
     DEFAULT_LOCALE: str = 'en'
 
-    # Keys
     STEAM_API_KEY: str = ''
     STEAMGRIDDB_API_KEY: str = ''
 
-    # Paths & IDs
     STEAM_PATH: Optional[Path] = None
-    STEAM_USER_ID: Optional[str] = None  # Wird jetzt dynamisch gesetzt
+    STEAM_USER_ID: Optional[str] = None
 
-    # Settings
     THEME: str = 'dark'
     WINDOW_WIDTH: int = 1400
     WINDOW_HEIGHT: int = 800
@@ -42,6 +38,7 @@ class Config:
         self.CACHE_DIR.mkdir(exist_ok=True)
         (self.CACHE_DIR / 'game_tags').mkdir(exist_ok=True)
         (self.CACHE_DIR / 'store_data').mkdir(exist_ok=True)
+        (self.CACHE_DIR / 'images').mkdir(exist_ok=True)
 
         self._load_settings()
 
@@ -49,16 +46,22 @@ class Config:
             self.STEAM_PATH = self._find_steam_path()
 
     def _get_obfuscated_key(self) -> str:
-        # Dein verschlüsselter Key
         ENCODED_KEY = "RDU4Q0NEM0UxMTBCRUIyNkRBODA0Njc3NDk3MzBCREI="
         try:
             return base64.b64decode(ENCODED_KEY).decode()
         except Exception:
             return ""
 
+    def _get_sgdb_key(self) -> str:
+        ENCODED_KEY = "OTZhOGY0ODczZjM3ZjJiZDU1Zjk5OGI0NTFiYTJlMzM="
+        try:
+            return base64.b64decode(ENCODED_KEY).decode()
+        except Exception:
+            return ""
+
     def _load_settings(self):
-        # 1. Standard Key laden
         self.STEAM_API_KEY = self._get_obfuscated_key()
+        self.STEAMGRIDDB_API_KEY = self._get_sgdb_key()
 
         if self.SETTINGS_FILE.exists():
             try:
@@ -70,12 +73,11 @@ class Config:
                 self.TAGS_PER_GAME = settings.get('tags_per_game', 13)
                 self.IGNORE_COMMON_TAGS = settings.get('ignore_common_tags', True)
 
-                # Wenn User manuell einen Key eingegeben hat, nimm den
                 if settings.get('steam_api_key'):
                     self.STEAM_API_KEY = settings.get('steam_api_key')
 
             except Exception as e:
-                print(f"Error loading settings: {e}")
+                print(e)  # Systemfehler, keine Übersetzung nötig
 
     def save_settings(self, **kwargs):
         current = {}
@@ -97,26 +99,16 @@ class Config:
         return None
 
     def get_detected_user(self) -> Tuple[Optional[str], Optional[str]]:
-        """
-        Versucht den lokalen User zu erkennen.
-        Returns: (AccountID_Short, SteamID64_Long)
-        """
-        if not self.STEAM_PATH:
-            return None, None
-
+        if not self.STEAM_PATH: return None, None
         userdata = self.STEAM_PATH / 'userdata'
-        if not userdata.exists():
-            return None, None
+        if not userdata.exists(): return None, None
 
-        # Nimm den ersten Ordner, der eine localconfig hat
         for item in userdata.iterdir():
             if item.is_dir() and item.name.isdigit():
                 if (item / 'config' / 'localconfig.vdf').exists():
                     account_id = int(item.name)
-                    # ✨ MAGIE: Umrechnung ShortID -> SteamID64
                     steam_id_64 = str(account_id + 76561197960265728)
                     return str(account_id), steam_id_64
-
         return None, None
 
     def get_localconfig_path(self, account_id: str) -> Optional[Path]:
