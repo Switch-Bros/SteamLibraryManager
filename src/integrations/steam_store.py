@@ -2,6 +2,7 @@
 Steam Store Integration - MIT LANGUAGE SUPPORT! 🌍
 
 Updated: Holt Tags in der eingestellten Sprache
+Speichern als: src/integrations/steam_store.py
 """
 
 import requests
@@ -11,6 +12,7 @@ from typing import List, Optional, Dict
 from pathlib import Path
 import json
 from datetime import datetime, timedelta
+from src.utils.i18n import t
 
 
 class SteamStoreScraper:
@@ -75,14 +77,6 @@ class SteamStoreScraper:
                      ignore_common: bool = True) -> List[str]:
         """
         Get tags for a game in the set language
-
-        Args:
-            app_id: Steam App ID
-            max_tags: Maximum number of tags
-            ignore_common: Ignore common/useless tags
-
-        Returns:
-            List of tags in the set language
         """
         # Cache key includes language
         cache_file = self.cache_dir / f'{app_id}_{self.language_code}.json'
@@ -120,7 +114,7 @@ class SteamStoreScraper:
         try:
             # URL with language parameter
             url = f'https://store.steampowered.com/app/{app_id}'
-            params = {'l': self.steam_language}  # 🌍 LANGUAGE!
+            params = {'l': self.steam_language}
 
             headers = {
                 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36',
@@ -147,7 +141,7 @@ class SteamStoreScraper:
             return tags
 
         except Exception as e:
-            print(f"Error fetching tags for {app_id}: {e}")
+            print(t('logs.steam_store.fetch_error', app_id=app_id, error=e))
             return []
 
     def _filter_tags(self, tags: List[str], max_tags: int,
@@ -171,18 +165,7 @@ class SteamStoreScraper:
     def fetch_multiple_games(self, app_ids: List[str], max_tags: int = 13,
                             ignore_common: bool = True,
                             progress_callback = None) -> Dict[str, List[str]]:
-        """
-        Fetch tags for multiple games
-
-        Args:
-            app_ids: List of App IDs
-            max_tags: Max tags per game
-            ignore_common: Ignore common tags
-            progress_callback: Callback(current, total, game_name)
-
-        Returns:
-            Dict: {app_id: [tags]}
-        """
+        """Fetch tags for multiple games"""
         results = {}
         total = len(app_ids)
 

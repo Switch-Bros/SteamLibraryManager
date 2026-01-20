@@ -6,3 +6,4 @@ data/
 *.log
 .idea/
 .vscode/
+debug_steam.py

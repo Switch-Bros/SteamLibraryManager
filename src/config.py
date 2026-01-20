@@ -1,13 +1,14 @@
 """
-Configuration - DEUTSCH als Default, KEINE .env nötig!
-
+Configuration - Auto-Detect SteamID
 Speichern als: src/config.py
 """
 import os
 import json
+import base64
 from pathlib import Path
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List, Tuple
+
 
 @dataclass
 class Config:
@@ -16,81 +17,76 @@ class Config:
     CACHE_DIR: Path = DATA_DIR / 'cache'
     SETTINGS_FILE: Path = DATA_DIR / 'settings.json'
 
-    # ✨ DEUTSCH als Default!
-    UI_LANGUAGE: str = 'de'
-    TAGS_LANGUAGE: str = 'de'
+    # Defaults
+    UI_LANGUAGE: str = 'en'
+    TAGS_LANGUAGE: str = 'en'
+    DEFAULT_LOCALE: str = 'en'
 
-    # Legacy (für Kompatibilität)
-    DEFAULT_LOCALE: str = 'de'
-
+    # Keys
     STEAM_API_KEY: str = ''
     STEAMGRIDDB_API_KEY: str = ''
 
+    # Paths & IDs
     STEAM_PATH: Optional[Path] = None
-    STEAM_USER_ID: Optional[str] = None
+    STEAM_USER_ID: Optional[str] = None  # Wird jetzt dynamisch gesetzt
 
+    # Settings
     THEME: str = 'dark'
     WINDOW_WIDTH: int = 1400
     WINDOW_HEIGHT: int = 800
-
     TAGS_PER_GAME: int = 13
     IGNORE_COMMON_TAGS: bool = True
 
     def __post_init__(self):
-        # Create directories
         self.DATA_DIR.mkdir(exist_ok=True)
         self.CACHE_DIR.mkdir(exist_ok=True)
         (self.CACHE_DIR / 'game_tags').mkdir(exist_ok=True)
         (self.CACHE_DIR / 'store_data').mkdir(exist_ok=True)
 
-        # Load settings from file (NOT .env!)
         self._load_settings()
 
-        # Find Steam
         if self.STEAM_PATH is None:
             self.STEAM_PATH = self._find_steam_path()
 
+    def _get_obfuscated_key(self) -> str:
+        # Dein verschlüsselter Key
+        ENCODED_KEY = "RDU4Q0NEM0UxMTBCRUIyNkRBODA0Njc3NDk3MzBCREI="
+        try:
+            return base64.b64decode(ENCODED_KEY).decode()
+        except Exception:
+            return ""
+
     def _load_settings(self):
-        """Lade Settings aus JSON Datei"""
+        # 1. Standard Key laden
+        self.STEAM_API_KEY = self._get_obfuscated_key()
+
         if self.SETTINGS_FILE.exists():
             try:
                 with open(self.SETTINGS_FILE, 'r') as f:
                     settings = json.load(f)
 
-                # Apply settings
-                self.UI_LANGUAGE = settings.get('ui_language', 'de')
-                self.TAGS_LANGUAGE = settings.get('tags_language', 'de')
+                self.UI_LANGUAGE = settings.get('ui_language', 'en')
+                self.TAGS_LANGUAGE = settings.get('tags_language', 'en')
                 self.TAGS_PER_GAME = settings.get('tags_per_game', 13)
                 self.IGNORE_COMMON_TAGS = settings.get('ignore_common_tags', True)
-                self.STEAM_USER_ID = settings.get('steam_user_id', None)
-                self.STEAM_API_KEY = settings.get('steam_api_key', '')
 
-                # Update DEFAULT_LOCALE for compatibility
-                self.DEFAULT_LOCALE = self.UI_LANGUAGE
+                # Wenn User manuell einen Key eingegeben hat, nimm den
+                if settings.get('steam_api_key'):
+                    self.STEAM_API_KEY = settings.get('steam_api_key')
 
-                print(f"✓ Settings loaded: UI={self.UI_LANGUAGE}, Tags={self.TAGS_LANGUAGE}")
             except Exception as e:
                 print(f"Error loading settings: {e}")
-        else:
-            print("ℹ️ No settings file, using defaults (Deutsch)")
 
     def save_settings(self, **kwargs):
-        """Speichere Settings in JSON Datei"""
-        # Lade aktuelle Settings
         current = {}
         if self.SETTINGS_FILE.exists():
             with open(self.SETTINGS_FILE, 'r') as f:
                 current = json.load(f)
-
-        # Update
         current.update(kwargs)
-
-        # Speichern
         with open(self.SETTINGS_FILE, 'w') as f:
             json.dump(current, f, indent=2)
 
     def _find_steam_path(self) -> Optional[Path]:
-        """Finde Steam Installation auf Linux"""
         paths = [
             Path.home() / '.steam' / 'steam',
             Path.home() / '.local' / 'share' / 'Steam',
@@ -100,40 +96,33 @@ class Config:
                 return p
         return None
 
-    def get_localconfig_path(self, user_id: Optional[str] = None) -> Optional[Path]:
+    def get_detected_user(self) -> Tuple[Optional[str], Optional[str]]:
         """
-        Pfad zur localconfig.vdf für einen User
-
-        Args:
-            user_id: Steam User ID (optional, nutzt gespeicherte ID falls None)
-
-        Returns:
-            Path zur localconfig.vdf oder None
+        Versucht den lokalen User zu erkennen.
+        Returns: (AccountID_Short, SteamID64_Long)
         """
-        if user_id is None:
-            user_id = self.STEAM_USER_ID
-
-        if self.STEAM_PATH and user_id:
-            config_path = self.STEAM_PATH / 'userdata' / user_id / 'config' / 'localconfig.vdf'
-            if config_path.exists():
-                return config_path
-
-        return None
-
-    def get_all_user_ids(self) -> list:
-        """Finde alle Steam User IDs im userdata Ordner"""
         if not self.STEAM_PATH:
-            return []
+            return None, None
 
         userdata = self.STEAM_PATH / 'userdata'
         if not userdata.exists():
-            return []
+            return None, None
 
-        ids = []
+        # Nimm den ersten Ordner, der eine localconfig hat
         for item in userdata.iterdir():
             if item.is_dir() and item.name.isdigit():
                 if (item / 'config' / 'localconfig.vdf').exists():
-                    ids.append(item.name)
-        return ids
+                    account_id = int(item.name)
+                    # ✨ MAGIE: Umrechnung ShortID -> SteamID64
+                    steam_id_64 = str(account_id + 76561197960265728)
+                    return str(account_id), steam_id_64
+
+        return None, None
+
+    def get_localconfig_path(self, account_id: str) -> Optional[Path]:
+        if self.STEAM_PATH and account_id:
+            return self.STEAM_PATH / 'userdata' / account_id / 'config' / 'localconfig.vdf'
+        return None
+
 
 config = Config()

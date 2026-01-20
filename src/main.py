@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
 Steam Library Manager - Main Entry Point (PyQt6 Version)
-
 Speichern als: src/main.py
 """
 import sys
@@ -14,36 +13,44 @@ if str(project_root) not in sys.path:
 
 from PyQt6.QtWidgets import QApplication
 from src.config import config
-from src.utils.i18n import init_i18n
+from src.utils.i18n import init_i18n, t
 from src.ui.main_window import MainWindow
 
 
 def main():
-    print("=" * 60)
-    print("🎮  Steam Library Manager v1.0 (PyQt6)")
-    print("=" * 60)
-
-    print("🌍 Initializing...")
+    # 1. Sprache initialisieren
     init_i18n(config.DEFAULT_LOCALE)
 
-    if config.STEAM_PATH:
-        print(f"✅ Steam found at: {config.STEAM_PATH}")
-        user_ids = config.get_all_user_ids()
-        if user_ids:
-            print(f"👤 Found {len(user_ids)} Steam user(s)")
-            if not config.STEAM_USER_ID and len(user_ids) == 1:
-                config.STEAM_USER_ID = user_ids[0]
-    else:
-        print("⚠️  Steam not found")
+    # 2. Start-Logs
+    print("=" * 60)
+    print(t('cli.banner'))
+    print("=" * 60)
 
-    print("\n🚀 Starting application with PyQt6...\n")
+    print(t('cli.initializing'))
+
+    if config.STEAM_PATH:
+        print(t('cli.steam_found', path=config.STEAM_PATH))
+
+        # FIX: Nutze die neue intelligente Erkennung statt der alten Funktion
+        short_id, long_id = config.get_detected_user()
+        if short_id:
+            # Wir haben einen User gefunden
+            print(t('cli.users_found', count=1))
+
+            # Falls noch keine ID in der Config steht, nehmen wir die erkannte
+            if not config.STEAM_USER_ID and long_id:
+                config.STEAM_USER_ID = long_id
+    else:
+        print(t('cli.steam_not_found'))
+
+    print(f"\n{t('cli.starting')}\n")
 
     try:
         app = QApplication(sys.argv)
         app.setApplicationName("Steam Library Manager")
 
-        # Qt automatically detects and applies system theme (KDE Breeze, GNOME Adwaita, etc.)
-        print("✓ Using native Qt theme")
+        # Qt automatically detects and applies system theme
+        print(t('cli.qt_theme'))
 
         window = MainWindow()
         window.show()
@@ -51,7 +58,7 @@ def main():
         sys.exit(app.exec())
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        print(f"\n{t('cli.error', error=e)}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

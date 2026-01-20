@@ -1,6 +1,5 @@
 """
-Category Tree - PyQt6 Version mit Spielen drin! Virtualisiert für Performance
-
+Category Tree - Clean & i18n-ready
 Speichern als: src/ui/components/category_tree.py
 """
 
@@ -85,15 +84,17 @@ class GameTreeWidget(QTreeWidget):
     def populate_categories(self, categories_data: Dict[str, List]):
         """
         Populate tree with categories and games
-
-        Args:
-            categories_data: Dict[category_name, List[Game]]
         """
         self.clear()
 
+        folder_icon = t('ui.categories.icon_folder')
+        fav_icon = t('ui.categories.icon_favorite')
+
         for category_name, games in categories_data.items():
             # Create category item
-            category_item = QTreeWidgetItem(self, [f"📁 {category_name} ({len(games)})"])
+            # Format: "📁 Name (Count)"
+            display_text = f"{folder_icon} {category_name} ({len(games)})"
+            category_item = QTreeWidgetItem(self, [display_text])
             category_item.setData(0, Qt.ItemDataRole.UserRole + 1, category_name)
 
             # Style category
@@ -105,11 +106,13 @@ class GameTreeWidget(QTreeWidget):
             # Add games (limit to first 100 for performance)
             display_limit = 100
             for game in games[:display_limit]:
+                # Format: "  • GameName (Xh) ⭐"
                 game_text = f"  • {game.name}"
                 if game.playtime_hours > 0:
-                    game_text += f" ({game.playtime_hours}h)"
+                    game_text += f" ({t('ui.game_details.hours', hours=game.playtime_hours)})"
                 if game.is_favorite():
-                    game_text += " ⭐"
+                    game_text += f" {fav_icon}"
+
                 game_item = QTreeWidgetItem(category_item, [game_text])
                 game_item.setData(0, Qt.ItemDataRole.UserRole, game)
 
@@ -120,7 +123,9 @@ class GameTreeWidget(QTreeWidget):
 
             # Show "... and X more" if there are more games
             if len(games) > display_limit:
-                more_text = f"  ... and {len(games) - display_limit} more games"
+                remaining = len(games) - display_limit
+                more_text = t('ui.categories.more_games', count=remaining)
+
                 more_item = QTreeWidgetItem(category_item, [more_text])
                 more_font = more_item.font(0)
                 more_font.setItalic(True)
@@ -129,20 +134,16 @@ class GameTreeWidget(QTreeWidget):
                 more_item.setForeground(0, Qt.GlobalColor.gray)
 
     def expand_all_categories(self):
-        """Expand all category items"""
         self.expandAll()
 
     def collapse_all_categories(self):
-        """Collapse all category items"""
         self.collapseAll()
 
 
 class CategoryTreeWithGames(QWidget):
     """
-    Category Tree Widget mit Header und Expand/Collapse Buttons
-
-    DEPRECATED: Use GameTreeWidget directly instead!
-    This class is kept for backwards compatibility only.
+    Wrapper mit Header und Buttons
+    DEPRECATED: But kept for compatibility if needed elsewhere
     """
 
     def __init__(self, parent=None, on_game_click: Optional[Callable] = None,
@@ -150,7 +151,6 @@ class CategoryTreeWithGames(QWidget):
                  on_category_right_click: Optional[Callable] = None):
         super().__init__(parent)
 
-        # Create layout
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
@@ -172,13 +172,13 @@ class CategoryTreeWithGames(QWidget):
         header_layout.addStretch()
 
         # Expand/Collapse buttons
-        expand_btn = QPushButton("[+]")
+        expand_btn = QPushButton(t('ui.categories.sym_expand'))
         expand_btn.setToolTip(t('ui.main.expand_all'))
         expand_btn.setMaximumWidth(40)
         expand_btn.clicked.connect(self._expand_all)
         header_layout.addWidget(expand_btn)
 
-        collapse_btn = QPushButton("[−]")
+        collapse_btn = QPushButton(t('ui.categories.sym_collapse'))
         collapse_btn.setToolTip(t('ui.main.collapse_all'))
         collapse_btn.setMaximumWidth(40)
         collapse_btn.clicked.connect(self._collapse_all)
@@ -198,29 +198,18 @@ class CategoryTreeWithGames(QWidget):
         layout.addWidget(self.tree)
 
     def _expand_all(self):
-        """Expand all categories"""
         self.tree.expand_all_categories()
 
     def _collapse_all(self):
-        """Collapse all categories"""
         self.tree.collapse_all_categories()
 
     def add_category(self, name: str, icon: str, games: List):
-        """
-        Add category with games (deprecated - use populate_categories instead)
-
-        Args:
-            name: Category name
-            icon: Icon (emoji)
-            games: List of Game objects
-        """
-        categories_data = {f"{icon} {name}": games}
+        # icon ignored here, handled by tree populate
+        categories_data = {name: games}
         self.tree.populate_categories(categories_data)
 
     def clear(self):
-        """Clear all categories"""
         self.tree.clear()
 
     def populate_categories(self, categories_data: Dict[str, List]):
-        """Populate with categories"""
         self.tree.populate_categories(categories_data)

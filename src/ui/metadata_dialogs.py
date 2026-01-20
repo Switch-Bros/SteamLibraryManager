@@ -1,16 +1,17 @@
 """
-Metadata Edit Dialogs - Einzel- und Bulk-Bearbeitung
+Metadata Edit Dialogs - Clean & i18n-ready
+Speichern als: src/ui/metadata_dialogs.py
 """
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
     QLineEdit, QPushButton, QLabel, QTextEdit, QGroupBox,
-    QCheckBox, QMessageBox, QProgressDialog
+    QCheckBox, QMessageBox
 )
-from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 from typing import Optional, Dict, List
 from datetime import datetime
+from src.utils.i18n import t
 
 
 class MetadataEditDialog(QDialog):
@@ -23,7 +24,7 @@ class MetadataEditDialog(QDialog):
         self.current_metadata = current_metadata
         self.result_metadata = None
 
-        self.setWindowTitle(f"Edit Metadata - {game_name}")
+        self.setWindowTitle(t('ui.metadata_editor.editing_title', game=game_name))
         self.setMinimumWidth(600)
         self.setModal(True)
 
@@ -35,7 +36,7 @@ class MetadataEditDialog(QDialog):
         layout = QVBoxLayout(self)
 
         # Title
-        title = QLabel(f"Editing: {self.game_name}")
+        title = QLabel(t('ui.metadata_editor.editing_title', game=self.game_name))
         title_font = QFont()
         title_font.setPointSize(14)
         title_font.setBold(True)
@@ -43,8 +44,7 @@ class MetadataEditDialog(QDialog):
         layout.addWidget(title)
 
         # Info
-        info = QLabel("Changes are local and may be overwritten by Steam.\n"
-                      "Steam Library Manager will track and restore your changes.")
+        info = QLabel(t('ui.metadata_editor.info_tracking'))
         info.setStyleSheet("color: gray; font-size: 10px;")
         layout.addWidget(info)
 
@@ -52,32 +52,32 @@ class MetadataEditDialog(QDialog):
         form = QFormLayout()
 
         self.name_edit = QLineEdit()
-        form.addRow("Game Name:", self.name_edit)
+        form.addRow(t('ui.metadata_editor.game_name_label'), self.name_edit)
 
         self.sort_as_edit = QLineEdit()
-        form.addRow("Sort As:", self.sort_as_edit)
+        form.addRow(t('ui.metadata_editor.sort_as_label'), self.sort_as_edit)
 
-        sort_help = QLabel("(Used for alphabetical sorting. Auto-filled if empty.)")
+        sort_help = QLabel(t('ui.metadata_editor.sort_as_help'))
         sort_help.setStyleSheet("color: gray; font-size: 9px;")
         form.addRow("", sort_help)
 
         self.developer_edit = QLineEdit()
-        form.addRow("Developer:", self.developer_edit)
+        form.addRow(t('ui.game_details.developer') + ":", self.developer_edit)
 
         self.publisher_edit = QLineEdit()
-        form.addRow("Publisher:", self.publisher_edit)
+        form.addRow(t('ui.game_details.publisher') + ":", self.publisher_edit)
 
         self.release_date_edit = QLineEdit()
-        form.addRow("Release Date:", self.release_date_edit)
+        form.addRow(t('ui.game_details.release_year') + ":", self.release_date_edit)
 
-        date_help = QLabel("(Format: YYYY-MM-DD or Unix timestamp)")
+        date_help = QLabel(t('ui.metadata_editor.date_help'))
         date_help.setStyleSheet("color: gray; font-size: 9px;")
         form.addRow("", date_help)
 
         layout.addLayout(form)
 
         # Original values display
-        original_group = QGroupBox("Original Values (for reference)")
+        original_group = QGroupBox(t('ui.metadata_editor.original_values_group'))
         original_layout = QVBoxLayout()
 
         self.original_text = QTextEdit()
@@ -92,15 +92,16 @@ class MetadataEditDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        reset_btn = QPushButton("Reset to Original")
+        # FIX: i18n Key korrigiert (reset_defaults)
+        reset_btn = QPushButton(t('ui.settings.reset_defaults'))
         reset_btn.clicked.connect(self._reset_to_original)
         btn_layout.addWidget(reset_btn)
 
-        cancel_btn = QPushButton("Cancel")
+        cancel_btn = QPushButton(t('ui.dialogs.cancel'))
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
 
-        save_btn = QPushButton("Save Changes")
+        save_btn = QPushButton(t('ui.settings.save'))
         save_btn.clicked.connect(self._save)
         save_btn.setDefault(True)
         btn_layout.addWidget(save_btn)
@@ -115,40 +116,32 @@ class MetadataEditDialog(QDialog):
         self.publisher_edit.setText(self.current_metadata.get('publisher', ''))
 
         release_date = self.current_metadata.get('release_date', '')
-        if isinstance(release_date, int):
-            # Convert Unix timestamp to readable format
-            try:
-                dt = datetime.fromtimestamp(release_date)
-                release_date = dt.strftime('%Y-%m-%d')
-            except:
-                pass
+        # Simple convert to string if it's an int (timestamp)
         self.release_date_edit.setText(str(release_date))
 
         # Show original values
+        # FIX: t() Aufrufe waren hier evtl. falsch, jetzt sichergestellt
         original_text = []
-        original_text.append(f"Name: {self.current_metadata.get('name', 'N/A')}")
-        original_text.append(f"Developer: {self.current_metadata.get('developer', 'N/A')}")
-        original_text.append(f"Publisher: {self.current_metadata.get('publisher', 'N/A')}")
-        original_text.append(f"Release Date: {self.current_metadata.get('release_date', 'N/A')}")
+        original_text.append(f"{t('ui.game_details.name')}: {self.current_metadata.get('name', 'N/A')}")
+        original_text.append(f"{t('ui.game_details.developer')}: {self.current_metadata.get('developer', 'N/A')}")
+        original_text.append(f"{t('ui.game_details.publisher')}: {self.current_metadata.get('publisher', 'N/A')}")
+        original_text.append(f"{t('ui.game_details.release_year')}: {self.current_metadata.get('release_date', 'N/A')}")
 
         self.original_text.setPlainText('\n'.join(original_text))
 
     def _reset_to_original(self):
-        """Reset all fields to original values"""
         self._populate_fields()
 
     def _save(self):
-        """Save changes"""
         name = self.name_edit.text().strip()
 
         if not name:
-            QMessageBox.warning(self, "Invalid Input", "Game name cannot be empty!")
+            QMessageBox.warning(self, t('ui.dialogs.error'), t('ui.metadata_editor.error_empty_name'))
             return
 
-        # Build result metadata
         self.result_metadata = {
             'name': name,
-            'sort_as': self.sort_as_edit.text().strip() or name,  # Auto-fill if empty
+            'sort_as': self.sort_as_edit.text().strip() or name,
             'developer': self.developer_edit.text().strip(),
             'publisher': self.publisher_edit.text().strip(),
             'release_date': self.release_date_edit.text().strip(),
@@ -157,7 +150,6 @@ class MetadataEditDialog(QDialog):
         self.accept()
 
     def get_metadata(self) -> Optional[Dict]:
-        """Get the edited metadata (None if canceled)"""
         return self.result_metadata
 
 
@@ -171,7 +163,7 @@ class BulkMetadataEditDialog(QDialog):
         self.game_names = game_names
         self.result_metadata = None
 
-        self.setWindowTitle(f"Bulk Edit Metadata - {games_count} Games")
+        self.setWindowTitle(t('ui.metadata_editor.bulk_title', count=games_count))
         self.setMinimumWidth(600)
         self.setModal(True)
 
@@ -182,7 +174,7 @@ class BulkMetadataEditDialog(QDialog):
         layout = QVBoxLayout(self)
 
         # Title
-        title = QLabel(f"Bulk Editing {self.games_count} Games")
+        title = QLabel(t('ui.metadata_editor.bulk_title', count=self.games_count))
         title_font = QFont()
         title_font.setPointSize(14)
         title_font.setBold(True)
@@ -190,23 +182,21 @@ class BulkMetadataEditDialog(QDialog):
         layout.addWidget(title)
 
         # Info
-        info = QLabel(f"Only filled fields will be applied to all {self.games_count} selected games.\n"
-                      "Leave fields empty to keep original values.")
+        info = QLabel(t('ui.metadata_editor.bulk_info', count=self.games_count))
         info.setStyleSheet("color: orange; font-size: 11px;")
         layout.addWidget(info)
 
         # Selected games preview
-        preview_group = QGroupBox(f"Selected Games ({self.games_count})")
+        preview_group = QGroupBox(t('ui.metadata_editor.bulk_preview', count=self.games_count))
         preview_layout = QVBoxLayout()
 
         preview_text = QTextEdit()
         preview_text.setReadOnly(True)
         preview_text.setMaximumHeight(120)
 
-        # Show first 20 games
         preview_names = self.game_names[:20]
         if len(self.game_names) > 20:
-            preview_names.append(f"... and {len(self.game_names) - 20} more games")
+            preview_names.append(t('ui.metadata_editor.bulk_more', count=len(self.game_names) - 20))
 
         preview_text.setPlainText('\n'.join(preview_names))
         preview_layout.addWidget(preview_text)
@@ -215,12 +205,12 @@ class BulkMetadataEditDialog(QDialog):
         layout.addWidget(preview_group)
 
         # Checkboxes + Fields
-        fields_group = QGroupBox("Fields to Modify")
+        fields_group = QGroupBox(t('ui.metadata_editor.fields_group'))
         fields_layout = QVBoxLayout()
 
         # Developer
         dev_layout = QHBoxLayout()
-        self.cb_developer = QCheckBox("Set Developer:")
+        self.cb_developer = QCheckBox(t('ui.metadata_editor.set_field', field=t('ui.game_details.developer')))
         self.developer_edit = QLineEdit()
         self.developer_edit.setEnabled(False)
         self.cb_developer.toggled.connect(self.developer_edit.setEnabled)
@@ -230,7 +220,7 @@ class BulkMetadataEditDialog(QDialog):
 
         # Publisher
         pub_layout = QHBoxLayout()
-        self.cb_publisher = QCheckBox("Set Publisher:")
+        self.cb_publisher = QCheckBox(t('ui.metadata_editor.set_field', field=t('ui.game_details.publisher')))
         self.publisher_edit = QLineEdit()
         self.publisher_edit.setEnabled(False)
         self.cb_publisher.toggled.connect(self.publisher_edit.setEnabled)
@@ -240,9 +230,9 @@ class BulkMetadataEditDialog(QDialog):
 
         # Release Date
         date_layout = QHBoxLayout()
-        self.cb_release_date = QCheckBox("Set Release Date:")
+        self.cb_release_date = QCheckBox(t('ui.metadata_editor.set_field', field=t('ui.game_details.release_year')))
         self.release_date_edit = QLineEdit()
-        self.release_date_edit.setPlaceholderText("YYYY-MM-DD or Unix timestamp")
+        self.release_date_edit.setPlaceholderText(t('ui.metadata_editor.date_help'))
         self.release_date_edit.setEnabled(False)
         self.cb_release_date.toggled.connect(self.release_date_edit.setEnabled)
         date_layout.addWidget(self.cb_release_date)
@@ -251,9 +241,8 @@ class BulkMetadataEditDialog(QDialog):
 
         # Name prefix/suffix
         prefix_layout = QHBoxLayout()
-        self.cb_name_prefix = QCheckBox("Add Prefix to Name:")
+        self.cb_name_prefix = QCheckBox(t('ui.metadata_editor.add_prefix'))
         self.name_prefix_edit = QLineEdit()
-        self.name_prefix_edit.setPlaceholderText("e.g., '[HD]' or '★'")
         self.name_prefix_edit.setEnabled(False)
         self.cb_name_prefix.toggled.connect(self.name_prefix_edit.setEnabled)
         prefix_layout.addWidget(self.cb_name_prefix)
@@ -261,9 +250,8 @@ class BulkMetadataEditDialog(QDialog):
         fields_layout.addLayout(prefix_layout)
 
         suffix_layout = QHBoxLayout()
-        self.cb_name_suffix = QCheckBox("Add Suffix to Name:")
+        self.cb_name_suffix = QCheckBox(t('ui.metadata_editor.add_suffix'))
         self.name_suffix_edit = QLineEdit()
-        self.name_suffix_edit.setPlaceholderText("e.g., '(Remastered)' or '✓'")
         self.name_suffix_edit.setEnabled(False)
         self.cb_name_suffix.toggled.connect(self.name_suffix_edit.setEnabled)
         suffix_layout.addWidget(self.cb_name_suffix)
@@ -272,9 +260,8 @@ class BulkMetadataEditDialog(QDialog):
 
         # Remove from name
         remove_layout = QHBoxLayout()
-        self.cb_remove_text = QCheckBox("Remove Text from Name:")
+        self.cb_remove_text = QCheckBox(t('ui.metadata_editor.remove_text'))
         self.remove_text_edit = QLineEdit()
-        self.remove_text_edit.setPlaceholderText("e.g., '®' or 'Edition'")
         self.remove_text_edit.setEnabled(False)
         self.cb_remove_text.toggled.connect(self.remove_text_edit.setEnabled)
         remove_layout.addWidget(self.cb_remove_text)
@@ -285,8 +272,7 @@ class BulkMetadataEditDialog(QDialog):
         layout.addWidget(fields_group)
 
         # Warning
-        warning = QLabel("⚠️ Changes will be applied to ALL selected games!\n"
-                         "A backup will be created automatically.")
+        warning = QLabel(t('ui.auto_categorize.warning_backup'))
         warning.setStyleSheet("color: orange;")
         layout.addWidget(warning)
 
@@ -294,11 +280,11 @@ class BulkMetadataEditDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        cancel_btn = QPushButton("Cancel")
+        cancel_btn = QPushButton(t('ui.dialogs.cancel'))
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
 
-        apply_btn = QPushButton(f"Apply to {self.games_count} Games")
+        apply_btn = QPushButton(t('ui.metadata_editor.apply_button', count=self.games_count))
         apply_btn.clicked.connect(self._apply)
         apply_btn.setDefault(True)
         btn_layout.addWidget(apply_btn)
@@ -316,16 +302,14 @@ class BulkMetadataEditDialog(QDialog):
             self.cb_name_suffix.isChecked(),
             self.cb_remove_text.isChecked()
         ]):
-            QMessageBox.warning(self, "No Changes",
-                                "Please select at least one field to modify!")
+            QMessageBox.warning(self, t('ui.dialogs.no_changes'), t('ui.dialogs.no_selection'))
             return
 
         # Confirm
         reply = QMessageBox.question(
             self,
-            "Confirm Bulk Edit",
-            f"This will modify {self.games_count} games.\n\n"
-            "A backup will be created. Continue?",
+            t('ui.dialogs.confirm_bulk_title'),
+            t('ui.dialogs.confirm_bulk', count=self.games_count),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
 
@@ -344,7 +328,6 @@ class BulkMetadataEditDialog(QDialog):
         if self.cb_release_date.isChecked():
             self.result_metadata['release_date'] = self.release_date_edit.text().strip()
 
-        # Name modifications (special handling)
         name_mods = {}
         if self.cb_name_prefix.isChecked():
             name_mods['prefix'] = self.name_prefix_edit.text()
@@ -361,7 +344,6 @@ class BulkMetadataEditDialog(QDialog):
         self.accept()
 
     def get_metadata(self) -> Optional[Dict]:
-        """Get the bulk edit settings (None if canceled)"""
         return self.result_metadata
 
 
@@ -374,47 +356,38 @@ class MetadataRestoreDialog(QDialog):
         self.modified_count = modified_count
         self.do_restore = False
 
-        self.setWindowTitle("Restore Metadata Changes")
+        self.setWindowTitle(t('ui.menu.restore'))
         self.setMinimumWidth(500)
         self.setModal(True)
 
         self._create_ui()
 
     def _create_ui(self):
-        """Create UI"""
         layout = QVBoxLayout(self)
 
-        # Title
-        title = QLabel("🔄 Restore Metadata Changes")
+        title = QLabel(t('ui.menu.restore'))
         title_font = QFont()
         title_font.setPointSize(16)
         title_font.setBold(True)
         title.setFont(title_font)
         layout.addWidget(title)
 
-        # Info
-        info = QLabel(
-            f"Steam Library Manager has tracked {self.modified_count} modified games.\n\n"
-            "If Steam has overwritten your changes, you can restore them now.\n\n"
-            "This will re-apply all your custom metadata (names, developers, etc.)"
-        )
+        info = QLabel(t('ui.metadata_editor.restore_info', count=self.modified_count))
         info.setWordWrap(True)
         layout.addWidget(info)
 
-        # Warning
-        warning = QLabel("⚠️ A backup will be created before restoring.")
+        warning = QLabel(t('ui.auto_categorize.warning_backup'))
         warning.setStyleSheet("color: orange;")
         layout.addWidget(warning)
 
-        # Buttons
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        cancel_btn = QPushButton("Cancel")
+        cancel_btn = QPushButton(t('ui.dialogs.cancel'))
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
 
-        restore_btn = QPushButton(f"Restore {self.modified_count} Changes")
+        restore_btn = QPushButton(t('ui.metadata_editor.restore_button', count=self.modified_count))
         restore_btn.clicked.connect(self._restore)
         restore_btn.setDefault(True)
         btn_layout.addWidget(restore_btn)
@@ -422,10 +395,8 @@ class MetadataRestoreDialog(QDialog):
         layout.addLayout(btn_layout)
 
     def _restore(self):
-        """Confirm restore"""
         self.do_restore = True
         self.accept()
 
     def should_restore(self) -> bool:
-        """Returns True if user wants to restore"""
         return self.do_restore

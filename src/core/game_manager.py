@@ -1,5 +1,6 @@
 """
-Game Manager - Verwaltet alle Spiele und deren Daten
+Game Manager - Real Data Fetching (Reviews & Last Update)
+Speichern als: src/core/game_manager.py
 """
 
 import requests
@@ -8,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import json
 from datetime import datetime, timedelta
+from src.utils.i18n import t
 
 
 @dataclass
@@ -19,44 +21,47 @@ class Game:
     last_played: Optional[datetime] = None
     categories: List[str] = None
 
-    # Metadaten (von Steam API oder überschrieben)
+    # Metadaten
     developer: str = ""
     publisher: str = ""
     release_year: str = ""
     genres: List[str] = None
     tags: List[str] = None
 
-    # Steam Deck
-    deck_verified: Optional[bool] = None
+    # Sortierung
+    sort_name: str = ""
 
     # Override-Flags
     name_overridden: bool = False
 
+    # Erweiterte Daten
+    proton_db_rating: str = ""
+    steam_db_rating: str = ""
+    review_score: str = ""
+    review_count: int = 0
+    last_updated: str = ""  # Timestamp oder String
+    steam_grid_db_url: str = ""
+
     def __post_init__(self):
-        if self.categories is None:
-            self.categories = []
-        if self.genres is None:
-            self.genres = []
-        if self.tags is None:
-            self.tags = []
+        if self.categories is None: self.categories = []
+        if self.genres is None: self.genres = []
+        if self.tags is None: self.tags = []
+
+        if not self.sort_name:
+            self.sort_name = self.name
 
     @property
     def playtime_hours(self) -> float:
-        """Spielzeit in Stunden"""
         return round(self.playtime_minutes / 60, 1)
 
     def has_category(self, category: str) -> bool:
-        """Prüfe ob Spiel in Kategorie ist"""
         return category in self.categories
 
     def is_favorite(self) -> bool:
-        """Prüfe ob Favorit"""
         return 'favorite' in self.categories
 
 
 class GameManager:
-    """Verwaltet alle Spiele"""
-
     def __init__(self, steam_api_key: str, cache_dir: Path):
         self.api_key = steam_api_key
         self.cache_dir = cache_dir
@@ -66,15 +71,6 @@ class GameManager:
         self.steam_user_id: Optional[str] = None
 
     def load_from_steam_api(self, steam_user_id: str) -> bool:
-        """
-        Lade Spiele-Bibliothek von Steam API
-
-        Args:
-            steam_user_id: Steam User ID (z.B. "43925226")
-
-        Returns:
-            True wenn erfolgreich
-        """
         self.steam_user_id = steam_user_id
 
         try:
@@ -87,231 +83,219 @@ class GameManager:
                 'format': 'json'
             }
 
-            print(f"Loading games from Steam API...")
+            print(t('logs.manager.loading_api'))
             response = requests.get(url, params=params, timeout=10)
             response.raise_for_status()
 
             data = response.json()
 
             if 'response' not in data or 'games' not in data['response']:
-                print("Error: No games found in API response")
+                print(t('logs.manager.error_no_games'))
                 return False
 
             games_data = data['response']['games']
-            print(f"✓ Loaded {len(games_data)} games from Steam")
+            print(t('logs.manager.loaded_steam', count=len(games_data)))
 
-            # Konvertiere zu Game-Objekten
             for game_data in games_data:
                 app_id = str(game_data['appid'])
+                original_name = game_data.get('name', f'Game {app_id}')
 
                 game = Game(
                     app_id=app_id,
-                    name=game_data.get('name', f'Game {app_id}'),
+                    name=original_name,
                     playtime_minutes=game_data.get('playtime_forever', 0)
                 )
-
                 self.games[app_id] = game
 
             return True
 
         except requests.exceptions.RequestException as e:
-            print(f"Error loading from Steam API: {e}")
+            print(t('logs.manager.error_api', error=e))
             return False
         except Exception as e:
-            print(f"Unexpected error: {e}")
+            print(t('logs.manager.error_unexpected', error=e))
             return False
 
+    def apply_metadata_overrides(self, appinfo_manager):
+        modifications = appinfo_manager.load_appinfo()
+        count = 0
+
+        for app_id, meta in modifications.items():
+            if app_id in self.games:
+                game = self.games[app_id]
+
+                if meta.get('name'):
+                    game.name = meta['name']
+                    game.name_overridden = True
+
+                if meta.get('sort_as'):
+                    game.sort_name = meta['sort_as']
+                else:
+                    game.sort_name = game.name
+
+                if meta.get('developer'): game.developer = meta['developer']
+                if meta.get('publisher'): game.publisher = meta['publisher']
+                if meta.get('release_date'): game.release_year = meta['release_date']
+
+                count += 1
+
+        if count > 0:
+            print(f"✓ Applied metadata overrides to {count} games")
+
     def merge_with_localconfig(self, parser):
-        """
-        Merge Spiele-Daten mit localconfig.vdf (Kategorien)
-
-        Args:
-            parser: LocalConfigParser Instanz
-        """
-        print("Merging with localconfig.vdf...")
-
-        # Hole alle App IDs aus localconfig
+        print(t('logs.manager.merging'))
         local_app_ids = set(parser.get_all_app_ids())
 
-        # Merge Kategorien für bekannte Spiele
         for app_id in self.games:
             if app_id in local_app_ids:
                 categories = parser.get_app_categories(app_id)
                 self.games[app_id].categories = categories
 
-        # Füge Spiele hinzu die nur in localconfig sind (nicht in Bibliothek)
-        # Das können Non-Steam-Spiele oder gelöschte Spiele sein
         api_app_ids = set(self.games.keys())
         missing_ids = local_app_ids - api_app_ids
-
         if missing_ids:
-            print(f"Found {len(missing_ids)} games in localconfig not in library")
-            # Diese ignorieren wir vorerst
+            print(t('logs.manager.found_missing', count=len(missing_ids)))
 
-        print(f"✓ Merged categories for {len(self.games)} games")
+        print(t('logs.manager.merged', count=len(self.games)))
+
+    def apply_appinfo_data(self, appinfo_data: Dict):
+        """
+        Nimmt Daten aus appinfo.vdf (Last Updated) und packt sie ins Game Objekt.
+        """
+        for app_id, data in appinfo_data.items():
+            if app_id in self.games:
+                # common -> last_updated (Unix Timestamp)
+                if 'common' in data and 'last_updated' in data['common']:
+                    ts = data['common']['last_updated']
+                    try:
+                        dt = datetime.fromtimestamp(int(ts))
+                        self.games[app_id].last_updated = dt.strftime('%Y-%m-%d')
+                    except:
+                        pass
 
     def get_all_games(self) -> List[Game]:
-        """Hole alle Spiele als Liste"""
-        return list(self.games.values())
+        return sorted(list(self.games.values()), key=lambda g: g.sort_name.lower())
 
     def get_game(self, app_id: str) -> Optional[Game]:
-        """Hole einzelnes Spiel"""
         return self.games.get(app_id)
 
     def get_games_by_category(self, category: str) -> List[Game]:
-        """Hole alle Spiele einer Kategorie"""
-        return [g for g in self.games.values() if g.has_category(category)]
+        games = [g for g in self.games.values() if g.has_category(category)]
+        return sorted(games, key=lambda g: g.sort_name.lower())
 
     def get_uncategorized_games(self) -> List[Game]:
-        """Hole alle Spiele ohne Kategorien"""
-        return [g for g in self.games.values()
-                if not g.categories or g.categories == ['favorite']]
+        games = [g for g in self.games.values()
+                 if not g.categories or g.categories == ['favorite']]
+        return sorted(games, key=lambda g: g.sort_name.lower())
 
     def get_favorites(self) -> List[Game]:
-        """Hole alle Favoriten"""
-        return [g for g in self.games.values() if g.is_favorite()]
-
-    def search_games(self, query: str) -> List[Game]:
-        """
-        Suche Spiele nach Namen
-
-        Args:
-            query: Suchbegriff
-
-        Returns:
-            Liste gefundener Spiele
-        """
-        query_lower = query.lower()
-        return [g for g in self.games.values()
-                if query_lower in g.name.lower()]
+        games = [g for g in self.games.values() if g.is_favorite()]
+        return sorted(games, key=lambda g: g.sort_name.lower())
 
     def get_all_categories(self) -> Dict[str, int]:
-        """
-        Hole alle Kategorien mit Anzahl Spiele
-
-        Returns:
-            Dict: {category_name: game_count}
-        """
         categories = {}
-
         for game in self.games.values():
             for category in game.categories:
                 categories[category] = categories.get(category, 0) + 1
-
         return categories
 
     def fetch_game_details(self, app_id: str) -> bool:
-        """
-        Hole detaillierte Infos zu einem Spiel von Steam Store
+        """Hole detaillierte Infos (Store + Reviews)"""
+        if app_id not in self.games: return False
 
-        Args:
-            app_id: Steam App ID
+        # 1. Store Data (Details)
+        self._fetch_store_data(app_id)
 
-        Returns:
-            True wenn erfolgreich
-        """
-        # Prüfe Cache
+        # 2. Review Data (Bewertungen)
+        self._fetch_review_stats(app_id)
+
+        return True
+
+    def _fetch_store_data(self, app_id: str):
+        # Cache Check
         cache_file = self.cache_dir / 'store_data' / f'{app_id}.json'
 
         if cache_file.exists():
-            # Cache < 7 Tage alt?
+            # Cache < 7 Tage
             cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
             if cache_age < timedelta(days=7):
                 with open(cache_file, 'r') as f:
                     data = json.load(f)
                     self._apply_store_data(app_id, data)
-                    return True
+                return
 
-        # Fetch von Steam Store
         try:
-            url = f'https://store.steampowered.com/api/appdetails'
+            url = 'https://store.steampowered.com/api/appdetails'
             params = {'appids': app_id}
-
-            response = requests.get(url, params=params, timeout=10)
-            response.raise_for_status()
-
+            response = requests.get(url, params=params, timeout=5)
             data = response.json()
 
             if app_id in data and data[app_id]['success']:
                 game_data = data[app_id]['data']
-
-                # Cache speichern
+                # Cache
                 cache_file.parent.mkdir(exist_ok=True)
                 with open(cache_file, 'w') as f:
                     json.dump(game_data, f)
-
                 self._apply_store_data(app_id, game_data)
-                return True
+        except:
+            pass
 
-            return False
+    def _fetch_review_stats(self, app_id: str):
+        """Hole Review Score von Steam"""
+        # Cache Check (Reviews ändern sich, also nur 24h Cache)
+        cache_file = self.cache_dir / 'store_data' / f'{app_id}_reviews.json'
 
-        except Exception as e:
-            print(f"Error fetching details for {app_id}: {e}")
-            return False
+        if cache_file.exists():
+            cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
+            if cache_age < timedelta(hours=24):
+                with open(cache_file, 'r') as f:
+                    data = json.load(f)
+                    self._apply_review_data(app_id, data)
+                return
 
-    def _apply_store_data(self, app_id: str, data: Dict):
-        """Wende Store-Daten auf Game an"""
-        if app_id not in self.games:
-            return
+        try:
+            url = f'https://store.steampowered.com/appreviews/{app_id}?json=1&language=all'
+            response = requests.get(url, timeout=5)
+            data = response.json()
 
+            if 'query_summary' in data:
+                # Cache
+                with open(cache_file, 'w') as f:
+                    json.dump(data, f)
+                self._apply_review_data(app_id, data)
+        except:
+            pass
+
+    def _apply_review_data(self, app_id: str, data: Dict):
+        if app_id not in self.games: return
         game = self.games[app_id]
 
-        game.developer = ', '.join(data.get('developers', []))
-        game.publisher = ', '.join(data.get('publishers', []))
+        summary = data.get('query_summary', {})
+        # review_score_desc: "Very Positive", "Mixed", etc.
+        game.review_score = summary.get('review_score_desc', 'Unknown')
+        game.review_count = summary.get('total_reviews', 0)
 
-        # Release year
-        release_date = data.get('release_date', {})
-        if release_date.get('date'):
-            try:
-                date_str = release_date['date']
-                # Format: "15 Jan, 2025" oder nur "2025"
-                if ',' in date_str:
-                    game.release_year = date_str.split(',')[-1].strip()
-                else:
-                    game.release_year = date_str.strip()
-            except:
-                pass
+        # SteamDB Rating Approximation (Simple Wilson Score logic is complex, using percent for now)
+        positive = summary.get('total_positive', 0)
+        total = summary.get('total_reviews', 0)
+        if total > 0:
+            percent = (positive / total) * 100
+            game.steam_db_rating = f"{percent:.0f}%"
 
-        # Genres
+    def _apply_store_data(self, app_id: str, data: Dict):
+        game = self.games[app_id]
+
+        if not game.name_overridden:
+            game.developer = ', '.join(data.get('developers', []))
+            game.publisher = ', '.join(data.get('publishers', []))
+
+            release = data.get('release_date', {})
+            if release.get('date'):
+                game.release_year = release['date']  # Nimm das ganze Datum
+
         genres = data.get('genres', [])
         game.genres = [g['description'] for g in genres]
 
-        # Categories (Steam's intern, nicht user-categories!)
-        # Diese können wir für Tags nutzen
         categories = data.get('categories', [])
-        steam_tags = [c['description'] for c in categories]
-
-        # Merge mit existierenden Tags
-        game.tags = list(set(game.tags + steam_tags))
-
-
-# Beispiel-Nutzung
-if __name__ == "__main__":
-    from src.config import config
-    from src.core.localconfig_parser import LocalConfigParser
-
-    # Game Manager erstellen
-    manager = GameManager(config.STEAM_API_KEY, config.CACHE_DIR)
-
-    # Von Steam API laden (benötigt API Key!)
-    if config.STEAM_API_KEY and config.STEAM_USER_ID:
-        if manager.load_from_steam_api(config.STEAM_USER_ID):
-
-            # Merge mit localconfig
-            config_path = config.get_localconfig_path()
-            if config_path:
-                parser = LocalConfigParser(config_path)
-                if parser.load():
-                    manager.merge_with_localconfig(parser)
-
-            # Statistiken
-            print(f"\n📊 Statistics:")
-            print(f"Total games: {len(manager.get_all_games())}")
-            print(f"Favorites: {len(manager.get_favorites())}")
-            print(f"Uncategorized: {len(manager.get_uncategorized_games())}")
-
-            # Kategorien
-            categories = manager.get_all_categories()
-            print(f"\nCategories: {len(categories)}")
-            for cat, count in sorted(categories.items(), key=lambda x: -x[1])[:10]:
-                print(f"  • {cat}: {count} games")
+        tags = [c['description'] for c in categories]
+        game.tags = list(set(game.tags + tags))

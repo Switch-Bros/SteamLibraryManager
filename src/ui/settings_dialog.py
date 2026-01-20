@@ -1,13 +1,13 @@
 """
-Settings Dialog V2 - Getrennte UI/Tags Sprache + Live Switch
-
+Settings Dialog - Clean & i18n-ready (Final)
 Speichern als: src/ui/settings_dialog.py
 """
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
     QPushButton, QLabel, QComboBox, QLineEdit, QFileDialog,
-    QTabWidget, QWidget, QCheckBox, QSpinBox, QGroupBox
+    QTabWidget, QWidget, QCheckBox, QSpinBox, QGroupBox,
+    QMessageBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
@@ -22,15 +22,12 @@ class SettingsDialog(QDialog):
     """Settings Dialog mit getrennter UI/Tags Sprache"""
 
     # Signals
-    language_changed = pyqtSignal(str)  # Emitted when UI language changes
+    language_changed = pyqtSignal(str)
 
-    # Language codes und Flags
-    LANGUAGES = {
-        'en': ('🇬🇧', 'English'),
-        'de': ('🇩🇪', 'Deutsch')
-    }
+    # Verfügbare Sprach-Codes
+    SUPPORTED_LANGUAGES = ['en', 'de']
 
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         super().__init__(parent)
 
         self.setWindowTitle(t('ui.settings.title'))
@@ -40,11 +37,12 @@ class SettingsDialog(QDialog):
 
         self.result_settings = None
         self.original_ui_language = config.UI_LANGUAGE
+
         self._create_ui()
         self._load_current_settings()
 
     def _create_ui(self):
-        """Create UI"""
+        """Erstelle UI Struktur"""
         layout = QVBoxLayout(self)
 
         # Title
@@ -65,11 +63,8 @@ class SettingsDialog(QDialog):
 
         layout.addWidget(tabs)
 
-        # Info label
-        info_label = QLabel(
-            "ℹ️ UI Language changes immediately.\n"
-            "Tags Language applies to new Auto-Categorizations."
-        )
+        # Info label (Footer)
+        info_label = QLabel(t('ui.settings.info_label'))
         info_label.setStyleSheet("color: gray; font-size: 10px; padding: 10px;")
         info_label.setWordWrap(True)
         layout.addWidget(info_label)
@@ -78,7 +73,7 @@ class SettingsDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        cancel_btn = QPushButton(t('ui.settings.cancel'))
+        cancel_btn = QPushButton(t('ui.dialogs.cancel'))
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
 
@@ -90,7 +85,6 @@ class SettingsDialog(QDialog):
         layout.addLayout(btn_layout)
 
     def _create_general_tab(self) -> QWidget:
-        """General settings tab"""
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
@@ -99,32 +93,34 @@ class SettingsDialog(QDialog):
         lang_layout = QFormLayout()
 
         # UI Language
-        ui_lang_label = QLabel("<b>Interface Language:</b>")
+        ui_lang_label = QLabel(f"<b>{t('ui.settings.ui_language_label')}:</b>")
         lang_layout.addRow(ui_lang_label)
 
         self.ui_language_combo = QComboBox()
-        for code, (flag, name) in self.LANGUAGES.items():
-            self.ui_language_combo.addItem(f"{flag}  {name}", code)
+        for code in self.SUPPORTED_LANGUAGES:
+            # Holt "🇩🇪 Deutsch" oder "🇬🇧 English" aus der JSON
+            self.ui_language_combo.addItem(t(f'ui.settings.languages.{code}'), code)
+
         self.ui_language_combo.currentIndexChanged.connect(self._on_ui_language_changed)
         lang_layout.addRow("", self.ui_language_combo)
 
-        ui_info = QLabel("(Menus, buttons, dialogs)")
+        ui_info = QLabel(t('ui.settings.ui_info'))
         ui_info.setStyleSheet("color: gray; font-size: 10px;")
         lang_layout.addRow("", ui_info)
 
-        # Spacer
         lang_layout.addRow("", QLabel(""))
 
         # Tags Language
-        tags_lang_label = QLabel("<b>Steam Tags Language:</b>")
+        tags_lang_label = QLabel(f"<b>{t('ui.settings.tags_language_label')}:</b>")
         lang_layout.addRow(tags_lang_label)
 
         self.tags_language_combo = QComboBox()
-        for code, (flag, name) in self.LANGUAGES.items():
-            self.tags_language_combo.addItem(f"{flag}  {name}", code)
+        for code in self.SUPPORTED_LANGUAGES:
+            self.tags_language_combo.addItem(t(f'ui.settings.languages.{code}'), code)
+
         lang_layout.addRow("", self.tags_language_combo)
 
-        tags_info = QLabel("(Auto-Categorize uses this language)")
+        tags_info = QLabel(t('ui.settings.tags_info'))
         tags_info.setStyleSheet("color: gray; font-size: 10px;")
         lang_layout.addRow("", tags_info)
 
@@ -163,12 +159,11 @@ class SettingsDialog(QDialog):
         return widget
 
     def _create_auto_cat_tab(self) -> QWidget:
-        """Auto-Categorization settings tab"""
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
         # Tags Settings Group
-        tags_group = QGroupBox("Steam Tags Settings")
+        tags_group = QGroupBox(t('ui.settings.tags_group'))
         tags_layout = QFormLayout()
 
         # Tags per game
@@ -187,11 +182,7 @@ class SettingsDialog(QDialog):
         layout.addWidget(tags_group)
 
         # Info
-        info = QLabel(
-            "ℹ️ These settings apply when using Auto-Categorize.\n\n"
-            "Tags are fetched from Steam Store in the selected Tags Language.\n"
-            "Example: UI in English, Tags in German = English menus with German categories!"
-        )
+        info = QLabel(t('ui.settings.auto_cat_info'))
         info.setStyleSheet("color: gray; padding: 10px;")
         info.setWordWrap(True)
         layout.addWidget(info)
@@ -200,28 +191,21 @@ class SettingsDialog(QDialog):
         return widget
 
     def _on_ui_language_changed(self, index):
-        """UI Language changed - Update dialog LIVE"""
         new_language = self.ui_language_combo.currentData()
 
         if new_language != self.original_ui_language:
-            # Reload i18n
+            # Reload i18n locally to update dialog texts immediately
             from src.utils.i18n import init_i18n
             init_i18n(new_language)
-
-            # Update dialog texts
             self._refresh_texts()
-
-            # Emit signal for parent to refresh
+            # Emit signal for parent
             self.language_changed.emit(new_language)
 
     def _refresh_texts(self):
-        """Refresh all translatable texts in dialog"""
+        """Update window title when language changes"""
         self.setWindowTitle(t('ui.settings.title'))
-        # Note: Tab titles und andere Labels würden hier auch aktualisiert
-        # Für MVP reicht Window Title
 
     def _browse_steam_path(self):
-        """Browse for Steam path"""
         path = QFileDialog.getExistingDirectory(
             self,
             "Select Steam Installation Directory",
@@ -231,7 +215,6 @@ class SettingsDialog(QDialog):
             self.steam_path_edit.setText(path)
 
     def _load_current_settings(self):
-        """Load current settings from config"""
         # UI Language
         ui_lang = config.UI_LANGUAGE if hasattr(config, 'UI_LANGUAGE') else config.DEFAULT_LOCALE
         index = self.ui_language_combo.findData(ui_lang)
@@ -253,7 +236,6 @@ class SettingsDialog(QDialog):
         self.ignore_common_checkbox.setChecked(config.IGNORE_COMMON_TAGS)
 
     def _save(self):
-        """Save settings"""
         self.result_settings = {
             'ui_language': self.ui_language_combo.currentData(),
             'tags_language': self.tags_language_combo.currentData(),
@@ -262,9 +244,7 @@ class SettingsDialog(QDialog):
             'tags_per_game': self.tags_per_game_spin.value(),
             'ignore_common_tags': self.ignore_common_checkbox.isChecked()
         }
-
         self.accept()
 
     def get_settings(self) -> Optional[Dict]:
-        """Get saved settings (None if canceled)"""
         return self.result_settings
