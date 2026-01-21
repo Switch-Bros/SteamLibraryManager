@@ -1,5 +1,5 @@
 """
-Clickable Image - Fallback Safety
+Clickable Image - Strings Localized
 Speichern als: src/ui/components/clickable_image.py
 """
 from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout
@@ -7,17 +7,17 @@ from PyQt6.QtCore import Qt, pyqtSignal, QThread, QByteArray, QTimer
 from PyQt6.QtGui import QPixmap, QCursor, QImage
 import requests
 import os
+import io
 from src.config import config
 from src.utils.i18n import t
 
-# WebP Import
 try:
-    import webp
+    from PIL import Image, ImageSequence
 
-    HAS_WEBP_LIB = True
+    HAS_PILLOW = True
 except ImportError:
-    HAS_WEBP_LIB = False
-    print("WARNUNG: 'webp' Library fehlt!")
+    HAS_PILLOW = False
+    print(t('logs.image.pillow_missing'))  # Localized Log
 
 
 class ImageLoader(QThread):
@@ -40,7 +40,7 @@ class ImageLoader(QThread):
                     data = QByteArray(f.read())
             else:
                 headers = {'User-Agent': 'SteamLibraryManager/1.0'}
-                response = requests.get(self.url_or_path, headers=headers, timeout=20)
+                response = requests.get(self.url_or_path, headers=headers, timeout=15)
                 if response.status_code == 200:
                     data = QByteArray(response.content)
         except:
@@ -88,9 +88,10 @@ class ClickableImage(QWidget):
 
         self.layout.addWidget(self.img_container)
 
-        author_text = "Unknown"
+        # Autor: Fallback lokalisiert
+        author_text = t('ui.game_details.value_unknown')
         if self.metadata and 'author' in self.metadata:
-            author_text = self.metadata['author'].get('name', 'Unknown')
+            author_text = self.metadata['author'].get('name', t('ui.game_details.value_unknown'))
         elif not self.metadata:
             author_text = t(f'ui.game_details.gallery.{img_type}')
 
@@ -166,7 +167,7 @@ class ClickableImage(QWidget):
         if self.loader and self.loader.isRunning():
             self.loader.stop()
 
-        self.image_label.setText("⏳")
+        self.image_label.setText("⏳")  # Symbols are okay as non-translatable
         self.loader = ImageLoader(url_or_path)
         self.loader.loaded.connect(self._on_loaded)
         self.loader.start()
@@ -177,65 +178,63 @@ class ClickableImage(QWidget):
             if self.metadata: self._create_badges(False)
             return
 
-        is_webp = data.startsWith(b'RIFF') and data.mid(8, 4) == b'WEBP'
-        animation_loaded = False
-
-        # 1. VERSUCH: 'webp' Library
-        if is_webp and HAS_WEBP_LIB:
+        if HAS_PILLOW:
             try:
-                webp_data = webp.WebPData.from_buffer(data.data())
-                dec = webp.WebPAnimDecoder.new(webp_data)
+                byte_stream = io.BytesIO(data.data())
+                im = Image.open(byte_stream)
 
-                new_frames = []
-                new_durations = []
+                is_animated = getattr(im, "is_animated", False)
+                self.frames = []
+                self.durations = []
 
-                for arr, timestamp_ms in dec.frames():
-                    h, w = arr.shape[0], arr.shape[1]
-                    img = QImage(arr, w, h, QImage.Format.Format_RGBA8888)
-                    pix = QPixmap.fromImage(img)
+                if is_animated:
+                    for frame in ImageSequence.Iterator(im):
+                        frame_rgba = frame.convert("RGBA")
+                        data_rgba = frame_rgba.tobytes("raw", "RGBA")
+                        qimg = QImage(data_rgba, frame_rgba.width, frame_rgba.height, QImage.Format.Format_RGBA8888)
+                        pix = QPixmap.fromImage(qimg)
+                        scaled = pix.scaled(self.w, self.h, Qt.AspectRatioMode.KeepAspectRatio,
+                                            Qt.TransformationMode.SmoothTransformation)
+                        self.frames.append(scaled)
+                        duration = frame.info.get('duration', 100)
+                        self.durations.append(duration)
 
+                    if self.frames:
+                        self._start_animation()
+                        self._create_badges(True)
+                        return
+                else:
+                    im_rgba = im.convert("RGBA")
+                    data_rgba = im_rgba.tobytes("raw", "RGBA")
+                    qimg = QImage(data_rgba, im_rgba.width, im_rgba.height, QImage.Format.Format_RGBA8888)
+                    pix = QPixmap.fromImage(qimg)
                     scaled = pix.scaled(self.w, self.h, Qt.AspectRatioMode.KeepAspectRatio,
                                         Qt.TransformationMode.SmoothTransformation)
-                    new_frames.append(scaled)
-                    new_durations.append(timestamp_ms)
+                    self.image_label.resize(scaled.size())
+                    self.image_label.setPixmap(scaled)
+                    self._center_image()
+                    self._create_badges(False)
+                    return
 
-                # Delta berechnen
-                deltas = []
-                prev = 0
-                for t_ms in new_durations:
-                    d = max(20, t_ms - prev)
-                    deltas.append(d)
-                    prev = t_ms
+            except Exception:
+                pass
 
-                self.frames = new_frames
-                self.durations = deltas
+        pixmap = QPixmap()
+        pixmap.loadFromData(data)
 
-                if self.frames:
-                    self._start_animation()
-                    self._create_badges(True)
-                    animation_loaded = True
-            except Exception as e:
-                print(f"WebP Decode Error: {e}")
-
-        # 2. FALLBACK: Qt Standard Load (als statisches Bild)
-        # Wenn Animation fehlgeschlagen ist ODER es kein WebP war
-        if not animation_loaded:
-            pixmap = QPixmap()
-            pixmap.loadFromData(data)
-
-            if not pixmap.isNull():
-                scaled = pixmap.scaled(
-                    self.w, self.h,
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation
-                )
-                self.image_label.resize(scaled.size())
-                self.image_label.setPixmap(scaled)
-                self._center_image()
-                self._create_badges(False)
-            else:
-                self.image_label.setText("❌")
-                if self.metadata: self._create_badges(False)
+        if not pixmap.isNull():
+            scaled = pixmap.scaled(
+                self.w, self.h,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
+            self.image_label.resize(scaled.size())
+            self.image_label.setPixmap(scaled)
+            self._center_image()
+            self._create_badges(False)
+        else:
+            self.image_label.setText("❌")
+            if self.metadata: self._create_badges(False)
 
     def _start_animation(self):
         if not self.frames: return

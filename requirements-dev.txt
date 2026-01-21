@@ -1,0 +1,17 @@
+# ===== Entwicklungsumgebung =====
+# Umgebungsvariablen (für lokale API-Keys)
+python-dotenv>=1.0.0
+
+# ===== Testing & Code-Qualität =====
+# Unit Tests
+pytest>=7.4.0
+# Code-Formatierung
+black>=23.0.0
+# Linting
+flake8>=6.0.0
+
+# ===== Optional für Entwicklung =====
+# Falls Flask für lokale OAuth2-Tests genutzt wird
+Flask>=3.0.0
+# Asynchrone Anfragen (falls in der Entwicklung getestet)
+aiohttp>=3.9.0
