@@ -110,10 +110,10 @@
       "review_negative": "Negative",
       "review_count": "({count})",
       "gallery": {
-        "grid": "GRID",
-        "logo": "LOGO",
-        "icon": "ICON",
-        "hero": "HERO",
+        "grids": "GRIDS",
+        "logos": "LOGOS",
+        "icons": "ICONS",
+        "heroes": "HEROES",
         "reset": "🗑️ Reset to Original",
         "reset_msg": "Removed custom image for {type}. Original will be loaded."
       },

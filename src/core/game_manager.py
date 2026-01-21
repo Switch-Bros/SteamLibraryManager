@@ -1,5 +1,5 @@
 """
-Game Manager - With Native ProtonDB Integration
+Game Manager - Offline Capable & Fast Timeout
 Speichern als: src/core/game_manager.py
 """
 
@@ -35,7 +35,7 @@ class Game:
     name_overridden: bool = False
 
     # Erweiterte Daten
-    proton_db_rating: str = ""  # "platinum", "gold", "native", etc.
+    proton_db_rating: str = ""
     steam_db_rating: str = ""
     review_score: str = ""
     review_count: int = 0
@@ -84,7 +84,8 @@ class GameManager:
             }
 
             print(t('logs.manager.loading_api'))
-            response = requests.get(url, params=params, timeout=10)
+            # FIX: Timeout auf 3 Sekunden reduziert (statt 10) für schnelleren Start bei Fehlern
+            response = requests.get(url, params=params, timeout=3)
             response.raise_for_status()
 
             data = response.json()
@@ -110,6 +111,7 @@ class GameManager:
             return True
 
         except requests.exceptions.RequestException as e:
+            # Nur Loggen, kein Absturz. Caller (MainWindow) entscheidet weiter.
             print(t('logs.manager.error_api', error=e))
             return False
         except Exception as e:
@@ -143,15 +145,34 @@ class GameManager:
         print(t('logs.manager.merging'))
         local_app_ids = set(parser.get_all_app_ids())
 
+        # 1. Existierende Spiele (von API) updaten
         for app_id in self.games:
             if app_id in local_app_ids:
                 categories = parser.get_app_categories(app_id)
                 self.games[app_id].categories = categories
 
+        # 2. FIX: Fehlende Spiele (Offline-Modus oder nicht in API) erstellen
         api_app_ids = set(self.games.keys())
         missing_ids = local_app_ids - api_app_ids
+
         if missing_ids:
             print(t('logs.manager.found_missing', count=len(missing_ids)))
+            for app_id in missing_ids:
+                # Versuche Namen aus Cache zu retten, sonst "App ID"
+                name = f"App {app_id}"
+                cache_file = self.cache_dir / 'store_data' / f'{app_id}.json'
+                if cache_file.exists():
+                    try:
+                        with open(cache_file, 'r') as f:
+                            data = json.load(f)
+                            if data.get('name'): name = data['name']
+                    except:
+                        pass
+
+                # Spiel erstellen
+                game = Game(app_id=app_id, name=name)
+                game.categories = parser.get_app_categories(app_id)
+                self.games[app_id] = game
 
         print(t('logs.manager.merged', count=len(self.games)))
 
@@ -194,19 +215,13 @@ class GameManager:
 
     def fetch_game_details(self, app_id: str) -> bool:
         if app_id not in self.games: return False
-
-        # 1. Store Data
         self._fetch_store_data(app_id)
-        # 2. Review Data
         self._fetch_review_stats(app_id)
-        # 3. ProtonDB Data (NEU!)
         self._fetch_proton_rating(app_id)
-
         return True
 
     def _fetch_store_data(self, app_id: str):
         cache_file = self.cache_dir / 'store_data' / f'{app_id}.json'
-
         if cache_file.exists():
             cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
             if cache_age < timedelta(days=7):
@@ -218,9 +233,8 @@ class GameManager:
         try:
             url = 'https://store.steampowered.com/api/appdetails'
             params = {'appids': app_id}
-            response = requests.get(url, params=params, timeout=5)
+            response = requests.get(url, params=params, timeout=3)  # Short timeout
             data = response.json()
-
             if app_id in data and data[app_id]['success']:
                 game_data = data[app_id]['data']
                 cache_file.parent.mkdir(exist_ok=True)
@@ -232,7 +246,6 @@ class GameManager:
 
     def _fetch_review_stats(self, app_id: str):
         cache_file = self.cache_dir / 'store_data' / f'{app_id}_reviews.json'
-
         if cache_file.exists():
             cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
             if cache_age < timedelta(hours=24):
@@ -243,9 +256,8 @@ class GameManager:
 
         try:
             url = f'https://store.steampowered.com/appreviews/{app_id}?json=1&language=all'
-            response = requests.get(url, timeout=5)
+            response = requests.get(url, timeout=3)
             data = response.json()
-
             if 'query_summary' in data:
                 with open(cache_file, 'w') as f:
                     json.dump(data, f)
@@ -254,10 +266,7 @@ class GameManager:
             pass
 
     def _fetch_proton_rating(self, app_id: str):
-        """Hole ProtonDB Rating"""
-        # 7 Tage Cache für ProtonDB
         cache_file = self.cache_dir / 'store_data' / f'{app_id}_proton.json'
-
         if cache_file.exists():
             cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
             if cache_age < timedelta(days=7):
@@ -270,18 +279,14 @@ class GameManager:
         try:
             url = f'https://www.protondb.com/api/v1/reports/summaries/{app_id}.json'
             response = requests.get(url, timeout=3)
-
             if response.status_code == 200:
                 data = response.json()
                 tier = data.get('tier', 'unknown')
-
                 with open(cache_file, 'w') as f:
                     json.dump({'tier': tier}, f)
-
                 if app_id in self.games:
                     self.games[app_id].proton_db_rating = tier
             else:
-                # 404 means game not found on ProtonDB
                 if app_id in self.games:
                     self.games[app_id].proton_db_rating = 'unknown'
         except:
@@ -290,11 +295,9 @@ class GameManager:
     def _apply_review_data(self, app_id: str, data: Dict):
         if app_id not in self.games: return
         game = self.games[app_id]
-
         summary = data.get('query_summary', {})
         game.review_score = summary.get('review_score_desc', 'Unknown')
         game.review_count = summary.get('total_reviews', 0)
-
         positive = summary.get('total_positive', 0)
         total = summary.get('total_reviews', 0)
         if total > 0:
@@ -303,18 +306,14 @@ class GameManager:
 
     def _apply_store_data(self, app_id: str, data: Dict):
         game = self.games[app_id]
-
         if not game.name_overridden:
             game.developer = ', '.join(data.get('developers', []))
             game.publisher = ', '.join(data.get('publishers', []))
-
             release = data.get('release_date', {})
             if release.get('date'):
                 game.release_year = release['date']
-
         genres = data.get('genres', [])
         game.genres = [g['description'] for g in genres]
-
         categories = data.get('categories', [])
         tags = [c['description'] for c in categories]
         game.tags = list(set(game.tags + tags))

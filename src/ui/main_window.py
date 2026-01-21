@@ -1,5 +1,5 @@
 """
-Main Window - Clean & i18n-ready
+Main Window - Robust Offline Start
 Speichern als: src/ui/main_window.py
 """
 
@@ -29,7 +29,6 @@ from src.ui.metadata_dialogs import (
 from src.utils.i18n import t, init_i18n
 from src.ui.settings_dialog import SettingsDialog
 from src.ui.game_details_widget import GameDetailsWidget
-from src.ui.steam_login_dialog import SteamLoginDialog
 from src.ui.components.category_tree import GameTreeWidget
 
 
@@ -164,17 +163,19 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, t('ui.dialogs.error'), t('ui.errors.localconfig_load_error'))
             return
 
-        if not config.STEAM_API_KEY:
-            QMessageBox.warning(self, t('ui.dialogs.error'), t('ui.errors.no_api_key'))
-            return
-
+        # GameManager Init
         self.game_manager = GameManager(config.STEAM_API_KEY, config.CACHE_DIR)
 
-        if not self.game_manager.load_from_steam_api(long_id):
-            QMessageBox.warning(self, t('ui.dialogs.error'), t('ui.errors.api_load_error'))
-            return
+        # FIX: API Laden ist jetzt optional. Wenn es fehlschlägt, machen wir offline weiter.
+        api_success = self.game_manager.load_from_steam_api(long_id)
+        if not api_success:
+            # Nur Warnung in Statusbar, KEIN Popup, KEIN Return!
+            self.set_status("⚠️ API Timeout - Offline Mode")
+            print("⚠️ API failed, loading from local config...")
 
+        # Lokale Daten mergen (wichtig für Offline-Modus!)
         self.game_manager.merge_with_localconfig(self.vdf_parser)
+
         self.steam_scraper = SteamStoreScraper(config.CACHE_DIR, config.TAGS_LANGUAGE)
 
         # Metadata Init
@@ -183,7 +184,11 @@ class MainWindow(QMainWindow):
         self.game_manager.apply_metadata_overrides(self.appinfo_manager)
 
         self._populate_categories()
-        self.set_status(t('ui.status.loaded', count=len(self.game_manager.games)))
+
+        if api_success:
+            self.set_status(t('ui.status.loaded', count=len(self.game_manager.games)))
+        else:
+            self.set_status(t('ui.status.loaded', count=len(self.game_manager.games)) + " (Offline)")
 
     def _populate_categories(self):
         if not self.game_manager: return
@@ -220,7 +225,6 @@ class MainWindow(QMainWindow):
         all_categories = list(self.game_manager.get_all_categories().keys())
         self.details_widget.set_game(game, all_categories)
 
-        # Details im Hintergrund laden
         if not game.developer:
             if self.game_manager.fetch_game_details(game.app_id):
                 self.details_widget.set_game(game, all_categories)
@@ -400,10 +404,8 @@ class MainWindow(QMainWindow):
                                 t('ui.dialogs.categorize_complete', methods=len(methods), backup=backup_path.name))
 
     def edit_game_metadata(self, game: Game):
-        # FIX: Aufruf nur noch mit app_id!
         meta = self.appinfo_manager.get_app_metadata(game.app_id)
 
-        # Vorschläge
         if not meta.get('name'): meta['name'] = game.name
         if not meta.get('developer'): meta['developer'] = game.developer
         if not meta.get('publisher'): meta['publisher'] = game.publisher
@@ -413,11 +415,9 @@ class MainWindow(QMainWindow):
         if dialog.exec():
             new_meta = dialog.get_metadata()
             if new_meta:
-                # FIX: Aufruf nur noch mit app_id und new_meta!
                 self.appinfo_manager.set_app_metadata(game.app_id, new_meta)
                 self.appinfo_manager.save_appinfo()
 
-                # Live Update
                 if new_meta.get('name'): game.name = new_meta['name']
                 if new_meta.get('developer'): game.developer = new_meta['developer']
                 if new_meta.get('publisher'): game.publisher = new_meta['publisher']
@@ -450,7 +450,6 @@ class MainWindow(QMainWindow):
             progress.setLabelText(f"{game.name[:50]}...")
             QApplication.processEvents()
 
-            # FIX: Get ohne extra parameter
             meta = self.appinfo_manager.get_app_metadata(game.app_id)
             modified_meta = meta.copy()
 
@@ -471,7 +470,6 @@ class MainWindow(QMainWindow):
 
                 modified_meta['name'] = name.strip()
 
-            # FIX: Set ohne extra parameter
             self.appinfo_manager.set_app_metadata(game.app_id, modified_meta)
             success_count += 1
 
@@ -492,7 +490,6 @@ class MainWindow(QMainWindow):
 
         dialog = MetadataRestoreDialog(self, mod_count)
         if dialog.exec() and dialog.should_restore():
-            # FIX: Restore ohne extra parameter
             restored = self.appinfo_manager.restore_modifications()
             self.appinfo_manager.save_appinfo()
             self.refresh_data()

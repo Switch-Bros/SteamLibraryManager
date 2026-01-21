@@ -1,5 +1,5 @@
 """
-Game Details Widget - With Context Menu for Reset
+Game Details Widget - Plural Types Refactor
 Speichern als: src/ui/game_details_widget.py
 """
 
@@ -10,16 +10,13 @@ from PyQt6.QtWidgets import (
     QAbstractItemView, QMenu
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QCursor
 from src.core.game_manager import Game
 from src.utils.i18n import t
 from src.ui.components.clickable_image import ClickableImage
 from src.core.steam_assets import SteamAssets
 from src.ui.image_selection_dialog import ImageSelectionDialog
 
-
-# InfoLabel & HorizontalCategoryList Klassen bleiben IDENTISCH wie vorher.
-# (Ich kopiere sie hier der Vollständigkeit halber rein, damit du Copy-Paste machen kannst)
 
 class InfoLabel(QLabel):
     def __init__(self, title_key, value="", is_i18n_key=False):
@@ -112,20 +109,19 @@ class GameDetailsWidget(QWidget):
         gallery_layout.setContentsMargins(4, 4, 4, 4)
         gallery_layout.setSpacing(4)
 
-        # Bilder erstellen & Connecten
-        # WICHTIG: right_clicked verbinden!
-        self.img_grid = ClickableImage('grid', 232, 348)
+        # Bilder (JETZT MIT PLURAL KEYS)
+        self.img_grid = ClickableImage('grids', 232, 348)
         self.img_grid.clicked.connect(self._on_image_click)
-        self.img_grid.right_clicked.connect(self._on_image_right_click)  # NEU
+        self.img_grid.right_clicked.connect(self._on_image_right_click)
         gallery_layout.addWidget(self.img_grid, 0, 0, 2, 1)
 
         logo_wrapper = QWidget()
         logo_layout = QVBoxLayout(logo_wrapper)
         logo_layout.setContentsMargins(0, 0, 0, 0)
         logo_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
-        self.img_logo = ClickableImage('logo', 176, 86)
+        self.img_logo = ClickableImage('logos', 176, 86)
         self.img_logo.clicked.connect(self._on_image_click)
-        self.img_logo.right_clicked.connect(self._on_image_right_click)  # NEU
+        self.img_logo.right_clicked.connect(self._on_image_right_click)
         self.img_logo.setStyleSheet("background: transparent; border: 1px dashed #444;")
         logo_layout.addWidget(self.img_logo)
         gallery_layout.addWidget(logo_wrapper, 0, 1)
@@ -134,9 +130,9 @@ class GameDetailsWidget(QWidget):
         icon_layout = QVBoxLayout(icon_wrapper)
         icon_layout.setContentsMargins(0, 0, 0, 0)
         icon_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
-        self.img_icon = ClickableImage('icon', 168, 168)
+        self.img_icon = ClickableImage('icons', 168, 168)
         self.img_icon.clicked.connect(self._on_image_click)
-        self.img_icon.right_clicked.connect(self._on_image_right_click)  # NEU
+        self.img_icon.right_clicked.connect(self._on_image_right_click)
         self.img_icon.setStyleSheet("background: transparent; border: none;")
         icon_layout.addWidget(self.img_icon)
         gallery_layout.addWidget(icon_wrapper, 0, 2)
@@ -145,9 +141,9 @@ class GameDetailsWidget(QWidget):
         hero_layout = QVBoxLayout(hero_wrapper)
         hero_layout.setContentsMargins(0, 0, 0, 0)
         hero_layout.setAlignment(Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter)
-        self.img_hero = ClickableImage('hero', 348, 160)
+        self.img_hero = ClickableImage('heroes', 348, 160)
         self.img_hero.clicked.connect(self._on_image_click)
-        self.img_hero.right_clicked.connect(self._on_image_right_click)  # NEU
+        self.img_hero.right_clicked.connect(self._on_image_right_click)
         hero_layout.addWidget(self.img_hero)
         gallery_layout.addWidget(hero_wrapper, 1, 1, 1, 2)
 
@@ -283,15 +279,14 @@ class GameDetailsWidget(QWidget):
         self.edit_rel.setText(game.release_year if game.release_year else unknown)
         self.category_list.set_categories(all_categories, game.categories)
 
-        # Bilder laden
+        # Bilder laden (Plural Keys!)
         self._reload_images(game.app_id)
 
     def _reload_images(self, app_id: str):
-        """Helper to load all images"""
-        self.img_grid.load_image(SteamAssets.get_asset_path(app_id, 'grid'))
-        self.img_hero.load_image(SteamAssets.get_asset_path(app_id, 'hero'))
-        self.img_logo.load_image(SteamAssets.get_asset_path(app_id, 'logo'))
-        self.img_icon.load_image(SteamAssets.get_asset_path(app_id, 'icon'))
+        self.img_grid.load_image(SteamAssets.get_asset_path(app_id, 'grids'))
+        self.img_hero.load_image(SteamAssets.get_asset_path(app_id, 'heroes'))
+        self.img_logo.load_image(SteamAssets.get_asset_path(app_id, 'logos'))
+        self.img_icon.load_image(SteamAssets.get_asset_path(app_id, 'icons'))
 
     def clear(self):
         self.current_game = None
@@ -319,39 +314,32 @@ class GameDetailsWidget(QWidget):
             url = dialog.get_selected_url()
             if url:
                 if SteamAssets.save_custom_image(self.current_game.app_id, img_type, url):
-                    # Nur das betroffene Bild neu laden
+                    # Reload specific image
                     path = SteamAssets.get_asset_path(self.current_game.app_id, img_type)
-                    if img_type == 'grid':
+                    if img_type == 'grids':
                         self.img_grid.load_image(path)
-                    elif img_type == 'hero':
+                    elif img_type == 'heroes':
                         self.img_hero.load_image(path)
-                    elif img_type == 'logo':
+                    elif img_type == 'logos':
                         self.img_logo.load_image(path)
-                    elif img_type == 'icon':
+                    elif img_type == 'icons':
                         self.img_icon.load_image(path)
 
     def _on_image_right_click(self, img_type: str):
         if not self.current_game: return
 
-        # Kontextmenü erstellen
         menu = QMenu(self)
         reset_action = menu.addAction(t('ui.game_details.gallery.reset'))
-
-        # An Mausposition öffnen
         action = menu.exec(QCursor.pos())
 
         if action == reset_action:
-            # Löschen
             if SteamAssets.delete_custom_image(self.current_game.app_id, img_type):
-                # Neu laden (fällt zurück auf Web URL)
-                print(t('logs.appinfo.reverted', app_id=self.current_game.app_id))
                 path = SteamAssets.get_asset_path(self.current_game.app_id, img_type)
-
-                if img_type == 'grid':
+                if img_type == 'grids':
                     self.img_grid.load_image(path)
-                elif img_type == 'hero':
+                elif img_type == 'heroes':
                     self.img_hero.load_image(path)
-                elif img_type == 'logo':
+                elif img_type == 'logos':
                     self.img_logo.load_image(path)
-                elif img_type == 'icon':
+                elif img_type == 'icons':
                     self.img_icon.load_image(path)

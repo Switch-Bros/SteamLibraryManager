@@ -1,17 +1,27 @@
 """
-Clickable Image Label - Handles Loading & Clicking (Left & Right Click)
+Clickable Image - Fallback Safety
 Speichern als: src/ui/components/clickable_image.py
 """
-from PyQt6.QtWidgets import QLabel
-from PyQt6.QtCore import Qt, pyqtSignal, QThread
-from PyQt6.QtGui import QPixmap, QCursor
+from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout
+from PyQt6.QtCore import Qt, pyqtSignal, QThread, QByteArray, QTimer
+from PyQt6.QtGui import QPixmap, QCursor, QImage
 import requests
 import os
+from src.config import config
 from src.utils.i18n import t
+
+# WebP Import
+try:
+    import webp
+
+    HAS_WEBP_LIB = True
+except ImportError:
+    HAS_WEBP_LIB = False
+    print("WARNUNG: 'webp' Library fehlt!")
 
 
 class ImageLoader(QThread):
-    loaded = pyqtSignal(QPixmap)
+    loaded = pyqtSignal(QByteArray)
 
     def __init__(self, url_or_path):
         super().__init__()
@@ -19,23 +29,25 @@ class ImageLoader(QThread):
         self._is_running = True
 
     def run(self):
-        pixmap = QPixmap()
+        data = QByteArray()
         try:
             if not self.url_or_path:
-                self.loaded.emit(pixmap)
+                self.loaded.emit(data)
                 return
 
             if os.path.exists(self.url_or_path):
-                pixmap.load(self.url_or_path)
+                with open(self.url_or_path, 'rb') as f:
+                    data = QByteArray(f.read())
             else:
-                response = requests.get(self.url_or_path, timeout=5)
+                headers = {'User-Agent': 'SteamLibraryManager/1.0'}
+                response = requests.get(self.url_or_path, headers=headers, timeout=20)
                 if response.status_code == 200:
-                    pixmap.loadFromData(response.content)
+                    data = QByteArray(response.content)
         except:
             pass
 
         if self._is_running:
-            self.loaded.emit(pixmap)
+            self.loaded.emit(data)
 
     def stop(self):
         self._is_running = False
@@ -43,42 +55,215 @@ class ImageLoader(QThread):
         self.wait()
 
 
-class ClickableImage(QLabel):
+class ClickableImage(QWidget):
     clicked = pyqtSignal(str)
-    right_clicked = pyqtSignal(str)  # NEU: Signal für Rechtsklick
+    right_clicked = pyqtSignal(str)
 
-    def __init__(self, img_type, width, height):
+    def __init__(self, img_type, width, height, metadata=None):
         super().__init__()
         self.img_type = img_type
         self.w = width
         self.h = height
         self.loader = None
+        self.metadata = metadata or {}
 
-        self.setFixedSize(width, height)
-        self.setStyleSheet("background-color: #222; border: 1px solid #444; border-radius: 4px;")
-        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        self.setScaledContents(True)
+        self.frames = []
+        self.durations = []
+        self.current_frame = 0
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self._next_frame)
 
-        self.setText(t(f'ui.game_details.gallery.{img_type}'))
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(2)
+
+        self.img_container = QWidget()
+        self.img_container.setFixedSize(width, height)
+        self.img_container.setStyleSheet("background-color: #222; border-radius: 4px; border: 1px solid #444;")
+        self.img_container.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+
+        self.image_label = QLabel(self.img_container)
+        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.image_label.setStyleSheet("border: none; background: transparent;")
+
+        self.layout.addWidget(self.img_container)
+
+        author_text = "Unknown"
+        if self.metadata and 'author' in self.metadata:
+            author_text = self.metadata['author'].get('name', 'Unknown')
+        elif not self.metadata:
+            author_text = t(f'ui.game_details.gallery.{img_type}')
+
+        self.author_label = QLabel(author_text)
+        self.author_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.author_label.setStyleSheet("color: #888; font-size: 10px; padding-top: 2px;")
+        self.author_label.setFixedWidth(width)
+
+        font_metrics = self.author_label.fontMetrics()
+        elided = font_metrics.elidedText(author_text, Qt.TextElideMode.ElideRight, width - 10)
+        self.author_label.setText(elided)
+        self.author_label.setToolTip(author_text)
+
+        self.layout.addWidget(self.author_label)
+
+    def _create_badges(self, is_animated_file=False):
+        def get_icon_path(name):
+            p = config.ICONS_DIR / f"{name}.png"
+            return str(p) if p.exists() else None
+
+        badges = []
+        mime = self.metadata.get('mime', '')
+
+        if is_animated_file or 'webp' in mime or 'gif' in mime:
+            badges.append(
+                {'icon': get_icon_path('flag_animated'), 'fallback': 'GIF', 'color': '#FFD700', 'tip': 'Animated'})
+        if self.metadata.get('humor'):
+            badges.append({'icon': get_icon_path('flag_humor'), 'fallback': '😂', 'color': '#3498db', 'tip': 'Humor'})
+        if self.metadata.get('nsfw'):
+            badges.append(
+                {'icon': get_icon_path('flag_nsfw'), 'fallback': '🔞', 'color': '#e74c3c', 'tip': 'Adult Content'})
+        if self.metadata.get('epilepsy'):
+            badges.append({'icon': get_icon_path('flag_epilepsy'), 'fallback': '⚡', 'color': '#9b59b6',
+                           'tip': 'Epilepsy Warning'})
+        if self.metadata.get('lock_tags'):
+            badges.append(
+                {'icon': get_icon_path('flag_untagged'), 'fallback': '?', 'color': '#95a5a6', 'tip': 'Untagged'})
+
+        for child in self.img_container.children():
+            if isinstance(child, QLabel) and child != self.image_label:
+                child.deleteLater()
+
+        x_pos, y_pos = 4, 4
+        for badge in badges:
+            lbl = QLabel(self.img_container)
+            lbl.setToolTip(badge['tip'])
+
+            if badge['icon']:
+                pix = QPixmap(badge['icon'])
+                if not pix.isNull():
+                    pix = pix.scaled(20, 20, Qt.AspectRatioMode.KeepAspectRatio,
+                                     Qt.TransformationMode.SmoothTransformation)
+                    lbl.setPixmap(pix)
+                    lbl.resize(20, 20)
+            else:
+                lbl.setText(badge['fallback'])
+                lbl.setStyleSheet(
+                    f"background-color: {badge['color']}; color: #000; font-weight: bold; border-radius: 3px; padding: 2px;")
+                lbl.adjustSize()
+
+            lbl.move(x_pos, y_pos)
+            lbl.show()
+            lbl.raise_()
+            x_pos += lbl.width() + 4
 
     def load_image(self, url_or_path):
+        self.timer.stop()
+        self.frames = []
+        self.durations = []
+        self.current_frame = 0
+        self.image_label.clear()
+
         if self.loader and self.loader.isRunning():
             self.loader.stop()
 
-        self.setText("⏳")
+        self.image_label.setText("⏳")
         self.loader = ImageLoader(url_or_path)
         self.loader.loaded.connect(self._on_loaded)
         self.loader.start()
 
-    def _on_loaded(self, pixmap):
-        if not pixmap.isNull():
-            self.setPixmap(pixmap)
-        else:
-            self.setText("❌")
+    def _on_loaded(self, data: QByteArray):
+        if data.isEmpty():
+            self.image_label.setText("❌")
+            if self.metadata: self._create_badges(False)
+            return
+
+        is_webp = data.startsWith(b'RIFF') and data.mid(8, 4) == b'WEBP'
+        animation_loaded = False
+
+        # 1. VERSUCH: 'webp' Library
+        if is_webp and HAS_WEBP_LIB:
+            try:
+                webp_data = webp.WebPData.from_buffer(data.data())
+                dec = webp.WebPAnimDecoder.new(webp_data)
+
+                new_frames = []
+                new_durations = []
+
+                for arr, timestamp_ms in dec.frames():
+                    h, w = arr.shape[0], arr.shape[1]
+                    img = QImage(arr, w, h, QImage.Format.Format_RGBA8888)
+                    pix = QPixmap.fromImage(img)
+
+                    scaled = pix.scaled(self.w, self.h, Qt.AspectRatioMode.KeepAspectRatio,
+                                        Qt.TransformationMode.SmoothTransformation)
+                    new_frames.append(scaled)
+                    new_durations.append(timestamp_ms)
+
+                # Delta berechnen
+                deltas = []
+                prev = 0
+                for t_ms in new_durations:
+                    d = max(20, t_ms - prev)
+                    deltas.append(d)
+                    prev = t_ms
+
+                self.frames = new_frames
+                self.durations = deltas
+
+                if self.frames:
+                    self._start_animation()
+                    self._create_badges(True)
+                    animation_loaded = True
+            except Exception as e:
+                print(f"WebP Decode Error: {e}")
+
+        # 2. FALLBACK: Qt Standard Load (als statisches Bild)
+        # Wenn Animation fehlgeschlagen ist ODER es kein WebP war
+        if not animation_loaded:
+            pixmap = QPixmap()
+            pixmap.loadFromData(data)
+
+            if not pixmap.isNull():
+                scaled = pixmap.scaled(
+                    self.w, self.h,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation
+                )
+                self.image_label.resize(scaled.size())
+                self.image_label.setPixmap(scaled)
+                self._center_image()
+                self._create_badges(False)
+            else:
+                self.image_label.setText("❌")
+                if self.metadata: self._create_badges(False)
+
+    def _start_animation(self):
+        if not self.frames: return
+        self.current_frame = 0
+        self._show_frame(0)
+        self.timer.start(self.durations[0])
+
+    def _next_frame(self):
+        if not self.frames: return
+        self.current_frame = (self.current_frame + 1) % len(self.frames)
+        self._show_frame(self.current_frame)
+        self.timer.start(self.durations[self.current_frame])
+
+    def _show_frame(self, index):
+        pix = self.frames[index]
+        self.image_label.resize(pix.size())
+        self.image_label.setPixmap(pix)
+        self._center_image()
+
+    def _center_image(self):
+        lw = self.image_label.width()
+        lh = self.image_label.height()
+        x = (self.w - lw) // 2
+        y = (self.h - lh) // 2
+        self.image_label.move(x, y)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self.clicked.emit(self.img_type)
         elif event.button() == Qt.MouseButton.RightButton:
-            self.right_clicked.emit(self.img_type)  # NEU: Rechtsklick senden
+            self.right_clicked.emit(self.img_type)

@@ -1,5 +1,5 @@
 """
-Configuration - Auto-Detect SteamID & SteamGridDB Support (Clean)
+Configuration - With Resources Path
 Speichern als: src/config.py
 """
 import os
@@ -15,6 +15,10 @@ class Config:
     APP_DIR: Path = Path(__file__).parent.parent
     DATA_DIR: Path = APP_DIR / 'data'
     CACHE_DIR: Path = DATA_DIR / 'cache'
+    # NEU: Pfad zu deinen Ressourcen
+    RESOURCES_DIR: Path = APP_DIR / 'resources'
+    ICONS_DIR: Path = RESOURCES_DIR / 'icons'
+
     SETTINGS_FILE: Path = DATA_DIR / 'settings.json'
 
     UI_LANGUAGE: str = 'en'
@@ -39,6 +43,9 @@ class Config:
         (self.CACHE_DIR / 'game_tags').mkdir(exist_ok=True)
         (self.CACHE_DIR / 'store_data').mkdir(exist_ok=True)
         (self.CACHE_DIR / 'images').mkdir(exist_ok=True)
+
+        # Resources Ordner erstellen, falls nicht existiert (damit keine Fehler kommen)
+        self.ICONS_DIR.mkdir(parents=True, exist_ok=True)
 
         self._load_settings()
 
@@ -77,7 +84,7 @@ class Config:
                     self.STEAM_API_KEY = settings.get('steam_api_key')
 
             except Exception as e:
-                print(e)  # Systemfehler, keine Übersetzung nötig
+                print(e)
 
     def save_settings(self, **kwargs):
         current = {}
