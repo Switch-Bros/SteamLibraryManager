@@ -1,5 +1,5 @@
 """
-Configuration - Secure API Handling & .env Support
+Configuration - OpenID Setup & Secure API Handling (No Hardcoded Logs)
 Speichern als: src/config.py
 """
 import os
@@ -7,9 +7,9 @@ import json
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional, Tuple
-from dotenv import load_dotenv  # Benötigt pip install python-dotenv
+from dotenv import load_dotenv
 
-# Lade .env Datei (für Entwicklung) - liegt im Root, nicht im src
+# Lade .env Datei (für Entwicklung)
 load_dotenv(Path(__file__).parent.parent / '.env')
 
 
@@ -29,15 +29,14 @@ class Config:
     DEFAULT_LOCALE: str = 'en'
     THEME: str = 'dark'
 
-    # API KEYS (Keine Hardcoded Strings mehr!)
-    # Priorität: 1. Environment Variable (.env) -> 2. settings.json -> 3. Leer
+    # API KEYS
+    # STEAM_API_KEY kommt aus .env (Entwicklung) oder später obfuscated Code
     STEAM_API_KEY: str = ""
+    # SteamGridDB Key kommt meist vom User
     STEAMGRIDDB_API_KEY: str = ""
 
-    # Für OAuth (Entwickler muss diese in .env haben)
-    STEAM_CLIENT_ID: str = os.getenv("STEAM_CLIENT_ID", "")
-
     STEAM_PATH: Optional[Path] = None
+    STEAM_USER_ID: Optional[str] = None  # Added for consistency
     MAX_BACKUPS: int = 5
     TAGS_PER_GAME: int = 13
     IGNORE_COMMON_TAGS: bool = True
@@ -56,6 +55,7 @@ class Config:
         if not self.STEAM_API_KEY:
             self.STEAM_API_KEY = os.getenv("STEAM_API_KEY", "")
 
+        # Falls User keinen eigenen Key hat, schauen wir in .env (für Dev)
         if not self.STEAMGRIDDB_API_KEY:
             self.STEAMGRIDDB_API_KEY = os.getenv("STEAMGRIDDB_API_KEY", "")
 
@@ -63,6 +63,9 @@ class Config:
             self.STEAM_PATH = self._find_steam_path()
 
     def _load_settings(self):
+        # FIX: Delayed import to avoid circular dependency
+        from src.utils.i18n import t
+
         if self.SETTINGS_FILE.exists():
             try:
                 with open(self.SETTINGS_FILE, 'r') as f:
@@ -74,14 +77,14 @@ class Config:
                 self.IGNORE_COMMON_TAGS = settings.get('ignore_common_tags', True)
                 self.MAX_BACKUPS = settings.get('max_backups', 5)
 
-                # User Keys aus Settings laden
-                if settings.get('steam_api_key'):
-                    self.STEAM_API_KEY = settings.get('steam_api_key')
+                # Nur User-Keys aus Settings laden (GridDB)
+                # Steam Web API Key laden wir NICHT aus Settings, da er dem Dev gehört
                 if settings.get('steamgriddb_api_key'):
                     self.STEAMGRIDDB_API_KEY = settings.get('steamgriddb_api_key')
 
             except Exception as e:
-                print(f"Error loading settings: {e}")
+                # FIX: Hardcoded Print removed
+                print(t('logs.config.error', error=e))
 
     def save_settings(self, **kwargs):
         current = {}
@@ -103,6 +106,7 @@ class Config:
         return None
 
     def get_detected_user(self) -> Tuple[Optional[str], Optional[str]]:
+        """Versucht User lokal zu finden (Fallback)"""
         if not self.STEAM_PATH: return None, None
         userdata = self.STEAM_PATH / 'userdata'
         if not userdata.exists(): return None, None

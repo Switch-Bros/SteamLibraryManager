@@ -110,7 +110,8 @@
       "confirm_delete_category_msg": "Remove this category?",
       "rename_category": "Rename to:",
       "confirm_bulk_title": "Bulk Edit",
-      "confirm_bulk": "Edit {count} games?"
+      "confirm_bulk": "Edit {count} games?",
+      "api_key_missing": "⚠️ SteamGridDB API Key missing!\nPlease configure it in Settings to enable image search."
     },
     "game_details": {
       "value_unknown": "Unknown",
@@ -131,12 +132,14 @@
       "btn_edit": "✏️ Edit Metadata",
       "categories_label": "Categories",
       "never_played": "Never played",
+      "hours": "{hours}h",
       "gallery": {
         "grids": "GRIDS",
         "heroes": "HEROES",
         "logos": "LOGOS",
         "icons": "ICONS",
-        "reset": "🗑️ Reset to Original"
+        "reset": "🗑️ Reset to Original",
+        "reset_msg": "Removed custom image for {type}. Original will be loaded."
       },
       "proton_tiers": {
         "native": "Native",
@@ -148,6 +151,67 @@
         "pending": "Pending",
         "unknown": "Unknown"
       }
+    },
+    "metadata_editor": {
+      "title": "Edit Metadata",
+      "editing_title": "Edit Metadata: {game}",
+      "bulk_title": "✏️ Bulk Edit - {count} games",
+      "game_name_label": "Game Name:",
+      "sort_as_label": "Sort As:",
+      "sort_as_help": "(Used for alphabetical sorting. Auto-filled if empty.)",
+      "date_help": "(Format: YYYY-MM-DD or Unix timestamp)",
+      "info_tracking": "Changes are local and tracked by the app. Steam might overwrite them.",
+      "original_values_group": "Original Values (for reference)",
+      "fields_group": "Fields to Modify",
+      "bulk_info": "Only filled fields will be applied to all {count} selected games.",
+      "bulk_preview": "Selected Games ({count})",
+      "bulk_more": "... and {count} more games",
+      "set_field": "Set {field}",
+      "add_prefix": "Add Prefix to Name:",
+      "add_suffix": "Add Suffix to Name:",
+      "remove_text": "Remove Text from Name:",
+      "apply_button": "Apply to {count} Games",
+      "restore_title": "Restore Metadata Changes",
+      "restore_info": "Steam Library Manager has tracked {count} modified games. If Steam has overwritten your changes, you can restore them now.",
+      "restore_button": "Restore {count} Changes",
+      "error_empty_name": "Game name cannot be empty!"
+    },
+    "auto_categorize": {
+      "title": "Auto-Categorize",
+      "header": "🏷️ Auto-Categorize Games",
+      "method_group": "Categorization Methods",
+      "option_tags": "Steam Tags (via Store API)",
+      "by_publisher": "By Publisher",
+      "option_franchise": "By Franchise (Name Detection)",
+      "by_genre": "By Genre",
+      "settings": "Settings",
+      "tags_per_game": "Tags per game",
+      "option_ignore_common": "Ignore common tags (Multiplayer, etc.)",
+      "apply_group": "Apply To",
+      "scope_category": "All games in '{name}' ({count})",
+      "scope_uncategorized": "Uncategorized games ({count})",
+      "scope_all": "Entire Library ({count} games)",
+      "warning_backup": "⚠️ A backup of your localconfig.vdf will be created automatically.",
+      "estimate_label": "Estimated time: {time}\n({games} games, {methods} methods)",
+      "estimate_minutes": "~{count} minutes",
+      "estimate_seconds": "~{count} seconds",
+      "estimate_instant": "Instant",
+      "start": "Start Categorization",
+      "cancel": "Cancel",
+      "processing": "Processing {current}/{total}",
+      "fetching": "Fetching tags for \"{game}\"",
+      "no_method_title": "No Method Selected",
+      "error_no_method": "Please select at least one categorization method!"
+    },
+    "steamgrid_setup": {
+      "title": "Setup SteamGridDB",
+      "info": "To download covers, you need a free API Key.",
+      "step_1": "1. Login to SteamGridDB",
+      "step_2": "2. Generate/Copy API Key",
+      "step_3": "3. Paste Key below",
+      "get_key_btn": "Get API Key (Open Browser)",
+      "save_btn": "Save Key & Reload",
+      "key_placeholder": "Paste API Key here..."
     },
     "status": {
       "ready": "Ready",
@@ -166,61 +230,13 @@
       "offline_mode": " (Offline)"
     },
     "errors": {
-      "steam_not_found": "Steam installation not found.",
+      "steam_not_found": "Steam installation not found. Please set the path in Settings.",
       "no_users": "No Steam users found.",
       "localconfig_not_found": "localconfig.vdf not found.",
       "localconfig_load_error": "Failed to load localconfig.vdf",
       "save_failed": "Could not save configuration!",
-      "no_api_key": "Steam API key not configured."
-    },
-    "categories": {
-      "all_games": "All Games",
-      "favorites": "Favorites",
-      "uncategorized": "Uncategorized",
-      "sym_expand": "[+]",
-      "sym_collapse": "[−]"
-    },
-    "game_list": {
-      "context_menu": {
-        "view_details": "📋 View Details",
-        "toggle_favorite": "⭐ Toggle Favorite",
-        "open_store": "🌐 View in Steam Store",
-        "edit_metadata": "✏️ Edit Metadata",
-        "rename": "✏️ Rename Category",
-        "delete": "🗑️ Delete Category",
-        "auto_categorize": "🏷️ Auto-Categorize",
-        "auto_categorize_selected": "🏷️ Auto-Categorize Selected"
-      }
-    },
-    "metadata_editor": {
-      "title": "Edit Metadata",
-      "game_name_label": "Game Name:",
-      "apply_button": "Apply",
-      "restore_button": "Restore",
-      "restore_title": "Restore Metadata",
-      "restore_info": "Restore {count} changes?",
-      "bulk_title": "Bulk Edit",
-      "bulk_info": "Editing {count} games",
-      "fields_group": "Fields",
-      "set_field": "Set {field}"
-    },
-    "auto_categorize": {
-      "title": "Auto-Categorize",
-      "header": "Auto-Categorize Games",
-      "start": "Start",
-      "cancel": "Cancel",
-      "processing": "Processing...",
-      "fetching": "Fetching..."
-    },
-    "steamgrid_setup": {
-      "title": "Setup SteamGridDB",
-      "info": "To download covers, you need a free API Key.",
-      "step_1": "1. Login to SteamGridDB",
-      "step_2": "2. Generate/Copy API Key",
-      "step_3": "3. Paste Key below",
-      "get_key_btn": "Get API Key (Open Browser)",
-      "save_btn": "Save Key & Reload",
-      "key_placeholder": "Paste API Key here..."
+      "no_api_key": "Steam API key not configured.",
+      "api_load_error": "Failed to load games from Steam API"
     }
   },
   "logs": {
@@ -232,6 +248,7 @@
       "starting": "Starting Steam OAuth process...",
       "server_started": "Local server listening on port {port}",
       "token_received": "OAuth Token received!",
+      "login_success": "Login Success! SteamID: {id}",
       "error": "Auth Error: {error}",
       "webview_missing": "Info: pywebview not installed, using system browser.",
       "client_id_missing": "WARNING: STEAM_CLIENT_ID missing in .env!"

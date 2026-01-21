@@ -100,7 +100,7 @@
       "no_selection": "Keine Auswahl",
       "no_games_selected": "Bitte wähle mindestens ein Spiel aus.",
       "no_changes": "Keine Änderungen",
-      "no_tracked_changes": "Keine Änderungen bekannt.",
+      "no_tracked_changes": "No tracked metadata changes found.",
       "bulk_success": "{count} Spiele erfolgreich aktualisiert",
       "restore_success": "{count} Änderungen wiederhergestellt",
       "categorize_complete": "Kategorisierung abgeschlossen ({methods} Methoden)! Backup: {backup}",
@@ -110,7 +110,8 @@
       "confirm_delete_category_msg": "Möchtest du diese Kategorie entfernen?",
       "rename_category": "Umbenennen in:",
       "confirm_bulk_title": "Massenbearbeitung",
-      "confirm_bulk": "{count} Spiele bearbeiten?"
+      "confirm_bulk": "{count} Spiele bearbeiten?",
+      "api_key_missing": "⚠️ SteamGridDB API Key fehlt!\nBitte in den Einstellungen konfigurieren, um die Bildsuche zu nutzen."
     },
     "game_details": {
       "value_unknown": "Unbekannt",
@@ -136,7 +137,8 @@
         "heroes": "HEROES",
         "logos": "LOGOS",
         "icons": "ICONS",
-        "reset": "🗑️ Original wiederherstellen"
+        "reset": "🗑️ Original wiederherstellen",
+        "reset_msg": "Benutzerdefiniertes {type}-Bild entfernt. Original wird geladen."
       },
       "proton_tiers": {
         "native": "Nativ (Linux)",
@@ -166,7 +168,7 @@
       "offline_mode": " (Offline)"
     },
     "errors": {
-      "steam_not_found": "Steam-Installation nicht gefunden.",
+      "steam_not_found": "Steam-Installation nicht gefunden. Bitte setze den Pfad in den Einstellungen.",
       "no_users": "Keine Steam-Benutzer gefunden.",
       "localconfig_not_found": "localconfig.vdf nicht gefunden.",
       "localconfig_load_error": "localconfig.vdf konnte nicht geladen werden",
@@ -232,6 +234,7 @@
       "starting": "Starte Steam OAuth Prozess...",
       "server_started": "Lokaler Server hört auf Port {port}",
       "token_received": "OAuth Token empfangen!",
+      "login_success": "Anmeldung erfolgreich! SteamID: {id}",
       "error": "Auth Fehler: {error}",
       "webview_missing": "Info: pywebview nicht installiert, nutze System-Browser.",
       "client_id_missing": "WARNUNG: STEAM_CLIENT_ID fehlt in .env!"
