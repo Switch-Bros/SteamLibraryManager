@@ -1,6 +1,7 @@
 # ===== GUI Framework =====
 # PyQt6 für die grafische Benutzeroberfläche (automatisch mit Qt6-Bindings)
 PyQt6>=6.4.0
+pyqt6-sip>=13.10.0
 
 # ===== Core Dependencies =====
 # Bildverarbeitung (z.B. für SteamGridDB-Cover)
