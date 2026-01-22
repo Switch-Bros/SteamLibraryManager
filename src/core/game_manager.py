@@ -1,10 +1,10 @@
 """
-Game Manager - Full Featured with Progress Callbacks
+Game Manager - Full Featured, Cleaned & Type-Safe
 Speichern als: src/core/game_manager.py
 """
 
 import requests
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional, Callable, Tuple
 from dataclasses import dataclass
 from pathlib import Path
 import json
@@ -42,6 +42,16 @@ class Game:
     last_updated: str = ""
     steam_grid_db_url: str = ""
 
+    # Legacy / UI Compatibility
+    proton_db_tier: str = ""
+    steam_review_score: int = 0
+    steam_review_desc: str = ""
+    steam_review_total: str = ""
+
+    # Images
+    icon_url: str = ""
+    cover_url: str = ""
+
     def __post_init__(self):
         if self.categories is None: self.categories = []
         if self.genres is None: self.genres = []
@@ -71,17 +81,16 @@ class GameManager:
         self.games: Dict[str, Game] = {}
         self.steam_user_id: Optional[str] = None
         self.load_source: str = "unknown"
+        self.appinfo_manager = None
 
     def load_games(self, steam_user_id: str, progress_callback: Optional[Callable] = None) -> bool:
         """
         Lädt Spiele mit Progress-Callback
-        progress_callback(step: str, current: int, total: int)
         """
         self.steam_user_id = steam_user_id
         api_success = False
-        local_success = False
 
-        # SCHRITT 1: Steam Web API (falls Key vorhanden)
+        # SCHRITT 1: Steam Web API
         if self.api_key:
             if progress_callback:
                 progress_callback(t('ui.loading.trying_api'), 0, 3)
@@ -89,14 +98,15 @@ class GameManager:
             print(t('logs.manager.trying_api'))
             api_success = self.load_from_steam_api(steam_user_id)
 
-        # SCHRITT 2: Lokale Dateien (immer als Fallback/Ergänzung)
+        # SCHRITT 2: Lokale Dateien
         if progress_callback:
             progress_callback(t('ui.loading.loading_local'), 1, 3)
 
         print(t('logs.manager.loading_local'))
+
         local_success = self.load_from_local_files(progress_callback)
 
-        # SCHRITT 3: Bestimme Load-Source
+        # SCHRITT 3: Status
         if progress_callback:
             progress_callback(t('ui.loading.finalizing'), 2, 3)
 
@@ -116,9 +126,7 @@ class GameManager:
         return True
 
     def load_from_local_files(self, progress_callback: Optional[Callable] = None) -> bool:
-        """
-        Lädt Spiele aus lokalen Steam-Dateien
-        """
+        """Lädt Spiele aus lokalen Steam-Dateien"""
         from src.core.local_games_loader import LocalGamesLoader
 
         try:
@@ -147,11 +155,9 @@ class GameManager:
 
                 app_id = str(game_data['appid'])
 
-                # Wenn Spiel schon von API geladen wurde, überspringen
                 if app_id in self.games:
                     continue
 
-                # Playtime aus localconfig
                 playtime = playtimes.get(app_id, 0)
 
                 game = Game(
@@ -165,19 +171,18 @@ class GameManager:
             return True
 
         except Exception as e:
+            # Top-Level Catch für lokalen Loader, damit nicht alles crasht
             print(t('logs.manager.error_local', error=e))
             return False
 
     def load_from_steam_api(self, steam_user_id: str) -> bool:
-        """
-        Lädt Spiele von Steam Web API (optional)
-        """
+        """Lädt Spiele von Steam Web API"""
         if not self.api_key:
             print(t('logs.manager.no_api_key'))
             return False
 
         try:
-            url = "http://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
+            url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
             params = {
                 'key': self.api_key,
                 'steamid': steam_user_id,
@@ -212,21 +217,34 @@ class GameManager:
 
             return True
 
-        except requests.exceptions.RequestException as e:
+        except (requests.RequestException, ValueError, KeyError) as e:
             print(t('logs.manager.error_api', error=e))
             return False
-        except Exception as e:
-            print(t('logs.manager.error_unexpected', error=e))
-            return False
 
-    def _get_user_ids(self):
-        """Helper to get user IDs"""
+    @staticmethod
+    def _get_user_ids() -> Tuple[Optional[str], Optional[str]]:
         from src.config import config
         return config.get_detected_user()
 
     def apply_metadata_overrides(self, appinfo_manager):
+        self.appinfo_manager = appinfo_manager
         modifications = appinfo_manager.load_appinfo()
+
         count = 0
+        # 1. Erst Binary Namen aus AppInfo (für "App + ID" Fälle)
+        for app_id, game in self.games.items():
+            steam_meta = appinfo_manager.get_app_metadata(app_id)
+            if game.name.startswith("App ") and steam_meta.get('name'):
+                game.name = steam_meta['name']
+                if not game.name_overridden:
+                    game.sort_name = game.name
+
+            if not game.developer and steam_meta.get('developer'):
+                game.developer = steam_meta['developer']
+            if not game.publisher and steam_meta.get('publisher'):
+                game.publisher = steam_meta['publisher']
+
+        # 2. Dann Custom Overrides
         for app_id, meta in modifications.items():
             if app_id in self.games:
                 game = self.games[app_id]
@@ -236,7 +254,7 @@ class GameManager:
 
                 if meta.get('sort_as'):
                     game.sort_name = meta['sort_as']
-                else:
+                elif game.name_overridden:
                     game.sort_name = game.name
 
                 if meta.get('developer'): game.developer = meta['developer']
@@ -251,20 +269,17 @@ class GameManager:
         print(t('logs.manager.merging'))
         local_app_ids = set(parser.get_all_app_ids())
 
-        # 1. Existierende Spiele updaten
         for app_id in self.games:
             if app_id in local_app_ids:
                 categories = parser.get_app_categories(app_id)
                 self.games[app_id].categories = categories
 
-        # 2. Fehlende Spiele erstellen (sollte jetzt selten sein!)
         api_app_ids = set(self.games.keys())
         missing_ids = local_app_ids - api_app_ids
 
         if missing_ids:
             print(t('logs.manager.found_missing', count=len(missing_ids)))
             for app_id in missing_ids:
-                # Versuche Name aus Cache
                 name = self._get_cached_name(app_id) or f"App {app_id}"
 
                 game = Game(app_id=app_id, name=name)
@@ -274,14 +289,13 @@ class GameManager:
         print(t('logs.manager.merged', count=len(self.games)))
 
     def _get_cached_name(self, app_id: str) -> Optional[str]:
-        """Versucht Namen aus Cache zu laden"""
         cache_file = self.cache_dir / 'store_data' / f'{app_id}.json'
         if cache_file.exists():
             try:
                 with open(cache_file, 'r') as f:
                     data = json.load(f)
                     return data.get('name')
-            except:
+            except (OSError, json.JSONDecodeError):
                 pass
         return None
 
@@ -293,7 +307,7 @@ class GameManager:
                     try:
                         dt = datetime.fromtimestamp(int(ts))
                         self.games[app_id].last_updated = dt.strftime('%Y-%m-%d')
-                    except:
+                    except (ValueError, TypeError):
                         pass
 
     def get_all_games(self) -> List[Game]:
@@ -332,12 +346,15 @@ class GameManager:
     def _fetch_store_data(self, app_id: str):
         cache_file = self.cache_dir / 'store_data' / f'{app_id}.json'
         if cache_file.exists():
-            cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
-            if cache_age < timedelta(days=7):
-                with open(cache_file, 'r') as f:
-                    data = json.load(f)
-                    self._apply_store_data(app_id, data)
-                return
+            try:
+                cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
+                if cache_age < timedelta(days=7):
+                    with open(cache_file, 'r') as f:
+                        data = json.load(f)
+                        self._apply_store_data(app_id, data)
+                    return
+            except (OSError, json.JSONDecodeError):
+                pass
 
         try:
             url = 'https://store.steampowered.com/api/appdetails'
@@ -350,18 +367,22 @@ class GameManager:
                 with open(cache_file, 'w') as f:
                     json.dump(game_data, f)
                 self._apply_store_data(app_id, game_data)
-        except:
+        # FIX Line 363: Spezifische Exceptions
+        except (requests.RequestException, ValueError, KeyError, OSError):
             pass
 
     def _fetch_review_stats(self, app_id: str):
         cache_file = self.cache_dir / 'store_data' / f'{app_id}_reviews.json'
         if cache_file.exists():
-            cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
-            if cache_age < timedelta(hours=24):
-                with open(cache_file, 'r') as f:
-                    data = json.load(f)
-                    self._apply_review_data(app_id, data)
-                return
+            try:
+                cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
+                if cache_age < timedelta(hours=24):
+                    with open(cache_file, 'r') as f:
+                        data = json.load(f)
+                        self._apply_review_data(app_id, data)
+                    return
+            except (OSError, json.JSONDecodeError):
+                pass
 
         try:
             url = f'https://store.steampowered.com/appreviews/{app_id}?json=1&language=all'
@@ -371,19 +392,23 @@ class GameManager:
                 with open(cache_file, 'w') as f:
                     json.dump(data, f)
                 self._apply_review_data(app_id, data)
-        except:
+        # FIX Line 387: Spezifische Exceptions
+        except (requests.RequestException, ValueError, KeyError, OSError):
             pass
 
     def _fetch_proton_rating(self, app_id: str):
         cache_file = self.cache_dir / 'store_data' / f'{app_id}_proton.json'
         if cache_file.exists():
-            cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
-            if cache_age < timedelta(days=7):
-                with open(cache_file, 'r') as f:
-                    data = json.load(f)
-                    if app_id in self.games:
-                        self.games[app_id].proton_db_rating = data.get('tier', 'unknown')
-                return
+            try:
+                cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
+                if cache_age < timedelta(days=7):
+                    with open(cache_file, 'r') as f:
+                        data = json.load(f)
+                        if app_id in self.games:
+                            self.games[app_id].proton_db_rating = data.get('tier', 'unknown')
+                    return
+            except (OSError, json.JSONDecodeError):
+                pass
 
         try:
             url = f'https://www.protondb.com/api/v1/reports/summaries/{app_id}.json'
@@ -398,7 +423,8 @@ class GameManager:
             else:
                 if app_id in self.games:
                     self.games[app_id].proton_db_rating = 'unknown'
-        except:
+        # FIX Line 417: Spezifische Exceptions
+        except (requests.RequestException, ValueError, KeyError, OSError):
             pass
 
     def _apply_review_data(self, app_id: str, data: Dict):
@@ -428,7 +454,6 @@ class GameManager:
         game.tags = list(set(game.tags + tags))
 
     def get_load_source_message(self) -> str:
-        """Returns user-friendly message about how games were loaded"""
         if self.load_source == "api":
             return t('ui.status.loaded_from_api', count=len(self.games))
         elif self.load_source == "local":

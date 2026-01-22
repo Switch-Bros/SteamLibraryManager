@@ -1,14 +1,12 @@
 """
-Steam Store Integration - MIT LANGUAGE SUPPORT! 🌍
-
-Updated: Holt Tags in der eingestellten Sprache
+Steam Store Integration - Fetches Tags & Franchises
 Speichern als: src/integrations/steam_store.py
 """
 
 import requests
 import time
 from bs4 import BeautifulSoup
-from typing import List, Optional, Dict
+from typing import List, Optional
 from pathlib import Path
 import json
 from datetime import datetime, timedelta
@@ -18,7 +16,7 @@ from src.utils.i18n import t
 class SteamStoreScraper:
     """Holt Tags von Steam Store - in gewählter Sprache"""
 
-    # Language mapping
+    # Language mapping (ISO Code -> Steam Internal Name)
     STEAM_LANGUAGES = {
         'en': 'english',
         'de': 'german',
@@ -41,150 +39,109 @@ class SteamStoreScraper:
         self.cache_dir = cache_dir / 'store_tags'
         self.cache_dir.mkdir(exist_ok=True, parents=True)
 
-        # Set language
+        # Attribute vorinitialisieren
+        self.language_code = 'en'
+        self.steam_language = 'english'
+
+        # Sprache setzen
         self.set_language(language)
 
         # Rate limiting
-        self.last_request_time = 0
+        self.last_request_time = 0.0
         self.min_request_interval = 1.5
 
-        # Tag blacklist (both English and German)
+        # Tag blacklist (Englisch & Deutsch gemischt)
         self.tag_blacklist = {
             # English
-            'Singleplayer', 'Multiplayer', 'Co-op', 'Online Co-Op',
-            'Local Co-Op', 'Shared/Split Screen', 'Cross-Platform Multiplayer',
-            'Controller Support', 'Full controller support', 'Partial Controller Support',
-            'Great Soundtrack', 'Atmospheric', 'Story Rich',
-            'VR Support', 'VR Only', 'Tracked Controller Support',
-            'Steam Achievements', 'Steam Cloud', 'Steam Trading Cards',
-            'Steam Workshop', 'In-App Purchases', 'Includes level editor',
+            'Singleplayer', 'Multiplayer', 'Co-op', 'Shared/Split Screen',
+            'Full controller support', 'Partial Controller Support',
+            'Steam Cloud', 'Steam Achievements', 'Remote Play',
+            'Captions available', 'Commentary available',
+            'Includes level editor', 'Includes Source SDK',
+            'VR Support', 'Steam Trading Cards', 'Stats',
+            'Steam Leaderboards', 'Steam Workshop',
+            'Cross-Platform Multiplayer', 'Remote Play on Phone',
+            'Remote Play on Tablet', 'Remote Play on TV',
+            'Remote Play Together', 'HDR available',
             # German
-            'Einzelspieler', 'Mehrspieler', 'Koop', 'Online-Koop',
-            'Lokaler Koop', 'Geteilter Bildschirm', 'Plattformübergreifender Mehrspieler',
-            'Controller-Unterstützung', 'Volle Controller-Unterstützung',
-            'Großartiger Soundtrack', 'Atmosphärisch', 'Handlungsintensiv',
-            'VR-Unterstützung', 'Nur VR',
-            'Steam-Errungenschaften', 'Steam Cloud', 'Steam-Sammelkarten',
-            'Steam Workshop', 'Käufe im Spiel'
+            'Einzelspieler', 'Mehrspieler', 'Koop', 'Geteilter/Split Screen',
+            'Volle Controllerunterstützung', 'Teilweise Controllerunterstützung',
+            'Steam Cloud', 'Steam-Errungenschaften', 'Remote Play',
+            'Untertitel verfügbar', 'Kommentar verfügbar',
+            'Enthält Level-Editor', 'Enthält Source SDK',
+            'VR-Unterstützung', 'Steam-Sammelkarten', 'Statistiken',
+            'Steam-Bestenlisten', 'Steam Workshop',
+            'Plattformübergreifender Mehrspieler', 'Remote Play auf Smartphones',
+            'Remote Play auf Tablets', 'Remote Play auf Fernsehern',
+            'Remote Play Together', 'HDR verfügbar'
         }
 
-    def set_language(self, language: str):
-        """Set language for tag fetching"""
-        self.language_code = language
-        self.steam_language = self.STEAM_LANGUAGES.get(language, 'english')
+    def set_language(self, language_code: str):
+        """Setzt die Sprache für Store-Anfragen"""
+        self.language_code = language_code
+        self.steam_language = self.STEAM_LANGUAGES.get(language_code, 'english')
 
-    def get_game_tags(self, app_id: str, max_tags: int = 13,
-                     ignore_common: bool = True) -> List[str]:
-        """
-        Get tags for a game in the set language
-        """
-        # Cache key includes language
-        cache_file = self.cache_dir / f'{app_id}_{self.language_code}.json'
+    def fetch_tags(self, app_id: str) -> List[str]:
+        """Holt Tags von der Steam Store Seite"""
+        cache_file = self.cache_dir / f"{app_id}_{self.language_code}.json"
 
-        # Check cache
+        # 1. Check Cache
         if cache_file.exists():
-            cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
-            if cache_age < timedelta(days=30):
-                with open(cache_file, 'r', encoding='utf-8') as f:
-                    cached_data = json.load(f)
-                    tags = cached_data.get('tags', [])
-                    return self._filter_tags(tags, max_tags, ignore_common)
+            try:
+                # Cache Validierung (30 Tage)
+                mtime = datetime.fromtimestamp(cache_file.stat().st_mtime)
+                if datetime.now() - mtime < timedelta(days=30):
+                    with open(cache_file, 'r', encoding='utf-8') as f:
+                        return json.load(f)
+            except (OSError, json.JSONDecodeError):
+                pass
 
-        # Fetch from Steam Store
-        tags = self._fetch_tags_from_store(app_id)
+        # 2. Rate Limiting
+        current_time = time.time()
+        time_since_last = current_time - self.last_request_time
+        if time_since_last < self.min_request_interval:
+            time.sleep(self.min_request_interval - time_since_last)
 
-        if tags:
-            # Cache with language
-            with open(cache_file, 'w', encoding='utf-8') as f:
-                json.dump({
-                    'tags': tags,
-                    'language': self.language_code,
-                    'fetched_at': datetime.now().isoformat()
-                }, f, ensure_ascii=False)
-
-        return self._filter_tags(tags, max_tags, ignore_common)
-
-    def _fetch_tags_from_store(self, app_id: str) -> List[str]:
-        """Fetch tags from Steam Store in set language"""
-        # Rate limiting
-        elapsed = time.time() - self.last_request_time
-        if elapsed < self.min_request_interval:
-            time.sleep(self.min_request_interval - elapsed)
-
+        # 3. Fetch from Steam
         try:
-            # URL with language parameter
-            url = f'https://store.steampowered.com/app/{app_id}'
-            params = {'l': self.steam_language}
-
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36',
-                'Accept-Language': f'{self.steam_language},en;q=0.9'
-            }
-
-            response = requests.get(url, params=params, headers=headers, timeout=10)
             self.last_request_time = time.time()
+            cookies = {'Steam_Language': self.steam_language}
 
-            if response.status_code != 200:
-                return []
+            url = f"https://store.steampowered.com/app/{app_id}/"
 
-            soup = BeautifulSoup(response.text, 'html.parser')
+            response = requests.get(url, cookies=cookies, timeout=10)
 
-            # Find tags
-            tags = []
-            tag_elements = soup.find_all('a', class_='app_tag')
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.text, 'html.parser')
 
-            for tag_elem in tag_elements:
-                tag_text = tag_elem.text.strip()
-                if tag_text:
-                    tags.append(tag_text)
+                # Tags finden
+                tags = []
 
-            return tags
+                # Selector für Tags
+                tag_elements = soup.select('.app_tag')
+                for tag_elem in tag_elements:
+                    tag_text = tag_elem.get_text().strip()
+                    if tag_text and tag_text not in self.tag_blacklist and tag_text != '+':
+                        tags.append(tag_text)
 
-        except Exception as e:
-            print(t('logs.steam_store.fetch_error', app_id=app_id, error=e))
-            return []
+                # Speichern
+                with open(cache_file, 'w', encoding='utf-8') as f:
+                    json.dump(tags, f)
 
-    def _filter_tags(self, tags: List[str], max_tags: int,
-                    ignore_common: bool) -> List[str]:
-        """Filter and limit tags"""
-        filtered = []
+                if tags:
+                    print(t('logs.store.tags_found', app_id=app_id, count=len(tags)))
+                return tags
 
-        for tag in tags:
-            # Skip blacklist
-            if ignore_common and tag in self.tag_blacklist:
-                continue
+        except (requests.RequestException, AttributeError) as e:
+            print(t('logs.store.error', app_id=app_id, error=e))
 
-            filtered.append(tag)
+        return []
 
-            # Limit
-            if len(filtered) >= max_tags:
-                break
-
-        return filtered
-
-    def fetch_multiple_games(self, app_ids: List[str], max_tags: int = 13,
-                            ignore_common: bool = True,
-                            progress_callback = None) -> Dict[str, List[str]]:
-        """Fetch tags for multiple games"""
-        results = {}
-        total = len(app_ids)
-
-        for i, app_id in enumerate(app_ids):
-            if progress_callback:
-                progress_callback(i + 1, total, app_id)
-
-            tags = self.get_game_tags(app_id, max_tags, ignore_common)
-            results[app_id] = tags
-
-        return results
-
-
-class FranchiseDetector:
-    """Detect franchises from game names"""
+    # --- Franchise Detection (Static) ---
 
     FRANCHISES = {
         'LEGO': ['lego'],
-        'Assassin\'s Creed': ['assassin\'s creed', 'assassins creed'],
+        "Assassin's Creed": ["assassin's creed", "assassins creed"],
         'Dark Souls': ['dark souls'],
         'The Elder Scrolls': ['elder scrolls', 'skyrim', 'oblivion', 'morrowind'],
         'Fallout': ['fallout'],
@@ -203,10 +160,14 @@ class FranchiseDetector:
         'Dragon Age': ['dragon age'],
         'Resident Evil': ['resident evil'],
         'Total War': ['total war'],
-        'Civilization': ['civilization', 'sid meier\'s civilization'],
+        'Civilization': ['civilization', "sid meier's civilization"],
         'DOOM': ['doom'],
         'Wolfenstein': ['wolfenstein'],
         'Hitman': ['hitman'],
+        'Final Fantasy': ['final fantasy'],
+        'Yakuza': ['yakuza', 'like a dragon'],
+        'Need for Speed': ['need for speed'],
+        'Star Wars': ['star wars'],
     }
 
     @classmethod
@@ -218,5 +179,4 @@ class FranchiseDetector:
             for pattern in patterns:
                 if pattern in name_lower:
                     return franchise
-
         return None

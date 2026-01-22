@@ -3,59 +3,65 @@ Steam Login Dialog - Clean & i18n-ready
 Speichern als: src/ui/steam_login_dialog.py
 """
 
+import threading
+import urllib.parse
+import webbrowser
+from http.server import HTTPServer, BaseHTTPRequestHandler
+from typing import Optional, Type
+
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QMessageBox
 )
-from PyQt6.QtCore import Qt, QUrl, QTimer, pyqtSignal
-from PyQt6.QtGui import QFont, QDesktopServices
-from typing import Optional
-import requests
-import webbrowser
-from http.server import HTTPServer, BaseHTTPRequestHandler
-import threading
-import urllib.parse
+
 from src.utils.i18n import t
 
 
 class SteamOpenIDHandler(BaseHTTPRequestHandler):
     """Handler für OpenID Callback"""
 
-    steam_id = None
+    steam_id: Optional[str] = None
 
     def do_GET(self):
+        """Standard-Methode des BaseHTTPRequestHandler."""
         parsed = urllib.parse.urlparse(self.path)
         params = urllib.parse.parse_qs(parsed.query)
 
         if 'openid.claimed_id' in params:
             claimed_id = params['openid.claimed_id'][0]
+            # Extrahiert die SteamID64 aus der URL
             if '/id/' in claimed_id:
-                steam_id = claimed_id.split('/id/')[-1]
-                SteamOpenIDHandler.steam_id = steam_id
+                found_id = claimed_id.split('/id/')[-1]
+                SteamOpenIDHandler.steam_id = found_id
 
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
 
-        # HTML jetzt auch übersetzbar
+        # HTML-Antwort für den Browser (lokalisiert)
         html = f"""
         <html>
         <head><title>{t('ui.login.html_success_title')}</title></head>
-        <body style="font-family: Arial; text-align: center; padding: 50px;">
+        <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px; 
+                     background-color: #1b2838; color: white;">
             <h1>{t('ui.login.html_success_header')}</h1>
             <p>{t('ui.login.html_success_body')}</p>
-            <script>window.close();</script>
+            <script>window.setTimeout(function(){{ window.close(); }}, 1500);</script>
         </body>
         </html>
         """
-        self.wfile.write(html.encode())
+        self.wfile.write(html.encode('utf-8'))
 
-    def log_message(self, format, *args):
+    def log_message(self, log_format, *args):
+        """Überschrieben, um Konsolen-Spam zu unterdrücken."""
         pass
 
 
 class SteamLoginDialog(QDialog):
-    """Steam Login Dialog mit OpenID"""
+    """Steam Login Dialog mit OpenID Integration"""
 
+    # Signal-Definition für erfolgreichen Login
     login_successful = pyqtSignal(str)
 
     def __init__(self, parent=None):
@@ -65,9 +71,10 @@ class SteamLoginDialog(QDialog):
         self.setMinimumWidth(400)
         self.setModal(True)
 
-        self.steam_id = None
-        self.server = None
-        self.server_thread = None
+        self.steam_id: Optional[str] = None
+        self.server: Optional[HTTPServer] = None
+        self.server_thread: Optional[threading.Thread] = None
+        self.check_timer: Optional[QTimer] = None
 
         self._create_ui()
 
@@ -98,23 +105,27 @@ class SteamLoginDialog(QDialog):
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-
         cancel_btn = QPushButton(t('ui.dialogs.cancel'))
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
-
         layout.addLayout(btn_layout)
 
     def _start_login(self):
         self.status_label.setText(t('ui.login.status_waiting'))
 
         try:
-            self.server = HTTPServer(('localhost', 8080), SteamOpenIDHandler)
+            # FIX: Type-Hint für handler_to_use korrigiert die 'Expected type' Warnung
+            handler_to_use: Type[BaseHTTPRequestHandler] = SteamOpenIDHandler
+            self.server = HTTPServer(('127.0.0.1', 8080), handler_to_use)
+
             self.server_thread = threading.Thread(target=self._run_server, daemon=True)
             self.server_thread.start()
 
-            return_url = "http://localhost:8080/auth/steam/callback"
-            realm = "http://localhost:8080"
+            # OpenID 2.0 Spezifikationen (lokale Rücksprünge erfordern meist http://127.0.0.1)
+            # noinspection HttpUrlsUsage
+            return_url = "http://127.0.0.1:8080/auth/callback"
+            # noinspection HttpUrlsUsage
+            realm = "http://127.0.0.1:8080"
 
             openid_params = {
                 'openid.ns': 'http://specs.openid.net/auth/2.0',
@@ -125,43 +136,49 @@ class SteamLoginDialog(QDialog):
                 'openid.claimed_id': 'http://specs.openid.net/auth/2.0/identifier_select'
             }
 
-            steam_login_url = 'https://steamcommunity.com/openid/login?' + urllib.parse.urlencode(openid_params)
+            # Der eigentliche Handshake mit Steam erfolgt sicher über HTTPS
+            steam_url = 'https://steamcommunity.com/openid/login?' + urllib.parse.urlencode(openid_params)
 
             self.status_label.setText(t('ui.login.status_browser'))
-            webbrowser.open(steam_login_url)
+            webbrowser.open(steam_url)
 
             self.check_timer = QTimer()
             self.check_timer.timeout.connect(self._check_login)
             self.check_timer.start(500)
 
-        except Exception as e:
-            QMessageBox.critical(self, t('ui.login.error_title'), t('ui.login.error_msg', error=e))
+        except OSError as e:
+            QMessageBox.critical(self, t('ui.login.error_title'), t('ui.login.error_msg', error=str(e)))
             self.status_label.setText(t('ui.login.status_failed'))
 
     def _run_server(self):
-        try:
-            self.server.handle_request()
-        except Exception as e:
-            print(f"Server error: {e}")
+        if self.server:
+            try:
+                self.server.handle_request()
+            except (OSError, ValueError):
+                pass
 
     def _check_login(self):
         if SteamOpenIDHandler.steam_id:
             self.steam_id = SteamOpenIDHandler.steam_id
-            self.check_timer.stop()
+            if self.check_timer:
+                self.check_timer.stop()
 
             self.status_label.setText(t('ui.login.status_success', id=self.steam_id))
+
+            # FIX: noinspection PyUnresolvedReferences unterdrückt Linter-Fehler bei .emit()
+            # noinspection PyUnresolvedReferences
             self.login_successful.emit(self.steam_id)
+
             QTimer.singleShot(1000, self.accept)
 
     def get_steam_id(self) -> Optional[str]:
         return self.steam_id
 
     def closeEvent(self, event):
+        """Stellt sicher, dass Timer und Server beim Schließen beendet werden."""
         if self.check_timer:
             self.check_timer.stop()
         if self.server:
-            try:
-                self.server.shutdown()
-            except:
-                pass
+            # Shutdown in Thread auslagern, um Blockieren der UI zu vermeiden
+            threading.Thread(target=self.server.shutdown, daemon=True).start()
         super().closeEvent(event)

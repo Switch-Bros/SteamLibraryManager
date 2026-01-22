@@ -2,10 +2,8 @@
 Steam Assets Manager (WebP/Gif Support)
 Speichern als: src/core/steam_assets.py
 """
-from pathlib import Path
-import requests
-import shutil
 import os
+import requests
 from src.config import config
 from src.utils.i18n import t
 
@@ -14,28 +12,32 @@ class SteamAssets:
 
     @staticmethod
     def get_asset_path(app_id: str, asset_type: str) -> str:
+        """Gibt den Pfad zum lokalen Asset zurück oder die URL als Fallback"""
         short_id, _ = config.get_detected_user()
+
+        # 1. Versuche lokales Bild zu finden
         if config.STEAM_PATH and short_id:
             grid_dir = config.STEAM_PATH / 'userdata' / short_id / 'config' / 'grid'
-            local_filename_base = ""
 
+            # Bestimme den Basis-Dateinamen
+            filename_base = ""
             if asset_type == 'grids':
-                local_filename_base = f"p_{app_id}"
+                filename_base = f"p_{app_id}"
             elif asset_type == 'heroes':
-                local_filename_base = f"{app_id}_hero"
+                filename_base = f"{app_id}_hero"
             elif asset_type == 'logos':
-                local_filename_base = f"{app_id}_logo"
+                filename_base = f"{app_id}_logo"
             elif asset_type == 'icons':
-                local_filename_base = f"{app_id}_icon"
+                filename_base = f"{app_id}_icon"
 
-            if local_filename_base:
-                # Wir prüfen alle möglichen Extensions, Priorität auf Custom Formate
-                for ext in ['.jpg', '.png', '.webp', '.gif']:
-                    local_path = grid_dir / (local_filename_base + ext)
+            if filename_base:
+                # Prüfe alle möglichen Endungen
+                for ext in ['.png', '.jpg', '.jpeg', '.webp', '.gif']:
+                    local_path = grid_dir / (filename_base + ext)
                     if local_path.exists():
                         return str(local_path)
 
-        # Web Fallbacks (Standard Steam URLS sind meist JPG oder PNG)
+        # 2. Web Fallbacks (Standard Steam URLs)
         if asset_type == 'grids':
             return f"https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id}/library_600x900.jpg"
         elif asset_type == 'heroes':
@@ -43,16 +45,21 @@ class SteamAssets:
         elif asset_type == 'logos':
             return f"https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id}/logo.png"
         elif asset_type == 'icons':
-            return f"https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/{app_id}/clienticon.jpg"
+            return ""
+
         return ""
 
     @staticmethod
-    def save_custom_image(app_id: str, asset_type: str, image_url: str) -> bool:
+    def save_custom_image(app_id: str, asset_type: str, image_path: str) -> bool:
+        """Speichert ein Custom Image in den Steam Grid Ordner"""
         short_id, _ = config.get_detected_user()
-        if not config.STEAM_PATH or not short_id: return False
+        if not config.STEAM_PATH or not short_id:
+            return False
+
         grid_dir = config.STEAM_PATH / 'userdata' / short_id / 'config' / 'grid'
         grid_dir.mkdir(parents=True, exist_ok=True)
 
+        # Bestimme Ziel-Dateinamen
         filename_base = ""
         if asset_type == 'grids':
             filename_base = f"p_{app_id}"
@@ -62,45 +69,55 @@ class SteamAssets:
             filename_base = f"{app_id}_logo"
         elif asset_type == 'icons':
             filename_base = f"{app_id}_icon"
-        else:
+
+        if not filename_base:
             return False
 
-        # WICHTIG: Vorher alte Dateien löschen (damit nicht JPG und PNG gleichzeitig existieren)
-        SteamAssets.delete_custom_image(app_id, asset_type)
+        # Extension ermitteln
+        if 'steamstatic' in image_path or 'steamgriddb' in image_path:
+            # Bei URLs raten wir oder nehmen .jpg als default
+            ext = os.path.splitext(image_path)[1]
+            if not ext: ext = '.jpg'
+        else:
+            # Lokale Datei
+            ext = os.path.splitext(image_path)[1]
+
+        final_path = grid_dir / (filename_base + ext)
 
         try:
-            response = requests.get(image_url, stream=True, timeout=15)
-            if response.status_code == 200:
-                # Extension bestimmen
-                url_lower = image_url.lower()
-                ext = ".jpg"  # Default
-
-                if ".png" in url_lower:
-                    ext = ".png"
-                elif ".webp" in url_lower:
-                    ext = ".webp"  # NEU
-                elif ".gif" in url_lower:
-                    ext = ".gif"  # NEU
-                # Sonderfall Logo: Steam bevorzugt PNG, aber wir speichern was wir kriegen
-
-                final_path = grid_dir / (filename_base + ext)
-                with open(final_path, 'wb') as f:
-                    response.raw.decode_content = True
-                    shutil.copyfileobj(response.raw, f)
+            # Fall 1: Lokale Datei kopieren
+            if os.path.exists(image_path):
+                with open(image_path, 'rb') as f_src:
+                    content = f_src.read()
+                with open(final_path, 'wb') as f_dst:
+                    f_dst.write(content)
                 print(t('logs.steamgrid.saved', type=asset_type, app_id=app_id))
                 return True
-        except Exception as e:
+
+            # Fall 2: Download von URL
+            elif image_path.startswith('http'):
+                response = requests.get(image_path, stream=True, timeout=10)
+                if response.status_code == 200:
+                    with open(final_path, 'wb') as f:
+                        for chunk in response.iter_content(chunk_size=8192):
+                            f.write(chunk)
+                    print(t('logs.steamgrid.saved', type=asset_type, app_id=app_id))
+                    return True
+
+        except (OSError, requests.RequestException) as e:
             print(t('logs.steamgrid.save_error', error=e))
             return False
+
         return False
 
     @staticmethod
     def delete_custom_image(app_id: str, asset_type: str) -> bool:
         short_id, _ = config.get_detected_user()
-        if not config.STEAM_PATH or not short_id: return False
+        if not config.STEAM_PATH or not short_id:
+            return False
+
         grid_dir = config.STEAM_PATH / 'userdata' / short_id / 'config' / 'grid'
 
-        # Alle möglichen Extensions prüfen
         bases = []
         if asset_type == 'grids':
             bases = [f"p_{app_id}"]
@@ -119,7 +136,10 @@ class SteamAssets:
                 path = grid_dir / (base + ext)
                 if path.exists():
                     try:
-                        os.remove(path); deleted = True
-                    except:
-                        pass
+                        os.remove(path)
+                        deleted = True
+                        print(t('logs.steamgrid.deleted', path=path.name))
+                    except OSError as e:
+                        print(f"Error deleting {path.name}: {e}")
+
         return deleted

@@ -3,7 +3,6 @@ i18n System - Core Translation Logic (Robust Path Fix)
 Speichern als: src/utils/i18n.py
 """
 import json
-import sys
 from pathlib import Path
 from typing import Optional, Dict, Any
 
@@ -30,10 +29,10 @@ class I18n:
             try:
                 with open(fallback_path, 'r', encoding='utf-8') as f:
                     self.fallback_translations = json.load(f)
-            except Exception as e:
+            except (OSError, json.JSONDecodeError) as e:
                 print(f"CRITICAL: Error loading fallback locale: {e}")
         else:
-            # Fallback falls wir im falschen Verzeichnis sind (Debugging)
+            # Fallback, falls wir im falschen Verzeichnis sind (Debugging)
             print(f"DEBUG: Locales not found at {fallback_path}")
 
         # Load target locale
@@ -43,7 +42,7 @@ class I18n:
                 try:
                     with open(locale_path, 'r', encoding='utf-8') as f:
                         self.translations = json.load(f)
-                except Exception as e:
+                except (OSError, json.JSONDecodeError):
                     self.translations = self.fallback_translations.copy()
             else:
                 self.translations = self.fallback_translations.copy()
@@ -81,7 +80,7 @@ class I18n:
         if kwargs:
             try:
                 return value.format(**kwargs)
-            except Exception:
+            except (ValueError, KeyError, IndexError):
                 return value
 
         return value

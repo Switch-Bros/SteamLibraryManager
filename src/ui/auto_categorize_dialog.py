@@ -8,9 +8,8 @@ from PyQt6.QtWidgets import (
     QCheckBox, QRadioButton, QSpinBox, QPushButton, QFrame,
     QButtonGroup, QMessageBox
 )
-from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
-from typing import List, Callable, Optional
+from typing import List, Callable, Optional, Dict, Any
 from src.utils.i18n import t
 
 
@@ -27,7 +26,7 @@ class AutoCategorizeDialog(QDialog):
         self.all_games_count = all_games_count
         self.on_start = on_start
         self.category_name = category_name
-        self.result = None
+        self.result: Optional[Dict[str, Any]] = None
 
         # Window setup
         self.setWindowTitle(t('ui.auto_categorize.title'))
@@ -166,17 +165,21 @@ class AutoCategorizeDialog(QDialog):
 
         layout.addLayout(button_layout)
 
+    def _get_selected_methods(self) -> List[str]:
+        """FIX: Hilfsmethode zur Vermeidung von Code-Duplikaten"""
+        methods = []
+        if self.cb_tags.isChecked(): methods.append('tags')
+        if self.cb_publisher.isChecked(): methods.append('publisher')
+        if self.cb_franchise.isChecked(): methods.append('franchise')
+        if self.cb_genre.isChecked(): methods.append('genre')
+        return methods
+
     def _update_estimate(self):
         """Update time estimate"""
         self.tags_group.setVisible(self.cb_tags.isChecked())
 
         game_count = self.all_games_count if self.rb_all.isChecked() else len(self.games)
-
-        selected_methods = []
-        if self.cb_tags.isChecked(): selected_methods.append('tags')
-        if self.cb_publisher.isChecked(): selected_methods.append('publisher')
-        if self.cb_franchise.isChecked(): selected_methods.append('franchise')
-        if self.cb_genre.isChecked(): selected_methods.append('genre')
+        selected_methods = self._get_selected_methods()
 
         if 'tags' in selected_methods:
             seconds = int(game_count * 1.5)
@@ -194,11 +197,7 @@ class AutoCategorizeDialog(QDialog):
 
     def _start(self):
         """Start auto-categorization"""
-        selected_methods = []
-        if self.cb_tags.isChecked(): selected_methods.append('tags')
-        if self.cb_publisher.isChecked(): selected_methods.append('publisher')
-        if self.cb_franchise.isChecked(): selected_methods.append('franchise')
-        if self.cb_genre.isChecked(): selected_methods.append('genre')
+        selected_methods = self._get_selected_methods()
 
         if not selected_methods:
             QMessageBox.warning(
@@ -219,5 +218,5 @@ class AutoCategorizeDialog(QDialog):
         if self.on_start:
             self.on_start(self.result)
 
-    def get_result(self):
+    def get_result(self) -> Optional[Dict[str, Any]]:
         return self.result

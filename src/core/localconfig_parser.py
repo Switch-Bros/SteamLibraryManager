@@ -7,8 +7,7 @@ Speichern als: src/core/localconfig_parser.py
 import vdf
 import shutil
 from pathlib import Path
-from typing import Dict, List, Optional, Set
-from datetime import datetime
+from typing import Dict, List, Optional
 from src.utils.i18n import t
 
 
@@ -46,86 +45,57 @@ class LocalConfigParser:
     def save(self, create_backup: bool = True) -> bool:
         """Speichere localconfig.vdf"""
         if not self.modified:
-            print(t('logs.parser.no_changes'))
             return True
+
+        if create_backup:
+            # Backup erstellen
+            backup_path = self.config_path.with_suffix('.vdf.bak')
+            try:
+                shutil.copy2(self.config_path, backup_path)
+            except OSError:
+                pass  # Backup fehlgeschlagen, nicht kritisch
 
         try:
-            # Backup erstellen
-            if create_backup:
-                self._create_backup()
-
-            # Schreibe Datei
             with open(self.config_path, 'w', encoding='utf-8') as f:
                 vdf.dump(self.data, f, pretty=True)
-
             self.modified = False
-            print(t('logs.parser.saved'))
             return True
-
-        except Exception as e:
+        except OSError as e:
             print(t('logs.parser.save_error', error=e))
             return False
-
-    def _create_backup(self):
-        """Erstelle Backup der localconfig.vdf"""
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        backup_path = self.config_path.parent / f'localconfig_backup_{timestamp}.vdf'
-        shutil.copy2(self.config_path, backup_path)
-        print(t('logs.parser.backup_created', path=backup_path.name))
 
     def get_all_app_ids(self) -> List[str]:
         return list(self.apps.keys())
 
     def get_app_categories(self, app_id: str) -> List[str]:
-        if app_id not in self.apps:
-            return []
-
-        app_data = self.apps[app_id]
-        if 'tags' not in app_data:
-            return []
-
-        tags = app_data['tags']
-        categories = []
-        for key in sorted(tags.keys(), key=lambda x: int(x) if x.isdigit() else 0):
-            categories.append(tags[key])
-
-        return categories
+        app_data = self.apps.get(str(app_id), {})
+        tags = app_data.get('tags', {})
+        if isinstance(tags, dict):
+            return list(tags.values())
+        return []
 
     def set_app_categories(self, app_id: str, categories: List[str]):
-        if app_id not in self.apps:
-            self.apps[app_id] = {}
+        if str(app_id) not in self.apps:
+            self.apps[str(app_id)] = {}
 
-        if 'tags' in self.apps[app_id]:
-            del self.apps[app_id]['tags']
-
-        if categories:
-            tags = {}
-            for i, category in enumerate(categories):
-                tags[str(i)] = category
-            self.apps[app_id]['tags'] = tags
-
+        # Steam speichert Tags als Dict {"0": "Tag1", "1": "Tag2"}
+        tags_dict = {str(i): cat for i, cat in enumerate(categories)}
+        self.apps[str(app_id)]['tags'] = tags_dict
         self.modified = True
 
     def add_app_category(self, app_id: str, category: str):
-        current_categories = self.get_app_categories(app_id)
-        if category not in current_categories:
-            current_categories.append(category)
-            self.set_app_categories(app_id, current_categories)
+        categories = self.get_app_categories(app_id)
+        if category not in categories:
+            categories.append(category)
+            self.set_app_categories(app_id, categories)
 
     def remove_app_category(self, app_id: str, category: str):
-        current_categories = self.get_app_categories(app_id)
-        if category in current_categories:
-            current_categories.remove(category)
-            self.set_app_categories(app_id, current_categories)
+        categories = self.get_app_categories(app_id)
+        if category in categories:
+            categories.remove(category)
+            self.set_app_categories(app_id, categories)
 
-    def get_all_categories(self) -> Set[str]:
-        categories = set()
-        for app_id in self.apps:
-            app_categories = self.get_app_categories(app_id)
-            categories.update(app_categories)
-        return categories
-
-    def get_apps_by_category(self, category: str) -> List[str]:
+    def get_apps_in_category(self, category: str) -> List[str]:
         apps = []
         for app_id in self.apps:
             if category in self.get_app_categories(app_id):
@@ -160,14 +130,12 @@ class LocalConfigParser:
 
 
 if __name__ == "__main__":
-    from pathlib import Path
     from src.utils.i18n import init_i18n
 
     init_i18n('en')
 
     # Test
-    config_path = Path.home() / '.steam' / 'steam' / 'userdata' / '43925226' / 'config' / 'localconfig.vdf'
-    parser = LocalConfigParser(config_path)
-
+    test_config_path = Path("test_localconfig.vdf")
+    parser = LocalConfigParser(test_config_path)
     if parser.load():
-        print(f"✓ Loaded {len(parser.get_all_app_ids())} games")
+        print(f"Loaded {len(parser.get_all_app_ids())} apps")

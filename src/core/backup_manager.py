@@ -7,13 +7,15 @@ import glob
 import os
 from pathlib import Path
 from datetime import datetime
+from typing import Optional
 from src.config import config
 
 
 class BackupManager:
     @staticmethod
-    def create_rolling_backup(file_path: Path) -> str:
-        if not file_path.exists(): return None
+    def create_rolling_backup(file_path: Path) -> Optional[str]:
+        if not file_path.exists():
+            return None
 
         backup_dir = config.DATA_DIR / 'backups'
         backup_dir.mkdir(parents=True, exist_ok=True)
@@ -34,9 +36,9 @@ class BackupManager:
                 for old in backups[config.MAX_BACKUPS:]:
                     try:
                         os.remove(old)
-                    except:
+                    except OSError:
                         pass
             return str(backup_path)
-        except Exception as e:
+        except OSError as e:
             print(f"Backup failed: {e}")
             return None

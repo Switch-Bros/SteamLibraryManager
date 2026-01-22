@@ -1,17 +1,51 @@
+# ===== GUI Framework =====
+# PyQt6 für die grafische Benutzeroberfläche (automatisch mit Qt6-Bindings)
+PyQt6>=6.10.2
+pyqt6-sip>=13.11.0
+
 # ===== Entwicklungsumgebung =====
 # Umgebungsvariablen (für lokale API-Keys)
-python-dotenv>=1.0.0
+python-dotenv>=1.2.1
+
+# ===== Core Dependencies =====
+# Bildverarbeitung (z.B. für SteamGridDB-Cover)
+Pillow>=12.1.0
+# Parsen von Steam-Konfigurationsdateien (VDF-Format)
+vdf>=3.4
+# HTML/XML-Parsing (für API-Antworten oder Web-Scraping)
+beautifulsoup4>=4.14.3
+lxml>=6.0.2
+
+# ===== HTTP & Authentifizierung =====
+# HTTP-Anfragen (Steam-API, SteamGridDB)
+requests>=2.32.5
+# OAuth2-Login für "Mit Steam anmelden"-Button
+requests-oauthlib>=2.0.0
+
+# ===== Steam-Integration =====
+# Offizielle Steam-API-Bibliothek
+steam>=1.4.4
+protobuf>=6.33.4
+protobuf-to-dict>=0.1.0
+# Lokaler Webserver für OAuth2-Callback (nur nötig, falls Flask für den Login-Flow genutzt wird)
+Flask>=3.1.2
+# Einbettung von Webinhalten (z.B. für OAuth2-Login in einem Fenster)
+pywebview>=6.1
+
+# ===== Konfiguration =====
+# Nutzer-Einstellungen speichern (z.B. SteamGridDB-API-Key)
+configparser>=7.2.0
+# YAML-Unterstützung (falls Konfigurationen in YAML gespeichert werden)
+pyyaml>=6.0.3
+
+# ===== Utilities (optional) =====
+# Asynchrone HTTP-Anfragen (falls für Performance genutzt)
+aiohttp>=3.13.3
 
 # ===== Testing & Code-Qualität =====
 # Unit Tests
-pytest>=7.4.0
+pytest>=9.0.2
 # Code-Formatierung
-black>=23.0.0
+black>=26.1.0
 # Linting
-flake8>=6.0.0
-
-# ===== Optional für Entwicklung =====
-# Falls Flask für lokale OAuth2-Tests genutzt wird
-Flask>=3.0.0
-# Asynchrone Anfragen (falls in der Entwicklung getestet)
-aiohttp>=3.9.0
+flake8>=7.3.0

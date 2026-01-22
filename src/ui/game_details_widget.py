@@ -1,16 +1,17 @@
 """
-Game Details Widget - Plural Types Refactor
+Game Details Widget - Plural Types Refactor & Cleaned
 Speichern als: src/ui/game_details_widget.py
 """
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
-    QLabel, QFrame, QPushButton, QCheckBox, QScrollArea,
-    QSizePolicy, QLineEdit, QListWidget, QListWidgetItem,
+    QLabel, QFrame, QPushButton, QCheckBox,
+    QLineEdit, QListWidget, QListWidgetItem,
     QAbstractItemView, QMenu
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from PyQt6.QtGui import QFont, QCursor
+from typing import List  # FIX: Löst 'Unresolved reference List'
 from src.core.game_manager import Game
 from src.utils.i18n import t
 from src.ui.components.clickable_image import ClickableImage
@@ -19,7 +20,8 @@ from src.ui.image_selection_dialog import ImageSelectionDialog
 
 
 class InfoLabel(QLabel):
-    def __init__(self, title_key, value="", is_i18n_key=False):
+    # FIX: Parameter 'is_i18n_key' entfernt, da ungenutzt
+    def __init__(self, title_key, value=""):
         super().__init__()
         title = t(title_key)
         self.setText(f"<span style='color:#888;'>{title}:</span> <b>{value}</b>")
@@ -46,9 +48,11 @@ class HorizontalCategoryList(QListWidget):
 
     def set_categories(self, all_categories: List[str], game_categories: List[str]):
         self.clear()
-        if not all_categories: return
+        if not all_categories:
+            return
         for category in sorted(all_categories):
-            if category == 'favorite': continue
+            if category == 'favorite':
+                continue
             item = QListWidgetItem(self)
             item.setSizeHint(QSize(200, 24))
             cb = QCheckBox(category)
@@ -109,7 +113,6 @@ class GameDetailsWidget(QWidget):
         gallery_layout.setContentsMargins(4, 4, 4, 4)
         gallery_layout.setSpacing(4)
 
-        # Bilder (JETZT MIT PLURAL KEYS)
         self.img_grid = ClickableImage('grids', 232, 348)
         self.img_grid.clicked.connect(self._on_image_click)
         self.img_grid.right_clicked.connect(self._on_image_right_click)
@@ -190,38 +193,24 @@ class GameDetailsWidget(QWidget):
         meta_grid.addWidget(self.lbl_reviews, 3, 1)
 
         meta_grid.addWidget(QLabel(f"<b>{t('ui.game_details.section_metadata')}</b>"), 0, 2)
-        dev_layout = QHBoxLayout()
-        dev_layout.setContentsMargins(0, 0, 0, 0)
-        dev_lbl = QLabel(t('ui.game_details.developer') + ":")
-        dev_lbl.setStyleSheet("padding: 1px 0;")
-        dev_layout.addWidget(dev_lbl)
-        self.edit_dev = QLineEdit()
-        self.edit_dev.setReadOnly(True)
-        self.edit_dev.setStyleSheet("background: transparent; border: none; font-weight: bold; padding: 1px 0;")
-        dev_layout.addWidget(self.edit_dev)
-        meta_grid.addLayout(dev_layout, 1, 2)
 
-        pub_layout = QHBoxLayout()
-        pub_layout.setContentsMargins(0, 0, 0, 0)
-        pub_lbl = QLabel(t('ui.game_details.publisher') + ":")
-        pub_lbl.setStyleSheet("padding: 1px 0;")
-        pub_layout.addWidget(pub_lbl)
-        self.edit_pub = QLineEdit()
-        self.edit_pub.setReadOnly(True)
-        self.edit_pub.setStyleSheet("background: transparent; border: none; font-weight: bold; padding: 1px 0;")
-        pub_layout.addWidget(self.edit_pub)
-        meta_grid.addLayout(pub_layout, 2, 2)
+        # Hilfskonstruktion für Developer/Publisher/Release
+        def add_meta_field(grid, label_key, row):
+            l_layout = QHBoxLayout()
+            l_lbl = QLabel(t(label_key) + ":")
+            l_lbl.setStyleSheet("padding: 1px 0;")
+            l_layout.addWidget(l_lbl)
+            edit = QLineEdit()
+            edit.setReadOnly(True)
+            edit.setStyleSheet("background: transparent; border: none; font-weight: bold; padding: 1px 0;")
+            l_layout.addWidget(edit)
+            grid.addLayout(l_layout, row, 2)
+            return edit
 
-        rel_layout = QHBoxLayout()
-        rel_layout.setContentsMargins(0, 0, 0, 0)
-        rel_lbl = QLabel(t('ui.game_details.release_year') + ":")
-        rel_lbl.setStyleSheet("padding: 1px 0;")
-        rel_layout.addWidget(rel_lbl)
-        self.edit_rel = QLineEdit()
-        self.edit_rel.setReadOnly(True)
-        self.edit_rel.setStyleSheet("background: transparent; border: none; font-weight: bold; padding: 1px 0;")
-        rel_layout.addWidget(self.edit_rel)
-        meta_grid.addLayout(rel_layout, 3, 2)
+        self.edit_dev = add_meta_field(meta_grid, 'ui.game_details.developer', 1)
+        self.edit_pub = add_meta_field(meta_grid, 'ui.game_details.publisher', 2)
+        self.edit_rel = add_meta_field(meta_grid, 'ui.game_details.release_year', 3)
+
         main_layout.addWidget(meta_widget)
 
         line2 = QFrame()
@@ -249,7 +238,8 @@ class GameDetailsWidget(QWidget):
         }
         color = colors.get(tier, "#FE28A2")
         display_text = t(f'ui.game_details.proton_tiers.{tier}')
-        if display_text.startswith("["): display_text = tier.title()
+        if display_text.startswith("["):
+            display_text = tier.title()
         title = t('ui.game_details.proton_db')
         self.lbl_proton.setText(
             f"<span style='color:#888;'>{title}:</span> <span style='color:{color}; font-weight:bold;'>{display_text}</span>")
@@ -267,10 +257,7 @@ class GameDetailsWidget(QWidget):
         self._update_proton_label(game.proton_db_rating)
         db_val = game.steam_db_rating if game.steam_db_rating else "—"
         self.lbl_steamdb.setText(f"<span style='color:#888;'>{t('ui.game_details.steam_db')}:</span> <b>{db_val}</b>")
-        if game.review_score:
-            review_val = f"{game.review_score} ({game.review_count})"
-        else:
-            review_val = "—"
+        review_val = f"{game.review_score} ({game.review_count})" if game.review_score else "—"
         self.lbl_reviews.setText(
             f"<span style='color:#888;'>{t('ui.game_details.reviews')}:</span> <b>{review_val}</b>")
         unknown = t('ui.game_details.value_unknown')
@@ -279,14 +266,18 @@ class GameDetailsWidget(QWidget):
         self.edit_rel.setText(game.release_year if game.release_year else unknown)
         self.category_list.set_categories(all_categories, game.categories)
 
-        # Bilder laden (Plural Keys!)
         self._reload_images(game.app_id)
 
     def _reload_images(self, app_id: str):
-        self.img_grid.load_image(SteamAssets.get_asset_path(app_id, 'grids'))
-        self.img_hero.load_image(SteamAssets.get_asset_path(app_id, 'heroes'))
-        self.img_logo.load_image(SteamAssets.get_asset_path(app_id, 'logos'))
-        self.img_icon.load_image(SteamAssets.get_asset_path(app_id, 'icons'))
+        # FIX: Code-Duplikat durch Mapping-Iteration ersetzt
+        asset_map = {
+            'grids': self.img_grid,
+            'heroes': self.img_hero,
+            'logos': self.img_logo,
+            'icons': self.img_icon
+        }
+        for asset_type, img_widget in asset_map.items():
+            img_widget.load_image(SteamAssets.get_asset_path(app_id, asset_type))
 
     def clear(self):
         self.current_game = None
@@ -308,38 +299,34 @@ class GameDetailsWidget(QWidget):
             webbrowser.open(f"https://store.steampowered.com/app/{self.current_game.app_id}")
 
     def _on_image_click(self, img_type: str):
-        if not self.current_game: return
+        if not self.current_game:
+            return
         dialog = ImageSelectionDialog(self, self.current_game.name, self.current_game.app_id, img_type)
         if dialog.exec():
             url = dialog.get_selected_url()
-            if url:
-                if SteamAssets.save_custom_image(self.current_game.app_id, img_type, url):
-                    # Reload specific image
-                    path = SteamAssets.get_asset_path(self.current_game.app_id, img_type)
-                    if img_type == 'grids':
-                        self.img_grid.load_image(path)
-                    elif img_type == 'heroes':
-                        self.img_hero.load_image(path)
-                    elif img_type == 'logos':
-                        self.img_logo.load_image(path)
-                    elif img_type == 'icons':
-                        self.img_icon.load_image(path)
+            if url and SteamAssets.save_custom_image(self.current_game.app_id, img_type, url):
+                # Reload specific image using internal map
+                self._reload_single_asset(img_type)
 
     def _on_image_right_click(self, img_type: str):
-        if not self.current_game: return
+        if not self.current_game:
+            return
 
         menu = QMenu(self)
         reset_action = menu.addAction(t('ui.game_details.gallery.reset'))
         action = menu.exec(QCursor.pos())
 
-        if action == reset_action:
-            if SteamAssets.delete_custom_image(self.current_game.app_id, img_type):
-                path = SteamAssets.get_asset_path(self.current_game.app_id, img_type)
-                if img_type == 'grids':
-                    self.img_grid.load_image(path)
-                elif img_type == 'heroes':
-                    self.img_hero.load_image(path)
-                elif img_type == 'logos':
-                    self.img_logo.load_image(path)
-                elif img_type == 'icons':
-                    self.img_icon.load_image(path)
+        if action == reset_action and SteamAssets.delete_custom_image(self.current_game.app_id, img_type):
+            self._reload_single_asset(img_type)
+
+    def _reload_single_asset(self, img_type: str):
+        """FIX: Hilfsmethode zur Beseitigung von Code-Duplikaten beim Nachladen"""
+        asset_map = {
+            'grids': self.img_grid,
+            'heroes': self.img_hero,
+            'logos': self.img_logo,
+            'icons': self.img_icon
+        }
+        if img_type in asset_map:
+            path = SteamAssets.get_asset_path(self.current_game.app_id, img_type)
+            asset_map[img_type].load_image(path)

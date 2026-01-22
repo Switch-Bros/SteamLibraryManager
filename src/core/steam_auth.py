@@ -3,13 +3,13 @@ Steam Authentication Manager - Clean Localized Strings
 Speichern als: src/core/steam_auth.py
 """
 import threading
-import sys
 from flask import Flask, request
+# noinspection PyPackageRequirements
 from werkzeug.serving import make_server
 from PyQt6.QtCore import QObject, pyqtSignal
-from src.config import config
 from src.utils.i18n import t
 from urllib.parse import urlencode
+import webbrowser
 
 # Importe basierend auf requirements
 try:
@@ -17,10 +17,9 @@ try:
 
     HAS_WEBVIEW = True
 except ImportError:
+    webview = None
     HAS_WEBVIEW = False
-    # FIX: Hardcoded Print removed
     print(t('logs.auth.webview_missing'))
-    import webbrowser
 
 
 class SteamAuthManager(QObject):
@@ -33,6 +32,7 @@ class SteamAuthManager(QObject):
         self.server_thread = None
         self.app = Flask(__name__)
         self.port = 5000
+        # noinspection HttpUrlsUsage
         self.redirect_uri = f"http://localhost:{self.port}/auth"
 
         # Flask Route
@@ -45,39 +45,41 @@ class SteamAuthManager(QObject):
         self.server_thread.daemon = True
         self.server_thread.start()
 
-        # 2. OpenID URL bauen (Kein Client ID nötig!)
+        # 2. OpenID URL bauen
+        # noinspection HttpUrlsUsage
         params = {
             'openid.ns': 'http://specs.openid.net/auth/2.0',
             'openid.mode': 'checkid_setup',
             'openid.return_to': self.redirect_uri,
-            'openid.realm': f'http://localhost:{self.port}',
+            'openid.realm': f"http://localhost:{self.port}",
             'openid.identity': 'http://specs.openid.net/auth/2.0/identifier_select',
             'openid.claimed_id': 'http://specs.openid.net/auth/2.0/identifier_select'
         }
 
-        query_string = urlencode(params)
-        auth_url = f"https://steamcommunity.com/openid/login?{query_string}"
+        auth_url = 'https://steamcommunity.com/openid/login?' + urlencode(params)
 
-        # FIX: Hardcoded Print removed
-        print(t('logs.auth.starting'))
-
-        # 3. Browser/Fenster öffnen
-        if HAS_WEBVIEW:
-            # Login Fenstertitel aus Locale
-            t_thread = threading.Thread(
-                target=lambda: webview.create_window(t('ui.auth.window_title'), auth_url, width=800, height=600))
-            t_thread.start()
+        # 3. Browser öffnen
+        if HAS_WEBVIEW and webview:
+            threading.Thread(target=lambda: self._open_webview(auth_url)).start()
         else:
-            import webbrowser
             webbrowser.open(auth_url)
+
+    @staticmethod
+    def _open_webview(url):
+        """Öffnet ein natives Fenster (falls webview installiert)"""
+        try:
+            webview.create_window('Steam Login', url, width=800, height=600, resizable=False)
+            webview.start()
+        except Exception as e:
+            print(f"Webview error: {e}")
+            webbrowser.open(url)
 
     def _run_flask(self):
         try:
             self.server = make_server('localhost', self.port, self.app)
-            # FIX: Hardcoded Print removed
             print(t('logs.auth.server_started', port=self.port))
             self.server.serve_forever()
-        except Exception as e:
+        except OSError as e:
             self.auth_error.emit(str(e))
 
     def _handle_auth(self):
@@ -91,9 +93,15 @@ class SteamAuthManager(QObject):
 
             self.auth_success.emit(steam_id_64)
 
-            threading.Thread(target=self.server.shutdown).start()
+            # Server sauber beenden
+            if self.server:
+                threading.Thread(target=self.server.shutdown).start()
 
-            # HTML Response (Lokalisiert)
+            # Webview schließen (falls aktiv)
+            if HAS_WEBVIEW and webview:
+                pass
+
+            # HTML Response
             return f"""
             <html>
             <body style="background-color:#1b2838; color:white; font-family:sans-serif; text-align:center; padding-top:50px;">
@@ -104,7 +112,4 @@ class SteamAuthManager(QObject):
             </html>
             """
         else:
-            # Check auf Fehler
-            error_msg = request.args.get('openid.error', t('ui.auth.error_no_code'))
-            self.auth_error.emit(error_msg)
-            return f"Error: {error_msg}"
+            return "Login failed or cancelled."

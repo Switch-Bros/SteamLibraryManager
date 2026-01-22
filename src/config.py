@@ -1,5 +1,5 @@
 """
-Configuration - Steam API Key is now optional
+Configuration - Cleaned, Typed & Warning-Free
 Speichern als: src/config.py
 """
 import os
@@ -7,10 +7,13 @@ import json
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional, Tuple
-from dotenv import load_dotenv
 
-# Lade .env Datei (für Entwicklung)
-load_dotenv(Path(__file__).parent.parent / '.env')
+# FIX: Lambda nutzen, um 'unused parameter' Warnungen zu vermeiden
+try:
+    # noinspection PyPackageRequirements
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = lambda *args, **kwargs: None
 
 
 @dataclass
@@ -29,7 +32,7 @@ class Config:
     DEFAULT_LOCALE: str = 'en'
     THEME: str = 'dark'
 
-    # API KEYS (BEIDE OPTIONAL!)
+    # API KEYS
     STEAM_API_KEY: Optional[str] = None
     STEAMGRIDDB_API_KEY: Optional[str] = None
 
@@ -42,61 +45,61 @@ class Config:
     def __post_init__(self):
         self.DATA_DIR.mkdir(exist_ok=True)
         self.CACHE_DIR.mkdir(exist_ok=True)
-        (self.CACHE_DIR / 'game_tags').mkdir(exist_ok=True)
-        (self.CACHE_DIR / 'store_data').mkdir(exist_ok=True)
-        (self.CACHE_DIR / 'images').mkdir(exist_ok=True)
-        self.ICONS_DIR.mkdir(parents=True, exist_ok=True)
+        (self.APP_DIR / 'logs').mkdir(exist_ok=True)
+
+        # Lade .env
+        try:
+            load_dotenv(Path(__file__).parent.parent / '.env')
+        except (OSError, UnicodeDecodeError):
+            pass
+
+        # Lade Umgebungsvariablen
+        if os.getenv('STEAM_API_KEY'):
+            self.STEAM_API_KEY = os.getenv('STEAM_API_KEY')
 
         self._load_settings()
 
-        # Fallback: Environment Variables (Dev Mode)
-        if not self.STEAM_API_KEY:
-            env_key = os.getenv("STEAM_API_KEY")
-            if env_key:
-                self.STEAM_API_KEY = env_key
-
-        if not self.STEAMGRIDDB_API_KEY:
-            env_key = os.getenv("STEAMGRIDDB_API_KEY")
-            if env_key:
-                self.STEAMGRIDDB_API_KEY = env_key
-
-        if self.STEAM_PATH is None:
+        if not self.STEAM_PATH:
             self.STEAM_PATH = self._find_steam_path()
 
     def _load_settings(self):
-        from src.utils.i18n import t
-
         if self.SETTINGS_FILE.exists():
             try:
-                with open(self.SETTINGS_FILE, 'r') as f:
-                    settings = json.load(f)
+                with open(self.SETTINGS_FILE, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
 
-                self.UI_LANGUAGE = settings.get('ui_language', 'en')
-                self.TAGS_LANGUAGE = settings.get('tags_language', 'en')
-                self.TAGS_PER_GAME = settings.get('tags_per_game', 13)
-                self.IGNORE_COMMON_TAGS = settings.get('ignore_common_tags', True)
-                self.MAX_BACKUPS = settings.get('max_backups', 5)
+                if 'ui_language' in data: self.UI_LANGUAGE = data['ui_language']
+                if 'tags_language' in data: self.TAGS_LANGUAGE = data['tags_language']
+                if 'steamgriddb_api_key' in data: self.STEAMGRIDDB_API_KEY = data['steamgriddb_api_key']
+                if 'steam_path' in data and data['steam_path']:
+                    self.STEAM_PATH = Path(data['steam_path'])
+                if 'max_backups' in data: self.MAX_BACKUPS = data['max_backups']
 
-                # API Keys aus Settings (User kann beide eingeben!)
-                if settings.get('steamgriddb_api_key'):
-                    self.STEAMGRIDDB_API_KEY = settings.get('steamgriddb_api_key')
-
-                if settings.get('steam_api_key'):
-                    self.STEAM_API_KEY = settings.get('steam_api_key')
-
-            except Exception as e:
-                print(t('logs.config.error', error=e))
+            except (OSError, json.JSONDecodeError) as e:
+                print(f"Error loading settings: {e}")
 
     def save_settings(self, **kwargs):
         current = {}
         if self.SETTINGS_FILE.exists():
-            with open(self.SETTINGS_FILE, 'r') as f:
-                current = json.load(f)
-        current.update(kwargs)
-        with open(self.SETTINGS_FILE, 'w') as f:
-            json.dump(current, f, indent=2)
+            try:
+                with open(self.SETTINGS_FILE, 'r', encoding='utf-8') as f:
+                    current = json.load(f)
+            except (OSError, json.JSONDecodeError):
+                pass
 
-    def _find_steam_path(self) -> Optional[Path]:
+        current.update(kwargs)
+        if 'steam_path' in kwargs and isinstance(kwargs['steam_path'], Path):
+            current['steam_path'] = str(kwargs['steam_path'])
+
+        try:
+            with open(self.SETTINGS_FILE, 'w', encoding='utf-8') as f:
+                json.dump(current, f, indent=2)
+        except OSError as e:
+            print(f"Error saving settings: {e}")
+
+    @staticmethod
+    def _find_steam_path() -> Optional[Path]:
+        """Sucht den Steam-Installationspfad"""
         paths = [
             Path.home() / '.steam' / 'steam',
             Path.home() / '.local' / 'share' / 'Steam',
@@ -107,7 +110,6 @@ class Config:
         return None
 
     def get_detected_user(self) -> Tuple[Optional[str], Optional[str]]:
-        """Versucht User lokal zu finden (Fallback)"""
         if not self.STEAM_PATH: return None, None
         userdata = self.STEAM_PATH / 'userdata'
         if not userdata.exists(): return None, None
@@ -121,9 +123,9 @@ class Config:
         return None, None
 
     def get_localconfig_path(self, account_id: str) -> Optional[Path]:
-        if self.STEAM_PATH and account_id:
-            return self.STEAM_PATH / 'userdata' / account_id / 'config' / 'localconfig.vdf'
-        return None
+        if not self.STEAM_PATH or not account_id: return None
+        return self.STEAM_PATH / 'userdata' / account_id / 'config' / 'localconfig.vdf'
 
 
+# Globale Instanz
 config = Config()

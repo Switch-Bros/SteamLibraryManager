@@ -13,11 +13,13 @@ from src.utils.i18n import t
 
 try:
     from PIL import Image, ImageSequence
-
     HAS_PILLOW = True
 except ImportError:
+    # FIX: Definitionen für PIL-Klassen im except-Block hinzugefügt
+    Image = None
+    ImageSequence = None
     HAS_PILLOW = False
-    print(t('logs.image.pillow_missing'))  # Localized Log
+    print(t('logs.image.pillow_missing'))
 
 
 class ImageLoader(QThread):
@@ -40,10 +42,11 @@ class ImageLoader(QThread):
                     data = QByteArray(f.read())
             else:
                 headers = {'User-Agent': 'SteamLibraryManager/1.0'}
+                # FIX: Spezifische Exception für Requests
                 response = requests.get(self.url_or_path, headers=headers, timeout=15)
                 if response.status_code == 200:
                     data = QByteArray(response.content)
-        except:
+        except (requests.exceptions.RequestException, OSError):
             pass
 
         if self._is_running:
@@ -167,10 +170,21 @@ class ClickableImage(QWidget):
         if self.loader and self.loader.isRunning():
             self.loader.stop()
 
-        self.image_label.setText("⏳")  # Symbols are okay as non-translatable
+        self.image_label.setText("⏳")
         self.loader = ImageLoader(url_or_path)
         self.loader.loaded.connect(self._on_loaded)
         self.loader.start()
+
+    def _apply_pixmap(self, pixmap):
+        """Hilfsmethode zur Vermeidung von Code-Duplikaten"""
+        scaled = pixmap.scaled(
+            self.w, self.h,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+        self.image_label.resize(scaled.size())
+        self.image_label.setPixmap(scaled)
+        self._center_image()
 
     def _on_loaded(self, data: QByteArray):
         if data.isEmpty():
@@ -207,30 +221,20 @@ class ClickableImage(QWidget):
                     im_rgba = im.convert("RGBA")
                     data_rgba = im_rgba.tobytes("raw", "RGBA")
                     qimg = QImage(data_rgba, im_rgba.width, im_rgba.height, QImage.Format.Format_RGBA8888)
-                    pix = QPixmap.fromImage(qimg)
-                    scaled = pix.scaled(self.w, self.h, Qt.AspectRatioMode.KeepAspectRatio,
-                                        Qt.TransformationMode.SmoothTransformation)
-                    self.image_label.resize(scaled.size())
-                    self.image_label.setPixmap(scaled)
-                    self._center_image()
+                    # FIX: Code-Duplikat entfernt
+                    self._apply_pixmap(QPixmap.fromImage(qimg))
                     self._create_badges(False)
                     return
 
-            except Exception:
+            except (IOError, ValueError):
                 pass
 
         pixmap = QPixmap()
         pixmap.loadFromData(data)
 
         if not pixmap.isNull():
-            scaled = pixmap.scaled(
-                self.w, self.h,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation
-            )
-            self.image_label.resize(scaled.size())
-            self.image_label.setPixmap(scaled)
-            self._center_image()
+            # FIX: Code-Duplikat entfernt
+            self._apply_pixmap(pixmap)
             self._create_badges(False)
         else:
             self.image_label.setText("❌")

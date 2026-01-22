@@ -51,23 +51,26 @@ class GameTreeWidget(QTreeWidget):
         """)
 
     def _on_selection_changed(self):
-        """Handle selection changes"""
+        """Behandelt Änderungen der Auswahl"""
         selected_items = self.selectedItems()
         selected_games = []
         for item in selected_items:
             game = item.data(0, Qt.ItemDataRole.UserRole)
-            if game and hasattr(game, 'app_id'):  # It's a Game object
+            if game and hasattr(game, 'app_id'):  # Prüfen, ob es ein Game-Objekt ist
                 selected_games.append(game)
         self.selection_changed.emit(selected_games)
 
-    def _on_item_clicked(self, item, column):
-        """Handle item click"""
+    def _on_item_clicked(self, item, _column):
+        """
+        Behandelt Klicks auf Items.
+        _column wird ignoriert (Linter Fix).
+        """
         game = item.data(0, Qt.ItemDataRole.UserRole)
-        if game and hasattr(game, 'app_id'):  # It's a Game object
+        if game and hasattr(game, 'app_id'):
             self.game_clicked.emit(game)
 
     def _on_context_menu(self, pos):
-        """Handle right-click context menu"""
+        """Behandelt Rechtsklicks für Kontextmenüs"""
         item = self.itemAt(pos)
         if not item:
             return
@@ -82,31 +85,27 @@ class GameTreeWidget(QTreeWidget):
             self.category_right_clicked.emit(category, global_pos)
 
     def populate_categories(self, categories_data: Dict[str, List]):
-        """
-        Populate tree with categories and games
-        """
+        """Befüllt den Baum mit Kategorien und Spielen"""
         self.clear()
 
         folder_icon = t('ui.categories.icon_folder')
         fav_icon = t('ui.categories.icon_favorite')
 
         for category_name, games in categories_data.items():
-            # Create category item
-            # Format: "📁 Name (Count)"
+            # Kategorie-Item erstellen: "📁 Name (Anzahl)"
             display_text = f"{folder_icon} {category_name} ({len(games)})"
             category_item = QTreeWidgetItem(self, [display_text])
             category_item.setData(0, Qt.ItemDataRole.UserRole + 1, category_name)
 
-            # Style category
             font = category_item.font(0)
             font.setBold(True)
             font.setPointSize(11)
             category_item.setFont(0, font)
 
-            # Add games (limit to first 100 for performance)
+            # Spiele hinzufügen (Limitierung zur Performance-Steigerung)
             display_limit = 100
             for game in games[:display_limit]:
-                # Format: "  • GameName (Xh) ⭐"
+                # Format: " • Spielname (Xh) ⭐"
                 game_text = f"  • {game.name}"
                 if game.playtime_hours > 0:
                     game_text += f" ({t('ui.game_details.hours', hours=game.playtime_hours)})"
@@ -116,12 +115,10 @@ class GameTreeWidget(QTreeWidget):
                 game_item = QTreeWidgetItem(category_item, [game_text])
                 game_item.setData(0, Qt.ItemDataRole.UserRole, game)
 
-                # Style game item
                 game_font = game_item.font(0)
                 game_font.setPointSize(10)
                 game_item.setFont(0, game_font)
 
-            # Show "... and X more" if there are more games
             if len(games) > display_limit:
                 remaining = len(games) - display_limit
                 more_text = t('ui.categories.more_games', count=remaining)
@@ -141,10 +138,7 @@ class GameTreeWidget(QTreeWidget):
 
 
 class CategoryTreeWithGames(QWidget):
-    """
-    Wrapper mit Header und Buttons
-    DEPRECATED: But kept for compatibility if needed elsewhere
-    """
+    """Wrapper mit Header und Steuerungselementen"""
 
     def __init__(self, parent=None, on_game_click: Optional[Callable] = None,
                  on_game_right_click: Optional[Callable] = None,
@@ -155,13 +149,12 @@ class CategoryTreeWithGames(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(5)
 
-        # Header
+        # Header Bereich
         header = QFrame()
         header.setFrameShape(QFrame.Shape.StyledPanel)
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(10, 5, 10, 5)
 
-        # Title
         title = QLabel(t('ui.categories.title'))
         title_font = QFont()
         title_font.setPointSize(13)
@@ -171,7 +164,7 @@ class CategoryTreeWithGames(QWidget):
 
         header_layout.addStretch()
 
-        # Expand/Collapse buttons
+        # Buttons zum Aus-/Einklappen
         expand_btn = QPushButton(t('ui.categories.sym_expand'))
         expand_btn.setToolTip(t('ui.main.expand_all'))
         expand_btn.setMaximumWidth(40)
@@ -186,7 +179,7 @@ class CategoryTreeWithGames(QWidget):
 
         layout.addWidget(header)
 
-        # Tree widget
+        # Tree Widget Instanziierung
         self.tree = GameTreeWidget()
         if on_game_click:
             self.tree.game_clicked.connect(on_game_click)
@@ -203,8 +196,11 @@ class CategoryTreeWithGames(QWidget):
     def _collapse_all(self):
         self.tree.collapse_all_categories()
 
-    def add_category(self, name: str, icon: str, games: List):
-        # icon ignored here, handled by tree populate
+    def add_category(self, name: str, _icon: str, games: List):
+        """
+        Einzelne Kategorie hinzufügen.
+        _icon wird ignoriert, da Icons zentral im Tree verwaltet werden (Linter Fix).
+        """
         categories_data = {name: games}
         self.tree.populate_categories(categories_data)
 
