@@ -129,14 +129,18 @@ class LocalGamesLoader:
             return {}
 
         try:
-            from src.utils.appinfo_vdf_parser import AppInfoParser
-            data = AppInfoParser.load(self.appinfo_vdf_path)
+            # WICHTIG: appinfo.vdf ist eine BINÄRE Datei - muss mit 'rb' geöffnet werden
+            from src.utils import appinfo
+
+            with open(self.appinfo_vdf_path, 'rb') as f:
+                data = appinfo.load(f)
+
             games = {}
             for app_id, app_data in data.items():
                 name = self._extract_name(app_data)
-                if name: games[app_id] = name
+                if name:
+                    games[app_id] = name
             return games
-        # FIX: Spezifische Exceptions statt 'Exception'
         except (OSError, ValueError, KeyError, AttributeError, ImportError):
             return {}
 
@@ -180,7 +184,6 @@ class LocalGamesLoader:
             for app_id, app_data in apps.items():
                 if 'playtime' in app_data:
                     playtimes[app_id] = int(app_data['playtime']) // 60
-        # FIX: Spezifische Exceptions statt 'Exception'
         except (OSError, ValueError, KeyError, SyntaxError, AttributeError):
             pass
         return playtimes

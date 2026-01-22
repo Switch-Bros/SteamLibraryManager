@@ -5,21 +5,20 @@ Speichern als: src/ui/main_window.py
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLineEdit, QPushButton, QLabel, QToolBar, QMenu,
-    QMessageBox, QInputDialog, QSplitter, QCheckBox,
-    QFrame, QProgressDialog, QApplication
+    QMessageBox, QInputDialog, QSplitter,
+    QProgressDialog, QApplication
 )
 from PyQt6.QtCore import Qt, QUrl, QThread, pyqtSignal
 from PyQt6.QtGui import QAction, QDesktopServices, QIcon
 from typing import Optional, List, Dict
 from pathlib import Path
-from datetime import datetime
 
 from src.config import config
 from src.core.game_manager import GameManager, Game
 from src.core.localconfig_parser import LocalConfigParser
 from src.core.appinfo_manager import AppInfoManager
 from src.core.steam_auth import SteamAuthManager
-from src.integrations.steam_store import SteamStoreScraper, FranchiseDetector
+from src.integrations.steam_store import SteamStoreScraper
 from src.ui.auto_categorize_dialog import AutoCategorizeDialog
 from src.ui.metadata_dialogs import (
     MetadataEditDialog,
@@ -64,7 +63,9 @@ class MainWindow(QMainWindow):
 
         # Auth Manager
         self.auth_manager = SteamAuthManager()
+        # noinspection PyUnresolvedReferences
         self.auth_manager.auth_success.connect(self._on_steam_login_success)
+        # noinspection PyUnresolvedReferences
         self.auth_manager.auth_error.connect(self._on_steam_login_error)
 
         self.selected_game: Optional[Game] = None
@@ -83,35 +84,71 @@ class MainWindow(QMainWindow):
 
         # 1. FILE
         file_menu = menubar.addMenu(t('ui.menu.file'))
-        file_menu.addAction(QAction(t('ui.menu.refresh'), self, triggered=self.refresh_data))
-        file_menu.addAction(QAction(t('ui.menu.save'), self, triggered=self.force_save))
+
+        refresh_action = QAction(t('ui.menu.refresh'), self)
+        # noinspection PyUnresolvedReferences
+        refresh_action.triggered.connect(self.refresh_data)
+        file_menu.addAction(refresh_action)
+
+        save_action = QAction(t('ui.menu.save'), self)
+        # noinspection PyUnresolvedReferences
+        save_action.triggered.connect(self.force_save)
+        file_menu.addAction(save_action)
+
         file_menu.addSeparator()
-        file_menu.addAction(QAction(t('ui.menu.exit'), self, triggered=self.close))
+
+        exit_action = QAction(t('ui.menu.exit'), self)
+        # noinspection PyUnresolvedReferences
+        exit_action.triggered.connect(self.close)
+        file_menu.addAction(exit_action)
 
         # 2. EDIT
         edit_menu = menubar.addMenu(t('ui.menu.edit'))
-        edit_menu.addAction(QAction(t('ui.menu.bulk_edit'), self, triggered=self.bulk_edit_metadata))
-        edit_menu.addAction(QAction(t('ui.toolbar.auto_categorize'), self, triggered=self.auto_categorize))
+
+        bulk_edit_action = QAction(t('ui.menu.bulk_edit'), self)
+        # noinspection PyUnresolvedReferences
+        bulk_edit_action.triggered.connect(self.bulk_edit_metadata)
+        edit_menu.addAction(bulk_edit_action)
+
+        auto_cat_action = QAction(t('ui.toolbar.auto_categorize'), self)
+        # noinspection PyUnresolvedReferences
+        auto_cat_action.triggered.connect(self.auto_categorize)
+        edit_menu.addAction(auto_cat_action)
 
         # 3. SETTINGS
         settings_menu = menubar.addMenu(t('ui.toolbar.settings'))
-        settings_menu.addAction(QAction(t('ui.menu.settings'), self, triggered=self.show_settings))
+
+        settings_action = QAction(t('ui.menu.settings'), self)
+        # noinspection PyUnresolvedReferences
+        settings_action.triggered.connect(self.show_settings)
+        settings_menu.addAction(settings_action)
+
         settings_menu.addSeparator()
-        settings_menu.addAction(QAction(t('ui.menu.restore'), self, triggered=self.restore_metadata_changes))
+
+        restore_action = QAction(t('ui.menu.restore'), self)
+        # noinspection PyUnresolvedReferences
+        restore_action.triggered.connect(self.restore_metadata_changes)
+        settings_menu.addAction(restore_action)
 
         # 4. HELP
         help_menu = menubar.addMenu(t('ui.menu.help'))
 
         github_action = QAction(t('ui.menu.github'), self)
+        # noinspection PyUnresolvedReferences
         github_action.triggered.connect(lambda: QDesktopServices.openUrl(QUrl("https://github.com/")))
         help_menu.addAction(github_action)
 
         donate_action = QAction(t('ui.menu.donate'), self)
+        # noinspection PyUnresolvedReferences
         donate_action.triggered.connect(lambda: QDesktopServices.openUrl(QUrl("https://paypal.me/DeinAccount")))
         help_menu.addAction(donate_action)
 
         help_menu.addSeparator()
-        help_menu.addAction(QAction(t('ui.menu.about'), self, triggered=self.show_about))
+
+        about_action = QAction(t('ui.menu.about'), self)
+        # noinspection PyUnresolvedReferences
+        about_action.triggered.connect(self.show_about)
+        help_menu.addAction(about_action)
 
         # User Info Label
         self.user_label = QLabel(t('ui.status.not_logged_in'))
@@ -142,9 +179,11 @@ class MainWindow(QMainWindow):
         search_layout.addWidget(QLabel(t('ui.main.search_icon')))
         self.search_entry = QLineEdit()
         self.search_entry.setPlaceholderText(t('ui.main.search_placeholder'))
+        # noinspection PyUnresolvedReferences
         self.search_entry.textChanged.connect(self.on_search)
         search_layout.addWidget(self.search_entry)
         clear_btn = QPushButton(t('ui.main.clear_search'))
+        # noinspection PyUnresolvedReferences
         clear_btn.clicked.connect(self.clear_search)
         clear_btn.setMaximumWidth(30)
         search_layout.addWidget(clear_btn)
@@ -153,19 +192,25 @@ class MainWindow(QMainWindow):
         # Tree Controls
         btn_layout = QHBoxLayout()
         expand_btn = QPushButton(t('ui.categories.sym_expand') + " " + t('ui.main.expand_all'))
+        # noinspection PyUnresolvedReferences
         expand_btn.clicked.connect(lambda: self.tree.expandAll())
         btn_layout.addWidget(expand_btn)
 
         collapse_btn = QPushButton(t('ui.categories.sym_collapse') + " " + t('ui.main.collapse_all'))
+        # noinspection PyUnresolvedReferences
         collapse_btn.clicked.connect(lambda: self.tree.collapseAll())
         btn_layout.addWidget(collapse_btn)
         left_layout.addLayout(btn_layout)
 
         # Tree Widget
         self.tree = GameTreeWidget()
+        # noinspection PyUnresolvedReferences
         self.tree.game_clicked.connect(self.on_game_selected)
+        # noinspection PyUnresolvedReferences
         self.tree.game_right_clicked.connect(self.on_game_right_click)
+        # noinspection PyUnresolvedReferences
         self.tree.category_right_clicked.connect(self.on_category_right_click)
+        # noinspection PyUnresolvedReferences
         self.tree.selection_changed.connect(self._on_games_selected)
         left_layout.addWidget(self.tree)
 
@@ -173,7 +218,9 @@ class MainWindow(QMainWindow):
 
         # RIGHT SIDE (Details)
         self.details_widget = GameDetailsWidget()
+        # noinspection PyUnresolvedReferences
         self.details_widget.category_changed.connect(self._on_category_changed_from_details)
+        # noinspection PyUnresolvedReferences
         self.details_widget.edit_metadata.connect(self.edit_game_metadata)
         splitter.addWidget(self.details_widget)
 
@@ -185,6 +232,7 @@ class MainWindow(QMainWindow):
 
         # Reload Button (initial versteckt)
         self.reload_btn = QPushButton(t('ui.status.reload_button'))
+        # noinspection PyUnresolvedReferences
         self.reload_btn.clicked.connect(self.refresh_data)
         self.reload_btn.setMaximumWidth(100)
         self.reload_btn.hide()
@@ -206,6 +254,7 @@ class MainWindow(QMainWindow):
         if icon_path.exists():
             login_action.setIcon(QIcon(str(icon_path)))
 
+        # noinspection PyUnresolvedReferences
         login_action.triggered.connect(self._start_steam_login)
         self.toolbar.addAction(login_action)
 
@@ -299,7 +348,9 @@ class MainWindow(QMainWindow):
 
         # Thread erstellen und starten
         self.load_thread = GameLoadThread(self.game_manager, user_id or "local")
+        # noinspection PyUnresolvedReferences
         self.load_thread.progress_update.connect(self._on_load_progress)
+        # noinspection PyUnresolvedReferences
         self.load_thread.finished.connect(self._on_load_finished)
         self.load_thread.start()
 
@@ -434,7 +485,8 @@ class MainWindow(QMainWindow):
         self.vdf_parser.save()
         self._populate_categories()
 
-    def open_in_store(self, game: Game):
+    @staticmethod
+    def open_in_store(game: Game):
         import webbrowser
         webbrowser.open(f"https://store.steampowered.com/app/{game.app_id}")
 
@@ -496,25 +548,33 @@ class MainWindow(QMainWindow):
                     progress.setValue(step + i)
                     progress.setLabelText(t('ui.auto_categorize.fetching', game=game.name[:50]))
                     QApplication.processEvents()
-                    tags = self.steam_scraper.get_game_tags(game.app_id, settings['tags_count'],
-                                                            settings['ignore_common'])
+
+                    # Fetch all tags (bereits gefiltert nach Blacklist)
+                    all_tags = self.steam_scraper.fetch_tags(game.app_id)
+
+                    # Limit to requested count
+                    tags = all_tags[:settings['tags_count']]
+
                     for tag in tags:
                         self.vdf_parser.add_app_category(game.app_id, tag)
                         if tag not in game.categories: game.categories.append(tag)
                 step += len(games)
+
             elif method == 'publisher':
                 for game in games:
                     if game.publisher:
                         cat = f"Publisher: {game.publisher}"
                         self.vdf_parser.add_app_category(game.app_id, cat)
                         if cat not in game.categories: game.categories.append(cat)
+
             elif method == 'franchise':
                 for game in games:
-                    franchise = FranchiseDetector.detect_franchise(game.name)
+                    franchise = SteamStoreScraper.detect_franchise(game.name)
                     if franchise:
                         cat = f"Franchise: {franchise}"
                         self.vdf_parser.add_app_category(game.app_id, cat)
                         if cat not in game.categories: game.categories.append(cat)
+
             elif method == 'genre':
                 for game in games:
                     if game.genres:
@@ -610,6 +670,7 @@ class MainWindow(QMainWindow):
 
     def show_settings(self):
         dialog = SettingsDialog(self)
+        # noinspection PyUnresolvedReferences
         dialog.language_changed.connect(self._on_ui_language_changed_live)
         if dialog.exec():
             settings = dialog.get_settings()
@@ -651,7 +712,8 @@ class MainWindow(QMainWindow):
             t('ui.settings.saved_message', ui=settings['ui_language'], tags=settings['tags_language'])
         )
 
-    def _save_settings(self, settings: dict):
+    @staticmethod
+    def _save_settings(settings: dict):
         import json
         settings_file = config.DATA_DIR / 'settings.json'
         data = {

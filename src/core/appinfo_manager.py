@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Dict, Any, Optional
 from src.utils.i18n import t
-from src.utils.appinfo_vdf_parser import AppInfoParser
+from src.utils import appinfo
 
 
 class AppInfoManager:
@@ -46,7 +46,10 @@ class AppInfoManager:
         # 2. Binary AppInfo laden
         if self.appinfo_path and self.appinfo_path.exists():
             try:
-                data = AppInfoParser.load(self.appinfo_path)
+                # WICHTIG: appinfo.vdf ist binär - mit 'rb' öffnen
+                with open(self.appinfo_path, 'rb') as f:
+                    data = appinfo.load(f)
+
                 self.steam_apps = {}
 
                 # Wir suchen nach dem 'common' Block, um Namen zu finden
@@ -65,7 +68,7 @@ class AppInfoManager:
                             self.steam_apps[app_id_str] = entry
 
                 print(f"✓ Loaded binary appinfo.vdf with {len(self.steam_apps)} apps")
-            except Exception as e:
+            except (OSError, ValueError, KeyError, AttributeError) as e:
                 print(f"Error loading binary appinfo: {e}")
 
         return self.modifications
@@ -116,14 +119,13 @@ class AppInfoManager:
                 del self.modifications[app_id]
 
             return True
-        except Exception as e:
+        except (ValueError, KeyError, TypeError) as e:
             print(t('logs.appinfo.set_error', app_id=app_id, error=e))
             return False
 
     def get_modification_count(self) -> int:
         return len(self.modifications)
 
-    # FIX: Parameter 'data' entfernt
     def save_appinfo(self) -> bool:
         """Speichere Änderungen in JSON"""
         try:
@@ -134,7 +136,6 @@ class AppInfoManager:
             print(t('logs.appinfo.save_error', error=e))
             return False
 
-    # FIX: Parameter 'current_data' entfernt
     def restore_modifications(self) -> int:
         """Löscht alle Änderungen (Reset)"""
         count = len(self.modifications)
