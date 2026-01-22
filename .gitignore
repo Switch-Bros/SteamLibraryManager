@@ -8,3 +8,4 @@ data/
 .vscode/
 debug_steam.py
 resources/icons/Icon_Namen.txt
+/debug_appinfo.py

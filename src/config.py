@@ -1,5 +1,5 @@
 """
-Configuration - OpenID Setup & Secure API Handling (No Hardcoded Logs)
+Configuration - Steam API Key is now optional
 Speichern als: src/config.py
 """
 import os
@@ -29,14 +29,12 @@ class Config:
     DEFAULT_LOCALE: str = 'en'
     THEME: str = 'dark'
 
-    # API KEYS
-    # STEAM_API_KEY kommt aus .env (Entwicklung) oder später obfuscated Code
-    STEAM_API_KEY: str = ""
-    # SteamGridDB Key kommt meist vom User
-    STEAMGRIDDB_API_KEY: str = ""
+    # API KEYS (BEIDE OPTIONAL!)
+    STEAM_API_KEY: Optional[str] = None
+    STEAMGRIDDB_API_KEY: Optional[str] = None
 
     STEAM_PATH: Optional[Path] = None
-    STEAM_USER_ID: Optional[str] = None  # Added for consistency
+    STEAM_USER_ID: Optional[str] = None
     MAX_BACKUPS: int = 5
     TAGS_PER_GAME: int = 13
     IGNORE_COMMON_TAGS: bool = True
@@ -53,17 +51,19 @@ class Config:
 
         # Fallback: Environment Variables (Dev Mode)
         if not self.STEAM_API_KEY:
-            self.STEAM_API_KEY = os.getenv("STEAM_API_KEY", "")
+            env_key = os.getenv("STEAM_API_KEY")
+            if env_key:
+                self.STEAM_API_KEY = env_key
 
-        # Falls User keinen eigenen Key hat, schauen wir in .env (für Dev)
         if not self.STEAMGRIDDB_API_KEY:
-            self.STEAMGRIDDB_API_KEY = os.getenv("STEAMGRIDDB_API_KEY", "")
+            env_key = os.getenv("STEAMGRIDDB_API_KEY")
+            if env_key:
+                self.STEAMGRIDDB_API_KEY = env_key
 
         if self.STEAM_PATH is None:
             self.STEAM_PATH = self._find_steam_path()
 
     def _load_settings(self):
-        # FIX: Delayed import to avoid circular dependency
         from src.utils.i18n import t
 
         if self.SETTINGS_FILE.exists():
@@ -77,13 +77,14 @@ class Config:
                 self.IGNORE_COMMON_TAGS = settings.get('ignore_common_tags', True)
                 self.MAX_BACKUPS = settings.get('max_backups', 5)
 
-                # Nur User-Keys aus Settings laden (GridDB)
-                # Steam Web API Key laden wir NICHT aus Settings, da er dem Dev gehört
+                # API Keys aus Settings (User kann beide eingeben!)
                 if settings.get('steamgriddb_api_key'):
                     self.STEAMGRIDDB_API_KEY = settings.get('steamgriddb_api_key')
 
+                if settings.get('steam_api_key'):
+                    self.STEAM_API_KEY = settings.get('steam_api_key')
+
             except Exception as e:
-                # FIX: Hardcoded Print removed
                 print(t('logs.config.error', error=e))
 
     def save_settings(self, **kwargs):

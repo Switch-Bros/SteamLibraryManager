@@ -11,6 +11,7 @@
       "games_selected": "{count} games selected",
       "filtered_count": "Showing {filtered} of {total} games",
       "search_placeholder": "Search games...",
+      "clear_search": "×",
       "expand_all": "Expand All",
       "collapse_all": "Collapse All",
       "user_label": "User: {user_id}",
@@ -23,34 +24,41 @@
       "view": "View",
       "tools": "Tools",
       "help": "Help",
-      "settings": "⚙️ Settings",
+      "settings": "Settings",
       "exit": "Exit",
-      "refresh": "🔄 Refresh Library",
-      "save": "💾 Save Config",
-      "bulk_edit": "✏️ Bulk Edit",
+      "refresh": "Refresh Library",
+      "save": "Save Config",
+      "bulk_edit": "Bulk Edit",
       "bulk_rename": "Bulk Rename",
-      "restore": "🔄 Restore Metadata",
+      "restore": "Restore Metadata",
       "github": "Visit GitHub",
-      "donate": "☕ Donate",
+      "donate": "Donate",
       "about": "About",
       "check_updates": "Check for Updates"
     },
     "toolbar": {
-      "refresh": "🔄 Refresh",
-      "settings": "⚙️ Settings",
-      "auto_categorize": "🏷️ Auto-Categorize",
-      "login": "👤 Login with Steam"
+      "refresh": "Refresh",
+      "settings": "Settings",
+      "auto_categorize": "Auto-Categorize",
+      "login": "Login with Steam"
     },
     "settings": {
       "title": "Settings",
       "general": "General",
       "api_keys": "API Keys",
       "steam_auth": "Steam Authentication",
+      "auto_categorization": "Auto-Categorization",
       "steamgrid_api": "SteamGridDB API",
       "steamgrid_help": "Required to download covers, heroes, and icons.",
-      "steamgrid_get_key": "🔑 Get API Key (Open Browser)",
+      "steamgrid_get_key": "Get API Key (Open Browser)",
       "steamgrid_key_label": "Your API Key:",
       "steamgrid_key_placeholder": "Paste your SteamGridDB API Key here...",
+      "steam_api_group": "Steam Web API (Optional)",
+      "steam_api_info": "Optional: Enables playtime sync for non-installed games and achievement tracking.\nThe app works perfectly without this!",
+      "steam_api_get_key": "Get Free Steam API Key",
+      "steam_api_label": "Your Steam API Key:",
+      "steam_api_placeholder": "Paste your Steam Web API Key here (optional)...",
+      "steam_api_warning": "Keep your API key private! Never share it.",
       "save": "Save Settings",
       "language": "Language",
       "ui_language_label": "User Interface",
@@ -68,18 +76,28 @@
       "select_steam_dir": "Select Steam Directory",
       "saved_message": "Settings saved successfully!\nUI: {ui}, Tags: {tags}",
       "restart_required": "Please restart the application to apply language changes.",
+      "reset_defaults": "Reset to Defaults",
       "languages": {
-        "de": "🇩🇪 German",
-        "en": "🇬🇧 English"
+        "de": "German",
+        "en": "English"
       }
+    },
+    "loading": {
+      "title": "Loading Games",
+      "starting": "Starting...",
+      "trying_api": "Trying Steam Web API...",
+      "loading_local": "Loading from local files...",
+      "processing_games": "Processing games...",
+      "finalizing": "Finalizing...",
+      "complete": "Complete!"
     },
     "login": {
       "title": "Login to Steam",
       "info": "Click below to login via Steam OAuth.",
-      "button": "🌐 Login with Steam",
-      "status_waiting": "⏳ Waiting for browser...",
-      "status_success": "✅ Login successful!",
-      "status_failed": "❌ Login failed",
+      "button": "Login with Steam",
+      "status_waiting": "Waiting for browser...",
+      "status_success": "Login successful!",
+      "status_failed": "Login failed",
       "html_success_header": "Login Successful",
       "html_success_body": "You can close this window now."
     },
@@ -111,9 +129,10 @@
       "rename_category": "Rename to:",
       "confirm_bulk_title": "Bulk Edit",
       "confirm_bulk": "Edit {count} games?",
-      "api_key_missing": "⚠️ SteamGridDB API Key missing!\nPlease configure it in Settings to enable image search."
+      "api_key_missing": "SteamGridDB API Key missing!\nPlease configure it in Settings to enable image search."
     },
     "game_details": {
+      "name": "Name",
       "value_unknown": "Unknown",
       "select_placeholder": "Select a game to view details",
       "section_basic": "Basic Info",
@@ -128,8 +147,8 @@
       "developer": "Developer",
       "publisher": "Publisher",
       "release_year": "Release",
-      "btn_store": "🌐 Steam Store",
-      "btn_edit": "✏️ Edit Metadata",
+      "btn_store": "Steam Store",
+      "btn_edit": "Edit Metadata",
       "categories_label": "Categories",
       "never_played": "Never played",
       "hours": "{hours}h",
@@ -138,7 +157,7 @@
         "heroes": "HEROES",
         "logos": "LOGOS",
         "icons": "ICONS",
-        "reset": "🗑️ Reset to Original",
+        "reset": "Reset to Original",
         "reset_msg": "Removed custom image for {type}. Original will be loaded."
       },
       "proton_tiers": {
@@ -155,7 +174,7 @@
     "metadata_editor": {
       "title": "Edit Metadata",
       "editing_title": "Edit Metadata: {game}",
-      "bulk_title": "✏️ Bulk Edit - {count} games",
+      "bulk_title": "Bulk Edit - {count} games",
       "game_name_label": "Game Name:",
       "sort_as_label": "Sort As:",
       "sort_as_help": "(Used for alphabetical sorting. Auto-filled if empty.)",
@@ -178,7 +197,7 @@
     },
     "auto_categorize": {
       "title": "Auto-Categorize",
-      "header": "🏷️ Auto-Categorize Games",
+      "header": "Auto-Categorize Games",
       "method_group": "Categorization Methods",
       "option_tags": "Steam Tags (via Store API)",
       "by_publisher": "By Publisher",
@@ -191,7 +210,7 @@
       "scope_category": "All games in '{name}' ({count})",
       "scope_uncategorized": "Uncategorized games ({count})",
       "scope_all": "Entire Library ({count} games)",
-      "warning_backup": "⚠️ A backup of your localconfig.vdf will be created automatically.",
+      "warning_backup": "A backup of your localconfig.vdf will be created automatically.",
       "estimate_label": "Estimated time: {time}\n({games} games, {methods} methods)",
       "estimate_minutes": "~{count} minutes",
       "estimate_seconds": "~{count} seconds",
@@ -217,6 +236,9 @@
       "ready": "Ready",
       "loading": "Loading...",
       "loaded": "Loaded {count} games",
+      "loaded_from_api": "Loaded {count} games from Steam API",
+      "loaded_from_local": "Loaded {count} games from local files",
+      "loaded_mixed": "Loaded {count} games (Steam API + local files)",
       "selected": "Selected: {name}",
       "selected_multiple": "{count} games selected",
       "found_results": "Found {count} results",
@@ -227,21 +249,47 @@
       "applying_changes": "Applying changes...",
       "not_logged_in": "Not logged in",
       "api_error": "Could not load games from API.",
-      "offline_mode": " (Offline)"
+      "offline_mode": " (Offline)",
+      "load_failed": "Failed to load games",
+      "reload_button": "Reload"
     },
     "errors": {
       "steam_not_found": "Steam installation not found. Please set the path in Settings.",
       "no_users": "No Steam users found.",
+      "no_games_found": "No games found. Please check your Steam installation.",
       "localconfig_not_found": "localconfig.vdf not found.",
       "localconfig_load_error": "Failed to load localconfig.vdf",
       "save_failed": "Could not save configuration!",
       "no_api_key": "Steam API key not configured.",
       "api_load_error": "Failed to load games from Steam API"
+    },
+    "categories": {
+      "all_games": "All Games",
+      "favorites": "Favorites",
+      "uncategorized": "Uncategorized",
+      "sym_expand": "[+]",
+      "sym_collapse": "[-]",
+      "icon_folder": "📁",
+      "icon_favorite": "⭐",
+      "more_games": "... and {count} more games",
+      "title": "Categories"
+    },
+    "game_list": {
+      "context_menu": {
+        "view_details": "View Details",
+        "toggle_favorite": "Toggle Favorite",
+        "open_store": "View in Steam Store",
+        "edit_metadata": "Edit Metadata",
+        "rename": "Rename Category",
+        "delete": "Delete Category",
+        "auto_categorize": "Auto-Categorize",
+        "auto_categorize_selected": "Auto-Categorize Selection"
+      }
     }
   },
   "logs": {
     "config": {
-      "loaded": "✓ Settings loaded",
+      "loaded": "Settings loaded",
       "error": "Error loading settings: {error}"
     },
     "auth": {
@@ -267,35 +315,74 @@
       "delete_error": "Delete error: {name}"
     },
     "appinfo": {
-      "loaded": "✓ Loaded {count} saved modifications",
+      "loaded": "Loaded {count} saved modifications",
       "error": "Error loading modifications: {error}",
-      "saved_mods": "✓ {count} changes saved",
-      "saved_vdf": "✓ appinfo.vdf saved",
-      "restored": "✓ Restored {count} modifications",
-      "backup_created": "✓ Backup created: {path}",
-      "backup_failed": "Backup failed: {error}"
+      "saved_mods": "{count} changes saved",
+      "saved_vdf": "appinfo.vdf saved",
+      "restored": "Restored {count} modifications",
+      "backup_created": "Backup created: {path}",
+      "backup_failed": "Backup failed: {error}",
+      "set_error": "Error setting metadata for {app_id}: {error}"
     },
     "parser": {
       "file_not_found": "Error: localconfig.vdf not found at {path}",
       "load_error": "Error loading localconfig.vdf: {error}",
       "save_error": "Error saving localconfig.vdf: {error}",
-      "loaded": "✓ Loaded {count} games from localconfig",
-      "saved": "✓ Saved localconfig.vdf",
-      "backup_created": "✓ Backup created: {path}"
+      "loaded": "Loaded {count} games from localconfig",
+      "saved": "Saved localconfig.vdf",
+      "backup_created": "Backup created: {path}",
+      "no_changes": "No changes to save",
+      "apps_not_found": "Apps section not found in localconfig"
     },
     "manager": {
       "loading_api": "Loading games from Steam API...",
-      "loaded_steam": "✓ Loaded {count} games from Steam API",
+      "trying_api": "Trying to load from Steam Web API...",
+      "loading_local": "Loading games from local files...",
+      "loaded_steam": "Loaded {count} games from Steam API",
+      "loaded_local": "Loaded {count} games from local files",
+      "no_local_games": "No installed games found in local files",
       "merging": "Merging with localconfig categories...",
-      "merged": "✓ Merged {count} games"
+      "merged": "Merged {count} games",
+      "error_no_games": "No games found in API response",
+      "error_api": "Steam API error: {error}",
+      "error_local": "Error loading local files: {error}",
+      "error_unexpected": "Unexpected error: {error}",
+      "no_api_key": "No Steam API key configured (loading from local files only)",
+      "found_missing": "Found {count} additional games in localconfig",
+      "applied_overrides": "Applied metadata overrides to {count} games"
     },
     "steam_store": {
       "fetch_error": "Error fetching tags for {app_id}: {error}"
+    },
+    "local_loader": {
+      "steamapps_not_found": "Steamapps directory not found at {path}",
+      "scanning": "Scanning {count} manifest files...",
+      "loaded": "Loaded {count} installed games",
+      "parse_error": "Error parsing {file}: {error}",
+      "read_error": "Error reading {file}: {error}",
+      "library_error": "Error reading library folders: {error}",
+      "loaded_total": "Loaded total of {count} games",
+      "scanning_libraries": "Scanning {count} library folder(s)...",
+      "found_manifests": "Found {count} manifest(s) in {path}",
+      "loaded_installed": "Loaded {count} installed games",
+      "no_appinfo": "appinfo.vdf not found",
+      "reading_appinfo": "Reading appinfo.vdf...",
+      "loaded_from_appinfo": "Loaded {count} game names from appinfo.vdf",
+      "appinfo_error": "Error reading appinfo.vdf: {error}",
+      "no_library_file": "libraryfolders.vdf not found",
+      "found_library": "Found library: {path}",
+      "loaded_playtime": "Loaded playtime for {count} games",
+      "playtime_error": "Error loading playtime: {error}"
     }
   },
   "cli": {
-    "banner": "🎮 Steam Library Manager",
-    "initializing": "🌍 Initializing...",
-    "error": "❌ Error: {error}"
+    "banner": "Steam Library Manager",
+    "initializing": "Initializing...",
+    "error": "Error: {error}",
+    "steam_found": "Steam found at: {path}",
+    "steam_not_found": "Steam installation not found",
+    "users_found": "Found {count} Steam user(s)",
+    "starting": "Starting application...",
+    "qt_theme": "Using system theme"
   }
 }

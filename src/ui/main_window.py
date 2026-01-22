@@ -1,5 +1,5 @@
 """
-Main Window - OpenID Logic & Complete Implementation (No Hardcoded Logs)
+Main Window - With Progress Dialog & Reload Button
 Speichern als: src/ui/main_window.py
 """
 from PyQt6.QtWidgets import (
@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
     QMessageBox, QInputDialog, QSplitter, QCheckBox,
     QFrame, QProgressDialog, QApplication
 )
-from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtCore import Qt, QUrl, QThread, pyqtSignal
 from PyQt6.QtGui import QAction, QDesktopServices, QIcon
 from typing import Optional, List, Dict
 from pathlib import Path
@@ -32,6 +32,24 @@ from src.ui.game_details_widget import GameDetailsWidget
 from src.ui.components.category_tree import GameTreeWidget
 
 
+class GameLoadThread(QThread):
+    """Thread für das Laden von Spielen mit Progress-Updates"""
+    progress_update = pyqtSignal(str, int, int)
+    finished = pyqtSignal(bool)
+
+    def __init__(self, game_manager: GameManager, user_id: str):
+        super().__init__()
+        self.game_manager = game_manager
+        self.user_id = user_id
+
+    def run(self):
+        def progress_callback(step: str, current: int, total: int):
+            self.progress_update.emit(step, current, total)
+
+        success = self.game_manager.load_games(self.user_id, progress_callback)
+        self.finished.emit(success)
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -52,6 +70,10 @@ class MainWindow(QMainWindow):
         self.selected_game: Optional[Game] = None
         self.selected_games: List[Game] = []
         self.dialog_games: List[Game] = []
+
+        # Loading Thread
+        self.load_thread: Optional[GameLoadThread] = None
+        self.progress_dialog: Optional[QProgressDialog] = None
 
         self._create_ui()
         self._load_data()
@@ -122,7 +144,7 @@ class MainWindow(QMainWindow):
         self.search_entry.setPlaceholderText(t('ui.main.search_placeholder'))
         self.search_entry.textChanged.connect(self.on_search)
         search_layout.addWidget(self.search_entry)
-        clear_btn = QPushButton("×")
+        clear_btn = QPushButton(t('ui.main.clear_search'))
         clear_btn.clicked.connect(self.clear_search)
         clear_btn.setMaximumWidth(30)
         search_layout.addWidget(clear_btn)
@@ -158,7 +180,16 @@ class MainWindow(QMainWindow):
         splitter.setSizes([350, 1050])
         layout.addWidget(splitter)
 
+        # Statusbar mit Reload-Button
         self.statusbar = self.statusBar()
+
+        # Reload Button (initial versteckt)
+        self.reload_btn = QPushButton(t('ui.status.reload_button'))
+        self.reload_btn.clicked.connect(self.refresh_data)
+        self.reload_btn.setMaximumWidth(100)
+        self.reload_btn.hide()
+        self.statusbar.addPermanentWidget(self.reload_btn)
+
         self.set_status(t('ui.status.ready'))
 
     def _refresh_toolbar(self):
@@ -185,7 +216,6 @@ class MainWindow(QMainWindow):
         self.set_status(t('ui.login.status_waiting'))
 
     def _on_steam_login_success(self, steam_id_64: str):
-        # FIX: Hardcoded Print removed
         print(t('logs.auth.login_success', id=steam_id_64))
         self.set_status(t('ui.login.status_success'))
         QMessageBox.information(self, t('ui.login.title'), t('ui.login.status_success'))
@@ -194,15 +224,11 @@ class MainWindow(QMainWindow):
         self.user_label.setText(t('ui.main.user_label', user_id=steam_id_64))
 
         if self.game_manager:
-            api_success = self.game_manager.load_from_steam_api(steam_id_64)
-            if api_success:
-                self.set_status(t('ui.status.loaded', count=len(self.game_manager.games)))
-                self._populate_categories()
-            else:
-                self.set_status(t('ui.status.api_error'))
+            self._load_games_with_progress(steam_id_64)
 
     def _on_steam_login_error(self, error: str):
         self.set_status(t('ui.login.status_failed'))
+        self.reload_btn.show()
         QMessageBox.critical(self, t('ui.dialogs.error'), error)
 
     # --- MAIN LOGIC ---
@@ -217,9 +243,12 @@ class MainWindow(QMainWindow):
         QMessageBox.about(self, t('ui.menu.about'), t('ui.dialogs.about_text'))
 
     def _load_data(self):
+        """Initial Load beim Start"""
         self.set_status(t('ui.status.loading'))
+
         if not config.STEAM_PATH:
             QMessageBox.warning(self, t('ui.dialogs.error'), t('errors.steam_not_found'))
+            self.reload_btn.show()
             return
 
         short_id, long_id = config.get_detected_user()
@@ -227,6 +256,7 @@ class MainWindow(QMainWindow):
 
         if not short_id and not target_id:
             QMessageBox.warning(self, t('ui.dialogs.error'), t('ui.errors.no_users'))
+            self.reload_btn.show()
             return
 
         display_id = target_id if target_id else short_id
@@ -236,17 +266,64 @@ class MainWindow(QMainWindow):
         self.vdf_parser = LocalConfigParser(config_path)
         if not self.vdf_parser.load():
             QMessageBox.warning(self, t('ui.dialogs.error'), t('ui.errors.localconfig_load_error'))
+            self.reload_btn.show()
             return
 
-        self.game_manager = GameManager(config.STEAM_API_KEY, config.CACHE_DIR)
+        # Erstelle GameManager
+        self.game_manager = GameManager(
+            config.STEAM_API_KEY,
+            config.CACHE_DIR,
+            config.STEAM_PATH
+        )
 
+        # Lade Spiele mit Progress Dialog
         if target_id:
-            api_success = self.game_manager.load_from_steam_api(target_id)
-            if not api_success:
-                self.set_status(t('ui.status.api_error') + t('ui.status.offline_mode'))
+            self._load_games_with_progress(target_id)
         else:
-            api_success = False
+            self._load_games_with_progress(None)
 
+    def _load_games_with_progress(self, user_id: Optional[str]):
+        """Lädt Spiele in separatem Thread mit Progress Dialog"""
+
+        # Progress Dialog erstellen
+        self.progress_dialog = QProgressDialog(
+            t('ui.loading.starting'),
+            t('ui.dialogs.cancel'),
+            0, 100,
+            self
+        )
+        self.progress_dialog.setWindowTitle(t('ui.loading.title'))
+        self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self.progress_dialog.setMinimumDuration(0)
+        self.progress_dialog.setValue(0)
+
+        # Thread erstellen und starten
+        self.load_thread = GameLoadThread(self.game_manager, user_id or "local")
+        self.load_thread.progress_update.connect(self._on_load_progress)
+        self.load_thread.finished.connect(self._on_load_finished)
+        self.load_thread.start()
+
+    def _on_load_progress(self, step: str, current: int, total: int):
+        """Progress Update vom Load-Thread"""
+        if self.progress_dialog:
+            self.progress_dialog.setLabelText(step)
+            if total > 0:
+                percent = int((current / total) * 100)
+                self.progress_dialog.setValue(percent)
+
+    def _on_load_finished(self, success: bool):
+        """Loading abgeschlossen"""
+        if self.progress_dialog:
+            self.progress_dialog.close()
+            self.progress_dialog = None
+
+        if not success:
+            QMessageBox.warning(self, t('ui.dialogs.error'), t('ui.errors.no_games_found'))
+            self.reload_btn.show()
+            self.set_status(t('ui.status.load_failed'))
+            return
+
+        # Merge mit localconfig & weitere Schritte
         self.game_manager.merge_with_localconfig(self.vdf_parser)
         self.steam_scraper = SteamStoreScraper(config.CACHE_DIR, config.TAGS_LANGUAGE)
         self.appinfo_manager = AppInfoManager(config.STEAM_PATH)
@@ -254,10 +331,10 @@ class MainWindow(QMainWindow):
         self.game_manager.apply_metadata_overrides(self.appinfo_manager)
         self._populate_categories()
 
-        if api_success:
-            self.set_status(t('ui.status.loaded', count=len(self.game_manager.games)))
-        else:
-            self.set_status(t('ui.status.loaded', count=len(self.game_manager.games)) + t('ui.status.offline_mode'))
+        # Status-Nachricht
+        status_msg = self.game_manager.get_load_source_message()
+        self.set_status(status_msg)
+        self.reload_btn.hide()
 
     def _populate_categories(self):
         if not self.game_manager: return
@@ -528,6 +605,7 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, t('ui.dialogs.success'), t('ui.dialogs.restore_success', count=restored))
 
     def refresh_data(self):
+        """Reload Button Action"""
         self._load_data()
 
     def show_settings(self):
@@ -558,6 +636,9 @@ class MainWindow(QMainWindow):
         config.STEAMGRIDDB_API_KEY = settings['steamgriddb_api_key']
         config.MAX_BACKUPS = settings['max_backups']
 
+        if settings.get('steam_api_key'):
+            config.STEAM_API_KEY = settings['steam_api_key']
+
         if settings['steam_path']:
             config.STEAM_PATH = Path(settings['steam_path'])
         if self.steam_scraper:
@@ -579,6 +660,7 @@ class MainWindow(QMainWindow):
             'tags_per_game': settings['tags_per_game'],
             'ignore_common_tags': settings['ignore_common_tags'],
             'steamgriddb_api_key': settings['steamgriddb_api_key'],
+            'steam_api_key': settings.get('steam_api_key', ''),
             'max_backups': settings['max_backups']
         }
         with open(settings_file, 'w') as f:
