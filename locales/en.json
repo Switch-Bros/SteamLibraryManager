@@ -93,13 +93,18 @@
     },
     "login": {
       "title": "Login to Steam",
+      "window_title_emoji": "🔐 Steam Login",
+      "html_success_title": "Login Successful",
       "info": "Click below to login via Steam OAuth.",
       "button": "Login with Steam",
       "status_waiting": "Waiting for browser...",
+      "status_browser": "Opening browser...",
       "status_success": "Login successful!",
       "status_failed": "Login failed",
       "html_success_header": "Login Successful",
-      "html_success_body": "You can close this window now."
+      "html_success_body": "You can close this window now.",
+      "error_title": "Login Error",
+      "error_msg": "Failed to start login server: {error}"
     },
     "auth": {
       "window_title": "Steam Login",
@@ -220,7 +225,9 @@
       "processing": "Processing {current}/{total}",
       "fetching": "Fetching tags for \"{game}\"",
       "no_method_title": "No Method Selected",
-      "error_no_method": "Please select at least one categorization method!"
+      "error_no_method": "Please select at least one categorization method!",
+      "category_publisher": "Publisher: {publisher}",
+      "category_franchise": "Franchise: {franchise}"
     },
     "steamgrid_setup": {
       "title": "Setup SteamGridDB",
@@ -290,7 +297,8 @@
   "logs": {
     "config": {
       "loaded": "Settings loaded",
-      "error": "Error loading settings: {error}"
+      "error": "Error loading settings: {error}",
+      "save_error": "Error saving settings: {error}"
     },
     "auth": {
       "starting": "Starting Steam OAuth process...",
@@ -305,14 +313,17 @@
       "pillow_missing": "CRITICAL: Pillow missing! Please run 'pip install Pillow'."
     },
     "steamgrid": {
-      "saved": "Saved image",
+      "saved": "Image saved: {type} for App {app_id}",
       "save_error": "Save error: {error}",
       "missing_key": "Missing API Key",
-      "id_error": "Error getting game ID for {app_id}: {error}"
+      "id_error": "Error getting game ID for {app_id}: {error}",
+      "deleted": "Deleted custom image: {path}"
     },
     "backup": {
       "rotated": "Rotated backup: {name}",
-      "delete_error": "Delete error: {name}"
+      "delete_error": "Delete error: {name}",
+      "created": "✓ Backup created: {name}",
+      "failed": "Backup failed: {error}"
     },
     "appinfo": {
       "loaded": "Loaded {count} saved modifications",
@@ -322,7 +333,9 @@
       "restored": "Restored {count} modifications",
       "backup_created": "Backup created: {path}",
       "backup_failed": "Backup failed: {error}",
-      "set_error": "Error setting metadata for {app_id}: {error}"
+      "set_error": "Error setting metadata for {app_id}: {error}",
+      "loaded_binary": "✅ Loaded binary appinfo.vdf with {count} apps",
+      "binary_error": "Error loading binary appinfo: {error}"
     },
     "parser": {
       "file_not_found": "Error: localconfig.vdf not found at {path}",
@@ -352,7 +365,8 @@
       "applied_overrides": "Applied metadata overrides to {count} games"
     },
     "steam_store": {
-      "fetch_error": "Error fetching tags for {app_id}: {error}"
+      "fetch_error": "Error fetching tags for {app_id}: {error}",
+      "tags_found": "Found {count} tags for App {app_id}"
     },
     "local_loader": {
       "steamapps_not_found": "Steamapps directory not found at {path}",
@@ -364,6 +378,7 @@
       "loaded_total": "Loaded total of {count} games",
       "scanning_libraries": "Scanning {count} library folder(s)...",
       "found_manifests": "Found {count} manifest(s) in {path}",
+      "found_manifests_in_path": "  -> {path}: Found {count} manifests",
       "loaded_installed": "Loaded {count} installed games",
       "no_appinfo": "appinfo.vdf not found",
       "reading_appinfo": "Reading appinfo.vdf...",
@@ -372,7 +387,8 @@
       "no_library_file": "libraryfolders.vdf not found",
       "found_library": "Found library: {path}",
       "loaded_playtime": "Loaded playtime for {count} games",
-      "playtime_error": "Error loading playtime: {error}"
+      "playtime_error": "Error loading playtime: {error}",
+      "path_not_exists": "Warning: Library path in VDF does not exist: {path}"
     }
   },
   "cli": {

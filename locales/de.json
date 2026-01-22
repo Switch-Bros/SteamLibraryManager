@@ -93,13 +93,18 @@
     },
     "login": {
       "title": "Bei Steam anmelden",
+      "window_title_emoji": "🔐 Steam Login",
+      "html_success_title": "Login Erfolgreich",
       "info": "Klicke unten für den Steam OAuth Login.",
       "button": "Mit Steam anmelden",
       "status_waiting": "Warte auf Browser...",
+      "status_browser": "Öffne Browser...",
       "status_success": "Login erfolgreich!",
       "status_failed": "Login fehlgeschlagen",
       "html_success_header": "Login Erfolgreich",
-      "html_success_body": "Du kannst dieses Fenster jetzt schließen."
+      "html_success_body": "Du kannst dieses Fenster jetzt schließen.",
+      "error_title": "Login-Fehler",
+      "error_msg": "Fehler beim Starten des Login-Servers: {error}"
     },
     "auth": {
       "window_title": "Steam Login",
@@ -220,7 +225,9 @@
       "processing": "Verarbeite {current}/{total}",
       "fetching": "Lade Tags für \"{game}\"",
       "no_method_title": "Keine Methode ausgewählt",
-      "error_no_method": "Bitte wähle mindestens eine Kategorisierungs-Methode!"
+      "error_no_method": "Bitte wähle mindestens eine Kategorisierungs-Methode!",
+      "category_publisher": "Publisher: {publisher}",
+      "category_franchise": "Franchise: {franchise}"
     },
     "steamgrid_setup": {
       "title": "SteamGridDB Einrichtung",
@@ -290,7 +297,8 @@
   "logs": {
     "config": {
       "loaded": "Einstellungen geladen",
-      "error": "Fehler beim Laden der Einstellungen: {error}"
+      "error": "Fehler beim Laden der Einstellungen: {error}",
+      "save_error": "Fehler beim Speichern der Einstellungen: {error}"
     },
     "auth": {
       "starting": "Starte Steam OAuth Prozess...",
@@ -305,14 +313,17 @@
       "pillow_missing": "KRITISCH: Pillow fehlt! Bitte 'pip install Pillow' ausführen."
     },
     "steamgrid": {
-      "saved": "Bild gespeichert",
+      "saved": "Bild gespeichert: {type} für App {app_id}",
       "save_error": "Fehler beim Speichern: {error}",
       "missing_key": "API Key fehlt",
-      "id_error": "Fehler beim Abrufen der Game ID für {app_id}: {error}"
+      "id_error": "Fehler beim Abrufen der Game ID für {app_id}: {error}",
+      "deleted": "Benutzerdefiniertes Bild gelöscht: {path}"
     },
     "backup": {
       "rotated": "Backup rotiert: {name}",
-      "delete_error": "Löschfehler: {name}"
+      "delete_error": "Löschfehler: {name}",
+      "created": "✓ Backup erstellt: {name}",
+      "failed": "Backup fehlgeschlagen: {error}"
     },
     "appinfo": {
       "loaded": "{count} gespeicherte Änderungen geladen",
@@ -322,7 +333,9 @@
       "restored": "{count} Änderungen wiederhergestellt",
       "backup_created": "Backup erstellt: {path}",
       "backup_failed": "Backup fehlgeschlagen: {error}",
-      "set_error": "Fehler beim Setzen der Metadaten für {app_id}: {error}"
+      "set_error": "Fehler beim Setzen der Metadaten für {app_id}: {error}",
+      "loaded_binary": "✅ Binäre appinfo.vdf mit {count} Apps geladen",
+      "binary_error": "Fehler beim Laden der binären appinfo: {error}"
     },
     "parser": {
       "file_not_found": "Fehler: localconfig.vdf nicht gefunden unter {path}",
@@ -352,7 +365,8 @@
       "applied_overrides": "Metadaten-Overrides auf {count} Spiele angewendet"
     },
     "steam_store": {
-      "fetch_error": "Fehler beim Abrufen der Tags für {app_id}: {error}"
+      "fetch_error": "Fehler beim Abrufen der Tags für {app_id}: {error}",
+      "tags_found": "{count} Tags für App {app_id} gefunden"
     },
     "local_loader": {
       "steamapps_not_found": "Steamapps-Verzeichnis nicht gefunden unter {path}",
@@ -364,6 +378,7 @@
       "loaded_total": "Insgesamt {count} Spiele geladen",
       "scanning_libraries": "Scanne {count} Bibliotheks-Ordner...",
       "found_manifests": "{count} Manifest(e) in {path} gefunden",
+      "found_manifests_in_path": "  -> {path}: {count} Manifeste gefunden",
       "loaded_installed": "{count} installierte Spiele geladen",
       "no_appinfo": "appinfo.vdf nicht gefunden",
       "reading_appinfo": "Lese appinfo.vdf...",
@@ -372,7 +387,8 @@
       "no_library_file": "libraryfolders.vdf nicht gefunden",
       "found_library": "Bibliothek gefunden: {path}",
       "loaded_playtime": "Spielzeit für {count} Spiele geladen",
-      "playtime_error": "Fehler beim Laden der Spielzeit: {error}"
+      "playtime_error": "Fehler beim Laden der Spielzeit: {error}",
+      "path_not_exists": "Warnung: Bibliothekspfad in VDF existiert nicht: {path}"
     }
   },
   "cli": {
