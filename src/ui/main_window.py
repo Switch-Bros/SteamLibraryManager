@@ -594,23 +594,77 @@ class MainWindow(QMainWindow):
                                                                  backup=t('ui.dialogs.backup_msg')))
 
     def edit_game_metadata(self, game: Game):
+        """Edit single game metadata WITH VDF write support"""
+        # Hole aktuelle Metadaten
         meta = self.appinfo_manager.get_app_metadata(game.app_id)
-        if not meta.get('name'): meta['name'] = game.name
-        if not meta.get('developer'): meta['developer'] = game.developer
-        if not meta.get('publisher'): meta['publisher'] = game.publisher
-        if not meta.get('release_date'): meta['release_date'] = game.release_year
+
+        # Fülle defaults
+        if not meta.get('name'):
+            meta['name'] = game.name
+        if not meta.get('developer'):
+            meta['developer'] = game.developer
+        if not meta.get('publisher'):
+            meta['publisher'] = game.publisher
+        if not meta.get('release_date'):
+            meta['release_date'] = game.release_year
+
+        # Öffne Dialog
         dialog = MetadataEditDialog(self, game.name, meta)
+
         if dialog.exec():
             new_meta = dialog.get_metadata()
+
             if new_meta:
+                # Extrahiere write_to_vdf Flag
+                write_to_vdf = new_meta.pop('write_to_vdf', False)
+
+                # Setze Metadaten
                 self.appinfo_manager.set_app_metadata(game.app_id, new_meta)
+
+                # Speichere in JSON
                 self.appinfo_manager.save_appinfo()
-                if new_meta.get('name'): game.name = new_meta['name']
-                if new_meta.get('developer'): game.developer = new_meta['developer']
-                if new_meta.get('publisher'): game.publisher = new_meta['publisher']
+
+                # OPTIONAL: In appinfo.vdf schreiben
+                if write_to_vdf:
+                    progress = QProgressDialog(
+                        "Writing to appinfo.vdf...",
+                        None, 0, 0, self
+                    )
+                    progress.setWindowModality(Qt.WindowModality.WindowModal)
+                    progress.show()
+
+                    # Lade appinfo für diese App
+                    self.appinfo_manager.load_appinfo(app_ids=[game.app_id])
+
+                    # Schreibe in VDF
+                    success = self.appinfo_manager.write_to_vdf(backup=True)
+
+                    progress.close()
+
+                    if success:
+                        QMessageBox.information(
+                            self,
+                            t('ui.dialogs.success'),
+                            t('ui.metadata_editor.vdf_success_msg')
+                        )
+
+                # Update game object
+                if new_meta.get('name'):
+                    game.name = new_meta['name']
+                if new_meta.get('developer'):
+                    game.developer = new_meta['developer']
+                if new_meta.get('publisher'):
+                    game.publisher = new_meta['publisher']
+
+                # Refresh UI
                 self._populate_categories()
                 self.on_game_selected(game)
-                QMessageBox.information(self, t('ui.dialogs.success'), t('ui.dialogs.metadata_success', name=game.name))
+
+                QMessageBox.information(
+                    self,
+                    t('ui.dialogs.success'),
+                    t('ui.dialogs.metadata_success', name=game.name)
+                )
 
     def bulk_edit_metadata(self):
         if not self.selected_games:
@@ -624,50 +678,119 @@ class MainWindow(QMainWindow):
                 self._do_bulk_metadata_edit(self.selected_games, settings)
 
     def _do_bulk_metadata_edit(self, games: List[Game], settings: Dict):
-        progress = QProgressDialog(t('ui.status.applying_changes'), t('ui.dialogs.cancel'), 0, len(games), self)
-        progress.setWindowModality(Qt.WindowModality.WindowModal)
-        success_count = 0
-        for i, game in enumerate(games):
-            if progress.wasCanceled(): break
-            progress.setValue(i)
-            progress.setLabelText(f"{game.name[:50]}...")
-            QApplication.processEvents()
-            meta = self.appinfo_manager.get_app_metadata(game.app_id)
-            modified_meta = meta.copy()
-            if 'developer' in settings: modified_meta['developer'] = settings['developer']
-            if 'publisher' in settings: modified_meta['publisher'] = settings['publisher']
-            if 'release_date' in settings: modified_meta['release_date'] = settings['release_date']
-            if 'name_modifications' in settings:
-                name_mods = settings['name_modifications']
-                name = modified_meta.get('name', game.name)
-                if 'remove' in name_mods and name_mods['remove']:
-                    name = name.replace(name_mods['remove'], '')
-                if 'prefix' in name_mods and name_mods['prefix']:
-                    name = name_mods['prefix'] + name
-                if 'suffix' in name_mods and name_mods['suffix']:
-                    name = name + name_mods['suffix']
-                modified_meta['name'] = name.strip()
-            self.appinfo_manager.set_app_metadata(game.app_id, modified_meta)
-            success_count += 1
-        progress.setValue(len(games))
-        if success_count > 0:
-            self.appinfo_manager.save_appinfo()
-            self.game_manager.apply_metadata_overrides(self.appinfo_manager)
-            self._populate_categories()
-            QMessageBox.information(self, t('ui.dialogs.success'), t('ui.dialogs.bulk_success', count=success_count))
+        """Bulk edit with optional VDF write"""
+
+        # Extrahiere name_modifications
+        name_mods = settings.pop('name_modifications', {})
+
+        # Apply to all games
+        for game in games:
+            # Name modifications
+            new_name = game.name
+            if name_mods.get('prefix'):
+                new_name = name_mods['prefix'] + new_name
+            if name_mods.get('suffix'):
+                new_name = new_name + name_mods['suffix']
+            if name_mods.get('remove'):
+                new_name = new_name.replace(name_mods['remove'], '')
+
+            # Setze Metadaten
+            meta = settings.copy()
+            if new_name != game.name:
+                meta['name'] = new_name
+
+            self.appinfo_manager.set_app_metadata(game.app_id, meta)
+
+        # Save to JSON
+        self.appinfo_manager.save_appinfo()
+
+        # Ask if write to VDF
+        reply = QMessageBox.question(
+            self,
+            "Write to appinfo.vdf?",
+            f"Metadata for {len(games)} games saved to JSON.\n\n"
+            "Write changes to appinfo.vdf?\n"
+            "(Requires Steam restart)",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            # Load appinfo for these apps
+            app_ids = [g.app_id for g in games]
+            self.appinfo_manager.load_appinfo(app_ids=app_ids)
+
+            # Write to VDF
+            success = self.appinfo_manager.write_to_vdf(backup=True)
+
+            if success:
+                QMessageBox.information(
+                    self,
+                    t('ui.dialogs.success'),
+                    f"Changes written to appinfo.vdf!\n"
+                    f"Backup created in data/backups/\n\n"
+                    f"Please restart Steam."
+                )
+
+        # Update UI
+        self._populate_categories()
+        QMessageBox.information(
+            self,
+            t('ui.dialogs.success'),
+            t('ui.dialogs.bulk_success', count=len(games))
+        )
 
     def restore_metadata_changes(self):
-        if not self.appinfo_manager: return
+        """Restore all tracked metadata changes WITH VDF write support"""
+        if not self.appinfo_manager:
+            return
+
         mod_count = self.appinfo_manager.get_modification_count()
         if mod_count == 0:
-            QMessageBox.information(self, t('ui.dialogs.no_changes'), t('ui.dialogs.no_tracked_changes'))
+            QMessageBox.information(
+                self,
+                t('ui.dialogs.no_changes'),
+                t('ui.dialogs.no_tracked_changes')
+            )
             return
+
+        # Zeige Dialog
         dialog = MetadataRestoreDialog(self, mod_count)
         if dialog.exec() and dialog.should_restore():
-            restored = self.appinfo_manager.restore_modifications()
-            self.appinfo_manager.save_appinfo()
-            self.refresh_data()
-            QMessageBox.information(self, t('ui.dialogs.success'), t('ui.dialogs.restore_success', count=restored))
+            # Progress Dialog
+            progress = QProgressDialog(
+                t('ui.status.restoring'),
+                None, 0, 0, self
+            )
+            progress.setWindowModality(Qt.WindowModality.WindowModal)
+            progress.show()
+
+            try:
+                # Restore durchführen (lädt appinfo und schreibt in VDF!)
+                restored = self.appinfo_manager.restore_modifications()
+                progress.close()
+
+                if restored > 0:
+                    QMessageBox.information(
+                        self,
+                        t('ui.dialogs.success'),
+                        t('ui.dialogs.restore_success', count=restored) +
+                        "\n\nPlease restart Steam to see changes."
+                    )
+                    # Refresh UI
+                    self.refresh_data()
+                else:
+                    QMessageBox.warning(
+                        self,
+                        t('ui.dialogs.error'),
+                        "Failed to restore modifications"
+                    )
+            except Exception as e:
+                progress.close()
+                QMessageBox.critical(
+                    self,
+                    t('ui.dialogs.error'),
+                    f"Restore failed: {e}"
+                )
 
     def refresh_data(self):
         """Reload Button Action"""

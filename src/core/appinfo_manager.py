@@ -333,7 +333,7 @@ class AppInfoManager:
         # Write back to appinfo.vdf
         if restored > 0:
             self.write_to_vdf()
-            print(t('logs.appinfo.restored', count=restored))
+            print(t('logs.appinfo.restoredvdf', count=restored))
 
         return restored
 
