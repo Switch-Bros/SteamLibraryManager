@@ -3,6 +3,7 @@ AppInfo VDF Parser - Binary Steam AppInfo with Write Support
 Based on Steam-Metadata-Editor (GPL-3.0)
 Integrated into SteamLibraryManager
 
+FIXED: String Pool loading for AppInfo v29 with choose_apps
 Speichern als: src/utils/appinfo.py
 """
 
@@ -20,6 +21,7 @@ APPINFO_28 = 0x107564428
 
 class IncompatibleVDFError(Exception):
     """Raised when appinfo.vdf version is not supported"""
+
     def __init__(self, vdf_version):
         self.vdf_version = vdf_version
         super().__init__(f"Incompatible VDF version: {vdf_version:#08x}")
@@ -60,7 +62,8 @@ class Appinfo:
 
         # Verify and parse
         self.verify_vdf_version()
-        
+
+        # KRITISCH: String Pool MUSS IMMER geladen werden bei v29!
         if self.version == APPINFO_29:
             self.string_offset = self.read_int64()
             prev_offset = self.offset
@@ -68,15 +71,19 @@ class Appinfo:
             string_count = self.read_uint32()
             for i in range(string_count):
                 self.string_pool.append(self.read_string())
-            self.offset = prev_offset
+            self.offset = prev_offset  # Zurück zum Start
 
         # Load apps
         if choose_apps and apps:
             self.parsedAppInfo = {}
             for app in apps:
-                result = self.read_app(app)
-                if result:
-                    self.parsedAppInfo[app] = result
+                try:
+                    result = self.read_app(app)
+                    if result:
+                        self.parsedAppInfo[app] = result
+                except Exception as e:
+                    print(f"Warning: Could not load app {app}: {e}")
+                    continue
         else:
             self.parsedAppInfo = self.read_all_apps()
 
@@ -97,6 +104,9 @@ class Appinfo:
     def read_string_appinfo29(self):
         """Read string from string pool (v29)"""
         index = self.read_uint32()
+        if index >= len(self.string_pool):
+            print(f"Warning: String index {index} out of range (pool size: {len(self.string_pool)})")
+            return ""
         return self.string_pool[index]
 
     def read_int64(self):
@@ -138,10 +148,14 @@ class Appinfo:
                 key = self.read_string_appinfo29()
             else:
                 key = self.read_string()
-            
+
             # Parse value
-            value = value_parsers[value_type]()
-            subsection[key] = value
+            if value_type in value_parsers:
+                value = value_parsers[value_type]()
+                subsection[key] = value
+            else:
+                print(f"Warning: Unknown value type {value_type:#02x}, skipping")
+                break
 
         return subsection
 
@@ -173,15 +187,23 @@ class Appinfo:
     def read_app(self, app_id: int):
         """Read single app by ID"""
         byte_data = self.SECTION_END + pack("<I", app_id)
-        self.offset = self.appinfoData.find(byte_data) + 1
-        if self.offset == 0:
+        found_offset = self.appinfoData.find(byte_data)
+
+        if found_offset == -1:
+            # App nicht gefunden
             return None
-        
-        app = self.read_header()
-        app["sections"] = self.parse_subsections()
-        app["installed"] = False
-        app["install_path"] = "."
-        return app
+
+        self.offset = found_offset + 1
+
+        try:
+            app = self.read_header()
+            app["sections"] = self.parse_subsections()
+            app["installed"] = False
+            app["install_path"] = "."
+            return app
+        except Exception as e:
+            print(f"Error reading app {app_id}: {e}")
+            return None
 
     def stop_reading(self):
         """Check if we reached end of apps section"""
@@ -196,11 +218,15 @@ class Appinfo:
         """Read all apps from appinfo.vdf"""
         apps = {}
         while not self.stop_reading():
-            app = self.read_header()
-            app["sections"] = self.parse_subsections()
-            app["installed"] = False
-            app["install_path"] = "."
-            apps[app["appid"]] = app
+            try:
+                app = self.read_header()
+                app["sections"] = self.parse_subsections()
+                app["installed"] = False
+                app["install_path"] = "."
+                apps[app["appid"]] = app
+            except Exception as e:
+                print(f"Error reading app: {e}")
+                break
         return apps
 
     # ===== WRITE METHODS =====
@@ -210,7 +236,7 @@ class Appinfo:
         return pack(
             "<4IQ20sI20s",
             data["appid"], data["size"], data["state"], data["last_update"],
-            data["access_token"], data["checksum_text"], 
+            data["access_token"], data["checksum_text"],
             data["change_number"], data["checksum_binary"]
         )
 
@@ -243,9 +269,9 @@ class Appinfo:
         encoded_data = bytearray()
         for key, value in data.items():
             # Encode key
-            key_encoded = (self.encode_string(key) if self.version == APPINFO_28 
-                          else self.encode_key_appinfo29(key))
-            
+            key_encoded = (self.encode_string(key) if self.version == APPINFO_28
+                           else self.encode_key_appinfo29(key))
+
             # Encode value based on type
             if isinstance(value, dict):
                 encoded_data += self.TYPE_DICT + key_encoded + self.encode_subsections(value)
@@ -270,23 +296,23 @@ class Appinfo:
             if isinstance(data[key], dict):
                 number_of_tabs += 1
                 formatted_data += (
-                    tabs + b'"' + key.replace("\\", "\\\\").encode() + b'"\n' +
-                    tabs + b"{\n" +
-                    self.dict_to_text_vdf(data[key], number_of_tabs) +
-                    tabs + b"}\n"
+                        tabs + b'"' + key.replace("\\", "\\\\").encode() + b'"\n' +
+                        tabs + b"{\n" +
+                        self.dict_to_text_vdf(data[key], number_of_tabs) +
+                        tabs + b"}\n"
                 )
                 number_of_tabs -= 1
             else:
                 # Handle latin-1 encoded strings
                 if isinstance(data[key], str) and "\x06" in data[key]:
                     formatted_data += (
-                        tabs + b'"' + key.replace("\\", "\\\\").encode() + b'"\t\t"' +
-                        data[key][:-1].replace("\\", "\\\\").encode("latin-1") + b'"\n'
+                            tabs + b'"' + key.replace("\\", "\\\\").encode() + b'"\t\t"' +
+                            data[key][:-1].replace("\\", "\\\\").encode("latin-1") + b'"\n'
                     )
                 else:
                     formatted_data += (
-                        tabs + b'"' + key.replace("\\", "\\\\").encode() + b'"\t\t"' +
-                        str(data[key]).replace("\\", "\\\\").encode() + b'"\n'
+                            tabs + b'"' + key.replace("\\", "\\\\").encode() + b'"\t\t"' +
+                            str(data[key]).replace("\\", "\\\\").encode() + b'"\n'
                     )
 
         return formatted_data
@@ -313,15 +339,15 @@ class Appinfo:
         """Update string pool offset and count (v29 only)"""
         string_count = len(self.string_pool)
         encoded_string_count = self.encode_uint32(string_count)
-        
+
         # Find end of last app
         last_app_start_index = self.appinfoData.rfind(b'\x08\x00\x00\x00\x00')
         string_table_offset = last_app_start_index + 5
-        
+
         # Update offset in header
         encoded_offset = self.encode_int64(string_table_offset)
         self.appinfoData[8:16] = encoded_offset
-        
+
         # Update string count
         self.appinfoData[string_table_offset:string_table_offset + 4] = encoded_string_count
 
@@ -333,7 +359,7 @@ class Appinfo:
 
         # Calculate new size (minus appid and size fields = 8 bytes)
         size = len(encoded_subsections) + len(old_header) - 8
-        
+
         # Calculate checksums
         checksum_text = self.get_text_checksum(appinfo["sections"])
         checksum_binary = self.get_binary_checksum(encoded_subsections)
@@ -360,7 +386,7 @@ class Appinfo:
         """Write appinfo data back to file"""
         if self.version == APPINFO_29:
             self.update_string_offset_and_count()
-        
+
         with open(self.vdf_path, "wb") as vdf:
             vdf.write(self.appinfoData)
 
@@ -378,7 +404,7 @@ class Appinfo:
             # Update all apps
             for app_id in self.parsedAppInfo.keys():
                 self.update_app(app_id)
-        
+
         self.write_data()
 
 
@@ -392,40 +418,40 @@ def loads(data: bytes, wrapper=dict) -> Dict[str, Any]:
     # Use simple decoder for backwards compatibility
     from collections import namedtuple
     import struct
-    
+
     VDF_VERSIONS = [0x07564426, 0x07564427, 0x07564428, 0x07564429]
     SECTION_END = b'\x08'
     TYPE_SECTION = b'\x00'
     TYPE_STRING = b'\x01'
     TYPE_INT32 = b'\x02'
     TYPE_INT64 = b'\x07'
-    
+
     offset = 0
-    
+
     # Read header
     magic, universe = struct.unpack_from('<II', data, offset)
     if magic not in VDF_VERSIONS:
         raise ValueError(f"Invalid magic: {magic:08x}")
     offset += 8
-    
+
     apps = wrapper()
-    
+
     def decode_section(depth=0):
         nonlocal offset
         if depth > 50:
             return wrapper()
-        
+
         res = wrapper()
         while True:
             t_byte = data[offset:offset + 1]
             offset += 1
             if t_byte == SECTION_END:
                 break
-            
+
             key_end = data.find(b'\x00', offset)
             key = data[offset:key_end].decode('utf-8', 'replace')
             offset = key_end + 1
-            
+
             if t_byte == TYPE_SECTION:
                 res[key] = decode_section(depth + 1)
             elif t_byte == TYPE_STRING:
@@ -439,19 +465,19 @@ def loads(data: bytes, wrapper=dict) -> Dict[str, Any]:
                 res[key] = struct.unpack_from('<q', data, offset)[0]
                 offset += 8
         return res
-    
+
     # Read apps
     while True:
         app_id = struct.unpack_from('<I', data, offset)[0]
         offset += 4
         if app_id == 0:
             break
-        
+
         # Skip header (40 bytes)
         offset += 40
-        
+
         apps[str(app_id)] = decode_section(depth=0)
-    
+
     return apps
 
 
