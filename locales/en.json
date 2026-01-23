@@ -139,7 +139,10 @@
       "api_key_missing": "SteamGridDB API Key missing!\nPlease configure it in Settings to enable image search.", 
       "restore_title": "Restore Metadata",
       "restore_confirm": "Restore {count} tracked changes to appinfo.vdf?",
-      "restore_failed": "Failed to restore metadata changes" 
+      "restore_failed": "Failed to restore metadata changes",
+      "steam_running_title": "⚠️ Steam is Running!",
+      "steam_running_message": "Steam Library Manager detected that Steam is currently running.\n\nIMPORTANT:\n• Close Steam Library Manager now\n• Close Steam completely (System Tray → Steam → Exit)\n• Then restart Steam Library Manager\n\nChanges to localconfig.vdf and appinfo.vdf while Steam is running will be overwritten by Steam!",
+      "steam_running_button": "Exit Application"
     },
     "game_details": {
       "name": "Name",
