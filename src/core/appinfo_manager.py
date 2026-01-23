@@ -67,9 +67,9 @@ class AppInfoManager:
 
                             self.steam_apps[app_id_str] = entry
 
-                print(f"✓ Loaded binary appinfo.vdf with {len(self.steam_apps)} apps")
+                print(t('logs.appinfo.loaded_binary', count=len(self.steam_apps)))
             except (OSError, ValueError, KeyError, AttributeError) as e:
-                print(f"Error loading binary appinfo: {e}")
+                print(t('logs.appinfo.binary_error', error=e))
 
         return self.modifications
 

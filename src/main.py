@@ -12,7 +12,7 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 # FIX: Explizite Importe lösen 'Unresolved reference acf, appinfo, manifest'
-from src.utils import acf, appinfo, manifest
+from src.utils import acf, appinfo
 from PyQt6.QtWidgets import QApplication
 from src.config import config
 from src.utils.i18n import init_i18n, t
@@ -41,9 +41,9 @@ def load_steam_file(file_path: Path):
                 return appinfo.load(f)
 
         # Prüfung auf Protobuf-Manifeste
-        elif ext == '.manifest':
-            with open(file_path, 'rb') as f:
-                return manifest.load(f)
+#        elif ext == '.manifest':
+#            with open(file_path, 'rb') as f:
+#                return manifest.load(f)
 
     except Exception as e:
         print(f"Fehler beim Laden der Datei {file_path.name}: {e}")

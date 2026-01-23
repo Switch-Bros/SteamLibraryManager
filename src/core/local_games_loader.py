@@ -73,7 +73,7 @@ class LocalGamesLoader:
                         pass
 
             if manifests_found_in_lib > 0:
-                print(f"  -> {lib_path}: Found {manifests_found_in_lib} manifests")
+                print(t('logs.local_loader.found_manifests_in_path', path=lib_path, count=manifests_found_in_lib))
 
         return all_installed
 
@@ -116,7 +116,7 @@ class LocalGamesLoader:
                         if path_obj not in folders:
                             folders.append(path_obj)
                     else:
-                        print(f"Warning: Library path in VDF does not exist: {path_str}")
+                        print(t('logs.local_loader.path_not_exists', path=path_str))
 
         except (OSError, ValueError, KeyError, SyntaxError) as e:
             print(t('logs.local_loader.library_error', error=e))

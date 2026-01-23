@@ -27,6 +27,7 @@ requests-oauthlib>=2.0.0
 steam>=1.4.4
 protobuf>=6.33.4
 protobuf-to-dict>=0.1.0
+grpcio-tools>=1.76.0
 # Lokaler Webserver für OAuth2-Callback (nur nötig, falls Flask für den Login-Flow genutzt wird)
 Flask>=3.1.2
 # Einbettung von Webinhalten (z.B. für OAuth2-Login in einem Fenster)

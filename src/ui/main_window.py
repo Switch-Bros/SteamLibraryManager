@@ -563,7 +563,7 @@ class MainWindow(QMainWindow):
             elif method == 'publisher':
                 for game in games:
                     if game.publisher:
-                        cat = f"Publisher: {game.publisher}"
+                        cat = t('ui.auto_categorize.category_publisher', publisher=game.publisher)
                         self.vdf_parser.add_app_category(game.app_id, cat)
                         if cat not in game.categories: game.categories.append(cat)
 
@@ -571,7 +571,7 @@ class MainWindow(QMainWindow):
                 for game in games:
                     franchise = SteamStoreScraper.detect_franchise(game.name)
                     if franchise:
-                        cat = f"Franchise: {franchise}"
+                        cat = t('ui.auto_categorize.category_franchise', franchise=franchise)
                         self.vdf_parser.add_app_category(game.app_id, cat)
                         if cat not in game.categories: game.categories.append(cat)
 

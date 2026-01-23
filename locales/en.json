@@ -274,8 +274,8 @@
       "all_games": "All Games",
       "favorites": "Favorites",
       "uncategorized": "Uncategorized",
-      "sym_expand": "[+]",
-      "sym_collapse": "[-]",
+      "sym_expand": "➕",
+      "sym_collapse": "➖",
       "icon_folder": "📁",
       "icon_favorite": "⭐",
       "more_games": "... and {count} more games",
@@ -322,7 +322,7 @@
     "backup": {
       "rotated": "Rotated backup: {name}",
       "delete_error": "Delete error: {name}",
-      "created": "✓ Backup created: {name}",
+      "created": "✅ Backup created: {name}",
       "failed": "Backup failed: {error}"
     },
     "appinfo": {
