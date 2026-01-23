@@ -170,8 +170,8 @@ class GameManager:
             print(t('logs.manager.loaded_local', count=len(games_data)))
             return True
 
-        except Exception as e:
-            # Top-Level Catch für lokalen Loader, damit nicht alles crasht
+
+        except (OSError, ValueError, KeyError, RecursionError) as e:
             print(t('logs.manager.error_local', error=e))
             return False
 

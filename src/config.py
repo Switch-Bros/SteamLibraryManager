@@ -99,14 +99,14 @@ class Config:
 
     @staticmethod
     def _find_steam_path() -> Optional[Path]:
-        """Sucht den Steam-Installationspfad"""
         paths = [
             Path.home() / '.steam' / 'steam',
             Path.home() / '.local' / 'share' / 'Steam',
         ]
         for p in paths:
             if p.exists():
-                return p
+                # Folge Symlinks
+                return p.resolve() if p.is_symlink() else p
         return None
 
     def get_detected_user(self) -> Tuple[Optional[str], Optional[str]]:

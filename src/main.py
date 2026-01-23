@@ -41,9 +41,9 @@ def load_steam_file(file_path: Path):
                 return appinfo.load(f)
 
         # Prüfung auf Protobuf-Manifeste
-#        elif ext == '.manifest':
-#            with open(file_path, 'rb') as f:
-#                return manifest.load(f)
+        elif ext == '.manifest':
+            with open(file_path, 'rb') as f:
+                return manifest.load(f)
 
     except Exception as e:
         print(f"Fehler beim Laden der Datei {file_path.name}: {e}")

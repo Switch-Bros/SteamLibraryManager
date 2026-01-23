@@ -363,7 +363,6 @@ class MainWindow(QMainWindow):
                 self.progress_dialog.setValue(percent)
 
     def _on_load_finished(self, success: bool):
-        """Loading abgeschlossen"""
         if self.progress_dialog:
             self.progress_dialog.close()
             self.progress_dialog = None
@@ -372,6 +371,12 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, t('ui.dialogs.error'), t('ui.errors.no_games_found'))
             self.reload_btn.show()
             self.set_status(t('ui.status.load_failed'))
+            return  # WICHTIG: Früh abbrechen!
+
+        # NUR wenn erfolgreich:
+        if not self.game_manager or not self.game_manager.games:  # NEUE PRÜFUNG
+            QMessageBox.warning(self, t('ui.dialogs.error'), t('ui.errors.no_games_found'))
+            self.reload_btn.show()
             return
 
         # Merge mit localconfig & weitere Schritte

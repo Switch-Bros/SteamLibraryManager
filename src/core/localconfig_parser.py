@@ -28,7 +28,11 @@ class LocalConfigParser:
 
             # Navigiere zur Apps-Sektion
             try:
-                self.apps = self.data['UserLocalConfigStore']['Software']['Valve']['Steam']['Apps']
+                self.apps = (self.data.get('UserLocalConfigStore', {})
+                             .get('Software', {})
+                             .get('Valve', {})
+                             .get('Steam', {})
+                             .get('Apps', {}))
             except KeyError:
                 print(t('logs.parser.apps_not_found'))
                 self.apps = {}

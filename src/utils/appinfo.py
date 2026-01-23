@@ -19,6 +19,7 @@ TYPE_INT64 = b'\x07'
 
 Integer = namedtuple('Integer', ('size', 'data'))
 
+
 class AppInfoDecoder:
     def __init__(self, data: bytes, wrapper=dict):
         self.data = data
@@ -38,14 +39,17 @@ class AppInfoDecoder:
             if app_id == 0:
                 break
 
-            # Wir überspringen den Header (44 Bytes ab AppID Start)
-            # Da wir app_id (4) bereits haben, überspringen wir die restlichen 40 Bytes.
+            # Skip header (40 bytes after app_id)
             self.offset += 40
 
-            apps[str(app_id)] = self.decode_section()
+            apps[str(app_id)] = self.decode_section(depth=0)  # FIX: depth hinzugefügt
         return apps
 
-    def decode_section(self) -> Dict[str, Any]:
+    def decode_section(self, depth=0) -> Dict[str, Any]:  # FIX: depth Parameter
+        # FIX: Tiefenlimit gegen Endlosschleife
+        if depth > 50:
+            return self.wrapper()
+
         res = self.wrapper()
         while True:
             t_byte = self.data[self.offset:self.offset + 1]
@@ -58,7 +62,7 @@ class AppInfoDecoder:
             self.offset = key_end + 1
 
             if t_byte == TYPE_SECTION:
-                res[key] = self.decode_section()
+                res[key] = self.decode_section(depth + 1)  # FIX: depth + 1
             elif t_byte == TYPE_STRING:
                 val_end = self.data.find(b'\x00', self.offset)
                 res[key] = self.data[self.offset:val_end].decode('utf-8', 'replace')
