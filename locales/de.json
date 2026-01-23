@@ -351,7 +351,7 @@
       "incompatible_version": "Inkompatible appinfo.vdf Version: {version}",
       "not_loaded": "appinfo.vdf noch nicht geladen",
       "write_error": "Fehler beim Schreiben in appinfo.vdf: {error}",
-      "restored": "{count} Änderungen in appinfo.vdf wiederhergestellt" 
+      "restoredvdf": "{count} Änderungen in appinfo.vdf wiederhergestellt"
     },
     "parser": {
       "file_not_found": "Fehler: localconfig.vdf nicht gefunden unter {path}",
