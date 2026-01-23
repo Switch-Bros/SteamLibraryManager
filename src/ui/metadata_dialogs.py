@@ -52,7 +52,7 @@ class MetadataEditDialog(QDialog):
         self.publisher_edit = QLineEdit()
         self.release_date_edit = QLineEdit()
 
-        # Füge ALLE Felder zum Form hinzu (in richtiger Reihenfolge!)
+        # Füge ALLE Felder zur Form hinzu (in richtiger Reihenfolge!)
         form.addRow(t('ui.metadata_editor.game_name_label'), self.name_edit)
         form.addRow(t('ui.metadata_editor.sort_as_label'), self.sort_as_edit)
 
