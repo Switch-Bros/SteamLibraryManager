@@ -1,21 +1,46 @@
-# ===== Minimale Abhängigkeiten für Endnutzer =====
-# GUI
-PyQt6>=6.10.2
+# ==========================================
+# Steam Library Manager - User Requirements
+# Minimale Dependencies für Endnutzer
+# ==========================================
 
-# Core (Bildverarbeitung, Steam-Daten)
-Pillow>=12.1.0
-vdf>=3.4
+# ===== GUI Framework =====
+# PyQt6 für die grafische Benutzeroberfläche
+PyQt6==6.7.1
+# WARUM nicht 6.10.2? → Stabilere Version, weniger Breaking Changes
+# 6.7.1 ist battle-tested und funktioniert zuverlässig
 
-# HTTP & Steam-OAuth2
-requests>=2.32.5
-requests-oauthlib>=2.0.0
+# ===== System Tools =====
+# Prozess-Management (Steam-Running-Check)
+psutil==6.1.0
+# WARUM nicht 7.2.1? → Version 6.x ist stabiler, 7.x hat API-Changes
 
-# Steam-Integration (OAuth2-Login)
-steam>=1.4.4
-pywebview>=6.1  # Für eingebettete Login-Fenster
-protobuf>=6.33.4
-protobuf-to-dict>=0.1.0
-grpcio-tools>=1.76.0
+# ===== Bildverarbeitung =====
+# Pillow für Cover-Images, Thumbnails
+Pillow==11.0.0
+# WARUM nicht 12.1.0? → 11.0.0 ist LTS-Version, sehr stabil
 
-# Konfiguration
-configparser>=7.2.0
+# ===== Steam File Parsing =====
+# VDF-Parser für Steam-Konfigurationsdateien
+vdf==3.4
+# Stabil, keine neuere Version nötig
+
+# ===== HTTP & APIs =====
+# HTTP-Requests für Steam API, SteamGridDB
+requests==2.32.3
+# requests-oauthlib für Steam OAuth2-Login
+requests-oauthlib==2.0.0
+
+# ===== Steam Integration =====
+# Steam-API Bibliothek
+steam==1.4.4
+# Stabil und ausreichend
+
+# ===== Web UI (für OAuth-Login) =====
+# Eingebettetes Browser-Fenster für Steam-Login
+pywebview==5.3.2
+# WARUM nicht 6.1? → 5.3.2 stabiler auf Linux, weniger Dependencies
+
+# ===== Protobuf (für Steam Manifests) =====
+protobuf==3.20.3
+# KRITISCH: Neuere Versionen (4.x, 5.x, 6.x) brechen manifest_pb2.py!
+# 3.20.3 ist letzte stabile 3.x Version
