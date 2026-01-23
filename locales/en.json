@@ -34,7 +34,9 @@
       "github": "Visit GitHub",
       "donate": "Donate",
       "about": "About",
-      "check_updates": "Check for Updates"
+      "check_updates": "Check for Updates",
+      "restore_metadata": "Restore Metadata",
+      "restore_metadata_tip": "Restore tracked metadata changes to appinfo.vdf"
     },
     "toolbar": {
       "refresh": "Refresh",
@@ -134,7 +136,10 @@
       "rename_category": "Rename to:",
       "confirm_bulk_title": "Bulk Edit",
       "confirm_bulk": "Edit {count} games?",
-      "api_key_missing": "SteamGridDB API Key missing!\nPlease configure it in Settings to enable image search."
+      "api_key_missing": "SteamGridDB API Key missing!\nPlease configure it in Settings to enable image search.", 
+      "restore_title": "Restore Metadata",
+      "restore_confirm": "Restore {count} tracked changes to appinfo.vdf?",
+      "restore_failed": "Failed to restore metadata changes" 
     },
     "game_details": {
       "name": "Name",
@@ -198,7 +203,10 @@
       "restore_title": "Restore Metadata Changes",
       "restore_info": "Steam Library Manager has tracked {count} modified games. If Steam has overwritten your changes, you can restore them now.",
       "restore_button": "Restore {count} Changes",
-      "error_empty_name": "Game name cannot be empty!"
+      "error_empty_name": "Game name cannot be empty!",
+      "write_to_vdf": "Write to appinfo.vdf (requires Steam restart)",
+      "write_to_vdf_tooltip": "Writes changes directly to Steam's appinfo.vdf file",
+      "vdf_success_msg": "Changes written to appinfo.vdf!\nPlease restart Steam to see changes." 
     },
     "auto_categorize": {
       "title": "Auto-Categorize",
@@ -258,7 +266,8 @@
       "api_error": "Could not load games from API.",
       "offline_mode": " (Offline)",
       "load_failed": "Failed to load games",
-      "reload_button": "Reload"
+      "reload_button": "Reload", 
+      "restoring": "Restoring metadata..." 
     },
     "errors": {
       "steam_not_found": "Steam installation not found. Please set the path in Settings.",
@@ -335,7 +344,14 @@
       "backup_failed": "Backup failed: {error}",
       "set_error": "Error setting metadata for {app_id}: {error}",
       "loaded_binary": "✅ Loaded binary appinfo.vdf with {count} apps",
-      "binary_error": "Error loading binary appinfo: {error}"
+      "binary_error": "Error loading binary appinfo: {error}", 
+      "no_file": "appinfo.vdf file not found",
+      "loading_all": "Loading ALL apps from appinfo.vdf (this may take a while)...",
+      "no_apps_to_load": "No apps to load from appinfo.vdf",
+      "incompatible_version": "Incompatible appinfo.vdf version: {version}",
+      "not_loaded": "appinfo.vdf not loaded yet",
+      "write_error": "Error writing to appinfo.vdf: {error}",
+      "restored": "Restored {count} modifications to appinfo.vdf" 
     },
     "parser": {
       "file_not_found": "Error: localconfig.vdf not found at {path}",
