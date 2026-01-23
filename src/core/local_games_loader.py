@@ -1,5 +1,5 @@
 """
-Local Games Loader - Multi-Library Support (Linux Native)
+Local Games Loader - Multi-Library Support (ADJUSTED FOR SME INTEGRATION)
 Speichern als: src/core/local_games_loader.py
 """
 
@@ -15,10 +15,16 @@ class LocalGamesLoader:
     def __init__(self, steam_path: Path):
         self.steam_path = steam_path
         self.steamapps_path = steam_path / 'steamapps'
+        # appinfo.vdf wird jetzt NUR über AppInfoManager geladen
         self.appinfo_vdf_path = steam_path / 'appcache' / 'appinfo.vdf'
 
     def get_all_games(self) -> List[Dict]:
-        """Lädt ALLE Spiele (installiert + nicht-installiert)"""
+        """
+        Lädt installierte Spiele aus manifest files
+        
+        WICHTIG: appinfo.vdf wird NICHT mehr hier geladen!
+        Das macht AppInfoManager on-demand für bessere Performance.
+        """
         all_games = {}
 
         # 1. Installierte Spiele (aus Library Folders)
@@ -26,17 +32,9 @@ class LocalGamesLoader:
         for game in installed:
             all_games[str(game['appid'])] = game
 
-        # 2. Spiele aus appinfo.vdf (Metadaten für alle)
-        appinfo_games = self.get_games_from_appinfo()
-        for app_id, name in appinfo_games.items():
-            if app_id not in all_games:
-                all_games[app_id] = {
-                    'appid': int(app_id),
-                    'name': name,
-                    'installdir': '',
-                    'LastUpdated': 0,
-                    'SizeOnDisk': 0,
-                }
+        # 2. appinfo.vdf wird NICHT mehr hier geladen
+        #    Grund: Zu langsam (~15.000 Apps), wird nur on-demand geladen
+        #    AppInfoManager lädt es wenn Metadaten gebraucht werden
 
         print(t('logs.local_loader.loaded_total', count=len(all_games)))
         return list(all_games.values())
@@ -51,16 +49,18 @@ class LocalGamesLoader:
         print(t('logs.local_loader.scanning_libraries', count=len(library_folders)))
 
         for lib_path in library_folders:
-            # Manifests liegen normalerweise in steamapps, manchmal direkt im Library Root
+            # Manifests liegen normalerweise in steamapps
             search_dirs = [lib_path / 'steamapps', lib_path]
 
             manifests_found_in_lib = 0
 
             for folder in search_dirs:
-                if not folder.exists(): continue
+                if not folder.exists():
+                    continue
 
                 manifest_files = list(folder.glob('appmanifest_*.acf'))
-                if not manifest_files: continue
+                if not manifest_files:
+                    continue
 
                 manifests_found_in_lib += len(manifest_files)
 
@@ -73,7 +73,8 @@ class LocalGamesLoader:
                         pass
 
             if manifests_found_in_lib > 0:
-                print(t('logs.local_loader.found_manifests_in_path', path=lib_path, count=manifests_found_in_lib))
+                print(t('logs.local_loader.found_manifests_in_path', 
+                       path=lib_path, count=manifests_found_in_lib))
 
         return all_installed
 
@@ -108,7 +109,8 @@ class LocalGamesLoader:
             for key, value in library_data.items():
                 if isinstance(value, dict):
                     path_str = value.get('path')
-                    if not path_str: continue
+                    if not path_str:
+                        continue
 
                     path_obj = Path(path_str)
 
@@ -123,46 +125,6 @@ class LocalGamesLoader:
 
         return list(set(folders))
 
-    def get_games_from_appinfo(self) -> Dict[str, str]:
-        """Lädt Spiel-Namen aus appinfo.vdf"""
-        if not self.appinfo_vdf_path.exists():
-            return {}
-
-        try:
-            # WICHTIG: appinfo.vdf ist eine BINÄRE Datei - muss mit 'rb' geöffnet werden
-            from src.utils import appinfo
-
-            with open(self.appinfo_vdf_path, 'rb') as f:
-                data = appinfo.load(f)
-
-            games = {}
-            for app_id, app_data in data.items():
-                name = self._extract_name(app_data, depth=0)  # FIX: depth Parameter hinzugefügt
-                if name:
-                    games[app_id] = name
-            return games
-        except (OSError, ValueError, KeyError, AttributeError, ImportError):
-            return {}
-
-    def _extract_name(self, app_data, depth=0) -> Optional[str]:
-        """Hilfsfunktion um Namen tief in der Struktur zu finden"""
-        # FIX: Tiefenlimit gegen Endlosschleife
-        if depth > 10 or not isinstance(app_data, dict):
-            return None
-
-        # 1. common -> name
-        if 'common' in app_data and isinstance(app_data['common'], dict):
-            name = app_data['common'].get('name')
-            if name:
-                return name
-
-        # 2. data -> common -> name (mit Tiefenlimit)
-        if 'data' in app_data and isinstance(app_data['data'], dict):
-            return self._extract_name(app_data['data'], depth + 1)
-
-        # 3. direkt 'name'
-        return app_data.get('name')
-
     @staticmethod
     def _parse_manifest(manifest_path: Path) -> Optional[Dict]:
         """Parse a single appmanifest file"""
@@ -170,7 +132,8 @@ class LocalGamesLoader:
             with open(manifest_path, 'r', encoding='utf-8') as f:
                 data = vdf.load(f)
                 app_state = data.get('AppState', {})
-                if not app_state: return None
+                if not app_state:
+                    return None
                 return {
                     'appid': int(app_state.get('appid', 0)),
                     'name': app_state.get('name', 'Unknown'),
@@ -181,16 +144,26 @@ class LocalGamesLoader:
 
     @staticmethod
     def get_playtime_from_localconfig(localconfig_path: Path) -> Dict[str, int]:
+        """Get playtime data from localconfig.vdf"""
         playtimes = {}
-        if not localconfig_path.exists(): return playtimes
+        if not localconfig_path.exists():
+            return playtimes
+        
         try:
             with open(localconfig_path, 'r', encoding='utf-8') as f:
                 data = vdf.load(f)
-            apps = data.get('UserLocalConfigStore', {}).get('Software', {}).get('Valve', {}).get('Steam', {}).get(
-                'Apps', {})
+            
+            apps = (data.get('UserLocalConfigStore', {})
+                       .get('Software', {})
+                       .get('Valve', {})
+                       .get('Steam', {})
+                       .get('Apps', {}))
+            
             for app_id, app_data in apps.items():
                 if 'playtime' in app_data:
                     playtimes[app_id] = int(app_data['playtime']) // 60
+                    
         except (OSError, ValueError, KeyError, SyntaxError, AttributeError):
             pass
+        
         return playtimes
