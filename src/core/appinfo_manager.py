@@ -40,11 +40,11 @@ class AppInfoManager:
     def load_appinfo(self, app_ids: Optional[List[str]] = None, load_all: bool = False) -> Dict:
         """
         Load appinfo.vdf using SME parser
-        
+
         Args:
             app_ids: Specific app IDs to load (None = only modified apps)
             load_all: Load ALL apps (SLOW! Only use if necessary)
-        
+
         Returns:
             Dict of modifications
         """
@@ -61,13 +61,23 @@ class AppInfoManager:
                     # SLOW: Load everything
                     print(t('logs.appinfo.loading_all'))
                     self.appinfo = Appinfo(str(self.appinfo_path))
-                    
+
                 elif app_ids:
+                    # FIX: Prüfe ob app_ids nicht leer ist
+                    if len(app_ids) == 0:
+                        print(t('logs.appinfo.no_apps_to_load'))
+                        return self.modifications
+
                     # Load specific apps
                     app_ids_int = [int(aid) if isinstance(aid, str) else aid for aid in app_ids]
                     self.appinfo = Appinfo(str(self.appinfo_path), choose_apps=True, apps=app_ids_int)
-                    
+
                 elif self.modified_apps:
+                    # FIX: Prüfe ob modified_apps nicht leer ist
+                    if len(self.modified_apps) == 0:
+                        print(t('logs.appinfo.no_apps_to_load'))
+                        return self.modifications
+
                     # Load only modified apps
                     modified_int = [int(aid) if isinstance(aid, str) else aid for aid in self.modified_apps]
                     self.appinfo = Appinfo(str(self.appinfo_path), choose_apps=True, apps=modified_int)
@@ -78,14 +88,16 @@ class AppInfoManager:
 
                 # Extract metadata to steam_apps cache (backwards compatibility)
                 self._extract_to_cache()
-                
+
                 count = len(self.appinfo.parsedAppInfo) if self.appinfo else 0
                 print(t('logs.appinfo.loaded_binary', count=count))
 
             except IncompatibleVDFError as e:
                 print(t('logs.appinfo.incompatible_version', version=hex(e.vdf_version)))
             except Exception as e:
-                print(t('logs.appinfo.binary_error', error=e))
+                print(f"Error loading binary appinfo: {e}")  # Bessere Fehlerausgabe
+                import traceback
+                traceback.print_exc()  # Zeigt wo genau der Fehler ist
 
         return self.modifications
 
