@@ -47,6 +47,27 @@ class MetadataEditDialog(QDialog):
         self.publisher_edit = QLineEdit()
         self.release_date_edit = QLineEdit()
 
+        form.addRow(t('ui.game_details.release_year') + ":", self.release_date_edit)
+
+        # NEU: Write to VDF Checkbox
+        date_help = QLabel(t('ui.metadata_editor.date_help'))
+        date_help.setStyleSheet("color: gray; font-size: 9px;")
+        form.addRow("", date_help)
+
+        layout.addLayout(form)
+
+        # NEU: Write to VDF Option
+        vdf_group = QGroupBox("Advanced Options")
+        vdf_layout = QVBoxLayout()
+
+        self.write_to_vdf_cb = QCheckBox(t('ui.metadata_editor.write_to_vdf'))
+        self.write_to_vdf_cb.setToolTip(t('ui.metadata_editor.write_to_vdf_tooltip'))
+        self.write_to_vdf_cb.setChecked(False)  # Default: NUR JSON
+
+        vdf_layout.addWidget(self.write_to_vdf_cb)
+        vdf_group.setLayout(vdf_layout)
+        layout.addWidget(vdf_group)
+
         form.addRow(t('ui.metadata_editor.game_name_label'), self.name_edit)
         form.addRow(t('ui.metadata_editor.sort_as_label'), self.sort_as_edit)
 
@@ -118,6 +139,7 @@ class MetadataEditDialog(QDialog):
             'developer': self.developer_edit.text().strip(),
             'publisher': self.publisher_edit.text().strip(),
             'release_date': self.release_date_edit.text().strip(),
+            'write_to_vdf': self.write_to_vdf_cb.isChecked()  # NEU!
         }
         self.accept()
 
