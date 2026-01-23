@@ -207,7 +207,6 @@
       "write_to_vdf": "In appinfo.vdf schreiben (Steam-Neustart nötig)",
       "write_to_vdf_tooltip": "Schreibt Änderungen direkt in Steam's appinfo.vdf Datei",
       "vdf_success_msg": "Änderungen in appinfo.vdf geschrieben!\nBitte Steam neu starten."
-      } 
     },
     "auto_categorize": {
       "title": "Auto-Kategorisierung",

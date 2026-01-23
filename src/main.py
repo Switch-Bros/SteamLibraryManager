@@ -12,7 +12,7 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 # FIX: Explizite Importe lösen 'Unresolved reference acf, appinfo, manifest'
-from src.utils import acf, appinfo
+from src.utils import acf, appinfo, manifest
 from PyQt6.QtWidgets import QApplication
 from src.config import config
 from src.utils.i18n import init_i18n, t
