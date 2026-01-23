@@ -287,10 +287,10 @@ class AppInfoManager:
         """
         Write modifications back to appinfo.vdf
         CRITICAL: Uses correct SHA-1 checksum algorithm
-        
+
         Args:
             backup: Create backup before writing
-        
+
         Returns:
             bool: Success
         """
@@ -302,7 +302,13 @@ class AppInfoManager:
             # Create backup
             if backup:
                 from src.core.backup_manager import BackupManager
-                BackupManager.create_rolling_backup(self.appinfo_path)
+                # FIX: Richtige Methode aufrufen!
+                backup_manager = BackupManager()
+                backup_path = backup_manager.create_backup(self.appinfo_path)
+                if backup_path:
+                    print(f"Backup created: {backup_path}")
+                else:
+                    print("Warning: Backup creation failed!")
 
             # Write using SME's method
             modified_app_ids = [int(aid) for aid in self.modified_apps]
@@ -312,7 +318,9 @@ class AppInfoManager:
             return True
 
         except Exception as e:
-            print(t('logs.appinfo.write_error', error=e))
+            print(f"Error writing to appinfo.vdf: {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
     def restore_modifications(self, app_ids: Optional[List[str]] = None) -> int:

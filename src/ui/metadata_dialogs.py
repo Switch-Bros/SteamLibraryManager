@@ -32,31 +32,48 @@ class MetadataEditDialog(QDialog):
     def _create_ui(self):
         layout = QVBoxLayout(self)
 
+        # Title
         title = QLabel(t('ui.metadata_editor.editing_title', game=self.game_name))
         title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         layout.addWidget(title)
 
+        # Info
         info = QLabel(t('ui.metadata_editor.info_tracking'))
         info.setStyleSheet("color: gray; font-size: 10px;")
         layout.addWidget(info)
 
+        # Form Fields
         form = QFormLayout()
+
+        # Erstelle Input-Felder
         self.name_edit = QLineEdit()
         self.sort_as_edit = QLineEdit()
         self.developer_edit = QLineEdit()
         self.publisher_edit = QLineEdit()
         self.release_date_edit = QLineEdit()
 
+        # Füge ALLE Felder zum Form hinzu (in richtiger Reihenfolge!)
+        form.addRow(t('ui.metadata_editor.game_name_label'), self.name_edit)
+        form.addRow(t('ui.metadata_editor.sort_as_label'), self.sort_as_edit)
+
+        # Sort Help
+        sort_help = QLabel(t('ui.metadata_editor.sort_as_help'))
+        sort_help.setStyleSheet("color: gray; font-size: 9px;")
+        form.addRow("", sort_help)
+
+        form.addRow(t('ui.game_details.developer') + ":", self.developer_edit)
+        form.addRow(t('ui.game_details.publisher') + ":", self.publisher_edit)
         form.addRow(t('ui.game_details.release_year') + ":", self.release_date_edit)
 
-        # NEU: Write to VDF Checkbox
+        # Date Help
         date_help = QLabel(t('ui.metadata_editor.date_help'))
         date_help.setStyleSheet("color: gray; font-size: 9px;")
         form.addRow("", date_help)
 
+        # Form abschließen
         layout.addLayout(form)
 
-        # NEU: Write to VDF Option
+        # VDF Write Option (NACH dem Form!)
         vdf_group = QGroupBox("Advanced Options")
         vdf_layout = QVBoxLayout()
 
@@ -68,19 +85,7 @@ class MetadataEditDialog(QDialog):
         vdf_group.setLayout(vdf_layout)
         layout.addWidget(vdf_group)
 
-        form.addRow(t('ui.metadata_editor.game_name_label'), self.name_edit)
-        form.addRow(t('ui.metadata_editor.sort_as_label'), self.sort_as_edit)
-
-        sort_help = QLabel(t('ui.metadata_editor.sort_as_help'))
-        sort_help.setStyleSheet("color: gray; font-size: 9px;")
-        form.addRow("", sort_help)
-
-        form.addRow(t('ui.game_details.developer') + ":", self.developer_edit)
-        form.addRow(t('ui.game_details.publisher') + ":", self.publisher_edit)
-        form.addRow(t('ui.game_details.release_year') + ":", self.release_date_edit)
-
-        layout.addLayout(form)
-
+        # Original Values Group
         original_group = QGroupBox(t('ui.metadata_editor.original_values_group'))
         original_layout = QVBoxLayout()
         self.original_text = QTextEdit()
@@ -90,10 +95,10 @@ class MetadataEditDialog(QDialog):
         original_group.setLayout(original_layout)
         layout.addWidget(original_group)
 
+        # Buttons
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        # FIX: Dynamische Button-Erstellung verhindert Duplikate
         for text, callback, is_default in [
             (t('ui.settings.reset_defaults'), self._reset_to_original, False),
             (t('ui.dialogs.cancel'), self.reject, False),
