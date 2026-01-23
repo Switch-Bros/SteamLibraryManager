@@ -1,52 +1,88 @@
+# ==========================================
+# Steam Library Manager - Developer Requirements
+# Vollständige Dependencies für Entwicklung & Testing
+# ==========================================
+
 # ===== GUI Framework =====
-# PyQt6 für die grafische Benutzeroberfläche (automatisch mit Qt6-Bindings)
-PyQt6>=6.10.2
-pyqt6-sip>=13.11.0
+# PyQt6 für die grafische Benutzeroberfläche
+PyQt6==6.7.1
+# Stabile Version, battle-tested
+pyqt6-sip==13.8.0
+# Passende SIP-Version zu PyQt6 6.7.1
+
+# ===== System Tools =====
+# Prozess-Management (Steam-Running-Check)
+psutil==6.1.0
+# Stabile 6.x Version
 
 # ===== Entwicklungsumgebung =====
-# Umgebungsvariablen (für lokale API-Keys)
-python-dotenv>=1.2.1
+# Umgebungsvariablen aus .env Dateien
+python-dotenv==1.0.1
+# Für lokale API-Keys während Development
 
-# ===== Core Dependencies =====
-# Bildverarbeitung (z.B. für SteamGridDB-Cover)
-Pillow>=12.1.0
-# Parsen von Steam-Konfigurationsdateien (VDF-Format)
-vdf>=3.4
-# HTML/XML-Parsing (für API-Antworten oder Web-Scraping)
-beautifulsoup4>=4.14.3
-lxml>=6.0.2
+# ===== Bildverarbeitung =====
+# Pillow für Cover-Images, Thumbnails
+Pillow==11.0.0
+# LTS-Version, sehr stabil
 
-# ===== HTTP & Authentifizierung =====
-# HTTP-Anfragen (Steam-API, SteamGridDB)
-requests>=2.32.5
-# OAuth2-Login für "Mit Steam anmelden"-Button
-requests-oauthlib>=2.0.0
+# ===== Steam File Parsing =====
+# VDF-Parser für Steam-Konfigurationsdateien
+vdf==3.4
 
-# ===== Steam-Integration =====
-# Offizielle Steam-API-Bibliothek
-steam>=1.4.4
-protobuf>=6.33.4
-protobuf-to-dict>=0.1.0
-grpcio-tools>=1.76.0
-# Lokaler Webserver für OAuth2-Callback (nur nötig, falls Flask für den Login-Flow genutzt wird)
-Flask>=3.1.2
-# Einbettung von Webinhalten (z.B. für OAuth2-Login in einem Fenster)
-pywebview>=6.1
+# ===== Web Scraping (für Steam Store) =====
+# HTML/XML Parsing
+beautifulsoup4==4.12.3
+# Stabiler als 4.14.x, weniger Dependencies
+lxml==5.3.0
+# Parser-Backend für BeautifulSoup
 
-# ===== Konfiguration =====
-# Nutzer-Einstellungen speichern (z.B. SteamGridDB-API-Key)
-configparser>=7.2.0
-# YAML-Unterstützung (falls Konfigurationen in YAML gespeichert werden)
-pyyaml>=6.0.3
+# ===== HTTP & APIs =====
+# HTTP-Requests
+requests==2.32.3
+# OAuth2 für Steam-Login
+requests-oauthlib==2.0.0
 
-# ===== Utilities (optional) =====
-# Asynchrone HTTP-Anfragen (falls für Performance genutzt)
-aiohttp>=3.13.3
+# ===== Steam Integration =====
+# Steam-API Bibliothek
+steam==1.4.4
+
+# ===== Protobuf (für Steam Manifests) =====
+# KRITISCH: Version 3.20.3 für Kompatibilität!
+protobuf==3.20.3
+# Neuere Versionen (4.x+) brechen manifest_pb2.py
+
+# ===== Web UI =====
+# Eingebettetes Browser-Fenster
+pywebview==5.3.2
+# Stabiler auf Linux
+
+# Flask für OAuth-Callback-Server (optional)
+Flask==3.0.3
+# Leichtgewichtig, 3.1.x hatte Breaking Changes
+
+# ===== Async HTTP (Optional) =====
+# Für parallele API-Requests (Performance)
+aiohttp==3.10.11
+# Stabile Version, nicht 3.13.x (zu neu)
 
 # ===== Testing & Code-Qualität =====
 # Unit Tests
-pytest>=9.0.2
+pytest==8.3.4
+# Stabile 8.x Version
+
 # Code-Formatierung
-black>=26.1.0
+black==24.10.0
+# Stabil, neuere Versionen ändern Formatierung
+
 # Linting
-flake8>=7.3.0
+flake8==7.1.1
+# Bewährte Version
+
+# Type Checking (empfohlen für große Projekte)
+mypy==1.13.0
+# Optional aber hilfreich
+
+# ===== Dokumentation (Optional) =====
+# Sphinx für API-Dokumentation
+sphinx==8.1.3
+# Nur bei Bedarf installieren
