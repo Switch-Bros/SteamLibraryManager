@@ -54,7 +54,7 @@ class AppInfoManager:
 
                 # Wir suchen nach dem 'common' Block, um Namen zu finden
                 for app_id_str, content in data.items():
-                    common = self._find_key_recursive(content, 'common')
+                    common = self._find_key_recursive(content, 'common', depth=0)
 
                     if common and isinstance(common, dict):
                         name = common.get('name')
@@ -73,16 +73,18 @@ class AppInfoManager:
 
         return self.modifications
 
-    def _find_key_recursive(self, data: Any, target_key: str) -> Optional[Any]:
+    def _find_key_recursive(self, data: Any, target_key: str, depth=0) -> Optional[Any]:
         """Hilfsfunktion: Sucht 'common' Block in verschachtelten Daten"""
-        if not isinstance(data, dict):
+        # FIX: Tiefenlimit gegen Endlosschleife
+        if depth > 10 or not isinstance(data, dict):
             return None
+
         if target_key in data:
             return data[target_key]
 
         for val in data.values():
             if isinstance(val, dict):
-                found = self._find_key_recursive(val, target_key)
+                found = self._find_key_recursive(val, target_key, depth + 1)  # FIX: depth + 1
                 if found:
                     return found
         return None
