@@ -34,7 +34,9 @@
       "github": "GitHub besuchen",
       "donate": "Spenden",
       "about": "Über",
-      "check_updates": "Nach Updates suchen"
+      "check_updates": "Nach Updates suchen", 
+      "restore_metadata": "Metadaten Wiederherstellen",
+      "restore_metadata_tip": "Getrackte Metadaten-Änderungen in appinfo.vdf schreiben" 
     },
     "toolbar": {
       "refresh": "Aktualisieren",
@@ -134,7 +136,10 @@
       "rename_category": "Umbenennen in:",
       "confirm_bulk_title": "Massenbearbeitung",
       "confirm_bulk": "{count} Spiele bearbeiten?",
-      "api_key_missing": "SteamGridDB API Key fehlt!\nBitte in den Einstellungen konfigurieren, um die Bildsuche zu nutzen."
+      "api_key_missing": "SteamGridDB API Key fehlt!\nBitte in den Einstellungen konfigurieren, um die Bildsuche zu nutzen.", 
+      "restore_title": "Metadaten Wiederherstellen",
+      "restore_confirm": "{count} getrackte Änderungen in appinfo.vdf wiederherstellen?",
+      "restore_failed": "Fehler beim Wiederherstellen der Metadaten" 
     },
     "game_details": {
       "name": "Name",
@@ -198,7 +203,11 @@
       "restore_title": "Metadaten-Änderungen wiederherstellen",
       "restore_info": "Steam Library Manager hat {count} modifizierte Spiele getrackt. Falls Steam deine Änderungen überschrieben hat, kannst du sie jetzt wiederherstellen.",
       "restore_button": "{count} Änderungen wiederherstellen",
-      "error_empty_name": "Spielname darf nicht leer sein!"
+      "error_empty_name": "Spielname darf nicht leer sein!",
+      "write_to_vdf": "In appinfo.vdf schreiben (Steam-Neustart nötig)",
+      "write_to_vdf_tooltip": "Schreibt Änderungen direkt in Steam's appinfo.vdf Datei",
+      "vdf_success_msg": "Änderungen in appinfo.vdf geschrieben!\nBitte Steam neu starten."
+      } 
     },
     "auto_categorize": {
       "title": "Auto-Kategorisierung",
@@ -258,7 +267,8 @@
       "api_error": "Konnte Spiele nicht von API laden.",
       "offline_mode": " (Offline)",
       "load_failed": "Fehler beim Laden der Spiele",
-      "reload_button": "Neu laden"
+      "reload_button": "Neu laden", 
+      "restoring": "Stelle Metadaten wieder her..." 
     },
     "errors": {
       "steam_not_found": "Steam-Installation nicht gefunden. Bitte setze den Pfad in den Einstellungen.",
@@ -335,7 +345,14 @@
       "backup_failed": "Backup fehlgeschlagen: {error}",
       "set_error": "Fehler beim Setzen der Metadaten für {app_id}: {error}",
       "loaded_binary": "✅ Binäre appinfo.vdf mit {count} Apps geladen",
-      "binary_error": "Fehler beim Laden der binären appinfo: {error}"
+      "binary_error": "Fehler beim Laden der binären appinfo: {error}", 
+      "no_file": "appinfo.vdf Datei nicht gefunden",
+      "loading_all": "Lade ALLE Spiele aus appinfo.vdf (das kann dauern)...",
+      "no_apps_to_load": "Keine Apps zum Laden aus appinfo.vdf",
+      "incompatible_version": "Inkompatible appinfo.vdf Version: {version}",
+      "not_loaded": "appinfo.vdf noch nicht geladen",
+      "write_error": "Fehler beim Schreiben in appinfo.vdf: {error}",
+      "restored": "{count} Änderungen in appinfo.vdf wiederhergestellt" 
     },
     "parser": {
       "file_not_found": "Fehler: localconfig.vdf nicht gefunden unter {path}",
