@@ -137,22 +137,29 @@ class LocalGamesLoader:
 
             games = {}
             for app_id, app_data in data.items():
-                name = self._extract_name(app_data)
+                name = self._extract_name(app_data, depth=0)  # FIX: depth Parameter hinzugefügt
                 if name:
                     games[app_id] = name
             return games
         except (OSError, ValueError, KeyError, AttributeError, ImportError):
             return {}
 
-    def _extract_name(self, app_data) -> Optional[str]:
+    def _extract_name(self, app_data, depth=0) -> Optional[str]:
         """Hilfsfunktion um Namen tief in der Struktur zu finden"""
-        if not isinstance(app_data, dict): return None
+        # FIX: Tiefenlimit gegen Endlosschleife
+        if depth > 10 or not isinstance(app_data, dict):
+            return None
+
         # 1. common -> name
         if 'common' in app_data and isinstance(app_data['common'], dict):
-            return app_data['common'].get('name')
-        # 2. data -> common -> name
-        if 'data' in app_data:
-            return self._extract_name(app_data['data'])
+            name = app_data['common'].get('name')
+            if name:
+                return name
+
+        # 2. data -> common -> name (mit Tiefenlimit)
+        if 'data' in app_data and isinstance(app_data['data'], dict):
+            return self._extract_name(app_data['data'], depth + 1)
+
         # 3. direkt 'name'
         return app_data.get('name')
 
