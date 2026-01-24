@@ -1,10 +1,10 @@
 # 🎮 Steam Library Manager
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
-[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Steam%20Deck-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://store.steampowered.com/steamdeck)
-[![Made with PyCharm](https://img.shields.io/badge/Made%20with-PyCharm-000000?style=for-the-badge&logo=pycharm&logoColor=white)](https://www.jetbrains.com/pycharm/)
-[![Status](https://img.shields.io/badge/Status-In%20Development-orange?style=for-the-badge)]()
-[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)]()
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-FDE100?style=plastic&logo=python&logoColor=FDE100&labelColor=000000)](https://www.python.org/)
+[![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Steam%20Deck-FDE100?style=plastic&logo=linux&logoColor=FDE100&labelColor=000000)](https://store.steampowered.com/steamdeck)
+[![made with PyCharm](https://img.shields.io/badge/made%20with-PyCharm-FDE100?style=plastic&logo=pycharm&color=FDE100&labelColor=000000)](https://www.jetbrains.com/pycharm/)
+[![Status](https://img.shields.io/badge/Status-In%20Development-FDE100?style=plastic&labelColor=000000)](https://github.com/HeikesFootSlave/SteamLibraryManager)
+[![License](https://img.shields.io/badge/License-MIT-FDE100?style=plastic&labelColor=000000)](https://github.com/HeikesFootSlave/SteamLibraryManager/blob/main/LICENSE)
 
 Ein moderner, leistungsstarker Bibliotheks-Manager für Steam auf Linux und dem Steam Deck.  
 Organisiere deine Sammlung, bearbeite Metadaten und automatisiere Kategorien.
