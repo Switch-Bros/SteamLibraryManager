@@ -26,11 +26,11 @@ class AppInfoManager:
         # Tracking dictionaries
         self.modifications: Dict[str, Dict] = {}  # {"app_id": {"original": {...}, "modified": {...}}}
         self.modified_apps: List[str] = []  # List of app IDs with modifications
-        
+
         # Steam appinfo.vdf object
         self.appinfo: Optional[Appinfo] = None
         self.appinfo_path: Optional[Path] = None
-        
+
         # Steam apps cache (for backwards compatibility)
         self.steam_apps: Dict[str, Any] = {}
 
@@ -53,51 +53,41 @@ class AppInfoManager:
         # 1. Load saved modifications
         self._load_modifications_from_json()
 
-        # 2. Load appinfo.vdf (binary)
+        # 2. Load binary appinfo.vdf
         if self.appinfo_path and self.appinfo_path.exists():
             try:
-                # Determine what to load
+                # Determine which apps to load
                 if load_all:
-                    # SLOW: Load everything
+                    # SLOW! Lädt alle ~15.000 Apps
                     print(t('logs.appinfo.loading_all'))
-                    self.appinfo = Appinfo(str(self.appinfo_path))
-
-                elif app_ids:
-                    # FIX: Prüfe ob app_ids nicht leer ist
-                    if len(app_ids) == 0:
-                        print(t('logs.appinfo.no_apps_to_load'))
-                        return self.modifications
-
-                    # Load specific apps
-                    app_ids_int = [int(aid) if isinstance(aid, str) else aid for aid in app_ids]
-                    self.appinfo = Appinfo(str(self.appinfo_path), choose_apps=True, apps=app_ids_int)
-
-                elif self.modified_apps:
-                    # FIX: Prüfe ob modified_apps nicht leer ist
-                    if len(self.modified_apps) == 0:
-                        print(t('logs.appinfo.no_apps_to_load'))
-                        return self.modifications
-
-                    # Load only modified apps
-                    modified_int = [int(aid) if isinstance(aid, str) else aid for aid in self.modified_apps]
-                    self.appinfo = Appinfo(str(self.appinfo_path), choose_apps=True, apps=modified_int)
+                    self.appinfo = Appinfo(str(self.appinfo_path), choose_apps=False)
                 else:
-                    # Nothing to load
-                    print(t('logs.appinfo.no_apps_to_load'))
-                    return self.modifications
+                    # Lade nur spezifische Apps oder modifizierte Apps
+                    if app_ids is None:
+                        app_ids = self.modified_apps
 
-                # Extract metadata to steam_apps cache (backwards compatibility)
-                self._extract_to_cache()
+                    if not app_ids:
+                        print(t('logs.appinfo.no_apps_to_load'))
+                        return self.modifications
 
-                count = len(self.appinfo.parsedAppInfo) if self.appinfo else 0
+                    # Konvertiere zu int
+                    modified_int = [int(aid) for aid in app_ids]
+
+                    # Selektives Laden (schnell)
+                    self.appinfo = Appinfo(str(self.appinfo_path), choose_apps=True, apps=modified_int)
+
+                # Update steam_apps cache
+                self.steam_apps = self.appinfo.parsedAppInfo
+
+                count = len(self.appinfo.parsedAppInfo)
                 print(t('logs.appinfo.loaded_binary', count=count))
 
             except IncompatibleVDFError as e:
                 print(t('logs.appinfo.incompatible_version', version=hex(e.vdf_version)))
             except Exception as e:
-                print(f"Error loading binary appinfo: {e}")  # Bessere Fehlerausgabe
+                print(f"Error loading binary appinfo: {e}")
                 import traceback
-                traceback.print_exc()  # Zeigt wo genau der Fehler ist
+                traceback.print_exc()
 
         return self.modifications
 
@@ -127,7 +117,7 @@ class AppInfoManager:
                             'original': {},
                             'modified': mod_data
                         }
-                    
+
                     self.modified_apps.append(app_id)
 
             print(t('logs.appinfo.loaded', count=len(self.modifications)))
@@ -137,130 +127,80 @@ class AppInfoManager:
             self.modifications = {}
             self.modified_apps = []
 
-    def _extract_to_cache(self):
-        """Extract metadata from appinfo to steam_apps cache"""
-        if not self.appinfo:
-            return
-        
-        self.steam_apps = {}
-        
-        for app_id, app_data in self.appinfo.parsedAppInfo.items():
-            sections = app_data.get('sections', {})
-            common = sections.get('common', {})
-            
-            if common:
-                entry = {}
-                
-                if 'name' in common:
-                    entry['name'] = common['name']
-                if 'developer' in common:
-                    entry['developer'] = common['developer']
-                if 'publisher' in common:
-                    entry['publisher'] = common['publisher']
-                if 'type' in common:
-                    entry['type'] = common['type']
-                
-                # Release date handling
-                release_state = common.get('releasestate', '')
-                if release_state:
-                    entry['releasestate'] = release_state
-                
-                orig_release = common.get('original_release_date')
-                if orig_release:
-                    if isinstance(orig_release, int):
-                        entry['release_date'] = str(orig_release)
-                    elif isinstance(orig_release, dict):
-                        entry['release_date'] = str(orig_release.get('date', ''))
-                
-                if entry:
-                    self.steam_apps[str(app_id)] = entry
-
     def get_app_metadata(self, app_id: str) -> Dict[str, Any]:
         """
-        Get metadata for a game
-        Priority: Modified > appinfo.vdf > Empty
+        Get app metadata (with modifications applied)
+
+        Returns:
+            Dict with current metadata
         """
-        app_id = str(app_id)
         result = {}
 
-        # 1. Get from appinfo.vdf cache
-        if app_id in self.steam_apps:
-            result = self.steam_apps[app_id].copy()
-        elif self.appinfo:
-            # Try to get from parsed appinfo
-            app_id_int = int(app_id)
-            if app_id_int in self.appinfo.parsedAppInfo:
-                app_data = self.appinfo.parsedAppInfo[app_id_int]
-                sections = app_data.get('sections', {})
-                common = sections.get('common', {})
-                
-                result = {
-                    'name': common.get('name', ''),
-                    'type': common.get('type', ''),
-                    'developer': common.get('developer', ''),
-                    'publisher': common.get('publisher', ''),
-                }
+        # 1. Get from binary appinfo
+        if self.appinfo and int(app_id) in self.appinfo.parsedAppInfo:
+            app_data = self.appinfo.parsedAppInfo[int(app_id)]
+            sections = app_data.get('sections', {})
+            common = sections.get('common', {})
 
-        # 2. Ensure fields exist
-        if 'name' not in result: result['name'] = ''
-        if 'developer' not in result: result['developer'] = ''
-        if 'publisher' not in result: result['publisher'] = ''
+            result['name'] = common.get('name', '')
+            result['type'] = common.get('type', '')
+            result['developer'] = common.get('developer', '')
+            result['publisher'] = common.get('publisher', '')
+            result['release_date'] = common.get('steam_release_date', '')
 
-        # 3. Apply modifications
+        # 2. Apply modifications
         if app_id in self.modifications:
             modified = self.modifications[app_id].get('modified', {})
             result.update(modified)
 
         return result
 
-    def set_app_metadata(self, app_id: str, new_meta: Dict) -> bool:
+    def set_app_metadata(self, app_id: str, metadata: Dict[str, Any]) -> bool:
         """
-        Set new metadata for a game
-        Stores in JSON AND modifies appinfo object (if loaded)
-        """
-        app_id = str(app_id)
+        Set app metadata (tracks original + modified)
 
+        Args:
+            app_id: Steam App ID
+            metadata: New metadata values
+
+        Returns:
+            bool: Success
+        """
         try:
-            # Track original values (if not already tracked)
+            # Get original values
             if app_id not in self.modifications:
                 original = self.get_app_metadata(app_id)
                 self.modifications[app_id] = {
-                    'original': original.copy() if any(original.values()) else {},
+                    'original': original.copy(),
                     'modified': {}
                 }
 
-            # Clean metadata (remove empty values)
-            clean_meta = {k: v for k, v in new_meta.items() if v}
+            # Update modified values
+            self.modifications[app_id]['modified'].update(metadata)
 
-            if clean_meta:
-                # Store modifications
-                self.modifications[app_id]['modified'] = clean_meta
+            # Track as modified
+            if app_id not in self.modified_apps:
+                self.modified_apps.append(app_id)
 
-                # Add to modified list
-                if app_id not in self.modified_apps:
-                    self.modified_apps.append(app_id)
+            # Apply to binary appinfo if loaded
+            if self.appinfo and int(app_id) in self.appinfo.parsedAppInfo:
+                app_data = self.appinfo.parsedAppInfo[int(app_id)]
+                sections = app_data.get('sections', {})
 
-                # Update appinfo object (if loaded)
-                if self.appinfo:
-                    app_id_int = int(app_id)
-                    if app_id_int in self.appinfo.parsedAppInfo:
-                        sections = self.appinfo.parsedAppInfo[app_id_int]['sections']
-                        
-                        # Ensure 'common' block exists
-                        if 'common' not in sections:
-                            sections['common'] = {}
-                        
-                        common = sections['common']
-                        
-                        # Set values
-                        for key, value in clean_meta.items():
-                            common[key] = value
-            else:
-                # No changes - remove from tracking
-                if app_id in self.modifications:
-                    del self.modifications[app_id]
-                if app_id in self.modified_apps:
-                    self.modified_apps.remove(app_id)
+                if 'common' not in sections:
+                    sections['common'] = {}
+
+                common = sections['common']
+
+                # Update common section
+                if 'name' in metadata:
+                    common['name'] = metadata['name']
+                if 'developer' in metadata:
+                    common['developer'] = metadata['developer']
+                if 'publisher' in metadata:
+                    common['publisher'] = metadata['publisher']
+                if 'release_date' in metadata:
+                    common['steam_release_date'] = metadata['release_date']
 
             return True
 
@@ -272,10 +212,10 @@ class AppInfoManager:
         """Save modifications to JSON"""
         try:
             self.data_dir.mkdir(exist_ok=True, parents=True)
-            
+
             with open(self.metadata_file, 'w', encoding='utf-8') as f:
                 json.dump(self.modifications, f, indent=2)
-            
+
             print(t('logs.appinfo.saved_mods', count=len(self.modifications)))
             return True
 
@@ -302,9 +242,9 @@ class AppInfoManager:
             # Create backup
             if backup:
                 from src.core.backup_manager import BackupManager
-                # FIX: Richtige Methode aufrufen!
                 backup_manager = BackupManager()
-                backup_path = backup_manager.create_backup(self.appinfo_path)
+                # ✅ FIX: Richtige Methode aufrufen!
+                backup_path = backup_manager.create_rolling_backup(self.appinfo_path)
                 if backup_path:
                     print(f"Backup created: {backup_path}")
                 else:
@@ -318,7 +258,7 @@ class AppInfoManager:
             return True
 
         except Exception as e:
-            print(f"Error writing to appinfo.vdf: {e}")
+            print(t('logs.appinfo.write_error', error=e))
             import traceback
             traceback.print_exc()
             return False
@@ -327,10 +267,10 @@ class AppInfoManager:
         """
         Restore saved modifications to appinfo.vdf
         (In case Steam overwrote them)
-        
+
         Args:
             app_ids: Specific app IDs to restore (None = all)
-        
+
         Returns:
             int: Number of apps restored
         """
@@ -364,7 +304,7 @@ class AppInfoManager:
     def clear_all_modifications(self) -> int:
         """
         Clear ALL modifications (DANGEROUS!)
-        
+
         Returns:
             int: Number of modifications cleared
         """
