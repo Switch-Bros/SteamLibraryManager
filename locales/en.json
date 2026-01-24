@@ -119,7 +119,7 @@
       "success": "Success",
       "cancel": "Cancel",
       "save": "Save",
-      "image_picker_title": "Select Image",
+      "image_picker_title": "Select Image: {type} for {game}",
       "image_picker_loading": "Loading...",
       "about_text": "Steam Library Manager v1.0",
       "no_selection": "No Selection",
@@ -304,6 +304,13 @@
         "auto_categorize": "Auto-Categorize",
         "auto_categorize_selected": "Auto-Categorize Selection"
       }
+    },
+    "badges": {
+      "animated": "Animated",
+      "humor": "Humor",
+      "nsfw": "Adult Content (NSFW)",
+      "epilepsy": "Epilepsy Warning",
+      "untagged": "Untagged"
     }
   },
   "logs": {
@@ -329,7 +336,10 @@
       "save_error": "Save error: {error}",
       "missing_key": "Missing API Key",
       "id_error": "Error getting game ID for {app_id}: {error}",
-      "deleted": "Deleted custom image: {path}"
+      "deleted": "Deleted custom image: {path}",
+      "api_error": "API Error {code} on page {page}",
+      "exception": "API Exception: {error}",
+      "found": "Images found: {count}"
     },
     "backup": {
       "rotated": "Rotated backup: {name}",

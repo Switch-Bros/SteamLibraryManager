@@ -2,7 +2,7 @@
 Image Selection Dialog - Cleaned & Robust
 Speichern als: src/ui/image_selection_dialog.py
 """
-import json  # FIX: Globaler Import löst 'referenced before assignment'
+import json
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QScrollArea, QWidget, QGridLayout, QLabel,
                              QPushButton, QLineEdit, QHBoxLayout)
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QUrl
@@ -127,7 +127,8 @@ class ImageSelectionDialog(QDialog):
                 with open(settings_file, 'w', encoding='utf-8') as f:
                     json.dump(current_settings, f, indent=2)
             except (OSError, json.JSONDecodeError) as e:
-                print(f"Error saving key: {e}")
+                # FIX: t() genutzt statt hardcoded f-string
+                print(t('logs.config.save_error', error=e))
 
             self._check_api_and_start()
 
@@ -148,19 +149,30 @@ class ImageSelectionDialog(QDialog):
 
         config_map = {
             'grids': (4, 220, 330),
-            'heroes': (2, 460, 150),
+            'heroes': (2, 460, 215),
             'logos': (3, 300, 150),
             'icons': (6, 162, 162)
         }
         cols, w, h = config_map.get(self.img_type, (3, 250, 250))
 
+        # Grid leeren
+        while self.grid_layout.count():
+            child = self.grid_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+
         row, col = 0, 0
         for item in items:
             img_widget = ClickableImage(self.img_type, w, h, metadata=item)
 
+            # Smart Load: Volle URL für WebP/GIF/Animated, sonst Thumb
             load_url = item['thumb']
             mime = item.get('mime', '')
-            if 'webp' in mime or 'gif' in mime:
+            tags = item.get('tags', [])
+
+            # WICHTIG: Prüft auf WebP, GIF ODER "animated" Tag (für APNGs)
+            is_animated = 'webp' in mime or 'gif' in mime or 'animated' in tags
+            if is_animated:
                 load_url = item['url']
 
             img_widget.load_image(load_url)

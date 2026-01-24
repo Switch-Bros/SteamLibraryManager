@@ -119,7 +119,7 @@
       "success": "Erfolg",
       "cancel": "Abbrechen",
       "save": "Speichern",
-      "image_picker_title": "Bild auswählen",
+      "image_picker_title": "Bild auswählen: {type} für {game}",
       "image_picker_loading": "Lade...",
       "about_text": "Steam Bibliotheks-Manager v1.0",
       "no_selection": "Keine Auswahl",
@@ -304,6 +304,13 @@
         "auto_categorize": "Auto-Kategorisieren",
         "auto_categorize_selected": "Auswahl Auto-Kategorisieren"
       }
+    },
+    "badges": {
+      "animated": "Animiert",
+      "humor": "Humor",
+      "nsfw": "Nicht jugendfrei (NSFW)",
+      "epilepsy": "Epilepsie-Warnung",
+      "untagged": "Nicht getaggt"
     }
   },
   "logs": {
@@ -329,7 +336,10 @@
       "save_error": "Fehler beim Speichern: {error}",
       "missing_key": "API Key fehlt",
       "id_error": "Fehler beim Abrufen der Game ID für {app_id}: {error}",
-      "deleted": "Benutzerdefiniertes Bild gelöscht: {path}"
+      "deleted": "Benutzerdefiniertes Bild gelöscht: {path}",
+      "api_error": "API Fehler {code} auf Seite {page}",
+      "exception": "API Ausnahme: {error}",
+      "found": "Bilder gefunden: {count}"
     },
     "backup": {
       "rotated": "Backup rotiert: {name}",
