@@ -420,6 +420,13 @@
       "path_not_exists": "Warnung: Bibliothekspfad in VDF existiert nicht: {path}"
     }
   },
+  "errors": {
+    "appinfo": {
+      "no_data": "Entweder Pfad oder Daten müssen angegeben werden",
+      "no_output_path": "Kein Ausgabepfad angegeben"
+    },
+    "unknown": "Unbekannter Fehler"
+  },
   "cli": {
     "banner": "Steam Bibliotheks-Manager",
     "initializing": "Initialisiere...",

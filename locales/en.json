@@ -364,7 +364,10 @@
       "incompatible_version": "Incompatible appinfo.vdf version: {version}",
       "not_loaded": "appinfo.vdf not loaded yet",
       "write_error": "Error writing to appinfo.vdf: {error}",
-      "restoredvdf": "Restored {count} modifications to appinfo.vdf"
+      "restoredvdf": "Restored {count} modifications to appinfo.vdf",
+      "parse_error": "Warning: Failed to parse app {app_id}: {error}",
+      "unknown_type": "Warning: Unknown VDF type {type}, skipping",
+      "string_index_out_of_range": "Warning: String index {index} out of range (table size: {size})"
     },
     "parser": {
       "file_not_found": "Error: localconfig.vdf not found at {path}",
@@ -419,6 +422,13 @@
       "playtime_error": "Error loading playtime: {error}",
       "path_not_exists": "Warning: Library path in VDF does not exist: {path}"
     }
+  },
+  "errors": {
+    "appinfo": {
+      "no_data": "Either path or data must be provided",
+      "no_output_path": "No output path specified"
+    },
+    "unknown": "Unknown error"
   },
   "cli": {
     "banner": "Steam Library Manager",
