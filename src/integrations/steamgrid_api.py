@@ -5,6 +5,7 @@ Speichern als: src/integrations/steamgrid_api.py
 import requests
 from typing import Dict, List, Optional, Any
 from src.config import config
+from src.utils.i18n import t
 
 
 class SteamGridDB:
@@ -20,7 +21,7 @@ class SteamGridDB:
         if not game_id: return {}
 
         return {
-            'grids': self._fetch_single_url(game_id, 'grids', {'dimensions': ['600x900', '342x482']}),
+            'grids': self._fetch_single_url(game_id, 'grids', {'dimensions': '600x900,342x482'}),
             'heroes': self._fetch_single_url(game_id, 'heroes'),
             'logos': self._fetch_single_url(game_id, 'logos'),
             'icons': self._fetch_single_url(game_id, 'icons')
@@ -28,7 +29,7 @@ class SteamGridDB:
 
     def get_images_by_type(self, steam_app_id: str, img_type: str) -> List[Dict[str, Any]]:
         """
-        Holt ALLE Bilder mit METADATEN über MEHRERE SEITEN.
+        Holt ALLE Bilder mit METADATEN über ALLE SEITEN.
         """
         if not self.api_key: return []
 
@@ -40,11 +41,17 @@ class SteamGridDB:
 
         while True:
             try:
-                # FIX: Explizite Typisierung verhindert die Warnung
-                params: Dict[str, Any] = {'page': page}
+                # WICHTIG: nsfw='any' zeigt auch Adult Content
+                # types='static,animated' holt auch animierte Bilder
+                params: Dict[str, Any] = {
+                    'page': page,
+                    'nsfw': 'any',
+                    'types': 'static,animated'
+                }
 
                 if img_type == 'grids':
-                    params['dimensions'] = ['600x900', '342x482', '920x430', '460x215']
+                    # Nur Hochformat für Grids!
+                    params['dimensions'] = '600x900,342x482'
 
                 url = f"{self.BASE_URL}/{img_type}/game/{game_id}"
                 response = requests.get(url, headers=self.headers, params=params, timeout=10)
@@ -55,22 +62,23 @@ class SteamGridDB:
                         new_images = data['data']
                         all_images.extend(new_images)
 
+                        # Wenn weniger als 20 Ergebnisse, war es die letzte Seite
                         if len(new_images) < 20:
                             break
                         page += 1
                     else:
                         break
                 else:
-                    print(f"API Error {response.status_code} on page {page}")
+                    print(t('logs.steamgrid.api_error', code=response.status_code, page=page))
                     break
 
-                if page > 10: break
+                # Limit entfernt: Lädt jetzt ALLE Seiten
 
             except (requests.RequestException, ValueError, KeyError) as e:
-                print(f"API Exception: {e}")
+                print(t('logs.steamgrid.exception', error=e))
                 break
 
-        print(f"Total images found: {len(all_images)}")
+        print(t('logs.steamgrid.found', count=len(all_images)))
         return all_images
 
     def _get_game_id(self, steam_app_id: str) -> Optional[int]:

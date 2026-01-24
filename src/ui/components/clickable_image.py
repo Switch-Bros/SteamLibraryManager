@@ -1,5 +1,5 @@
 """
-Clickable Image - Strings Localized
+Clickable Image - Animated, Badges & Localized
 Speichern als: src/ui/components/clickable_image.py
 """
 from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout
@@ -13,9 +13,9 @@ from src.utils.i18n import t
 
 try:
     from PIL import Image, ImageSequence
+
     HAS_PILLOW = True
 except ImportError:
-    # FIX: Definitionen für PIL-Klassen im except-Block hinzugefügt
     Image = None
     ImageSequence = None
     HAS_PILLOW = False
@@ -42,7 +42,6 @@ class ImageLoader(QThread):
                     data = QByteArray(f.read())
             else:
                 headers = {'User-Agent': 'SteamLibraryManager/1.0'}
-                # FIX: Spezifische Exception für Requests
                 response = requests.get(self.url_or_path, headers=headers, timeout=15)
                 if response.status_code == 200:
                     data = QByteArray(response.content)
@@ -91,10 +90,14 @@ class ClickableImage(QWidget):
 
         self.layout.addWidget(self.img_container)
 
-        # Autor: Fallback lokalisiert
+        # Autor Label unter dem Bild
         author_text = t('ui.game_details.value_unknown')
         if self.metadata and 'author' in self.metadata:
-            author_text = self.metadata['author'].get('name', t('ui.game_details.value_unknown'))
+            auth_data = self.metadata['author']
+            if isinstance(auth_data, dict):
+                author_text = auth_data.get('name', t('ui.game_details.value_unknown'))
+            else:
+                author_text = str(auth_data)
         elif not self.metadata:
             author_text = t(f'ui.game_details.gallery.{img_type}')
 
@@ -111,32 +114,68 @@ class ClickableImage(QWidget):
         self.layout.addWidget(self.author_label)
 
     def _create_badges(self, is_animated_file=False):
+        """Erstellt die Overlay-Icons basierend auf Metadaten"""
+
         def get_icon_path(name):
             p = config.ICONS_DIR / f"{name}.png"
             return str(p) if p.exists() else None
 
         badges = []
         mime = self.metadata.get('mime', '')
+        tags = self.metadata.get('tags', [])
 
-        if is_animated_file or 'webp' in mime or 'gif' in mime:
-            badges.append(
-                {'icon': get_icon_path('flag_animated'), 'fallback': 'GIF', 'color': '#FFD700', 'tip': 'Animated'})
+        # 1. Animation (Prüft Datei, Mime-Type UND Tags für APNGs)
+        is_anim = is_animated_file or 'webp' in mime or 'gif' in mime or 'animated' in tags
+        if is_anim:
+            badges.append({
+                'icon': get_icon_path('flag_animated'),
+                'fallback': 'GIF',
+                'color': '#FFD700',
+                'tip': t('ui.badges.animated')
+            })
+
+        # 2. Humor (Smiley)
         if self.metadata.get('humor'):
-            badges.append({'icon': get_icon_path('flag_humor'), 'fallback': '😂', 'color': '#3498db', 'tip': 'Humor'})
-        if self.metadata.get('nsfw'):
-            badges.append(
-                {'icon': get_icon_path('flag_nsfw'), 'fallback': '🔞', 'color': '#e74c3c', 'tip': 'Adult Content'})
-        if self.metadata.get('epilepsy'):
-            badges.append({'icon': get_icon_path('flag_epilepsy'), 'fallback': '⚡', 'color': '#9b59b6',
-                           'tip': 'Epilepsy Warning'})
-        if self.metadata.get('lock_tags'):
-            badges.append(
-                {'icon': get_icon_path('flag_untagged'), 'fallback': '?', 'color': '#95a5a6', 'tip': 'Untagged'})
+            badges.append({
+                'icon': get_icon_path('flag_humor'),
+                'fallback': '😂',
+                'color': '#3498db',
+                'tip': t('ui.badges.humor')
+            })
 
+        # 3. NSFW (18+)
+        if self.metadata.get('nsfw'):
+            badges.append({
+                'icon': get_icon_path('flag_nsfw'),
+                'fallback': '🔞',
+                'color': '#e74c3c',
+                'tip': t('ui.badges.nsfw')
+            })
+
+        # 4. Epilepsie
+        if self.metadata.get('epilepsy'):
+            badges.append({
+                'icon': get_icon_path('flag_epilepsy'),
+                'fallback': '⚡',
+                'color': '#9b59b6',
+                'tip': t('ui.badges.epilepsy')
+            })
+
+        # 5. Untagged
+        if self.metadata.get('lock_tags'):
+            badges.append({
+                'icon': get_icon_path('flag_untagged'),
+                'fallback': '?',
+                'color': '#95a5a6',
+                'tip': t('ui.badges.untagged')
+            })
+
+        # Alte Badges entfernen
         for child in self.img_container.children():
             if isinstance(child, QLabel) and child != self.image_label:
                 child.deleteLater()
 
+        # Badges platzieren
         x_pos, y_pos = 4, 4
         for badge in badges:
             lbl = QLabel(self.img_container)
@@ -176,7 +215,6 @@ class ClickableImage(QWidget):
         self.loader.start()
 
     def _apply_pixmap(self, pixmap):
-        """Hilfsmethode zur Vermeidung von Code-Duplikaten"""
         scaled = pixmap.scaled(
             self.w, self.h,
             Qt.AspectRatioMode.KeepAspectRatio,
@@ -221,7 +259,6 @@ class ClickableImage(QWidget):
                     im_rgba = im.convert("RGBA")
                     data_rgba = im_rgba.tobytes("raw", "RGBA")
                     qimg = QImage(data_rgba, im_rgba.width, im_rgba.height, QImage.Format.Format_RGBA8888)
-                    # FIX: Code-Duplikat entfernt
                     self._apply_pixmap(QPixmap.fromImage(qimg))
                     self._create_badges(False)
                     return
@@ -233,7 +270,6 @@ class ClickableImage(QWidget):
         pixmap.loadFromData(data)
 
         if not pixmap.isNull():
-            # FIX: Code-Duplikat entfernt
             self._apply_pixmap(pixmap)
             self._create_badges(False)
         else:

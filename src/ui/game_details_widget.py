@@ -1,5 +1,5 @@
 """
-Game Details Widget - Plural Types Refactor & Cleaned
+Game Details Widget - Fixed Layout & Signals
 Speichern als: src/ui/game_details_widget.py
 """
 
@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from PyQt6.QtGui import QFont, QCursor
-from typing import List  # FIX: Löst 'Unresolved reference List'
+from typing import List
 from src.core.game_manager import Game
 from src.utils.i18n import t
 from src.ui.components.clickable_image import ClickableImage
@@ -20,7 +20,6 @@ from src.ui.image_selection_dialog import ImageSelectionDialog
 
 
 class InfoLabel(QLabel):
-    # FIX: Parameter 'is_i18n_key' entfernt, da ungenutzt
     def __init__(self, title_key, value=""):
         super().__init__()
         title = t(title_key)
@@ -113,40 +112,45 @@ class GameDetailsWidget(QWidget):
         gallery_layout.setContentsMargins(4, 4, 4, 4)
         gallery_layout.setSpacing(4)
 
+        # 1. Grid (Links, Hochkant)
         self.img_grid = ClickableImage('grids', 232, 348)
-        self.img_grid.clicked.connect(self._on_image_click)
-        self.img_grid.right_clicked.connect(self._on_image_right_click)
+        # Explizite Typ-Übergabe via Lambda zur Sicherheit
+        self.img_grid.clicked.connect(lambda: self._on_image_click('grids'))
+        self.img_grid.right_clicked.connect(lambda: self._on_image_right_click('grids'))
         gallery_layout.addWidget(self.img_grid, 0, 0, 2, 1)
 
+        # 2. Logo (Mitte Oben)
         logo_wrapper = QWidget()
         logo_layout = QVBoxLayout(logo_wrapper)
         logo_layout.setContentsMargins(0, 0, 0, 0)
         logo_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
         self.img_logo = ClickableImage('logos', 176, 86)
-        self.img_logo.clicked.connect(self._on_image_click)
-        self.img_logo.right_clicked.connect(self._on_image_right_click)
+        self.img_logo.clicked.connect(lambda: self._on_image_click('logos'))
+        self.img_logo.right_clicked.connect(lambda: self._on_image_right_click('logos'))
         self.img_logo.setStyleSheet("background: transparent; border: 1px dashed #444;")
         logo_layout.addWidget(self.img_logo)
         gallery_layout.addWidget(logo_wrapper, 0, 1)
 
+        # 3. Icon (Rechts Oben)
         icon_wrapper = QWidget()
         icon_layout = QVBoxLayout(icon_wrapper)
         icon_layout.setContentsMargins(0, 0, 0, 0)
         icon_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
         self.img_icon = ClickableImage('icons', 168, 168)
-        self.img_icon.clicked.connect(self._on_image_click)
-        self.img_icon.right_clicked.connect(self._on_image_right_click)
+        self.img_icon.clicked.connect(lambda: self._on_image_click('icons'))
+        self.img_icon.right_clicked.connect(lambda: self._on_image_right_click('icons'))
         self.img_icon.setStyleSheet("background: transparent; border: none;")
         icon_layout.addWidget(self.img_icon)
         gallery_layout.addWidget(icon_wrapper, 0, 2)
 
+        # 4. Hero (Unten Mitte/Rechts)
         hero_wrapper = QWidget()
         hero_layout = QVBoxLayout(hero_wrapper)
         hero_layout.setContentsMargins(0, 0, 0, 0)
         hero_layout.setAlignment(Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter)
         self.img_hero = ClickableImage('heroes', 348, 160)
-        self.img_hero.clicked.connect(self._on_image_click)
-        self.img_hero.right_clicked.connect(self._on_image_right_click)
+        self.img_hero.clicked.connect(lambda: self._on_image_click('heroes'))
+        self.img_hero.right_clicked.connect(lambda: self._on_image_right_click('heroes'))
         hero_layout.addWidget(self.img_hero)
         gallery_layout.addWidget(hero_wrapper, 1, 1, 1, 2)
 
@@ -194,7 +198,6 @@ class GameDetailsWidget(QWidget):
 
         meta_grid.addWidget(QLabel(f"<b>{t('ui.game_details.section_metadata')}</b>"), 0, 2)
 
-        # Hilfskonstruktion für Developer/Publisher/Release
         def add_meta_field(grid, label_key, row):
             l_layout = QHBoxLayout()
             l_lbl = QLabel(t(label_key) + ":")
@@ -269,7 +272,6 @@ class GameDetailsWidget(QWidget):
         self._reload_images(game.app_id)
 
     def _reload_images(self, app_id: str):
-        # FIX: Code-Duplikat durch Mapping-Iteration ersetzt
         asset_map = {
             'grids': self.img_grid,
             'heroes': self.img_hero,
@@ -299,13 +301,15 @@ class GameDetailsWidget(QWidget):
             webbrowser.open(f"https://store.steampowered.com/app/{self.current_game.app_id}")
 
     def _on_image_click(self, img_type: str):
+        """Öffnet den Dialog für den spezifischen Bildtyp"""
         if not self.current_game:
             return
+
+        # Hier übergeben wir img_type exakt an den Dialog
         dialog = ImageSelectionDialog(self, self.current_game.name, self.current_game.app_id, img_type)
         if dialog.exec():
             url = dialog.get_selected_url()
             if url and SteamAssets.save_custom_image(self.current_game.app_id, img_type, url):
-                # Reload specific image using internal map
                 self._reload_single_asset(img_type)
 
     def _on_image_right_click(self, img_type: str):
@@ -320,7 +324,6 @@ class GameDetailsWidget(QWidget):
             self._reload_single_asset(img_type)
 
     def _reload_single_asset(self, img_type: str):
-        """FIX: Hilfsmethode zur Beseitigung von Code-Duplikaten beim Nachladen"""
         asset_map = {
             'grids': self.img_grid,
             'heroes': self.img_hero,
