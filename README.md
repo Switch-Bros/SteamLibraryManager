@@ -5,6 +5,11 @@
 [![made with PyCharm](https://img.shields.io/badge/made%20with-PyCharm-FDE100?style=plastic&logo=pycharm&color=FDE100&labelColor=000000)](https://www.jetbrains.com/pycharm/)
 [![Status](https://img.shields.io/badge/Status-In%20Development-FDE100?style=plastic&labelColor=000000)](https://github.com/HeikesFootSlave/SteamLibraryManager)
 [![License](https://img.shields.io/badge/License-MIT-FDE100?style=plastic&labelColor=000000)](https://github.com/HeikesFootSlave/SteamLibraryManager/blob/main/LICENSE)
+[![Downloads](https://img.shields.io/badge/Downloads-Coming%20Soon-FDE100?style=plastic&logo=github&logoColor=FDE100&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager/releases)
+<!-- [![Downloads](https://img.shields.io/github/downloads/Switch-Bros/SteamLibraryManager/total?color=FDE100&labelColor=000000&style=plastic&logo=github&logoColor=FDE100&label=Downloads&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager/releases) -->
+
+[![Donate](https://img.shields.io/badge/Donate-Consider%20Supporting%20me%20on%20PayPal-FDE100?style=plastic&logo=paypal&logoColor=FDE100&labelColor=000000)](https://www.paypal.com/donate/?hosted_button_id=HWPG6YAGXAWJJ)
+
 
 Ein moderner, leistungsstarker Bibliotheks-Manager für Steam auf Linux und dem Steam Deck.  
 Organisiere deine Sammlung, bearbeite Metadaten und automatisiere Kategorien.
@@ -52,7 +57,7 @@ pip install -r requirements.txt
 python src/main.py
 ```
 
-☕ Unterstütze das Projekt
+☕ Unterstütze das Projekt:
 Die Entwicklung dieses Tools kostet Zeit und Koffein. Wenn dir der Manager hilft, deine Bibliothek zu bändigen, freue ich mich riesig über einen Kaffee!
 
 [![17688665364546846464391088987251](https://github.com/user-attachments/assets/a2495674-be9e-4d64-bc23-058094635036)
