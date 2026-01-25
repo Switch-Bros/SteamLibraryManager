@@ -147,10 +147,12 @@
       "api_key_missing": "SteamGridDB API Key missing!\nPlease configure it in Settings to enable image search.", 
       "restore_title": "Restore Metadata",
       "restore_confirm": "Restore {count} tracked changes to appinfo.vdf?",
-      "restore_failed": "Failed to restore metadata changes",
       "steam_running_title": "⚠️ Steam is Running!",
       "steam_running_message": "Steam Library Manager detected that Steam is currently running.\n\nIMPORTANT:\n• Close Steam Library Manager now\n• Close Steam completely (System Tray → Steam → Exit)\n• Then restart Steam Library Manager\n\nChanges to localconfig.vdf and appinfo.vdf while Steam is running will be overwritten by Steam!",
-      "steam_running_button": "Exit Application"
+      "steam_running_button": "Exit Application",
+      "restore_success_with_restart": "Successfully restored {count} modifications!\n\nPlease restart Steam to see changes.",
+      "restore_failed": "Failed to restore modifications",
+      "restore_error": "Restore failed: {error}"
     },
     "game_details": {
       "name": "Name",
@@ -229,7 +231,10 @@
       "revert_to_original": "Revert to Original",
       "revert_title": "Revert Changes",
       "revert_confirm": "Restore original values from Steam?\n\nThis will undo all your changes for this game.",
-      "revert_no_original": "No original values available.\n\nThis game has not been modified yet."
+      "revert_no_original": "No original values available.\n\nThis game has not been modified yet.",
+      "vdf_write_question": "Write to appinfo.vdf?",
+      "bulk_vdf_question": "Metadata for {count} games saved to JSON.\n\nWrite changes to appinfo.vdf?\n(Requires Steam restart)",
+      "bulk_vdf_success": "Changes written to appinfo.vdf!\nBackup created in data/backups/\n\nPlease restart Steam."
     },
     "auto_categorize": {
       "title": "Auto-Categorize",
