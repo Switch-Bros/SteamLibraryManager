@@ -80,8 +80,15 @@
       "restart_required": "Bitte starte die App neu, damit die Sprachänderung wirksam wird.",
       "reset_defaults": "Auf Standard zurücksetzen",
       "languages": {
-        "de": "Deutsch",
-        "en": "Englisch"
+        "de": "🇩🇪 Deutsch",
+        "en": "🇺🇸 Englisch",
+        "es": "🇪🇸 Spanisch",
+        "pt": "🇵🇹 Portugiesisch",
+        "fr": "🇫🇷 Französisch",
+        "it": "🇮🇹 Italienisch",
+        "zh": "🇨🇳 Chinesisch",
+        "ja": "🇯🇵 Japanisch",
+        "ko": "🇰🇷 Koreanisch"
       }
     },
     "loading": {
