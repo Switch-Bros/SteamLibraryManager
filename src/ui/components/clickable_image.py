@@ -42,7 +42,6 @@ class ImageLoader(QThread):
                 with open(self.url_or_path, 'rb') as f:
                     data = QByteArray(f.read())
             else:
-                # Check for URL
                 if str(self.url_or_path).startswith('http'):
                     headers = {'User-Agent': 'SteamLibraryManager/1.0'}
                     response = requests.get(self.url_or_path, headers=headers, timeout=15)
@@ -93,7 +92,6 @@ class ClickableImage(QWidget):
 
         self.layout.addWidget(self.img_container)
 
-        # Autor Label
         author_text = t('ui.game_details.value_unknown')
         if self.metadata and 'author' in self.metadata:
             auth_data = self.metadata['author']
@@ -118,14 +116,12 @@ class ClickableImage(QWidget):
 
     def _get_default_image_path(self):
         """Liefert den Pfad zum Platzhalter-Bild, falls vorhanden"""
-        # Annahme: config.RESOURCES_DIR ist definiert (z.B. resources/images/)
-        # Falls in src/config.py RESOURCES_DIR nicht definiert ist, nutze Fallback
         try:
             base_dir = config.RESOURCES_DIR
         except AttributeError:
-            # Fallback relativ zur Datei
             base_dir = Path(__file__).parent.parent.parent.parent / 'resources'
 
+        # HIER: Baut den Dateinamen z.B. default_grids.png
         default_path = base_dir / 'images' / f'default_{self.img_type}.png'
         return str(default_path) if default_path.exists() else None
 
@@ -214,7 +210,7 @@ class ClickableImage(QWidget):
         self.current_frame = 0
         self.image_label.clear()
 
-        # Ermittle Zielpfad (Parameter oder Default)
+        # Falls url_or_path None ist (z.B. durch clear() Aufruf), versuchen wir Default zu laden
         target = url_or_path
         if not target or (not str(target).startswith('http') and not os.path.exists(str(target))):
             default = self._get_default_image_path()
@@ -241,8 +237,6 @@ class ClickableImage(QWidget):
 
     def _on_loaded(self, data: QByteArray):
         if data.isEmpty():
-            # Wenn Laden fehlgeschlagen, versuche Default, falls noch nicht geschehen
-            # (aber hier sind wir schon im Result Callback, vermeiden wir Endlosschleifen)
             self.image_label.setText("❌")
             if self.metadata: self._create_badges(False)
             return

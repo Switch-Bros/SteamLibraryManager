@@ -1,5 +1,5 @@
 """
-Game Details Widget - Fixed Layout Alignment & Spacing
+Game Details Widget - Fixed Layout Alignment & Spacing & Startup Defaults
 Speichern als: src/ui/game_details_widget.py
 """
 
@@ -71,17 +71,17 @@ class GameDetailsWidget(QWidget):
         super().__init__(parent)
         self.current_game = None
         self._create_ui()
+        # FIX: Initiale Anzeige der Default-Bilder beim Start
+        self.clear()
 
     def _create_ui(self):
         main_layout = QVBoxLayout(self)
-        # Oben weniger Rand (5), damit der Block höher rutscht
         main_layout.setContentsMargins(15, 5, 15, 0)
         main_layout.setSpacing(0)
 
         # === HEADER (Titel & Buttons) ===
         header_layout = QHBoxLayout()
 
-        # Linker Bereich (Titel & Buttons)
         left_container = QVBoxLayout()
         self.name_label = QLabel(t('ui.game_details.select_placeholder'))
         self.name_label.setFont(QFont("Arial", 22, QFont.Weight.Bold))
@@ -108,14 +108,10 @@ class GameDetailsWidget(QWidget):
         header_layout.addLayout(left_container, stretch=1)
 
         # === GALLERY BLOCK ===
-        # Container für alle Bilder
         gallery_widget = QWidget()
-        # Breite: Grid(232) + Gap(4) + RightStack(348) + Margins(8) = 592
-        # Höhe: Grid(348) + Margins(8) = 356
         gallery_widget.setFixedSize(592, 356)
         gallery_widget.setStyleSheet("background-color: #1a1a1a; border-radius: 4px;")
 
-        # Haupt-Layout für Bilder: Links Grid, Rechts der Rest
         gallery_layout = QHBoxLayout(gallery_widget)
         gallery_layout.setContentsMargins(4, 4, 4, 4)
         gallery_layout.setSpacing(4)
@@ -126,41 +122,36 @@ class GameDetailsWidget(QWidget):
         self.img_grid.right_clicked.connect(lambda: self._on_image_right_click('grids'))
         gallery_layout.addWidget(self.img_grid)
 
-        # 2. RECHTS: Stack für Logo/Icon (oben) und Hero (unten)
+        # 2. RECHTS: Stack
         right_stack = QVBoxLayout()
         right_stack.setContentsMargins(0, 0, 0, 0)
         right_stack.setSpacing(4)
 
-        # 2a. Oben Rechts: Logo und Icon nebeneinander
+        # 2a. Oben Rechts: Logo + Icon
         top_row = QHBoxLayout()
         top_row.setContentsMargins(0, 0, 0, 0)
         top_row.setSpacing(4)
 
-        # Logo: Größer gemacht, füllt den Platz bis zum Icon
-        # Breite: 348 (Gesamt) - 80 (Icon) - 4 (Spacing) = 264
-        # Höhe: Rest von 348 - 160 (Hero) - 4 (Spacing) = 184 (Nutzen wir flexibel)
         self.img_logo = ClickableImage('logos', 264, 184)
         self.img_logo.clicked.connect(lambda: self._on_image_click('logos'))
         self.img_logo.right_clicked.connect(lambda: self._on_image_right_click('logos'))
         self.img_logo.setStyleSheet("background: transparent; border: 1px dashed #444;")
         top_row.addWidget(self.img_logo)
 
-        # Icon: Kleiner gemacht (80x80)
         self.img_icon = ClickableImage('icons', 80, 80)
         self.img_icon.clicked.connect(lambda: self._on_image_click('icons'))
         self.img_icon.right_clicked.connect(lambda: self._on_image_right_click('icons'))
         self.img_icon.setStyleSheet("background: transparent; border: none;")
 
-        # Icon Container um es oben rechts auszurichten (da Logo höher ist)
         icon_container = QVBoxLayout()
         icon_container.setContentsMargins(0, 0, 0, 0)
         icon_container.addWidget(self.img_icon)
-        icon_container.addStretch()  # Drückt Icon nach oben
+        icon_container.addStretch()
         top_row.addLayout(icon_container)
 
         right_stack.addLayout(top_row)
 
-        # 2b. Unten Rechts: Hero (Banner)
+        # 2b. Unten Rechts: Hero
         self.img_hero = ClickableImage('heroes', 348, 160)
         self.img_hero.clicked.connect(lambda: self._on_image_click('heroes'))
         self.img_hero.right_clicked.connect(lambda: self._on_image_right_click('heroes'))
@@ -168,12 +159,9 @@ class GameDetailsWidget(QWidget):
 
         gallery_layout.addLayout(right_stack)
 
-        # Block zum Header hinzufügen
         header_layout.addWidget(gallery_widget, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
         main_layout.addLayout(header_layout)
 
-        # Fester Abstand zur Trennlinie unten (statt addStretch)
-        # Damit ist der Abstand oben (Margin 5) und unten (Spacing 20) kontrollierbar
         main_layout.addSpacing(20)
 
         # Trennlinie
@@ -302,7 +290,7 @@ class GameDetailsWidget(QWidget):
         self.name_label.setText(t('ui.game_details.select_placeholder'))
         self._update_proton_label("unknown")
 
-        # Bilder leeren / Reset auf Default
+        # Reset lädt Default-Bilder (oder "X"), da Pfad None ist
         self.img_grid.load_image(None)
         self.img_hero.load_image(None)
         self.img_logo.load_image(None)
