@@ -42,7 +42,8 @@
       "refresh": "Refresh",
       "settings": "Settings",
       "auto_categorize": "Auto-Categorize",
-      "login": "Login with Steam"
+      "login": "Login with Steam",
+      "logged_in_as": "Logged in as {user}"
     },
     "settings": {
       "title": "Settings",
@@ -216,7 +217,19 @@
       "error_empty_name": "Game name cannot be empty!",
       "write_to_vdf": "Write to appinfo.vdf (requires Steam restart)",
       "write_to_vdf_tooltip": "Writes changes directly to Steam's appinfo.vdf file",
-      "vdf_success_msg": "Changes written to appinfo.vdf!\nPlease restart Steam to see changes." 
+      "vdf_section": "Steam Integration",
+      "vdf_info": "✅ Steam Client will show your changes\n⚠️ Steam updates may overwrite appinfo.vdf\n💾 Your changes are always safe in custom_metadata.json",
+      "vdf_warning_title": "Write to appinfo.vdf?",
+      "vdf_warning_text": "Your changes will be written to Steam's appinfo.vdf file.",
+      "vdf_warning_details": "✅ What you gain:\n• Steam Client shows your custom names\n• Works in Big Picture Mode\n• Visible in screenshots & streaming\n\n⚠️ Important:\n• Steam updates may overwrite appinfo.vdf\n• Your changes are ALWAYS safe in custom_metadata.json\n• After Steam updates: Use 'Restore Metadata Changes'\n\nContinue?",
+      "vdf_success_title": "✅ Success!",
+      "vdf_success_text": "Changes written to appinfo.vdf!",
+      "vdf_success_details": "📌 Next Steps:\n1. Close Steam Library Manager\n2. Restart Steam\n3. Your changes will be visible!\n\nBackup created in: data/backups/",
+      "modified_tooltip": "⚠️ Original: {original}",
+      "revert_to_original": "Revert to Original",
+      "revert_title": "Revert Changes",
+      "revert_confirm": "Restore original values from Steam?\n\nThis will undo all your changes for this game.",
+      "revert_no_original": "No original values available.\n\nThis game has not been modified yet."
     },
     "auto_categorize": {
       "title": "Auto-Categorize",
@@ -277,7 +290,8 @@
       "offline_mode": " (Offline)",
       "load_failed": "Failed to load games",
       "reload_button": "Reload", 
-      "restoring": "Restoring metadata..." 
+      "restoring": "Restoring metadata...",
+      "writing_vdf": "Writing to appinfo.vdf..."
     },
     "errors": {
       "steam_not_found": "Steam installation not found. Please set the path in Settings.",
@@ -333,7 +347,8 @@
       "login_success": "Login Success! SteamID: {id}",
       "error": "Auth Error: {error}",
       "webview_missing": "Info: pywebview not installed, using system browser.",
-      "client_id_missing": "WARNING: STEAM_CLIENT_ID missing in .env!"
+      "client_id_missing": "WARNING: STEAM_CLIENT_ID missing in .env!",
+      "profile_error": "Error loading profile name: {error}"
     },
     "image": {
       "pillow_missing": "CRITICAL: Pillow missing! Please run 'pip install Pillow'."
