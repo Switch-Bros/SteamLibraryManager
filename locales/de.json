@@ -147,10 +147,12 @@
       "api_key_missing": "SteamGridDB API Key fehlt!\nBitte in den Einstellungen konfigurieren, um die Bildsuche zu nutzen.", 
       "restore_title": "Metadaten Wiederherstellen",
       "restore_confirm": "{count} getrackte Änderungen in appinfo.vdf wiederherstellen?",
-      "restore_failed": "Fehler beim Wiederherstellen der Metadaten",
       "steam_running_title": "⚠️ Steam läuft!",
       "steam_running_message": "Steam Library Manager hat erkannt, dass Steam gerade läuft.\n\nWICHTIG:\n• Schließe Steam Library Manager jetzt\n• Beende Steam komplett (Systray → Steam → Beenden)\n• Starte dann Steam Library Manager neu\n\nÄnderungen an localconfig.vdf und appinfo.vdf während Steam läuft werden von Steam überschrieben!",
-      "steam_running_button": "Anwendung Beenden"
+      "steam_running_button": "Anwendung Beenden",
+      "restore_success_with_restart": "{count} Änderungen erfolgreich wiederhergestellt!\n\nBitte starte Steam neu um die Änderungen zu sehen.",
+      "restore_failed": "Fehler beim Wiederherstellen der Änderungen",
+      "restore_error": "Wiederherstellung fehlgeschlagen: {error}"
     },
     "game_details": {
       "name": "Name",
@@ -229,7 +231,10 @@
       "revert_to_original": "Auf Original zurücksetzen",
       "revert_title": "Änderungen rückgängig machen",
       "revert_confirm": "Original-Werte von Steam wiederherstellen?\n\nDies macht alle deine Änderungen für dieses Spiel rückgängig.",
-      "revert_no_original": "Keine Original-Werte verfügbar.\n\nDieses Spiel wurde noch nicht modifiziert."
+      "revert_no_original": "Keine Original-Werte verfügbar.\n\nDieses Spiel wurde noch nicht modifiziert.",
+      "vdf_write_question": "In appinfo.vdf schreiben?",
+      "bulk_vdf_question": "Metadaten für {count} Spiele in JSON gespeichert.\n\nÄnderungen in appinfo.vdf schreiben?\n(Erfordert Steam-Neustart)",
+      "bulk_vdf_success": "Änderungen in appinfo.vdf geschrieben!\nBackup erstellt in data/backups/\n\nBitte starte Steam neu."
     }, 
     "auto_categorize": {
       "title": "Auto-Kategorisierung",
