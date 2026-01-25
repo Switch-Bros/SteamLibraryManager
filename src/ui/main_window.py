@@ -641,77 +641,91 @@ class MainWindow(QMainWindow):
                                                                  backup=t('ui.dialogs.backup_msg')))
 
     def edit_game_metadata(self, game: Game):
-        """Edit single game metadata WITH VDF write support"""
-        # Hole aktuelle Metadaten
-        meta = self.appinfo_manager.get_app_metadata(game.app_id)
+    """Edit single game metadata WITH VDF write support + UX improvements"""
+    # Hole aktuelle Metadaten
+    meta = self.appinfo_manager.get_app_metadata(game.app_id)
 
-        # Fülle defaults
-        if not meta.get('name'):
-            meta['name'] = game.name
-        if not meta.get('developer'):
-            meta['developer'] = game.developer
-        if not meta.get('publisher'):
-            meta['publisher'] = game.publisher
-        if not meta.get('release_date'):
-            meta['release_date'] = game.release_year
+    # FÃ¼lle defaults
+    if not meta.get('name'):
+        meta['name'] = game.name
+    if not meta.get('developer'):
+        meta['developer'] = game.developer
+    if not meta.get('publisher'):
+        meta['publisher'] = game.publisher
+    if not meta.get('release_date'):
+        meta['release_date'] = game.release_year
 
-        # Öffne Dialog
-        dialog = MetadataEditDialog(self, game.name, meta)
+    # Hole Original fÃ¼r Visual Comparison
+    original_meta = None
+    if game.app_id in self.appinfo_manager.modifications:
+        original_meta = self.appinfo_manager.modifications[game.app_id].get('original', {})
+    
+    if not original_meta:
+        # Wenn noch kein Original getrackt, nutze aktuelle Daten
+        original_meta = meta.copy()
 
-        if dialog.exec():
-            new_meta = dialog.get_metadata()
+    # Ã–ffne Dialog mit Original-Daten fÃ¼r Visual Feedback
+    dialog = MetadataEditDialog(self, game.name, meta, original_meta)
 
-            if new_meta:
-                # Extrahiere write_to_vdf Flag
-                write_to_vdf = new_meta.pop('write_to_vdf', False)
+    if dialog.exec():
+        new_meta = dialog.get_metadata()
 
-                # Setze Metadaten
-                self.appinfo_manager.set_app_metadata(game.app_id, new_meta)
+        if new_meta:
+            # Extrahiere write_to_vdf Flag
+            write_to_vdf = new_meta.pop('write_to_vdf', False)
 
-                # Speichere in JSON
-                self.appinfo_manager.save_appinfo()
+            # Setze Metadaten (speichert in custom_metadata.json)
+            self.appinfo_manager.set_app_metadata(game.app_id, new_meta)
 
-                # OPTIONAL: In appinfo.vdf schreiben
-                if write_to_vdf:
-                    progress = QProgressDialog(
-                        t('ui.status.writing_vdf'),
-                        None, 0, 0, self
-                    )
-                    progress.setWindowModality(Qt.WindowModality.WindowModal)
-                    progress.show()
+            # Speichere in JSON
+            self.appinfo_manager.save_appinfo()
 
-                    # Lade appinfo
-                    self.appinfo_manager.load_appinfo()
-
-                    # Schreibe in VDF
-                    success = self.appinfo_manager.write_to_vdf(backup=True)
-
-                    progress.close()
-
-                    if success:
-                        QMessageBox.information(
-                            self,
-                            t('ui.dialogs.success'),
-                            t('ui.metadata_editor.vdf_success_msg')
-                        )
-
-                # Update game object
-                if new_meta.get('name'):
-                    game.name = new_meta['name']
-                if new_meta.get('developer'):
-                    game.developer = new_meta['developer']
-                if new_meta.get('publisher'):
-                    game.publisher = new_meta['publisher']
-
-                # Refresh UI
-                self._populate_categories()
-                self.on_game_selected(game)
-
-                QMessageBox.information(
-                    self,
-                    t('ui.dialogs.success'),
-                    t('ui.dialogs.metadata_success', name=game.name)
+            # OPTIONAL: In appinfo.vdf schreiben
+            if write_to_vdf:
+                progress = QProgressDialog(
+                    t('ui.status.writing_vdf'),
+                    None, 0, 0, self
                 )
+                progress.setWindowModality(Qt.WindowModality.WindowModal)
+                progress.show()
+
+                # Lade appinfo
+                self.appinfo_manager.load_appinfo()
+
+                # Schreibe in VDF
+                success = self.appinfo_manager.write_to_vdf(backup=True)
+
+                progress.close()
+
+                if success:
+                    # Success Dialog mit Instructions
+                    msg = QMessageBox(self)
+                    msg.setIcon(QMessageBox.Icon.Information)
+                    msg.setWindowTitle(t('ui.metadata_editor.vdf_success_title'))
+                    
+                    msg.setText(t('ui.metadata_editor.vdf_success_text'))
+                    msg.setInformativeText(t('ui.metadata_editor.vdf_success_details'))
+                    
+                    msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+                    msg.exec()
+
+            # Update game object
+            if new_meta.get('name'):
+                game.name = new_meta['name']
+            if new_meta.get('developer'):
+                game.developer = new_meta['developer']
+            if new_meta.get('publisher'):
+                game.publisher = new_meta['publisher']
+
+            # Refresh UI
+            self._populate_categories()
+            self.on_game_selected(game)
+
+            QMessageBox.information(
+                self,
+                t('ui.dialogs.success'),
+                t('ui.dialogs.metadata_success', name=game.name)
+            )
 
     def bulk_edit_metadata(self):
         if not self.selected_games:
