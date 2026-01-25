@@ -627,14 +627,14 @@ class MainWindow(QMainWindow):
                 # OPTIONAL: In appinfo.vdf schreiben
                 if write_to_vdf:
                     progress = QProgressDialog(
-                        "Writing to appinfo.vdf...",
+                        t('ui.status.writing_vdf'),
                         None, 0, 0, self
                     )
                     progress.setWindowModality(Qt.WindowModality.WindowModal)
                     progress.show()
 
-                    # Lade appinfo für diese App
-                    self.appinfo_manager.load_appinfo(app_ids=[game.app_id])
+                    # Lade appinfo
+                    self.appinfo_manager.load_appinfo()
 
                     # Schreibe in VDF
                     success = self.appinfo_manager.write_to_vdf(backup=True)
@@ -715,9 +715,8 @@ class MainWindow(QMainWindow):
         )
 
         if reply == QMessageBox.StandardButton.Yes:
-            # Load appinfo for these apps
-            app_ids = [g.app_id for g in games]
-            self.appinfo_manager.load_appinfo(app_ids=app_ids)
+            # Load appinfo
+            self.appinfo_manager.load_appinfo()
 
             # Write to VDF
             success = self.appinfo_manager.write_to_vdf(backup=True)
