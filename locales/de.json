@@ -42,7 +42,8 @@
       "refresh": "Aktualisieren",
       "settings": "Einstellungen",
       "auto_categorize": "Auto-Kategorisierung",
-      "login": "Bei Steam anmelden"
+      "login": "Bei Steam anmelden",
+      "logged_in_as": "Angemeldet als {user}" 
     },
     "settings": {
       "title": "Einstellungen",
@@ -216,8 +217,20 @@
       "error_empty_name": "Spielname darf nicht leer sein!",
       "write_to_vdf": "In appinfo.vdf schreiben (Steam-Neustart nötig)",
       "write_to_vdf_tooltip": "Schreibt Änderungen direkt in Steam's appinfo.vdf Datei",
-      "vdf_success_msg": "Änderungen in appinfo.vdf geschrieben!\nBitte Steam neu starten."
-    },
+      "vdf_section": "Steam Integration",
+      "vdf_info": "✅ Steam Client zeigt deine Änderungen\n⚠️ Steam Updates können appinfo.vdf überschreiben\n💾 Deine Änderungen sind immer sicher in custom_metadata.json",
+      "vdf_warning_title": "In appinfo.vdf schreiben?",
+      "vdf_warning_text": "Deine Änderungen werden in Steam's appinfo.vdf Datei geschrieben.",
+      "vdf_warning_details": "✅ Was du gewinnst:\n• Steam Client zeigt deine Namen\n• Funktioniert im Big Picture Mode\n• Sichtbar in Screenshots & Streams\n\n⚠️ Wichtig:\n• Steam Updates können appinfo.vdf überschreiben\n• Deine Änderungen sind IMMER sicher in custom_metadata.json\n• Nach Steam Updates: Nutze 'Metadaten Wiederherstellen'\n\nFortfahren?",
+      "vdf_success_title": "✅ Erfolg!",
+      "vdf_success_text": "Änderungen in appinfo.vdf geschrieben!",
+      "vdf_success_details": "📌 Nächste Schritte:\n1. Steam Library Manager schließen\n2. Steam neu starten\n3. Deine Änderungen sind sichtbar!\n\nBackup erstellt in: data/backups/",
+      "modified_tooltip": "⚠️ Original: {original}",
+      "revert_to_original": "Auf Original zurücksetzen",
+      "revert_title": "Änderungen rückgängig machen",
+      "revert_confirm": "Original-Werte von Steam wiederherstellen?\n\nDies macht alle deine Änderungen für dieses Spiel rückgängig.",
+      "revert_no_original": "Keine Original-Werte verfügbar.\n\nDieses Spiel wurde noch nicht modifiziert."
+    }, 
     "auto_categorize": {
       "title": "Auto-Kategorisierung",
       "header": "Spiele auto-kategorisieren",
@@ -277,7 +290,8 @@
       "offline_mode": " (Offline)",
       "load_failed": "Fehler beim Laden der Spiele",
       "reload_button": "Neu laden", 
-      "restoring": "Stelle Metadaten wieder her..." 
+      "restoring": "Stelle Metadaten wieder her...",
+      "writing_vdf": "Schreibe in appinfo.vdf..." 
     },
     "errors": {
       "steam_not_found": "Steam-Installation nicht gefunden. Bitte setze den Pfad in den Einstellungen.",
@@ -333,7 +347,8 @@
       "login_success": "Anmeldung erfolgreich! SteamID: {id}",
       "error": "Auth Fehler: {error}",
       "webview_missing": "Info: pywebview nicht installiert, nutze System-Browser.",
-      "client_id_missing": "WARNUNG: STEAM_CLIENT_ID fehlt in .env!"
+      "client_id_missing": "WARNUNG: STEAM_CLIENT_ID fehlt in .env!",
+      "profile_error": "Fehler beim Laden des Profilnamens: {error}" 
     },
     "image": {
       "pillow_missing": "KRITISCH: Pillow fehlt! Bitte 'pip install Pillow' ausführen."
