@@ -1,5 +1,5 @@
 """
-Clickable Image - Animated, Badges & Localized
+Clickable Image - Animated, Badges, Localized & Defaults
 Speichern als: src/ui/components/clickable_image.py
 """
 from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout
@@ -8,6 +8,7 @@ from PyQt6.QtGui import QPixmap, QCursor, QImage
 import requests
 import os
 import io
+from pathlib import Path
 from src.config import config
 from src.utils.i18n import t
 
@@ -41,10 +42,12 @@ class ImageLoader(QThread):
                 with open(self.url_or_path, 'rb') as f:
                     data = QByteArray(f.read())
             else:
-                headers = {'User-Agent': 'SteamLibraryManager/1.0'}
-                response = requests.get(self.url_or_path, headers=headers, timeout=15)
-                if response.status_code == 200:
-                    data = QByteArray(response.content)
+                # Check for URL
+                if str(self.url_or_path).startswith('http'):
+                    headers = {'User-Agent': 'SteamLibraryManager/1.0'}
+                    response = requests.get(self.url_or_path, headers=headers, timeout=15)
+                    if response.status_code == 200:
+                        data = QByteArray(response.content)
         except (requests.exceptions.RequestException, OSError):
             pass
 
@@ -90,7 +93,7 @@ class ClickableImage(QWidget):
 
         self.layout.addWidget(self.img_container)
 
-        # Autor Label unter dem Bild
+        # Autor Label
         author_text = t('ui.game_details.value_unknown')
         if self.metadata and 'author' in self.metadata:
             auth_data = self.metadata['author']
@@ -113,9 +116,20 @@ class ClickableImage(QWidget):
 
         self.layout.addWidget(self.author_label)
 
-    def _create_badges(self, is_animated_file=False):
-        """Erstellt die Overlay-Icons basierend auf Metadaten"""
+    def _get_default_image_path(self):
+        """Liefert den Pfad zum Platzhalter-Bild, falls vorhanden"""
+        # Annahme: config.RESOURCES_DIR ist definiert (z.B. resources/images/)
+        # Falls in src/config.py RESOURCES_DIR nicht definiert ist, nutze Fallback
+        try:
+            base_dir = config.RESOURCES_DIR
+        except AttributeError:
+            # Fallback relativ zur Datei
+            base_dir = Path(__file__).parent.parent.parent.parent / 'resources'
 
+        default_path = base_dir / 'images' / f'default_{self.img_type}.png'
+        return str(default_path) if default_path.exists() else None
+
+    def _create_badges(self, is_animated_file=False):
         def get_icon_path(name):
             p = config.ICONS_DIR / f"{name}.png"
             return str(p) if p.exists() else None
@@ -124,7 +138,6 @@ class ClickableImage(QWidget):
         mime = self.metadata.get('mime', '')
         tags = self.metadata.get('tags', [])
 
-        # 1. Animation (Prüft Datei, Mime-Type UND Tags für APNGs)
         is_anim = is_animated_file or 'webp' in mime or 'gif' in mime or 'animated' in tags
         if is_anim:
             badges.append({
@@ -134,7 +147,6 @@ class ClickableImage(QWidget):
                 'tip': t('ui.badges.animated')
             })
 
-        # 2. Humor (Smiley)
         if self.metadata.get('humor'):
             badges.append({
                 'icon': get_icon_path('flag_humor'),
@@ -143,7 +155,6 @@ class ClickableImage(QWidget):
                 'tip': t('ui.badges.humor')
             })
 
-        # 3. NSFW (18+)
         if self.metadata.get('nsfw'):
             badges.append({
                 'icon': get_icon_path('flag_nsfw'),
@@ -152,7 +163,6 @@ class ClickableImage(QWidget):
                 'tip': t('ui.badges.nsfw')
             })
 
-        # 4. Epilepsie
         if self.metadata.get('epilepsy'):
             badges.append({
                 'icon': get_icon_path('flag_epilepsy'),
@@ -161,7 +171,6 @@ class ClickableImage(QWidget):
                 'tip': t('ui.badges.epilepsy')
             })
 
-        # 5. Untagged
         if self.metadata.get('lock_tags'):
             badges.append({
                 'icon': get_icon_path('flag_untagged'),
@@ -170,12 +179,10 @@ class ClickableImage(QWidget):
                 'tip': t('ui.badges.untagged')
             })
 
-        # Alte Badges entfernen
         for child in self.img_container.children():
             if isinstance(child, QLabel) and child != self.image_label:
                 child.deleteLater()
 
-        # Badges platzieren
         x_pos, y_pos = 4, 4
         for badge in badges:
             lbl = QLabel(self.img_container)
@@ -200,17 +207,25 @@ class ClickableImage(QWidget):
             x_pos += lbl.width() + 4
 
     def load_image(self, url_or_path):
+        """Lädt Bild von URL/Pfad oder Default"""
         self.timer.stop()
         self.frames = []
         self.durations = []
         self.current_frame = 0
         self.image_label.clear()
 
+        # Ermittle Zielpfad (Parameter oder Default)
+        target = url_or_path
+        if not target or (not str(target).startswith('http') and not os.path.exists(str(target))):
+            default = self._get_default_image_path()
+            if default:
+                target = default
+
         if self.loader and self.loader.isRunning():
             self.loader.stop()
 
         self.image_label.setText("⏳")
-        self.loader = ImageLoader(url_or_path)
+        self.loader = ImageLoader(target)
         self.loader.loaded.connect(self._on_loaded)
         self.loader.start()
 
@@ -226,6 +241,8 @@ class ClickableImage(QWidget):
 
     def _on_loaded(self, data: QByteArray):
         if data.isEmpty():
+            # Wenn Laden fehlgeschlagen, versuche Default, falls noch nicht geschehen
+            # (aber hier sind wir schon im Result Callback, vermeiden wir Endlosschleifen)
             self.image_label.setText("❌")
             if self.metadata: self._create_badges(False)
             return
