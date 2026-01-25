@@ -13,6 +13,10 @@ from PyQt6.QtGui import QAction, QDesktopServices, QIcon
 from typing import Optional, List, Dict
 from pathlib import Path
 
+import requests
+# noinspection PyPep8Naming
+import xml.etree.ElementTree as ET
+
 from src.config import config
 from src.core.game_manager import GameManager, Game
 from src.core.localconfig_parser import LocalConfigParser
@@ -71,6 +75,9 @@ class MainWindow(QMainWindow):
         self.selected_game: Optional[Game] = None
         self.selected_games: List[Game] = []
         self.dialog_games: List[Game] = []
+
+        # Steam Username (für Toolbar)
+        self.steam_username: Optional[str] = None
 
         # Loading Thread
         self.load_thread: Optional[GameLoadThread] = None
@@ -253,19 +260,19 @@ class MainWindow(QMainWindow):
         if self.steam_username:
             # Wenn eingeloggt: Zeige Profilnamen (mit Sonderzeichen)
             user_action = QAction(self.steam_username, self)
-            
+
             # FIX: Tooltip lokalisiert
             user_action.setToolTip(t('ui.toolbar.logged_in_as', user=self.steam_username))
-            
+
             # FIX: Info-Box lokalisiert
             user_action.triggered.connect(
                 lambda: QMessageBox.information(self, "Steam", t('ui.toolbar.logged_in_as', user=self.steam_username))
             )
-            
+
             icon_path = config.ICONS_DIR / 'steam_login.png'
             if icon_path.exists():
                 user_action.setIcon(QIcon(str(icon_path)))
-            
+
             self.toolbar.addAction(user_action)
         else:
             # Wenn NICHT eingeloggt: Zeige Login Button
@@ -278,7 +285,8 @@ class MainWindow(QMainWindow):
             login_action.triggered.connect(self._start_steam_login)
             self.toolbar.addAction(login_action)
 
-    def _fetch_steam_persona_name(self, steam_id: str) -> str:
+    @staticmethod
+    def _fetch_steam_persona_name(steam_id: str) -> str:
         """Holt den Anzeigenamen (Persona Name) von Steam"""
         try:
             # XML Profil-Schnittstelle (öffentlich)
@@ -292,10 +300,10 @@ class MainWindow(QMainWindow):
         except Exception as e:
             # FIX: Nutzt jetzt t() für das Log
             print(t('logs.auth.profile_error', error=str(e)))
-        
+
         # Fallback auf ID
         return steam_id
-    
+
     # --- OPENID LOGIN LOGIC ---
     def _start_steam_login(self):
         QMessageBox.information(self, t('ui.login.title'), t('ui.login.info'))
@@ -308,10 +316,10 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, t('ui.login.title'), t('ui.login.status_success'))
 
         config.STEAM_USER_ID = steam_id_64
-        
+
         # NEU: Namen holen und speichern
         self.steam_username = self._fetch_steam_persona_name(steam_id_64)
-        
+
         # Update User Label
         display_text = self.steam_username if self.steam_username else steam_id_64
         self.user_label.setText(t('ui.main.user_label', user_id=display_text))
@@ -499,13 +507,29 @@ class MainWindow(QMainWindow):
         menu.exec(pos)
 
     def on_category_right_click(self, category: str, pos):
-        special = [t('ui.categories.all_games'), t('ui.categories.favorites'), t('ui.categories.uncategorized')]
-        if category in special: return
         menu = QMenu(self)
-        menu.addAction(t('ui.game_list.context_menu.rename'), lambda: self.rename_category(category))
-        menu.addAction(t('ui.game_list.context_menu.delete'), lambda: self.delete_category(category))
-        menu.addSeparator()
-        menu.addAction(t('ui.game_list.context_menu.auto_categorize'), lambda: self.auto_categorize_category(category))
+
+        # Special categories: All Games, Favorites, Uncategorized
+        all_games = t('ui.categories.all_games')
+        favorites = t('ui.categories.favorites')
+        uncategorized = t('ui.categories.uncategorized')
+
+        # Favorites → Kein Kontextmenü
+        if category == favorites:
+            return
+
+        # All Games & Uncategorized → Nur Auto-Categorize
+        if category in [all_games, uncategorized]:
+            menu.addAction(t('ui.game_list.context_menu.auto_categorize'),
+                           lambda: self.auto_categorize_category(category))
+        else:
+            # Normale Kategorien → Volle Optionen
+            menu.addAction(t('ui.game_list.context_menu.rename'), lambda: self.rename_category(category))
+            menu.addAction(t('ui.game_list.context_menu.delete'), lambda: self.delete_category(category))
+            menu.addSeparator()
+            menu.addAction(t('ui.game_list.context_menu.auto_categorize'),
+                           lambda: self.auto_categorize_category(category))
+
         menu.exec(pos)
 
     def on_search(self, query):
@@ -570,8 +594,22 @@ class MainWindow(QMainWindow):
             self._show_auto_categorize_dialog(self.selected_games, None)
 
     def auto_categorize_category(self, category: str):
-        games = self.game_manager.get_games_by_category(category)
-        self._show_auto_categorize_dialog(games, category)
+        """Auto-Categorize für eine bestimmte Kategorie"""
+        all_games = t('ui.categories.all_games')
+        uncategorized = t('ui.categories.uncategorized')
+
+        # All Games → Alle Spiele
+        if category == all_games:
+            games = self.game_manager.get_all_games()
+            self._show_auto_categorize_dialog(games, category)
+        # Uncategorized → Nur unkategorisierte
+        elif category == uncategorized:
+            games = self.game_manager.get_uncategorized_games()
+            self._show_auto_categorize_dialog(games, category)
+        # Normale Kategorie
+        else:
+            games = self.game_manager.get_games_by_category(category)
+            self._show_auto_categorize_dialog(games, category)
 
     def _show_auto_categorize_dialog(self, games: List[Game], category_name: Optional[str]):
         self.dialog_games = games
@@ -641,91 +679,91 @@ class MainWindow(QMainWindow):
                                                                  backup=t('ui.dialogs.backup_msg')))
 
     def edit_game_metadata(self, game: Game):
-    """Edit single game metadata WITH VDF write support + UX improvements"""
-    # Hole aktuelle Metadaten
-    meta = self.appinfo_manager.get_app_metadata(game.app_id)
+        """Edit single game metadata WITH VDF write support + UX improvements"""
+        # Hole aktuelle Metadaten
+        meta = self.appinfo_manager.get_app_metadata(game.app_id)
 
-    # FÃ¼lle defaults
-    if not meta.get('name'):
-        meta['name'] = game.name
-    if not meta.get('developer'):
-        meta['developer'] = game.developer
-    if not meta.get('publisher'):
-        meta['publisher'] = game.publisher
-    if not meta.get('release_date'):
-        meta['release_date'] = game.release_year
+        # FÃ¼lle defaults
+        if not meta.get('name'):
+            meta['name'] = game.name
+        if not meta.get('developer'):
+            meta['developer'] = game.developer
+        if not meta.get('publisher'):
+            meta['publisher'] = game.publisher
+        if not meta.get('release_date'):
+            meta['release_date'] = game.release_year
 
-    # Hole Original fÃ¼r Visual Comparison
-    original_meta = None
-    if game.app_id in self.appinfo_manager.modifications:
-        original_meta = self.appinfo_manager.modifications[game.app_id].get('original', {})
-    
-    if not original_meta:
-        # Wenn noch kein Original getrackt, nutze aktuelle Daten
-        original_meta = meta.copy()
+        # Hole Original fÃ¼r Visual Comparison
+        original_meta = None
+        if game.app_id in self.appinfo_manager.modifications:
+            original_meta = self.appinfo_manager.modifications[game.app_id].get('original', {})
 
-    # Ã–ffne Dialog mit Original-Daten fÃ¼r Visual Feedback
-    dialog = MetadataEditDialog(self, game.name, meta, original_meta)
+        if not original_meta:
+            # Wenn noch kein Original getrackt, nutze aktuelle Daten
+            original_meta = meta.copy()
 
-    if dialog.exec():
-        new_meta = dialog.get_metadata()
+        # Ã–ffne Dialog mit Original-Daten fÃ¼r Visual Feedback
+        dialog = MetadataEditDialog(self, game.name, meta, original_meta)
 
-        if new_meta:
-            # Extrahiere write_to_vdf Flag
-            write_to_vdf = new_meta.pop('write_to_vdf', False)
+        if dialog.exec():
+            new_meta = dialog.get_metadata()
 
-            # Setze Metadaten (speichert in custom_metadata.json)
-            self.appinfo_manager.set_app_metadata(game.app_id, new_meta)
+            if new_meta:
+                # Extrahiere write_to_vdf Flag
+                write_to_vdf = new_meta.pop('write_to_vdf', False)
 
-            # Speichere in JSON
-            self.appinfo_manager.save_appinfo()
+                # Setze Metadaten (speichert in custom_metadata.json)
+                self.appinfo_manager.set_app_metadata(game.app_id, new_meta)
 
-            # OPTIONAL: In appinfo.vdf schreiben
-            if write_to_vdf:
-                progress = QProgressDialog(
-                    t('ui.status.writing_vdf'),
-                    None, 0, 0, self
+                # Speichere in JSON
+                self.appinfo_manager.save_appinfo()
+
+                # OPTIONAL: In appinfo.vdf schreiben
+                if write_to_vdf:
+                    progress = QProgressDialog(
+                        t('ui.status.writing_vdf'),
+                        None, 0, 0, self
+                    )
+                    progress.setWindowModality(Qt.WindowModality.WindowModal)
+                    progress.show()
+
+                    # Lade appinfo
+                    self.appinfo_manager.load_appinfo()
+
+                    # Schreibe in VDF
+                    success = self.appinfo_manager.write_to_vdf(backup=True)
+
+                    progress.close()
+
+                    if success:
+                        # Success Dialog mit Instructions
+                        msg = QMessageBox(self)
+                        msg.setIcon(QMessageBox.Icon.Information)
+                        msg.setWindowTitle(t('ui.metadata_editor.vdf_success_title'))
+
+                        msg.setText(t('ui.metadata_editor.vdf_success_text'))
+                        msg.setInformativeText(t('ui.metadata_editor.vdf_success_details'))
+
+                        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+                        msg.exec()
+
+                # Update game object
+                if new_meta.get('name'):
+                    game.name = new_meta['name']
+                if new_meta.get('developer'):
+                    game.developer = new_meta['developer']
+                if new_meta.get('publisher'):
+                    game.publisher = new_meta['publisher']
+
+                # Refresh UI
+                self._populate_categories()
+                self.on_game_selected(game)
+
+                QMessageBox.information(
+                    self,
+                    t('ui.dialogs.success'),
+                    t('ui.dialogs.metadata_success', name=game.name)
                 )
-                progress.setWindowModality(Qt.WindowModality.WindowModal)
-                progress.show()
-
-                # Lade appinfo
-                self.appinfo_manager.load_appinfo()
-
-                # Schreibe in VDF
-                success = self.appinfo_manager.write_to_vdf(backup=True)
-
-                progress.close()
-
-                if success:
-                    # Success Dialog mit Instructions
-                    msg = QMessageBox(self)
-                    msg.setIcon(QMessageBox.Icon.Information)
-                    msg.setWindowTitle(t('ui.metadata_editor.vdf_success_title'))
-                    
-                    msg.setText(t('ui.metadata_editor.vdf_success_text'))
-                    msg.setInformativeText(t('ui.metadata_editor.vdf_success_details'))
-                    
-                    msg.setStandardButtons(QMessageBox.StandardButton.Ok)
-                    msg.exec()
-
-            # Update game object
-            if new_meta.get('name'):
-                game.name = new_meta['name']
-            if new_meta.get('developer'):
-                game.developer = new_meta['developer']
-            if new_meta.get('publisher'):
-                game.publisher = new_meta['publisher']
-
-            # Refresh UI
-            self._populate_categories()
-            self.on_game_selected(game)
-
-            QMessageBox.information(
-                self,
-                t('ui.dialogs.success'),
-                t('ui.dialogs.metadata_success', name=game.name)
-            )
 
     def bulk_edit_metadata(self):
         if not self.selected_games:
@@ -768,10 +806,8 @@ class MainWindow(QMainWindow):
         # Ask if write to VDF
         reply = QMessageBox.question(
             self,
-            "Write to appinfo.vdf?",
-            f"Metadata for {len(games)} games saved to JSON.\n\n"
-            "Write changes to appinfo.vdf?\n"
-            "(Requires Steam restart)",
+            t('ui.metadata_editor.vdf_write_question'),
+            t('ui.metadata_editor.bulk_vdf_question', count=len(games)),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
 
@@ -786,9 +822,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.information(
                     self,
                     t('ui.dialogs.success'),
-                    f"Changes written to appinfo.vdf!\n"
-                    f"Backup created in data/backups/\n\n"
-                    f"Please restart Steam."
+                    t('ui.metadata_editor.bulk_vdf_success', count=len(games))
                 )
 
         # Update UI
@@ -833,8 +867,7 @@ class MainWindow(QMainWindow):
                     QMessageBox.information(
                         self,
                         t('ui.dialogs.success'),
-                        t('ui.dialogs.restore_success', count=restored) +
-                        "\n\nPlease restart Steam to see changes."
+                        t('ui.dialogs.restore_success_with_restart', count=restored)
                     )
                     # Refresh UI
                     self.refresh_data()
@@ -842,14 +875,14 @@ class MainWindow(QMainWindow):
                     QMessageBox.warning(
                         self,
                         t('ui.dialogs.error'),
-                        "Failed to restore modifications"
+                        t('ui.dialogs.restore_failed')
                     )
             except Exception as e:
                 progress.close()
                 QMessageBox.critical(
                     self,
                     t('ui.dialogs.error'),
-                    f"Restore failed: {e}"
+                    t('ui.dialogs.restore_error', error=str(e))
                 )
 
     def refresh_data(self):
