@@ -244,23 +244,31 @@ class GameManager:
             if not game.publisher and steam_meta.get('publisher'):
                 game.publisher = steam_meta['publisher']
 
-        # 2. Dann Custom Overrides
-        for app_id, meta in modifications.items():
-            if app_id in self.games:
-                game = self.games[app_id]
-                if meta.get('name'):
-                    game.name = meta['name']
-                    game.name_overridden = True
+                # 2. Dann Custom Overrides aus custom_metadata.json
+                for app_id, meta_data in modifications.items():
+                    if app_id in self.games:
+                        game = self.games[app_id]
 
-                if meta.get('sort_as'):
-                    game.sort_name = meta['sort_as']
-                elif game.name_overridden:
-                    game.sort_name = game.name
+                        # Hole modified values aus dem modifications dict
+                        modified = meta_data.get('modified', {})
 
-                if meta.get('developer'): game.developer = meta['developer']
-                if meta.get('publisher'): game.publisher = meta['publisher']
-                if meta.get('release_date'): game.release_year = meta['release_date']
-                count += 1
+                        if modified.get('name'):
+                            game.name = modified['name']
+                            game.name_overridden = True
+
+                        if modified.get('sort_as'):
+                            game.sort_name = modified['sort_as']
+                        elif game.name_overridden:
+                            game.sort_name = game.name
+
+                        if modified.get('developer'):
+                            game.developer = modified['developer']
+                        if modified.get('publisher'):
+                            game.publisher = modified['publisher']
+                        if modified.get('release_date'):
+                            game.release_year = modified['release_date']
+
+                        count += 1
 
         if count > 0:
             print(t('logs.manager.applied_overrides', count=count))
