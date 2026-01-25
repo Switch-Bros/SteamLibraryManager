@@ -242,22 +242,60 @@ class MainWindow(QMainWindow):
 
     def _refresh_toolbar(self):
         self.toolbar.clear()
+        # Verwende die t()-Keys, die du bereits in den JSONs hast
         self.toolbar.addAction(t('ui.toolbar.refresh'), self.refresh_data)
         self.toolbar.addAction(t('ui.toolbar.auto_categorize'), self.auto_categorize)
         self.toolbar.addSeparator()
         self.toolbar.addAction(t('ui.toolbar.settings'), self.show_settings)
         self.toolbar.addSeparator()
 
-        # LOGIN BUTTON
-        login_action = QAction(t('ui.toolbar.login'), self)
-        icon_path = config.ICONS_DIR / 'steam_login.png'
-        if icon_path.exists():
-            login_action.setIcon(QIcon(str(icon_path)))
+        # LOGIN BUTTON LOGIK
+        if self.steam_username:
+            # Wenn eingeloggt: Zeige Profilnamen (mit Sonderzeichen)
+            user_action = QAction(self.steam_username, self)
+            
+            # FIX: Tooltip lokalisiert
+            user_action.setToolTip(t('ui.toolbar.logged_in_as', user=self.steam_username))
+            
+            # FIX: Info-Box lokalisiert
+            user_action.triggered.connect(
+                lambda: QMessageBox.information(self, "Steam", t('ui.toolbar.logged_in_as', user=self.steam_username))
+            )
+            
+            icon_path = config.ICONS_DIR / 'steam_login.png'
+            if icon_path.exists():
+                user_action.setIcon(QIcon(str(icon_path)))
+            
+            self.toolbar.addAction(user_action)
+        else:
+            # Wenn NICHT eingeloggt: Zeige Login Button
+            login_action = QAction(t('ui.toolbar.login'), self)
+            icon_path = config.ICONS_DIR / 'steam_login.png'
+            if icon_path.exists():
+                login_action.setIcon(QIcon(str(icon_path)))
 
-        # noinspection PyUnresolvedReferences
-        login_action.triggered.connect(self._start_steam_login)
-        self.toolbar.addAction(login_action)
+            # noinspection PyUnresolvedReferences
+            login_action.triggered.connect(self._start_steam_login)
+            self.toolbar.addAction(login_action)
 
+    def _fetch_steam_persona_name(self, steam_id: str) -> str:
+        """Holt den Anzeigenamen (Persona Name) von Steam"""
+        try:
+            # XML Profil-Schnittstelle (öffentlich)
+            url = f"https://steamcommunity.com/profiles/{steam_id}/?xml=1"
+            response = requests.get(url, timeout=5)
+            if response.status_code == 200:
+                tree = ET.fromstring(response.content)
+                steam_id_element = tree.find('steamID')
+                if steam_id_element is not None:
+                    return steam_id_element.text
+        except Exception as e:
+            # FIX: Nutzt jetzt t() für das Log
+            print(t('logs.auth.profile_error', error=str(e)))
+        
+        # Fallback auf ID
+        return steam_id
+    
     # --- OPENID LOGIN LOGIC ---
     def _start_steam_login(self):
         QMessageBox.information(self, t('ui.login.title'), t('ui.login.info'))
@@ -270,7 +308,16 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, t('ui.login.title'), t('ui.login.status_success'))
 
         config.STEAM_USER_ID = steam_id_64
-        self.user_label.setText(t('ui.main.user_label', user_id=steam_id_64))
+        
+        # NEU: Namen holen und speichern
+        self.steam_username = self._fetch_steam_persona_name(steam_id_64)
+        
+        # Update User Label
+        display_text = self.steam_username if self.steam_username else steam_id_64
+        self.user_label.setText(t('ui.main.user_label', user_id=display_text))
+
+        # NEU: Toolbar neu bauen (Button zeigt jetzt Name)
+        self._refresh_toolbar()
 
         if self.game_manager:
             self._load_games_with_progress(steam_id_64)
