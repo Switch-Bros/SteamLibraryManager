@@ -80,15 +80,15 @@
       "restart_required": "Please restart the application to apply language changes.",
       "reset_defaults": "Reset to Defaults",
       "languages": {
-        "de": "🇩🇪 German",
-        "en": "🇺🇸 English",
-        "es": "🇪🇸 Spanish",
-        "pt": "🇵🇹 Portuguese",
-        "fr": "🇫🇷 French",
-        "it": "🇮🇹 Italian",
-        "zh": "🇨🇳 Chinese",
-        "ja": "🇯🇵 Japanese",
-        "ko": "🇰🇷 Korean"
+        "de": "🇩🇪 Deutsch",
+        "en": "🇬🇧 English",
+        "es": "🇪🇸 Español",
+        "pt": "🇵🇹 Português",
+        "fr": "🇫🇷 Français",
+        "it": "🇮🇹 Italiano",
+        "zh": "🇨🇳 中文",
+        "ja": "🇯🇵 日本語",
+        "ko": "🇰🇷 한국어"
       }
     },
     "loading": {
