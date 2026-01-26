@@ -122,8 +122,15 @@ class AppInfoManager:
         # 1. Get from binary appinfo
         if self.appinfo and int(app_id) in self.appinfo.apps:
             app_data_dict = self.appinfo.apps[int(app_id)]
-            sections = app_data_dict.get('data', {})
-            common_section = sections.get('common', {})
+
+            # FIX: Korrekte Struktur - 'common' ist in 'appinfo', nicht direkt in 'data'!
+            data_section = app_data_dict.get('data', {})
+
+            # WICHTIG: Erst 'appinfo' extrahieren!
+            appinfo_section = data_section.get('appinfo', {})
+
+            # DANN 'common' aus 'appinfo'
+            common_section = appinfo_section.get('common', {})
 
             result['name'] = common_section.get('name', '')
             result['type'] = common_section.get('type', '')
