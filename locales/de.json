@@ -144,6 +144,8 @@
       "success_browser": "Login erfolgreich. Du kannst dieses Fenster schließen."
     },
     "dialogs": {
+      "confirm_remove_account_title": "Vom Account entfernen?",
+      "confirm_remove_account_msg": "Möchtest du '{game}' wirklich PERMANENT von deinem Steam-Account löschen?\n\nDies öffnet die Steam-Support Seite, wo du die Löschung bestätigen musst.\nDas Spiel muss danach neu gekauft werden, um es wieder zu spielen!",
       "error": "Fehler",
       "success": "Erfolg",
       "cancel": "Abbrechen",
@@ -350,7 +352,12 @@
         "rename": "Kategorie umbenennen",
         "delete": "Kategorie löschen",
         "auto_categorize": "Auto-Kategorisieren",
-        "auto_categorize_selected": "Auswahl Auto-Kategorisieren"
+        "auto_categorize_selected": "Auswahl Auto-Kategorisieren",
+        "hide_game": "Spiel verstecken (in Steam)",
+        "unhide_game": "Spiel sichtbar machen",
+        "remove_from_account": "Vom Account entfernen (Permanent)",
+        "confirm_hide_title": "Status geändert",
+        "confirm_hide_msg": "'{game}' ist nun {status}.\nBitte Steam neu starten, damit es wirksam wird."
       }
     },
     "badges": {
@@ -423,7 +430,8 @@
       "saved": "localconfig.vdf gespeichert",
       "backup_created": "Backup erstellt: {path}",
       "no_changes": "Keine Änderungen zum Speichern",
-      "apps_not_found": "Apps-Sektion nicht in localconfig gefunden"
+      "apps_not_found": "Apps-Sektion nicht in localconfig gefunden",
+      "hidden_status_error": "Fehler beim Setzen des Hidden-Status: {error}"
     },
     "manager": {
       "loading_api": "Lade Spiele von Steam API...",

@@ -1,6 +1,5 @@
 """
-AppInfo Manager - Direct Integration with appinfo_v2 Parser
-Manages metadata modifications with full write support
+AppInfo Manager - Associations Support Edition
 Speichern als: src/core/appinfo_manager.py
 """
 
@@ -38,16 +37,7 @@ class AppInfoManager:
             self.appinfo_path = steam_path / 'appcache' / 'appinfo.vdf'
 
     def load_appinfo(self, _app_ids: Optional[List[str]] = None, _load_all: bool = False) -> Dict:
-        """
-        Load appinfo.vdf using appinfo_v2 parser
-
-        Args:
-            _app_ids: [UNUSED] Kept for API compatibility
-            _load_all: [UNUSED] Kept for API compatibility
-
-        Returns:
-            Dict of modifications
-        """
+        """Load appinfo.vdf using appinfo_v2 parser"""
         self.data_dir.mkdir(exist_ok=True)
 
         # 1. Load saved modifications
@@ -110,35 +100,81 @@ class AppInfoManager:
             self.modifications = {}
             self.modified_apps = []
 
+    def _find_common_section(self, data: Dict) -> Dict:
+        """
+        Rekursive Suche nach der 'common' Sektion.
+        """
+        # 1. Direct hit
+        if 'common' in data:
+            return data['common']
+
+        # 2. Nested in appinfo
+        if 'appinfo' in data and 'common' in data['appinfo']:
+            return data['appinfo']['common']
+
+        # 3. Recursive search (limited depth)
+        for key, value in data.items():
+            if isinstance(value, dict):
+                if 'common' in value:
+                    return value['common']
+                # Nur eine Ebene tiefer suchen, um Performance zu schonen
+                if 'appinfo' in value and 'common' in value['appinfo']:
+                    return value['appinfo']['common']
+
+        return {}
+
     def get_app_metadata(self, app_id: str) -> Dict[str, Any]:
         """
         Get app metadata (with modifications applied)
-
-        Returns:
-            Dict with current metadata
+        Supports 'associations' block for Developers/Publishers
         """
         result = {}
 
         # 1. Get from binary appinfo
         if self.appinfo and int(app_id) in self.appinfo.apps:
-            app_data_dict = self.appinfo.apps[int(app_id)]
+            app_data_full = self.appinfo.apps[int(app_id)]
+            vdf_data = app_data_full.get('data', {})
 
-            # FIX: Korrekte Struktur - 'common' ist in 'appinfo', nicht direkt in 'data'!
-            data_section = app_data_dict.get('data', {})
+            # Finde common Sektion
+            common = self._find_common_section(vdf_data)
 
-            # WICHTIG: Erst 'appinfo' extrahieren!
-            appinfo_section = data_section.get('appinfo', {})
+            if common:
+                result['name'] = common.get('name', '')
+                result['type'] = common.get('type', '')
 
-            # DANN 'common' aus 'appinfo'
-            common_section = appinfo_section.get('common', {})
+                # A) Versuche direkte Felder (altes Format)
+                result['developer'] = common.get('developer', '')
+                result['publisher'] = common.get('publisher', '')
 
-            result['name'] = common_section.get('name', '')
-            result['type'] = common_section.get('type', '')
-            result['developer'] = common_section.get('developer', '')
-            result['publisher'] = common_section.get('publisher', '')
-            result['release_date'] = common_section.get('steam_release_date', '')
+                # B) Versuche 'associations' (neues Format) -> Das fehlte bisher!
+                if 'associations' in common:
+                    assoc = common['associations']
+                    devs = []
+                    pubs = []
+                    # Associations ist meist ein Dict mit Index als Key ("0", "1", ...)
+                    for entry in assoc.values():
+                        if isinstance(entry, dict):
+                            entry_type = entry.get('type', '')
+                            entry_name = entry.get('name', '')
 
-        # 2. Apply modifications
+                            if entry_type == 'developer' and entry_name:
+                                devs.append(entry_name)
+                            elif entry_type == 'publisher' and entry_name:
+                                pubs.append(entry_name)
+
+                    # Wenn gefunden, überschreibe leere Werte
+                    if devs and not result['developer']:
+                        result['developer'] = ", ".join(devs)
+                    if pubs and not result['publisher']:
+                        result['publisher'] = ", ".join(pubs)
+
+                # Release Date Keys
+                if 'steam_release_date' in common:
+                    result['release_date'] = common.get('steam_release_date', '')
+                elif 'release_date' in common:
+                    result['release_date'] = common.get('release_date', '')
+
+        # 2. Apply modifications (Custom Overrides)
         if app_id in self.modifications:
             modified = self.modifications[app_id].get('modified', {})
             result.update(modified)
@@ -146,16 +182,7 @@ class AppInfoManager:
         return result
 
     def set_app_metadata(self, app_id: str, metadata: Dict[str, Any]) -> bool:
-        """
-        Set app metadata (tracks original + modified)
-
-        Args:
-            app_id: Steam App ID
-            metadata: New metadata values
-
-        Returns:
-            bool: Success
-        """
+        """Set app metadata"""
         try:
             # Get original values
             if app_id not in self.modifications:
@@ -186,28 +213,16 @@ class AppInfoManager:
         """Save modifications to JSON"""
         try:
             self.data_dir.mkdir(exist_ok=True, parents=True)
-
             with open(self.metadata_file, 'w', encoding='utf-8') as f:
                 json.dump(self.modifications, f, indent=2)
-
             print(t('logs.appinfo.saved_mods', count=len(self.modifications)))
             return True
-
         except OSError as e:
             print(t('logs.appinfo.error', error=str(e)))
             return False
 
     def write_to_vdf(self, backup: bool = True) -> bool:
-        """
-        Write modifications back to appinfo.vdf
-        CRITICAL: Uses correct SHA-1 checksum algorithm
-
-        Args:
-            backup: Create backup before writing
-
-        Returns:
-            bool: Success
-        """
+        """Write modifications back to appinfo.vdf"""
         if not self.appinfo:
             print(t('logs.appinfo.not_loaded'))
             return False
@@ -225,10 +240,8 @@ class AppInfoManager:
 
             # Write using appinfo_v2's method
             success = self.appinfo.write()
-
             if success:
                 print(t('logs.appinfo.saved_vdf'))
-
             return success
 
         except Exception as e:
@@ -238,16 +251,7 @@ class AppInfoManager:
             return False
 
     def restore_modifications(self, app_ids: Optional[List[str]] = None) -> int:
-        """
-        Restore saved modifications to appinfo.vdf
-        (In case Steam overwrote them)
-
-        Args:
-            app_ids: Specific app IDs to restore (None = all)
-
-        Returns:
-            int: Number of apps restored
-        """
+        """Restore saved modifications to appinfo.vdf"""
         if not app_ids:
             app_ids = list(self.modifications.keys())
 
@@ -264,7 +268,6 @@ class AppInfoManager:
                 if modified and self.set_app_metadata(app_id, modified):
                     restored += 1
 
-        # Write back to appinfo.vdf
         if restored > 0:
             self.write_to_vdf()
             print(t('logs.appinfo.restoredvdf', count=restored))
@@ -272,16 +275,9 @@ class AppInfoManager:
         return restored
 
     def get_modification_count(self) -> int:
-        """Get number of modified apps"""
         return len(self.modifications)
 
     def clear_all_modifications(self) -> int:
-        """
-        Clear ALL modifications (DANGEROUS!)
-
-        Returns:
-            int: Number of modifications cleared
-        """
         count = len(self.modifications)
         self.modifications = {}
         self.modified_apps = []

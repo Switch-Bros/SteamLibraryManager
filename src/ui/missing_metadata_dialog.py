@@ -1,5 +1,5 @@
 """
-Missing Metadata Detection Dialog - CSV Export
+Missing Metadata Detection Dialog - Date Formatter Edition
 Speichern als: src/ui/missing_metadata_dialog.py
 """
 from PyQt6.QtWidgets import (
@@ -11,6 +11,7 @@ from PyQt6.QtGui import QFont
 from typing import List
 from pathlib import Path
 import csv
+from datetime import datetime  # <--- WICHTIG: Für Datumsumrechnung
 from src.core.game_manager import Game
 from src.utils.i18n import t
 
@@ -54,13 +55,10 @@ class MissingMetadataDialog(QDialog):
             t('ui.tools.missing_metadata.col_release')
         ])
 
-        # Auto-resize columns
+        # --- SPALTEN-VERHALTEN: Interaktiv ---
         header = self.table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        header.setStretchLastSection(False)
 
         # Alternating row colors
         self.table.setAlternatingRowColors(True)
@@ -92,6 +90,29 @@ class MissingMetadataDialog(QDialog):
 
         layout.addLayout(btn_layout)
 
+    def _format_date(self, value) -> str:
+        """Wandelt Unix-Timestamps in lesbares Datum um"""
+        if not value:
+            return ""
+
+        value_str = str(value).strip()
+
+        # Prüfen ob es eine Zahl ist
+        if value_str.isdigit():
+            try:
+                ts = int(value_str)
+                # Einfache Prüfung: Ist die Zahl größer als 19900101?
+                # Ein Timestamp für das Jahr 2000 ist schon 946684800.
+                # Ein Jahr wie "2004" ist viel kleiner.
+                # Grenze: Alles über 100.000.000 behandeln wir als Timestamp (ca. Jahr 1973)
+                if ts > 100000000:
+                    dt = datetime.fromtimestamp(ts)
+                    return dt.strftime("%Y-%m-%d")
+            except Exception:
+                pass  # Falls Fehler, gib Original zurück
+
+        return value_str
+
     def _populate_table(self):
         """Befülle Tabelle mit Spielen"""
         self.table.setRowCount(len(self.games))
@@ -100,15 +121,14 @@ class MissingMetadataDialog(QDialog):
         missing_pub = 0
         missing_rel = 0
 
-        # Helper function to check if a field is really missing
-        def is_missing(value: str) -> bool:
-            if not value:
+        # Helper function
+        def is_missing(value) -> bool:
+            if value is None:
                 return True
-            value_stripped = value.strip()
-            if not value_stripped:
+            value_str = str(value).strip()
+            if not value_str:
                 return True
-            # Check for "Unknown" in both EN and DE
-            if value_stripped in ["Unknown", "Unbekannt"]:
+            if value_str in ["Unknown", "Unbekannt", "None"]:
                 return True
             return False
 
@@ -128,7 +148,7 @@ class MissingMetadataDialog(QDialog):
             if is_missing(dev):
                 dev = "❌ " + t('ui.tools.missing_metadata.missing')
                 missing_dev += 1
-            item = QTableWidgetItem(dev)
+            item = QTableWidgetItem(str(dev))
             item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
             self.table.setItem(row, 2, item)
 
@@ -137,16 +157,22 @@ class MissingMetadataDialog(QDialog):
             if is_missing(pub):
                 pub = "❌ " + t('ui.tools.missing_metadata.missing')
                 missing_pub += 1
-            item = QTableWidgetItem(pub)
+            item = QTableWidgetItem(str(pub))
             item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
             self.table.setItem(row, 3, item)
 
-            # Release
-            rel = game.release_year if game.release_year else ""
-            if is_missing(rel):
-                rel = "❌ " + t('ui.tools.missing_metadata.missing')
+            # Release (JETZT MIT FORMATIERUNG)
+            raw_rel = game.release_year if game.release_year else ""
+
+            # Prüfen ob es fehlt (auf Basis des Rohwertes)
+            if is_missing(raw_rel):
+                display_rel = "❌ " + t('ui.tools.missing_metadata.missing')
                 missing_rel += 1
-            item = QTableWidgetItem(rel)
+            else:
+                # Formatieren für Anzeige
+                display_rel = self._format_date(raw_rel)
+
+            item = QTableWidgetItem(display_rel)
             item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
             self.table.setItem(row, 4, item)
 
@@ -154,6 +180,16 @@ class MissingMetadataDialog(QDialog):
         stats = t('ui.tools.missing_metadata.stats',
                   dev=missing_dev, pub=missing_pub, rel=missing_rel)
         self.stats_label.setText(stats)
+
+        # Initiale Größenanpassung
+        self.table.resizeColumnsToContents()
+
+        # Mindestbreite für Name
+        current_width = self.table.columnWidth(1)
+        if current_width < 200:
+            self.table.setColumnWidth(1, 200)
+        elif current_width > 600:
+            self.table.setColumnWidth(1, 600)
 
     def _export_csv(self):
         """Exportiere Liste als CSV"""
@@ -183,14 +219,13 @@ class MissingMetadataDialog(QDialog):
                     'Missing Fields'
                 ])
 
-                # Helper function
-                def is_missing(value: str) -> bool:
-                    if not value:
+                def is_missing(value) -> bool:
+                    if value is None:
                         return True
-                    value_stripped = value.strip()
-                    if not value_stripped:
+                    value_str = str(value).strip()
+                    if not value_str:
                         return True
-                    if value_stripped in ["Unknown", "Unbekannt"]:
+                    if value_str in ["Unknown", "Unbekannt", "None"]:
                         return True
                     return False
 
@@ -208,17 +243,20 @@ class MissingMetadataDialog(QDialog):
                         pub = "[MISSING]"
                         missing_fields.append("Publisher")
 
-                    rel = game.release_year if game.release_year else ""
-                    if is_missing(rel):
+                    raw_rel = game.release_year if game.release_year else ""
+                    if is_missing(raw_rel):
                         rel = "[MISSING]"
                         missing_fields.append("Release")
+                    else:
+                        # Auch im CSV schön formatieren
+                        rel = self._format_date(raw_rel)
 
                     writer.writerow([
                         game.app_id,
                         game.name,
-                        dev,
-                        pub,
-                        rel,
+                        str(dev),
+                        str(pub),
+                        str(rel),
                         ", ".join(missing_fields)
                     ])
 

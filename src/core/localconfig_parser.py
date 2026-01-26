@@ -132,14 +132,31 @@ class LocalConfigParser:
                 uncategorized.append(app_id)
         return uncategorized
 
+    # --- NEU: HIDDEN APP SUPPORT ---
 
-if __name__ == "__main__":
-    from src.utils.i18n import init_i18n
+    def get_hidden_apps(self) -> List[str]:
+        """Gibt Liste aller versteckten App-IDs zurück"""
+        hidden_apps = []
+        for app_id, data in self.apps.items():
+            # Steam speichert Hidden als "1" (String) oder 1 (Int)
+            if 'Hidden' in data and str(data['Hidden']) == "1":
+                hidden_apps.append(app_id)
+        return hidden_apps
 
-    init_i18n('en')
+    def set_app_hidden(self, app_id: str, hidden: bool):
+        """Setzt oder entfernt den Hidden-Status für ein Spiel"""
+        try:
+            if str(app_id) not in self.apps:
+                self.apps[str(app_id)] = {}
 
-    # Test
-    test_config_path = Path("test_localconfig.vdf")
-    parser = LocalConfigParser(test_config_path)
-    if parser.load():
-        print(f"Loaded {len(parser.get_all_app_ids())} apps")
+            if hidden:
+                self.apps[str(app_id)]['Hidden'] = "1"
+            else:
+                # Key entfernen wenn nicht mehr versteckt
+                if 'Hidden' in self.apps[str(app_id)]:
+                    del self.apps[str(app_id)]['Hidden']
+
+            self.modified = True
+        except Exception as e:
+            # Hier nutzen wir jetzt t()!
+            print(t('logs.parser.hidden_status_error', error=str(e)))
