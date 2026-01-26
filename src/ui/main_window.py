@@ -68,9 +68,7 @@ class MainWindow(QMainWindow):
 
         # Auth Manager
         self.auth_manager = SteamAuthManager()
-        # noinspection PyUnresolvedReferences
         self.auth_manager.auth_success.connect(self._on_steam_login_success)
-        # noinspection PyUnresolvedReferences
         self.auth_manager.auth_error.connect(self._on_steam_login_error)
 
         self.selected_game: Optional[Game] = None
@@ -83,6 +81,9 @@ class MainWindow(QMainWindow):
         # Loading Thread
         self.load_thread: Optional[GameLoadThread] = None
         self.progress_dialog: Optional[QProgressDialog] = None
+
+        # Store Check Thread (für Thread-Safe Store Availability Check)
+        self.store_check_thread: Optional[QThread] = None  # ← NEU!
 
         self._create_ui()
         self._load_data()
@@ -505,30 +506,49 @@ class MainWindow(QMainWindow):
 
     def on_game_right_click(self, game: Game, pos):
         menu = QMenu(self)
+
+        # Basis-Aktionen
         menu.addAction(t('ui.game_list.context_menu.view_details'), lambda: self.on_game_selected(game))
         menu.addAction(t('ui.game_list.context_menu.toggle_favorite'), lambda: self.toggle_favorite(game))
 
         menu.addSeparator()
 
-        # NEU: Verstecken Logik (benötigt neue Methode toggle_hide_game)
-        if game.hidden:
-            menu.addAction(t('ui.game_list.context_menu.unhide_game'), lambda: self.toggle_hide_game(game, False))
-        else:
-            menu.addAction(t('ui.game_list.context_menu.hide_game'), lambda: self.toggle_hide_game(game, True))
+        # Hide/Unhide (falls vorhanden)
+        if hasattr(game, 'hidden'):
+            if game.hidden:
+                menu.addAction(t('ui.game_list.context_menu.unhide_game'),
+                               lambda: self.toggle_hide_game(game, False))
+            else:
+                menu.addAction(t('ui.game_list.context_menu.hide_game'),
+                               lambda: self.toggle_hide_game(game, True))
 
-        # NEU: Vom Account löschen (benötigt neue Methode remove_game_from_account)
-        menu.addAction(t('ui.game_list.context_menu.remove_from_account'), lambda: self.remove_game_from_account(game))
+        # Remove from Account (falls vorhanden)
+        if hasattr(self, 'remove_game_from_account'):
+            menu.addAction(t('ui.game_list.context_menu.remove_from_account'),
+                           lambda: self.remove_game_from_account(game))
 
         menu.addSeparator()
 
-        menu.addAction(t('ui.game_list.context_menu.open_store'), lambda: self.open_in_store(game))
+        # Store-Aktionen
+        menu.addAction(t('ui.game_list.context_menu.open_store'),
+                       lambda: self.open_in_store(game))
+
+        # NEU: Check Store Availability
+        menu.addAction(t('ui.game_list.context_menu.check_store'),
+                       lambda: self.check_store_availability(game))
+
         menu.addSeparator()
 
+        # Bulk-Aktionen
         if len(self.selected_games) > 1:
-            menu.addAction(t('ui.game_list.context_menu.auto_categorize_selected'), self.auto_categorize_selected)
+            menu.addAction(t('ui.game_list.context_menu.auto_categorize_selected'),
+                           self.auto_categorize_selected)
             menu.addSeparator()
 
-        menu.addAction(t('ui.game_list.context_menu.edit_metadata'), lambda: self.edit_game_metadata(game))
+        # Metadaten bearbeiten
+        menu.addAction(t('ui.game_list.context_menu.edit_metadata'),
+                       lambda: self.edit_game_metadata(game))
+
         menu.exec(pos)
 
     def on_category_right_click(self, category: str, pos):
@@ -633,6 +653,122 @@ class MainWindow(QMainWindow):
     def open_in_store(game: Game):
         import webbrowser
         webbrowser.open(f"https://store.steampowered.com/app/{game.app_id}")
+
+    def check_store_availability(self, game: Game):
+        """Check if game is available on Steam Store"""
+        from PyQt6.QtCore import QThread, pyqtSignal
+        import requests
+
+        # Progress Dialog
+        progress = QProgressDialog(
+            t('ui.game_list.context_menu.store_checking'),
+            None, 0, 0, self
+        )
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setWindowTitle(t('ui.game_list.context_menu.store_status_title'))
+        progress.show()
+        QApplication.processEvents()
+
+        class StoreCheckThread(QThread):
+            """Thread für Store-Check"""
+            finished = pyqtSignal(str, str)  # status, details
+
+            def __init__(self, app_id: str):
+                super().__init__()
+                self.app_id = app_id
+
+            def run(self):
+                try:
+                    url = f"https://store.steampowered.com/app/{self.app_id}/"
+
+                    # Request ohne Redirects folgen
+                    response = requests.get(
+                        url,
+                        timeout=10,
+                        allow_redirects=False,
+                        headers={'User-Agent': 'SteamLibraryManager/1.0'}
+                    )
+
+                    # 200 OK = Store page exists
+                    if response.status_code == 200:
+                        # Check für Geo-Lock Nachricht
+                        content_lower = response.text.lower()
+
+                        if any(phrase in content_lower for phrase in [
+                            'not available in your region',
+                            'not available in your country',
+                            'this item is currently unavailable in your region'
+                        ]):
+                            self.finished.emit('geo_locked',
+                                               'The game has a store page, but is not available in your region.')
+                        else:
+                            self.finished.emit('available',
+                                               'Store page exists and game appears to be available.')
+
+                    # 302 Redirect
+                    elif response.status_code == 302:
+                        location = response.headers.get('Location', '').lower()
+
+                        # Redirect zur Hauptseite = Delisted
+                        if 'steampowered.com' in location and 'store.steampowered.com' not in location:
+                            self.finished.emit('delisted',
+                                               'Game redirects to main Steam page. Likely removed from store.')
+                        else:
+                            self.finished.emit('geo_locked',
+                                               'Game redirects away from store page. Likely region-locked.')
+
+                    # 404 / 403 = Removed
+                    elif response.status_code in [404, 403]:
+                        self.finished.emit('delisted',
+                                           f'Store returns {response.status_code}. Game likely removed.')
+
+                    else:
+                        self.finished.emit('unknown',
+                                           f'Unexpected response: HTTP {response.status_code}')
+
+                except requests.Timeout:
+                    self.finished.emit('unknown',
+                                       'Connection timeout. Unable to reach Steam Store.')
+                except requests.RequestException as e:
+                    self.finished.emit('unknown',
+                                       f'Network error: {str(e)[:100]}')
+                except Exception as e:
+                    self.finished.emit('unknown',
+                                       f'Error: {str(e)[:100]}')
+
+        # Callback für Ergebnis
+        def on_check_finished(status: str, details: str):
+            progress.close()
+
+            # Status-Text übersetzen
+            if status == 'available':
+                status_text = t('ui.game_list.context_menu.store_available')
+                icon = QMessageBox.Icon.Information
+            elif status == 'geo_locked':
+                status_text = t('ui.game_list.context_menu.store_geo_locked')
+                icon = QMessageBox.Icon.Warning
+            elif status == 'delisted':
+                status_text = t('ui.game_list.context_menu.store_delisted')
+                icon = QMessageBox.Icon.Warning
+            else:
+                status_text = t('ui.game_list.context_menu.store_unknown')
+                icon = QMessageBox.Icon.Information
+
+            # MessageBox mit Ergebnis
+            msg = QMessageBox(self)
+            msg.setIcon(icon)
+            msg.setWindowTitle(t('ui.game_list.context_menu.store_status_title'))
+            msg.setText(t('ui.game_list.context_menu.store_status_msg',
+                          game=game.name,
+                          status=status_text,
+                          details=details))
+            msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+            msg.exec()
+
+        # Thread starten
+        thread = StoreCheckThread(game.app_id)
+        thread.finished.connect(on_check_finished)
+        thread.start()
 
     def rename_category(self, old_name: str):
         new_name, ok = QInputDialog.getText(self, t('ui.game_list.context_menu.rename'),

@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFont
 from typing import Optional, Dict, List
 from src.utils.i18n import t
+from src.utils.date_utils import parse_date_to_timestamp
 
 
 class MetadataEditDialog(QDialog):
@@ -82,13 +83,13 @@ class MetadataEditDialog(QDialog):
         self.write_to_vdf_cb.setChecked(True)
 
         vdf_layout.addWidget(self.write_to_vdf_cb)
-        
+
         # Info Text
         vdf_info = QLabel(t('ui.metadata_editor.vdf_info'))
         vdf_info.setWordWrap(True)
         vdf_info.setStyleSheet("color: #888; font-size: 9px; padding: 5px;")
         vdf_layout.addWidget(vdf_info)
-        
+
         vdf_group.setLayout(vdf_layout)
         layout.addWidget(vdf_group)
 
@@ -126,7 +127,7 @@ class MetadataEditDialog(QDialog):
     def _populate_fields(self):
         """Befülle Felder und markiere geänderte Werte"""
         m = self.current_metadata
-        
+
         # Befülle Felder
         self.name_edit.setText(m.get('name', ''))
         self.sort_as_edit.setText(m.get('sort_as', ''))
@@ -138,7 +139,7 @@ class MetadataEditDialog(QDialog):
         if self.original_metadata:
             self._highlight_modified_fields()
 
-        # Original Values anzeigen
+        # show original Values
         na = t('ui.game_details.value_unknown')
         if self.original_metadata:
             # Zeige ECHTE Originale
@@ -156,39 +157,39 @@ class MetadataEditDialog(QDialog):
                 f"{t('ui.game_details.publisher')}: {m.get('publisher', na)}",
                 f"{t('ui.game_details.release_year')}: {m.get('release_date', na)}"
             ]
-        
+
         self.original_text.setPlainText('\n'.join(lines))
 
     def _highlight_modified_fields(self):
         """Markiere geänderte Felder gelb"""
         modified_style = "background-color: #FFF3CD; border: 2px solid #FFA500;"
-        
+
         m = self.current_metadata
         o = self.original_metadata
-        
+
         # Name
         if m.get('name', '') != o.get('name', ''):
             self.name_edit.setStyleSheet(modified_style)
-            self.name_edit.setToolTip(t('ui.metadata_editor.modified_tooltip', 
+            self.name_edit.setToolTip(t('ui.metadata_editor.modified_tooltip',
                                         original=o.get('name', t('ui.game_details.value_unknown'))))
-        
+
         # Developer
         if m.get('developer', '') != o.get('developer', ''):
             self.developer_edit.setStyleSheet(modified_style)
             self.developer_edit.setToolTip(t('ui.metadata_editor.modified_tooltip',
                                              original=o.get('developer', t('ui.game_details.value_unknown'))))
-        
+
         # Publisher
         if m.get('publisher', '') != o.get('publisher', ''):
             self.publisher_edit.setStyleSheet(modified_style)
             self.publisher_edit.setToolTip(t('ui.metadata_editor.modified_tooltip',
                                              original=o.get('publisher', t('ui.game_details.value_unknown'))))
-        
+
         # Release Date
         if str(m.get('release_date', '')) != str(o.get('release_date', '')):
             self.release_date_edit.setStyleSheet(modified_style)
             self.release_date_edit.setToolTip(t('ui.metadata_editor.modified_tooltip',
-                                                 original=o.get('release_date', t('ui.game_details.value_unknown'))))
+                                                original=o.get('release_date', t('ui.game_details.value_unknown'))))
 
     def _revert_to_original(self):
         """Stelle Original-Werte wieder her"""
@@ -199,7 +200,7 @@ class MetadataEditDialog(QDialog):
                 t('ui.metadata_editor.revert_no_original')
             )
             return
-        
+
         # Confirm
         reply = QMessageBox.question(
             self,
@@ -207,21 +208,21 @@ class MetadataEditDialog(QDialog):
             t('ui.metadata_editor.revert_confirm'),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
-        
+
         if reply == QMessageBox.StandardButton.Yes:
             # Setze Original-Werte
             self.name_edit.setText(self.original_metadata.get('name', ''))
             self.developer_edit.setText(self.original_metadata.get('developer', ''))
             self.publisher_edit.setText(self.original_metadata.get('publisher', ''))
             self.release_date_edit.setText(str(self.original_metadata.get('release_date', '')))
-            
+
             # Clear modified styles
             normal_style = ""
             self.name_edit.setStyleSheet(normal_style)
             self.developer_edit.setStyleSheet(normal_style)
             self.publisher_edit.setStyleSheet(normal_style)
             self.release_date_edit.setStyleSheet(normal_style)
-            
+
             # Clear tooltips
             self.name_edit.setToolTip("")
             self.developer_edit.setToolTip("")
@@ -242,19 +243,19 @@ class MetadataEditDialog(QDialog):
                 msg = QMessageBox(self)
                 msg.setIcon(QMessageBox.Icon.Information)
                 msg.setWindowTitle(t('ui.metadata_editor.vdf_warning_title'))
-                
+
                 msg.setText(t('ui.metadata_editor.vdf_warning_text'))
                 msg.setInformativeText(t('ui.metadata_editor.vdf_warning_details'))
-                
+
                 msg.setStandardButtons(
-                    QMessageBox.StandardButton.Yes | 
+                    QMessageBox.StandardButton.Yes |
                     QMessageBox.StandardButton.No
                 )
                 msg.setDefaultButton(QMessageBox.StandardButton.Yes)
-                
+
                 if msg.exec() != QMessageBox.StandardButton.Yes:
                     return
-                
+
                 self.parent()._vdf_warning_shown = True
 
         self.result_metadata = {
@@ -262,7 +263,7 @@ class MetadataEditDialog(QDialog):
             'sort_as': self.sort_as_edit.text().strip() or name,
             'developer': self.developer_edit.text().strip(),
             'publisher': self.publisher_edit.text().strip(),
-            'release_date': self.release_date_edit.text().strip(),
+            'release_date': parse_date_to_timestamp(self.release_date_edit.text().strip()),  # ← FIX!
             'write_to_vdf': self.write_to_vdf_cb.isChecked()
         }
         self.accept()
@@ -375,7 +376,8 @@ class BulkMetadataEditDialog(QDialog):
         self.result_metadata = {}
         if self.cb_dev.isChecked(): self.result_metadata['developer'] = self.edit_dev.text().strip()
         if self.cb_pub.isChecked(): self.result_metadata['publisher'] = self.edit_pub.text().strip()
-        if self.cb_date.isChecked(): self.result_metadata['release_date'] = self.edit_date.text().strip()
+        if self.cb_date.isChecked():
+            self.result_metadata['release_date'] = parse_date_to_timestamp(self.edit_date.text().strip())  # ← FIX!
 
         mods = {}
         if self.cb_pre.isChecked(): mods['prefix'] = self.edit_pre.text()

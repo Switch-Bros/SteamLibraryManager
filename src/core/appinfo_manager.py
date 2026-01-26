@@ -135,23 +135,25 @@ class AppInfoManager:
             app_data_full = self.appinfo.apps[int(app_id)]
             vdf_data = app_data_full.get('data', {})
 
-            # Finde common Sektion
+            # Find common section - use helper method!
             common = self._find_common_section(vdf_data)
 
             if common:
+                # Name & Type
                 result['name'] = common.get('name', '')
                 result['type'] = common.get('type', '')
 
-                # A) Versuche direkte Felder (altes Format)
-                result['developer'] = common.get('developer', '')
-                result['publisher'] = common.get('publisher', '')
+                # =============================================
+                # DEVELOPER & PUBLISHER - ASSOCIATIONS FIRST!
+                # =============================================
+                devs = []
+                pubs = []
 
-                # B) Versuche 'associations' (neues Format) -> Das fehlte bisher!
+                # A) TRY 'associations' FIRST (new format)
                 if 'associations' in common:
                     assoc = common['associations']
-                    devs = []
-                    pubs = []
-                    # Associations ist meist ein Dict mit Index als Key ("0", "1", ...)
+
+                    # associations ist ein Dict mit Index als Key ("0", "1", ...)
                     for entry in assoc.values():
                         if isinstance(entry, dict):
                             entry_type = entry.get('type', '')
@@ -162,17 +164,31 @@ class AppInfoManager:
                             elif entry_type == 'publisher' and entry_name:
                                 pubs.append(entry_name)
 
-                    # Wenn gefunden, überschreibe leere Werte
-                    if devs and not result['developer']:
-                        result['developer'] = ", ".join(devs)
-                    if pubs and not result['publisher']:
-                        result['publisher'] = ", ".join(pubs)
+                # B) FALLBACK: Direct fields (old format)
+                if not devs:
+                    dev_direct = common.get('developer', '')
+                    if dev_direct:
+                        devs = [dev_direct] if isinstance(dev_direct, str) else list(dev_direct)
 
-                # Release Date Keys
+                if not pubs:
+                    pub_direct = common.get('publisher', '')
+                    if pub_direct:
+                        pubs = [pub_direct] if isinstance(pub_direct, str) else list(pub_direct)
+
+                # Set results
+                result['developer'] = ", ".join(devs) if devs else ''
+                result['publisher'] = ", ".join(pubs) if pubs else ''
+
+                # =============================================
+                # RELEASE DATE
+                # =============================================
+                # Try multiple keys
                 if 'steam_release_date' in common:
                     result['release_date'] = common.get('steam_release_date', '')
                 elif 'release_date' in common:
                     result['release_date'] = common.get('release_date', '')
+                else:
+                    result['release_date'] = ''
 
         # 2. Apply modifications (Custom Overrides)
         if app_id in self.modifications:
