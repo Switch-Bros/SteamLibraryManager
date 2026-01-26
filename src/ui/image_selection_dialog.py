@@ -1,5 +1,5 @@
 """
-Image Selection Dialog - Cleaned & Robust
+Image Selection Dialog - Full Version (Setup, Speed & Author Info)
 Speichern als: src/ui/image_selection_dialog.py
 """
 import json
@@ -23,6 +23,7 @@ class SearchThread(QThread):
         self.api = SteamGridDB()
 
     def run(self):
+        # Holt ALLE Bilder (durch Fix in steamgrid_api.py)
         urls = self.api.get_images_by_type(self.app_id, self.img_type)
         self.results_found.emit(urls)
 
@@ -45,10 +46,12 @@ class ImageSelectionDialog(QDialog):
     def _create_ui(self):
         self.main_layout = QVBoxLayout(self)
 
+        # Status / Loading Label
         self.status_label = QLabel(t('ui.dialogs.image_picker_loading'))
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.main_layout.addWidget(self.status_label)
 
+        # Scroll Area für Ergebnisse
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
         self.scroll.hide()
@@ -61,6 +64,7 @@ class ImageSelectionDialog(QDialog):
 
         self.main_layout.addWidget(self.scroll)
 
+        # --- SETUP WIDGET (Falls API Key fehlt) ---
         self.setup_widget = QWidget()
         self.setup_widget.hide()
         setup_layout = QVBoxLayout(self.setup_widget)
@@ -101,6 +105,14 @@ class ImageSelectionDialog(QDialog):
 
         self.main_layout.addWidget(self.setup_widget)
 
+        # Cancel Button ganz unten
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        cancel_btn = QPushButton(t('ui.dialogs.cancel'))
+        cancel_btn.clicked.connect(self.reject)
+        btn_layout.addWidget(cancel_btn)
+        self.main_layout.addLayout(btn_layout)
+
     def _check_api_and_start(self):
         api = SteamGridDB()
         if not api.api_key:
@@ -127,7 +139,6 @@ class ImageSelectionDialog(QDialog):
                 with open(settings_file, 'w', encoding='utf-8') as f:
                     json.dump(current_settings, f, indent=2)
             except (OSError, json.JSONDecodeError) as e:
-                # FIX: t() genutzt statt hardcoded f-string
                 print(t('logs.config.save_error', error=e))
 
             self._check_api_and_start()
@@ -163,24 +174,47 @@ class ImageSelectionDialog(QDialog):
 
         row, col = 0, 0
         for item in items:
+            # Container für Bild + Autor
+            container = QWidget()
+            container_layout = QVBoxLayout(container)
+            container_layout.setContentsMargins(0, 0, 0, 0)
+            container_layout.setSpacing(2)
+
+            # 1. Das Bild
+            # 'metadata' wird übergeben, damit Badges funktionieren (NSFW, Humor etc.)
             img_widget = ClickableImage(self.img_type, w, h, metadata=item)
 
-            # Smart Load: Volle URL für WebP/GIF/Animated, sonst Thumb
+            # Smart Load: Volle URL für WebP/GIF/Animated, sonst Thumb (SPEED FIX!)
             load_url = item['thumb']
             mime = item.get('mime', '')
             tags = item.get('tags', [])
 
-            # WICHTIG: Prüft auf WebP, GIF ODER "animated" Tag (für APNGs)
             is_animated = 'webp' in mime or 'gif' in mime or 'animated' in tags
             if is_animated:
                 load_url = item['url']
 
             img_widget.load_image(load_url)
 
+            # Klick-Handler
             full_url = item['url']
             img_widget.mousePressEvent = lambda e, u=full_url: self._on_select(u)
 
-            self.grid_layout.addWidget(img_widget, row, col)
+            container_layout.addWidget(img_widget)
+
+            # 2. Der Autor (Linksbündig unter Bild) - NEU!
+            author_name = "Unknown"
+            if 'author' in item and 'name' in item['author']:
+                author_name = item['author']['name']
+
+            lbl_author = QLabel(f"👤 {author_name}")
+            lbl_author.setStyleSheet("color: #888; font-size: 10px; margin-left: 2px;")
+            lbl_author.setAlignment(Qt.AlignmentFlag.AlignLeft)
+            lbl_author.setFixedWidth(w)
+            container_layout.addWidget(lbl_author)
+
+            # Container zum Grid hinzufügen
+            self.grid_layout.addWidget(container, row, col)
+
             col += 1
             if col >= cols:
                 col = 0

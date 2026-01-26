@@ -1,5 +1,5 @@
 """
-Clickable Image - Fix for Badges (NSFW, Humor, Animation) & Localization
+Clickable Image - Custom Flag Icons & Badges
 Speichern als: src/ui/components/clickable_image.py
 """
 from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout
@@ -8,6 +8,7 @@ from PyQt6.QtGui import QPixmap, QCursor, QImage
 import requests
 import os
 import io
+from src.config import config
 from src.utils.i18n import t
 
 try:
@@ -60,7 +61,6 @@ class ClickableImage(QWidget):
     right_clicked = pyqtSignal()
 
     def __init__(self, parent_or_text=None, width=200, height=300, metadata=None):
-        # Support für alte und neue Aufrufe
         parent = parent_or_text if not isinstance(parent_or_text, str) else None
 
         super().__init__(parent)
@@ -75,7 +75,6 @@ class ClickableImage(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # Image Label als Hintergrund
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setStyleSheet("border: 1px solid #FDE100; background-color: #1b2838;")
@@ -83,11 +82,10 @@ class ClickableImage(QWidget):
         self.image_label.setScaledContents(False)
         layout.addWidget(self.image_label)
 
-        # Badge Container (Overlay oben links)
         self.badge_layout = QHBoxLayout(self.image_label)
         self.badge_layout.setContentsMargins(5, 5, 5, 5)
         self.badge_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        self.badge_layout.setSpacing(2)
+        self.badge_layout.setSpacing(4)
 
         self.default_image = None
         self.current_path = None
@@ -120,7 +118,6 @@ class ClickableImage(QWidget):
             self.loader.stop()
             self.loader.wait()
 
-        # Nutzt jetzt den Key "ui.loading.dots"
         self.image_label.setText(t('ui.loading.dots'))
 
         self.loader = ImageLoader(url_or_path)
@@ -216,7 +213,7 @@ class ClickableImage(QWidget):
             self.right_clicked.emit()
 
     def _create_badges(self, is_animated=False):
-        """Erstellt Badges basierend auf Metadaten"""
+        """Erstellt Badges (Icons oder Text) oben links"""
         self._clear_badges()
 
         if not self.metadata:
@@ -224,37 +221,54 @@ class ClickableImage(QWidget):
 
         tags = self.metadata.get('tags', [])
 
-        # Helper zum Erstellen eines Badges
-        def add_badge(text, bg_color="#000000"):
-            lbl = QLabel(text)
-            lbl.setStyleSheet(f"""
-                background-color: {bg_color}; 
-                color: white; 
-                padding: 2px 4px; 
-                border-radius: 3px; 
-                font-weight: bold; 
-                font-size: 10px;
-                border: 1px solid #555;
-            """)
-            lbl.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-            self.badge_layout.addWidget(lbl)
-            self.badges.append(lbl)
+        # Helper: Fügt entweder Icon oder Text-Badge hinzu
+        def add_badge(type_key, text, bg_color="#000000"):
+            # 1. Custom Icon prüfen (z.B. flag_nsfw.png)
+            icon_name = f"flag_{type_key}.png"
+            icon_path = config.ICONS_DIR / icon_name
 
-        # 1. NSFW / Adult
+            if icon_path.exists():
+                lbl = QLabel()
+                pix = QPixmap(str(icon_path))
+                # Skaliere Icon (z.B. 24px Höhe), Aspect Ratio behalten
+                lbl.setPixmap(pix.scaledToHeight(24, Qt.TransformationMode.SmoothTransformation))
+                lbl.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+                self.badge_layout.addWidget(lbl)
+                self.badges.append(lbl)
+            else:
+                # 2. Fallback: Text Badge
+                lbl = QLabel(text)
+                lbl.setStyleSheet(f"""
+                    background-color: {bg_color}; 
+                    color: white; 
+                    padding: 3px 6px; 
+                    border-radius: 4px; 
+                    font-weight: bold; 
+                    font-size: 10px;
+                    border: 1px solid rgba(255,255,255,0.3);
+                """)
+                lbl.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+                self.badge_layout.addWidget(lbl)
+                self.badges.append(lbl)
+
+        # 1. NSFW
         if self.metadata.get('nsfw') or 'nsfw' in tags:
-            add_badge(t('ui.badges.nsfw'), "#d9534f")  # Rot
+            add_badge('nsfw', t('ui.badges.nsfw'), "#d9534f")
 
         # 2. Humor
         if self.metadata.get('humor') or 'humor' in tags:
-            add_badge(t('ui.badges.humor'), "#f0ad4e")  # Orange/Gelb
+            add_badge('humor', t('ui.badges.humor'), "#f0ad4e")
 
         # 3. Epilepsy
         if self.metadata.get('epilepsy') or 'epilepsy' in tags:
-            add_badge(t('ui.badges.epilepsy'), "#0275d8")  # Blau
+            add_badge('epilepsy', t('ui.badges.epilepsy'), "#0275d8")
 
         # 4. Animated
         if is_animated:
-            add_badge(t('ui.badges.animated'), "#5cb85c")  # Grün
+            add_badge('animated', t('ui.badges.animated'), "#5cb85c")
+
+        # 5. Untagged (optional)
+        # if 'untagged' in tags: ...
 
     def _clear_badges(self):
         for b in self.badges:
