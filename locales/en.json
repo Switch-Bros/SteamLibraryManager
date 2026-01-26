@@ -422,7 +422,8 @@
       "deleted": "Deleted custom image: {path}",
       "api_error": "API Error {code} on page {page}",
       "exception": "API Exception: {error}",
-      "found": "Images found: {count}"
+      "found": "Images found: {count}",
+      "delete_error": "Error deleting image: {error}"
     },
     "backup": {
       "rotated": "Rotated backup: {name}",
