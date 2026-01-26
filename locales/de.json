@@ -422,7 +422,8 @@
       "deleted": "Benutzerdefiniertes Bild gelöscht: {path}",
       "api_error": "API Fehler {code} auf Seite {page}",
       "exception": "API Ausnahme: {error}",
-      "found": "Bilder gefunden: {count}"
+      "found": "Bilder gefunden: {count}",
+      "delete_error": "Fehler beim Löschen des Bildes: {error}"
     },
     "backup": {
       "rotated": "Backup rotiert: {name}",
