@@ -355,6 +355,8 @@
         "auto_categorize_selected": "Auto-Categorize Selection",
         "hide_game": "Hide Game (in Steam)",
         "unhide_game": "Unhide Game",
+        "status_hidden": "hidden",
+        "status_visible": "visible",
         "remove_from_account": "Remove from Account (Permanent)",
         "confirm_hide_title": "Status Changed",
         "confirm_hide_msg": "'{game}' is now {status}.\nPlease restart Steam to see the changes."
