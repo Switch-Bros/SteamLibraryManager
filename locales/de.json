@@ -359,7 +359,15 @@
         "status_visible": "sichtbar",
         "remove_from_account": "Vom Account entfernen (Permanent)",
         "confirm_hide_title": "Status geändert",
-        "confirm_hide_msg": "'{game}' ist nun {status}.\nBitte Steam neu starten, damit es wirksam wird."
+        "confirm_hide_msg": "'{game}' ist nun {status}.\nBitte Steam neu starten, damit es wirksam wird.",
+        "check_store": "🔍 Store-Verfügbarkeit prüfen",
+        "store_available": "Im Store verfügbar",
+        "store_geo_locked": "Geo-gesperrt / Regional beschränkt",
+        "store_delisted": "Nicht mehr im Store / Entfernt",
+        "store_unknown": "Prüfung fehlgeschlagen",
+        "store_checking": "Prüfe Store...",
+        "store_status_title": "Store-Status",
+        "store_status_msg": "{game}\n\nStatus: {status}\n\n{details}"
       }
     },
     "badges": {

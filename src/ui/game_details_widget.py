@@ -7,13 +7,15 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QFrame, QPushButton, QCheckBox,
     QLineEdit, QListWidget, QListWidgetItem,
-    QAbstractItemView, QMenu, QSizePolicy
+    QAbstractItemView, QMenu
 )
+
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from PyQt6.QtGui import QFont, QCursor
 from typing import List
 from src.core.game_manager import Game
 from src.utils.i18n import t
+from src.utils.date_utils import format_timestamp_to_date
 from src.ui.components.clickable_image import ClickableImage
 from src.core.steam_assets import SteamAssets
 from src.ui.image_selection_dialog import ImageSelectionDialog
@@ -251,7 +253,7 @@ class GameDetailsWidget(QWidget):
         self.lbl_proton.setText(
             f"<span style='color:#888;'>{title}:</span> <span style='color:{color}; font-weight:bold;'>{display_text}</span>")
 
-    def set_game(self, game: Game, all_categories: List[str]):
+    def set_game(self, game: Game, _all_categories: List[str]):
         self.current_game = game
         self.name_label.setText(game.name)
         self.lbl_appid.setText(f"<span style='color:#888;'>{t('ui.game_details.app_id')}:</span> <b>{game.app_id}</b>")
@@ -268,10 +270,20 @@ class GameDetailsWidget(QWidget):
         self.lbl_reviews.setText(
             f"<span style='color:#888;'>{t('ui.game_details.reviews')}:</span> <b>{review_val}</b>")
         unknown = t('ui.game_details.value_unknown')
-        self.edit_dev.setText(game.developer if game.developer else unknown)
-        self.edit_pub.setText(game.publisher if game.publisher else unknown)
-        self.edit_rel.setText(game.release_year if game.release_year else unknown)
-        self.category_list.set_categories(all_categories, game.categories)
+
+        # Helper für safe Text-Konvertierung
+        def safe_text(value, formatter=None):
+            if not value:
+                return unknown
+            if formatter:
+                return formatter(value)
+            return str(value)
+
+        # Setze Felder
+        self.edit_dev.setText(safe_text(game.developer))
+        self.edit_pub.setText(safe_text(game.publisher))
+        self.edit_rel.setText(safe_text(game.release_year, format_timestamp_to_date))
+        self.category_list.set_categories(_all_categories, game.categories)
 
         self._reload_images(game.app_id)
 
