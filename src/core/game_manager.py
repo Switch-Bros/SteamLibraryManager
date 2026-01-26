@@ -227,48 +227,82 @@ class GameManager:
         return config.get_detected_user()
 
     def apply_metadata_overrides(self, appinfo_manager):
+        """
+        Apply metadata from AppInfo & custom modifications
+
+        WICHTIG: Diese Methode wurde gefixt um:
+        1. Release Date korrekt zu setzen (fehlte vorher!)
+        2. Verschachtelung zu korrigieren (Performance)
+        """
         self.appinfo_manager = appinfo_manager
         modifications = appinfo_manager.load_appinfo()
 
         count = 0
-        # 1. Erst Binary Namen aus AppInfo (für "App + ID" Fälle)
+
+        # ========================================================================
+        # 1. BINARY APPINFO METADATEN FÜR ALLE SPIELE
+        # ========================================================================
+        # Hier laden wir Developer/Publisher/Release aus der appinfo.vdf
+
         for app_id, game in self.games.items():
+            # Hole Metadaten aus AppInfo
             steam_meta = appinfo_manager.get_app_metadata(app_id)
+
+            # Name (nur für "App XXXXX" Fälle überschreiben)
             if game.name.startswith("App ") and steam_meta.get('name'):
                 game.name = steam_meta['name']
                 if not game.name_overridden:
                     game.sort_name = game.name
 
+            # Developer (wenn noch leer/unbekannt)
             if not game.developer and steam_meta.get('developer'):
                 game.developer = steam_meta['developer']
+
+            # Publisher (wenn noch leer/unbekannt)
             if not game.publisher and steam_meta.get('publisher'):
                 game.publisher = steam_meta['publisher']
 
-                # 2. Dann Custom Overrides aus custom_metadata.json
-                for app_id, meta_data in modifications.items():
-                    if app_id in self.games:
-                        game = self.games[app_id]
+            # ⚠️ FIX: Release Date wurde vorher NICHT gesetzt!
+            if not game.release_year and steam_meta.get('release_date'):
+                game.release_year = steam_meta['release_date']
 
-                        # Hole modified values aus dem modifications dict
-                        modified = meta_data.get('modified', {})
+        # ========================================================================
+        # 2. CUSTOM OVERRIDES AUS custom_metadata.json
+        # ========================================================================
+        # ⚠️ FIX: Diese Schleife war vorher FALSCH verschachtelt!
+        #    Sie war INNERHALB der Spiele-Schleife → Performance-Killer!
 
-                        if modified.get('name'):
-                            game.name = modified['name']
-                            game.name_overridden = True
+        for app_id, meta_data in modifications.items():
+            if app_id in self.games:
+                game = self.games[app_id]
 
-                        if modified.get('sort_as'):
-                            game.sort_name = modified['sort_as']
-                        elif game.name_overridden:
-                            game.sort_name = game.name
+                # Hole modified values aus dem modifications dict
+                modified = meta_data.get('modified', {})
 
-                        if modified.get('developer'):
-                            game.developer = modified['developer']
-                        if modified.get('publisher'):
-                            game.publisher = modified['publisher']
-                        if modified.get('release_date'):
-                            game.release_year = modified['release_date']
+                # Name Override
+                if modified.get('name'):
+                    game.name = modified['name']
+                    game.name_overridden = True
 
-                        count += 1
+                # Sort Name Override
+                if modified.get('sort_as'):
+                    game.sort_name = modified['sort_as']
+                elif game.name_overridden:
+                    game.sort_name = game.name
+
+                # Developer Override
+                if modified.get('developer'):
+                    game.developer = modified['developer']
+
+                # Publisher Override
+                if modified.get('publisher'):
+                    game.publisher = modified['publisher']
+
+                # Release Date Override
+                if modified.get('release_date'):
+                    game.release_year = modified['release_date']
+
+                count += 1
 
         if count > 0:
             print(t('logs.manager.applied_overrides', count=count))
