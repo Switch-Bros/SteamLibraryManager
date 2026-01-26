@@ -1,5 +1,5 @@
 """
-Configuration - Cleaned, Typed & Warning-Free
+Configuration - Cleaned, Typed & Localized
 Speichern als: src/config.py
 """
 import os
@@ -38,6 +38,9 @@ class Config:
 
     STEAM_PATH: Optional[Path] = None
     STEAM_USER_ID: Optional[str] = None
+    # Liste für zusätzliche Bibliotheken
+    STEAM_LIBRARIES: list = None
+
     MAX_BACKUPS: int = 5
     TAGS_PER_GAME: int = 13
     IGNORE_COMMON_TAGS: bool = True
@@ -45,57 +48,84 @@ class Config:
     def __post_init__(self):
         self.DATA_DIR.mkdir(exist_ok=True)
         self.CACHE_DIR.mkdir(exist_ok=True)
-        (self.APP_DIR / 'logs').mkdir(exist_ok=True)
 
-        # Lade .env
-        try:
-            load_dotenv(Path(__file__).parent.parent / '.env')
-        except (OSError, UnicodeDecodeError):
-            pass
+        if self.STEAM_LIBRARIES is None:
+            self.STEAM_LIBRARIES = []
 
-        # Lade Umgebungsvariablen
-        if os.getenv('STEAM_API_KEY'):
-            self.STEAM_API_KEY = os.getenv('STEAM_API_KEY')
+        load_dotenv()
+        env_key = os.getenv("STEAM_API_KEY")
+        if env_key:
+            self.STEAM_API_KEY = env_key
 
         self._load_settings()
 
         if not self.STEAM_PATH:
-            self.STEAM_PATH = self._find_steam_path()
+            detected = self._find_steam_path()
+            if detected:
+                self.STEAM_PATH = detected
 
     def _load_settings(self):
-        if self.SETTINGS_FILE.exists():
-            try:
-                with open(self.SETTINGS_FILE, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
+        # Local import to avoid circular dependency
+        from src.utils.i18n import t
 
-                if 'ui_language' in data: self.UI_LANGUAGE = data['ui_language']
-                if 'tags_language' in data: self.TAGS_LANGUAGE = data['tags_language']
-                if 'steamgriddb_api_key' in data: self.STEAMGRIDDB_API_KEY = data['steamgriddb_api_key']
-                if 'steam_path' in data and data['steam_path']:
-                    self.STEAM_PATH = Path(data['steam_path'])
-                if 'max_backups' in data: self.MAX_BACKUPS = data['max_backups']
+        if not self.SETTINGS_FILE.exists():
+            return
 
-            except (OSError, json.JSONDecodeError) as e:
-                print(f"Error loading settings: {e}")
+        try:
+            with open(self.SETTINGS_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
 
-    def save_settings(self, **kwargs):
-        current = {}
-        if self.SETTINGS_FILE.exists():
-            try:
-                with open(self.SETTINGS_FILE, 'r', encoding='utf-8') as f:
-                    current = json.load(f)
-            except (OSError, json.JSONDecodeError):
-                pass
+                self.UI_LANGUAGE = data.get('ui_language', self.UI_LANGUAGE)
+                self.TAGS_LANGUAGE = data.get('tags_language', self.TAGS_LANGUAGE)
 
-        current.update(kwargs)
-        if 'steam_path' in kwargs and isinstance(kwargs['steam_path'], Path):
-            current['steam_path'] = str(kwargs['steam_path'])
+                steam_path = data.get('steam_path')
+                if steam_path:
+                    self.STEAM_PATH = Path(steam_path)
+
+                self.STEAMGRIDDB_API_KEY = data.get('steamgriddb_api_key', self.STEAMGRIDDB_API_KEY)
+                self.STEAM_API_KEY = data.get('steam_api_key', self.STEAM_API_KEY)
+                self.TAGS_PER_GAME = data.get('tags_per_game', self.TAGS_PER_GAME)
+                self.IGNORE_COMMON_TAGS = data.get('ignore_common_tags', self.IGNORE_COMMON_TAGS)
+                self.MAX_BACKUPS = data.get('max_backups', self.MAX_BACKUPS)
+                self.STEAM_LIBRARIES = data.get('steam_libraries', [])
+
+                # WICHTIG: User ID laden
+                self.STEAM_USER_ID = data.get('steam_user_id')
+
+        except (OSError, json.JSONDecodeError) as e:
+            # Jetzt lokalisiert
+            print(t('logs.config.load_error', error=e))
+
+    def save(self):
+        """Helper to save current config to file"""
+        # Local import to avoid circular dependency
+        from src.utils.i18n import t
+
+        data = {
+            'ui_language': self.UI_LANGUAGE,
+            'tags_language': self.TAGS_LANGUAGE,
+            'steam_path': str(self.STEAM_PATH) if self.STEAM_PATH else "",
+            'steamgriddb_api_key': self.STEAMGRIDDB_API_KEY,
+            'steam_api_key': self.STEAM_API_KEY,
+            'tags_per_game': self.TAGS_PER_GAME,
+            'ignore_common_tags': self.IGNORE_COMMON_TAGS,
+            'max_backups': self.MAX_BACKUPS,
+            'steam_libraries': self.STEAM_LIBRARIES,
+            'steam_user_id': self.STEAM_USER_ID
+        }
 
         try:
             with open(self.SETTINGS_FILE, 'w', encoding='utf-8') as f:
-                json.dump(current, f, indent=2)
+                json.dump(data, f, indent=2)
         except OSError as e:
-            print(f"Error saving settings: {e}")
+            # Jetzt lokalisiert
+            print(t('logs.config.save_error', error=e))
+
+    def update_paths(self, **kwargs):
+        if 'steam_path' in kwargs:
+            self.STEAM_PATH = kwargs['steam_path']
+
+        self.save()
 
     @staticmethod
     def _find_steam_path() -> Optional[Path]:
@@ -105,7 +135,6 @@ class Config:
         ]
         for p in paths:
             if p.exists():
-                # Folge Symlinks
                 return p.resolve() if p.is_symlink() else p
         return None
 
@@ -127,5 +156,5 @@ class Config:
         return self.STEAM_PATH / 'userdata' / account_id / 'config' / 'localconfig.vdf'
 
 
-# Globale Instanz
+# Global instance
 config = Config()

@@ -398,7 +398,8 @@
     "config": {
       "loaded": "Einstellungen geladen",
       "error": "Fehler beim Laden der Einstellungen: {error}",
-      "save_error": "Fehler beim Speichern der Einstellungen: {error}"
+      "load_error": "Error loading configuration: {error}",
+      "save_error": "Error saving configuration: {error}"
     },
     "auth": {
       "starting": "Starte Steam OAuth Prozess...",

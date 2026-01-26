@@ -88,6 +88,8 @@ class MainWindow(QMainWindow):
         self._create_ui()
         self._load_data()
 
+        self._restore_login_state()
+
     def _create_ui(self):
         menubar = self.menuBar()
 
@@ -325,20 +327,33 @@ class MainWindow(QMainWindow):
         self.set_status(t('ui.login.status_success'))
         QMessageBox.information(self, t('ui.login.title'), t('ui.login.status_success'))
 
+        # 1. Config setzen
         config.STEAM_USER_ID = steam_id_64
 
-        # NEU: Namen holen und speichern
-        self.steam_username = self._fetch_steam_persona_name(steam_id_64)
+        # 2. Config SPEICHERN (Damit es persistent ist!)
+        config.save()
 
-        # Update User Label
+        # 3. UI Update
+        self.steam_username = self._fetch_steam_persona_name(steam_id_64)
         display_text = self.steam_username if self.steam_username else steam_id_64
         self.user_label.setText(t('ui.main.user_label', user_id=display_text))
-
-        # NEU: Toolbar neu bauen (Button zeigt jetzt Name)
         self._refresh_toolbar()
 
         if self.game_manager:
             self._load_games_with_progress(steam_id_64)
+
+    def _restore_login_state(self):
+        """Restore login state from config at startup"""
+        if config.STEAM_USER_ID:
+            # Name holen (kann kurz dauern, aber UI ist schon da)
+            self.steam_username = self._fetch_steam_persona_name(config.STEAM_USER_ID)
+
+            # UI Updates wie beim Login
+            display_text = self.steam_username if self.steam_username else config.STEAM_USER_ID
+            self.user_label.setText(t('ui.main.user_label', user_id=display_text))
+
+            # Toolbar neu bauen, damit "Login" verschwindet und Name erscheint
+            self._refresh_toolbar()
 
     def _on_steam_login_error(self, error: str):
         self.set_status(t('ui.login.status_failed'))
