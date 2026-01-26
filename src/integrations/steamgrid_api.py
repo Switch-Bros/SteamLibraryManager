@@ -1,5 +1,5 @@
 """
-SteamGridDB API Client (Pagination & Full Results)
+SteamGridDB API Client (Full Pagination)
 Speichern als: src/integrations/steamgrid_api.py
 """
 import requests
@@ -29,7 +29,7 @@ class SteamGridDB:
 
     def get_images_by_type(self, steam_app_id: str, img_type: str) -> List[Dict[str, Any]]:
         """
-        Holt ALLE Bilder mit METADATEN über ALLE SEITEN.
+        Holt ALLE Bilder über ALLE Seiten.
         """
         if not self.api_key: return []
 
@@ -41,8 +41,7 @@ class SteamGridDB:
 
         while True:
             try:
-                # WICHTIG: nsfw='any' zeigt auch Adult Content
-                # types='static,animated' holt auch animierte Bilder
+                # nsfw='any' -> Zeigt ALLES (Standard + Adult)
                 params: Dict[str, Any] = {
                     'page': page,
                     'nsfw': 'any',
@@ -50,7 +49,6 @@ class SteamGridDB:
                 }
 
                 if img_type == 'grids':
-                    # Nur Hochformat für Grids!
                     params['dimensions'] = '600x900,342x482'
 
                 url = f"{self.BASE_URL}/{img_type}/game/{game_id}"
@@ -71,8 +69,6 @@ class SteamGridDB:
                 else:
                     print(t('logs.steamgrid.api_error', code=response.status_code, page=page))
                     break
-
-                # Limit entfernt: Lädt jetzt ALLE Seiten
 
             except (requests.RequestException, ValueError, KeyError) as e:
                 print(t('logs.steamgrid.exception', error=e))
