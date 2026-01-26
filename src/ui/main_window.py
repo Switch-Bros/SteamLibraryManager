@@ -574,8 +574,10 @@ class MainWindow(QMainWindow):
                 'ui.game_list.context_menu.unhide_game')
             self.set_status(f"{status_text}: {game.name}")
 
-            # Info-Dialog anzeigen
-            msg_status = "versteckt" if hide else "sichtbar"
+            # Info-Dialog anzeigen - JETZT MIT ÜBERSETZUNG
+            msg_status = t('ui.game_list.context_menu.status_hidden') if hide else t(
+                'ui.game_list.context_menu.status_visible')
+
             msg = t('ui.game_list.context_menu.confirm_hide_msg',
                     game=game.name,
                     status=msg_status)
