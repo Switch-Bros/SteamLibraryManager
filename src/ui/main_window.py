@@ -507,32 +507,48 @@ class MainWindow(QMainWindow):
         menu = QMenu(self)
         menu.addAction(t('ui.game_list.context_menu.view_details'), lambda: self.on_game_selected(game))
         menu.addAction(t('ui.game_list.context_menu.toggle_favorite'), lambda: self.toggle_favorite(game))
+
+        menu.addSeparator()
+
+        # NEU: Verstecken Logik (benötigt neue Methode toggle_hide_game)
+        if game.hidden:
+            menu.addAction(t('ui.game_list.context_menu.unhide_game'), lambda: self.toggle_hide_game(game, False))
+        else:
+            menu.addAction(t('ui.game_list.context_menu.hide_game'), lambda: self.toggle_hide_game(game, True))
+
+        # NEU: Vom Account löschen (benötigt neue Methode remove_game_from_account)
+        menu.addAction(t('ui.game_list.context_menu.remove_from_account'), lambda: self.remove_game_from_account(game))
+
+        menu.addSeparator()
+
         menu.addAction(t('ui.game_list.context_menu.open_store'), lambda: self.open_in_store(game))
         menu.addSeparator()
+
         if len(self.selected_games) > 1:
             menu.addAction(t('ui.game_list.context_menu.auto_categorize_selected'), self.auto_categorize_selected)
             menu.addSeparator()
+
         menu.addAction(t('ui.game_list.context_menu.edit_metadata'), lambda: self.edit_game_metadata(game))
         menu.exec(pos)
 
     def on_category_right_click(self, category: str, pos):
         menu = QMenu(self)
 
-        # Special categories: All Games, Favorites, Uncategorized
+        # Lokalisierte Namen abrufen, um Spezial-Kategorien zu erkennen
         all_games = t('ui.categories.all_games')
         favorites = t('ui.categories.favorites')
         uncategorized = t('ui.categories.uncategorized')
 
-        # Favorites → Kein Kontextmenü
+        # Favoriten -> Kein Kontextmenü
         if category == favorites:
             return
 
-        # All Games & Uncategorized → Nur Auto-Categorize
+        # "Alle Spiele" & "Unkategorisiert" → Nur Auto-Kategorisieren erlauben
         if category in [all_games, uncategorized]:
             menu.addAction(t('ui.game_list.context_menu.auto_categorize'),
                            lambda: self.auto_categorize_category(category))
         else:
-            # Normale Kategorien → Volle Optionen
+            # Normale, selbst erstellte Kategorien → Volle Kontrolle (Umbenennen, Löschen)
             menu.addAction(t('ui.game_list.context_menu.rename'), lambda: self.rename_category(category))
             menu.addAction(t('ui.game_list.context_menu.delete'), lambda: self.delete_category(category))
             menu.addSeparator()
@@ -540,6 +556,47 @@ class MainWindow(QMainWindow):
                            lambda: self.auto_categorize_category(category))
 
         menu.exec(pos)
+
+    def toggle_hide_game(self, game: Game, hide: bool):
+        """Setzt den Hidden-Status in localconfig.vdf"""
+        if not self.vdf_parser:
+            return
+
+        # Status im Parser setzen
+        self.vdf_parser.set_app_hidden(game.app_id, hide)
+
+        # Speichern und UI aktualisieren
+        if self.vdf_parser.save():
+            game.hidden = hide
+
+            # Statusbar Update
+            status_text = t('ui.game_list.context_menu.hide_game') if hide else t(
+                'ui.game_list.context_menu.unhide_game')
+            self.set_status(f"{status_text}: {game.name}")
+
+            # Info-Dialog anzeigen
+            msg_status = "versteckt" if hide else "sichtbar"
+            msg = t('ui.game_list.context_menu.confirm_hide_msg',
+                    game=game.name,
+                    status=msg_status)
+
+            QMessageBox.information(self, t('ui.game_list.context_menu.confirm_hide_title'), msg)
+
+    def remove_game_from_account(self, game: Game):
+        """Öffnet den Browser zum permanenten Löschen"""
+        reply = QMessageBox.warning(
+            self,
+            t('ui.dialogs.confirm_remove_account_title'),
+            t('ui.dialogs.confirm_remove_account_msg', game=game.name),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            # Magic Link zur Steam Support Seite ("Ich möchte dieses Spiel dauerhaft von meinem Account entfernen")
+            # issueid=123 ist der interne Code für "Remove Package"
+            url = f"https://help.steampowered.com/en/wizard/HelpWithGameIssue/?appid={game.app_id}&issueid=123"
+            QDesktopServices.openUrl(QUrl(url))
 
     def on_search(self, query):
         if not query:
