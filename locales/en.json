@@ -131,6 +131,7 @@
     },
     "loading": {
       "title": "Loading Games",
+      "dots": "Loading...",
       "starting": "Starting...",
       "trying_api": "Trying Steam Web API...",
       "loading_local": "Loading from local files...",
@@ -183,7 +184,7 @@
       "rename_category": "Rename to:",
       "confirm_bulk_title": "Bulk Edit",
       "confirm_bulk": "Edit {count} games?",
-      "api_key_missing": "SteamGridDB API Key missing!\nPlease configure it in Settings to enable image search.", 
+      "api_key_missing": "SteamGridDB API Key missing!\nPlease configure it in Settings to enable image search.",
       "restore_title": "Restore Metadata",
       "restore_confirm": "Restore {count} tracked changes to appinfo.vdf?",
       "steam_running_title": "⚠️ Steam is Running!",
@@ -334,7 +335,7 @@
       "api_error": "Could not load games from API.",
       "offline_mode": " (Offline)",
       "load_failed": "Failed to load games",
-      "reload_button": "Reload", 
+      "reload_button": "Reload",
       "restoring": "Restoring metadata...",
       "writing_vdf": "Writing to appinfo.vdf..."
     },
@@ -387,11 +388,14 @@
       }
     },
     "badges": {
-      "animated": "Animated",
-      "humor": "Humor",
-      "nsfw": "Adult Content (NSFW)",
-      "epilepsy": "Epilepsy Warning",
+      "animated": "🎬 Animated",
+      "humor": "🤡 Humor",
+      "nsfw": "🔞 Adult (NSFW)",
+      "epilepsy": "⚡ Epilepsy Warning",
       "untagged": "Untagged"
+    },
+    "common": {
+      "na": "N/A"
     }
   },
   "logs": {
@@ -441,7 +445,7 @@
       "backup_failed": "Backup failed: {error}",
       "set_error": "Error setting metadata for {app_id}: {error}",
       "loaded_binary": "✅ Loaded binary appinfo.vdf with {count} apps",
-      "binary_error": "Error loading binary appinfo: {error}", 
+      "binary_error": "Error loading binary appinfo: {error}",
       "no_file": "appinfo.vdf file not found",
       "loading_all": "Loading ALL apps from appinfo.vdf (this may take a while)...",
       "no_apps_to_load": "No apps to load from appinfo.vdf",

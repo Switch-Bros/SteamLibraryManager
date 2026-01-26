@@ -34,7 +34,7 @@
       "github": "GitHub besuchen",
       "donate": "Spenden",
       "about": "Über",
-      "check_updates": "Nach Updates suchen", 
+      "check_updates": "Nach Updates suchen",
       "restore_metadata": "Metadaten Wiederherstellen",
       "restore_metadata_tip": "Getrackte Metadaten-Änderungen in appinfo.vdf schreiben",
       "find_missing_metadata": "Spiele mit fehlenden Metadaten finden"
@@ -64,7 +64,7 @@
       "settings": "Einstellungen",
       "auto_categorize": "Auto-Kategorisierung",
       "login": "Bei Steam anmelden",
-      "logged_in_as": "Angemeldet als {user}" 
+      "logged_in_as": "Angemeldet als {user}"
     },
     "settings": {
       "title": "Einstellungen",
@@ -131,6 +131,7 @@
     },
     "loading": {
       "title": "Lade Spiele",
+      "dots": "Lade...",
       "starting": "Starte...",
       "trying_api": "Versuche Steam Web API...",
       "loading_local": "Lade aus lokalen Dateien...",
@@ -183,7 +184,7 @@
       "rename_category": "Umbenennen in:",
       "confirm_bulk_title": "Massenbearbeitung",
       "confirm_bulk": "{count} Spiele bearbeiten?",
-      "api_key_missing": "SteamGridDB API Key fehlt!\nBitte in den Einstellungen konfigurieren, um die Bildsuche zu nutzen.", 
+      "api_key_missing": "SteamGridDB API Key fehlt!\nBitte in den Einstellungen konfigurieren, um die Bildsuche zu nutzen.",
       "restore_title": "Metadaten Wiederherstellen",
       "restore_confirm": "{count} getrackte Änderungen in appinfo.vdf wiederherstellen?",
       "steam_running_title": "⚠️ Steam läuft!",
@@ -275,7 +276,7 @@
       "vdf_write_question": "In appinfo.vdf schreiben?",
       "bulk_vdf_question": "Metadaten für {count} Spiele in JSON gespeichert.\n\nÄnderungen in appinfo.vdf schreiben?\n(Erfordert Steam-Neustart)",
       "bulk_vdf_success": "Änderungen in appinfo.vdf geschrieben!\nBackup erstellt in data/backups/\n\nBitte starte Steam neu."
-    }, 
+    },
     "auto_categorize": {
       "title": "Auto-Kategorisierung",
       "header": "Spiele auto-kategorisieren",
@@ -334,9 +335,9 @@
       "api_error": "Konnte Spiele nicht von API laden.",
       "offline_mode": " (Offline)",
       "load_failed": "Fehler beim Laden der Spiele",
-      "reload_button": "Neu laden", 
+      "reload_button": "Neu laden",
       "restoring": "Stelle Metadaten wieder her...",
-      "writing_vdf": "Schreibe in appinfo.vdf..." 
+      "writing_vdf": "Schreibe in appinfo.vdf..."
     },
     "errors": {
       "steam_not_found": "Steam-Installation nicht gefunden. Bitte setze den Pfad in den Einstellungen.",
@@ -387,11 +388,14 @@
       }
     },
     "badges": {
-      "animated": "Animiert",
-      "humor": "Humor",
-      "nsfw": "Nicht jugendfrei (NSFW)",
-      "epilepsy": "Epilepsie-Warnung",
+      "animated": "🎬 Animiert",
+      "humor": "🤡 Humor",
+      "nsfw": "🔞 Ab 18 (NSFW)",
+      "epilepsy": "⚡ Epilepsie Warnung",
       "untagged": "Nicht getaggt"
+    },
+    "common": {
+      "na": "N/A"
     }
   },
   "logs": {
@@ -409,7 +413,7 @@
       "error": "Auth Fehler: {error}",
       "webview_missing": "Info: pywebview nicht installiert, nutze System-Browser.",
       "client_id_missing": "WARNUNG: STEAM_CLIENT_ID fehlt in .env!",
-      "profile_error": "Fehler beim Laden des Profilnamens: {error}" 
+      "profile_error": "Fehler beim Laden des Profilnamens: {error}"
     },
     "image": {
       "pillow_missing": "KRITISCH: Pillow fehlt! Bitte 'pip install Pillow' ausführen."
@@ -441,7 +445,7 @@
       "backup_failed": "Backup fehlgeschlagen: {error}",
       "set_error": "Fehler beim Setzen der Metadaten für {app_id}: {error}",
       "loaded_binary": "✅ Binäre appinfo.vdf mit {count} Apps geladen",
-      "binary_error": "Fehler beim Laden der binären appinfo: {error}", 
+      "binary_error": "Fehler beim Laden der binären appinfo: {error}",
       "no_file": "appinfo.vdf Datei nicht gefunden",
       "loading_all": "Lade ALLE Spiele aus appinfo.vdf (das kann dauern)...",
       "no_apps_to_load": "Keine Apps zum Laden aus appinfo.vdf",
