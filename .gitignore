@@ -6,9 +6,5 @@ data/
 *.log
 .idea/
 .vscode/
-debug_steam.py
 resources/icons/Icon_Namen.txt
-/debug_appinfo.py
-/debug_metadata.py
-/debug_appinfo_manager.py
 /cleanup_dependencies_dev.sh
