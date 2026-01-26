@@ -36,7 +36,28 @@
       "about": "About",
       "check_updates": "Check for Updates",
       "restore_metadata": "Restore Metadata",
-      "restore_metadata_tip": "Restore tracked metadata changes to appinfo.vdf"
+      "restore_metadata_tip": "Restore tracked metadata changes to appinfo.vdf",
+      "find_missing_metadata": "Find Games with Missing Metadata"
+    },
+    "tools": {
+      "missing_metadata": {
+        "title": "Games with Missing Metadata",
+        "header": "Found {count} games with incomplete metadata",
+        "info": "These games are missing Developer, Publisher, or Release Date information. This often happens with geo-blocked, delisted, or region-restricted games.",
+        "col_appid": "App ID",
+        "col_name": "Game Name",
+        "col_developer": "Developer",
+        "col_publisher": "Publisher",
+        "col_release": "Release Date",
+        "missing": "Missing",
+        "stats": "Missing: {dev} Developers, {pub} Publishers, {rel} Release Dates",
+        "export_csv": "Export as CSV",
+        "save_csv": "Save CSV File",
+        "export_success": "Successfully exported {count} games to:\n{path}",
+        "export_error": "Failed to export CSV: {error}",
+        "no_games_found": "No Games with Missing Metadata",
+        "no_games_message": "All your games have complete metadata!\n\nDeveloper, Publisher, and Release Date are available for all {count} games."
+      }
     },
     "toolbar": {
       "refresh": "Refresh",
@@ -152,7 +173,8 @@
       "steam_running_button": "Exit Application",
       "restore_success_with_restart": "Successfully restored {count} modifications!\n\nPlease restart Steam to see changes.",
       "restore_failed": "Failed to restore modifications",
-      "restore_error": "Restore failed: {error}"
+      "restore_error": "Restore failed: {error}",
+      "close": "Close"
     },
     "game_details": {
       "name": "Name",

@@ -36,7 +36,28 @@
       "about": "Über",
       "check_updates": "Nach Updates suchen", 
       "restore_metadata": "Metadaten Wiederherstellen",
-      "restore_metadata_tip": "Getrackte Metadaten-Änderungen in appinfo.vdf schreiben" 
+      "restore_metadata_tip": "Getrackte Metadaten-Änderungen in appinfo.vdf schreiben",
+      "find_missing_metadata": "Spiele mit fehlenden Metadaten finden"
+    },
+    "tools": {
+      "missing_metadata": {
+        "title": "Spiele mit fehlenden Metadaten",
+        "header": "{count} Spiele mit unvollständigen Metadaten gefunden",
+        "info": "Diesen Spielen fehlen Entwickler-, Publisher- oder Release-Datum-Informationen. Dies passiert häufig bei geo-blockierten, delisteten oder regional beschränkten Spielen.",
+        "col_appid": "App ID",
+        "col_name": "Spielname",
+        "col_developer": "Entwickler",
+        "col_publisher": "Publisher",
+        "col_release": "Release-Datum",
+        "missing": "Fehlt",
+        "stats": "Fehlend: {dev} Entwickler, {pub} Publisher, {rel} Release-Daten",
+        "export_csv": "Als CSV exportieren",
+        "save_csv": "CSV-Datei speichern",
+        "export_success": "Erfolgreich {count} Spiele exportiert nach:\n{path}",
+        "export_error": "CSV-Export fehlgeschlagen: {error}",
+        "no_games_found": "Keine Spiele mit fehlenden Metadaten",
+        "no_games_message": "Alle deine Spiele haben vollständige Metadaten!\n\nEntwickler, Publisher und Release-Datum sind für alle {count} Spiele verfügbar."
+      }
     },
     "toolbar": {
       "refresh": "Aktualisieren",
@@ -152,7 +173,8 @@
       "steam_running_button": "Anwendung Beenden",
       "restore_success_with_restart": "{count} Änderungen erfolgreich wiederhergestellt!\n\nBitte starte Steam neu um die Änderungen zu sehen.",
       "restore_failed": "Fehler beim Wiederherstellen der Änderungen",
-      "restore_error": "Wiederherstellung fehlgeschlagen: {error}"
+      "restore_error": "Wiederherstellung fehlgeschlagen: {error}",
+      "close": "Schließen"
     },
     "game_details": {
       "name": "Name",
