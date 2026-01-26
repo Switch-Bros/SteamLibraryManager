@@ -1,15 +1,13 @@
 """
-Clickable Image - Animated, Badges, Localized & Defaults
+Clickable Image - Fix for Badges (NSFW, Humor, Animation) & Localization
 Speichern als: src/ui/components/clickable_image.py
 """
-from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout
+from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout
 from PyQt6.QtCore import Qt, pyqtSignal, QThread, QByteArray, QTimer
 from PyQt6.QtGui import QPixmap, QCursor, QImage
 import requests
 import os
 import io
-from pathlib import Path
-from src.config import config
 from src.utils.i18n import t
 
 try:
@@ -44,10 +42,10 @@ class ImageLoader(QThread):
             else:
                 if str(self.url_or_path).startswith('http'):
                     headers = {'User-Agent': 'SteamLibraryManager/1.0'}
-                    response = requests.get(self.url_or_path, headers=headers, timeout=15)
+                    response = requests.get(self.url_or_path, headers=headers, timeout=10)
                     if response.status_code == 200:
                         data = QByteArray(response.content)
-        except (requests.exceptions.RequestException, OSError):
+        except (OSError, ValueError, requests.RequestException):
             pass
 
         if self._is_running:
@@ -55,21 +53,45 @@ class ImageLoader(QThread):
 
     def stop(self):
         self._is_running = False
-        self.quit()
-        self.wait()
 
 
 class ClickableImage(QWidget):
-    clicked = pyqtSignal(str)
-    right_clicked = pyqtSignal(str)
+    clicked = pyqtSignal()
+    right_clicked = pyqtSignal()
 
-    def __init__(self, img_type, width, height, metadata=None):
-        super().__init__()
-        self.img_type = img_type
+    def __init__(self, parent_or_text=None, width=200, height=300, metadata=None):
+        # Support für alte und neue Aufrufe
+        parent = parent_or_text if not isinstance(parent_or_text, str) else None
+
+        super().__init__(parent)
         self.w = width
         self.h = height
+        self.metadata = metadata
+
+        self.setFixedSize(width, height)
+        self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        # Image Label als Hintergrund
+        self.image_label = QLabel()
+        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.image_label.setStyleSheet("border: 1px solid #FDE100; background-color: #1b2838;")
+        self.image_label.setFixedSize(width, height)
+        self.image_label.setScaledContents(False)
+        layout.addWidget(self.image_label)
+
+        # Badge Container (Overlay oben links)
+        self.badge_layout = QHBoxLayout(self.image_label)
+        self.badge_layout.setContentsMargins(5, 5, 5, 5)
+        self.badge_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self.badge_layout.setSpacing(2)
+
+        self.default_image = None
+        self.current_path = None
         self.loader = None
-        self.metadata = metadata or {}
 
         self.frames = []
         self.durations = []
@@ -77,201 +99,70 @@ class ClickableImage(QWidget):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._next_frame)
 
-        self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(2)
+        self.badges = []
 
-        self.img_container = QWidget()
-        self.img_container.setFixedSize(width, height)
-        self.img_container.setStyleSheet("background-color: #222; border-radius: 4px; border: 1px solid #444;")
-        self.img_container.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+    def set_default_image(self, path):
+        self.default_image = path
+        if not self.current_path:
+            self._load_local_image(path)
 
-        self.image_label = QLabel(self.img_container)
-        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.image_label.setStyleSheet("border: none; background: transparent;")
+    def load_image(self, url_or_path, metadata=None):
+        if metadata is not None:
+            self.metadata = metadata
 
-        self.layout.addWidget(self.img_container)
+        self.current_path = url_or_path
 
-        author_text = t('ui.game_details.value_unknown')
-        if self.metadata and 'author' in self.metadata:
-            auth_data = self.metadata['author']
-            if isinstance(auth_data, dict):
-                author_text = auth_data.get('name', t('ui.game_details.value_unknown'))
-            else:
-                author_text = str(auth_data)
-        elif not self.metadata:
-            author_text = t(f'ui.game_details.gallery.{img_type}')
-
-        self.author_label = QLabel(author_text)
-        self.author_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.author_label.setStyleSheet("color: #888; font-size: 10px; padding-top: 2px;")
-        self.author_label.setFixedWidth(width)
-
-        font_metrics = self.author_label.fontMetrics()
-        elided = font_metrics.elidedText(author_text, Qt.TextElideMode.ElideRight, width - 10)
-        self.author_label.setText(elided)
-        self.author_label.setToolTip(author_text)
-
-        self.layout.addWidget(self.author_label)
-
-    def _get_default_image_path(self):
-        """Liefert den Pfad zum Platzhalter-Bild, falls vorhanden"""
-        try:
-            base_dir = config.RESOURCES_DIR
-        except AttributeError:
-            base_dir = Path(__file__).parent.parent.parent.parent / 'resources'
-
-        # HIER: Baut den Dateinamen z.B. default_grids.png
-        default_path = base_dir / 'images' / f'default_{self.img_type}.png'
-        return str(default_path) if default_path.exists() else None
-
-    def _create_badges(self, is_animated_file=False):
-        def get_icon_path(name):
-            p = config.ICONS_DIR / f"{name}.png"
-            return str(p) if p.exists() else None
-
-        badges = []
-        mime = self.metadata.get('mime', '')
-        tags = self.metadata.get('tags', [])
-
-        is_anim = is_animated_file or 'webp' in mime or 'gif' in mime or 'animated' in tags
-        if is_anim:
-            badges.append({
-                'icon': get_icon_path('flag_animated'),
-                'fallback': 'GIF',
-                'color': '#FFD700',
-                'tip': t('ui.badges.animated')
-            })
-
-        if self.metadata.get('humor'):
-            badges.append({
-                'icon': get_icon_path('flag_humor'),
-                'fallback': '😂',
-                'color': '#3498db',
-                'tip': t('ui.badges.humor')
-            })
-
-        if self.metadata.get('nsfw'):
-            badges.append({
-                'icon': get_icon_path('flag_nsfw'),
-                'fallback': '🔞',
-                'color': '#e74c3c',
-                'tip': t('ui.badges.nsfw')
-            })
-
-        if self.metadata.get('epilepsy'):
-            badges.append({
-                'icon': get_icon_path('flag_epilepsy'),
-                'fallback': '⚡',
-                'color': '#9b59b6',
-                'tip': t('ui.badges.epilepsy')
-            })
-
-        if self.metadata.get('lock_tags'):
-            badges.append({
-                'icon': get_icon_path('flag_untagged'),
-                'fallback': '?',
-                'color': '#95a5a6',
-                'tip': t('ui.badges.untagged')
-            })
-
-        for child in self.img_container.children():
-            if isinstance(child, QLabel) and child != self.image_label:
-                child.deleteLater()
-
-        x_pos, y_pos = 4, 4
-        for badge in badges:
-            lbl = QLabel(self.img_container)
-            lbl.setToolTip(badge['tip'])
-
-            if badge['icon']:
-                pix = QPixmap(badge['icon'])
-                if not pix.isNull():
-                    pix = pix.scaled(20, 20, Qt.AspectRatioMode.KeepAspectRatio,
-                                     Qt.TransformationMode.SmoothTransformation)
-                    lbl.setPixmap(pix)
-                    lbl.resize(20, 20)
-            else:
-                lbl.setText(badge['fallback'])
-                lbl.setStyleSheet(
-                    f"background-color: {badge['color']}; color: #000; font-weight: bold; border-radius: 3px; padding: 2px;")
-                lbl.adjustSize()
-
-            lbl.move(x_pos, y_pos)
-            lbl.show()
-            lbl.raise_()
-            x_pos += lbl.width() + 4
-
-    def load_image(self, url_or_path):
-        """Lädt Bild von URL/Pfad oder Default"""
         self.timer.stop()
         self.frames = []
-        self.durations = []
-        self.current_frame = 0
-        self.image_label.clear()
-
-        # Falls url_or_path None ist (z.B. durch clear() Aufruf), versuchen wir Default zu laden
-        target = url_or_path
-        if not target or (not str(target).startswith('http') and not os.path.exists(str(target))):
-            default = self._get_default_image_path()
-            if default:
-                target = default
+        self._clear_badges()
 
         if self.loader and self.loader.isRunning():
             self.loader.stop()
+            self.loader.wait()
 
-        self.image_label.setText("⏳")
-        self.loader = ImageLoader(target)
+        # Nutzt jetzt den Key "ui.loading.dots"
+        self.image_label.setText(t('ui.loading.dots'))
+
+        self.loader = ImageLoader(url_or_path)
         self.loader.loaded.connect(self._on_loaded)
         self.loader.start()
 
-    def _apply_pixmap(self, pixmap):
-        scaled = pixmap.scaled(
-            self.w, self.h,
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
-        )
-        self.image_label.resize(scaled.size())
-        self.image_label.setPixmap(scaled)
-        self._center_image()
-
     def _on_loaded(self, data: QByteArray):
         if data.isEmpty():
-            self.image_label.setText("❌")
-            if self.metadata: self._create_badges(False)
+            if self.default_image:
+                self._load_local_image(self.default_image)
+            else:
+                self.image_label.setText("❌")
             return
 
         if HAS_PILLOW:
             try:
-                byte_stream = io.BytesIO(data.data())
-                im = Image.open(byte_stream)
+                img_data = io.BytesIO(data.data())
+                im = Image.open(img_data)
 
                 is_animated = getattr(im, "is_animated", False)
-                self.frames = []
-                self.durations = []
 
                 if is_animated:
+                    self.frames = []
+                    self.durations = []
+
                     for frame in ImageSequence.Iterator(im):
-                        frame_rgba = frame.convert("RGBA")
-                        data_rgba = frame_rgba.tobytes("raw", "RGBA")
-                        qimg = QImage(data_rgba, frame_rgba.width, frame_rgba.height, QImage.Format.Format_RGBA8888)
-                        pix = QPixmap.fromImage(qimg)
-                        scaled = pix.scaled(self.w, self.h, Qt.AspectRatioMode.KeepAspectRatio,
-                                            Qt.TransformationMode.SmoothTransformation)
-                        self.frames.append(scaled)
-                        duration = frame.info.get('duration', 100)
-                        self.durations.append(duration)
+                        frame = frame.convert("RGBA")
+                        qim = QImage(frame.tobytes("raw", "RGBA"), frame.width, frame.height,
+                                     QImage.Format.Format_RGBA8888)
+                        self.frames.append(QPixmap.fromImage(qim))
+                        self.durations.append(frame.info.get('duration', 100))
 
                     if self.frames:
                         self._start_animation()
-                        self._create_badges(True)
+                        self._create_badges(is_animated=True)
                         return
+
                 else:
-                    im_rgba = im.convert("RGBA")
-                    data_rgba = im_rgba.tobytes("raw", "RGBA")
-                    qimg = QImage(data_rgba, im_rgba.width, im_rgba.height, QImage.Format.Format_RGBA8888)
+                    im = im.convert("RGBA")
+                    qimg = QImage(im.tobytes("raw", "RGBA"), im.width, im.height, QImage.Format.Format_RGBA8888)
                     self._apply_pixmap(QPixmap.fromImage(qimg))
-                    self._create_badges(False)
+                    self._create_badges(is_animated=False)
                     return
 
             except (IOError, ValueError):
@@ -282,10 +173,12 @@ class ClickableImage(QWidget):
 
         if not pixmap.isNull():
             self._apply_pixmap(pixmap)
-            self._create_badges(False)
+            self._create_badges(is_animated=False)
         else:
-            self.image_label.setText("❌")
-            if self.metadata: self._create_badges(False)
+            if self.default_image:
+                self._load_local_image(self.default_image)
+            else:
+                self.image_label.setText("❌")
 
     def _start_animation(self):
         if not self.frames: return
@@ -301,19 +194,70 @@ class ClickableImage(QWidget):
 
     def _show_frame(self, index):
         pix = self.frames[index]
-        self.image_label.resize(pix.size())
-        self.image_label.setPixmap(pix)
-        self._center_image()
+        self._apply_pixmap(pix)
 
-    def _center_image(self):
-        lw = self.image_label.width()
-        lh = self.image_label.height()
-        x = (self.w - lw) // 2
-        y = (self.h - lh) // 2
-        self.image_label.move(x, y)
+    def _apply_pixmap(self, pixmap):
+        scaled = pixmap.scaled(
+            self.w, self.h,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+        self.image_label.setPixmap(scaled)
+
+    def _load_local_image(self, path):
+        if os.path.exists(path):
+            pix = QPixmap(path)
+            self._apply_pixmap(pix)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-            self.clicked.emit(self.img_type)
+            self.clicked.emit()
         elif event.button() == Qt.MouseButton.RightButton:
-            self.right_clicked.emit(self.img_type)
+            self.right_clicked.emit()
+
+    def _create_badges(self, is_animated=False):
+        """Erstellt Badges basierend auf Metadaten"""
+        self._clear_badges()
+
+        if not self.metadata:
+            return
+
+        tags = self.metadata.get('tags', [])
+
+        # Helper zum Erstellen eines Badges
+        def add_badge(text, bg_color="#000000"):
+            lbl = QLabel(text)
+            lbl.setStyleSheet(f"""
+                background-color: {bg_color}; 
+                color: white; 
+                padding: 2px 4px; 
+                border-radius: 3px; 
+                font-weight: bold; 
+                font-size: 10px;
+                border: 1px solid #555;
+            """)
+            lbl.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+            self.badge_layout.addWidget(lbl)
+            self.badges.append(lbl)
+
+        # 1. NSFW / Adult
+        if self.metadata.get('nsfw') or 'nsfw' in tags:
+            add_badge(t('ui.badges.nsfw'), "#d9534f")  # Rot
+
+        # 2. Humor
+        if self.metadata.get('humor') or 'humor' in tags:
+            add_badge(t('ui.badges.humor'), "#f0ad4e")  # Orange/Gelb
+
+        # 3. Epilepsy
+        if self.metadata.get('epilepsy') or 'epilepsy' in tags:
+            add_badge(t('ui.badges.epilepsy'), "#0275d8")  # Blau
+
+        # 4. Animated
+        if is_animated:
+            add_badge(t('ui.badges.animated'), "#5cb85c")  # Grün
+
+    def _clear_badges(self):
+        for b in self.badges:
+            self.badge_layout.removeWidget(b)
+            b.deleteLater()
+        self.badges = []

@@ -1,5 +1,5 @@
 """
-Game Details Widget - Fixed Layout Alignment & Spacing & Startup Defaults
+Game Details Widget - Layout PRESERVED + Default Images Added
 Speichern als: src/ui/game_details_widget.py
 """
 
@@ -73,7 +73,6 @@ class GameDetailsWidget(QWidget):
         super().__init__(parent)
         self.current_game = None
         self._create_ui()
-        # FIX: Initiale Anzeige der Default-Bilder beim Start
         self.clear()
 
     def _create_ui(self):
@@ -119,7 +118,9 @@ class GameDetailsWidget(QWidget):
         gallery_layout.setSpacing(4)
 
         # 1. LINKS: Grid (Cover)
-        self.img_grid = ClickableImage('grids', 232, 348)
+        self.img_grid = ClickableImage(self, 232, 348)
+        # NEU: Default Image setzen
+        self.img_grid.set_default_image("resources/images/default_grids.png")
         self.img_grid.clicked.connect(lambda: self._on_image_click('grids'))
         self.img_grid.right_clicked.connect(lambda: self._on_image_right_click('grids'))
         gallery_layout.addWidget(self.img_grid)
@@ -134,16 +135,20 @@ class GameDetailsWidget(QWidget):
         top_row.setContentsMargins(0, 0, 0, 0)
         top_row.setSpacing(4)
 
-        self.img_logo = ClickableImage('logos', 264, 184)
+        self.img_logo = ClickableImage(self, 264, 184)
+        # NEU: Default Image setzen
+        self.img_logo.set_default_image("resources/images/default_logos.png")
         self.img_logo.clicked.connect(lambda: self._on_image_click('logos'))
         self.img_logo.right_clicked.connect(lambda: self._on_image_right_click('logos'))
-        self.img_logo.setStyleSheet("background: transparent; border: 1px dashed #444;")
+        self.img_logo.setStyleSheet("background: transparent;")
         top_row.addWidget(self.img_logo)
 
-        self.img_icon = ClickableImage('icons', 80, 80)
+        self.img_icon = ClickableImage(self, 80, 80)
+        # NEU: Default Image setzen
+        self.img_icon.set_default_image("resources/images/default_icons.png")
         self.img_icon.clicked.connect(lambda: self._on_image_click('icons'))
         self.img_icon.right_clicked.connect(lambda: self._on_image_right_click('icons'))
-        self.img_icon.setStyleSheet("background: transparent; border: none;")
+        self.img_icon.setStyleSheet("background: transparent;")
 
         icon_container = QVBoxLayout()
         icon_container.setContentsMargins(0, 0, 0, 0)
@@ -154,7 +159,9 @@ class GameDetailsWidget(QWidget):
         right_stack.addLayout(top_row)
 
         # 2b. Unten Rechts: Hero
-        self.img_hero = ClickableImage('heroes', 348, 160)
+        self.img_hero = ClickableImage(self, 348, 160)
+        # NEU: Default Image setzen
+        self.img_hero.set_default_image("resources/images/default_heroes.png")
         self.img_hero.clicked.connect(lambda: self._on_image_click('heroes'))
         self.img_hero.right_clicked.connect(lambda: self._on_image_right_click('heroes'))
         right_stack.addWidget(self.img_hero)
@@ -302,7 +309,6 @@ class GameDetailsWidget(QWidget):
         self.name_label.setText(t('ui.game_details.select_placeholder'))
         self._update_proton_label("unknown")
 
-        # Reset lädt Default-Bilder (oder "X"), da Pfad None ist
         self.img_grid.load_image(None)
         self.img_hero.load_image(None)
         self.img_logo.load_image(None)
