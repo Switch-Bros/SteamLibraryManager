@@ -29,6 +29,7 @@ from src.ui.metadata_dialogs import (
     BulkMetadataEditDialog,
     MetadataRestoreDialog
 )
+from src.ui.missing_metadata_dialog import MissingMetadataDialog
 from src.utils.i18n import t, init_i18n
 from src.ui.settings_dialog import SettingsDialog
 from src.ui.game_details_widget import GameDetailsWidget
@@ -137,7 +138,15 @@ class MainWindow(QMainWindow):
         restore_action.triggered.connect(self.restore_metadata_changes)
         settings_menu.addAction(restore_action)
 
-        # 4. HELP
+        # 4. TOOLS
+        tools_menu = menubar.addMenu(t('ui.menu.tools'))
+
+        find_missing_action = QAction(t('ui.menu.find_missing_metadata'), self)
+        # noinspection PyUnresolvedReferences
+        find_missing_action.triggered.connect(self.find_missing_metadata)
+        tools_menu.addAction(find_missing_action)
+
+        # 5. HELP
         help_menu = menubar.addMenu(t('ui.menu.help'))
 
         github_action = QAction(t('ui.menu.github'), self)
@@ -832,6 +841,57 @@ class MainWindow(QMainWindow):
             t('ui.dialogs.success'),
             t('ui.dialogs.bulk_success', count=len(games))
         )
+
+    def find_missing_metadata(self):
+        """Find games with missing metadata (Developer/Publisher/Release)"""
+        if not self.game_manager:
+            return
+
+        # Find affected games
+        affected = []
+        for game in self.game_manager.get_all_games():
+            # Check if any metadata is missing
+            # WICHTIG: Nur als "missing" zählen wenn WIRKLICH leer oder "Unknown"
+            has_missing = False
+
+            # Helper function to check if a field is really missing
+            def is_missing(value) -> bool:
+                if value is None:
+                    return True
+                value_str = str(value).strip()  # ← Konvertiert int → str
+                if not value_str:
+                    return True
+                if value_str in ["Unknown", "Unbekannt"]:
+                    return True
+                return False
+
+            # Developer missing?
+            if is_missing(game.developer):
+                has_missing = True
+
+            # Publisher missing?
+            if is_missing(game.publisher):
+                has_missing = True
+
+            # Release missing?
+            if is_missing(game.release_year):
+                has_missing = True
+
+            if has_missing:
+                affected.append(game)
+
+        # Show results
+        if affected:
+            dialog = MissingMetadataDialog(self, affected)
+            dialog.exec()
+        else:
+            # All games have complete metadata!
+            QMessageBox.information(
+                self,
+                t('ui.tools.missing_metadata.no_games_found'),
+                t('ui.tools.missing_metadata.no_games_message',
+                  count=len(self.game_manager.games))
+            )
 
     def restore_metadata_changes(self):
         """Restore all tracked metadata changes WITH VDF write support"""
