@@ -144,6 +144,8 @@
       "success_browser": "Login successful. You can close this window."
     },
     "dialogs": {
+      "confirm_remove_account_title": "Remove from Account?",
+      "confirm_remove_account_msg": "Do you really want to PERMANENTLY remove '{game}' from your Steam account?\n\nThis will open the Steam Support page where you must confirm the deletion.\nYou will have to buy the game again to play it!",
       "error": "Error",
       "success": "Success",
       "cancel": "Cancel",
@@ -350,7 +352,12 @@
         "rename": "Rename Category",
         "delete": "Delete Category",
         "auto_categorize": "Auto-Categorize",
-        "auto_categorize_selected": "Auto-Categorize Selection"
+        "auto_categorize_selected": "Auto-Categorize Selection",
+        "hide_game": "Hide Game (in Steam)",
+        "unhide_game": "Unhide Game",
+        "remove_from_account": "Remove from Account (Permanent)",
+        "confirm_hide_title": "Status Changed",
+        "confirm_hide_msg": "'{game}' is now {status}.\nPlease restart Steam to see the changes."
       }
     },
     "badges": {
@@ -426,7 +433,8 @@
       "saved": "Saved localconfig.vdf",
       "backup_created": "Backup created: {path}",
       "no_changes": "No changes to save",
-      "apps_not_found": "Apps section not found in localconfig"
+      "apps_not_found": "Apps section not found in localconfig",
+      "hidden_status_error": "Error setting hidden status: {error}"
     },
     "manager": {
       "loading_api": "Loading games from Steam API...",

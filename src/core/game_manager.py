@@ -1,5 +1,5 @@
 """
-Game Manager - Full Featured, Cleaned & Type-Safe
+Game Manager - Updated for Hidden Games
 Speichern als: src/core/game_manager.py
 """
 
@@ -20,6 +20,9 @@ class Game:
     playtime_minutes: int = 0
     last_played: Optional[datetime] = None
     categories: List[str] = None
+
+    # NEU: Hidden Status
+    hidden: bool = False
 
     # Metadaten
     developer: str = ""
@@ -84,9 +87,7 @@ class GameManager:
         self.appinfo_manager = None
 
     def load_games(self, steam_user_id: str, progress_callback: Optional[Callable] = None) -> bool:
-        """
-        Lädt Spiele mit Progress-Callback
-        """
+        """Lädt Spiele mit Progress-Callback"""
         self.steam_user_id = steam_user_id
         api_success = False
 
@@ -140,9 +141,9 @@ class GameManager:
                 return False
 
             # Lade Playtime aus localconfig
-            short_id, _ = self._get_user_ids()
+            from src.config import config
+            short_id, _ = config.get_detected_user()
             if short_id:
-                from src.config import config
                 localconfig_path = config.get_localconfig_path(short_id)
                 playtimes = loader.get_playtime_from_localconfig(localconfig_path)
             else:
@@ -221,97 +222,19 @@ class GameManager:
             print(t('logs.manager.error_api', error=e))
             return False
 
-    @staticmethod
-    def _get_user_ids() -> Tuple[Optional[str], Optional[str]]:
-        from src.config import config
-        return config.get_detected_user()
-
-    def apply_metadata_overrides(self, appinfo_manager):
-        """
-        Apply metadata from AppInfo & custom modifications
-
-        WICHTIG: Diese Methode wurde gefixt um:
-        1. Release Date korrekt zu setzen (fehlte vorher!)
-        2. Verschachtelung zu korrigieren (Performance)
-        """
-        self.appinfo_manager = appinfo_manager
-        modifications = appinfo_manager.load_appinfo()
-
-        count = 0
-
-        # ========================================================================
-        # 1. BINARY APPINFO METADATEN FÜR ALLE SPIELE
-        # ========================================================================
-        # Hier laden wir Developer/Publisher/Release aus der appinfo.vdf
-
-        for app_id, game in self.games.items():
-            # Hole Metadaten aus AppInfo
-            steam_meta = appinfo_manager.get_app_metadata(app_id)
-
-            # Name (nur für "App XXXXX" Fälle überschreiben)
-            if game.name.startswith("App ") and steam_meta.get('name'):
-                game.name = steam_meta['name']
-                if not game.name_overridden:
-                    game.sort_name = game.name
-
-            # Developer (wenn noch leer/unbekannt)
-            if not game.developer and steam_meta.get('developer'):
-                game.developer = steam_meta['developer']
-
-            # Publisher (wenn noch leer/unbekannt)
-            if not game.publisher and steam_meta.get('publisher'):
-                game.publisher = steam_meta['publisher']
-
-            # ⚠️ FIX: Release Date wurde vorher NICHT gesetzt!
-            if not game.release_year and steam_meta.get('release_date'):
-                game.release_year = steam_meta['release_date']
-
-        # ========================================================================
-        # 2. CUSTOM OVERRIDES AUS custom_metadata.json
-        # ========================================================================
-        # ⚠️ FIX: Diese Schleife war vorher FALSCH verschachtelt!
-        #    Sie war INNERHALB der Spiele-Schleife → Performance-Killer!
-
-        for app_id, meta_data in modifications.items():
-            if app_id in self.games:
-                game = self.games[app_id]
-
-                # Hole modified values aus dem modifications dict
-                modified = meta_data.get('modified', {})
-
-                # Name Override
-                if modified.get('name'):
-                    game.name = modified['name']
-                    game.name_overridden = True
-
-                # Sort Name Override
-                if modified.get('sort_as'):
-                    game.sort_name = modified['sort_as']
-                elif game.name_overridden:
-                    game.sort_name = game.name
-
-                # Developer Override
-                if modified.get('developer'):
-                    game.developer = modified['developer']
-
-                # Publisher Override
-                if modified.get('publisher'):
-                    game.publisher = modified['publisher']
-
-                # Release Date Override
-                if modified.get('release_date'):
-                    game.release_year = modified['release_date']
-
-                count += 1
-
-        if count > 0:
-            print(t('logs.manager.applied_overrides', count=count))
-
     def merge_with_localconfig(self, parser):
+        """Merged Kategorien und Hidden-Status"""
         print(t('logs.manager.merging'))
         local_app_ids = set(parser.get_all_app_ids())
 
+        # NEU: Liste der versteckten Apps holen
+        hidden_apps = set(parser.get_hidden_apps())
+
         for app_id in self.games:
+            # NEU: Hidden Status setzen
+            if app_id in hidden_apps:
+                self.games[app_id].hidden = True
+
             if app_id in local_app_ids:
                 categories = parser.get_app_categories(app_id)
                 self.games[app_id].categories = categories
@@ -326,6 +249,11 @@ class GameManager:
 
                 game = Game(app_id=app_id, name=name)
                 game.categories = parser.get_app_categories(app_id)
+
+                # NEU: Auch hier Hidden Status prüfen
+                if app_id in hidden_apps:
+                    game.hidden = True
+
                 self.games[app_id] = game
 
         print(t('logs.manager.merged', count=len(self.games)))
@@ -351,6 +279,56 @@ class GameManager:
                         self.games[app_id].last_updated = dt.strftime('%Y-%m-%d')
                     except (ValueError, TypeError):
                         pass
+
+    def apply_metadata_overrides(self, appinfo_manager):
+        """Apply metadata from AppInfo & custom modifications"""
+        self.appinfo_manager = appinfo_manager
+        modifications = appinfo_manager.load_appinfo()
+
+        count = 0
+
+        # 1. BINARY APPINFO METADATEN FÜR ALLE SPIELE
+        for app_id, game in self.games.items():
+            steam_meta = appinfo_manager.get_app_metadata(app_id)
+
+            if game.name.startswith("App ") and steam_meta.get('name'):
+                game.name = steam_meta['name']
+                if not game.name_overridden:
+                    game.sort_name = game.name
+
+            if not game.developer and steam_meta.get('developer'):
+                game.developer = steam_meta['developer']
+
+            if not game.publisher and steam_meta.get('publisher'):
+                game.publisher = steam_meta['publisher']
+
+            if not game.release_year and steam_meta.get('release_date'):
+                game.release_year = steam_meta['release_date']
+
+        # 2. CUSTOM OVERRIDES
+        for app_id, meta_data in modifications.items():
+            if app_id in self.games:
+                game = self.games[app_id]
+                modified = meta_data.get('modified', {})
+
+                if modified.get('name'):
+                    game.name = modified['name']
+                    game.name_overridden = True
+                if modified.get('sort_as'):
+                    game.sort_name = modified['sort_as']
+                elif game.name_overridden:
+                    game.sort_name = game.name
+                if modified.get('developer'):
+                    game.developer = modified['developer']
+                if modified.get('publisher'):
+                    game.publisher = modified['publisher']
+                if modified.get('release_date'):
+                    game.release_year = modified['release_date']
+
+                count += 1
+
+        if count > 0:
+            print(t('logs.manager.applied_overrides', count=count))
 
     def get_all_games(self) -> List[Game]:
         return sorted(list(self.games.values()), key=lambda g: g.sort_name.lower())
@@ -409,7 +387,6 @@ class GameManager:
                 with open(cache_file, 'w') as f:
                     json.dump(game_data, f)
                 self._apply_store_data(app_id, game_data)
-        # FIX Line 363: Spezifische Exceptions
         except (requests.RequestException, ValueError, KeyError, OSError):
             pass
 
@@ -434,7 +411,6 @@ class GameManager:
                 with open(cache_file, 'w') as f:
                     json.dump(data, f)
                 self._apply_review_data(app_id, data)
-        # FIX Line 387: Spezifische Exceptions
         except (requests.RequestException, ValueError, KeyError, OSError):
             pass
 
@@ -465,7 +441,6 @@ class GameManager:
             else:
                 if app_id in self.games:
                     self.games[app_id].proton_db_rating = 'unknown'
-        # FIX Line 417: Spezifische Exceptions
         except (requests.RequestException, ValueError, KeyError, OSError):
             pass
 
