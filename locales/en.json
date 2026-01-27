@@ -158,7 +158,6 @@
     "login": {
       "title": "Login to Steam",
       "window_title_emoji": "🔐 Steam Login",
-      "html_success_title": "Login Successful",
       "info": "Click below to login via Steam OAuth.",
       "button": "Login with Steam",
       "status_waiting": "Waiting for browser...",
@@ -167,6 +166,9 @@
       "status_failed": "Login failed",
       "html_success_header": "Login Successful",
       "html_success_body": "You can close this window now.",
+      "html_success_title": "Login Successful",
+      "html_success_message": "You have successfully logged in. You can close this window now and return to the application.",
+      "html_close_info": "(This window will close automatically)",
       "error_title": "Login Error",
       "error_msg": "Failed to start login server: {error}"
     },

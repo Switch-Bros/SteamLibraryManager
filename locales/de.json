@@ -158,7 +158,6 @@
     "login": {
       "title": "Bei Steam anmelden",
       "window_title_emoji": "🔐 Steam Login",
-      "html_success_title": "Login Erfolgreich",
       "info": "Klicke unten für den Steam OAuth Login.",
       "button": "Mit Steam anmelden",
       "status_waiting": "Warte auf Browser...",
@@ -167,6 +166,9 @@
       "status_failed": "Login fehlgeschlagen",
       "html_success_header": "Login Erfolgreich",
       "html_success_body": "Du kannst dieses Fenster jetzt schließen.",
+      "html_success_title": "Login Erfolgreich",
+      "html_success_message": "Sie haben sich erfolgreich angemeldet. Sie können dieses Fenster nun schließen und zur App zurückkehren.",
+      "html_close_info": "(Dieses Fenster schließt sich automatisch)",
       "error_title": "Login-Fehler",
       "error_msg": "Fehler beim Starten des Login-Servers: {error}"
     },
