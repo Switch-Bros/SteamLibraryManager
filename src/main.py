@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """
 Steam Library Manager - Main Entry Point (PyQt6 Version)
-Speichern als: src/main.py
 """
 import sys
 from pathlib import Path
 
-# Projekt-Wurzelverzeichnis zum Pfad hinzufügen
+# Add project root directory to path
 project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
@@ -20,22 +19,22 @@ from src.ui.main_window import MainWindow
 
 def check_steam_running() -> bool:
     """
-    Prüft ob Steam gerade läuft
-    Returns: True wenn Steam läuft, False, wenn nicht
+    Check if Steam is currently running
+    Returns: True if Steam is running, False if not
     """
     try:
         import psutil
         for proc in psutil.process_iter(['name']):
             try:
                 proc_name = proc.info['name'].lower()
-                # Prüfe verschiedene Steam-Prozesse
+                # Check various Steam processes
                 if proc_name in ['steam', 'steam.exe', 'steamwebhelper', 'steamwebhelper.exe']:
                     return True
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
         return False
     except ImportError:
-        # psutil nicht installiert - überspringen
+        # psutil not installed - skip
         print("Warning: psutil not installed, cannot check if Steam is running")
         return False
     except Exception as e:
@@ -45,7 +44,7 @@ def check_steam_running() -> bool:
 
 def load_steam_file(file_path: Path):
     """
-    Lädt eine Steam-Datei basierend auf ihrer Endung/Namen.
+    Load Steam file based on its extension/name.
     """
     if not file_path.exists():
         return None
@@ -54,34 +53,34 @@ def load_steam_file(file_path: Path):
     name = file_path.name.lower()
 
     try:
-        # Prüfung auf Text-VDF Formate
+        # Check for text VDF formats
         if ext == '.acf' or name == 'localconfig.vdf':
             with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
                 return acf.load(f)
 
-        # Prüfung auf Binär-VDF (AppInfo)
+        # Check for binary VDF (AppInfo)
         elif name == 'appinfo.vdf':
             with open(file_path, 'rb') as f:
                 return appinfo.load(f)
 
-        # Manifest support entfernt (nicht benötigt)
+        # Manifest support removed (not needed)
 
     except Exception as e:
-        print(f"Fehler beim Laden der Datei {file_path.name}: {e}")
+        print(t('logs.main.file_load_error', file=file_path.name, error=str(e)))
         return None
 
     return None
 
 
 def main():
-    # 1. Sprache initialisieren (VORHER für Warnung!)
+    # 1. Initialize language (BEFORE for warning!)
     init_i18n(config.DEFAULT_LOCALE)
 
-    # 2. QApplication erstellen (VORHER für MessageBox!)
+    # 2. Create QApplication (BEFORE for MessageBox!)
     app = QApplication(sys.argv)
     app.setApplicationName("Steam Library Manager")
 
-    # 3. KRITISCH: Prüfe ob Steam läuft!
+    # 3. CRITICAL: Check if Steam is running!
     if check_steam_running():
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Icon.Warning)
@@ -93,15 +92,15 @@ def main():
             t('ui.dialogs.steam_running_button'),
             QMessageBox.ButtonRole.AcceptRole
         )
-        exit_btn.setDefault(True)  # ← Variable wird jetzt verwendet!
+        exit_btn.setDefault(True)  # Variable is now used!
 
         msg.exec()
 
-        # App beenden
+        # Exit app
         print("\n⚠️ Steam is running - exiting application")
         sys.exit(0)
 
-    # 4. Start-Logs
+    # 4. Startup logs
     print("=" * 60)
     print(t('cli.banner'))
     print("=" * 60)

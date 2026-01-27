@@ -402,8 +402,11 @@
     "config": {
       "loaded": "Einstellungen geladen",
       "error": "Fehler beim Laden der Einstellungen: {error}",
-      "load_error": "Error loading configuration: {error}",
-      "save_error": "Error saving configuration: {error}"
+      "load_error": "Fehler beim Laden der Konfiguration: {error}",
+      "save_error": "Fehler beim Speichern der Konfiguration: {error}"
+    },
+    "main": {
+      "file_load_error": "Fehler beim Laden der Datei {file}: {error}"
     },
     "auth": {
       "starting": "Starte Steam OAuth Prozess...",
@@ -452,7 +455,10 @@
       "incompatible_version": "Inkompatible appinfo.vdf Version: {version}",
       "not_loaded": "appinfo.vdf noch nicht geladen",
       "write_error": "Fehler beim Schreiben in appinfo.vdf: {error}",
-      "restoredvdf": "{count} Änderungen in appinfo.vdf wiederhergestellt"
+      "restoredvdf": "{count} Änderungen in appinfo.vdf wiederhergestellt",
+      "parse_error": "Warnung: Fehler beim Parsen von App {app_id}: {error}",
+      "unknown_type": "Warnung: Unbekannter VDF-Typ {type}, überspringe",
+      "string_index_out_of_range": "Warnung: String-Index {index} außerhalb des Bereichs (Tabellengröße: {size})"
     },
     "parser": {
       "file_not_found": "Fehler: localconfig.vdf nicht gefunden unter {path}",
