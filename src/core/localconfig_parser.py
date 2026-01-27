@@ -1,7 +1,6 @@
 """
-localconfig.vdf Parser und Writer
-Liest und schreibt Steam's localconfig.vdf Datei
-Speichern als: src/core/localconfig_parser.py
+localconfig.vdf Parser and Writer
+Reads and writes Steam's localconfig.vdf file
 """
 
 import vdf
@@ -12,7 +11,7 @@ from src.utils.i18n import t
 
 
 class LocalConfigParser:
-    """Parser für Steam's localconfig.vdf"""
+    """Parser for Steam's localconfig.vdf"""
 
     def __init__(self, config_path: Path):
         self.config_path = config_path
@@ -21,12 +20,12 @@ class LocalConfigParser:
         self.modified = False
 
     def load(self) -> bool:
-        """Lade localconfig.vdf"""
+        """Load localconfig.vdf"""
         try:
             with open(self.config_path, 'r', encoding='utf-8') as f:
                 self.data = vdf.load(f)
 
-            # Navigiere zur Apps-Sektion
+            # Navigate to Apps section
             try:
                 self.apps = (self.data.get('UserLocalConfigStore', {})
                              .get('Software', {})
@@ -47,17 +46,17 @@ class LocalConfigParser:
             return False
 
     def save(self, create_backup: bool = True) -> bool:
-        """Speichere localconfig.vdf"""
+        """Save localconfig.vdf"""
         if not self.modified:
             return True
 
         if create_backup:
-            # Backup erstellen
+            # Create backup
             backup_path = self.config_path.with_suffix('.vdf.bak')
             try:
                 shutil.copy2(self.config_path, backup_path)
             except OSError:
-                pass  # Backup fehlgeschlagen, nicht kritisch
+                pass  # Backup failed, not critical
 
         try:
             with open(self.config_path, 'w', encoding='utf-8') as f:
@@ -82,7 +81,7 @@ class LocalConfigParser:
         if str(app_id) not in self.apps:
             self.apps[str(app_id)] = {}
 
-        # Steam speichert Tags als Dict {"0": "Tag1", "1": "Tag2"}
+        # Steam stores tags as Dict {"0": "Tag1", "1": "Tag2"}
         tags_dict = {str(i): cat for i, cat in enumerate(categories)}
         self.apps[str(app_id)]['tags'] = tags_dict
         self.modified = True
@@ -132,19 +131,19 @@ class LocalConfigParser:
                 uncategorized.append(app_id)
         return uncategorized
 
-    # --- NEU: HIDDEN APP SUPPORT ---
+    # --- NEW: HIDDEN APP SUPPORT ---
 
     def get_hidden_apps(self) -> List[str]:
-        """Gibt Liste aller versteckten App-IDs zurück"""
+        """Returns list of all hidden App-IDs"""
         hidden_apps = []
         for app_id, data in self.apps.items():
-            # Steam speichert Hidden als "1" (String) oder 1 (Int)
+            # Steam stores Hidden as "1" (String) or 1 (Int)
             if 'Hidden' in data and str(data['Hidden']) == "1":
                 hidden_apps.append(app_id)
         return hidden_apps
 
     def set_app_hidden(self, app_id: str, hidden: bool):
-        """Setzt oder entfernt den Hidden-Status für ein Spiel"""
+        """Sets or removes Hidden status for a game"""
         try:
             if str(app_id) not in self.apps:
                 self.apps[str(app_id)] = {}
@@ -152,11 +151,11 @@ class LocalConfigParser:
             if hidden:
                 self.apps[str(app_id)]['Hidden'] = "1"
             else:
-                # Key entfernen wenn nicht mehr versteckt
+                # Remove key if no longer hidden
                 if 'Hidden' in self.apps[str(app_id)]:
                     del self.apps[str(app_id)]['Hidden']
 
             self.modified = True
         except Exception as e:
-            # Hier nutzen wir jetzt t()!
+            # Now using t()
             print(t('logs.parser.hidden_status_error', error=str(e)))

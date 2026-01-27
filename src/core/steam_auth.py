@@ -1,6 +1,5 @@
 """
 Steam Authentication Manager - Clean Localized Strings
-Speichern als: src/core/steam_auth.py
 """
 import threading
 from flask import Flask, request
@@ -11,7 +10,7 @@ from src.utils.i18n import t
 from urllib.parse import urlencode
 import webbrowser
 
-# Importe basierend auf requirements
+# Imports based on requirements
 try:
     import webview
 
@@ -23,7 +22,7 @@ except ImportError:
 
 
 class SteamAuthManager(QObject):
-    auth_success = pyqtSignal(str)  # Gibt SteamID64 zurück
+    auth_success = pyqtSignal(str)  # Returns SteamID64
     auth_error = pyqtSignal(str)
 
     def __init__(self):
@@ -39,13 +38,13 @@ class SteamAuthManager(QObject):
         self.app.add_url_rule('/auth', 'auth', self._handle_auth)
 
     def start_login(self):
-        """Startet den OpenID Prozess"""
-        # 1. Server starten
+        """Starts the OpenID process"""
+        # 1. Start server
         self.server_thread = threading.Thread(target=self._run_flask)
         self.server_thread.daemon = True
         self.server_thread.start()
 
-        # 2. OpenID URL bauen
+        # 2. Build OpenID URL
         # noinspection HttpUrlsUsage
         params = {
             'openid.ns': 'http://specs.openid.net/auth/2.0',
@@ -58,7 +57,7 @@ class SteamAuthManager(QObject):
 
         auth_url = 'https://steamcommunity.com/openid/login?' + urlencode(params)
 
-        # 3. Browser öffnen
+        # 3. Open browser
         if HAS_WEBVIEW and webview:
             threading.Thread(target=lambda: self._open_webview(auth_url)).start()
         else:
@@ -66,7 +65,7 @@ class SteamAuthManager(QObject):
 
     @staticmethod
     def _open_webview(url):
-        """Öffnet ein natives Fenster (falls webview installiert)"""
+        """Opens native window (if webview installed)"""
         try:
             webview.create_window('Steam Login', url, width=800, height=600, resizable=False)
             webview.start()
@@ -83,21 +82,21 @@ class SteamAuthManager(QObject):
             self.auth_error.emit(str(e))
 
     def _handle_auth(self):
-        """Callback für OpenID"""
-        # Steam sendet die ID im Parameter 'openid.claimed_id'
+        """Callback for OpenID"""
+        # Steam sends the ID in parameter 'openid.claimed_id'
         claimed_id = request.args.get('openid.claimed_id')
 
         if claimed_id:
-            # Format ist: https://steamcommunity.com/openid/id/7656119xxxxxxxxxx
+            # Format is: https://steamcommunity.com/openid/id/7656119xxxxxxxxxx
             steam_id_64 = claimed_id.split('/')[-1]
 
             self.auth_success.emit(steam_id_64)
 
-            # Server sauber beenden
+            # Shutdown server cleanly
             if self.server:
                 threading.Thread(target=self.server.shutdown).start()
 
-            # Webview schließen (falls aktiv)
+            # Close webview (if active)
             if HAS_WEBVIEW and webview:
                 pass
 

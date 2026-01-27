@@ -1,6 +1,5 @@
 """
 AppInfo Manager - Associations Support Edition
-Speichern als: src/core/appinfo_manager.py
 """
 
 import json
@@ -100,9 +99,10 @@ class AppInfoManager:
             self.modifications = {}
             self.modified_apps = []
 
-    def _find_common_section(self, data: Dict) -> Dict:
+    @staticmethod
+    def _find_common_section(data: Dict) -> Dict:
         """
-        Rekursive Suche nach der 'common' Sektion.
+        Recursive search for the 'common' section.
         """
         # 1. Direct hit
         if 'common' in data:

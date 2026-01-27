@@ -9,6 +9,7 @@ Features:
 - Progress callback for UI integration
 """
 import logging
+import shutil
 from pathlib import Path
 from typing import Tuple, Optional, List, Callable
 from enum import Enum
@@ -52,12 +53,15 @@ class SteamConfigMerger:
         """
         Create backup of target file before modification.
 
+        Args:
+            target_path: Path to file to back up
+
         Returns:
             Path to backup file, or None if backup failed
         """
         try:
-            # Import backup manager
-            from src.utils.backup_manager import BackupManager
+            # Import backup manager from core
+            from src.core.backup_manager import BackupManager
 
             # Create backup directory if needed
             backup_dir = target_path.parent.parent.parent / 'data' / 'backups'
@@ -66,14 +70,13 @@ class SteamConfigMerger:
             # Create backup
             backup_path = backup_manager.create_backup(target_path)
             return backup_path
-        except Exception as e:
-            # If BackupManager is not available, create simple backup
+        except (ImportError, OSError, IOError):
+            # If BackupManager fails, create simple backup
             try:
                 backup_path = target_path.with_suffix(target_path.suffix + '.backup')
-                import shutil
                 shutil.copy2(target_path, backup_path)
                 return backup_path
-            except Exception as fallback_error:
+            except (OSError, IOError) as fallback_error:
                 print(f"Backup failed: {fallback_error}")
                 return None
 
