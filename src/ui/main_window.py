@@ -780,10 +780,16 @@ class MainWindow(QMainWindow):
             msg.setStandardButtons(QMessageBox.StandardButton.Ok)
             msg.exec()
 
-        # Thread starten
-        thread = StoreCheckThread(game.app_id)
-        thread.finished.connect(on_check_finished)
-        thread.start()
+        # Clean up old thread if exists
+        if self.store_check_thread and self.store_check_thread.isRunning():
+            self.store_check_thread.quit()
+            self.store_check_thread.wait()
+
+        # Thread starten (als Instanzvariable speichern!)
+        self.store_check_thread = StoreCheckThread(game.app_id)
+        # noinspection PyUnresolvedReferences
+        self.store_check_thread.finished.connect(on_check_finished)
+        self.store_check_thread.start()
 
     def rename_category(self, old_name: str):
         new_name, ok = QInputDialog.getText(self, t('ui.game_list.context_menu.rename'),
