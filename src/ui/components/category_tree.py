@@ -1,6 +1,5 @@
 """
 Category Tree - Clean & i18n-ready
-Speichern als: src/ui/components/category_tree.py
 """
 
 from PyQt6.QtWidgets import (
@@ -51,26 +50,26 @@ class GameTreeWidget(QTreeWidget):
         """)
 
     def _on_selection_changed(self):
-        """Behandelt Änderungen der Auswahl"""
+        """Handles selection changes"""
         selected_items = self.selectedItems()
         selected_games = []
         for item in selected_items:
             game = item.data(0, Qt.ItemDataRole.UserRole)
-            if game and hasattr(game, 'app_id'):  # Prüfen, ob es ein Game-Objekt ist
+            if game and hasattr(game, 'app_id'):  # Check if it is a Game object
                 selected_games.append(game)
         self.selection_changed.emit(selected_games)
 
     def _on_item_clicked(self, item, _column):
         """
-        Behandelt Klicks auf Items.
-        _column wird ignoriert (Linter Fix).
+        Handles clicks on items.
+        _column is ignored (Linter Fix).
         """
         game = item.data(0, Qt.ItemDataRole.UserRole)
         if game and hasattr(game, 'app_id'):
             self.game_clicked.emit(game)
 
     def _on_context_menu(self, pos):
-        """Behandelt Rechtsklicks für Kontextmenüs"""
+        """Handles right-clicks for context menus"""
         item = self.itemAt(pos)
         if not item:
             return
@@ -85,7 +84,7 @@ class GameTreeWidget(QTreeWidget):
             self.category_right_clicked.emit(category, global_pos)
 
     def populate_categories(self, categories_data: Dict[str, List]):
-        """Befüllt den Baum mit Kategorien und Spielen"""
+        """Populates the tree with categories and games"""
         self.clear()
 
         folder_icon = t('ui.categories.icon_folder')
@@ -102,7 +101,7 @@ class GameTreeWidget(QTreeWidget):
             font.setPointSize(11)
             category_item.setFont(0, font)
 
-            # Spiele hinzufügen (Limitierung zur Performance-Steigerung)
+            # Add games (limited for performance)
             display_limit = 100
             for game in games[:display_limit]:
                 # Format: " • Spielname (Xh) ⭐"
@@ -198,8 +197,8 @@ class CategoryTreeWithGames(QWidget):
 
     def add_category(self, name: str, _icon: str, games: List):
         """
-        Einzelne Kategorie hinzufügen.
-        _icon wird ignoriert, da Icons zentral im Tree verwaltet werden (Linter Fix).
+        Add single category.
+        _icon is ignored as icons are managed centrally in tree (Linter Fix).
         """
         categories_data = {name: games}
         self.tree.populate_categories(categories_data)

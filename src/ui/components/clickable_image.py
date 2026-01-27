@@ -1,6 +1,5 @@
 """
 Clickable Image - Custom Flag Icons & Badges
-Speichern als: src/ui/components/clickable_image.py
 """
 from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout
 from PyQt6.QtCore import Qt, pyqtSignal, QThread, QByteArray, QTimer
@@ -213,7 +212,7 @@ class ClickableImage(QWidget):
             self.right_clicked.emit()
 
     def _create_badges(self, is_animated=False):
-        """Erstellt Badges (Icons oder Text) oben links"""
+        """Creates badges (icons or text) oben links"""
         self._clear_badges()
 
         if not self.metadata:
@@ -221,16 +220,16 @@ class ClickableImage(QWidget):
 
         tags = self.metadata.get('tags', [])
 
-        # Helper: Fügt entweder Icon oder Text-Badge hinzu
+        # Helper: Adds either icon or text badge
         def add_badge(type_key, text, bg_color="#000000"):
-            # 1. Custom Icon prüfen (z.B. flag_nsfw.png)
+            # 1. Check custom icon (e.g. flag_nsfw.png)
             icon_name = f"flag_{type_key}.png"
             icon_path = config.ICONS_DIR / icon_name
 
             if icon_path.exists():
                 lbl = QLabel()
                 pix = QPixmap(str(icon_path))
-                # Skaliere Icon (z.B. 24px Höhe), Aspect Ratio behalten
+                # Scale icon (e.g. 24px height), keep aspect ratio
                 lbl.setPixmap(pix.scaledToHeight(24, Qt.TransformationMode.SmoothTransformation))
                 lbl.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
                 self.badge_layout.addWidget(lbl)
