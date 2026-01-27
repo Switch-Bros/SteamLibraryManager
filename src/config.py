@@ -1,6 +1,5 @@
 """
 Configuration - Cleaned, Typed & Localized
-Speichern als: src/config.py
 """
 import os
 import json
@@ -8,7 +7,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
-# FIX: Lambda nutzen, um 'unused parameter' Warnungen zu vermeiden
+# FIX: Use lambda to avoid 'unused parameter' warnings
 try:
     # noinspection PyPackageRequirements
     from dotenv import load_dotenv
@@ -26,7 +25,7 @@ class Config:
 
     SETTINGS_FILE: Path = DATA_DIR / 'settings.json'
 
-    # Standardwerte
+    # Default values
     UI_LANGUAGE: str = 'en'
     TAGS_LANGUAGE: str = 'en'
     DEFAULT_LOCALE: str = 'en'
@@ -38,7 +37,7 @@ class Config:
 
     STEAM_PATH: Optional[Path] = None
     STEAM_USER_ID: Optional[str] = None
-    # Liste für zusätzliche Bibliotheken
+    # List for additional libraries
     STEAM_LIBRARIES: list = None
 
     MAX_BACKUPS: int = 5
@@ -89,11 +88,11 @@ class Config:
                 self.MAX_BACKUPS = data.get('max_backups', self.MAX_BACKUPS)
                 self.STEAM_LIBRARIES = data.get('steam_libraries', [])
 
-                # WICHTIG: User ID laden
+                # IMPORTANT: Load user ID
                 self.STEAM_USER_ID = data.get('steam_user_id')
 
         except (OSError, json.JSONDecodeError) as e:
-            # Jetzt lokalisiert
+            # Now localized
             print(t('logs.config.load_error', error=e))
 
     def save(self):
@@ -118,7 +117,7 @@ class Config:
             with open(self.SETTINGS_FILE, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2)
         except OSError as e:
-            # Jetzt lokalisiert
+            # Now localized
             print(t('logs.config.save_error', error=e))
 
     def update_paths(self, **kwargs):
