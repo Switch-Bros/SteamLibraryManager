@@ -68,6 +68,8 @@
       "success": "Successfully updated {count} game categories in {path} (Strategy: {strategy})!",
       "save_error": "Error saving target file!",
       "no_changes": "No new tags found to transfer. Files are in sync.",
+      "backup_failed": "Failed to create backup! Aborting to prevent data loss.",
+      "dry_run_complete": "Dry-run complete: {count} apps would be modified ({changes} changes total)",
       "select_source": "Select SOURCE (e.g. Windows sharedconfig.vdf)",
       "select_target": "Select TARGET (e.g. Linux localconfig.vdf)",
       "btn_merge": "Merge Categories"

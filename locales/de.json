@@ -65,9 +65,11 @@
       "load_error_source": "Fehler beim Laden der Quelldatei. Ist es eine gültige VDF?",
       "load_error_target": "Fehler beim Laden der Zieldatei. Schreibrechte vorhanden?",
       "no_apps_section": "Keine 'apps'-Sektion in {file} gefunden. Struktur unbekannt.",
-      "success": "Erfolgreich {count} Spiele-Kategorien in {path} aktualisiert!",
+      "success": "Erfolgreich {count} Spiele-Kategorien in {path} aktualisiert (Strategie: {strategy})!",
       "save_error": "Fehler beim Speichern der Zieldatei!",
       "no_changes": "Keine neuen Tags zum Übertragen gefunden. Dateien sind synchron.",
+      "backup_failed": "Backup konnte nicht erstellt werden! Abbruch um Datenverlust zu vermeiden.",
+      "dry_run_complete": "Testlauf abgeschlossen: {count} Apps würden modifiziert werden ({changes} Änderungen gesamt)",
       "select_source": "Wähle QUELLE (z.B. Windows sharedconfig.vdf)",
       "select_target": "Wähle ZIEL (z.B. Linux localconfig.vdf)",
       "btn_merge": "Kategorien übertragen"
