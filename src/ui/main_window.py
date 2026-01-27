@@ -1,6 +1,6 @@
 """
 Main Window - With Progress Dialog & Reload Button
-Speichern als: src/ui/main_window.py
+Save as: src/ui/main_window.py
 """
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -37,7 +37,7 @@ from src.ui.components.category_tree import GameTreeWidget
 
 
 class GameLoadThread(QThread):
-    """Thread für das Laden von Spielen mit Progress-Updates"""
+    """Thread for loading games with progress updates"""
     progress_update = pyqtSignal(str, int, int)
     finished = pyqtSignal(bool)
 
@@ -75,15 +75,15 @@ class MainWindow(QMainWindow):
         self.selected_games: List[Game] = []
         self.dialog_games: List[Game] = []
 
-        # Steam Username (für Toolbar)
+        # Steam Username (for Toolbar)
         self.steam_username: Optional[str] = None
 
         # Loading Thread
         self.load_thread: Optional[GameLoadThread] = None
         self.progress_dialog: Optional[QProgressDialog] = None
 
-        # Store Check Thread (für Thread-Safe Store Availability Check)
-        self.store_check_thread: Optional[QThread] = None  # ← NEU!
+        # Store Check Thread (for Thread-Safe Store Availability Check)
+        self.store_check_thread: Optional[QThread] = None  # ← NEW!
 
         self._create_ui()
         self._load_data()
@@ -175,7 +175,7 @@ class MainWindow(QMainWindow):
         menubar.setCornerWidget(self.user_label, Qt.Corner.TopRightCorner)
 
         # Toolbar
-        self.toolbar = QToolBar()
+        self.toolbar = QToolBar(t('ui.main.toolbar_title'))
         self.addToolBar(self.toolbar)
         self._refresh_toolbar()
 
@@ -246,10 +246,10 @@ class MainWindow(QMainWindow):
         splitter.setSizes([350, 1050])
         layout.addWidget(splitter)
 
-        # Statusbar mit Reload-Button
+        # Statusbar with Reload-Button
         self.statusbar = self.statusBar()
 
-        # Reload Button (initial versteckt)
+        # Reload Button (initial hidden)
         self.reload_btn = QPushButton(t('ui.status.reload_button'))
         # noinspection PyUnresolvedReferences
         self.reload_btn.clicked.connect(self.refresh_data)
@@ -257,28 +257,28 @@ class MainWindow(QMainWindow):
         self.reload_btn.hide()
         self.statusbar.addPermanentWidget(self.reload_btn)
 
-        self.set_status(t('ui.status.ready'))
+        self.set_status(t('ui.main.status_ready'))
 
     def _refresh_toolbar(self):
         self.toolbar.clear()
-        # Verwende die t()-Keys, die du bereits in den JSONs hast
+        # Use the t() keys you already have in the JSONs
         self.toolbar.addAction(t('ui.toolbar.refresh'), self.refresh_data)
         self.toolbar.addAction(t('ui.toolbar.auto_categorize'), self.auto_categorize)
         self.toolbar.addSeparator()
         self.toolbar.addAction(t('ui.toolbar.settings'), self.show_settings)
         self.toolbar.addSeparator()
 
-        # LOGIN BUTTON LOGIK
+        # LOGIN BUTTON LOGIC
         if self.steam_username:
-            # Wenn eingeloggt: Zeige Profilnamen (mit Sonderzeichen)
+            # If logged in: Show profile name (with special characters)
             user_action = QAction(self.steam_username, self)
 
-            # FIX: Tooltip lokalisiert
-            user_action.setToolTip(t('ui.toolbar.logged_in_as', user=self.steam_username))
+            # FIX: Tooltip localized
+            user_action.setToolTip(t('ui.main.user_logged_in_as', user=self.steam_username))
 
-            # FIX: Info-Box lokalisiert
+            # FIX: Info box localized
             user_action.triggered.connect(
-                lambda: QMessageBox.information(self, "Steam", t('ui.toolbar.logged_in_as', user=self.steam_username))
+                lambda: QMessageBox.information(self, t('app.name'), t('ui.main.user_logged_in_as', user=self.steam_username))
             )
 
             icon_path = config.ICONS_DIR / 'steam_login.png'
@@ -287,7 +287,7 @@ class MainWindow(QMainWindow):
 
             self.toolbar.addAction(user_action)
         else:
-            # Wenn NICHT eingeloggt: Zeige Login Button
+            # If NOT logged in: Show login button
             login_action = QAction(t('ui.toolbar.login'), self)
             icon_path = config.ICONS_DIR / 'steam_login.png'
             if icon_path.exists():
@@ -299,9 +299,9 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _fetch_steam_persona_name(steam_id: str) -> str:
-        """Holt den Anzeigenamen (Persona Name) von Steam"""
+        """Fetches the display name (Persona Name) from Steam"""
         try:
-            # XML Profil-Schnittstelle (öffentlich)
+            # XML Profile Interface (public)
             url = f"https://steamcommunity.com/profiles/{steam_id}/?xml=1"
             response = requests.get(url, timeout=5)
             if response.status_code == 200:
@@ -310,10 +310,10 @@ class MainWindow(QMainWindow):
                 if steam_id_element is not None:
                     return steam_id_element.text
         except Exception as e:
-            # FIX: Nutzt jetzt t() für das Log
+            # FIX: Now uses t() for the log
             print(t('logs.auth.profile_error', error=str(e)))
 
-        # Fallback auf ID
+        # Fallback to ID
         return steam_id
 
     # --- OPENID LOGIN LOGIC ---
@@ -327,10 +327,10 @@ class MainWindow(QMainWindow):
         self.set_status(t('ui.login.status_success'))
         QMessageBox.information(self, t('ui.login.title'), t('ui.login.status_success'))
 
-        # 1. Config setzen
+        # 1. Set Config
         config.STEAM_USER_ID = steam_id_64
 
-        # 2. Config SPEICHERN (Damit es persistent ist!)
+        # 2. SAVE Config (So it is persistent!)
         config.save()
 
         # 3. UI Update
@@ -345,14 +345,14 @@ class MainWindow(QMainWindow):
     def _restore_login_state(self):
         """Restore login state from config at startup"""
         if config.STEAM_USER_ID:
-            # Name holen (kann kurz dauern, aber UI ist schon da)
+            # Fetch name (might take a moment, but UI is already there)
             self.steam_username = self._fetch_steam_persona_name(config.STEAM_USER_ID)
 
-            # UI Updates wie beim Login
+            # UI updates like login
             display_text = self.steam_username if self.steam_username else config.STEAM_USER_ID
             self.user_label.setText(t('ui.main.user_label', user_id=display_text))
 
-            # Toolbar neu bauen, damit "Login" verschwindet und Name erscheint
+            # Rebuild toolbar so "Login" disappears and name appears
             self._refresh_toolbar()
 
     def _on_steam_login_error(self, error: str):
@@ -364,7 +364,7 @@ class MainWindow(QMainWindow):
     def force_save(self):
         if self.vdf_parser:
             if self.vdf_parser.save():
-                self.set_status(t('ui.status.saved_backup'))
+                self.set_status(t('ui.main.status_saved_backup'))
             else:
                 QMessageBox.critical(self, t('ui.dialogs.error'), t('ui.errors.save_failed'))
 
@@ -372,7 +372,7 @@ class MainWindow(QMainWindow):
         QMessageBox.about(self, t('ui.menu.about'), t('ui.dialogs.about_text'))
 
     def _load_data(self):
-        """Initial Load beim Start"""
+        """Initial Load at startup"""
         self.set_status(t('ui.status.loading'))
 
         if not config.STEAM_PATH:
@@ -398,23 +398,23 @@ class MainWindow(QMainWindow):
             self.reload_btn.show()
             return
 
-        # Erstelle GameManager
+        # Create GameManager
         self.game_manager = GameManager(
             config.STEAM_API_KEY,
             config.CACHE_DIR,
             config.STEAM_PATH
         )
 
-        # Lade Spiele mit Progress Dialog
+        # Load games with Progress Dialog
         if target_id:
             self._load_games_with_progress(target_id)
         else:
             self._load_games_with_progress(None)
 
     def _load_games_with_progress(self, user_id: Optional[str]):
-        """Lädt Spiele in separatem Thread mit Progress Dialog"""
+        """Loads games in separate thread with Progress Dialog"""
 
-        # Progress Dialog erstellen
+        # Create Progress Dialog
         self.progress_dialog = QProgressDialog(
             t('ui.loading.starting'),
             t('ui.dialogs.cancel'),
@@ -426,7 +426,7 @@ class MainWindow(QMainWindow):
         self.progress_dialog.setMinimumDuration(0)
         self.progress_dialog.setValue(0)
 
-        # Thread erstellen und starten
+        # Create and start thread
         self.load_thread = GameLoadThread(self.game_manager, user_id or "local")
         # noinspection PyUnresolvedReferences
         self.load_thread.progress_update.connect(self._on_load_progress)
@@ -435,7 +435,7 @@ class MainWindow(QMainWindow):
         self.load_thread.start()
 
     def _on_load_progress(self, step: str, current: int, total: int):
-        """Progress Update vom Load-Thread"""
+        """Progress Update from Load-Thread"""
         if self.progress_dialog:
             self.progress_dialog.setLabelText(step)
             if total > 0:
@@ -450,16 +450,16 @@ class MainWindow(QMainWindow):
         if not success:
             QMessageBox.warning(self, t('ui.dialogs.error'), t('ui.errors.no_games_found'))
             self.reload_btn.show()
-            self.set_status(t('ui.status.load_failed'))
-            return  # WICHTIG: Früh abbrechen!
+            self.set_status(t('ui.main.status_load_failed'))
+            return  # IMPORTANT: Abort early!
 
-        # NUR wenn erfolgreich:
-        if not self.game_manager or not self.game_manager.games:  # NEUE PRÜFUNG
+        # ONLY if successful:
+        if not self.game_manager or not self.game_manager.games:  # NEW CHECK
             QMessageBox.warning(self, t('ui.dialogs.error'), t('ui.errors.no_games_found'))
             self.reload_btn.show()
             return
 
-        # Merge mit localconfig & weitere Schritte
+        # Merge with localconfig & further steps
         self.game_manager.merge_with_localconfig(self.vdf_parser)
         self.steam_scraper = SteamStoreScraper(config.CACHE_DIR, config.TAGS_LANGUAGE)
         self.appinfo_manager = AppInfoManager(config.STEAM_PATH)
@@ -467,7 +467,7 @@ class MainWindow(QMainWindow):
         self.game_manager.apply_metadata_overrides(self.appinfo_manager)
         self._populate_categories()
 
-        # Status-Nachricht
+        # Status message
         status_msg = self.game_manager.get_load_source_message()
         self.set_status(status_msg)
         self.reload_btn.hide()
@@ -491,9 +491,9 @@ class MainWindow(QMainWindow):
     def _on_games_selected(self, games: List[Game]):
         self.selected_games = games
         if len(games) > 1:
-            self.set_status(t('ui.status.selected_multiple', count=len(games)))
+            self.set_status(t('ui.main.status_selected_multiple', count=len(games)))
         elif len(games) == 1:
-            self.set_status(t('ui.status.selected', name=games[0].name))
+            self.set_status(t('ui.main.status_selected', name=games[0].name))
 
     def on_game_selected(self, game: Game):
         self.selected_game = game
@@ -522,13 +522,13 @@ class MainWindow(QMainWindow):
     def on_game_right_click(self, game: Game, pos):
         menu = QMenu(self)
 
-        # Basis-Aktionen
+        # Basic actions
         menu.addAction(t('ui.game_list.context_menu.view_details'), lambda: self.on_game_selected(game))
         menu.addAction(t('ui.game_list.context_menu.toggle_favorite'), lambda: self.toggle_favorite(game))
 
         menu.addSeparator()
 
-        # Hide/Unhide (falls vorhanden)
+        # Hide/Unhide (if available)
         if hasattr(game, 'hidden'):
             if game.hidden:
                 menu.addAction(t('ui.game_list.context_menu.unhide_game'),
@@ -537,30 +537,30 @@ class MainWindow(QMainWindow):
                 menu.addAction(t('ui.game_list.context_menu.hide_game'),
                                lambda: self.toggle_hide_game(game, True))
 
-        # Remove from Account (falls vorhanden)
+        # Remove from Account (if available)
         if hasattr(self, 'remove_game_from_account'):
             menu.addAction(t('ui.game_list.context_menu.remove_from_account'),
                            lambda: self.remove_game_from_account(game))
 
         menu.addSeparator()
 
-        # Store-Aktionen
+        # Store actions
         menu.addAction(t('ui.game_list.context_menu.open_store'),
                        lambda: self.open_in_store(game))
 
-        # NEU: Check Store Availability
+        # NEW: Check Store Availability
         menu.addAction(t('ui.game_list.context_menu.check_store'),
                        lambda: self.check_store_availability(game))
 
         menu.addSeparator()
 
-        # Bulk-Aktionen
+        # Bulk actions
         if len(self.selected_games) > 1:
             menu.addAction(t('ui.game_list.context_menu.auto_categorize_selected'),
                            self.auto_categorize_selected)
             menu.addSeparator()
 
-        # Metadaten bearbeiten
+        # Edit metadata
         menu.addAction(t('ui.game_list.context_menu.edit_metadata'),
                        lambda: self.edit_game_metadata(game))
 
@@ -569,21 +569,21 @@ class MainWindow(QMainWindow):
     def on_category_right_click(self, category: str, pos):
         menu = QMenu(self)
 
-        # Lokalisierte Namen abrufen, um Spezial-Kategorien zu erkennen
+        # Retrieve localized names to detect special categories
         all_games = t('ui.categories.all_games')
         favorites = t('ui.categories.favorites')
         uncategorized = t('ui.categories.uncategorized')
 
-        # Favoriten -> Kein Kontextmenü
+        # Favorites -> No context menu
         if category == favorites:
             return
 
-        # "Alle Spiele" & "Unkategorisiert" → Nur Auto-Kategorisieren erlauben
+        # "All Games" & "Uncategorized" -> Allow only Auto-Categorize
         if category in [all_games, uncategorized]:
             menu.addAction(t('ui.game_list.context_menu.auto_categorize'),
                            lambda: self.auto_categorize_category(category))
         else:
-            # Normale, selbst erstellte Kategorien → Volle Kontrolle (Umbenennen, Löschen)
+            # Normal, custom categories -> Full control (Rename, Delete)
             menu.addAction(t('ui.game_list.context_menu.rename'), lambda: self.rename_category(category))
             menu.addAction(t('ui.game_list.context_menu.delete'), lambda: self.delete_category(category))
             menu.addSeparator()
@@ -593,14 +593,14 @@ class MainWindow(QMainWindow):
         menu.exec(pos)
 
     def toggle_hide_game(self, game: Game, hide: bool):
-        """Setzt den Hidden-Status in localconfig.vdf"""
+        """Sets the hidden status in localconfig.vdf"""
         if not self.vdf_parser:
             return
 
-        # Status im Parser setzen
+        # Set status in parser
         self.vdf_parser.set_app_hidden(game.app_id, hide)
 
-        # Speichern und UI aktualisieren
+        # Save and update UI
         if self.vdf_parser.save():
             game.hidden = hide
 
@@ -609,7 +609,7 @@ class MainWindow(QMainWindow):
                 'ui.game_list.context_menu.unhide_game')
             self.set_status(f"{status_text}: {game.name}")
 
-            # Info-Dialog anzeigen - JETZT MIT ÜBERSETZUNG
+            # Show Info Dialog - NOW WITH TRANSLATION
             msg_status = t('ui.game_list.context_menu.status_hidden') if hide else t(
                 'ui.game_list.context_menu.status_visible')
 
@@ -620,7 +620,7 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, t('ui.game_list.context_menu.confirm_hide_title'), msg)
 
     def remove_game_from_account(self, game: Game):
-        """Öffnet den Browser zum permanenten Löschen"""
+        """Opens browser for permanent deletion"""
         reply = QMessageBox.warning(
             self,
             t('ui.dialogs.confirm_remove_account_title'),
@@ -630,8 +630,8 @@ class MainWindow(QMainWindow):
         )
 
         if reply == QMessageBox.StandardButton.Yes:
-            # Magic Link zur Steam Support Seite ("Ich möchte dieses Spiel dauerhaft von meinem Account entfernen")
-            # issueid=123 ist der interne Code für "Remove Package"
+            # Magic Link to Steam Support page ("I want to permanently remove this game from my account")
+            # issueid=123 is the internal code for "Remove Package"
             url = f"https://help.steampowered.com/en/wizard/HelpWithGameIssue/?appid={game.app_id}&issueid=123"
             QDesktopServices.openUrl(QUrl(url))
 
@@ -648,7 +648,7 @@ class MainWindow(QMainWindow):
             self.set_status(t('ui.status.found_results', count=len(results)))
         else:
             self.tree.clear()
-            self.set_status(t('ui.status.no_results'))
+            self.set_status(t('ui.main.status_no_results'))
 
     def clear_search(self):
         self.search_entry.clear()
@@ -685,7 +685,7 @@ class MainWindow(QMainWindow):
         QApplication.processEvents()
 
         class StoreCheckThread(QThread):
-            """Thread für Store-Check"""
+            """Thread for Store Check"""
             finished = pyqtSignal(str, str)  # status, details
 
             def __init__(self, app_id: str):
@@ -696,7 +696,7 @@ class MainWindow(QMainWindow):
                 try:
                     url = f"https://store.steampowered.com/app/{self.app_id}/"
 
-                    # Request ohne Redirects folgen
+                    # Follow request without redirects
                     response = requests.get(
                         url,
                         timeout=10,
@@ -706,7 +706,7 @@ class MainWindow(QMainWindow):
 
                     # 200 OK = Store page exists
                     if response.status_code == 200:
-                        # Check für Geo-Lock Nachricht
+                        # Check for Geo-Lock message
                         content_lower = response.text.lower()
 
                         if any(phrase in content_lower for phrase in [
@@ -724,7 +724,7 @@ class MainWindow(QMainWindow):
                     elif response.status_code == 302:
                         location = response.headers.get('Location', '').lower()
 
-                        # Redirect zur Hauptseite = Delisted
+                        # Redirect to main page = Delisted
                         if 'steampowered.com' in location and 'store.steampowered.com' not in location:
                             self.finished.emit('delisted',
                                                'Game redirects to main Steam page. Likely removed from store.')
@@ -751,11 +751,11 @@ class MainWindow(QMainWindow):
                     self.finished.emit('unknown',
                                        f'Error: {str(e)[:100]}')
 
-        # Callback für Ergebnis
+        # Callback for result
         def on_check_finished(status: str, details: str):
             progress.close()
 
-            # Status-Text übersetzen
+            # Translate status text
             if status == 'available':
                 status_text = t('ui.game_list.context_menu.store_available')
                 icon = QMessageBox.Icon.Information
@@ -769,7 +769,7 @@ class MainWindow(QMainWindow):
                 status_text = t('ui.game_list.context_menu.store_unknown')
                 icon = QMessageBox.Icon.Information
 
-            # MessageBox mit Ergebnis
+            # MessageBox with result
             msg = QMessageBox(self)
             msg.setIcon(icon)
             msg.setWindowTitle(t('ui.game_list.context_menu.store_status_title'))
@@ -785,7 +785,7 @@ class MainWindow(QMainWindow):
             self.store_check_thread.quit()
             self.store_check_thread.wait()
 
-        # Thread starten (als Instanzvariable speichern!)
+        # Start thread (save as instance variable!)
         self.store_check_thread = StoreCheckThread(game.app_id)
         # noinspection PyUnresolvedReferences
         self.store_check_thread.finished.connect(on_check_finished)
@@ -819,19 +819,19 @@ class MainWindow(QMainWindow):
             self._show_auto_categorize_dialog(self.selected_games, None)
 
     def auto_categorize_category(self, category: str):
-        """Auto-Categorize für eine bestimmte Kategorie"""
+        """Auto-Categorize for a specific category"""
         all_games = t('ui.categories.all_games')
         uncategorized = t('ui.categories.uncategorized')
 
-        # All Games → Alle Spiele
+        # All Games -> All Games
         if category == all_games:
             games = self.game_manager.get_all_games()
             self._show_auto_categorize_dialog(games, category)
-        # Uncategorized → Nur unkategorisierte
+        # Uncategorized -> Only uncategorized
         elif category == uncategorized:
             games = self.game_manager.get_uncategorized_games()
             self._show_auto_categorize_dialog(games, category)
-        # Normale Kategorie
+        # Normal Category
         else:
             games = self.game_manager.get_games_by_category(category)
             self._show_auto_categorize_dialog(games, category)
@@ -864,7 +864,7 @@ class MainWindow(QMainWindow):
                     progress.setLabelText(t('ui.auto_categorize.fetching', game=game.name[:50]))
                     QApplication.processEvents()
 
-                    # Fetch all tags (bereits gefiltert nach Blacklist)
+                    # Fetch all tags (already filtered by blacklist)
                     all_tags = self.steam_scraper.fetch_tags(game.app_id)
 
                     # Limit to requested count
@@ -905,10 +905,10 @@ class MainWindow(QMainWindow):
 
     def edit_game_metadata(self, game: Game):
         """Edit single game metadata WITH VDF write support + UX improvements"""
-        # Hole aktuelle Metadaten
+        # Get current metadata
         meta = self.appinfo_manager.get_app_metadata(game.app_id)
 
-        # FÃ¼lle defaults
+        # Fill defaults
         if not meta.get('name'):
             meta['name'] = game.name
         if not meta.get('developer'):
@@ -918,50 +918,50 @@ class MainWindow(QMainWindow):
         if not meta.get('release_date'):
             meta['release_date'] = game.release_year
 
-        # Hole Original fÃ¼r Visual Comparison
+        # Get original for Visual Comparison
         original_meta = None
         if game.app_id in self.appinfo_manager.modifications:
             original_meta = self.appinfo_manager.modifications[game.app_id].get('original', {})
 
         if not original_meta:
-            # Wenn noch kein Original getrackt, nutze aktuelle Daten
+            # If no original tracked yet, use current data
             original_meta = meta.copy()
 
-        # Ã–ffne Dialog mit Original-Daten fÃ¼r Visual Feedback
+        # Open dialog with original data for Visual Feedback
         dialog = MetadataEditDialog(self, game.name, meta, original_meta)
 
         if dialog.exec():
             new_meta = dialog.get_metadata()
 
             if new_meta:
-                # Extrahiere write_to_vdf Flag
+                # Extract write_to_vdf flag
                 write_to_vdf = new_meta.pop('write_to_vdf', False)
 
-                # Setze Metadaten (speichert in custom_metadata.json)
+                # Set metadata (saves to custom_metadata.json)
                 self.appinfo_manager.set_app_metadata(game.app_id, new_meta)
 
-                # Speichere in JSON
+                # Save to JSON
                 self.appinfo_manager.save_appinfo()
 
-                # OPTIONAL: In appinfo.vdf schreiben
+                # OPTIONAL: Write to appinfo.vdf
                 if write_to_vdf:
                     progress = QProgressDialog(
-                        t('ui.status.writing_vdf'),
+                        t('ui.main.status_writing_vdf'),
                         None, 0, 0, self
                     )
                     progress.setWindowModality(Qt.WindowModality.WindowModal)
                     progress.show()
 
-                    # Lade appinfo
+                    # Load appinfo
                     self.appinfo_manager.load_appinfo()
 
-                    # Schreibe in VDF
+                    # Write to VDF
                     success = self.appinfo_manager.write_to_vdf(backup=True)
 
                     progress.close()
 
                     if success:
-                        # Success Dialog mit Instructions
+                        # Success Dialog with Instructions
                         msg = QMessageBox(self)
                         msg.setIcon(QMessageBox.Icon.Information)
                         msg.setWindowTitle(t('ui.metadata_editor.vdf_success_title'))
@@ -1004,7 +1004,7 @@ class MainWindow(QMainWindow):
     def _do_bulk_metadata_edit(self, games: List[Game], settings: Dict):
         """Bulk edit with optional VDF write"""
 
-        # Extrahiere name_modifications
+        # Extract name_modifications
         name_mods = settings.pop('name_modifications', {})
 
         # Apply to all games
@@ -1018,7 +1018,7 @@ class MainWindow(QMainWindow):
             if name_mods.get('remove'):
                 new_name = new_name.replace(name_mods['remove'], '')
 
-            # Setze Metadaten
+            # Set metadata
             meta = settings.copy()
             if new_name != game.name:
                 meta['name'] = new_name
@@ -1067,14 +1067,14 @@ class MainWindow(QMainWindow):
         affected = []
         for game in self.game_manager.get_all_games():
             # Check if any metadata is missing
-            # WICHTIG: Nur als "missing" zählen wenn WIRKLICH leer oder "Unknown"
+            # IMPORTANT: Only count as "missing" if REALLY empty or "Unknown"
             has_missing = False
 
             # Helper function to check if a field is really missing
             def is_missing(value) -> bool:
                 if value is None:
                     return True
-                value_str = str(value).strip()  # ← Konvertiert int → str
+                value_str = str(value).strip()  # ← Converts int -> str
                 if not value_str:
                     return True
                 if value_str in ["Unknown", "Unbekannt"]:
@@ -1123,19 +1123,19 @@ class MainWindow(QMainWindow):
             )
             return
 
-        # Zeige Dialog
+        # Show dialog
         dialog = MetadataRestoreDialog(self, mod_count)
         if dialog.exec() and dialog.should_restore():
             # Progress Dialog
             progress = QProgressDialog(
-                t('ui.status.restoring'),
+                t('ui.main.status_restoring'),
                 None, 0, 0, self
             )
             progress.setWindowModality(Qt.WindowModality.WindowModal)
             progress.show()
 
             try:
-                # Restore durchführen (lädt appinfo und schreibt in VDF!)
+                # Perform restore (loads appinfo and writes to VDF!)
                 restored = self.appinfo_manager.restore_modifications()
                 progress.close()
 
@@ -1180,7 +1180,7 @@ class MainWindow(QMainWindow):
         self._refresh_menubar()
         self._refresh_toolbar()
         self.setWindowTitle(t('ui.main.title'))
-        self.set_status(t('ui.status.ready'))
+        self.set_status(t('ui.main.status_ready'))
 
     def _refresh_menubar(self):
         self.menuBar().clear()
