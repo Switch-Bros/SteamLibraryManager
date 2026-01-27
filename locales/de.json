@@ -57,6 +57,20 @@
         "export_error": "CSV-Export fehlgeschlagen: {error}",
         "no_games_found": "Keine Spiele mit fehlenden Metadaten",
         "no_games_message": "Alle deine Spiele haben vollständige Metadaten!\n\nEntwickler, Publisher und Release-Datum sind für alle {count} Spiele verfügbar."
+      },
+      "merger": {
+      "title": "Kategorien Import/Export",
+      "source_missing": "Quelldatei nicht gefunden: {path}",
+      "target_missing": "Zieldatei nicht gefunden: {path}",
+      "load_error_source": "Fehler beim Laden der Quelldatei. Ist es eine gültige VDF?",
+      "load_error_target": "Fehler beim Laden der Zieldatei. Schreibrechte vorhanden?",
+      "no_apps_section": "Keine 'apps'-Sektion in {file} gefunden. Struktur unbekannt.",
+      "success": "Erfolgreich {count} Spiele-Kategorien in {path} aktualisiert!",
+      "save_error": "Fehler beim Speichern der Zieldatei!",
+      "no_changes": "Keine neuen Tags zum Übertragen gefunden. Dateien sind synchron.",
+      "select_source": "Wähle QUELLE (z.B. Windows sharedconfig.vdf)",
+      "select_target": "Wähle ZIEL (z.B. Linux localconfig.vdf)",
+      "btn_merge": "Kategorien übertragen"
       }
     },
     "toolbar": {
