@@ -1,6 +1,6 @@
 """
 Auto-Categorize Dialog - Fully Localized
-Speichern als: src/ui/auto_categorize_dialog.py
+Save as: src/ui/auto_categorize_dialog.py
 """
 
 from PyQt6.QtWidgets import (
@@ -14,7 +14,7 @@ from src.utils.i18n import t
 
 
 class AutoCategorizeDialog(QDialog):
-    """Dialog für Auto-Kategorisierung"""
+    """Dialog for Auto-Categorization"""
 
     def __init__(self, parent, games: List,
                  all_games_count: int,
@@ -166,7 +166,7 @@ class AutoCategorizeDialog(QDialog):
         layout.addLayout(button_layout)
 
     def _get_selected_methods(self) -> List[str]:
-        """FIX: Hilfsmethode zur Vermeidung von Code-Duplikaten"""
+        """Helper to avoid code duplication"""
         methods = []
         if self.cb_tags.isChecked(): methods.append('tags')
         if self.cb_publisher.isChecked(): methods.append('publisher')
