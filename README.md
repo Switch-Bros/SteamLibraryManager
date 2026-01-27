@@ -99,6 +99,60 @@
   3. Folge den Anweisungen in der App, um **deinen Schlüssel einzufügen** und Cover anzupassen!
 </details>
 
+---
+
+## 🌍 **Steam Library Manager** *(English)*
+
+A modern, powerful library manager for Steam on **Linux and Steam Deck**. Organize your collection, edit metadata, and automate categories.
+
+> ⚠️ **Note:** This project is currently in **active development** (Alpha/Beta). Backups are created automatically, but use at your own risk.
+
+---
+
+### ✨ **Features**
+
+* **🏷️ Auto-Categorization:**
+  * Automatically create categories based on **Steam tags**, **genres**, **publishers**, or **franchises**.
+  * Ignore generic tags (e.g., "Singleplayer", "Controller Support") automatically.
+
+* **✏️ Metadata Editor:**
+  * Edit game names, sort titles, developers, and release dates locally.
+  * **Bulk Edit:** Change data for hundreds of games at once.
+
+* **🌍 Multilingual (i18n):**
+  * Full support for **German 🇩🇪** and **English 🇬🇧**.
+  * Separate settings for UI language and tag language (e.g., English UI with German categories).
+
+* **🔒 Secure:**
+  * Automatic backup of `localconfig.vdf` and `appinfo.vdf` before any changes.
+  * Built-in restore function.
+
+* **🐧 Linux Native:**
+  * Developed with **PyQt6** for seamless integration with Linux desktops.
+
+---
+
+### 🚀 **Installation & Startup**
+
+Ensure you have **Python 3.10 or newer** installed.
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/Switch-Bros/SteamLibraryManager.git
+cd SteamLibraryManager
+
+# 2. Create a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 3. Install dependencies
+pip install -r requirements-user.txt
+
+# 4. Start the app
+python src/main.py
+```
+---
+## 🌍 **Steam Library Manager** *(Deutsch)*
 
 Ein moderner, leistungsstarker Bibliotheks-Manager für Steam auf Linux und dem Steam Deck.  
 Organisiere deine Sammlung, bearbeite Metadaten und automatisiere Kategorien.
@@ -145,6 +199,18 @@ pip install -r requirements-user.txt
 # 4. Starten
 python src/main.py
 ```
+
+---
+
+☕ Support the Project:
+Developing this tool takes time and caffeine. If it helps you tame your library, I’d be thrilled if you’d buy me a coffee!
+
+[![17688665364546846464391088987251](https://github.com/user-attachments/assets/a2495674-be9e-4d64-bc23-058094635036)
+](https://www.paypal.com/donate/?hosted_button_id=HWPG6YAGXAWJJ)
+
+(Screenshots and detailed documentation coming soon!)
+
+---
 
 ☕ Unterstütze das Projekt:
 Die Entwicklung dieses Tools kostet Zeit und Koffein. Wenn dir der Manager hilft, deine Bibliothek zu bändigen, freue ich mich riesig über einen Kaffee!
