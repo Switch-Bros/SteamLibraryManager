@@ -231,7 +231,7 @@
       "btn_edit": "Metadaten bearbeiten",
       "categories_label": "Kategorien",
       "never_played": "Nie gespielt",
-      "hours": "{hours}h",
+      "hours": "{hours} Std.",
       "gallery": {
         "grids": "GRIDS",
         "heroes": "HEROES",
@@ -411,7 +411,8 @@
       "untagged": "Nicht getaggt"
     },
     "common": {
-      "na": "N/A"
+      "na": "N/A",
+      "dash": "—"
     }
   },
   "logs": {

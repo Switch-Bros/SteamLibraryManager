@@ -1,6 +1,6 @@
 """
 Game Details Widget - Layout PRESERVED + Default Images Added
-Speichern als: src/ui/game_details_widget.py
+Save as: src/ui/game_details_widget.py
 """
 
 from PyQt6.QtWidgets import (
@@ -80,7 +80,7 @@ class GameDetailsWidget(QWidget):
         main_layout.setContentsMargins(15, 5, 15, 0)
         main_layout.setSpacing(0)
 
-        # === HEADER (Titel & Buttons) ===
+        # === HEADER (Title & Buttons) ===
         header_layout = QHBoxLayout()
 
         left_container = QVBoxLayout()
@@ -117,26 +117,26 @@ class GameDetailsWidget(QWidget):
         gallery_layout.setContentsMargins(4, 4, 4, 4)
         gallery_layout.setSpacing(4)
 
-        # 1. LINKS: Grid (Cover)
+        # 1. LEFT: Grid (Cover)
         self.img_grid = ClickableImage(self, 232, 348)
-        # NEU: Default Image setzen
+        # NEW: Set default image
         self.img_grid.set_default_image("resources/images/default_grids.png")
         self.img_grid.clicked.connect(lambda: self._on_image_click('grids'))
         self.img_grid.right_clicked.connect(lambda: self._on_image_right_click('grids'))
         gallery_layout.addWidget(self.img_grid)
 
-        # 2. RECHTS: Stack
+        # 2. RIGHT: Stack
         right_stack = QVBoxLayout()
         right_stack.setContentsMargins(0, 0, 0, 0)
         right_stack.setSpacing(4)
 
-        # 2a. Oben Rechts: Logo + Icon
+        # 2a. Top Right: Logo + Icon
         top_row = QHBoxLayout()
         top_row.setContentsMargins(0, 0, 0, 0)
         top_row.setSpacing(4)
 
         self.img_logo = ClickableImage(self, 264, 184)
-        # NEU: Default Image setzen
+        # NEW: Set default image
         self.img_logo.set_default_image("resources/images/default_logos.png")
         self.img_logo.clicked.connect(lambda: self._on_image_click('logos'))
         self.img_logo.right_clicked.connect(lambda: self._on_image_right_click('logos'))
@@ -144,7 +144,7 @@ class GameDetailsWidget(QWidget):
         top_row.addWidget(self.img_logo)
 
         self.img_icon = ClickableImage(self, 80, 80)
-        # NEU: Default Image setzen
+        # NEW: Set default image
         self.img_icon.set_default_image("resources/images/default_icons.png")
         self.img_icon.clicked.connect(lambda: self._on_image_click('icons'))
         self.img_icon.right_clicked.connect(lambda: self._on_image_right_click('icons'))
@@ -158,9 +158,9 @@ class GameDetailsWidget(QWidget):
 
         right_stack.addLayout(top_row)
 
-        # 2b. Unten Rechts: Hero
+        # 2b. Bottom Right: Hero
         self.img_hero = ClickableImage(self, 348, 160)
-        # NEU: Default Image setzen
+        # NEW: Set default image
         self.img_hero.set_default_image("resources/images/default_heroes.png")
         self.img_hero.clicked.connect(lambda: self._on_image_click('heroes'))
         self.img_hero.right_clicked.connect(lambda: self._on_image_right_click('heroes'))
@@ -173,7 +173,7 @@ class GameDetailsWidget(QWidget):
 
         main_layout.addSpacing(20)
 
-        # Trennlinie
+        # Separator line
         line1 = QFrame()
         line1.setFrameShape(QFrame.Shape.HLine)
         line1.setFrameShadow(QFrame.Shadow.Sunken)
@@ -195,7 +195,7 @@ class GameDetailsWidget(QWidget):
         meta_grid.addWidget(self.lbl_appid, 1, 0)
         self.lbl_playtime = InfoLabel('ui.game_details.playtime')
         meta_grid.addWidget(self.lbl_playtime, 2, 0)
-        self.lbl_updated = InfoLabel('ui.game_details.last_update', "—")
+        self.lbl_updated = InfoLabel('ui.game_details.last_update', t('ui.common.dash'))
         meta_grid.addWidget(self.lbl_updated, 3, 0)
 
         meta_grid.addWidget(QLabel(f"<b>{t('ui.game_details.section_ratings')}</b>"), 0, 1)
@@ -204,9 +204,9 @@ class GameDetailsWidget(QWidget):
         self.lbl_proton.setStyleSheet("padding: 1px 0;")
         self._update_proton_label("unknown")
         meta_grid.addWidget(self.lbl_proton, 1, 1)
-        self.lbl_steamdb = InfoLabel('ui.game_details.steam_db', "—")
+        self.lbl_steamdb = InfoLabel('ui.game_details.steam_db', t('ui.common.dash'))
         meta_grid.addWidget(self.lbl_steamdb, 2, 1)
-        self.lbl_reviews = InfoLabel('ui.game_details.reviews', "—")
+        self.lbl_reviews = InfoLabel('ui.game_details.reviews', t('ui.common.dash'))
         meta_grid.addWidget(self.lbl_reviews, 3, 1)
 
         meta_grid.addWidget(QLabel(f"<b>{t('ui.game_details.section_metadata')}</b>"), 0, 2)
@@ -264,21 +264,23 @@ class GameDetailsWidget(QWidget):
         self.current_game = game
         self.name_label.setText(game.name)
         self.lbl_appid.setText(f"<span style='color:#888;'>{t('ui.game_details.app_id')}:</span> <b>{game.app_id}</b>")
-        playtime_val = f"{game.playtime_hours}h" if game.playtime_hours > 0 else t('ui.game_details.never_played')
+        playtime_val = t('ui.game_details.hours', hours=game.playtime_hours) if game.playtime_hours > 0 else t(
+            'ui.game_details.never_played')
         self.lbl_playtime.setText(
             f"<span style='color:#888;'>{t('ui.game_details.playtime')}:</span> <b>{playtime_val}</b>")
-        update_val = game.last_updated if game.last_updated else "—"
+        update_val = game.last_updated if game.last_updated else t('ui.common.dash')
         self.lbl_updated.setText(
             f"<span style='color:#888;'>{t('ui.game_details.last_update')}:</span> <b>{update_val}</b>")
         self._update_proton_label(game.proton_db_rating)
-        db_val = game.steam_db_rating if game.steam_db_rating else "—"
+        db_val = game.steam_db_rating if game.steam_db_rating else t('ui.common.dash')
         self.lbl_steamdb.setText(f"<span style='color:#888;'>{t('ui.game_details.steam_db')}:</span> <b>{db_val}</b>")
-        review_val = f"{game.review_score} ({game.review_count})" if game.review_score else "—"
+
+        review_val = f"{game.review_score} ({game.review_count})" if game.review_score else t('ui.common.dash')
         self.lbl_reviews.setText(
             f"<span style='color:#888;'>{t('ui.game_details.reviews')}:</span> <b>{review_val}</b>")
         unknown = t('ui.game_details.value_unknown')
 
-        # Helper für safe Text-Konvertierung
+        # Helper for safe text conversion
         def safe_text(value, formatter=None):
             if not value:
                 return unknown
@@ -286,7 +288,7 @@ class GameDetailsWidget(QWidget):
                 return formatter(value)
             return str(value)
 
-        # Setze Felder
+        # Set fields
         self.edit_dev.setText(safe_text(game.developer))
         self.edit_pub.setText(safe_text(game.publisher))
         self.edit_rel.setText(safe_text(game.release_year, format_timestamp_to_date))

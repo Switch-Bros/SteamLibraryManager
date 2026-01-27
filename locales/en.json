@@ -411,7 +411,8 @@
       "untagged": "Untagged"
     },
     "common": {
-      "na": "N/A"
+      "na": "N/A",
+      "dash": "—"
     }
   },
   "logs": {

@@ -1,6 +1,6 @@
 """
 Metadata Edit Dialogs - Enhanced UX with Visual Indicators & Warnings (100% i18n)
-Speichern als: src/ui/metadata_dialogs.py
+Save as: src/ui/metadata_dialogs.py
 """
 
 from PyQt6.QtWidgets import (
@@ -15,7 +15,7 @@ from src.utils.date_utils import parse_date_to_timestamp
 
 
 class MetadataEditDialog(QDialog):
-    """Dialog für Einzel-Spiel Metadaten Bearbeitung mit Visual Feedback"""
+    """Dialog for single-game metadata editing with visual feedback"""
 
     def __init__(self, parent, game_name: str, current_metadata: Dict, original_metadata: Optional[Dict] = None):
         super().__init__(parent)
@@ -47,14 +47,14 @@ class MetadataEditDialog(QDialog):
         # Form Fields
         form = QFormLayout()
 
-        # Input-Felder
+        # Input fields
         self.name_edit = QLineEdit()
         self.sort_as_edit = QLineEdit()
         self.developer_edit = QLineEdit()
         self.publisher_edit = QLineEdit()
         self.release_date_edit = QLineEdit()
 
-        # Form aufbauen
+        # Build form
         form.addRow(t('ui.metadata_editor.game_name_label'), self.name_edit)
         form.addRow(t('ui.metadata_editor.sort_as_label'), self.sort_as_edit)
 
@@ -125,24 +125,24 @@ class MetadataEditDialog(QDialog):
         layout.addLayout(btn_layout)
 
     def _populate_fields(self):
-        """Befülle Felder und markiere geänderte Werte"""
+        """Populate fields and highlight modified values"""
         m = self.current_metadata
 
-        # Befülle Felder
+        # Populate fields
         self.name_edit.setText(m.get('name', ''))
         self.sort_as_edit.setText(m.get('sort_as', ''))
         self.developer_edit.setText(m.get('developer', ''))
         self.publisher_edit.setText(m.get('publisher', ''))
         self.release_date_edit.setText(str(m.get('release_date', '')))
 
-        # Visual Indicator für geänderte Felder
+        # Visual indicator for modified fields
         if self.original_metadata:
             self._highlight_modified_fields()
 
-        # show original Values
+        # Show original values
         na = t('ui.game_details.value_unknown')
         if self.original_metadata:
-            # Zeige ECHTE Originale
+            # Show REAL originals
             lines = [
                 f"{t('ui.game_details.name')}: {self.original_metadata.get('name', na)}",
                 f"{t('ui.game_details.developer')}: {self.original_metadata.get('developer', na)}",
@@ -150,7 +150,7 @@ class MetadataEditDialog(QDialog):
                 f"{t('ui.game_details.release_year')}: {self.original_metadata.get('release_date', na)}"
             ]
         else:
-            # Fallback: Zeige aktuelle Werte
+            # Fallback: Show current values
             lines = [
                 f"{t('ui.game_details.name')}: {m.get('name', na)}",
                 f"{t('ui.game_details.developer')}: {m.get('developer', na)}",
@@ -161,7 +161,7 @@ class MetadataEditDialog(QDialog):
         self.original_text.setPlainText('\n'.join(lines))
 
     def _highlight_modified_fields(self):
-        """Markiere geänderte Felder gelb"""
+        """Highlight modified fields in yellow"""
         modified_style = "background-color: #FFF3CD; border: 2px solid #FFA500;"
 
         m = self.current_metadata
@@ -192,7 +192,7 @@ class MetadataEditDialog(QDialog):
                                                 original=o.get('release_date', t('ui.game_details.value_unknown'))))
 
     def _revert_to_original(self):
-        """Stelle Original-Werte wieder her"""
+        """Restore original values"""
         if not self.original_metadata:
             QMessageBox.information(
                 self,
@@ -210,7 +210,7 @@ class MetadataEditDialog(QDialog):
         )
 
         if reply == QMessageBox.StandardButton.Yes:
-            # Setze Original-Werte
+            # Set original values
             self.name_edit.setText(self.original_metadata.get('name', ''))
             self.developer_edit.setText(self.original_metadata.get('developer', ''))
             self.publisher_edit.setText(self.original_metadata.get('publisher', ''))
@@ -230,15 +230,15 @@ class MetadataEditDialog(QDialog):
             self.release_date_edit.setToolTip("")
 
     def _save(self):
-        """Speichere mit optionalem VDF-Warning"""
+        """Save with optional VDF warning"""
         name = self.name_edit.text().strip()
         if not name:
             QMessageBox.warning(self, t('ui.dialogs.error'), t('ui.metadata_editor.error_empty_name'))
             return
 
-        # Warning Dialog wenn VDF-Write aktiviert
+        # Warning dialog if VDF-Write enabled
         if self.write_to_vdf_cb.isChecked():
-            # Zeige Warnung beim ersten Mal (pro Session)
+            # Show warning the first time (per session)
             if not hasattr(self.parent(), '_vdf_warning_shown'):
                 msg = QMessageBox(self)
                 msg.setIcon(QMessageBox.Icon.Information)
@@ -273,7 +273,7 @@ class MetadataEditDialog(QDialog):
 
 
 class BulkMetadataEditDialog(QDialog):
-    """Dialog für Bulk Metadaten Bearbeitung"""
+    """Dialog for bulk metadata editing"""
 
     def __init__(self, parent, games_count: int, game_names: List[str]):
         super().__init__(parent)
@@ -392,7 +392,7 @@ class BulkMetadataEditDialog(QDialog):
 
 
 class MetadataRestoreDialog(QDialog):
-    """Dialog zum Wiederherstellen von Änderungen"""
+    """Dialog for restoring changes"""
 
     def __init__(self, parent, modified_count: int):
         super().__init__(parent)
