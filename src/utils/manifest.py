@@ -1,13 +1,12 @@
 """
 Modernized Manifest Parser (Steam Depot Manifests)
-Speichern als: src/utils/manifest.py
 """
 import struct
 from typing import BinaryIO, Dict, Any
 try:
     from .manifest_pb2 import Payload, Metadata, Signature
 except ImportError:
-    # Fallback für direkten Aufruf
+    # Fallback for direct call
     from manifest_pb2 import Payload, Metadata, Signature
 
 __all__ = ('load', 'loads')
@@ -50,7 +49,7 @@ def loads(data: bytes, wrapper=dict) -> Dict[str, Any]:
         if msg_id in MessageClass:
             message = MessageClass[msg_id]()
             message.ParseFromString(msg_data)
-            # Wir wandeln das Protobuf-Objekt in ein Dict um
+            # Convert Protobuf object to dict
             from google.protobuf.json_format import MessageToDict
             parsed[MSG_NAMES[msg_id]] = MessageToDict(message, preserving_proto_field_name=True)
 
