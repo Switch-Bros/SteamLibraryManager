@@ -1,6 +1,5 @@
 """
 Steam Store Integration - Fetches Tags & Franchises
-Speichern als: src/integrations/steam_store.py
 """
 
 import requests
@@ -14,7 +13,7 @@ from src.utils.i18n import t
 
 
 class SteamStoreScraper:
-    """Holt Tags von Steam Store - in gewählter Sprache"""
+    """Fetches tags from Steam Store - in selected language"""
 
     # Language mapping (ISO Code -> Steam Internal Name)
     STEAM_LANGUAGES = {
@@ -39,18 +38,18 @@ class SteamStoreScraper:
         self.cache_dir = cache_dir / 'store_tags'
         self.cache_dir.mkdir(exist_ok=True, parents=True)
 
-        # Attribute vorinitialisieren
+        # Pre-initialize attributes
         self.language_code = 'en'
         self.steam_language = 'english'
 
-        # Sprache setzen
+        # Set language
         self.set_language(language)
 
         # Rate limiting
         self.last_request_time = 0.0
         self.min_request_interval = 1.5
 
-        # Tag blacklist (Englisch & Deutsch gemischt)
+        # Tag blacklist (English & German mixed)
         self.tag_blacklist = {
             # English
             'Singleplayer', 'Multiplayer', 'Co-op', 'Shared/Split Screen',
@@ -77,18 +76,18 @@ class SteamStoreScraper:
         }
 
     def set_language(self, language_code: str):
-        """Setzt die Sprache für Store-Anfragen"""
+        """Sets the language for Store requests"""
         self.language_code = language_code
         self.steam_language = self.STEAM_LANGUAGES.get(language_code, 'english')
 
     def fetch_tags(self, app_id: str) -> List[str]:
-        """Holt Tags von der Steam Store Seite"""
+        """Fetches tags from the Steam Store page"""
         cache_file = self.cache_dir / f"{app_id}_{self.language_code}.json"
 
         # 1. Check Cache
         if cache_file.exists():
             try:
-                # Cache Validierung (30 Tage)
+                # Cache validation (30 days)
                 mtime = datetime.fromtimestamp(cache_file.stat().st_mtime)
                 if datetime.now() - mtime < timedelta(days=30):
                     with open(cache_file, 'r', encoding='utf-8') as f:
@@ -114,17 +113,17 @@ class SteamStoreScraper:
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, 'html.parser')
 
-                # Tags finden
+                # Find tags
                 tags = []
 
-                # Selector für Tags
+                # Selector for tags
                 tag_elements = soup.select('.app_tag')
                 for tag_elem in tag_elements:
                     tag_text = tag_elem.get_text().strip()
                     if tag_text and tag_text not in self.tag_blacklist and tag_text != '+':
                         tags.append(tag_text)
 
-                # Speichern
+                # Save
                 with open(cache_file, 'w', encoding='utf-8') as f:
                     json.dump(tags, f)
 

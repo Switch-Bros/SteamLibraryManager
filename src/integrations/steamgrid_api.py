@@ -1,6 +1,5 @@
 """
 SteamGridDB API Client (Full Pagination)
-Speichern als: src/integrations/steamgrid_api.py
 """
 import requests
 from typing import Dict, List, Optional, Any
@@ -29,7 +28,7 @@ class SteamGridDB:
 
     def get_images_by_type(self, steam_app_id: str, img_type: str) -> List[Dict[str, Any]]:
         """
-        Holt ALLE Bilder über ALLE Seiten.
+        Fetches ALL images across ALL pages.
         """
         if not self.api_key: return []
 
@@ -41,7 +40,7 @@ class SteamGridDB:
 
         while True:
             try:
-                # nsfw='any' -> Zeigt ALLES (Standard + Adult)
+                # nsfw='any' -> Shows EVERYTHING (Standard + Adult)
                 params: Dict[str, Any] = {
                     'page': page,
                     'nsfw': 'any',
@@ -60,7 +59,7 @@ class SteamGridDB:
                         new_images = data['data']
                         all_images.extend(new_images)
 
-                        # Wenn weniger als 20 Ergebnisse, war es die letzte Seite
+                        # If less than 20 results, it was the last page
                         if len(new_images) < 20:
                             break
                         page += 1
