@@ -1,10 +1,9 @@
 """
 Game Manager - Updated for Hidden Games
-Speichern als: src/core/game_manager.py
 """
 
 import requests
-from typing import Dict, List, Optional, Callable, Tuple
+from typing import Dict, List, Optional, Callable
 from dataclasses import dataclass
 from pathlib import Path
 import json
@@ -14,30 +13,30 @@ from src.utils.i18n import t
 
 @dataclass
 class Game:
-    """Repräsentiert ein Steam-Spiel"""
+    """Represents a Steam game"""
     app_id: str
     name: str
     playtime_minutes: int = 0
     last_played: Optional[datetime] = None
     categories: List[str] = None
 
-    # NEU: Hidden Status
+    # NEW: Hidden Status
     hidden: bool = False
 
-    # Metadaten
+    # Metadata
     developer: str = ""
     publisher: str = ""
     release_year: str = ""
     genres: List[str] = None
     tags: List[str] = None
 
-    # Sortierung
+    # Sorting
     sort_name: str = ""
 
-    # Override-Flags
+    # Override flags
     name_overridden: bool = False
 
-    # Erweiterte Daten
+    # Extended data
     proton_db_rating: str = ""
     steam_db_rating: str = ""
     review_score: str = ""
@@ -87,11 +86,11 @@ class GameManager:
         self.appinfo_manager = None
 
     def load_games(self, steam_user_id: str, progress_callback: Optional[Callable] = None) -> bool:
-        """Lädt Spiele mit Progress-Callback"""
+        """Load games with progress callback"""
         self.steam_user_id = steam_user_id
         api_success = False
 
-        # SCHRITT 1: Steam Web API
+        # STEP 1: Steam Web API
         if self.api_key:
             if progress_callback:
                 progress_callback(t('ui.loading.trying_api'), 0, 3)
@@ -99,7 +98,7 @@ class GameManager:
             print(t('logs.manager.trying_api'))
             api_success = self.load_from_steam_api(steam_user_id)
 
-        # SCHRITT 2: Lokale Dateien
+        # STEP 2: Lokale Dateien
         if progress_callback:
             progress_callback(t('ui.loading.loading_local'), 1, 3)
 
@@ -107,7 +106,7 @@ class GameManager:
 
         local_success = self.load_from_local_files(progress_callback)
 
-        # SCHRITT 3: Status
+        # STEP 3: Status
         if progress_callback:
             progress_callback(t('ui.loading.finalizing'), 2, 3)
 
@@ -127,7 +126,7 @@ class GameManager:
         return True
 
     def load_from_local_files(self, progress_callback: Optional[Callable] = None) -> bool:
-        """Lädt Spiele aus lokalen Steam-Dateien"""
+        """Load games from local Steam files"""
         from src.core.local_games_loader import LocalGamesLoader
 
         try:
@@ -177,7 +176,7 @@ class GameManager:
             return False
 
     def load_from_steam_api(self, steam_user_id: str) -> bool:
-        """Lädt Spiele von Steam Web API"""
+        """Load games from Steam Web API"""
         if not self.api_key:
             print(t('logs.manager.no_api_key'))
             return False
@@ -227,11 +226,11 @@ class GameManager:
         print(t('logs.manager.merging'))
         local_app_ids = set(parser.get_all_app_ids())
 
-        # NEU: Liste der versteckten Apps holen
+        # NEW: Liste der versteckten Apps holen
         hidden_apps = set(parser.get_hidden_apps())
 
         for app_id in self.games:
-            # NEU: Hidden Status setzen
+            # NEW: Hidden Status setzen
             if app_id in hidden_apps:
                 self.games[app_id].hidden = True
 
@@ -250,7 +249,7 @@ class GameManager:
                 game = Game(app_id=app_id, name=name)
                 game.categories = parser.get_app_categories(app_id)
 
-                # NEU: Auch hier Hidden Status prüfen
+                # NEW: Also check Hidden status here
                 if app_id in hidden_apps:
                     game.hidden = True
 
@@ -287,7 +286,7 @@ class GameManager:
 
         count = 0
 
-        # 1. BINARY APPINFO METADATEN FÜR ALLE SPIELE
+        # 1. BINARY APPINFO METADATA FOR ALL GAMES
         for app_id, game in self.games.items():
             steam_meta = appinfo_manager.get_app_metadata(app_id)
 

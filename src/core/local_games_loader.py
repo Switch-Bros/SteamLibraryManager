@@ -1,6 +1,5 @@
 """
 Local Games Loader - Multi-Library Support (ADJUSTED FOR SME INTEGRATION)
-Speichern als: src/core/local_games_loader.py
 """
 
 import vdf
@@ -10,46 +9,46 @@ from src.utils.i18n import t
 
 
 class LocalGamesLoader:
-    """Lädt Spiele aus lokalen Steam-Dateien ohne API"""
+    """Loads games from local Steam files without API"""
 
     def __init__(self, steam_path: Path):
         self.steam_path = steam_path
         self.steamapps_path = steam_path / 'steamapps'
-        # appinfo.vdf wird jetzt NUR über AppInfoManager geladen
+        # appinfo.vdf is now ONLY loaded via AppInfoManager
         self.appinfo_vdf_path = steam_path / 'appcache' / 'appinfo.vdf'
 
     def get_all_games(self) -> List[Dict]:
         """
-        Lädt installierte Spiele aus manifest files
-        
-        WICHTIG: appinfo.vdf wird NICHT mehr hier geladen!
-        Das macht AppInfoManager on-demand für bessere Performance.
+        Loads installed games from manifest files
+
+        IMPORTANT: appinfo.vdf is NO LONGER loaded here!
+        AppInfoManager does this on-demand for better performance.
         """
         all_games = {}
 
-        # 1. Installierte Spiele (aus Library Folders)
+        # 1. Installed Games (from Library Folders)
         installed = self.get_installed_games()
         for game in installed:
             all_games[str(game['appid'])] = game
 
-        # 2. appinfo.vdf wird NICHT mehr hier geladen
-        #    Grund: Zu langsam (~15.000 Apps), wird nur on-demand geladen
-        #    AppInfoManager lädt es wenn Metadaten gebraucht werden
+        # 2. appinfo.vdf is NO LONGER loaded here
+        #    Reason: Too slow (~15,000 Apps), loaded only on-demand
+        #    AppInfoManager loads it when metadata is needed
 
         print(t('logs.local_loader.loaded_total', count=len(all_games)))
         return list(all_games.values())
 
     def get_installed_games(self) -> List[Dict]:
-        """Liest alle installierten Spiele aus appmanifest_*.acf Dateien"""
+        """Reads all installed games from appmanifest_*.acf files"""
         all_installed = []
 
-        # Holt Libraries (Linux Native Paths)
+        # Get Libraries (Linux Native Paths)
         library_folders = self.get_library_folders()
 
         print(t('logs.local_loader.scanning_libraries', count=len(library_folders)))
 
         for lib_path in library_folders:
-            # Manifests liegen normalerweise in steamapps
+            # Manifests are typically in steamapps
             search_dirs = [lib_path / 'steamapps', lib_path]
 
             manifests_found_in_lib = 0
@@ -73,15 +72,15 @@ class LocalGamesLoader:
                         pass
 
             if manifests_found_in_lib > 0:
-                print(t('logs.local_loader.found_manifests_in_path', 
-                       path=lib_path, count=manifests_found_in_lib))
+                print(t('logs.local_loader.found_manifests_in_path',
+                        path=lib_path, count=manifests_found_in_lib))
 
         return all_installed
 
     def get_library_folders(self) -> List[Path]:
         """
-        Findet alle Steam Library Ordner anhand der libraryfolders.vdf.
-        Liest direkt die Linux-Pfade (/mnt/...) aus.
+        Finds all Steam Library folders based on libraryfolders.vdf.
+        Reads Linux paths (/mnt/...) directly.
         """
         folders = [self.steam_path]
 
@@ -148,22 +147,22 @@ class LocalGamesLoader:
         playtimes = {}
         if not localconfig_path.exists():
             return playtimes
-        
+
         try:
             with open(localconfig_path, 'r', encoding='utf-8') as f:
                 data = vdf.load(f)
-            
+
             apps = (data.get('UserLocalConfigStore', {})
-                       .get('Software', {})
-                       .get('Valve', {})
-                       .get('Steam', {})
-                       .get('Apps', {}))
-            
+                    .get('Software', {})
+                    .get('Valve', {})
+                    .get('Steam', {})
+                    .get('Apps', {}))
+
             for app_id, app_data in apps.items():
                 if 'playtime' in app_data:
                     playtimes[app_id] = int(app_data['playtime']) // 60
-                    
+
         except (OSError, ValueError, KeyError, SyntaxError, AttributeError):
             pass
-        
+
         return playtimes

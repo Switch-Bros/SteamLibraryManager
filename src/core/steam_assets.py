@@ -1,6 +1,5 @@
 """
 Steam Assets Manager (WebP/Gif Support) - Syntax Fixed
-Speichern als: src/core/steam_assets.py
 """
 import os
 import shutil
@@ -13,7 +12,7 @@ class SteamAssets:
 
     @staticmethod
     def get_asset_path(app_id: str, asset_type: str) -> str:
-        """Gibt den Pfad zum lokalen Asset zurück oder die URL als Fallback"""
+        """Returns path to local asset or URL as fallback"""
 
         # 1. Custom Image Check
         custom_dir = config.CACHE_DIR / 'images' / 'custom' / app_id
@@ -23,11 +22,11 @@ class SteamAssets:
 
         short_id, _ = config.get_detected_user()
 
-        # 2. Versuche lokales Bild zu finden
+        # 2. Try to find local image
         if config.STEAM_PATH and short_id:
             grid_dir = config.STEAM_PATH / 'userdata' / short_id / 'config' / 'grid'
 
-            # Bestimme den Basis-Dateinamen
+            # Determine base filename
             filename_base = ""
             if asset_type == 'grids':
                 filename_base = f"p_{app_id}"
@@ -39,7 +38,7 @@ class SteamAssets:
                 filename_base = f"{app_id}_icon"
 
             if filename_base:
-                # Prüfe alle möglichen Endungen
+                # Check all possible extensions
                 for ext in ['.png', '.jpg', '.jpeg', '.webp', '.gif']:
                     local_path = grid_dir / (filename_base + ext)
                     if local_path.exists():
@@ -72,7 +71,7 @@ class SteamAssets:
                     print(t('logs.steamgrid.saved', type=asset_type, app_id=app_id))
                     return True
 
-            # Lokale Datei kopieren
+            # Copy local file
             elif os.path.exists(url_or_path):
                 shutil.copy2(url_or_path, target_file)
                 print(t('logs.steamgrid.saved', type=asset_type, app_id=app_id))
