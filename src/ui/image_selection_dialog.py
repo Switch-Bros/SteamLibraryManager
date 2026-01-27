@@ -1,6 +1,6 @@
 """
 Image Selection Dialog - Full Version (Setup, Speed & Author Info)
-Speichern als: src/ui/image_selection_dialog.py
+Save as: src/ui/image_selection_dialog.py
 """
 import json
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QScrollArea, QWidget, QGridLayout, QLabel,
@@ -23,7 +23,7 @@ class SearchThread(QThread):
         self.api = SteamGridDB()
 
     def run(self):
-        # Holt ALLE Bilder (durch Fix in steamgrid_api.py)
+        # Fetches ALL images (via fix in steamgrid_api.py)
         urls = self.api.get_images_by_type(self.app_id, self.img_type)
         self.results_found.emit(urls)
 
@@ -51,7 +51,7 @@ class ImageSelectionDialog(QDialog):
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.main_layout.addWidget(self.status_label)
 
-        # Scroll Area für Ergebnisse
+        # Scroll Area for results
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
         self.scroll.hide()
@@ -64,7 +64,7 @@ class ImageSelectionDialog(QDialog):
 
         self.main_layout.addWidget(self.scroll)
 
-        # --- SETUP WIDGET (Falls API Key fehlt) ---
+        # --- SETUP WIDGET (If API Key is missing) ---
         self.setup_widget = QWidget()
         self.setup_widget.hide()
         setup_layout = QVBoxLayout(self.setup_widget)
@@ -105,7 +105,7 @@ class ImageSelectionDialog(QDialog):
 
         self.main_layout.addWidget(self.setup_widget)
 
-        # Cancel Button ganz unten
+        # Cancel Button at the bottom
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
         cancel_btn = QPushButton(t('ui.dialogs.cancel'))
@@ -166,7 +166,7 @@ class ImageSelectionDialog(QDialog):
         }
         cols, w, h = config_map.get(self.img_type, (3, 250, 250))
 
-        # Grid leeren
+        # Clear Grid
         while self.grid_layout.count():
             child = self.grid_layout.takeAt(0)
             if child.widget():
@@ -174,17 +174,17 @@ class ImageSelectionDialog(QDialog):
 
         row, col = 0, 0
         for item in items:
-            # Container für Bild + Autor
+            # Container for Image + Author
             container = QWidget()
             container_layout = QVBoxLayout(container)
             container_layout.setContentsMargins(0, 0, 0, 0)
             container_layout.setSpacing(2)
 
-            # 1. Das Bild
-            # 'metadata' wird übergeben, damit Badges funktionieren (NSFW, Humor etc.)
+            # 1. The Image
+            # 'metadata' is passed so badges work (NSFW, Humor etc.)
             img_widget = ClickableImage(self.img_type, w, h, metadata=item)
 
-            # Smart Load: Volle URL für WebP/GIF/Animated, sonst Thumb (SPEED FIX!)
+            # Smart Load: Full URL for WebP/GIF/Animated, otherwise Thumb (SPEED FIX!)
             load_url = item['thumb']
             mime = item.get('mime', '')
             tags = item.get('tags', [])
@@ -195,14 +195,14 @@ class ImageSelectionDialog(QDialog):
 
             img_widget.load_image(load_url)
 
-            # Klick-Handler
+            # Click Handler
             full_url = item['url']
             img_widget.mousePressEvent = lambda e, u=full_url: self._on_select(u)
 
             container_layout.addWidget(img_widget)
 
-            # 2. Der Autor (Linksbündig unter Bild) - NEU!
-            author_name = "Unknown"
+            # 2. The Author (Left-aligned below image)
+            author_name = t('ui.game_details.value_unknown')
             if 'author' in item and 'name' in item['author']:
                 author_name = item['author']['name']
 
@@ -212,7 +212,7 @@ class ImageSelectionDialog(QDialog):
             lbl_author.setFixedWidth(w)
             container_layout.addWidget(lbl_author)
 
-            # Container zum Grid hinzufügen
+            # Add container to grid
             self.grid_layout.addWidget(container, row, col)
 
             col += 1
