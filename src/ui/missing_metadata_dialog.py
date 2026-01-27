@@ -1,6 +1,6 @@
 """
-Missing Metadata Detection Dialog - Date Formatter Edition
-Speichern als: src/ui/missing_metadata_dialog.py
+Missing Metadata Detection Dialog - Clean Code & Optimized
+Save as: src/ui/missing_metadata_dialog.py
 """
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
@@ -11,13 +11,13 @@ from PyQt6.QtGui import QFont
 from typing import List
 from pathlib import Path
 import csv
-from datetime import datetime  # <--- WICHTIG: Für Datumsumrechnung
+from datetime import datetime
 from src.core.game_manager import Game
 from src.utils.i18n import t
 
 
 class MissingMetadataDialog(QDialog):
-    """Dialog zum Anzeigen von Spielen mit fehlenden Metadaten"""
+    """Dialog to display games with missing metadata"""
 
     def __init__(self, parent, games: List[Game]):
         super().__init__(parent)
@@ -29,6 +29,39 @@ class MissingMetadataDialog(QDialog):
 
         self._create_ui()
         self._populate_table()
+
+    @staticmethod
+    def _is_missing(value) -> bool:
+        """Checks if a value is considered 'missing'"""
+        if value is None:
+            return True
+        value_str = str(value).strip()
+        if not value_str:
+            return True
+        if value_str.lower() in ["unknown", "unbekannt", "none", "n/a"]:
+            return True
+        return False
+
+    @staticmethod
+    def _format_date(value) -> str:
+        """Converts Unix timestamps to readable date (YYYY-MM-DD)"""
+        if not value:
+            return ""
+
+        value_str = str(value).strip()
+
+        # Check if it is a number
+        if value_str.isdigit():
+            try:
+                ts = int(value_str)
+                # Plausibility check: Is number > 100,000,000 (approx year 1973)?
+                if ts > 100000000:
+                    dt = datetime.fromtimestamp(ts)
+                    return dt.strftime("%Y-%m-%d")
+            except (ValueError, TypeError):
+                pass  # Return original on error
+
+        return value_str
 
     def _create_ui(self):
         layout = QVBoxLayout(self)
@@ -55,7 +88,7 @@ class MissingMetadataDialog(QDialog):
             t('ui.tools.missing_metadata.col_release')
         ])
 
-        # --- SPALTEN-VERHALTEN: Interaktiv ---
+        # --- Column Behavior: Interactive ---
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         header.setStretchLastSection(False)
@@ -65,13 +98,13 @@ class MissingMetadataDialog(QDialog):
 
         layout.addWidget(self.table)
 
-        # Statistics
-        stats_layout = QHBoxLayout()
-
+        # Statistics Label
         self.stats_label = QLabel()
         self.stats_label.setStyleSheet("color: #888; font-size: 10px;")
-        stats_layout.addWidget(self.stats_label)
 
+        # Stats Layout
+        stats_layout = QHBoxLayout()
+        stats_layout.addWidget(self.stats_label)
         stats_layout.addStretch()
         layout.addLayout(stats_layout)
 
@@ -90,101 +123,71 @@ class MissingMetadataDialog(QDialog):
 
         layout.addLayout(btn_layout)
 
-    def _format_date(self, value) -> str:
-        """Wandelt Unix-Timestamps in lesbares Datum um"""
-        if not value:
-            return ""
+    @staticmethod
+    def _create_item(text: str) -> QTableWidgetItem:
+        """Helper to create a read-only table item to reduce code duplication"""
+        item = QTableWidgetItem(str(text))
 
-        value_str = str(value).strip()
+        # FIX: Calculate flags as integer first to avoid PyCharm type confusion
+        flags_val = Qt.ItemFlag.ItemIsEnabled.value | Qt.ItemFlag.ItemIsSelectable.value
+        item.setFlags(Qt.ItemFlag(flags_val))
 
-        # Prüfen ob es eine Zahl ist
-        if value_str.isdigit():
-            try:
-                ts = int(value_str)
-                # Einfache Prüfung: Ist die Zahl größer als 19900101?
-                # Ein Timestamp für das Jahr 2000 ist schon 946684800.
-                # Ein Jahr wie "2004" ist viel kleiner.
-                # Grenze: Alles über 100.000.000 behandeln wir als Timestamp (ca. Jahr 1973)
-                if ts > 100000000:
-                    dt = datetime.fromtimestamp(ts)
-                    return dt.strftime("%Y-%m-%d")
-            except Exception:
-                pass  # Falls Fehler, gib Original zurück
-
-        return value_str
+        return item
 
     def _populate_table(self):
-        """Befülle Tabelle mit Spielen"""
+        """Populate table with games"""
         self.table.setRowCount(len(self.games))
 
         missing_dev = 0
         missing_pub = 0
         missing_rel = 0
 
-        # Helper function
-        def is_missing(value) -> bool:
-            if value is None:
-                return True
-            value_str = str(value).strip()
-            if not value_str:
-                return True
-            if value_str in ["Unknown", "Unbekannt", "None"]:
-                return True
-            return False
-
         for row, game in enumerate(self.games):
-            # AppID
-            item = QTableWidgetItem(game.app_id)
-            item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-            self.table.setItem(row, 0, item)
+            # 1. AppID
+            self.table.setItem(row, 0, self._create_item(str(game.app_id)))
 
-            # Name
-            item = QTableWidgetItem(game.name)
-            item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-            self.table.setItem(row, 1, item)
+            # 2. Name
+            self.table.setItem(row, 1, self._create_item(game.name))
 
-            # Developer
-            dev = game.developer if game.developer else ""
-            if is_missing(dev):
-                dev = "❌ " + t('ui.tools.missing_metadata.missing')
+            # 3. Developer
+            dev_val = game.developer if game.developer else ""
+            if self._is_missing(dev_val):
+                display_dev = f"❌ {t('ui.tools.missing_metadata.missing')}"
                 missing_dev += 1
-            item = QTableWidgetItem(str(dev))
-            item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-            self.table.setItem(row, 2, item)
+            else:
+                display_dev = str(dev_val)
 
-            # Publisher
-            pub = game.publisher if game.publisher else ""
-            if is_missing(pub):
-                pub = "❌ " + t('ui.tools.missing_metadata.missing')
+            self.table.setItem(row, 2, self._create_item(display_dev))
+
+            # 4. Publisher
+            pub_val = game.publisher if game.publisher else ""
+            if self._is_missing(pub_val):
+                display_pub = f"❌ {t('ui.tools.missing_metadata.missing')}"
                 missing_pub += 1
-            item = QTableWidgetItem(str(pub))
-            item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-            self.table.setItem(row, 3, item)
+            else:
+                display_pub = str(pub_val)
 
-            # Release (JETZT MIT FORMATIERUNG)
+            self.table.setItem(row, 3, self._create_item(display_pub))
+
+            # 5. Release
             raw_rel = game.release_year if game.release_year else ""
-
-            # Prüfen ob es fehlt (auf Basis des Rohwertes)
-            if is_missing(raw_rel):
-                display_rel = "❌ " + t('ui.tools.missing_metadata.missing')
+            if self._is_missing(raw_rel):
+                display_rel = f"❌ {t('ui.tools.missing_metadata.missing')}"
                 missing_rel += 1
             else:
-                # Formatieren für Anzeige
                 display_rel = self._format_date(raw_rel)
 
-            item = QTableWidgetItem(display_rel)
-            item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-            self.table.setItem(row, 4, item)
+            self.table.setItem(row, 4, self._create_item(display_rel))
 
         # Update Statistics
         stats = t('ui.tools.missing_metadata.stats',
                   dev=missing_dev, pub=missing_pub, rel=missing_rel)
         self.stats_label.setText(stats)
 
-        # Initiale Größenanpassung
+        # Initial size adjustment
         self.table.resizeColumnsToContents()
 
-        # Mindestbreite für Name
+        # Minimum width for Name
         current_width = self.table.columnWidth(1)
         if current_width < 200:
             self.table.setColumnWidth(1, 200)
@@ -192,7 +195,7 @@ class MissingMetadataDialog(QDialog):
             self.table.setColumnWidth(1, 600)
 
     def _export_csv(self):
-        """Exportiere Liste als CSV"""
+        """Export list as CSV"""
         default_name = f"missing_metadata_{len(self.games)}_games.csv"
 
         file_path, _ = QFileDialog.getSaveFileName(
@@ -209,54 +212,46 @@ class MissingMetadataDialog(QDialog):
             with open(file_path, 'w', newline='', encoding='utf-8') as f:
                 writer = csv.writer(f)
 
-                # Header
+                # Header (Localized)
                 writer.writerow([
-                    'AppID',
-                    'Game Name',
-                    'Developer',
-                    'Publisher',
-                    'Release Date',
-                    'Missing Fields'
+                    t('ui.tools.missing_metadata.col_appid'),
+                    t('ui.tools.missing_metadata.col_name'),
+                    t('ui.tools.missing_metadata.col_developer'),
+                    t('ui.tools.missing_metadata.col_publisher'),
+                    t('ui.tools.missing_metadata.col_release'),
+                    t('ui.tools.missing_metadata.col_missing_fields')
                 ])
-
-                def is_missing(value) -> bool:
-                    if value is None:
-                        return True
-                    value_str = str(value).strip()
-                    if not value_str:
-                        return True
-                    if value_str in ["Unknown", "Unbekannt", "None"]:
-                        return True
-                    return False
 
                 # Data
                 for game in self.games:
                     missing_fields = []
 
-                    dev = game.developer if game.developer else ""
-                    if is_missing(dev):
-                        dev = "[MISSING]"
-                        missing_fields.append("Developer")
+                    # Developer
+                    dev_val = game.developer if game.developer else ""
+                    if self._is_missing(dev_val):
+                        dev_val = t('ui.tools.missing_metadata.missing')
+                        missing_fields.append(t('ui.game_details.developer'))
 
-                    pub = game.publisher if game.publisher else ""
-                    if is_missing(pub):
-                        pub = "[MISSING]"
-                        missing_fields.append("Publisher")
+                    # Publisher
+                    pub_val = game.publisher if game.publisher else ""
+                    if self._is_missing(pub_val):
+                        pub_val = t('ui.tools.missing_metadata.missing')
+                        missing_fields.append(t('ui.game_details.publisher'))
 
+                    # Release
                     raw_rel = game.release_year if game.release_year else ""
-                    if is_missing(raw_rel):
-                        rel = "[MISSING]"
-                        missing_fields.append("Release")
+                    if self._is_missing(raw_rel):
+                        rel_val = t('ui.tools.missing_metadata.missing')
+                        missing_fields.append(t('ui.game_details.release_year'))
                     else:
-                        # Auch im CSV schön formatieren
-                        rel = self._format_date(raw_rel)
+                        rel_val = self._format_date(raw_rel)
 
                     writer.writerow([
                         game.app_id,
                         game.name,
-                        str(dev),
-                        str(pub),
-                        str(rel),
+                        str(dev_val),
+                        str(pub_val),
+                        str(rel_val),
                         ", ".join(missing_fields)
                     ])
 
