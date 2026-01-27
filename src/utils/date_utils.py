@@ -1,6 +1,5 @@
 """
 Date Utilities - Unix Timestamp Conversion
-Speichern als: src/utils/date_utils.py
 """
 
 from datetime import datetime
@@ -8,29 +7,29 @@ from datetime import datetime
 
 def parse_date_to_timestamp(date_str: str) -> str:
     """
-    Konvertiert verschiedene Datums-Formate zu Unix Timestamp
+    Convert various date formats to Unix timestamp
 
-    Akzeptiert:
-    - Unix Timestamp: "1494000108" → bleibt unverändert
-    - ISO Date: "2017-05-05" → wird zu Unix Timestamp
-    - Year only: "2017" → bleibt unverändert
-    - Invalid: "" → bleibt leer
+    Accepts:
+    - Unix Timestamp: "1494000108" → remains unchanged
+    - ISO Date: "2017-05-05" → converted to Unix timestamp
+    - Year only: "2017" → remains unchanged
+    - Invalid: "" → remains empty
 
     Returns:
-        String mit Unix Timestamp oder Original-Wert
+        String with Unix timestamp or original value
     """
     if not date_str or not date_str.strip():
         return ""
 
     date_str = date_str.strip()
 
-    # Ist es bereits eine Zahl? (Timestamp oder Jahr)
+    # Is it already a number? (Timestamp or year)
     if date_str.isdigit():
-        # Wenn > 100000000 = Timestamp, behalte es
-        # Wenn < 10000 = Jahr, behalte es
+        # If > 100000000 = Timestamp, keep it
+        # If < 10000 = Year, keep it
         return date_str
 
-    # Versuche ISO-Format zu parsen (YYYY-MM-DD)
+    # Try to parse ISO format (YYYY-MM-DD)
     try:
         dt = datetime.strptime(date_str, "%Y-%m-%d")
         timestamp = int(dt.timestamp())
@@ -38,7 +37,7 @@ def parse_date_to_timestamp(date_str: str) -> str:
     except ValueError:
         pass
 
-    # Versuche andere Formate
+    # Try other formats
     formats = ["%Y/%m/%d", "%d.%m.%Y", "%d-%m-%Y"]
     for fmt in formats:
         try:
@@ -48,36 +47,36 @@ def parse_date_to_timestamp(date_str: str) -> str:
         except ValueError:
             continue
 
-    # Wenn nichts funktioniert, gib Original zurück
+    # If nothing works, return original
     return date_str
 
 
 def format_timestamp_to_date(value) -> str:
     """
-    Wandelt Unix-Timestamps in lesbares Datum um
+    Convert Unix timestamps to readable date
 
     Args:
-        value: Unix Timestamp (int/str), Jahr (str), oder ISO Datum (str)
+        value: Unix Timestamp (int/str), year (str), or ISO date (str)
 
     Returns:
-        Formatiertes Datum als "YYYY-MM-DD" oder Original-Wert
+        Formatted date as "YYYY-MM-DD" or original value
     """
     if not value:
         return ""
 
     value_str = str(value).strip()
 
-    # Prüfen, ob es eine Zahl ist
+    # Check if it's a number
     if value_str.isdigit():
         try:
             ts = int(value_str)
-            # Einfache Prüfung: Ist die Zahl größer als 100.000.000?
-            # Timestamp für das Jahr 2000 ist 946684800
-            # ein Jahr wie "2004" ist viel kleiner
+            # Simple check: Is the number greater than 100,000,000?
+            # Timestamp for year 2000 is 946684800
+            # A year like "2004" is much smaller
             if ts > 100000000:
                 dt = datetime.fromtimestamp(ts)
                 return dt.strftime("%Y-%m-%d")
         except (ValueError, OSError, OverflowError):
-            pass  # Falls Fehler, gib Original zurück
+            pass  # If error, return original
 
     return value_str

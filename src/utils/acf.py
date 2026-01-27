@@ -1,6 +1,5 @@
 """
 Modernized ACF Parser (Steam KeyValues Text Format)
-Speichern als: src/utils/acf.py
 """
 __all__ = ('load', 'loads', 'dump', 'dumps')
 
@@ -25,14 +24,14 @@ def loads(data: str, wrapper=dict):
             continue
 
         try:
-            # Versuche Key-Value zu splitten
+            # Try to split key-value
             parts = line.split(None, 1)
             if len(parts) == 2:
                 key = parts[0].strip('"')
                 value = parts[1].strip('"')
                 current_section[key] = value
             else:
-                # Es ist eine neue Sektion
+                # It's a new section
                 sections.append(line.strip('"'))
         except ValueError:
             continue

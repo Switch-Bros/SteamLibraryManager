@@ -1,6 +1,5 @@
 """
 i18n System - Core Translation Logic (Robust Path Fix)
-Speichern als: src/utils/i18n.py
 """
 import json
 from pathlib import Path
@@ -13,9 +12,9 @@ class I18n:
         self.translations: Dict[str, Any] = {}
         self.fallback_translations: Dict[str, Any] = {}
 
-        # Gehe sicher zum Projekt-Root Ordner
-        # Datei ist in: PROJECT/src/utils/i18n.py
-        # Wir wollen:   PROJECT/locales
+        # Navigate safely to project root folder
+        # File is in: PROJECT/src/utils/i18n.py
+        # We want:    PROJECT/locales
         current_file = Path(__file__).resolve()
         project_root = current_file.parent.parent.parent
         self.locales_dir = project_root / 'locales'
@@ -32,7 +31,7 @@ class I18n:
             except (OSError, json.JSONDecodeError) as e:
                 print(f"CRITICAL: Error loading fallback locale: {e}")
         else:
-            # Fallback, falls wir im falschen Verzeichnis sind (Debugging)
+            # Fallback if we're in wrong directory (debugging)
             print(f"DEBUG: Locales not found at {fallback_path}")
 
         # Load target locale
