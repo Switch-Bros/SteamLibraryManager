@@ -133,6 +133,13 @@
       "auto_detect": "Auto-Detect",
       "confirm_remove_lib": "Remove Library?",
       "confirm_remove_lib_msg": "Do you really want to remove this path from the list?",
+      "api_key_sgdb": "SteamGridDB Key:",
+      "api_key_steam": "Steam Web API Key:",
+      "api_key_placeholder": "SteamGridDB API Key",
+      "get_api_key": "Get API Key",
+      "save_error": "Could not save settings.",
+      "auto_detect_failed": "Steam path not found automatically.",
+      "library_read_error": "Error reading library folders: {error}",
       "languages": {
         "de": "🇩🇪 Deutsch",
         "en": "🇬🇧 English",
