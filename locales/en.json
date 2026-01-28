@@ -317,6 +317,11 @@
       "restored": "Restored {count} modifications",
       "parse_error": "Warning: Failed to parse app {app_id}: {error}"
     },
+    "parser": {
+      "apps_not_found": "Apps section not found in localconfig.vdf",
+      "file_not_found": "localconfig.vdf not found at: {path}",
+      "hidden_error": "Error setting hidden status: {error}"
+    },
     "local_loader": {
       "scanning": "Scanning {count} manifest files...",
       "found_manifests": "  -> {path}: Found {count} manifests",

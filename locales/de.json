@@ -317,6 +317,11 @@
       "restored": "{count} Änderungen wiederhergestellt",
       "parse_error": "Warnung: Fehler beim Parsen von App {app_id}: {error}"
     },
+    "parser": {
+      "apps_not_found": "Apps-Sektion in localconfig.vdf nicht gefunden",
+      "file_not_found": "localconfig.vdf nicht gefunden unter: {path}",
+      "hidden_error": "Fehler beim Setzen des Versteckt-Status: {error}"
+    },
     "local_loader": {
       "scanning": "Scanne {count} Manifest-Dateien...",
       "found_manifests": "  -> {path}: {count} Manifeste gefunden",
