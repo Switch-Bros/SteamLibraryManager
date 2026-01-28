@@ -63,7 +63,7 @@ class SettingsDialog(QDialog):
                 label = code.upper()
             self.combo_ui_lang.addItem(label, code)
 
-        lang_layout.addRow(t('ui.settings.ui_language'), self.combo_ui_lang)
+        lang_layout.addRow(t('ui.settings.ui_language_label'), self.combo_ui_lang)
 
         # Tags Language
         self.combo_tags_lang = QComboBox()
@@ -71,13 +71,13 @@ class SettingsDialog(QDialog):
         tags_mapping = [
             ("english", "en"),
             ("german", "de"),
-            ("french", "fr"),
             ("spanish", "es"),
+            ("portuguese", "pt"),
+            ("french", "fr"),
             ("italian", "it"),
             ("chinese", "zh"),
             ("japanese", "ja"),
-            ("koreana", "ko"),
-            ("portuguese", "pt")
+            ("koreana", "ko")
         ]
 
         for api_val, lang_code in tags_mapping:
@@ -92,7 +92,7 @@ class SettingsDialog(QDialog):
         layout_gen.addWidget(lang_group)
 
         # 2. Paths Section
-        path_group = QGroupBox(t('ui.settings.paths'))
+        path_group = QGroupBox(t('ui.settings.steam_path'))
         path_layout = QVBoxLayout()
 
         path_layout.addWidget(QLabel(t('ui.settings.steam_path')))
@@ -114,7 +114,7 @@ class SettingsDialog(QDialog):
         layout_gen.addWidget(path_group)
 
         # 3. Libraries List
-        lib_group = QGroupBox(t('ui.settings.libraries'))
+        lib_group = QGroupBox(t('ui.settings.libraries_label'))
         lib_layout = QVBoxLayout()
 
         self.lib_list = QListWidget()
@@ -141,12 +141,12 @@ class SettingsDialog(QDialog):
         tab_auto = QWidget()
         layout_auto = QVBoxLayout(tab_auto)
 
-        auto_group = QGroupBox(t('ui.settings.automation_options'))
+        auto_group = QGroupBox(t('ui.settings.auto_categorization'))
         auto_layout = QFormLayout()
 
         self.spin_tags = QSpinBox()
         self.spin_tags.setRange(1, 20)
-        auto_layout.addRow(t('ui.settings.max_tags'), self.spin_tags)
+        auto_layout.addRow(t('ui.settings.tags_per_game'), self.spin_tags)
 
         self.check_common = QCheckBox(t('ui.settings.ignore_common'))
         self.check_common.setToolTip(t('ui.auto_categorize.tooltip_ignore_common'))
@@ -165,7 +165,7 @@ class SettingsDialog(QDialog):
         api_layout.addRow(t('ui.settings.api_key_sgdb'), self.sgdb_key_edit)
 
         # Link to get key
-        link_text = t('ui.settings.get_api_key')
+        link_text = t('ui.settings.steamgrid_get_key')
         lbl_sgdb_help = QLabel(f"<a href='https://www.steamgriddb.com/profile/preferences/api'>{link_text}</a>")
         lbl_sgdb_help.setOpenExternalLinks(True)
         api_layout.addRow("", lbl_sgdb_help)
@@ -178,7 +178,7 @@ class SettingsDialog(QDialog):
         layout_auto.addWidget(api_group)
 
         layout_auto.addStretch()
-        self.tabs.addTab(tab_auto, t('ui.settings.tab_automation'))
+        self.tabs.addTab(tab_auto, t('ui.settings.tab_api'))
 
         layout.addWidget(self.tabs)
 
@@ -200,55 +200,58 @@ class SettingsDialog(QDialog):
     def _load_current_settings(self):
         """Load values from config into UI."""
         # Language
-        idx = self.combo_ui_lang.findData(config.get('ui_language', 'en'))
+        idx = self.combo_ui_lang.findData(config.UI_LANGUAGE or 'en')
         if idx >= 0: self.combo_ui_lang.setCurrentIndex(idx)
 
-        idx_tags = self.combo_tags_lang.findData(config.get('tags_language', 'english'))
+        idx_tags = self.combo_tags_lang.findData(config.TAGS_LANGUAGE or 'english')
         if idx_tags >= 0: self.combo_tags_lang.setCurrentIndex(idx_tags)
 
         # Paths
-        self.path_edit.setText(config.get('steam_path', ''))
+        self.path_edit.setText(str(config.STEAM_PATH) if config.STEAM_PATH else '')
 
-        # Libraries
+        # Libraries - load from config or scan if empty but path exists
         self.lib_list.clear()
-        for lib in config.get('library_folders', []):
-            self.lib_list.addItem(lib)
+        if config.STEAM_LIBRARIES:
+            for lib in config.STEAM_LIBRARIES:
+                self.lib_list.addItem(lib)
+        elif config.STEAM_PATH:
+            # Auto-scan libraries if none saved but path exists
+            self._scan_library_folders(config.STEAM_PATH)
 
         # Automation
-        self.spin_tags.setValue(config.get('max_tags_per_game', 3))
-        self.check_common.setChecked(config.get('ignore_common_tags', True))
+        self.spin_tags.setValue(config.TAGS_PER_GAME or 3)
+        self.check_common.setChecked(config.IGNORE_COMMON_TAGS if config.IGNORE_COMMON_TAGS is not None else True)
 
         # APIs
-        self.sgdb_key_edit.setText(config.get('steamgriddb_api_key', ''))
-        self.steam_key_edit.setText(config.get('steam_api_key', ''))
+        self.sgdb_key_edit.setText(config.STEAMGRIDDB_API_KEY or '')
+        self.steam_key_edit.setText(config.STEAM_API_KEY or '')
 
     def _save_settings(self):
         """Save values from UI to config."""
         new_ui_lang = self.combo_ui_lang.currentData()
-        old_ui_lang = config.get('ui_language')
+        old_ui_lang = config.UI_LANGUAGE
 
-        config.set('ui_language', new_ui_lang)
-        config.set('tags_language', self.combo_tags_lang.currentData())
-        config.set('steam_path', self.path_edit.text().strip())
-        config.set('max_tags_per_game', self.spin_tags.value())
-        config.set('ignore_common_tags', self.check_common.isChecked())
-        config.set('steamgriddb_api_key', self.sgdb_key_edit.text().strip())
-        config.set('steam_api_key', self.steam_key_edit.text().strip())
+        config.UI_LANGUAGE = new_ui_lang
+        config.TAGS_LANGUAGE = self.combo_tags_lang.currentData()
+        steam_path = self.path_edit.text().strip()
+        config.STEAM_PATH = Path(steam_path) if steam_path else None
+        config.TAGS_PER_GAME = self.spin_tags.value()
+        config.IGNORE_COMMON_TAGS = self.check_common.isChecked()
+        config.STEAMGRIDDB_API_KEY = self.sgdb_key_edit.text().strip()
+        config.STEAM_API_KEY = self.steam_key_edit.text().strip()
 
         # Save libraries
         libs = [self.lib_list.item(i).text() for i in range(self.lib_list.count())]
-        config.set('library_folders', libs)
+        config.STEAM_LIBRARIES = libs
 
-        if config.save():
-            QMessageBox.information(self, t('ui.dialogs.success'), t('ui.settings.saved'))
+        config.save()
+        QMessageBox.information(self, t('ui.dialogs.success'), t('ui.main.status_saved'))
 
-            # Emit signal if language changed
-            if new_ui_lang != old_ui_lang:
-                self.language_changed.emit(new_ui_lang)
+        # Emit signal if language changed
+        if new_ui_lang != old_ui_lang:
+            self.language_changed.emit(new_ui_lang)
 
-            self.accept()
-        else:
-            QMessageBox.critical(self, t('ui.dialogs.error'), t('ui.settings.save_error'))
+        self.accept()
 
     def _auto_detect_paths(self):
         """Try to find Steam paths automatically."""
