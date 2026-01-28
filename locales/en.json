@@ -105,7 +105,7 @@
         "language": "Language",
         "ui_language": "User Interface",
         "tag_language": "Tags Language",
-        "restart_required": "Please restart the application for language changes to take effect."
+        "restart_required": "Changes take effect immediately. A restart is recommended for full consistency."
       },
       "languages": {
         "de": "🇩🇪 Deutsch",

@@ -105,7 +105,7 @@
         "language": "Sprache",
         "ui_language": "Benutzeroberfläche",
         "tag_language": "Tag Sprache",
-        "restart_required": "Bitte starte die App neu, damit die Sprachänderung wirksam wird."
+        "restart_required": "Änderung wird sofort wirksam. Ein Neustart wird für vollständige Konsistenz empfohlen."
       },
       "languages": {
         "de": "🇩🇪 Deutsch",
