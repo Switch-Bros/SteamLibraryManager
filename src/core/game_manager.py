@@ -244,7 +244,7 @@ class GameManager:
         if missing_ids:
             print(t('logs.manager.found_missing', count=len(missing_ids)))
             for app_id in missing_ids:
-                name = self._get_cached_name(app_id) or f"App {app_id}"
+                name = self._get_cached_name(app_id) or t('common.game_fallback', id=app_id)
 
                 game = Game(app_id=app_id, name=name)
                 game.categories = parser.get_app_categories(app_id)
