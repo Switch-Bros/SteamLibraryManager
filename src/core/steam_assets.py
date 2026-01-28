@@ -1,7 +1,11 @@
+# src/core/steam_assets.py
+
 """
-Steam Assets Manager
-Handles retrieving, saving, and deleting local game assets (Grids, Heroes, Logos, Icons).
-Supports custom images and WebP/Gif formats.
+Manages Steam game assets (images) for the library.
+
+This module handles retrieving, saving, and deleting local game assets such as
+grids, heroes, logos, and icons. It supports custom images and various formats
+including WebP and GIF.
 """
 import os
 import shutil
@@ -12,20 +16,31 @@ from src.utils.i18n import t
 
 class SteamAssets:
     """
-    Static manager class for Steam assets (images).
+    Static manager class for Steam game assets (images).
+
+    This class provides methods to locate, save, and delete game images. It
+    searches for custom images first, then checks Steam's local cache, and
+    finally falls back to Steam's CDN URLs.
     """
 
     @staticmethod
     def get_asset_path(app_id: str, asset_type: str) -> str:
         """
-        Returns path to local asset (custom or Steam cache) or URL as fallback.
+        Returns the path to a local asset or a URL as fallback.
+
+        This method searches for assets in the following order:
+        1. Custom images in the cache directory
+        2. Local Steam user config/grid directory
+        3. Steam CDN URLs (fallback)
 
         Args:
-            app_id (str): The AppID of the game.
-            asset_type (str): Type of asset ('grids', 'heroes', 'logos', 'icons').
+            app_id (str): The Steam app ID.
+            asset_type (str): Type of asset to retrieve. Valid values are:
+                             'grids', 'heroes', 'logos', 'icons'.
 
         Returns:
-            str: File path or URL.
+            str: A local file path if the asset exists locally, or a Steam CDN URL
+                as fallback. Returns an empty string if the asset type is invalid.
         """
 
         # 1. Custom Image Check
@@ -73,13 +88,17 @@ class SteamAssets:
         """
         Saves a custom image for a game.
 
+        This method downloads an image from a URL or copies it from a local path
+        and saves it to the custom images directory. The image is always saved
+        as a PNG file.
+
         Args:
-            app_id (str): The AppID.
-            asset_type (str): Asset type.
-            url_or_path (str): Source URL or local file path.
+            app_id (str): The Steam app ID.
+            asset_type (str): The type of asset ('grids', 'heroes', 'logos', 'icons').
+            url_or_path (str): Source URL (http/https) or local file path.
 
         Returns:
-            bool: True on success.
+            bool: True if the image was saved successfully, False otherwise.
         """
         try:
             target_dir = config.CACHE_DIR / 'images' / 'custom' / app_id
@@ -111,11 +130,17 @@ class SteamAssets:
     @staticmethod
     def delete_custom_image(app_id: str, asset_type: str) -> bool:
         """
-        Deletes a custom image.
+        Deletes a custom image for a game.
+
+        This method removes the custom image file from the cache directory. If the
+        file doesn't exist, it returns True (idempotent behavior).
 
         Args:
-            app_id (str): The AppID.
-            asset_type (str): Asset type.
+            app_id (str): The Steam app ID.
+            asset_type (str): The type of asset to delete ('grids', 'heroes', 'logos', 'icons').
+
+        Returns:
+            bool: True if the image was deleted or didn't exist, False if an error occurred.
         """
         try:
             target_file = config.CACHE_DIR / 'images' / 'custom' / app_id / f'{asset_type}.png'
@@ -123,6 +148,8 @@ class SteamAssets:
                 os.remove(target_file)
                 print(t('logs.steamgrid.deleted', path=target_file.name))
                 return True
+            # Return True even if file didn't exist (idempotent)
+            return True
         except OSError as e:
             print(t('logs.steamgrid.delete_error', error=e))
-        return False
+            return False

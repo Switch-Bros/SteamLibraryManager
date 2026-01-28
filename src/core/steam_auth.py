@@ -1,12 +1,16 @@
+# src/core/steam_auth.py
+
 """
-Steam Authentication Manager
-Uses Flask to handle the OAuth callback securely.
+Manages Steam authentication via OpenID.
+
+This module uses Flask to handle the OAuth callback securely. It provides a
+QObject-based manager that can be integrated into PyQt6 applications to handle
+Steam login via OpenID.
 """
 import threading
 import webbrowser
 from urllib.parse import urlencode
 
-# Diese Imports verursachten die roten Fehler - nach 'pip install flask' sind sie weg
 from flask import Flask, request
 # noinspection PyPackageRequirements
 from werkzeug.serving import make_server
@@ -14,10 +18,9 @@ from werkzeug.serving import make_server
 from PyQt6.QtCore import QObject, pyqtSignal
 from src.utils.i18n import t
 
-# Optional: PyWebview für schöneres Fenster
+# Optional: PyWebview for a better-looking window
 try:
     import webview
-
     HAS_WEBVIEW = True
 except ImportError:
     webview = None
@@ -25,25 +28,49 @@ except ImportError:
 
 
 class SteamAuthManager(QObject):
+    """
+    Manages Steam authentication via OpenID with Flask callback server.
+
+    This class starts a local Flask server to handle the OpenID callback from
+    Steam, opens the Steam login page in a browser (or webview), and emits
+    signals when authentication succeeds or fails.
+
+    Signals:
+        auth_success (str): Emitted when authentication succeeds, passes the SteamID64.
+        auth_error (str): Emitted when an error occurs during authentication.
+    """
+
     auth_success = pyqtSignal(str)  # Returns SteamID64
     auth_error = pyqtSignal(str)
 
     def __init__(self):
+        """
+        Initializes the SteamAuthManager.
+
+        Sets up the Flask app and configures the OpenID callback route.
+        """
         super().__init__()
         self.server = None
         self.server_thread = None
         self.app = Flask(__name__)
         self.port = 5000
 
-        # Steam mag "localhost" lieber als "127.0.0.1" bei Redirects
+        # Steam prefers "localhost" over "127.0.0.1" for redirects
         # noinspection HttpUrlsUsage
         self.redirect_uri = f"http://localhost:{self.port}/auth"
 
-        # Flask Route registrieren
+        # Register Flask route
         self.app.add_url_rule('/auth', 'auth', self._handle_auth)
 
     def start_login(self):
-        """Starts the OpenID process"""
+        """
+        Starts the Steam OpenID authentication process.
+
+        This method:
+        1. Starts a Flask server in a background thread to handle the callback
+        2. Builds the Steam OpenID URL
+        3. Opens the URL in a browser (or webview if available)
+        """
         # 1. Start server in thread
         self.server_thread = threading.Thread(target=self._run_flask)
         self.server_thread.daemon = True
@@ -72,7 +99,15 @@ class SteamAuthManager(QObject):
 
     @staticmethod
     def _open_webview(url):
-        """Opens native window (if webview installed)"""
+        """
+        Opens the Steam login page in a native webview window.
+
+        This method is used when the pywebview library is available. It provides
+        a better user experience than opening the default browser.
+
+        Args:
+            url (str): The Steam OpenID login URL.
+        """
         try:
             webview.create_window('Steam Login', url, width=800, height=800, resizable=False)
             webview.start()
@@ -81,7 +116,12 @@ class SteamAuthManager(QObject):
             webbrowser.open(url)
 
     def _run_flask(self):
-        """Runs the Flask server."""
+        """
+        Runs the Flask server in a background thread.
+
+        This method starts the Flask server and keeps it running until the
+        authentication callback is received or an error occurs.
+        """
         try:
             # Threaded server setup
             self.server = make_server('localhost', self.port, self.app)
@@ -90,12 +130,21 @@ class SteamAuthManager(QObject):
             self.auth_error.emit(str(e))
 
     def _handle_auth(self):
-        """Callback for OpenID"""
-        # Steam sendet die ID im Parameter 'openid.claimed_id'
+        """
+        Handles the OpenID callback from Steam.
+
+        This method is called when Steam redirects the user back to the local
+        server after authentication. It extracts the SteamID64 from the callback
+        parameters and emits the auth_success signal.
+
+        Returns:
+            str: An HTML response to display in the browser.
+        """
+        # Steam sends the ID in the 'openid.claimed_id' parameter
         claimed_id = request.args.get('openid.claimed_id')
 
         if claimed_id:
-            # Format ist: https://steamcommunity.com/openid/id/7656119xxxxxxxxxx
+            # Format is: https://steamcommunity.com/openid/id/7656119xxxxxxxxxx
             steam_id_64 = claimed_id.split('/')[-1]
 
             self.auth_success.emit(steam_id_64)
