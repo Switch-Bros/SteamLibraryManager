@@ -8,6 +8,7 @@ from src.utils.i18n import t
 
 
 class SteamGridDB:
+    # Secure HTTPS URL
     BASE_URL = "https://www.steamgriddb.com/api/v2"
 
     def __init__(self):
@@ -70,7 +71,7 @@ class SteamGridDB:
                     break
 
             except (requests.RequestException, ValueError, KeyError) as e:
-                print(t('logs.steamgrid.exception', error=e))
+                print(t('logs.steamgrid.exception', error=str(e)))
                 break
 
         print(t('logs.steamgrid.found', count=len(all_images)))
