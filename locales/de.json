@@ -231,7 +231,9 @@
       "button": "Mit Steam anmelden",
       "status_success": "Login erfolgreich!",
       "status_failed": "Login fehlgeschlagen",
-      "logged_in_as": "Angemeldet als {user}"
+      "logged_in_as": "Angemeldet als {user}",
+      "html_success_header": "Erfolgreich angemeldet!",
+      "html_success_msg": "Du kannst dieses Fenster jetzt schließen und zur App zurückkehren."
     },
     "search": {
       "results_category": "Suchergebnisse ({count})",
