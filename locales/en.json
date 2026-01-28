@@ -76,15 +76,21 @@
         "about": "About Steam Library Manager"
       }
     },
-    "settings": {
+"settings": {
       "title": "Settings",
       "tabs": {
         "general": "General",
-        "tags": "Tags & Categories",
-        "api": "API & Integrations",
-        "backup": "Backup"
+        "other": "Other"
+      },
+      "libraries": {
+        "title": "Steam Library Folders",
+        "add": "Add",
+        "remove": "Remove",
+        "confirm_remove": "Remove Library",
+        "confirm_msg": "Do you really want to remove this library path?"
       },
       "api": {
+        "title_group": "API && Integrations",
         "steam_label": "Steam Web API Key (Optional)",
         "sgdb_label": "SteamGridDB API Key (Covers/Icons)",
         "get_key": "Get API Key",
@@ -113,11 +119,13 @@
         "ko": "🇰🇷 한국어"
       },
       "backup": {
+        "title_group": "Backup",
         "limit": "Max. Backups:",
         "files": "files",
         "tooltip": "Number of backups per file"
       },
       "tags": {
+        "title_group": "Tags && Categories",
         "count": "Tags per Game:",
         "ignore_common": "Ignore common tags"
       }
