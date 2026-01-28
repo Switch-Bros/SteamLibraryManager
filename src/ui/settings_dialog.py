@@ -149,7 +149,7 @@ class SettingsDialog(QDialog):
         """
         Content:
         - Tags (Count, Ignore)
-        - Backup (Limit)
+        - Backup (Limit + Explanation)
         - APIs (Web API, SteamGridDB)
         """
         layout = QVBoxLayout(parent)
@@ -174,6 +174,13 @@ class SettingsDialog(QDialog):
         self.spin_backup.setRange(1, 100)
         self.spin_backup.setSuffix(f" {t('ui.settings.backup.files')}")
         form_backup.addRow(t('ui.settings.backup.limit'), self.spin_backup)
+
+        # NEU: Erklärungstext
+        lbl_backup_help = QLabel(t('ui.settings.backup.explanation'))
+        lbl_backup_help.setStyleSheet("color: gray; font-size: 10px; font-style: italic;")
+        lbl_backup_help.setWordWrap(True)  # Wichtig für lange Texte!
+        form_backup.addRow(lbl_backup_help)
+
         layout.addWidget(group_backup)
 
         # 3. API GROUP
