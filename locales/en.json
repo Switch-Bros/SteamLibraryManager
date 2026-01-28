@@ -16,7 +16,8 @@
     "no": "No",
     "loading": "Loading...",
     "game_fallback": "Unknown App {id}",
-    "confirm_exit": "Do you really want to exit the application?"
+    "confirm_exit": "Do you really want to exit the application?",
+    "warning": "Warning"
   },
   "ui": {
     "main_window": {
@@ -31,6 +32,9 @@
       "search_icon": "🔍",
       "expand_all": "Expand All",
       "collapse_all": "Collapse All"
+    },
+    "images": {
+      "image_load_error": "❌"
     },
     "menu": {
       "file": {
@@ -199,7 +203,9 @@
       "rename_title": "Rename Category",
       "rename_msg": "New name for '{old}':",
       "delete_title": "Delete Category",
-      "delete_msg": "Delete '{category}'? Games will not be removed."
+      "delete_msg": "Delete '{category}'? Games will not be removed.",
+      "category_count": "{name} ({count})",
+      "game_tooltip": "{name}\nDeveloper: {developer}"
     },
     "auto_categorize": {
       "title": "Auto-Categorize",
