@@ -454,6 +454,7 @@
     },
     "common": {
       "na": "N/A",
+      "game_fallback": "Unknown App {id}",
       "dash": "—"
     }
   },
