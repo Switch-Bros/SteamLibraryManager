@@ -1,9 +1,12 @@
 """
 Configuration - Windows & Linux Auto-Detection
+Includes logic to parse Steam libraryfolders.vdf automatically.
+Includes UI persistence for categories.
 """
 import os
 import json
 import platform
+import re
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional, Tuple, List
@@ -20,7 +23,7 @@ except ImportError:
 class Config:
     """
     Central configuration handling for the application.
-    Manages paths, settings, and API keys.
+    Manages paths, settings, API keys, and UI state.
     """
     APP_DIR: Path = Path(__file__).parent.parent
     DATA_DIR: Path = APP_DIR / 'data'
@@ -46,6 +49,9 @@ class Config:
     # List for additional libraries
     STEAM_LIBRARIES: List[str] = None
 
+    # UI State: Which categories are expanded?
+    EXPANDED_CATEGORIES: List[str] = None
+
     MAX_BACKUPS: int = 5
     TAGS_PER_GAME: int = 13
     IGNORE_COMMON_TAGS: bool = True
@@ -57,6 +63,9 @@ class Config:
 
         if self.STEAM_LIBRARIES is None:
             self.STEAM_LIBRARIES = []
+
+        if self.EXPANDED_CATEGORIES is None:
+            self.EXPANDED_CATEGORIES = []
 
         load_dotenv()
         env_key = os.getenv("STEAM_API_KEY")
@@ -70,6 +79,10 @@ class Config:
             detected = self._find_steam_path()
             if detected:
                 self.STEAM_PATH = detected
+
+        # Auto-Detect Libraries if empty
+        if not self.STEAM_LIBRARIES and self.STEAM_PATH:
+            self.STEAM_LIBRARIES = self._detect_library_folders()
 
     def _load_settings(self) -> None:
         """Load settings from JSON file."""
@@ -98,6 +111,9 @@ class Config:
                 self.STEAM_LIBRARIES = data.get('steam_libraries', [])
                 self.STEAM_USER_ID = data.get('steam_user_id')
 
+                # Load UI State
+                self.EXPANDED_CATEGORIES = data.get('expanded_categories', [])
+
         except (OSError, json.JSONDecodeError) as e:
             print(t('logs.config.load_error', error=e))
 
@@ -116,7 +132,8 @@ class Config:
             'ignore_common_tags': self.IGNORE_COMMON_TAGS,
             'max_backups': self.MAX_BACKUPS,
             'steam_libraries': self.STEAM_LIBRARIES,
-            'steam_user_id': self.STEAM_USER_ID
+            'steam_user_id': self.STEAM_USER_ID,
+            'expanded_categories': self.EXPANDED_CATEGORIES
         }
 
         try:
@@ -165,11 +182,29 @@ class Config:
 
         return None
 
+    def _detect_library_folders(self) -> List[str]:
+        """Parses libraryfolders.vdf to find all steam library paths."""
+        if not self.STEAM_PATH: return []
+
+        vdf_path = self.STEAM_PATH / 'steamapps' / 'libraryfolders.vdf'
+        if not vdf_path.exists(): return []
+
+        libraries = set()
+        libraries.add(str(self.STEAM_PATH))
+
+        try:
+            with open(vdf_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                matches = re.findall(r'"path"\s+"([^"]+)"', content)
+                for path in matches:
+                    path = path.replace('\\\\', '\\')
+                    libraries.add(path)
+        except Exception as e:
+            print(f"Error reading libraries: {e}")
+
+        return list(libraries)
+
     def get_detected_user(self) -> Tuple[Optional[str], Optional[str]]:
-        """
-        Detect the current Steam user from userdata directory.
-        Returns: (AccountID, SteamID64)
-        """
         if not self.STEAM_PATH: return None, None
         userdata = self.STEAM_PATH / 'userdata'
         if not userdata.exists(): return None, None
@@ -183,7 +218,6 @@ class Config:
         return None, None
 
     def get_localconfig_path(self, account_id: str) -> Optional[Path]:
-        """Get path to localconfig.vdf for a specific account."""
         if not self.STEAM_PATH or not account_id: return None
         return self.STEAM_PATH / 'userdata' / account_id / 'config' / 'localconfig.vdf'
 

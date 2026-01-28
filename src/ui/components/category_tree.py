@@ -1,210 +1,175 @@
 """
-Category Tree - Clean & i18n-ready
+Category Tree Widget - Left Sidebar Navigation
+Displays games grouped by categories/collections with Drag & Drop support.
 """
+from typing import Dict, List, Optional
 
 from PyQt6.QtWidgets import (
-    QTreeWidget, QTreeWidgetItem, QWidget, QVBoxLayout,
-    QHBoxLayout, QLabel, QPushButton, QFrame
+    QTreeWidget, QTreeWidgetItem, QAbstractItemView,
+    QWidget
 )
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont
-from typing import Optional, Callable, List, Dict
-from src.utils.i18n import t
+from PyQt6.QtCore import Qt, pyqtSignal, QPoint
+from PyQt6.QtGui import QDragEnterEvent, QDropEvent
+
+from src.core.game_manager import Game
+from src.config import config
 
 
 class GameTreeWidget(QTreeWidget):
-    """Tree Widget mit Multi-Select und Spielen"""
+    """
+    Custom TreeWidget handling game categories and drag-and-drop organization.
+    Remembers expanded/collapsed state via Config.
+    """
+    # Signals
+    game_clicked = pyqtSignal(Game)
+    game_right_clicked = pyqtSignal(Game, QPoint)
+    category_right_clicked = pyqtSignal(str, QPoint)
+    selection_changed = pyqtSignal(list)  # List[Game]
 
-    game_clicked = pyqtSignal(object)
-    game_right_clicked = pyqtSignal(object, object)
-    category_right_clicked = pyqtSignal(str, object)
-    selection_changed = pyqtSignal(list)
-
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setHeaderHidden(True)
-        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.customContextMenuRequested.connect(self._on_context_menu)
-        self.itemClicked.connect(self._on_item_clicked)
-        self.setSelectionMode(QTreeWidget.SelectionMode.ExtendedSelection)
-        self.itemSelectionChanged.connect(self._on_selection_changed)
-        self.setAlternatingRowColors(True)
-        self.setAnimated(True)
+        self.setIndentation(20)
+        self.setAlternatingRowColors(False)
 
-        # Styling
+        # Drag & Drop Setup
+        self.setDragEnabled(True)
+        self.setAcceptDrops(True)
+        self.setDragDropMode(QAbstractItemView.DragDropMode.DragDrop)
+        self.setDefaultDropAction(Qt.DropAction.MoveAction)
+
+        # Selection Mode
+        self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+
+        # Connect internal signals
+        # noinspection PyUnresolvedReferences
+        self.itemClicked.connect(self._on_item_clicked)
+        # noinspection PyUnresolvedReferences
+        self.itemSelectionChanged.connect(self._on_selection_changed)
+
+        # Connect Expansion Signals for State Persistence
+        # noinspection PyUnresolvedReferences
+        self.itemExpanded.connect(self._on_item_expanded)
+        # noinspection PyUnresolvedReferences
+        self.itemCollapsed.connect(self._on_item_collapsed)
+
+        # Style
         self.setStyleSheet("""
-            QTreeWidget {
-                border: 1px solid palette(mid);
-                border-radius: 4px;
-            }
-            QTreeWidget::item {
-                padding: 4px;
-            }
-            QTreeWidget::item:hover {
-                background-color: palette(light);
-            }
-            QTreeWidget::item:selected {
-                background-color: palette(highlight);
-                color: palette(highlighted-text);
-            }
+            QTreeWidget::item { padding: 4px; }
+            QTreeWidget::item:selected { background-color: #2d5a88; }
         """)
 
-    def _on_selection_changed(self):
-        """Handles selection changes"""
-        selected_items = self.selectedItems()
-        selected_games = []
-        for item in selected_items:
-            game = item.data(0, Qt.ItemDataRole.UserRole)
-            if game and hasattr(game, 'app_id'):  # Check if it is a Game object
-                selected_games.append(game)
-        self.selection_changed.emit(selected_games)
-
-    def _on_item_clicked(self, item, _column):
+    def populate_categories(self, categories: Dict[str, List[Game]]) -> None:
         """
-        Handles clicks on items.
-        _column is ignored (Linter Fix).
+        Rebuilds the tree with the provided category mapping.
+        Restores expansion state from config.
         """
-        game = item.data(0, Qt.ItemDataRole.UserRole)
-        if game and hasattr(game, 'app_id'):
-            self.game_clicked.emit(game)
-
-    def _on_context_menu(self, pos):
-        """Handles right-clicks for context menus"""
-        item = self.itemAt(pos)
-        if not item:
-            return
-
-        game = item.data(0, Qt.ItemDataRole.UserRole)
-        category = item.data(0, Qt.ItemDataRole.UserRole + 1)
-        global_pos = self.viewport().mapToGlobal(pos)
-
-        if game and hasattr(game, 'app_id'):
-            self.game_right_clicked.emit(game, global_pos)
-        elif category:
-            self.category_right_clicked.emit(category, global_pos)
-
-    def populate_categories(self, categories_data: Dict[str, List]):
-        """Populates the tree with categories and games"""
         self.clear()
 
-        folder_icon = t('ui.categories.icon_folder')
-        fav_icon = t('ui.categories.icon_favorite')
+        for cat_name, games in categories.items():
+            cat_item = QTreeWidgetItem(self)
+            cat_item.setText(0, f"{cat_name} ({len(games)})")
 
-        for category_name, games in categories_data.items():
-            # Kategorie-Item erstellen: "📁 Name (Anzahl)"
-            display_text = f"{folder_icon} {category_name} ({len(games)})"
-            category_item = QTreeWidgetItem(self, [display_text])
-            category_item.setData(0, Qt.ItemDataRole.UserRole + 1, category_name)
+            # Store category name in data
+            cat_item.setData(0, Qt.ItemDataRole.UserRole, "category")
+            cat_item.setData(0, Qt.ItemDataRole.UserRole + 1, cat_name)
 
-            font = category_item.font(0)
-            font.setBold(True)
-            font.setPointSize(11)
-            category_item.setFont(0, font)
+            # Check state in config
+            if cat_name in config.EXPANDED_CATEGORIES:
+                cat_item.setExpanded(True)
+            else:
+                cat_item.setExpanded(False)  # Default: Collapsed
 
-            # Add games (limited for performance)
-            display_limit = 100
-            for game in games[:display_limit]:
-                # Format: " • Spielname (Xh) ⭐"
-                game_text = f"  • {game.name}"
-                if game.playtime_hours > 0:
-                    game_text += f" ({t('ui.game_details.hours', hours=game.playtime_hours)})"
-                if game.is_favorite():
-                    game_text += f" {fav_icon}"
+            for game in games:
+                game_item = QTreeWidgetItem(cat_item)
+                game_item.setText(0, game.name)
 
-                game_item = QTreeWidgetItem(category_item, [game_text])
-                game_item.setData(0, Qt.ItemDataRole.UserRole, game)
+                # Store Game object
+                game_item.setData(0, Qt.ItemDataRole.UserRole, "game")
+                game_item.setData(0, Qt.ItemDataRole.UserRole + 1, game)
 
-                game_font = game_item.font(0)
-                game_font.setPointSize(10)
-                game_item.setFont(0, game_font)
+                # Tooltip
+                game_item.setToolTip(0, f"{game.name}\n{game.developer or ''}")
 
-            if len(games) > display_limit:
-                remaining = len(games) - display_limit
-                more_text = t('ui.categories.more_games', count=remaining)
+    @staticmethod
+    def _on_item_expanded(item: QTreeWidgetItem) -> None:
+        """Save expanded state."""
+        if item.data(0, Qt.ItemDataRole.UserRole) == "category":
+            name = item.data(0, Qt.ItemDataRole.UserRole + 1)
+            if name and name not in config.EXPANDED_CATEGORIES:
+                config.EXPANDED_CATEGORIES.append(name)
+                config.save()
 
-                more_item = QTreeWidgetItem(category_item, [more_text])
-                more_font = more_item.font(0)
-                more_font.setItalic(True)
-                more_font.setPointSize(9)
-                more_item.setFont(0, more_font)
-                more_item.setForeground(0, Qt.GlobalColor.gray)
+    @staticmethod
+    def _on_item_collapsed(item: QTreeWidgetItem) -> None:
+        """Save collapsed state."""
+        if item.data(0, Qt.ItemDataRole.UserRole) == "category":
+            name = item.data(0, Qt.ItemDataRole.UserRole + 1)
+            if name and name in config.EXPANDED_CATEGORIES:
+                config.EXPANDED_CATEGORIES.remove(name)
+                config.save()
 
-    def expand_all_categories(self):
-        self.expandAll()
+    def _on_item_clicked(self, item: QTreeWidgetItem, _: int) -> None:
+        """Handle single clicks."""
+        item_type = item.data(0, Qt.ItemDataRole.UserRole)
 
-    def collapse_all_categories(self):
-        self.collapseAll()
+        if item_type == "game":
+            game = item.data(0, Qt.ItemDataRole.UserRole + 1)
+            if game:
+                self.game_clicked.emit(game)
 
+    def _on_selection_changed(self) -> None:
+        """Handle multi-selection."""
+        selected_games = []
+        for item in self.selectedItems():
+            item_type = item.data(0, Qt.ItemDataRole.UserRole)
+            if item_type == "game":
+                game = item.data(0, Qt.ItemDataRole.UserRole + 1)
+                if game:
+                    selected_games.append(game)
 
-class CategoryTreeWithGames(QWidget):
-    """Wrapper mit Header und Steuerungselementen"""
+        if selected_games:
+            self.selection_changed.emit(selected_games)
 
-    def __init__(self, parent=None, on_game_click: Optional[Callable] = None,
-                 on_game_right_click: Optional[Callable] = None,
-                 on_category_right_click: Optional[Callable] = None):
-        super().__init__(parent)
+    # --- Drag & Drop Events ---
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(5)
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
+        if event.mimeData().hasFormat("application/x-qabstractitemmodeldatalist"):
+            event.accept()
+        else:
+            event.ignore()
 
-        # Header Bereich
-        header = QFrame()
-        header.setFrameShape(QFrame.Shape.StyledPanel)
-        header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(10, 5, 10, 5)
+    def dragMoveEvent(self, event: QDragEnterEvent) -> None:
+        item = self.itemAt(event.position().toPoint())
+        if item:
+            # Only allow drop on Categories
+            item_type = item.data(0, Qt.ItemDataRole.UserRole)
+            if item_type == "category":
+                event.accept()
+                return
+        event.ignore()
 
-        title = QLabel(t('ui.categories.title'))
-        title_font = QFont()
-        title_font.setPointSize(13)
-        title_font.setBold(True)
-        title.setFont(title_font)
-        header_layout.addWidget(title)
+    def dropEvent(self, event: QDropEvent) -> None:
+        if event.source() == self:
+            target_item = self.itemAt(event.position().toPoint())
+            if target_item:
+                # Logic to process move handled by signals/controller
+                pass
 
-        header_layout.addStretch()
+        super().dropEvent(event)
 
-        # Buttons zum Aus-/Einklappen
-        expand_btn = QPushButton(t('ui.categories.sym_expand'))
-        expand_btn.setToolTip(t('ui.main.expand_all'))
-        expand_btn.setMaximumWidth(40)
-        expand_btn.clicked.connect(self._expand_all)
-        header_layout.addWidget(expand_btn)
+    # --- Context Menu ---
 
-        collapse_btn = QPushButton(t('ui.categories.sym_collapse'))
-        collapse_btn.setToolTip(t('ui.main.collapse_all'))
-        collapse_btn.setMaximumWidth(40)
-        collapse_btn.clicked.connect(self._collapse_all)
-        header_layout.addWidget(collapse_btn)
+    def contextMenuEvent(self, event) -> None:
+        """Show context menu on right click."""
+        item = self.itemAt(event.pos())
+        if not item: return
 
-        layout.addWidget(header)
+        item_type = item.data(0, Qt.ItemDataRole.UserRole)
+        data = item.data(0, Qt.ItemDataRole.UserRole + 1)
 
-        # Tree Widget Instanziierung
-        self.tree = GameTreeWidget()
-        if on_game_click:
-            self.tree.game_clicked.connect(on_game_click)
-        if on_game_right_click:
-            self.tree.game_right_clicked.connect(on_game_right_click)
-        if on_category_right_click:
-            self.tree.category_right_clicked.connect(on_category_right_click)
+        if item_type == "game":
+            self.game_right_clicked.emit(data, event.globalPos())
 
-        layout.addWidget(self.tree)
-
-    def _expand_all(self):
-        self.tree.expand_all_categories()
-
-    def _collapse_all(self):
-        self.tree.collapse_all_categories()
-
-    def add_category(self, name: str, _icon: str, games: List):
-        """
-        Add single category.
-        _icon is ignored as icons are managed centrally in tree (Linter Fix).
-        """
-        categories_data = {name: games}
-        self.tree.populate_categories(categories_data)
-
-    def clear(self):
-        self.tree.clear()
-
-    def populate_categories(self, categories_data: Dict[str, List]):
-        self.tree.populate_categories(categories_data)
+        elif item_type == "category":
+            self.category_right_clicked.emit(data, event.globalPos())
