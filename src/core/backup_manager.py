@@ -1,5 +1,6 @@
 """
 Backup Manager - Rolling Backups
+Handles file backups with automatic rotation (keeping only the newest N files).
 """
 import shutil
 import glob
@@ -12,12 +13,14 @@ from src.utils.i18n import t
 
 
 class BackupManager:
+    """Manager for creating and rotating backups of configuration files."""
+
     def __init__(self, backup_dir: Optional[Path] = None):
         """
         Initialize BackupManager.
 
         Args:
-            backup_dir: Custom backup directory (optional)
+            backup_dir: Custom backup directory (optional).
         """
         self.backup_dir = backup_dir or (config.DATA_DIR / 'backups')
         self.backup_dir.mkdir(parents=True, exist_ok=True)
@@ -27,10 +30,10 @@ class BackupManager:
         Create backup of a file with timestamp.
 
         Args:
-            file_path: Path to file to back up
+            file_path: Path to file to back up.
 
         Returns:
-            Path to backup file, or None if failed
+            Path to backup file, or None if failed.
         """
         if not file_path.exists():
             return None
@@ -52,7 +55,7 @@ class BackupManager:
             return None
 
     def _rotate_backups(self, file_path: Path):
-        """Remove old backups exceeding MAX_BACKUPS limit"""
+        """Remove old backups exceeding MAX_BACKUPS limit."""
         pattern = str(self.backup_dir / f"{file_path.stem}_*{file_path.suffix}")
         backups = sorted(glob.glob(pattern), key=os.path.getmtime, reverse=True)
 
@@ -71,10 +74,10 @@ class BackupManager:
         Creates backup using default config directory.
 
         Args:
-            file_path: Path to file to back up
+            file_path: Path to file to back up.
 
         Returns:
-            String path to backup, or None if failed
+            String path to backup, or None if failed.
         """
         manager = BackupManager()
         backup_path = manager.create_backup(file_path)

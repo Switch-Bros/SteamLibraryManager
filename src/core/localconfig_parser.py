@@ -1,18 +1,20 @@
 """
 localconfig.vdf Parser and Writer
 Reads and writes Steam's localconfig.vdf file using the vdf library.
+Integrates BackupManager for rolling backups.
 """
 
 import vdf
-import shutil
 from pathlib import Path
 from typing import Dict, List, Optional
 from src.utils.i18n import t
+# NEW: Import BackupManager for rotation
+from src.core.backup_manager import BackupManager
 
 
 class LocalConfigParser:
     """
-    Parser for Steam's localconfig.vdf.
+    Parser for Steam's localconfig.vdf (or sharedconfig.vdf).
     Handles reading tags, hidden status, and managing categories via the 'vdf' library.
     """
 
@@ -48,7 +50,6 @@ class LocalConfigParser:
                              .get('Steam', {})
                              .get('Apps', {}))
             except KeyError:
-                # We use a specific key for this specific structure error
                 print(t('logs.parser.apps_not_found'))
                 self.apps = {}
 
@@ -58,16 +59,16 @@ class LocalConfigParser:
             print(t('logs.parser.file_not_found', path=self.config_path))
             return False
         except Exception as e:
-            # Re-use existing config load error from locales
             print(t('logs.config.load_error', error=e))
             return False
 
     def save(self, create_backup: bool = True) -> bool:
         """
         Saves the current data back to localconfig.vdf.
+        Uses BackupManager to handle rolling backups.
 
         Args:
-            create_backup (bool): Whether to create a .bak file before saving.
+            create_backup (bool): Whether to create a backup using BackupManager.
 
         Returns:
             bool: True if saved successfully.
@@ -76,12 +77,11 @@ class LocalConfigParser:
             return True
 
         if create_backup:
-            # Create backup with .bak extension
-            backup_path = self.config_path.with_suffix('.vdf.bak')
-            try:
-                shutil.copy2(self.config_path, backup_path)
-            except OSError:
-                pass  # Backup failed, but we proceed with saving
+            # NEW: Use BackupManager for rotation and timestamp
+            backup_manager = BackupManager()
+            # This creates e.g. localconfig_20241022_1530.vdf
+            # And automatically deletes the oldest ones when the limit is reached.
+            backup_manager.create_backup(self.config_path)
 
         try:
             with open(self.config_path, 'w', encoding='utf-8') as f:
@@ -89,7 +89,6 @@ class LocalConfigParser:
             self.modified = False
             return True
         except OSError as e:
-            # Re-use existing config save error from locales
             print(t('logs.config.save_error', error=e))
             return False
 

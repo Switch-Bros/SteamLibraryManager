@@ -1,5 +1,7 @@
 """
-Steam Assets Manager (WebP/Gif Support) - Syntax Fixed
+Steam Assets Manager
+Handles retrieving, saving, and deleting local game assets (Grids, Heroes, Logos, Icons).
+Supports custom images and WebP/Gif formats.
 """
 import os
 import shutil
@@ -9,10 +11,22 @@ from src.utils.i18n import t
 
 
 class SteamAssets:
+    """
+    Static manager class for Steam assets (images).
+    """
 
     @staticmethod
     def get_asset_path(app_id: str, asset_type: str) -> str:
-        """Returns path to local asset or URL as fallback"""
+        """
+        Returns path to local asset (custom or Steam cache) or URL as fallback.
+
+        Args:
+            app_id (str): The AppID of the game.
+            asset_type (str): Type of asset ('grids', 'heroes', 'logos', 'icons').
+
+        Returns:
+            str: File path or URL.
+        """
 
         # 1. Custom Image Check
         custom_dir = config.CACHE_DIR / 'images' / 'custom' / app_id
@@ -22,11 +36,11 @@ class SteamAssets:
 
         short_id, _ = config.get_detected_user()
 
-        # 2. Try to find local image
+        # 2. Try to find local image in Steam user config
         if config.STEAM_PATH and short_id:
             grid_dir = config.STEAM_PATH / 'userdata' / short_id / 'config' / 'grid'
 
-            # Determine base filename
+            # Determine base filename based on asset type
             filename_base = ""
             if asset_type == 'grids':
                 filename_base = f"p_{app_id}"
@@ -56,6 +70,17 @@ class SteamAssets:
 
     @staticmethod
     def save_custom_image(app_id: str, asset_type: str, url_or_path: str) -> bool:
+        """
+        Saves a custom image for a game.
+
+        Args:
+            app_id (str): The AppID.
+            asset_type (str): Asset type.
+            url_or_path (str): Source URL or local file path.
+
+        Returns:
+            bool: True on success.
+        """
         try:
             target_dir = config.CACHE_DIR / 'images' / 'custom' / app_id
             target_dir.mkdir(parents=True, exist_ok=True)
@@ -85,6 +110,13 @@ class SteamAssets:
 
     @staticmethod
     def delete_custom_image(app_id: str, asset_type: str) -> bool:
+        """
+        Deletes a custom image.
+
+        Args:
+            app_id (str): The AppID.
+            asset_type (str): Asset type.
+        """
         try:
             target_file = config.CACHE_DIR / 'images' / 'custom' / app_id / f'{asset_type}.png'
             if target_file.exists():
