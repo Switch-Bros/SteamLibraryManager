@@ -1,8 +1,9 @@
 """
-Configuration - Cleaned, Typed & Localized
+Configuration - Windows & Linux Auto-Detection
 """
 import os
 import json
+import platform
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional, Tuple, List
@@ -64,6 +65,7 @@ class Config:
 
         self._load_settings()
 
+        # Auto-Detect Steam Path if missing
         if not self.STEAM_PATH:
             detected = self._find_steam_path()
             if detected:
@@ -94,8 +96,6 @@ class Config:
                 self.IGNORE_COMMON_TAGS = data.get('ignore_common_tags', self.IGNORE_COMMON_TAGS)
                 self.MAX_BACKUPS = data.get('max_backups', self.MAX_BACKUPS)
                 self.STEAM_LIBRARIES = data.get('steam_libraries', [])
-
-                # Load user ID
                 self.STEAM_USER_ID = data.get('steam_user_id')
 
         except (OSError, json.JSONDecodeError) as e:
@@ -129,27 +129,46 @@ class Config:
         """Update paths and save configuration."""
         if 'steam_path' in kwargs:
             self.STEAM_PATH = kwargs['steam_path']
-
         self.save()
 
     @staticmethod
     def _find_steam_path() -> Optional[Path]:
-        """Try to auto-detect the Steam installation path on Linux."""
-        paths = [
-            Path.home() / '.steam' / 'steam',
-            Path.home() / '.local' / 'share' / 'Steam',
-        ]
-        for p in paths:
-            if p.exists():
-                return p.resolve() if p.is_symlink() else p
+        """Auto-detect Steam path on Linux and Windows."""
+        system = platform.system()
+
+        if system == "Windows":
+            try:
+                import winreg
+                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam")
+                path_str, _ = winreg.QueryValueEx(key, "SteamPath")
+                path = Path(path_str)
+                if path.exists():
+                    return path
+            except OSError:
+                # Fallback to standard paths if registry fails
+                common_paths = [
+                    Path(r"C:\Program Files (x86)\Steam"),
+                    Path(r"C:\Program Files\Steam")
+                ]
+                for p in common_paths:
+                    if p.exists(): return p
+
+        else:
+            # Linux detection
+            paths = [
+                Path.home() / '.steam' / 'steam',
+                Path.home() / '.local' / 'share' / 'Steam',
+            ]
+            for p in paths:
+                if p.exists():
+                    return p.resolve() if p.is_symlink() else p
+
         return None
 
     def get_detected_user(self) -> Tuple[Optional[str], Optional[str]]:
         """
         Detect the current Steam user from userdata directory.
-
-        Returns:
-            Tuple[Optional[str], Optional[str]]: (AccountID, SteamID64)
+        Returns: (AccountID, SteamID64)
         """
         if not self.STEAM_PATH: return None, None
         userdata = self.STEAM_PATH / 'userdata'
@@ -164,15 +183,7 @@ class Config:
         return None, None
 
     def get_localconfig_path(self, account_id: str) -> Optional[Path]:
-        """
-        Get the path to localconfig.vdf for a specific account.
-
-        Args:
-            account_id: The Steam Account ID.
-
-        Returns:
-            Optional[Path]: Path to localconfig.vdf or None.
-        """
+        """Get path to localconfig.vdf for a specific account."""
         if not self.STEAM_PATH or not account_id: return None
         return self.STEAM_PATH / 'userdata' / account_id / 'config' / 'localconfig.vdf'
 
