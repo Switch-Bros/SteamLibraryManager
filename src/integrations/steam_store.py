@@ -1,15 +1,14 @@
 """
 Steam Store Integration - Fetches Tags & Franchises
 """
+import time
+import json
+from pathlib import Path
+from datetime import datetime, timedelta
+from typing import List, Optional
 
 import requests
-import time
 from bs4 import BeautifulSoup
-from typing import List, Optional
-from pathlib import Path
-import json
-from datetime import datetime, timedelta
-from src.utils.i18n import t
 
 
 class SteamStoreScraper:
@@ -106,6 +105,7 @@ class SteamStoreScraper:
             self.last_request_time = time.time()
             cookies = {'Steam_Language': self.steam_language}
 
+            # Secure HTTPS link
             url = f"https://store.steampowered.com/app/{app_id}/"
 
             response = requests.get(url, cookies=cookies, timeout=10)
@@ -127,12 +127,10 @@ class SteamStoreScraper:
                 with open(cache_file, 'w', encoding='utf-8') as f:
                     json.dump(tags, f)
 
-                if tags:
-                    print(t('logs.store.tags_found', app_id=app_id, count=len(tags)))
                 return tags
 
         except (requests.RequestException, AttributeError) as e:
-            print(t('logs.store.error', app_id=app_id, error=e))
+            print(f"Store Error {app_id}: {e}")
 
         return []
 
