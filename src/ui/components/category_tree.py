@@ -1,6 +1,11 @@
+# src/ui/components/category_tree.py
+
 """
-Category Tree Widget - Left Sidebar Navigation
-Displays games grouped by categories/collections with Drag & Drop support.
+Displays games grouped by categories in a tree structure.
+
+This widget provides the main navigation sidebar, showing games organized
+by categories. It supports drag-and-drop for re-categorization and persists
+the expanded/collapsed state of categories.
 """
 from typing import Dict, List, Optional
 
@@ -13,12 +18,16 @@ from PyQt6.QtGui import QDragEnterEvent, QDropEvent
 
 from src.core.game_manager import Game
 from src.config import config
+from src.utils.i18n import t
 
 
 class GameTreeWidget(QTreeWidget):
     """
-    Custom TreeWidget handling game categories and drag-and-drop organization.
-    Remembers expanded/collapsed state via Config.
+    Custom QTreeWidget for displaying and organizing game categories.
+
+    Emits signals for user interactions like clicks, right-clicks, and
+    selection changes. Handles drag-and-drop operations for moving games
+    between categories.
     """
     # Signals
     game_clicked = pyqtSignal(Game)
@@ -27,6 +36,7 @@ class GameTreeWidget(QTreeWidget):
     selection_changed = pyqtSignal(list)  # List[Game]
 
     def __init__(self, parent: Optional[QWidget] = None):
+        """Initializes the GameTreeWidget."""
         super().__init__(parent)
         self.setHeaderHidden(True)
         self.setIndentation(20)
@@ -42,15 +52,9 @@ class GameTreeWidget(QTreeWidget):
         self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
 
         # Connect internal signals
-        # noinspection PyUnresolvedReferences
         self.itemClicked.connect(self._on_item_clicked)
-        # noinspection PyUnresolvedReferences
         self.itemSelectionChanged.connect(self._on_selection_changed)
-
-        # Connect Expansion Signals for State Persistence
-        # noinspection PyUnresolvedReferences
         self.itemExpanded.connect(self._on_item_expanded)
-        # noinspection PyUnresolvedReferences
         self.itemCollapsed.connect(self._on_item_collapsed)
 
         # Style
@@ -61,39 +65,41 @@ class GameTreeWidget(QTreeWidget):
 
     def populate_categories(self, categories: Dict[str, List[Game]]) -> None:
         """
-        Rebuilds the tree with the provided category mapping.
-        Restores expansion state from config.
+        Rebuilds the entire tree with the provided category-to-game mapping.
+
+        This method clears the existing tree and repopulates it, restoring the
+        expansion state of each category from the application's config.
+
+        Args:
+            categories (Dict[str, List[Game]]): A dictionary mapping category names
+                                                to lists of Game objects.
         """
         self.clear()
 
         for cat_name, games in categories.items():
             cat_item = QTreeWidgetItem(self)
-            cat_item.setText(0, f"{cat_name} ({len(games)})")
+            # Use i18n key for category count display
+            cat_item.setText(0, t('ui.categories.category_count', name=cat_name, count=len(games)))
 
-            # Store category name in data
             cat_item.setData(0, Qt.ItemDataRole.UserRole, "category")
             cat_item.setData(0, Qt.ItemDataRole.UserRole + 1, cat_name)
 
-            # Check state in config
-            if cat_name in config.EXPANDED_CATEGORIES:
-                cat_item.setExpanded(True)
-            else:
-                cat_item.setExpanded(False)  # Default: Collapsed
+            cat_item.setExpanded(cat_name in config.EXPANDED_CATEGORIES)
 
             for game in games:
                 game_item = QTreeWidgetItem(cat_item)
                 game_item.setText(0, game.name)
 
-                # Store Game object
                 game_item.setData(0, Qt.ItemDataRole.UserRole, "game")
                 game_item.setData(0, Qt.ItemDataRole.UserRole + 1, game)
 
-                # Tooltip
-                game_item.setToolTip(0, f"{game.name}\n{game.developer or ''}")
+                # Use i18n key for the tooltip
+                developer = game.developer if game.developer else t('common.unknown')
+                game_item.setToolTip(0, t('ui.categories.game_tooltip', name=game.name, developer=developer))
 
     @staticmethod
     def _on_item_expanded(item: QTreeWidgetItem) -> None:
-        """Save expanded state."""
+        """Saves the expanded state of a category to the config."""
         if item.data(0, Qt.ItemDataRole.UserRole) == "category":
             name = item.data(0, Qt.ItemDataRole.UserRole + 1)
             if name and name not in config.EXPANDED_CATEGORIES:
@@ -102,7 +108,7 @@ class GameTreeWidget(QTreeWidget):
 
     @staticmethod
     def _on_item_collapsed(item: QTreeWidgetItem) -> None:
-        """Save collapsed state."""
+        """Saves the collapsed state of a category to the config."""
         if item.data(0, Qt.ItemDataRole.UserRole) == "category":
             name = item.data(0, Qt.ItemDataRole.UserRole + 1)
             if name and name in config.EXPANDED_CATEGORIES:
@@ -110,29 +116,37 @@ class GameTreeWidget(QTreeWidget):
                 config.save()
 
     def _on_item_clicked(self, item: QTreeWidgetItem, _: int) -> None:
-        """Handle single clicks."""
-        item_type = item.data(0, Qt.ItemDataRole.UserRole)
-
-        if item_type == "game":
+        """Emits a signal when a game item is clicked."""
+        if item.data(0, Qt.ItemDataRole.UserRole) == "game":
             game = item.data(0, Qt.ItemDataRole.UserRole + 1)
             if game:
                 self.game_clicked.emit(game)
 
     def _on_selection_changed(self) -> None:
-        """Handle multi-selection."""
-        selected_games = []
-        for item in self.selectedItems():
-            item_type = item.data(0, Qt.ItemDataRole.UserRole)
-            if item_type == "game":
-                game = item.data(0, Qt.ItemDataRole.UserRole + 1)
-                if game:
-                    selected_games.append(game)
+        """Emits a signal with all currently selected game objects."""
+        selected_games = [
+            item.data(0, Qt.ItemDataRole.UserRole + 1)
+            for item in self.selectedItems()
+            if item.data(0, Qt.ItemDataRole.UserRole) == "game"
+        ]
+        self.selection_changed.emit(selected_games)
 
-        if selected_games:
-            self.selection_changed.emit(selected_games)
+    def contextMenuEvent(self, event) -> None:
+        """Emits a signal when an item is right-clicked to show a context menu."""
+        item = self.itemAt(event.pos())
+        if not item:
+            return
 
-    # --- Drag & Drop Events ---
+        item_type = item.data(0, Qt.ItemDataRole.UserRole)
+        data = item.data(0, Qt.ItemDataRole.UserRole + 1)
 
+        if item_type == "game" and data:
+            self.game_right_clicked.emit(data, event.globalPos())
+        elif item_type == "category" and data:
+            self.category_right_clicked.emit(data, event.globalPos())
+
+    # The Drag & Drop events are kept simple as the main logic is often
+    # handled in the controller/main window that receives the drop signal.
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         if event.mimeData().hasFormat("application/x-qabstractitemmodeldatalist"):
             event.accept()
@@ -141,35 +155,13 @@ class GameTreeWidget(QTreeWidget):
 
     def dragMoveEvent(self, event: QDragEnterEvent) -> None:
         item = self.itemAt(event.position().toPoint())
-        if item:
-            # Only allow drop on Categories
-            item_type = item.data(0, Qt.ItemDataRole.UserRole)
-            if item_type == "category":
-                event.accept()
-                return
-        event.ignore()
+        # Only allow dropping onto category items
+        if item and item.data(0, Qt.ItemDataRole.UserRole) == "category":
+            event.accept()
+        else:
+            event.ignore()
 
     def dropEvent(self, event: QDropEvent) -> None:
-        if event.source() == self:
-            target_item = self.itemAt(event.position().toPoint())
-            if target_item:
-                # Logic to process move handled by signals/controller
-                pass
-
+        # The actual data processing is handled by the parent widget
+        # that connects to the model's drop event.
         super().dropEvent(event)
-
-    # --- Context Menu ---
-
-    def contextMenuEvent(self, event) -> None:
-        """Show context menu on right click."""
-        item = self.itemAt(event.pos())
-        if not item: return
-
-        item_type = item.data(0, Qt.ItemDataRole.UserRole)
-        data = item.data(0, Qt.ItemDataRole.UserRole + 1)
-
-        if item_type == "game":
-            self.game_right_clicked.emit(data, event.globalPos())
-
-        elif item_type == "category":
-            self.category_right_clicked.emit(data, event.globalPos())
