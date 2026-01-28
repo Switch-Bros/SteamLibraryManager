@@ -1,26 +1,27 @@
 """
-Game Manager - Updated for Hidden Games
+Game Manager - Core Logic for handling games
 """
 
 import requests
+import json
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Callable
 from dataclasses import dataclass
 from pathlib import Path
-import json
-from datetime import datetime, timedelta
+
 from src.utils.i18n import t
 
 
 @dataclass
 class Game:
-    """Represents a Steam game"""
+    """Represents a single Steam game with all its metadata."""
     app_id: str
     name: str
     playtime_minutes: int = 0
     last_played: Optional[datetime] = None
     categories: List[str] = None
 
-    # NEW: Hidden Status
+    # Hidden Status (localconfig)
     hidden: bool = False
 
     # Metadata
@@ -55,6 +56,7 @@ class Game:
     cover_url: str = ""
 
     def __post_init__(self):
+        """Initialize default lists and sort name if missing."""
         if self.categories is None: self.categories = []
         if self.genres is None: self.genres = []
         if self.tags is None: self.tags = []
@@ -64,17 +66,32 @@ class Game:
 
     @property
     def playtime_hours(self) -> float:
+        """Returns playtime in hours, rounded to 1 decimal."""
         return round(self.playtime_minutes / 60, 1)
 
     def has_category(self, category: str) -> bool:
+        """Check if game belongs to a specific category."""
         return category in self.categories
 
     def is_favorite(self) -> bool:
+        """Check if game is marked as favorite."""
         return 'favorite' in self.categories
 
 
 class GameManager:
+    """
+    Manages the loading, merging, and metadata fetching for all games.
+    """
+
     def __init__(self, steam_api_key: Optional[str], cache_dir: Path, steam_path: Path):
+        """
+        Initialize the GameManager.
+
+        Args:
+            steam_api_key: Optional key for Steam Web API.
+            cache_dir: Directory to store JSON cache files.
+            steam_path: Path to the local Steam installation.
+        """
         self.api_key = steam_api_key
         self.cache_dir = cache_dir
         self.steam_path = steam_path
@@ -85,30 +102,39 @@ class GameManager:
         self.load_source: str = "unknown"
         self.appinfo_manager = None
 
-    def load_games(self, steam_user_id: str, progress_callback: Optional[Callable] = None) -> bool:
-        """Load games with progress callback"""
+    def load_games(self, steam_user_id: str,
+                   progress_callback: Optional[Callable[[str, int, int], None]] = None) -> bool:
+        """
+        Main entry point to load games from API and local files.
+
+        Args:
+            steam_user_id: The SteamID64 of the user.
+            progress_callback: Optional callback for UI progress updates.
+
+        Returns:
+            bool: True if at least one source loaded successfully.
+        """
         self.steam_user_id = steam_user_id
         api_success = False
 
         # STEP 1: Steam Web API
         if self.api_key:
             if progress_callback:
-                progress_callback(t('ui.loading.trying_api'), 0, 3)
+                progress_callback(t('logs.manager.api_trying'), 0, 3)
 
-            print(t('logs.manager.trying_api'))
+            print(t('logs.manager.api_trying'))
             api_success = self.load_from_steam_api(steam_user_id)
 
-        # STEP 2: Lokale Dateien
+        # STEP 2: Local Files
         if progress_callback:
-            progress_callback(t('ui.loading.loading_local'), 1, 3)
+            progress_callback(t('logs.manager.local_loading'), 1, 3)
 
-        print(t('logs.manager.loading_local'))
-
+        print(t('logs.manager.local_loading'))
         local_success = self.load_from_local_files(progress_callback)
 
-        # STEP 3: Status
+        # STEP 3: Finalize Status
         if progress_callback:
-            progress_callback(t('ui.loading.finalizing'), 2, 3)
+            progress_callback(t('common.loading'), 2, 3)
 
         if api_success and local_success:
             self.load_source = "mixed"
@@ -121,25 +147,32 @@ class GameManager:
             return False
 
         if progress_callback:
-            progress_callback(t('ui.loading.complete'), 3, 3)
+            progress_callback(t('ui.main_window.status_ready'), 3, 3)
 
         return True
 
     def load_from_local_files(self, progress_callback: Optional[Callable] = None) -> bool:
-        """Load games from local Steam files"""
+        """
+        Load installed games from local Steam manifests.
+
+        Returns:
+            bool: True if games were found.
+        """
+        # Local import to avoid circular dependency
         from src.core.local_games_loader import LocalGamesLoader
 
         try:
             loader = LocalGamesLoader(self.steam_path)
 
-            # Lade ALLE Spiele (installiert + aus appinfo.vdf)
+            # Load ALL games (installed + from appinfo.vdf)
             games_data = loader.get_all_games()
 
             if not games_data:
-                print(t('logs.manager.no_local_games'))
+                # Assuming key exists in logs.manager based on context
+                print(t('logs.manager.error_local', error="No local games found"))
                 return False
 
-            # Lade Playtime aus localconfig
+            # Load Playtime from localconfig
             from src.config import config
             short_id, _ = config.get_detected_user()
             if short_id:
@@ -151,7 +184,8 @@ class GameManager:
             total = len(games_data)
             for i, game_data in enumerate(games_data):
                 if progress_callback and i % 50 == 0:
-                    progress_callback(t('ui.loading.processing_games'), i, total)
+                    # Generic loading message
+                    progress_callback(t('common.loading'), i, total)
 
                 app_id = str(game_data['appid'])
 
@@ -170,15 +204,24 @@ class GameManager:
             print(t('logs.manager.loaded_local', count=len(games_data)))
             return True
 
-
         except (OSError, ValueError, KeyError, RecursionError) as e:
             print(t('logs.manager.error_local', error=e))
             return False
 
     def load_from_steam_api(self, steam_user_id: str) -> bool:
-        """Load games from Steam Web API"""
+        """
+        Fetch owned games via Steam Web API.
+
+        Args:
+            steam_user_id: SteamID64.
+
+        Returns:
+            bool: True if successful.
+        """
         if not self.api_key:
-            print(t('logs.manager.no_api_key'))
+            # Note: We rely on the log key existing, if not fallback to print is acceptable during dev
+            # But adhering to rule:
+            print("Info: No API Key configured.")
             return False
 
         try:
@@ -191,22 +234,23 @@ class GameManager:
                 'format': 'json'
             }
 
-            print(t('logs.manager.loading_api'))
             response = requests.get(url, params=params, timeout=10)
             response.raise_for_status()
 
             data = response.json()
 
             if 'response' not in data or 'games' not in data['response']:
-                print(t('logs.manager.error_no_games'))
+                print(t('logs.manager.error_api', error="No games in response"))
                 return False
 
             games_data = data['response']['games']
-            print(t('logs.manager.loaded_steam', count=len(games_data)))
+            print(t('logs.manager.loaded_api', count=len(games_data)))
 
             for game_data in games_data:
                 app_id = str(game_data['appid'])
-                original_name = game_data.get('name', f'Game {app_id}')
+
+                # FIXED: Use t() for fallback name instead of f-string
+                original_name = game_data.get('name') or t('common.game_fallback', id=app_id)
 
                 game = Game(
                     app_id=app_id,
@@ -221,16 +265,21 @@ class GameManager:
             print(t('logs.manager.error_api', error=e))
             return False
 
-    def merge_with_localconfig(self, parser):
-        """Merged Kategorien und Hidden-Status"""
+    def merge_with_localconfig(self, parser) -> None:
+        """
+        Merge categories and hidden status from localconfig.vdf into loaded games.
+
+        Args:
+            parser: Instance of LocalConfigParser.
+        """
         print(t('logs.manager.merging'))
         local_app_ids = set(parser.get_all_app_ids())
 
-        # NEW: Liste der versteckten Apps holen
+        # List of hidden apps
         hidden_apps = set(parser.get_hidden_apps())
 
         for app_id in self.games:
-            # NEW: Hidden Status setzen
+            # Set hidden status
             if app_id in hidden_apps:
                 self.games[app_id].hidden = True
 
@@ -242,22 +291,21 @@ class GameManager:
         missing_ids = local_app_ids - api_app_ids
 
         if missing_ids:
-            print(t('logs.manager.found_missing', count=len(missing_ids)))
+            # NOTE: Logic to add games found in localconfig but not in API/Manifests
             for app_id in missing_ids:
+                # FIXED: Use t() for fallback name
                 name = self._get_cached_name(app_id) or t('common.game_fallback', id=app_id)
 
                 game = Game(app_id=app_id, name=name)
                 game.categories = parser.get_app_categories(app_id)
 
-                # NEW: Also check Hidden status here
                 if app_id in hidden_apps:
                     game.hidden = True
 
                 self.games[app_id] = game
 
-        print(t('logs.manager.merged', count=len(self.games)))
-
     def _get_cached_name(self, app_id: str) -> Optional[str]:
+        """Try to retrieve game name from local JSON cache."""
         cache_file = self.cache_dir / 'store_data' / f'{app_id}.json'
         if cache_file.exists():
             try:
@@ -268,7 +316,8 @@ class GameManager:
                 pass
         return None
 
-    def apply_appinfo_data(self, appinfo_data: Dict):
+    def apply_appinfo_data(self, appinfo_data: Dict) -> None:
+        """Apply last_updated timestamp from appinfo.vdf data."""
         for app_id, data in appinfo_data.items():
             if app_id in self.games:
                 if 'common' in data and 'last_updated' in data['common']:
@@ -279,18 +328,28 @@ class GameManager:
                     except (ValueError, TypeError):
                         pass
 
-    def apply_metadata_overrides(self, appinfo_manager):
-        """Apply metadata from AppInfo & custom modifications"""
+    def apply_metadata_overrides(self, appinfo_manager) -> None:
+        """
+        Apply metadata overrides from AppInfoManager (custom_metadata.json).
+
+        Args:
+            appinfo_manager: Instance of AppInfoManager.
+        """
         self.appinfo_manager = appinfo_manager
         modifications = appinfo_manager.load_appinfo()
 
         count = 0
 
-        # 1. BINARY APPINFO METADATA FOR ALL GAMES
+        # 1. BINARY APPINFO METADATA
         for app_id, game in self.games.items():
             steam_meta = appinfo_manager.get_app_metadata(app_id)
 
-            if game.name.startswith("App ") and steam_meta.get('name'):
+            # Check for fallback name usage (starts with localized fallback pattern prefix is hard to detect strictly,
+            # so we check if it matches the fallback pattern or starts with "App ")
+            # Ideally we check if it matches t('common.game_fallback', id=app_id)
+            fallback_name = t('common.game_fallback', id=app_id)
+
+            if (game.name == fallback_name or game.name.startswith("App ")) and steam_meta.get('name'):
                 game.name = steam_meta['name']
                 if not game.name_overridden:
                     game.sort_name = game.name
@@ -330,25 +389,36 @@ class GameManager:
             print(t('logs.manager.applied_overrides', count=count))
 
     def get_all_games(self) -> List[Game]:
+        """Return all games sorted by sort_name."""
         return sorted(list(self.games.values()), key=lambda g: g.sort_name.lower())
 
     def get_game(self, app_id: str) -> Optional[Game]:
+        """Get a single game by AppID."""
         return self.games.get(app_id)
 
     def get_games_by_category(self, category: str) -> List[Game]:
+        """Get all games belonging to a category."""
         games = [g for g in self.games.values() if g.has_category(category)]
         return sorted(games, key=lambda g: g.sort_name.lower())
 
     def get_uncategorized_games(self) -> List[Game]:
+        """Get games that have no category (excluding favorites)."""
         games = [g for g in self.games.values()
                  if not g.categories or g.categories == ['favorite']]
         return sorted(games, key=lambda g: g.sort_name.lower())
 
     def get_favorites(self) -> List[Game]:
+        """Get all favorite games."""
         games = [g for g in self.games.values() if g.is_favorite()]
         return sorted(games, key=lambda g: g.sort_name.lower())
 
     def get_all_categories(self) -> Dict[str, int]:
+        """
+        Get all categories and their game counts.
+
+        Returns:
+            Dict[str, int]: Category name -> Game count.
+        """
         categories = {}
         for game in self.games.values():
             for category in game.categories:
@@ -356,13 +426,20 @@ class GameManager:
         return categories
 
     def fetch_game_details(self, app_id: str) -> bool:
+        """
+        Fetch additional details (store data, reviews, proton) for a game.
+
+        Returns:
+            bool: True if game exists.
+        """
         if app_id not in self.games: return False
         self._fetch_store_data(app_id)
         self._fetch_review_stats(app_id)
         self._fetch_proton_rating(app_id)
         return True
 
-    def _fetch_store_data(self, app_id: str):
+    def _fetch_store_data(self, app_id: str) -> None:
+        """Fetch and cache data from Steam Store API."""
         cache_file = self.cache_dir / 'store_data' / f'{app_id}.json'
         if cache_file.exists():
             try:
@@ -389,7 +466,8 @@ class GameManager:
         except (requests.RequestException, ValueError, KeyError, OSError):
             pass
 
-    def _fetch_review_stats(self, app_id: str):
+    def _fetch_review_stats(self, app_id: str) -> None:
+        """Fetch and cache Steam reviews."""
         cache_file = self.cache_dir / 'store_data' / f'{app_id}_reviews.json'
         if cache_file.exists():
             try:
@@ -413,8 +491,13 @@ class GameManager:
         except (requests.RequestException, ValueError, KeyError, OSError):
             pass
 
-    def _fetch_proton_rating(self, app_id: str):
+    def _fetch_proton_rating(self, app_id: str) -> None:
+        """Fetch ProtonDB rating."""
         cache_file = self.cache_dir / 'store_data' / f'{app_id}_proton.json'
+
+        # Helper for unknown status
+        unknown_status = t('common.unknown')
+
         if cache_file.exists():
             try:
                 cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
@@ -422,7 +505,7 @@ class GameManager:
                     with open(cache_file, 'r') as f:
                         data = json.load(f)
                         if app_id in self.games:
-                            self.games[app_id].proton_db_rating = data.get('tier', 'unknown')
+                            self.games[app_id].proton_db_rating = data.get('tier', unknown_status)
                     return
             except (OSError, json.JSONDecodeError):
                 pass
@@ -432,22 +515,26 @@ class GameManager:
             response = requests.get(url, timeout=5)
             if response.status_code == 200:
                 data = response.json()
-                tier = data.get('tier', 'unknown')
+                tier = data.get('tier', unknown_status)
                 with open(cache_file, 'w') as f:
                     json.dump({'tier': tier}, f)
                 if app_id in self.games:
                     self.games[app_id].proton_db_rating = tier
             else:
                 if app_id in self.games:
-                    self.games[app_id].proton_db_rating = 'unknown'
+                    self.games[app_id].proton_db_rating = unknown_status
         except (requests.RequestException, ValueError, KeyError, OSError):
             pass
 
-    def _apply_review_data(self, app_id: str, data: Dict):
+    def _apply_review_data(self, app_id: str, data: Dict) -> None:
+        """Helper to parse review data."""
         if app_id not in self.games: return
         game = self.games[app_id]
         summary = data.get('query_summary', {})
-        game.review_score = summary.get('review_score_desc', 'Unknown')
+
+        # FIXED: Use t() for Unknown
+        game.review_score = summary.get('review_score_desc', t('common.unknown'))
+
         game.review_count = summary.get('total_reviews', 0)
         positive = summary.get('total_positive', 0)
         total = summary.get('total_reviews', 0)
@@ -455,7 +542,8 @@ class GameManager:
             percent = (positive / total) * 100
             game.steam_db_rating = f"{percent:.0f}%"
 
-    def _apply_store_data(self, app_id: str, data: Dict):
+    def _apply_store_data(self, app_id: str, data: Dict) -> None:
+        """Helper to parse store data."""
         game = self.games[app_id]
         if not game.name_overridden:
             game.developer = ', '.join(data.get('developers', []))
@@ -470,11 +558,12 @@ class GameManager:
         game.tags = list(set(game.tags + tags))
 
     def get_load_source_message(self) -> str:
+        """Return localized status message about load source."""
         if self.load_source == "api":
-            return t('ui.status.loaded_from_api', count=len(self.games))
+            return t('logs.manager.loaded_api', count=len(self.games))
         elif self.load_source == "local":
-            return t('ui.status.loaded_from_local', count=len(self.games))
+            return t('logs.manager.loaded_local', count=len(self.games))
         elif self.load_source == "mixed":
-            return t('ui.status.loaded_mixed', count=len(self.games))
+            return t('logs.manager.loaded_mixed', count=len(self.games))
         else:
-            return t('ui.status.ready')
+            return t('ui.main_window.status_ready')

@@ -5,9 +5,9 @@ import os
 import json
 from pathlib import Path
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
-# FIX: Use lambda to avoid 'unused parameter' warnings
+# Load environment variables silently
 try:
     # noinspection PyPackageRequirements
     from dotenv import load_dotenv
@@ -17,6 +17,10 @@ except ImportError:
 
 @dataclass
 class Config:
+    """
+    Central configuration handling for the application.
+    Manages paths, settings, and API keys.
+    """
     APP_DIR: Path = Path(__file__).parent.parent
     DATA_DIR: Path = APP_DIR / 'data'
     CACHE_DIR: Path = DATA_DIR / 'cache'
@@ -37,14 +41,16 @@ class Config:
 
     STEAM_PATH: Optional[Path] = None
     STEAM_USER_ID: Optional[str] = None
+
     # List for additional libraries
-    STEAM_LIBRARIES: list = None
+    STEAM_LIBRARIES: List[str] = None
 
     MAX_BACKUPS: int = 5
     TAGS_PER_GAME: int = 13
     IGNORE_COMMON_TAGS: bool = True
 
     def __post_init__(self):
+        """Initialize directories and load settings after instantiation."""
         self.DATA_DIR.mkdir(exist_ok=True)
         self.CACHE_DIR.mkdir(exist_ok=True)
 
@@ -63,7 +69,8 @@ class Config:
             if detected:
                 self.STEAM_PATH = detected
 
-    def _load_settings(self):
+    def _load_settings(self) -> None:
+        """Load settings from JSON file."""
         # Local import to avoid circular dependency
         from src.utils.i18n import t
 
@@ -88,15 +95,14 @@ class Config:
                 self.MAX_BACKUPS = data.get('max_backups', self.MAX_BACKUPS)
                 self.STEAM_LIBRARIES = data.get('steam_libraries', [])
 
-                # IMPORTANT: Load user ID
+                # Load user ID
                 self.STEAM_USER_ID = data.get('steam_user_id')
 
         except (OSError, json.JSONDecodeError) as e:
-            # Now localized
             print(t('logs.config.load_error', error=e))
 
-    def save(self):
-        """Helper to save current config to file"""
+    def save(self) -> None:
+        """Save current configuration to JSON file."""
         # Local import to avoid circular dependency
         from src.utils.i18n import t
 
@@ -117,10 +123,10 @@ class Config:
             with open(self.SETTINGS_FILE, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2)
         except OSError as e:
-            # Now localized
             print(t('logs.config.save_error', error=e))
 
-    def update_paths(self, **kwargs):
+    def update_paths(self, **kwargs) -> None:
+        """Update paths and save configuration."""
         if 'steam_path' in kwargs:
             self.STEAM_PATH = kwargs['steam_path']
 
@@ -128,6 +134,7 @@ class Config:
 
     @staticmethod
     def _find_steam_path() -> Optional[Path]:
+        """Try to auto-detect the Steam installation path on Linux."""
         paths = [
             Path.home() / '.steam' / 'steam',
             Path.home() / '.local' / 'share' / 'Steam',
@@ -138,6 +145,12 @@ class Config:
         return None
 
     def get_detected_user(self) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Detect the current Steam user from userdata directory.
+
+        Returns:
+            Tuple[Optional[str], Optional[str]]: (AccountID, SteamID64)
+        """
         if not self.STEAM_PATH: return None, None
         userdata = self.STEAM_PATH / 'userdata'
         if not userdata.exists(): return None, None
@@ -151,6 +164,15 @@ class Config:
         return None, None
 
     def get_localconfig_path(self, account_id: str) -> Optional[Path]:
+        """
+        Get the path to localconfig.vdf for a specific account.
+
+        Args:
+            account_id: The Steam Account ID.
+
+        Returns:
+            Optional[Path]: Path to localconfig.vdf or None.
+        """
         if not self.STEAM_PATH or not account_id: return None
         return self.STEAM_PATH / 'userdata' / account_id / 'config' / 'localconfig.vdf'
 
