@@ -332,11 +332,17 @@ class MainWindow(QMainWindow):
         UIHelper.show_success(self, t('ui.login.status_success'), t('ui.login.title'))
 
         config.STEAM_USER_ID = steam_id_64
+        # FIX: Save immediately so login persists after restart!
+        config.save()
+
+        # Fetch Name
         self.steam_username = self._fetch_steam_persona_name(steam_id_64)
 
+        # Update User Label
         display_text = self.steam_username if self.steam_username else steam_id_64
         self.user_label.setText(t('ui.main_window.user_label', user_id=display_text))
 
+        # Rebuild Toolbar (to show Name instead of Login button)
         self._refresh_toolbar()
 
         if self.game_manager:
@@ -874,7 +880,17 @@ class MainWindow(QMainWindow):
         self.set_status(t('ui.main_window.status_ready'))
 
     def _refresh_menubar(self) -> None:
+        """Rebuilds menu and toolbar on language switch."""
+        # 1. Clear Menu Bar
         self.menuBar().clear()
+
+        # 2. Remove Toolbar explicitly to prevent duplicates!
+        if hasattr(self, 'toolbar') and self.toolbar:
+            self.removeToolBar(self.toolbar)
+            self.toolbar.deleteLater()  # Clean up memory
+            self.toolbar = None
+
+        # 3. Re-create UI
         self._create_ui()
 
     def _apply_settings(self, settings: dict) -> None:

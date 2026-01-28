@@ -231,7 +231,9 @@
       "button": "Login with Steam",
       "status_success": "Login successful!",
       "status_failed": "Login failed",
-      "logged_in_as": "Logged in as {user}"
+      "logged_in_as": "Logged in as {user}",
+      "html_success_header": "Login Successful!",
+      "html_success_msg": "You can close this window and return to the app."
     },
     "search": {
       "results_category": "Search Results ({count})",
