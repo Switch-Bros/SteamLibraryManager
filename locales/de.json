@@ -76,15 +76,21 @@
         "about": "Über Steam Library Manager"
       }
     },
-    "settings": {
+"settings": {
       "title": "Einstellungen",
       "tabs": {
         "general": "Allgemein",
-        "tags": "Tags & Kategorien",
-        "api": "API & Integrationen",
-        "backup": "Backup"
+        "other": "Weitere"
+      },
+      "libraries": {
+        "title": "Steam Bibliotheks-Ordner",
+        "add": "Hinzufügen",
+        "remove": "Entfernen",
+        "confirm_remove": "Bibliothek entfernen",
+        "confirm_msg": "Möchtest du diesen Bibliotheks-Pfad wirklich entfernen?"
       },
       "api": {
+        "title_group": "API && Integrationen",
         "steam_label": "Steam Web API Schlüssel (Optional)",
         "sgdb_label": "SteamGridDB API Schlüssel (Cover/Icons)",
         "get_key": "Schlüssel holen",
@@ -113,11 +119,13 @@
         "ko": "🇰🇷 한국어"
       },
       "backup": {
+        "title_group": "Backup",
         "limit": "Max. Backups:",
         "files": "Dateien",
         "tooltip": "Anzahl der Backups pro Datei"
       },
       "tags": {
+        "title_group": "Tags && Kategorien",
         "count": "Tags pro Spiel:",
         "ignore_common": "Häufige Tags ignorieren (Indie, Singleplayer...)"
       }
