@@ -3,24 +3,31 @@
 Steam Library Manager - Main Entry Point (PyQt6 Version)
 """
 import sys
+import traceback
 from pathlib import Path
+from typing import Any
 
 # Add project root directory to path
 project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
+# Local imports
 from src.utils import acf, appinfo
-from PyQt6.QtWidgets import QApplication, QMessageBox
 from src.config import config
 from src.utils.i18n import init_i18n, t
 from src.ui.main_window import MainWindow
 
+# PyQt6 imports
+from PyQt6.QtWidgets import QApplication, QMessageBox
+
 
 def check_steam_running() -> bool:
     """
-    Check if Steam is currently running
-    Returns: True if Steam is running, False if not
+    Check if Steam is currently running using psutil.
+
+    Returns:
+        bool: True if Steam is running, False otherwise.
     """
     try:
         import psutil
@@ -34,17 +41,23 @@ def check_steam_running() -> bool:
                 continue
         return False
     except ImportError:
-        # psutil not installed - skip
-        print("Warning: psutil not installed, cannot check if Steam is running")
+        # Log warning using i18n
+        print(t('logs.main.psutil_missing'))
         return False
     except Exception as e:
         print(f"Error checking Steam processes: {e}")
         return False
 
 
-def load_steam_file(file_path: Path):
+def load_steam_file(file_path: Path) -> Any:
     """
-    Load Steam file based on its extension/name.
+    Load a Steam file based on its extension/name (.acf or .vdf).
+
+    Args:
+        file_path: Path to the file.
+
+    Returns:
+        Any: The parsed data (dict or AppInfo object) or None if loading failed.
     """
     if not file_path.exists():
         return None
@@ -63,8 +76,6 @@ def load_steam_file(file_path: Path):
             with open(file_path, 'rb') as f:
                 return appinfo.load(f)
 
-        # Manifest support removed (not needed)
-
     except Exception as e:
         print(t('logs.main.file_load_error', file=file_path.name, error=str(e)))
         return None
@@ -72,66 +83,63 @@ def load_steam_file(file_path: Path):
     return None
 
 
-def main():
-    # 1. Initialize language (BEFORE for warning!)
+def main() -> None:
+    """Main application execution flow."""
+    # 1. Initialize language (BEFORE creating UI elements)
     init_i18n(config.UI_LANGUAGE)
 
-    # 2. Create QApplication (BEFORE for MessageBox!)
+    # 2. Create QApplication
     app = QApplication(sys.argv)
+    # Keeping this hardcoded as requested (Brand Name)
     app.setApplicationName("Steam Library Manager")
 
     # 3. CRITICAL: Check if Steam is running!
     if check_steam_running():
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Icon.Warning)
-        msg.setWindowTitle(t('ui.dialogs.steam_running_title'))
-        msg.setText(t('ui.dialogs.steam_running_message'))
+        msg.setWindowTitle(t('dialogs.steam_running_title'))
+        msg.setText(t('dialogs.steam_running_msg'))
 
-        # Exit Button
+        # Exit Button (using "Exit" from menu translations)
         exit_btn = msg.addButton(
-            t('ui.dialogs.steam_running_button'),
+            t('ui.menu.file.exit'),
             QMessageBox.ButtonRole.AcceptRole
         )
-        exit_btn.setDefault(True)  # Variable is now used!
+        exit_btn.setDefault(True)
 
         msg.exec()
 
-        # Exit app
-        print("\n⚠️ Steam is running - exiting application")
+        # Exit app with log
+        print(f"\n{t('logs.main.steam_running_exit')}")
         sys.exit(0)
 
     # 4. Startup logs
     print("=" * 60)
-    print(t('cli.banner'))
+    print(t('app.name'))
     print("=" * 60)
 
-    print(t('cli.initializing'))
+    print(t('logs.main.initializing'))
 
     if config.STEAM_PATH:
-        print(t('cli.steam_found', path=config.STEAM_PATH))
+        print(t('logs.main.steam_found', path=config.STEAM_PATH))
 
+        # User detection logic
         short_id, long_id = config.get_detected_user()
-        if short_id:
-            print(t('cli.users_found', count=1))
-
-            if not config.STEAM_USER_ID and long_id:
-                config.STEAM_USER_ID = long_id
+        if short_id and not config.STEAM_USER_ID and long_id:
+            config.STEAM_USER_ID = long_id
     else:
-        print(t('cli.steam_not_found'))
+        print(t('logs.main.steam_not_found'))
 
-    print(f"\n{t('cli.starting')}\n")
+    print(f"\n{t('common.loading')}\n")
 
     try:
-        print(t('cli.qt_theme'))
-
         window = MainWindow()
         window.show()
 
         sys.exit(app.exec())
 
     except Exception as e:
-        print(f"\n{t('cli.error', error=e)}")
-        import traceback
+        print(f"\n{t('common.error')}: {e}")
         traceback.print_exc()
         sys.exit(1)
 
