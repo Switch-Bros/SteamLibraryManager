@@ -1,5 +1,10 @@
+# src/integrations/steam_store.py
+
 """
-Steam Store Integration - Fetches Tags & Franchises
+Steam Store integration for fetching tags and franchise detection.
+
+This module provides functionality to scrape game tags from the Steam Store
+in the user's preferred language and detect game franchises based on name patterns.
 """
 import time
 import json
@@ -9,10 +14,17 @@ from typing import List, Optional
 
 import requests
 from bs4 import BeautifulSoup
+from src.utils.i18n import t
 
 
 class SteamStoreScraper:
-    """Fetches tags from Steam Store - in selected language"""
+    """
+    Fetches game tags from the Steam Store in the selected language.
+
+    This class scrapes the Steam Store page for a game to extract user-defined
+    tags. It supports multiple languages, implements rate limiting, and caches
+    results for 30 days.
+    """
 
     # Language mapping (ISO Code -> Steam Internal Name)
     STEAM_LANGUAGES = {
@@ -30,9 +42,11 @@ class SteamStoreScraper:
 
     def __init__(self, cache_dir: Path, language: str = 'en'):
         """
+        Initializes the SteamStoreScraper.
+
         Args:
-            cache_dir: Cache directory
-            language: Language code ('en', 'de', etc.)
+            cache_dir (Path): Directory to store cached tag data.
+            language (str): Language code ('en', 'de', etc.). Defaults to 'en'.
         """
         self.cache_dir = cache_dir / 'store_tags'
         self.cache_dir.mkdir(exist_ok=True, parents=True)
@@ -75,12 +89,30 @@ class SteamStoreScraper:
         }
 
     def set_language(self, language_code: str):
-        """Sets the language for Store requests"""
+        """
+        Sets the language for Steam Store requests.
+
+        Args:
+            language_code (str): ISO language code (e.g., 'en', 'de').
+        """
         self.language_code = language_code
         self.steam_language = self.STEAM_LANGUAGES.get(language_code, 'english')
 
     def fetch_tags(self, app_id: str) -> List[str]:
-        """Fetches tags from the Steam Store page"""
+        """
+        Fetches user-defined tags from the Steam Store page.
+
+        This method first checks the cache for existing data (valid for 30 days).
+        If not cached, it scrapes the Steam Store page, filters out blacklisted
+        tags, and caches the result.
+
+        Args:
+            app_id (str): The Steam app ID.
+
+        Returns:
+            List[str]: A list of tag names in the selected language, or an empty
+                      list if fetching failed.
+        """
         cache_file = self.cache_dir / f"{app_id}_{self.language_code}.json"
 
         # 1. Check Cache
@@ -130,7 +162,7 @@ class SteamStoreScraper:
                 return tags
 
         except (requests.RequestException, AttributeError) as e:
-            print(f"Store Error {app_id}: {e}")
+            print(t('logs.steam_store.fetch_error', app_id=app_id, error=str(e)))
 
         return []
 
@@ -169,7 +201,17 @@ class SteamStoreScraper:
 
     @classmethod
     def detect_franchise(cls, game_name: str) -> Optional[str]:
-        """Detect franchise from game name"""
+        """
+        Detects the franchise a game belongs to based on its name.
+
+        This method uses pattern matching against a predefined list of franchises.
+
+        Args:
+            game_name (str): The name of the game.
+
+        Returns:
+            Optional[str]: The franchise name if detected, or None if no match is found.
+        """
         name_lower = game_name.lower()
 
         for franchise, patterns in cls.FRANCHISES.items():

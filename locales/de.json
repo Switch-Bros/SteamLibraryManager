@@ -306,6 +306,9 @@
       "error": "Auth Fehler: {error}",
       "profile_error": "Fehler beim Laden des Profilnamens: {error}"
     },
+    "steam_store": {
+      "fetch_error": "Store-Fehler für App {app_id}: {error}"
+    },
     "steamgrid": {
       "saved": "Bild gespeichert: {type} für App {app_id}",
       "missing_key": "API Key fehlt",
