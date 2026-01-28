@@ -1,114 +1,127 @@
 """
-Steam Authentication Manager - Clean Localized Strings
+Steam Authentication Manager
+Handles the OAuth login flow via system browser and local callback server.
 """
-import threading
-from flask import Flask, request
-# noinspection PyPackageRequirements
-from werkzeug.serving import make_server
-from PyQt6.QtCore import QObject, pyqtSignal
+from typing import Optional
+
+from PyQt6.QtCore import QObject, pyqtSignal, QUrl
+from PyQt6.QtGui import QDesktopServices
+from PyQt6.QtNetwork import QTcpServer
+
 from src.utils.i18n import t
-from urllib.parse import urlencode
-import webbrowser
-
-# Imports based on requirements
-try:
-    import webview
-
-    HAS_WEBVIEW = True
-except ImportError:
-    webview = None
-    HAS_WEBVIEW = False
-    print(t('logs.auth.webview_missing'))
 
 
 class SteamAuthManager(QObject):
-    auth_success = pyqtSignal(str)  # Returns SteamID64
-    auth_error = pyqtSignal(str)
+    """
+    Manages Steam OpenID login process.
+    Starts a local TCP server to listen for the Steam callback.
+    """
+    auth_success = pyqtSignal(str)  # Emits SteamID64
+    auth_error = pyqtSignal(str)  # Emits Error Message
 
     def __init__(self):
         super().__init__()
-        self.server = None
-        self.server_thread = None
-        self.app = Flask(__name__)
-        self.port = 5000
+        self.server: Optional[QTcpServer] = None
+        self.port = 8888
+        self._is_running = False
+
+    def start_login(self) -> None:
+        """Starts the login process: opens browser and starts listener."""
+        if self._is_running:
+            return
+
+        try:
+            self._start_server()
+
+            print(t('logs.auth.starting'))
+
+            # noinspection HttpUrlsUsage
+            callback_url = f"http://127.0.0.1:{self.port}/callback"
+
+            # noinspection HttpUrlsUsage
+            steam_openid_url = (
+                "https://steamcommunity.com/openid/login"
+                "?openid.ns=http://specs.openid.net/auth/2.0"
+                "&openid.mode=checkid_setup"
+                f"&openid.return_to={callback_url}"
+                f"&openid.realm={callback_url}"
+                "&openid.identity=http://specs.openid.net/auth/2.0/identifier_select"
+                "&openid.claimed_id=http://specs.openid.net/auth/2.0/identifier_select"
+            )
+
+            QDesktopServices.openUrl(QUrl(steam_openid_url))
+
+        except OSError as e:
+            self.auth_error.emit(t('logs.auth.error', error=str(e)))
+            self._stop_server()
+
+    def _start_server(self) -> None:
+        """Starts local TCP server to catch the redirect."""
+        self.server = QTcpServer()
+        # noinspection PyUnresolvedReferences
+        self.server.newConnection.connect(self._handle_connection)
+
+        if not self.server.listen(port=self.port):
+            raise OSError(f"Could not start local server on port {self.port}")
+
+        self._is_running = True
+
+    def _handle_connection(self) -> None:
+        """Handles incoming HTTP request from browser redirect."""
+        if not self.server: return
+
+        client_connection = self.server.nextPendingConnection()
+        if not client_connection: return
+
+        # Wait for data (simplified)
+        client_connection.waitForReadyRead(1000)
+        request_data = client_connection.readAll().data().decode('utf-8', errors='ignore')
+
+        steam_id = self._extract_steam_id(request_data)
+
+        response_body = "<h1>Login Successful!</h1><p>You can close this window and return to the app.</p>"
+        if not steam_id:
+            response_body = "<h1>Login Failed</h1><p>Could not verify SteamID.</p>"
+
         # noinspection HttpUrlsUsage
-        self.redirect_uri = f"http://localhost:{self.port}/auth"
+        http_response = (
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: text/html\r\n"
+            "Connection: close\r\n"
+            f"Content-Length: {len(response_body)}\r\n"
+            "\r\n"
+            f"{response_body}"
+        )
 
-        # Flask Route
-        self.app.add_url_rule('/auth', 'auth', self._handle_auth)
+        client_connection.write(http_response.encode('utf-8'))
+        client_connection.flush()
+        client_connection.disconnectFromHost()
 
-    def start_login(self):
-        """Starts the OpenID process"""
-        # 1. Start server
-        self.server_thread = threading.Thread(target=self._run_flask)
-        self.server_thread.daemon = True
-        self.server_thread.start()
+        self._stop_server()
 
-        # 2. Build OpenID URL
-        # noinspection HttpUrlsUsage
-        params = {
-            'openid.ns': 'http://specs.openid.net/auth/2.0',
-            'openid.mode': 'checkid_setup',
-            'openid.return_to': self.redirect_uri,
-            'openid.realm': f"http://localhost:{self.port}",
-            'openid.identity': 'http://specs.openid.net/auth/2.0/identifier_select',
-            'openid.claimed_id': 'http://specs.openid.net/auth/2.0/identifier_select'
-        }
-
-        auth_url = 'https://steamcommunity.com/openid/login?' + urlencode(params)
-
-        # 3. Open browser
-        if HAS_WEBVIEW and webview:
-            threading.Thread(target=lambda: self._open_webview(auth_url)).start()
+        if steam_id:
+            self.auth_success.emit(steam_id)
         else:
-            webbrowser.open(auth_url)
+            self.auth_error.emit(t('logs.auth.error', error="Invalid OpenID response"))
+
+    def _stop_server(self) -> None:
+        """Stops the local server."""
+        if self.server:
+            self.server.close()
+            self.server = None
+        self._is_running = False
 
     @staticmethod
-    def _open_webview(url):
-        """Opens native window (if webview installed)"""
+    def _extract_steam_id(request_data: str) -> Optional[str]:
+        """Parses the SteamID64 from the HTTP GET request."""
         try:
-            webview.create_window('Steam Login', url, width=800, height=600, resizable=False)
-            webview.start()
+            if "openid.claimed_id" not in request_data:
+                return None
+
+            import re
+            match = re.search(r"openid/id/(\d{17})", request_data)
+            if match:
+                return match.group(1)
         except Exception as e:
-            print(f"Webview error: {e}")
-            webbrowser.open(url)
-
-    def _run_flask(self):
-        try:
-            self.server = make_server('localhost', self.port, self.app)
-            print(t('logs.auth.server_started', port=self.port))
-            self.server.serve_forever()
-        except OSError as e:
-            self.auth_error.emit(str(e))
-
-    def _handle_auth(self):
-        """Callback for OpenID"""
-        # Steam sends the ID in parameter 'openid.claimed_id'
-        claimed_id = request.args.get('openid.claimed_id')
-
-        if claimed_id:
-            # Format is: https://steamcommunity.com/openid/id/7656119xxxxxxxxxx
-            steam_id_64 = claimed_id.split('/')[-1]
-
-            self.auth_success.emit(steam_id_64)
-
-            # Shutdown server cleanly
-            if self.server:
-                threading.Thread(target=self.server.shutdown).start()
-
-            # Close webview (if active)
-            if HAS_WEBVIEW and webview:
-                pass
-
-            # HTML Response
-            return f"""
-            <html>
-            <body style="background-color:#1b2838; color:white; font-family:sans-serif; text-align:center; padding-top:50px;">
-                <h1>{t('ui.login.html_success_header')}</h1>
-                <p>{t('ui.auth.success_browser')}</p>
-                <script>window.setTimeout(function(){{window.close();}}, 2000);</script>
-            </body>
-            </html>
-            """
-        else:
-            return "Login failed or cancelled."
+            print(f"Error parsing SteamID: {e}")
+        return None
