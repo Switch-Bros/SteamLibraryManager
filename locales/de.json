@@ -122,7 +122,8 @@
         "title_group": "Backup",
         "limit": "Max. Backups:",
         "files": "Dateien",
-        "tooltip": "Anzahl der Backups pro Datei"
+        "tooltip": "Anzahl der Backups pro Datei",
+        "explanation": "Anzahl der Sicherungen von localconfig.vdf, sharedconfig.vdf & appinfo.vdf, bevor die älteste überschrieben wird."
       },
       "tags": {
         "title_group": "Tags && Kategorien",
