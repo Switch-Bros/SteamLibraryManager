@@ -1,5 +1,7 @@
 """
-Local Games Loader - Multi-Library Support (ADJUSTED FOR SME INTEGRATION)
+Local Games Loader
+Scans local Steam library folders to find installed games via appmanifest files.
+Does NOT load appinfo.vdf (handled separately for performance).
 """
 
 import vdf
@@ -9,7 +11,7 @@ from src.utils.i18n import t
 
 
 class LocalGamesLoader:
-    """Loads games from local Steam files without API"""
+    """Loads games from local Steam files without API."""
 
     def __init__(self, steam_path: Path):
         self.steam_path = steam_path
@@ -19,7 +21,7 @@ class LocalGamesLoader:
 
     def get_all_games(self) -> List[Dict]:
         """
-        Loads installed games from manifest files
+        Loads installed games from manifest files.
 
         IMPORTANT: appinfo.vdf is NO LONGER loaded here!
         AppInfoManager does this on-demand for better performance.
@@ -31,15 +33,13 @@ class LocalGamesLoader:
         for game in installed:
             all_games[str(game['appid'])] = game
 
-        # 2. appinfo.vdf is NO LONGER loaded here
-        #    Reason: Too slow (~15,000 Apps), loaded only on-demand
-        #    AppInfoManager loads it when metadata is needed
-
         print(t('logs.local_loader.loaded_total', count=len(all_games)))
         return list(all_games.values())
 
     def get_installed_games(self) -> List[Dict]:
-        """Reads all installed games from appmanifest_*.acf files"""
+        """
+        Reads all installed games from appmanifest_*.acf files across all libraries.
+        """
         all_installed = []
 
         # Get Libraries (Linux Native Paths)
@@ -126,7 +126,7 @@ class LocalGamesLoader:
 
     @staticmethod
     def _parse_manifest(manifest_path: Path) -> Optional[Dict]:
-        """Parse a single appmanifest file"""
+        """Parse a single appmanifest file."""
         try:
             with open(manifest_path, 'r', encoding='utf-8') as f:
                 data = vdf.load(f)
@@ -143,7 +143,7 @@ class LocalGamesLoader:
 
     @staticmethod
     def get_playtime_from_localconfig(localconfig_path: Path) -> Dict[str, int]:
-        """Get playtime data from localconfig.vdf"""
+        """Get playtime data from localconfig.vdf."""
         playtimes = {}
         if not localconfig_path.exists():
             return playtimes

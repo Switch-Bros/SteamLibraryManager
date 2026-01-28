@@ -1,5 +1,6 @@
 """
 AppInfo Manager - Associations Support Edition
+Manages Steam app metadata modifications, tracks changes, and supports writing to appinfo.vdf.
 """
 
 import json
@@ -11,7 +12,7 @@ from src.utils.appinfo import AppInfo, IncompatibleVersionError
 
 class AppInfoManager:
     """
-    Manages Steam app metadata modifications
+    Manages Steam app metadata modifications.
     - Tracks original and modified values
     - Supports writing to appinfo.vdf with correct checksums
     - Provides restore functionality
@@ -36,7 +37,7 @@ class AppInfoManager:
             self.appinfo_path = steam_path / 'appcache' / 'appinfo.vdf'
 
     def load_appinfo(self, _app_ids: Optional[List[str]] = None, _load_all: bool = False) -> Dict:
-        """Load appinfo.vdf using appinfo_v2 parser"""
+        """Load appinfo.vdf using appinfo_v2 parser."""
         self.data_dir.mkdir(exist_ok=True)
 
         # 1. Load saved modifications
@@ -64,7 +65,7 @@ class AppInfoManager:
         return self.modifications
 
     def _load_modifications_from_json(self):
-        """Load saved metadata modifications"""
+        """Load saved metadata modifications."""
         if not self.metadata_file.exists():
             self.modifications = {}
             self.modified_apps = []
@@ -117,7 +118,7 @@ class AppInfoManager:
             if isinstance(value, dict):
                 if 'common' in value:
                     return value['common']
-                # Nur eine Ebene tiefer suchen, um Performance zu schonen
+                # Search only one level deeper to save performance
                 if 'appinfo' in value and 'common' in value['appinfo']:
                     return value['appinfo']['common']
 
@@ -125,8 +126,8 @@ class AppInfoManager:
 
     def get_app_metadata(self, app_id: str) -> Dict[str, Any]:
         """
-        Get app metadata (with modifications applied)
-        Supports 'associations' block for Developers/Publishers
+        Get app metadata (with modifications applied).
+        Supports 'associations' block for Developers/Publishers.
         """
         result = {}
 
@@ -153,7 +154,7 @@ class AppInfoManager:
                 if 'associations' in common:
                     assoc = common['associations']
 
-                    # associations ist ein Dict mit Index als Key ("0", "1", ...)
+                    # associations is a Dict with index as Key ("0", "1", ...)
                     for entry in assoc.values():
                         if isinstance(entry, dict):
                             entry_type = entry.get('type', '')
@@ -198,7 +199,7 @@ class AppInfoManager:
         return result
 
     def set_app_metadata(self, app_id: str, metadata: Dict[str, Any]) -> bool:
-        """Set app metadata"""
+        """Set app metadata."""
         try:
             # Get original values
             if app_id not in self.modifications:
@@ -226,7 +227,7 @@ class AppInfoManager:
             return False
 
     def save_appinfo(self) -> bool:
-        """Save modifications to JSON"""
+        """Save modifications to JSON."""
         try:
             self.data_dir.mkdir(exist_ok=True, parents=True)
             with open(self.metadata_file, 'w', encoding='utf-8') as f:
@@ -238,7 +239,7 @@ class AppInfoManager:
             return False
 
     def write_to_vdf(self, backup: bool = True) -> bool:
-        """Write modifications back to appinfo.vdf"""
+        """Write modifications back to appinfo.vdf."""
         if not self.appinfo:
             print(t('logs.appinfo.not_loaded'))
             return False
@@ -252,7 +253,8 @@ class AppInfoManager:
                 if backup_path:
                     print(t('logs.appinfo.backup_created', path=backup_path))
                 else:
-                    print(t('logs.appinfo.backup_failed', error=t('errors.unknown')))
+                    # 'errors.unknown' does not exist in locale, using 'common.unknown'
+                    print(t('logs.appinfo.backup_failed', error=t('common.unknown')))
 
             # Write using appinfo_v2's method
             success = self.appinfo.write()
@@ -267,7 +269,7 @@ class AppInfoManager:
             return False
 
     def restore_modifications(self, app_ids: Optional[List[str]] = None) -> int:
-        """Restore saved modifications to appinfo.vdf"""
+        """Restore saved modifications to appinfo.vdf."""
         if not app_ids:
             app_ids = list(self.modifications.keys())
 
@@ -286,7 +288,8 @@ class AppInfoManager:
 
         if restored > 0:
             self.write_to_vdf()
-            print(t('logs.appinfo.restoredvdf', count=restored))
+            # Changed 'restoredvdf' to 'restored' to match locale key
+            print(t('logs.appinfo.restored', count=restored))
 
         return restored
 

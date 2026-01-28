@@ -76,7 +76,7 @@
         "about": "About Steam Library Manager"
       }
     },
-"settings": {
+    "settings": {
       "title": "Settings",
       "tabs": {
         "general": "General",
