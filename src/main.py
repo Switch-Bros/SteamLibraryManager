@@ -74,7 +74,7 @@ def load_steam_file(file_path: Path):
 
 def main():
     # 1. Initialize language (BEFORE for warning!)
-    init_i18n(config.DEFAULT_LOCALE)
+    init_i18n(config.UI_LANGUAGE)
 
     # 2. Create QApplication (BEFORE for MessageBox!)
     app = QApplication(sys.argv)

@@ -83,7 +83,11 @@ class MainWindow(QMainWindow):
         self.progress_dialog: Optional[QProgressDialog] = None
 
         # Store Check Thread (for Thread-Safe Store Availability Check)
-        self.store_check_thread: Optional[QThread] = None  # ← NEW!
+        self.store_check_thread: Optional[QThread] = None
+
+        # UI Elements (initialized in _create_ui)
+        self.user_label: Optional[QLabel] = None
+        self.toolbar: Optional[QToolBar] = None
 
         self._create_ui()
         self._load_data()
@@ -91,7 +95,18 @@ class MainWindow(QMainWindow):
         self._restore_login_state()
 
     def _create_ui(self):
+        # Create menubar
+        self._create_menubar()
+
+        # Toolbar
+        self.toolbar = QToolBar(t('ui.main.toolbar_title'))
+        self.addToolBar(self.toolbar)
+        self._refresh_toolbar()
+
+    def _create_menubar(self):
+        """Create or recreate the menubar with current language."""
         menubar = self.menuBar()
+        menubar.clear()
 
         # 1. FILE
         file_menu = menubar.addMenu(t('ui.menu.file'))
@@ -169,15 +184,11 @@ class MainWindow(QMainWindow):
         about_action.triggered.connect(self.show_about)
         help_menu.addAction(about_action)
 
-        # User Info Label
-        self.user_label = QLabel(t('ui.status.not_logged_in'))
-        self.user_label.setStyleSheet("padding: 5px 10px;")
+        # User Info Label - only create, if it doesn't exist
+        if not hasattr(self, 'user_label') or self.user_label is None:
+            self.user_label = QLabel(t('ui.status.not_logged_in'))
+            self.user_label.setStyleSheet("padding: 5px 10px;")
         menubar.setCornerWidget(self.user_label, Qt.Corner.TopRightCorner)
-
-        # Toolbar
-        self.toolbar = QToolBar(t('ui.main.toolbar_title'))
-        self.addToolBar(self.toolbar)
-        self._refresh_toolbar()
 
         # Central Widget
         central = QWidget()
@@ -261,6 +272,7 @@ class MainWindow(QMainWindow):
 
     def _refresh_toolbar(self):
         self.toolbar.clear()
+        self.toolbar.setWindowTitle(t('ui.main.toolbar_title'))
         # Use the t() keys you already have in the JSONs
         self.toolbar.addAction(t('ui.toolbar.refresh'), self.refresh_data)
         self.toolbar.addAction(t('ui.toolbar.auto_categorize'), self.auto_categorize)
@@ -1170,9 +1182,10 @@ class MainWindow(QMainWindow):
         # noinspection PyUnresolvedReferences
         dialog.language_changed.connect(self._on_ui_language_changed_live)
         if dialog.exec():
-            settings = dialog.get_settings()
-            if settings:
-                self._apply_settings(settings)
+            # Settings are already saved by the dialog
+            # Just update steam_scraper language if needed
+            if self.steam_scraper:
+                self.steam_scraper.set_language(config.TAGS_LANGUAGE)
 
     def _on_ui_language_changed_live(self, new_language: str):
         config.UI_LANGUAGE = new_language
@@ -1183,8 +1196,8 @@ class MainWindow(QMainWindow):
         self.set_status(t('ui.main.status_ready'))
 
     def _refresh_menubar(self):
-        self.menuBar().clear()
-        self._create_ui()
+        """Refresh menubar with current language translations."""
+        self._create_menubar()
 
     def _apply_settings(self, settings: dict):
         config.UI_LANGUAGE = settings['ui_language']
@@ -1192,7 +1205,6 @@ class MainWindow(QMainWindow):
         config.TAGS_PER_GAME = settings['tags_per_game']
         config.IGNORE_COMMON_TAGS = settings['ignore_common_tags']
         config.STEAMGRIDDB_API_KEY = settings['steamgriddb_api_key']
-        config.MAX_BACKUPS = settings['max_backups']
 
         if settings.get('steam_api_key'):
             config.STEAM_API_KEY = settings['steam_api_key']
@@ -1202,12 +1214,7 @@ class MainWindow(QMainWindow):
         if self.steam_scraper:
             self.steam_scraper.set_language(config.TAGS_LANGUAGE)
 
-        self._save_settings(settings)
-        QMessageBox.information(
-            self,
-            t('ui.dialogs.success'),
-            t('ui.settings.saved_message', ui=settings['ui_language'], tags=settings['tags_language'])
-        )
+        # Note: MessageBox is already shown by SettingsDialog._save_settings()
 
     @staticmethod
     def _save_settings(settings: dict):
@@ -1220,7 +1227,7 @@ class MainWindow(QMainWindow):
             'ignore_common_tags': settings['ignore_common_tags'],
             'steamgriddb_api_key': settings['steamgriddb_api_key'],
             'steam_api_key': settings.get('steam_api_key', ''),
-            'max_backups': settings['max_backups']
+            'max_backups': config.MAX_BACKUPS
         }
         with open(settings_file, 'w') as f:
             json.dump(data, f, indent=2)
