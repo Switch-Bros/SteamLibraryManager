@@ -304,18 +304,32 @@
       "saved": "Image saved: {type} for App {app_id}",
       "missing_key": "Missing API Key",
       "api_error": "API Error {code}",
-      "found": "Images found: {count}"
+      "found": "Images found: {count}",
+      "save_error": "Error saving image: {error}",
+      "deleted": "Deleted custom image: {path}",
+      "delete_error": "Error deleting image: {error}"
     },
     "backup": {
       "created": "✅ Backup created: {name}",
       "failed": "Backup failed: {error}",
-      "rotated": "Rotated backup: {name}"
+      "rotated": "Rotated backup: {name}",
+      "delete_error": "Error deleting old backup {name}: {error}"
     },
     "appinfo": {
       "loaded": "Loaded {count} saved modifications",
       "saved_vdf": "appinfo.vdf saved",
       "restored": "Restored {count} modifications",
-      "parse_error": "Warning: Failed to parse app {app_id}: {error}"
+      "parse_error": "Warning: Failed to parse app {app_id}: {error}",
+      "loaded_binary": "Loaded {count} apps from binary appinfo.vdf",
+      "incompatible_version": "Incompatible appinfo.vdf version: {version}",
+      "binary_error": "Error loading binary appinfo.vdf: {error}",
+      "error": "AppInfo Error: {error}",
+      "set_error": "Error setting metadata for {app_id}: {error}",
+      "saved_mods": "Saved {count} modifications to JSON",
+      "not_loaded": "Binary appinfo.vdf not loaded",
+      "backup_created": "Backup created: {path}",
+      "backup_failed": "Backup failed: {error}",
+      "write_error": "Error writing appinfo.vdf: {error}"
     },
     "parser": {
       "apps_not_found": "Apps section not found in localconfig.vdf",
@@ -325,7 +339,10 @@
     "local_loader": {
       "scanning": "Scanning {count} manifest files...",
       "found_manifests": "  -> {path}: Found {count} manifests",
-      "library_error": "Error reading library folders: {error}"
+      "library_error": "Error reading library folders: {error}",
+      "loaded_total": "Loaded {count} games from local files",
+      "no_library_file": "libraryfolders.vdf not found, scanning default steamapps",
+      "path_not_exists": "Library path does not exist: {path}"
     }
   }
 }
