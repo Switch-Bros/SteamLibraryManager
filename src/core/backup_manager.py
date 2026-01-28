@@ -1,6 +1,10 @@
+# src/core/backup_manager.py
+
 """
-Backup Manager - Rolling Backups
-Handles file backups with automatic rotation (keeping only the newest N files).
+Manages file backups with automatic rotation.
+
+This module provides functionality to create timestamped backups of configuration
+files and automatically rotate (delete) old backups when a maximum limit is reached.
 """
 import shutil
 import glob
@@ -13,27 +17,37 @@ from src.utils.i18n import t
 
 
 class BackupManager:
-    """Manager for creating and rotating backups of configuration files."""
+    """
+    Manages creation and rotation of file backups.
+
+    This class creates timestamped copies of files and automatically removes
+    old backups when the configured maximum number is exceeded.
+    """
 
     def __init__(self, backup_dir: Optional[Path] = None):
         """
-        Initialize BackupManager.
+        Initializes the BackupManager.
 
         Args:
-            backup_dir: Custom backup directory (optional).
+            backup_dir (Optional[Path]): Custom directory for storing backups.
+                                         If None, uses the default data/backups directory.
         """
         self.backup_dir = backup_dir or (config.DATA_DIR / 'backups')
         self.backup_dir.mkdir(parents=True, exist_ok=True)
 
     def create_backup(self, file_path: Path) -> Optional[Path]:
         """
-        Create backup of a file with timestamp.
+        Creates a timestamped backup of a file.
+
+        The backup is saved with a timestamp in the filename (e.g., localconfig_20240128_143022.vdf).
+        After creating the backup, old backups are automatically rotated based on the MAX_BACKUPS setting.
 
         Args:
-            file_path: Path to file to back up.
+            file_path (Path): Path to the file to back up.
 
         Returns:
-            Path to backup file, or None if failed.
+            Optional[Path]: Path to the created backup file, or None if the operation failed
+                           (e.g., source file doesn't exist).
         """
         if not file_path.exists():
             return None
@@ -55,7 +69,15 @@ class BackupManager:
             return None
 
     def _rotate_backups(self, file_path: Path):
-        """Remove old backups exceeding MAX_BACKUPS limit."""
+        """
+        Removes old backups exceeding the MAX_BACKUPS limit.
+
+        This method finds all backups for a given file (by matching the filename pattern)
+        and deletes the oldest ones if the total count exceeds the configured limit.
+
+        Args:
+            file_path (Path): The original file path (used to match backup files).
+        """
         pattern = str(self.backup_dir / f"{file_path.stem}_*{file_path.suffix}")
         backups = sorted(glob.glob(pattern), key=os.path.getmtime, reverse=True)
 
@@ -70,14 +92,17 @@ class BackupManager:
     @staticmethod
     def create_rolling_backup(file_path: Path) -> Optional[str]:
         """
-        Legacy method for backward compatibility.
-        Creates backup using default config directory.
+        Legacy static method for creating backups with default settings.
+
+        This method provides backward compatibility for code that calls the static
+        create_rolling_backup method. It creates a BackupManager instance with
+        default settings and delegates to create_backup.
 
         Args:
-            file_path: Path to file to back up.
+            file_path (Path): Path to the file to back up.
 
         Returns:
-            String path to backup, or None if failed.
+            Optional[str]: String path to the created backup, or None if the operation failed.
         """
         manager = BackupManager()
         backup_path = manager.create_backup(file_path)
