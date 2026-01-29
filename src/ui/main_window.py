@@ -81,6 +81,7 @@ class GameLoadThread(QThread):
         Calls the game manager's load_games method with a progress callback
         and emits the finished signal with the result.
         """
+
         def progress_callback(step: str, current: int, total: int):
             self.progress_update.emit(step, current, total)
 
@@ -132,6 +133,7 @@ class MainWindow(QMainWindow):
         self.selected_games: List[Game] = []
         self.dialog_games: List[Game] = []
         self.steam_username: Optional[str] = None
+        self.current_search_query: str = ""  # Track active search
 
         # Threads & Dialogs
         self.load_thread: Optional[GameLoadThread] = None
@@ -290,6 +292,8 @@ class MainWindow(QMainWindow):
         self.tree.category_right_clicked.connect(self.on_category_right_click)
         # noinspection PyUnresolvedReferences
         self.tree.selection_changed.connect(self._on_games_selected)
+        # noinspection PyUnresolvedReferences
+        self.tree.games_dropped.connect(self._on_games_dropped)
         left_layout.addWidget(self.tree)
 
         splitter.addWidget(left_widget)
@@ -626,9 +630,49 @@ class MainWindow(QMainWindow):
                 self.vdf_parser.remove_app_category(app_id, category)
 
         self.vdf_parser.save()
-        self._populate_categories()
+
+        # If search is active, re-run the search instead of showing all categories
+        if self.current_search_query:
+            self.on_search(self.current_search_query)
+        else:
+            self._populate_categories()
+
         all_categories = list(self.game_manager.get_all_categories().keys())
         self.details_widget.set_game(game, all_categories)
+
+    def _on_games_dropped(self, games: List[Game], target_category: str) -> None:
+        """
+        Handles drag-and-drop of games onto a category.
+
+        Updates the game categories in memory and persists changes to the VDF file.
+
+        Args:
+            games: List of games that were dropped.
+            target_category: The category they were dropped onto.
+        """
+        if not self.vdf_parser:
+            return
+
+        for game in games:
+            # Add to target category if not already there
+            if target_category not in game.categories:
+                game.categories.append(target_category)
+                self.vdf_parser.add_app_category(game.app_id, target_category)
+
+        # Save changes to VDF file
+        self.vdf_parser.save()
+
+        # Refresh the tree - maintain search if active
+        if self.current_search_query:
+            self.on_search(self.current_search_query)
+        else:
+            self._populate_categories()
+
+        # Update details widget if one of the dropped games is currently selected
+        if games and self.details_widget.current_game and self.details_widget.current_game.app_id in [g.app_id for g in
+                                                                                                      games]:
+            all_categories = list(self.game_manager.get_all_categories().keys())
+            self.details_widget.set_game(self.details_widget.current_game, all_categories)
 
     def on_game_right_click(self, game: Game, pos) -> None:
         """Shows context menu for a right-clicked game.
@@ -710,6 +754,8 @@ class MainWindow(QMainWindow):
         Args:
             query: The search string to filter games by name.
         """
+        self.current_search_query = query  # Save current search
+
         if not query:
             self._populate_categories()
             return
@@ -728,6 +774,7 @@ class MainWindow(QMainWindow):
 
     def clear_search(self) -> None:
         """Clears the search field and restores the full category view."""
+        self.current_search_query = ""  # Clear search state
         self.search_entry.clear()
         self._populate_categories()
 
@@ -840,9 +887,9 @@ class MainWindow(QMainWindow):
         """
         if not self.vdf_parser: return
         if UIHelper.confirm(
-            self,
-            t('ui.categories.delete_msg', category=category),
-            t('ui.categories.delete_title')
+                self,
+                t('ui.categories.delete_msg', category=category),
+                t('ui.categories.delete_title')
         ):
             self.vdf_parser.delete_category(category)
             self.vdf_parser.save()

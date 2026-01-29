@@ -34,6 +34,7 @@ class GameTreeWidget(QTreeWidget):
     game_right_clicked = pyqtSignal(Game, QPoint)
     category_right_clicked = pyqtSignal(str, QPoint)
     selection_changed = pyqtSignal(list)  # List[Game]
+    games_dropped = pyqtSignal(list, str)  # (List[Game], target_category)
 
     def __init__(self, parent: Optional[QWidget] = None):
         """Initializes the GameTreeWidget."""
@@ -162,6 +163,32 @@ class GameTreeWidget(QTreeWidget):
             event.ignore()
 
     def dropEvent(self, event: QDropEvent) -> None:
-        # The actual data processing is handled by the parent widget
-        # that connects to the model's drop event.
+        """
+        Handles drop events when games are dragged onto categories.
+
+        Emits the games_dropped signal with the dropped games and target category,
+        allowing the parent window to update the VDF file.
+
+        Args:
+            event: The drop event containing drag data.
+        """
+        target_item = self.itemAt(event.position().toPoint())
+
+        if not target_item or target_item.data(0, Qt.ItemDataRole.UserRole) != "category":
+            event.ignore()
+            return
+
+        target_category = target_item.data(0, Qt.ItemDataRole.UserRole + 1)
+
+        # Get all selected game items
+        dropped_games = []
+        for item in self.selectedItems():
+            if item.data(0, Qt.ItemDataRole.UserRole) == "game":
+                game = item.data(0, Qt.ItemDataRole.UserRole + 1)
+                dropped_games.append(game)
+
+        if dropped_games:
+            # Emit signal before calling super() so parent can update data
+            self.games_dropped.emit(dropped_games, target_category)
+
         super().dropEvent(event)
