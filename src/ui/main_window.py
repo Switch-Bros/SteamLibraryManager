@@ -585,15 +585,20 @@ class MainWindow(QMainWindow):
 
     def _on_games_selected(self, games: List[Game]) -> None:
         """Handles multi-selection changes in the game tree.
-
         Args:
             games: List of currently selected games.
         """
+        # Debug output
+        print(f"[DEBUG] _on_games_selected called with {len(games)} games")
+        if games:
+            print(f"[DEBUG] First game: {games[0].name if games else 'None'}")
+
         self.selected_games = games
         all_categories = list(self.game_manager.get_all_categories().keys())
 
         if len(games) > 1:
             # Show multi-select view in details widget
+            print(f"[DEBUG] Calling set_games with {len(games)} games")
             self.set_status(t('ui.main_window.games_selected', count=len(games)))
             self.details_widget.set_games(games, all_categories)
         elif len(games) == 1:
@@ -617,6 +622,38 @@ class MainWindow(QMainWindow):
         if not game.developer or not game.proton_db_rating or not game.steam_deck_status:
             if self.game_manager.fetch_game_details(game.app_id):
                 self.details_widget.set_game(game, all_categories)
+
+    def _restore_game_selection(self, app_ids: List[str]) -> None:
+        """Restores game selection in the tree widget after refresh.
+
+        This method finds and re-selects games in the tree widget based on their
+        app IDs. It's used to maintain the selection state after operations that
+        refresh the tree (like category changes).
+
+        Args:
+            app_ids: List of Steam app IDs to select.
+        """
+        if not app_ids:
+            return
+
+        # Temporarily block signals to prevent triggering selection events
+        self.tree.blockSignals(True)
+
+        # Find and select the game items in the tree
+        for i in range(self.tree.topLevelItemCount()):
+            category_item = self.tree.topLevelItem(i)
+            for j in range(category_item.childCount()):
+                game_item = category_item.child(j)
+                app_id = game_item.data(0, Qt.ItemDataRole.UserRole)
+                if app_id and app_id in app_ids:
+                    game_item.setSelected(True)
+
+        # Re-enable signals
+        self.tree.blockSignals(False)
+
+        # Manually update selected_games list
+        self.selected_games = [self.game_manager.get_game(app_id) for app_id in app_ids]
+        self.selected_games = [g for g in self.selected_games if g is not None]
 
     def _on_category_changed_from_details(self, app_id: str, category: str, checked: bool) -> None:
         """Handles category toggle events from the details widget.
@@ -659,11 +696,18 @@ class MainWindow(QMainWindow):
 
         self.vdf_parser.save()
 
+        # Save the current selection before refreshing
+        selected_app_ids = [game.app_id for game in self.selected_games]
+
         # If search is active, re-run the search instead of showing all categories
         if self.current_search_query:
             self.on_search(self.current_search_query)
         else:
             self._populate_categories()
+
+        # Restore the selection
+        if selected_app_ids:
+            self._restore_game_selection(selected_app_ids)
 
         all_categories = list(self.game_manager.get_all_categories().keys())
 
@@ -734,10 +778,13 @@ class MainWindow(QMainWindow):
         menu.addAction(t('ui.context_menu.check_store'), lambda: self.check_store_availability(game))
         menu.addSeparator()
 
+        # Auto-categorize (for single or multiple games)
         if len(self.selected_games) > 1:
             menu.addAction(t('ui.menu.edit.auto_categorize'), self.auto_categorize_selected)
-            menu.addSeparator()
+        else:
+            menu.addAction(t('ui.menu.edit.auto_categorize'), lambda: self.auto_categorize_single(game))
 
+        menu.addSeparator()
         menu.addAction(t('ui.context_menu.edit_metadata'), lambda: self.edit_game_metadata(game))
         menu.exec(pos)
 
@@ -1029,6 +1076,14 @@ class MainWindow(QMainWindow):
     def auto_categorize_selected(self) -> None:
         """Opens the auto-categorize dialog for currently selected games."""
         if self.selected_games: self._show_auto_categorize_dialog(self.selected_games, None)
+
+    def auto_categorize_single(self, game: Game) -> None:
+        """Opens the auto-categorize dialog for a single game.
+
+        Args:
+            game: The game to auto-categorize.
+        """
+        self._show_auto_categorize_dialog([game], None)
 
     def auto_categorize_category(self, category: str) -> None:
         """Opens the auto-categorize dialog for games in a specific category.

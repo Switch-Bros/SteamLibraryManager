@@ -288,7 +288,18 @@
       "cat_publisher": "Publisher: {name}",
       "cat_franchise": "Franchise: {name}",
       "cat_genre": "Genre: {name}",
-      "warning_backup": "⚠️ Erstelle ein Backup vor Massenänderungen!"
+      "warning_backup": "⚠️ Erstelle ein Backup vor Massenänderungen!",
+      "method_group": "Kategorisierungs-Methode",
+      "option_tags": "Nach Tags",
+      "by_publisher": "Nach Publisher",
+      "option_franchise": "Nach Franchise",
+      "by_genre": "Nach Genre",
+      "settings": "Einstellungen",
+      "tags_per_game": "Tags pro Spiel",
+      "option_ignore_common": "Häufige Tags ignorieren",
+      "apply_group": "Anwenden auf",
+      "estimate_label": "Geschätzte Kategorien",
+      "cancel": "Abbrechen"
     },
     "steamgrid_setup": {
       "title": "SteamGridDB Einrichtung",
