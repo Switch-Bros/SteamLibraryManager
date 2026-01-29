@@ -617,11 +617,60 @@ class MainWindow(QMainWindow):
 
         self.selected_game = game
         all_categories = list(self.game_manager.get_all_categories().keys())
+
+        # PERFORMANCE FIX: Show UI immediately, fetch details in background
         self.details_widget.set_game(game, all_categories)
-        # Fetch details if missing developer, proton rating, or steam deck status
+
+        # Fetch details asynchronously if missing (non-blocking)
         if not game.developer or not game.proton_db_rating or not game.steam_deck_status:
-            if self.game_manager.fetch_game_details(game.app_id):
-                self.details_widget.set_game(game, all_categories)
+            self._fetch_game_details_async(game.app_id, all_categories)
+
+    def _fetch_game_details_async(self, app_id: str, all_categories: List[str]) -> None:
+        """Fetches game details in a background thread without blocking the UI.
+
+        This method improves performance by loading missing metadata asynchronously,
+        allowing the UI to remain responsive during API calls.
+
+        Args:
+            app_id: The Steam app ID to fetch details for.
+            all_categories: List of all available categories for UI update.
+        """
+
+        class FetchThread(QThread):
+            """Background thread for fetching game details."""
+            finished_signal = pyqtSignal(bool)
+
+            def __init__(self, game_manager, app_id):
+                super().__init__()
+                self.game_manager = game_manager
+                self.app_id = app_id
+
+            def run(self):
+                """Executes the fetch operation in background."""
+                success = self.game_manager.fetch_game_details(self.app_id)
+                self.finished_signal.emit(success)
+
+        # Create and start background thread
+        fetch_thread = FetchThread(self.game_manager, app_id)
+
+        def on_fetch_complete(success: bool):
+            """Updates UI when fetch completes."""
+            if success and self.selected_game and self.selected_game.app_id == app_id:
+                # Only update if this game is still selected
+                game = self.game_manager.get_game(app_id)
+                if game:
+                    self.details_widget.set_game(game, all_categories)
+
+        fetch_thread.finished_signal.connect(on_fetch_complete)
+        fetch_thread.start()
+
+        # Store reference to prevent garbage collection
+        if not hasattr(self, '_fetch_threads'):
+            self._fetch_threads = []
+        self._fetch_threads.append(fetch_thread)
+
+        # Clean up finished threads
+        self._fetch_threads = [t for t in self._fetch_threads if t.isRunning()]
 
     def _restore_game_selection(self, app_ids: List[str]) -> None:
         """Restores game selection in the tree widget after refresh.

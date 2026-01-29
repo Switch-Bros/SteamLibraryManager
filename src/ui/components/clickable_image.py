@@ -121,6 +121,9 @@ class ClickableImage(QWidget):
 
         self.badges = []
 
+        # PERFORMANCE: Cache for loaded pixmaps
+        self._pixmap_cache = {}  # {path: QPixmap}
+
     def set_default_image(self, path: str):
         """
         Sets a default image to show if the primary image fails to load.
@@ -133,8 +136,7 @@ class ClickableImage(QWidget):
             self._load_local_image(path)
 
     def load_image(self, url_or_path: str | None, metadata: dict = None):
-        """
-        Starts loading an image from a URL or local path.
+        """Starts loading an image from a URL or local path.
 
         Args:
             url_or_path (str | None): The URL or file path of the image to load, or None to clear.
@@ -147,6 +149,14 @@ class ClickableImage(QWidget):
         self.timer.stop()
         self.frames = []
         self._clear_badges()
+
+        # PERFORMANCE: Check cache first
+        if url_or_path and url_or_path in self._pixmap_cache:
+            cached_pixmap = self._pixmap_cache[url_or_path]
+            if not cached_pixmap.isNull():
+                self._apply_pixmap(cached_pixmap)
+                self._create_badges(is_animated=False)
+                return
 
         if self.loader and self.loader.isRunning():
             self.loader.stop()
@@ -232,6 +242,10 @@ class ClickableImage(QWidget):
         scaled = pixmap.scaled(self.w, self.h, Qt.AspectRatioMode.KeepAspectRatio,
                                Qt.TransformationMode.SmoothTransformation)
         self.image_label.setPixmap(scaled)
+
+        # PERFORMANCE: Cache the original pixmap for future reuse
+        if self.current_path and self.current_path not in self._pixmap_cache:
+            self._pixmap_cache[self.current_path] = pixmap
 
     def _load_local_image(self, path: str):
         """Directly loads an image from a local path."""

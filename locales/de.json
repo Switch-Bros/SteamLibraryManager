@@ -252,16 +252,16 @@
       "geo_locked": "🚫 In Ihrem Land nicht verfügbar (Geo-Blocking/Zensur)",
       "delisted": "❌ Nicht mehr im Store verfügbar",
       "removed": "❌ Aus dem Store entfernt",
-      "unknown": "❓ Unbekannter Status (Code: {code})",
-      "instruction": "Setze die PEGI Altersstufe",
-      "remove": "Entfernen"
+      "unknown": "❓ Unbekannter Status (Code: {code})"
     },
     "pegi_selector": {
       "title": "PEGI-Bewertung auswählen",
       "select": "Wählen Sie die richtige PEGI-Bewertung für dieses Spiel:",
       "none": "Keine Bewertung",
       "saved": "PEGI-Bewertung gespeichert: {rating}",
-      "removed": "PEGI-Bewertung entfernt"
+      "removed": "PEGI-Bewertung entfernt",
+      "instruction": "Setze die PEGI Altersstufe",
+      "remove": "Entfernen"
     },
     "visibility": {
       "hidden": "Versteckt",

@@ -252,16 +252,16 @@
       "geo_locked": "🚫 Not available in your country (Geo-blocking/Censorship)",
       "delisted": "❌ No longer available on Store",
       "removed": "❌ Removed from Store",
-      "unknown": "❓ Unknown status (Code: {code})",
-      "instruction": "Set the PEGI Rating",
-      "remove": "Remove"
-    },
+      "unknown": "❓ Unknown status (Code: {code})"
+},
     "pegi_selector": {
       "title": "Select PEGI Rating",
       "select": "Select the correct PEGI rating for this game:",
       "none": "No Rating",
       "saved": "PEGI rating saved: {rating}",
-      "removed": "PEGI rating removed"
+      "removed": "PEGI rating removed",
+      "instruction": "Set the PEGI Rating",
+      "remove": "Remove"
     },
     "visibility": {
       "hidden": "Hidden",
