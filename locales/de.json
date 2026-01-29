@@ -2,7 +2,8 @@
   "app": {
     "name": "Steam Bibliotheks-Manager",
     "version": "1.0.0",
-    "description": "Moderner Bibliotheks-Manager für Steam auf Linux"
+    "description": "Moderner Bibliotheks-Manager für Steam auf Linux",
+    "info": "Information"
   },
   "common": {
     "save": "Speichern",
@@ -245,13 +246,14 @@
       "restored_count": "Metadaten für {count} Spiele wiederhergestellt."
     },
     "store_check": {
-      "title": "Store-Status",
-      "checking": "Prüfe Steam Store...",
-      "available": "Verfügbar",
-      "geo_locked": "Nicht verfügbar / Geo-Lock",
-      "delisted": "Nicht gelistet (Redirect)",
-      "removed": "Entfernt (404/403)",
-      "unknown": "Unbekannt (HTTP {code})"
+      "title": "Store-Verfügbarkeit prüfen",
+      "checking": "Prüfe Store-Verfügbarkeit...",
+      "available": "✅ Im Steam Store verfügbar",
+      "geo_locked": "🚫 In Ihrem Land nicht verfügbar (Geo-Blocking/Zensur)",
+      "age_gate": "🔞 Altersverifikation erforderlich (Store-Seite existiert)",
+      "delisted": "❌ Nicht mehr im Store verfügbar",
+      "removed": "❌ Aus dem Store entfernt",
+      "unknown": "❓ Unbekannter Status (Code: {code})"
     },
     "visibility": {
       "hidden": "Versteckt",
@@ -363,7 +365,8 @@
             "col_release": "Erscheinungsjahr",
             "col_missing_fields": "Fehlende Felder",
             "missing": "Fehlt",
-            "save_csv": "CSV speichern"
+            "save_csv": "CSV speichern",
+            "stats": "{count} Spiele mit unvollständigen Metadaten gefunden"
         },
         "merger": {
             "title": "Kategorien Import/Export",

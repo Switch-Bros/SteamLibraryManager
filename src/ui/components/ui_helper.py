@@ -60,6 +60,21 @@ class UIHelper:
         QMessageBox.warning(parent, title, message)
 
     @staticmethod
+    def show_info(parent: QWidget, message: str, title: Optional[str] = None) -> None:
+        """
+        Displays a standardized informational message box.
+
+        Args:
+            parent (QWidget): The parent widget for the dialog.
+            message (str): The informational message to display.
+            title (Optional[str]): The title for the dialog window. Defaults to the
+                                   common 'Info' translation.
+        """
+        if title is None:
+            title = t('common.info')
+        QMessageBox.information(parent, title, message)
+
+    @staticmethod
     def confirm(parent: QWidget, question: str, title: Optional[str] = None) -> bool:
         """
         Displays a standardized Yes/No confirmation dialog.
