@@ -82,6 +82,9 @@ class HorizontalCategoryList(QListWidget):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setFixedHeight(190)
 
+        # For multi-select mode
+        self.games_categories = []
+
     def set_categories(self, all_categories: List[str], game_categories: List[str]):
         """
         Sets the categories to display and marks which ones are assigned to the game.
@@ -123,6 +126,8 @@ class HorizontalCategoryList(QListWidget):
         if not all_categories or not games_categories:
             return
 
+        # Store games_categories for later reference
+        self.games_categories = games_categories
         total_games = len(games_categories)
 
         for category in sorted(all_categories):
@@ -135,6 +140,7 @@ class HorizontalCategoryList(QListWidget):
             item = QListWidgetItem(self)
             item.setSizeHint(QSize(200, 24))
             cb = QCheckBox(category)
+            cb.setTristate(True)  # Enable tri-state
 
             # Set tri-state based on count
             if count == 0:
@@ -142,22 +148,22 @@ class HorizontalCategoryList(QListWidget):
                 cb.setStyleSheet("QCheckBox { font-size: 11px; margin-left: 2px; }")
             elif count == total_games:
                 cb.setCheckState(Qt.CheckState.Checked)
-                cb.setStyleSheet("QCheckBox { font-size: 11px; margin-left: 2px; color: #FFD700; }")
+                cb.setStyleSheet("QCheckBox { font-size: 11px; margin-left: 2px; color: #FFD700; font-weight: bold; }")
             else:
                 cb.setCheckState(Qt.CheckState.PartiallyChecked)
                 cb.setStyleSheet("QCheckBox { font-size: 11px; margin-left: 2px; color: #888888; }")
 
-            cb.setTristate(False)  # Disable automatic tri-state, we handle it manually
+            # Store the current state in the checkbox for reference
+            cb.setProperty('category', category)
+            cb.setProperty('previous_state', cb.checkState())
 
-            # Connect signal - clicking any state will toggle to "all checked"
-            cb.stateChanged.connect(
-                lambda state, c=category: self._handle_tristate_toggle(c, state)
-            )
+            # Use clicked signal instead of stateChanged to have more control
+            cb.clicked.connect(lambda checked=None, checkbox=cb: self._handle_tristate_click(checkbox))
             self.setItemWidget(item, cb)
 
-    def _handle_tristate_toggle(self, category: str, state: int):
+    def _handle_tristate_click(self, checkbox: QCheckBox):
         """
-        Handles tri-state checkbox toggle logic.
+        Handles tri-state checkbox click logic.
 
         Logic:
         - Unchecked → Checked (add to all)
@@ -165,15 +171,28 @@ class HorizontalCategoryList(QListWidget):
         - Checked → Unchecked (remove from all)
 
         Args:
-            category: The category name.
-            state: The new checkbox state.
+            checkbox: The checkbox that was clicked.
         """
-        if state == Qt.CheckState.Checked.value:
-            # Add to all games
-            self.category_toggled.emit(category, True)
-        else:
-            # Remove from all games
+        category = checkbox.property('category')
+        previous_state = checkbox.property('previous_state')
+
+        # Determine the desired action based on previous state
+        if previous_state == Qt.CheckState.Checked:
+            # Was checked (gold) → Make unchecked (empty)
+            checkbox.setCheckState(Qt.CheckState.Unchecked)
+            checkbox.setStyleSheet("QCheckBox { font-size: 11px; margin-left: 2px; }")
             self.category_toggled.emit(category, False)
+            new_state = Qt.CheckState.Unchecked
+        else:
+            # Was unchecked or partial → Make checked (gold)
+            checkbox.setCheckState(Qt.CheckState.Checked)
+            checkbox.setStyleSheet(
+                "QCheckBox { font-size: 11px; margin-left: 2px; color: #FFD700; font-weight: bold; }")
+            self.category_toggled.emit(category, True)
+            new_state = Qt.CheckState.Checked
+
+        # Update the stored previous state
+        checkbox.setProperty('previous_state', new_state)
 
 
 class GameDetailsWidget(QWidget):
@@ -223,6 +242,7 @@ class GameDetailsWidget(QWidget):
         """
         super().__init__(parent)
         self.current_game = None
+        self.current_games = []  # For multi-select mode
         self._create_ui()
         self.clear()
 
@@ -470,6 +490,7 @@ class GameDetailsWidget(QWidget):
             return
 
         self.current_game = None  # Clear single game
+        self.current_games = games  # Store for multi-select operations
 
         # Show multi-select summary
         self.name_label.setText(t('ui.game_details.multi_select_title', count=len(games)))
@@ -512,6 +533,7 @@ class GameDetailsWidget(QWidget):
             _all_categories (List[str]): List of all available categories.
         """
         self.current_game = game
+        self.current_games = []  # Clear multi-select mode
         self.name_label.setText(game.name)
         self.lbl_appid.setText(f"<span style='color:#888;'>{t('ui.game_details.app_id')}:</span> <b>{game.app_id}</b>")
         playtime_val = t('ui.game_details.hours', hours=game.playtime_hours) if game.playtime_hours > 0 else t(
@@ -565,6 +587,7 @@ class GameDetailsWidget(QWidget):
     def clear(self):
         """Clears the widget and resets it to the default state."""
         self.current_game = None
+        self.current_games = []
         self.name_label.setText(t('ui.game_details.select_placeholder'))
         self._update_proton_label("unknown")
 
@@ -579,12 +602,20 @@ class GameDetailsWidget(QWidget):
         """
         Handles category checkbox toggle events.
 
+        For single game: Emits signal for that game.
+        For multi-select: Emits signal for all selected games.
+
         Args:
             category (str): The category name.
             checked (bool): Whether the checkbox is checked.
         """
         if self.current_game:
+            # Single game mode
             self.category_changed.emit(self.current_game.app_id, category, checked)
+        elif self.current_games:
+            # Multi-select mode - emit for all selected games
+            for game in self.current_games:
+                self.category_changed.emit(game.app_id, category, checked)
 
     def _on_edit(self):
         """Handles the edit button click event."""
