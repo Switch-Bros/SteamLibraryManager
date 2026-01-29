@@ -285,6 +285,7 @@ class GameDetailsWidget(QWidget):
         # PEGI Rating Box (neben Buttons)
         buttons_pegi_layout = QHBoxLayout()
         buttons_pegi_layout.setSpacing(12)
+        buttons_pegi_layout.setAlignment(Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignLeft)
         buttons_pegi_layout.addLayout(button_layout)
 
         self.pegi_label = QLabel()
@@ -298,7 +299,17 @@ class GameDetailsWidget(QWidget):
             "font-weight: bold;"
         )
         self.pegi_label.setScaledContents(True)  # For images
-        self.pegi_label.hide()  # Hidden by default
+
+        # Load default icon
+        from pathlib import Path
+        from PyQt6.QtGui import QPixmap
+        default_icon_path = Path("resources/icons/default_icons.png")
+        if default_icon_path.exists():
+            pixmap = QPixmap(str(default_icon_path))
+            self.pegi_label.setPixmap(
+                pixmap.scaled(128, 128, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        # Always visible (like the 4 cover boxes)
+
         buttons_pegi_layout.addWidget(self.pegi_label)
         buttons_pegi_layout.addStretch()
 
@@ -541,12 +552,21 @@ class GameDetailsWidget(QWidget):
         games_categories = [game.categories for game in games]
         self.category_list.set_categories_multi(_all_categories, games_categories)
 
-        # Clear images and PEGI
+        # Clear images and show default PEGI
         self.img_grid.clear()
         self.img_hero.clear()
         self.img_logo.clear()
         self.img_icon.clear()
-        self.pegi_label.hide()
+
+        # Show default icon for PEGI (multi-select has no rating)
+        from pathlib import Path
+        from PyQt6.QtGui import QPixmap
+        default_icon_path = Path("resources/icons/default_icons.png")
+        if default_icon_path.exists():
+            pixmap = QPixmap(str(default_icon_path))
+            self.pegi_label.setPixmap(
+                pixmap.scaled(128, 128, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+            self.pegi_label.setText("")  # Clear text
 
     def set_game(self, game: Game, _all_categories: List[str]):
         """
@@ -593,16 +613,42 @@ class GameDetailsWidget(QWidget):
         self.edit_rel.setText(safe_text(game.release_year, format_timestamp_to_date))
         self.category_list.set_categories(_all_categories, game.categories)
 
-        # Display PEGI rating if available
-        print(
-            f"[DEBUG] PEGI check for {game.name}: hasattr={hasattr(game, 'pegi_rating')}, value={getattr(game, 'pegi_rating', 'N/A')}")
+        # Display PEGI rating if available (with ESRB fallback)
+        pegi_to_display = ""
+
+        # Check for PEGI first
         if hasattr(game, 'pegi_rating') and game.pegi_rating:
-            print(f"[DEBUG] Showing PEGI: {game.pegi_rating}")
+            pegi_to_display = game.pegi_rating
+            print(f"[DEBUG] Using PEGI: {pegi_to_display}")
+        # Fallback to ESRB if PEGI not available
+        elif hasattr(game, 'esrb_rating') and game.esrb_rating:
+            esrb = game.esrb_rating
+            print(f"[DEBUG] No PEGI, converting ESRB: {esrb}")
+            # ESRB → PEGI mapping
+            esrb_to_pegi = {
+                'Everyone': '3',
+                'Everyone 10+': '7',
+                'Teen': '12',
+                'Mature': '18',
+                'Mature 17+': '18',
+                'Adults Only': '18',
+                'Adults Only 18+': '18'
+            }
+            pegi_to_display = esrb_to_pegi.get(esrb, '')
+            if pegi_to_display:
+                print(f"[DEBUG] ESRB '{esrb}' → PEGI {pegi_to_display}")
+            else:
+                print(f"[DEBUG] Unknown ESRB rating: {esrb}")
+        else:
+            print(f"[DEBUG] No PEGI or ESRB data available")
+
+        if pegi_to_display:
+            print(f"[DEBUG] Showing PEGI: {pegi_to_display}")
 
             # Try to load PEGI image from /resources/icons/
             from pathlib import Path
             from PyQt6.QtGui import QPixmap
-            pegi_image_path = Path(f"resources/icons/PEGI{game.pegi_rating}.png")
+            pegi_image_path = Path(f"resources/icons/PEGI{pegi_to_display}.png")
 
             if pegi_image_path.exists():
                 print(f"[DEBUG] Loading PEGI image: {pegi_image_path}")
@@ -613,12 +659,19 @@ class GameDetailsWidget(QWidget):
             else:
                 print(f"[DEBUG] PEGI image not found, using text: {pegi_image_path}")
                 self.pegi_label.setPixmap(QPixmap())  # Clear any previous image
-                self.pegi_label.setText(f"PEGI\n{game.pegi_rating}")
+                self.pegi_label.setText(f"PEGI\n{pegi_to_display}")
 
-            self.pegi_label.show()
         else:
-            print(f"[DEBUG] Hiding PEGI (no data)")
-            self.pegi_label.hide()
+            # No rating available - show default icon
+            print(f"[DEBUG] No rating, showing default icon")
+            from pathlib import Path
+            from PyQt6.QtGui import QPixmap
+            default_icon_path = Path("resources/icons/default_icons.png")
+            if default_icon_path.exists():
+                pixmap = QPixmap(str(default_icon_path))
+                self.pegi_label.setPixmap(pixmap.scaled(128, 128, Qt.AspectRatioMode.KeepAspectRatio,
+                                                        Qt.TransformationMode.SmoothTransformation))
+                self.pegi_label.setText("")  # Clear text
 
         self._reload_images(game.app_id)
 
@@ -649,7 +702,16 @@ class GameDetailsWidget(QWidget):
         self.img_hero.load_image(None)
         self.img_logo.load_image(None)
         self.img_icon.load_image(None)
-        self.pegi_label.hide()
+
+        # Show default icon for PEGI
+        from pathlib import Path
+        from PyQt6.QtGui import QPixmap
+        default_icon_path = Path("resources/icons/default_icons.png")
+        if default_icon_path.exists():
+            pixmap = QPixmap(str(default_icon_path))
+            self.pegi_label.setPixmap(
+                pixmap.scaled(128, 128, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+            self.pegi_label.setText("")  # Clear text
 
         self.category_list.set_categories([], [])
 
