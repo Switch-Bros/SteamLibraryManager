@@ -706,8 +706,7 @@ class GameManager:
                 self.games[app_id].steam_deck_status = unknown_status
 
     def _apply_review_data(self, app_id: str, data: Dict) -> None:
-        """
-        Parses and applies review data to a game.
+        """Parses and applies review data to a game.
 
         Args:
             app_id (str): The Steam app ID.
@@ -717,9 +716,26 @@ class GameManager:
         game = self.games[app_id]
         summary = data.get('query_summary', {})
 
-        # Use t() for Unknown
-        game.review_score = summary.get('review_score_desc', t('common.unknown'))
+        # Get review score and translate to German
+        review_score_en = summary.get('review_score_desc', '')
 
+        # Steam API returns English descriptions even with language=german
+        # Manual translation mapping
+        review_translations = {
+            'Overwhelmingly Positive': 'Äußerst positiv',
+            'Very Positive': 'Sehr positiv',
+            'Positive': 'Positiv',
+            'Mostly Positive': 'Größtenteils positiv',
+            'Mixed': 'Ausgeglichen',
+            'Mostly Negative': 'Größtenteils negativ',
+            'Negative': 'Negativ',
+            'Very Negative': 'Sehr negativ',
+            'Overwhelmingly Negative': 'Äußerst negativ',
+            # Additional variants
+            'No user reviews': 'Keine Nutzerrezensionen'
+        }
+
+        game.review_score = review_translations.get(review_score_en, review_score_en or t('common.unknown'))
         game.review_count = summary.get('total_reviews', 0)
 
     def _apply_store_data(self, app_id: str, data: Dict) -> None:
@@ -743,25 +759,45 @@ class GameManager:
         tags = [c['description'] for c in categories]
         game.tags = list(set(game.tags + tags))
 
-        # Extract PEGI rating
+        # Extract age ratings (PEGI, ESRB, USK)
         ratings = data.get('ratings', {})
-        print(
-            f"[DEBUG] Store data for {game.name}: has ratings={bool(ratings)}, has pegi={'pegi' in ratings}, has esrb={'esrb' in ratings}")
+        print(f"[DEBUG] Store data for {game.name}: has ratings={bool(ratings)}, available={list(ratings.keys())}")
+
+        # Priority 1: PEGI (used in most of Europe)
         if 'pegi' in ratings:
             pegi_data = ratings['pegi']
             game.pegi_rating = pegi_data.get('rating', '')
             print(f"[DEBUG] PEGI extracted: {game.pegi_rating}")
-        else:
-            print(f"[DEBUG] No PEGI data in ratings")
 
+        # Priority 2: USK (Germany) → Convert to PEGI
+        elif 'usk' in ratings:
+            usk_data = ratings['usk']
+            usk_rating = usk_data.get('rating', '')
+            print(f"[DEBUG] USK extracted: {usk_rating}")
+
+            # USK → PEGI mapping
+            usk_to_pegi = {
+                '0': '3',  # USK 0 (Freigegeben ohne Altersbeschränkung) → PEGI 3
+                '6': '7',  # USK 6 → PEGI 7
+                '12': '12',  # USK 12 → PEGI 12
+                '16': '16',  # USK 16 → PEGI 16
+                '18': '18'  # USK 18 (Keine Jugendfreigabe) → PEGI 18
+            }
+
+            if usk_rating in usk_to_pegi:
+                game.pegi_rating = usk_to_pegi[usk_rating]
+                print(f"[DEBUG] USK {usk_rating} → PEGI {game.pegi_rating}")
+            else:
+                print(f"[DEBUG] Unknown USK rating: {usk_rating}")
+
+        # Priority 3: ESRB (USA) - store for fallback display
         if 'esrb' in ratings:
             esrb_data = ratings['esrb']
             game.esrb_rating = esrb_data.get('rating', '')
             print(f"[DEBUG] ESRB extracted: {game.esrb_rating}")
-        else:
-            print(f"[DEBUG] No ESRB data in ratings")
 
-        print(f"[DEBUG] Available ratings: {list(ratings.keys())}")
+        if not game.pegi_rating and not game.esrb_rating:
+            print(f"[DEBUG] No age rating found for {game.name}")
 
     def get_load_source_message(self) -> str:
         """
