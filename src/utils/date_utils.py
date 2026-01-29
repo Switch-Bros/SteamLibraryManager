@@ -1,5 +1,10 @@
+# src/utils/date_utils.py
+
 """
-Date Utilities - Unix Timestamp Conversion
+Utility functions for converting between date formats and Unix timestamps.
+
+This module provides functions to parse various date formats and convert them
+to Unix timestamps, as well as format timestamps back to readable dates.
 """
 
 from datetime import datetime
@@ -7,16 +12,20 @@ from datetime import datetime
 
 def parse_date_to_timestamp(date_str: str) -> str:
     """
-    Convert various date formats to Unix timestamp
+    Converts various date formats to Unix timestamp.
 
-    Accepts:
+    This function handles multiple input formats:
     - Unix Timestamp: "1494000108" → remains unchanged
     - ISO Date: "2017-05-05" → converted to Unix timestamp
     - Year only: "2017" → remains unchanged
-    - Invalid: "" → remains empty
+    - Invalid/Empty: "" → remains empty
+
+    Args:
+        date_str (str): The date string to convert.
 
     Returns:
-        String with Unix timestamp or original value
+        str: A Unix timestamp string, a year string, or the original value if
+            conversion is not possible.
     """
     if not date_str or not date_str.strip():
         return ""
@@ -53,13 +62,20 @@ def parse_date_to_timestamp(date_str: str) -> str:
 
 def format_timestamp_to_date(value) -> str:
     """
-    Convert Unix timestamps to readable date
+    Converts Unix timestamps to a readable date string.
+
+    This function handles multiple input types:
+    - Unix Timestamp (int/str): Converted to "YYYY-MM-DD"
+    - Year (str): Returned as-is (e.g., "2004")
+    - ISO Date (str): Returned as-is
+    - Invalid/Empty: Returns empty string
 
     Args:
-        value: Unix Timestamp (int/str), year (str), or ISO date (str)
+        value: A Unix timestamp (int or str), a year (str), or an ISO date (str).
 
     Returns:
-        Formatted date as "YYYY-MM-DD" or original value
+        str: A formatted date string in "YYYY-MM-DD" format, or the original value
+            if conversion is not possible.
     """
     if not value:
         return ""

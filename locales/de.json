@@ -322,7 +322,8 @@
       "created": "✅ Backup erstellt: {name}",
       "failed": "Backup fehlgeschlagen: {error}",
       "rotated": "Backup rotiert: {name}",
-      "delete_error": "Fehler beim Löschen des alten Backups {name}: {error}"
+      "delete_error": "Fehler beim Löschen des alten Backups {name}: {error}",
+      "backup_failed": "Backup fehlgeschlagen: {error}"
     },
     "appinfo": {
       "loaded": "{count} gespeicherte Änderungen geladen",

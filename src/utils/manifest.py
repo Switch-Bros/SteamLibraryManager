@@ -1,5 +1,11 @@
+# src/utils/manifest.py
+
 """
-Modernized Manifest Parser (Steam Depot Manifests)
+Parser for Steam Depot Manifest files.
+
+This module provides functions to parse Steam's binary depot manifest files,
+which use Protocol Buffers for serialization. It extracts payload, metadata,
+and signature information.
 """
 import struct
 from typing import BinaryIO, Dict, Any
@@ -28,7 +34,23 @@ MessageClass = {
     MSG_SIGNATURE: Signature
 }
 
+
 def loads(data: bytes, wrapper=dict) -> Dict[str, Any]:
+    """
+    Parses a Steam depot manifest from bytes.
+
+    This function reads the binary manifest format, which consists of multiple
+    Protocol Buffer messages (payload, metadata, signature) prefixed with message
+    IDs and sizes.
+
+    Args:
+        data (bytes): The raw manifest file data.
+        wrapper (type): The dictionary type to use for parsed data. Defaults to dict.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing 'payload', 'metadata', and 'signature'
+                       keys with their respective parsed data.
+    """
     parsed = wrapper()
     offset = 0
     int32 = struct.Struct('<I')
@@ -55,5 +77,17 @@ def loads(data: bytes, wrapper=dict) -> Dict[str, Any]:
 
     return parsed
 
+
 def load(fp: BinaryIO, wrapper=dict) -> Dict[str, Any]:
+    """
+    Parses a Steam depot manifest from a file.
+
+    Args:
+        fp (BinaryIO): A file-like object opened in binary mode.
+        wrapper (type): The dictionary type to use for parsed data. Defaults to dict.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing 'payload', 'metadata', and 'signature'
+                       keys with their respective parsed data.
+    """
     return loads(fp.read(), wrapper=wrapper)
