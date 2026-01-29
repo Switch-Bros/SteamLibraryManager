@@ -144,6 +144,9 @@
       "section_basic": "Basis-Infos",
       "section_metadata": "Metadaten",
       "section_ratings": "Bewertungen & Proton",
+      "multi_select_title": "{count} Spiele ausgewählt",
+      "selected": "Ausgewählt",
+      "total_playtime": "Gesamte Spielzeit",
       "name": "Name",
       "app_id": "App ID",
       "developer": "Entwickler",
@@ -198,7 +201,8 @@
       "check_store": "🔍 Store-Verfügbarkeit prüfen",
       "auto_categorize": "Auto-Kategorisieren",
       "rename": "Umbenennen",
-      "delete": "Löschen"
+      "delete": "Löschen",
+      "merge_categories": "Kategorien zusammenführen"
     },
     "metadata_editor": {
       "title": "Metadaten bearbeiten",
@@ -264,7 +268,10 @@
       "delete_title": "Kategorie löschen",
       "delete_msg": "Möchtest du '{category}' löschen? Die Spiele bleiben erhalten.",
       "category_count": "{name} ({count})",
-      "game_tooltip": "{name}\nEntwickler: {developer}"
+      "game_tooltip": "{name}\nEntwickler: {developer}",
+      "merge_title": "Kategorien zusammenführen",
+      "merge_instruction": "Wählen Sie die Ziel-Kategorie aus, in die alle {count} Kategorien zusammengeführt werden sollen:",
+      "merge_success": "{count} Kategorien wurden erfolgreich in '{target}' zusammengeführt"
     },
     "auto_categorize": {
       "title": "Auto-Kategorisierung",
