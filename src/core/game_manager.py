@@ -647,7 +647,7 @@ class GameManager:
 
     def _fetch_steam_deck_status(self, app_id: str) -> None:
         """
-        Fetches Steam Deck compatibility status from Steam API.
+        Fetches Steam Deck compatibility status from Valve's Deck API.
 
         Args:
             app_id (str): The Steam app ID.
@@ -668,27 +668,26 @@ class GameManager:
                 pass
 
         try:
-            # Steam Deck compatibility is included in the store API response
-            url = f'https://store.steampowered.com/api/appdetails?appids={app_id}'
-            response = requests.get(url, timeout=5)
+            # Use Valve's Steam Deck compatibility API
+            url = f'https://store.steampowered.com/saleaction/ajaxgetdeckappcompatibilityreport?nAppID={app_id}'
+            headers = {'User-Agent': 'SteamLibraryManager/1.0'}
+            response = requests.get(url, timeout=5, headers=headers)
+
             if response.status_code == 200:
                 data = response.json()
-                app_data = data.get(str(app_id), {})
-                if app_data.get('success'):
-                    game_data = app_data.get('data', {})
-                    # Steam Deck compatibility categories:
-                    # 0 = Unknown, 1 = Unsupported, 2 = Playable, 3 = Verified
-                    deck_compat = game_data.get('steam_deck_compatibility', {})
-                    category = deck_compat.get('category', 0)
+                results = data.get('results', {})
+                resolved_category = results.get('resolved_category', 0)
 
-                    status_map = {0: 'unknown', 1: 'unsupported', 2: 'playable', 3: 'verified'}
-                    status = status_map.get(category, unknown_status)
+                # Steam Deck compatibility categories:
+                # 0 = Unknown, 1 = Unsupported, 2 = Playable, 3 = Verified
+                status_map = {0: 'unknown', 1: 'unsupported', 2: 'playable', 3: 'verified'}
+                status = status_map.get(resolved_category, unknown_status)
 
-                    with open(cache_file, 'w') as f:
-                        json.dump({'status': status}, f)
-                    if app_id in self.games:
-                        self.games[app_id].steam_deck_status = status
-                    return
+                with open(cache_file, 'w') as f:
+                    json.dump({'status': status, 'category': resolved_category}, f)
+                if app_id in self.games:
+                    self.games[app_id].steam_deck_status = status
+                return
 
             if app_id in self.games:
                 self.games[app_id].steam_deck_status = unknown_status
