@@ -464,8 +464,13 @@ class MainWindow(QMainWindow):
             self.reload_btn.show()
             return
 
-        display_id = target_id if target_id else short_id
-        self.user_label.setText(t('ui.main_window.user_auto', user_id=display_id))
+        # Restore login state if STEAM_USER_ID was saved
+        if config.STEAM_USER_ID and not self.steam_username:
+            self.steam_username = self._fetch_steam_persona_name(config.STEAM_USER_ID)
+            self._refresh_toolbar()
+
+        display_id = self.steam_username if self.steam_username else (target_id if target_id else short_id)
+        self.user_label.setText(t('ui.main_window.user_label', user_id=display_id))
 
         config_path = config.get_localconfig_path(short_id)
         if config_path:
