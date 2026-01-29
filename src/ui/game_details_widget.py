@@ -126,8 +126,12 @@ class HorizontalCategoryList(QListWidget):
             all_categories (List[str]): List of all available categories.
             games_categories (List[List[str]]): List of category lists, one per game.
         """
+        print(
+            f"[DEBUG] set_categories_multi() called with {len(all_categories)} categories and {len(games_categories)} games")
         self.clear()
         if not all_categories or not games_categories:
+            print(
+                f"[DEBUG] Returning early: all_categories={len(all_categories) if all_categories else 0}, games_categories={len(games_categories) if games_categories else 0}")
             return
 
         # Store games_categories for later reference
@@ -165,6 +169,8 @@ class HorizontalCategoryList(QListWidget):
             # Use clicked signal instead of stateChanged to have more control
             cb.clicked.connect(lambda checked=None, checkbox=cb: self._handle_tristate_click(checkbox))
             self.setItemWidget(item, cb)
+
+        print(f"[DEBUG] Created {len(all_categories)} tri-state checkboxes")
 
     def _handle_tristate_click(self, checkbox: QCheckBox):
         """
@@ -483,7 +489,7 @@ class GameDetailsWidget(QWidget):
 
     def set_games(self, games: List[Game], _all_categories: List[str]):
         """
-        Sets multiple games for multi-selection display.
+        Sets multiple games for bulk category operations.
 
         Shows a summary and allows bulk category operations with tri-state checkboxes.
 
@@ -491,11 +497,13 @@ class GameDetailsWidget(QWidget):
             games (List[Game]): List of selected games.
             _all_categories (List[str]): List of all available categories.
         """
+        print(f"[DEBUG] set_games() called with {len(games)} games")
         if not games:
             return
 
         self.current_game = None  # Clear single game
         self.current_games = games  # Store for multi-select operations
+        print(f"[DEBUG] current_games set to {len(self.current_games)} games")
 
         # Show multi-select summary
         self.name_label.setText(t('ui.game_details.multi_select_title', count=len(games)))
@@ -518,6 +526,7 @@ class GameDetailsWidget(QWidget):
 
         # Show tri-state checkboxes
         games_categories = [game.categories for game in games]
+        print(f"[DEBUG] Calling set_categories_multi with {len(games_categories)} game categories")
         self.category_list.set_categories_multi(_all_categories, games_categories)
 
         # Clear images
@@ -537,6 +546,7 @@ class GameDetailsWidget(QWidget):
             game (Game): The game to display.
             _all_categories (List[str]): List of all available categories.
         """
+        print(f"[DEBUG] set_game() called with game: {game.name}")
         self.current_game = game
         self.current_games = []  # Clear multi-select mode
         self.name_label.setText(game.name)
