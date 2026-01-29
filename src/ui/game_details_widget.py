@@ -82,6 +82,9 @@ class HorizontalCategoryList(QListWidget):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setFixedHeight(190)
 
+        # Prevent stealing focus from game tree
+        self.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+
         # For multi-select mode
         self.games_categories = []
 
@@ -103,6 +106,7 @@ class HorizontalCategoryList(QListWidget):
             item.setSizeHint(QSize(200, 24))
             cb = QCheckBox(category)
             cb.setChecked(category in game_categories)
+            cb.setFocusPolicy(Qt.FocusPolicy.NoFocus)  # Prevent focus stealing
             cb.setStyleSheet("QCheckBox { font-size: 11px; margin-left: 2px; }")
             cb.stateChanged.connect(
                 lambda state, c=category: self.category_toggled.emit(c, state == Qt.CheckState.Checked.value)
@@ -141,6 +145,7 @@ class HorizontalCategoryList(QListWidget):
             item.setSizeHint(QSize(200, 24))
             cb = QCheckBox(category)
             cb.setTristate(True)  # Enable tri-state
+            cb.setFocusPolicy(Qt.FocusPolicy.NoFocus)  # Prevent focus stealing
 
             # Set tri-state based on count
             if count == 0:
