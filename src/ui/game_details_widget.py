@@ -106,6 +106,75 @@ class HorizontalCategoryList(QListWidget):
             )
             self.setItemWidget(item, cb)
 
+    def set_categories_multi(self, all_categories: List[str], games_categories: List[List[str]]):
+        """
+        Sets categories for multiple games with tri-state checkboxes.
+
+        Checkbox states:
+        - Unchecked (empty): No game has this category
+        - PartiallyChecked (gray): Some games have this category
+        - Checked (gold): All games have this category
+
+        Args:
+            all_categories (List[str]): List of all available categories.
+            games_categories (List[List[str]]): List of category lists, one per game.
+        """
+        self.clear()
+        if not all_categories or not games_categories:
+            return
+
+        total_games = len(games_categories)
+
+        for category in sorted(all_categories):
+            if category == 'favorite':
+                continue
+
+            # Count how many games have this category
+            count = sum(1 for game_cats in games_categories if category in game_cats)
+
+            item = QListWidgetItem(self)
+            item.setSizeHint(QSize(200, 24))
+            cb = QCheckBox(category)
+
+            # Set tri-state based on count
+            if count == 0:
+                cb.setCheckState(Qt.CheckState.Unchecked)
+                cb.setStyleSheet("QCheckBox { font-size: 11px; margin-left: 2px; }")
+            elif count == total_games:
+                cb.setCheckState(Qt.CheckState.Checked)
+                cb.setStyleSheet("QCheckBox { font-size: 11px; margin-left: 2px; color: #FFD700; }")
+            else:
+                cb.setCheckState(Qt.CheckState.PartiallyChecked)
+                cb.setStyleSheet("QCheckBox { font-size: 11px; margin-left: 2px; color: #888888; }")
+
+            cb.setTristate(False)  # Disable automatic tri-state, we handle it manually
+
+            # Connect signal - clicking any state will toggle to "all checked"
+            cb.stateChanged.connect(
+                lambda state, c=category: self._handle_tristate_toggle(c, state)
+            )
+            self.setItemWidget(item, cb)
+
+    def _handle_tristate_toggle(self, category: str, state: int):
+        """
+        Handles tri-state checkbox toggle logic.
+
+        Logic:
+        - Unchecked → Checked (add to all)
+        - PartiallyChecked → Checked (add to all)
+        - Checked → Unchecked (remove from all)
+
+        Args:
+            category: The category name.
+            state: The new checkbox state.
+        """
+        if state == Qt.CheckState.Checked.value:
+            # Add to all games
+            self.category_toggled.emit(category, True)
+        else:
+            # Remove from all games
+            self.category_toggled.emit(category, False)
+
 
 class GameDetailsWidget(QWidget):
     """
@@ -374,10 +443,10 @@ class GameDetailsWidget(QWidget):
             status_lower = "unknown"
 
         colors = {
-            "verified": "#59BF40",    # Green - Verified
-            "playable": "#FDE100",    # Yellow - Playable
-            "unsupported": "#D9534F", # Red - Unsupported
-            "unknown": "#808080"      # Gray - Unknown
+            "verified": "#59BF40",  # Green - Verified
+            "playable": "#FDE100",  # Yellow - Playable
+            "unsupported": "#D9534F",  # Red - Unsupported
+            "unknown": "#808080"  # Gray - Unknown
         }
         color = colors.get(status_lower, "#808080")
         display_text = t(f'ui.game_details.steam_deck_status.{status_lower}')
@@ -386,6 +455,50 @@ class GameDetailsWidget(QWidget):
         title = t('ui.game_details.steam_deck')
         self.lbl_steam_deck.setText(
             f"<span style='color:#888;'>{title}:</span> <span style='color:{color}; font-weight:bold;'>{display_text}</span>")
+
+    def set_games(self, games: List[Game], _all_categories: List[str]):
+        """
+        Sets multiple games for multi-selection display.
+
+        Shows a summary and allows bulk category operations with tri-state checkboxes.
+
+        Args:
+            games (List[Game]): List of selected games.
+            _all_categories (List[str]): List of all available categories.
+        """
+        if not games:
+            return
+
+        self.current_game = None  # Clear single game
+
+        # Show multi-select summary
+        self.name_label.setText(t('ui.game_details.multi_select_title', count=len(games)))
+        self.lbl_appid.setText(f"<span style='color:#888;'>{t('ui.game_details.selected')}:</span> <b>{len(games)}</b>")
+
+        # Calculate total playtime
+        total_hours = sum(g.playtime_hours for g in games)
+        playtime_val = t('ui.game_details.hours', hours=total_hours)
+        self.lbl_playtime.setText(
+            f"<span style='color:#888;'>{t('ui.game_details.total_playtime')}:</span> <b>{playtime_val}</b>")
+
+        # Clear other fields
+        self.lbl_updated.setText(f"<span style='color:#888;'>{t('ui.game_details.last_update')}:</span> <b>-</b>")
+        self.lbl_proton.setText(t('ui.game_details.protondb') + ": -")
+        self.lbl_steam_deck.setText(t('ui.game_details.steam_deck') + ": -")
+        self.lbl_reviews.setText(f"<span style='color:#888;'>{t('ui.game_details.reviews')}:</span> <b>-</b>")
+        self.edit_dev.setText("-")
+        self.edit_pub.setText("-")
+        self.edit_rel.setText("-")
+
+        # Show tri-state checkboxes
+        games_categories = [game.categories for game in games]
+        self.category_list.set_categories_multi(_all_categories, games_categories)
+
+        # Clear images
+        self.img_grid.clear()
+        self.img_hero.clear()
+        self.img_logo.clear()
+        self.img_icon.clear()
 
     def set_game(self, game: Game, _all_categories: List[str]):
         """
