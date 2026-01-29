@@ -676,7 +676,13 @@ class GameManager:
             if response.status_code == 200:
                 data = response.json()
                 results = data.get('results', {})
-                resolved_category = results.get('resolved_category', 0)
+
+                # API sometimes returns a list instead of dict - handle both cases
+                if isinstance(results, list):
+                    # If it's a list, try to get the first element
+                    results = results[0] if results else {}
+
+                resolved_category = results.get('resolved_category', 0) if isinstance(results, dict) else 0
 
                 # Steam Deck compatibility categories:
                 # 0 = Unknown, 1 = Unsupported, 2 = Playable, 3 = Verified
