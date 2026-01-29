@@ -1,7 +1,13 @@
+# src/ui/settings_dialog.py
+
 """
-Settings Dialog - Final Version (Clean & Windows Ready)
-Save as: src/ui/settings_dialog.py
+Settings dialog for application configuration.
+
+This module provides a tabbed settings dialog where users can configure
+language preferences, Steam paths, library locations, tag settings, backup
+limits, and API keys.
 """
+
 from typing import Dict
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel,
@@ -18,12 +24,36 @@ from src.ui.components.ui_helper import UIHelper
 
 class SettingsDialog(QDialog):
     """
-    Settings Dialog providing configuration for Language, Paths, and APIs.
-    Two Tabs: General & Other.
+    Dialog for application settings configuration.
+
+    This dialog provides two tabs (General and Other) for configuring various
+    application settings including language, paths, APIs, and backup options.
+
+    Signals:
+        language_changed (str): Emitted when the UI language is changed, passes the language code.
+
+    Attributes:
+        tabs (QTabWidget): The tab widget containing General and Other tabs.
+        combo_ui_lang (QComboBox): Dropdown for UI language selection.
+        combo_tags_lang (QComboBox): Dropdown for tags language selection.
+        path_edit (QLineEdit): Input field for Steam installation path.
+        lib_list (QListWidget): List of additional Steam library folders.
+        spin_tags (QSpinBox): Spinner for tags per game setting.
+        check_common (QCheckBox): Checkbox for ignoring common tags.
+        spin_backup (QSpinBox): Spinner for maximum backup files.
+        steam_api_edit (QLineEdit): Input field for Steam Web API key.
+        sgdb_key_edit (QLineEdit): Input field for SteamGridDB API key.
     """
+
     language_changed = pyqtSignal(str)
 
     def __init__(self, parent=None):
+        """
+        Initializes the settings dialog.
+
+        Args:
+            parent: Parent widget. Defaults to None.
+        """
         super().__init__(parent)
         self.setWindowTitle(t('ui.settings.title'))
         # Slightly taller for the backup section
@@ -34,6 +64,7 @@ class SettingsDialog(QDialog):
         self._load_current_settings()
 
     def _create_ui(self):
+        """Creates the user interface with tabs and buttons."""
         layout = QVBoxLayout(self)
         self.tabs = QTabWidget()
         layout.addWidget(self.tabs)
@@ -65,10 +96,10 @@ class SettingsDialog(QDialog):
 
     def _init_general_tab(self, parent: QWidget):
         """
-        Content:
-        - Languages
-        - Steam Path
-        - Libraries
+        Initializes the General tab with language, Steam path, and library settings.
+
+        Args:
+            parent (QWidget): The parent widget for this tab.
         """
         layout = QVBoxLayout(parent)
 
@@ -147,10 +178,10 @@ class SettingsDialog(QDialog):
 
     def _init_other_tab(self, parent: QWidget):
         """
-        Content:
-        - Tags (Count, Ignore)
-        - Backup (Limit + Explanation)
-        - APIs (Web API, SteamGridDB)
+        Initializes the Other tab with tags, backup, and API settings.
+
+        Args:
+            parent (QWidget): The parent widget for this tab.
         """
         layout = QVBoxLayout(parent)
 
@@ -175,10 +206,10 @@ class SettingsDialog(QDialog):
         self.spin_backup.setSuffix(f" {t('ui.settings.backup.files')}")
         form_backup.addRow(t('ui.settings.backup.limit'), self.spin_backup)
 
-        # NEU: Erklärungstext
+        # Explanation text
         lbl_backup_help = QLabel(t('ui.settings.backup.explanation'))
         lbl_backup_help.setStyleSheet("color: gray; font-size: 10px; font-style: italic;")
-        lbl_backup_help.setWordWrap(True)  # Wichtig für lange Texte!
+        lbl_backup_help.setWordWrap(True)
         form_backup.addRow(lbl_backup_help)
 
         layout.addWidget(group_backup)
@@ -203,6 +234,7 @@ class SettingsDialog(QDialog):
         layout.addStretch()
 
     def _load_current_settings(self):
+        """Loads the current settings from config and populates the UI fields."""
         # General
         idx_ui = self.combo_ui_lang.findData(config.UI_LANGUAGE)
         if idx_ui >= 0: self.combo_ui_lang.setCurrentIndex(idx_ui)
@@ -226,20 +258,23 @@ class SettingsDialog(QDialog):
         self.sgdb_key_edit.setText(config.STEAMGRIDDB_API_KEY or "")
 
     def _browse_steam_path(self):
+        """Opens a directory browser for selecting the Steam installation path."""
         path = QFileDialog.getExistingDirectory(self, t('ui.settings.general.browse'), self.path_edit.text())
         if path:
             self.path_edit.setText(path)
 
     def _add_library(self):
+        """Opens a directory browser for adding a new Steam library folder."""
         title = t('ui.settings.libraries.add')
         path = QFileDialog.getExistingDirectory(self, title)
         if path:
-            # Avoid dupes
+            # Avoid duplicates
             current_items = [self.lib_list.item(i).text() for i in range(self.lib_list.count())]
             if path not in current_items:
                 self.lib_list.addItem(path)
 
     def _remove_library(self):
+        """Removes the currently selected library folder from the list."""
         row = self.lib_list.currentRow()
         if row >= 0:
             if UIHelper.confirm(self, t('ui.settings.libraries.confirm_msg'),
@@ -247,11 +282,22 @@ class SettingsDialog(QDialog):
                 self.lib_list.takeItem(row)
 
     def _on_language_changed(self, index: int):
+        """
+        Handles UI language changes.
+
+        Args:
+            index (int): The index of the selected language in the combo box.
+        """
         code = self.combo_ui_lang.itemData(index)
         self.language_changed.emit(code)
 
     def get_settings(self) -> Dict:
-        """Returns the collected settings from all tabs."""
+        """
+        Collects all settings from the dialog.
+
+        Returns:
+            Dict: A dictionary containing all configured settings.
+        """
         libraries = []
         for i in range(self.lib_list.count()):
             libraries.append(self.lib_list.item(i).text())

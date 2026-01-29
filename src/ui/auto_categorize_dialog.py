@@ -1,6 +1,10 @@
+# src/ui/auto_categorize_dialog.py
+
 """
-Auto-Categorize Dialog - Fully Localized
-Save as: src/ui/auto_categorize_dialog.py
+Dialog for automatic game categorization.
+
+This module provides a dialog that allows users to automatically categorize
+their Steam games using various methods (tags, publisher, franchise, genre).
 """
 
 from PyQt6.QtWidgets import (
@@ -14,12 +18,34 @@ from src.utils.i18n import t
 
 
 class AutoCategorizeDialog(QDialog):
-    """Dialog for Auto-Categorization"""
+    """
+    Dialog for configuring and starting automatic game categorization.
+
+    This dialog allows users to select categorization methods, configure settings,
+    and choose which games to apply the categorization to.
+
+    Attributes:
+        games (List): List of games to categorize (selected or uncategorized).
+        all_games_count (int): Total number of games in the library.
+        on_start (Callable): Callback function to execute when categorization starts.
+        category_name (Optional[str]): Name of the category being processed, if any.
+        result (Optional[Dict[str, Any]]): Configuration result after dialog is accepted.
+    """
 
     def __init__(self, parent, games: List,
                  all_games_count: int,
                  on_start: Callable,
                  category_name: Optional[str] = None):
+        """
+        Initializes the auto-categorize dialog.
+
+        Args:
+            parent: Parent widget.
+            games (List): List of games to categorize (selected or uncategorized).
+            all_games_count (int): Total number of games in the library.
+            on_start (Callable): Callback function to execute when categorization starts.
+            category_name (Optional[str]): Name of the category being processed, if any.
+        """
         super().__init__(parent)
 
         self.games = games
@@ -38,7 +64,7 @@ class AutoCategorizeDialog(QDialog):
         self._center_on_parent()
 
     def _center_on_parent(self):
-        """Center dialog on parent window"""
+        """Centers the dialog on the parent window."""
         if self.parent():
             parent_geo = self.parent().geometry()
             self.move(
@@ -47,7 +73,7 @@ class AutoCategorizeDialog(QDialog):
             )
 
     def _create_ui(self):
-        """Create UI"""
+        """Creates the user interface for the dialog."""
         layout = QVBoxLayout(self)
         layout.setSpacing(10)
         layout.setContentsMargins(20, 20, 20, 20)
@@ -166,7 +192,12 @@ class AutoCategorizeDialog(QDialog):
         layout.addLayout(button_layout)
 
     def _get_selected_methods(self) -> List[str]:
-        """Helper to avoid code duplication"""
+        """
+        Gets the list of selected categorization methods.
+
+        Returns:
+            List[str]: A list of method names ('tags', 'publisher', 'franchise', 'genre').
+        """
         methods = []
         if self.cb_tags.isChecked(): methods.append('tags')
         if self.cb_publisher.isChecked(): methods.append('publisher')
@@ -175,7 +206,12 @@ class AutoCategorizeDialog(QDialog):
         return methods
 
     def _update_estimate(self):
-        """Update time estimate"""
+        """
+        Updates the time estimate label based on selected options.
+
+        This method calculates the estimated processing time based on the number
+        of games and selected categorization methods.
+        """
         self.tags_group.setVisible(self.cb_tags.isChecked())
 
         game_count = self.all_games_count if self.rb_all.isChecked() else len(self.games)
@@ -196,7 +232,12 @@ class AutoCategorizeDialog(QDialog):
         )
 
     def _start(self):
-        """Start auto-categorization"""
+        """
+        Starts the auto-categorization process.
+
+        This method validates the selection, builds the configuration result,
+        and calls the on_start callback.
+        """
         selected_methods = self._get_selected_methods()
 
         if not selected_methods:
@@ -219,4 +260,10 @@ class AutoCategorizeDialog(QDialog):
             self.on_start(self.result)
 
     def get_result(self) -> Optional[Dict[str, Any]]:
+        """
+        Gets the configuration result after the dialog is accepted.
+
+        Returns:
+            Optional[Dict[str, Any]]: The configuration dictionary, or None if canceled.
+        """
         return self.result
