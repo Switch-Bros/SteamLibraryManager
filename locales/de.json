@@ -344,7 +344,9 @@
       "confirm_bulk_title": "Massenbearbeitung bestätigen",
       "confirm_bulk": "Änderungen auf {count} Spiele anwenden?",
       "image_picker_title": "{type} für {game} auswählen",
-      "image_picker_loading": "Lade Bilder..."
+      "image_picker_loading": "Lade Bilder...",
+      "close": "Schließen",
+      "success": "Erfolg"
     },
     "tools": {
         "missing_metadata": {
@@ -353,7 +355,15 @@
             "info": "Diesen Spielen fehlen Entwickler-, Publisher- oder Release-Daten.",
             "export_csv": "Als CSV exportieren",
             "no_games_found": "Keine Spiele mit fehlenden Metadaten",
-            "all_complete": "Alle Spiele haben vollständige Metadaten!"
+            "all_complete": "Alle Spiele haben vollständige Metadaten!",
+            "col_appid": "App ID",
+            "col_name": "Spielname",
+            "col_developer": "Entwickler",
+            "col_publisher": "Publisher",
+            "col_release": "Erscheinungsjahr",
+            "col_missing_fields": "Fehlende Felder",
+            "missing": "Fehlt",
+            "save_csv": "CSV speichern"
         },
         "merger": {
             "title": "Kategorien Import/Export",
