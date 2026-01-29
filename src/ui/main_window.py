@@ -924,12 +924,30 @@ class MainWindow(QMainWindow):
                     response = requests.get(url, timeout=10, allow_redirects=False, headers={'User-Agent': 'SLM/1.0'})
 
                     if response.status_code == 200:
-                        if 'not available' in response.text.lower():
+                        text_lower = response.text.lower()
+
+                        # Check for geo-blocking (works for both English and German)
+                        if ('not available in your country' in text_lower or
+                                'nicht in ihrem land' in text_lower or
+                                'not available in your region' in text_lower or
+                                'currently not available' in text_lower):
                             self.finished.emit('geo_locked', t('ui.store_check.geo_locked'))
-                        else:
+                        # Check if redirected to age gate
+                        elif 'agecheck' in text_lower:
+                            self.finished.emit('age_gate', t('ui.store_check.age_gate'))
+                        # Check if app page exists
+                        elif 'app_header' in text_lower or 'game_area_purchase' in text_lower:
                             self.finished.emit('available', t('ui.store_check.available'))
+                        else:
+                            # Page loaded but doesn't look like a valid store page
+                            self.finished.emit('delisted', t('ui.store_check.delisted'))
                     elif response.status_code == 302:
-                        self.finished.emit('delisted', t('ui.store_check.delisted'))
+                        # Follow redirect to check if it's age gate or delisted
+                        redirect_url = response.headers.get('Location', '')
+                        if 'agecheck' in redirect_url:
+                            self.finished.emit('age_gate', t('ui.store_check.age_gate'))
+                        else:
+                            self.finished.emit('delisted', t('ui.store_check.delisted'))
                     elif response.status_code in [404, 403]:
                         self.finished.emit('delisted', t('ui.store_check.removed'))
                     else:
@@ -945,6 +963,8 @@ class MainWindow(QMainWindow):
 
             if status == 'available':
                 UIHelper.show_success(self, msg, title)
+            elif status == 'age_gate':
+                UIHelper.show_info(self, msg, title)
             else:
                 UIHelper.show_warning(self, msg, title)
 

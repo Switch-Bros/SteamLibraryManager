@@ -2,7 +2,8 @@
   "app": {
     "name": "Steam Library Manager",
     "version": "1.0.0",
-    "description": "Modern library manager for Steam on Linux"
+    "description": "Modern library manager for Steam on Linux",
+    "info": "Information"
   },
   "common": {
     "save": "Save",
@@ -245,13 +246,14 @@
       "restored_count": "Restored metadata for {count} games."
     },
     "store_check": {
-      "title": "Store Status",
-      "checking": "Checking Store...",
-      "available": "Available",
-      "geo_locked": "Geo-locked / Not available",
-      "delisted": "Likely Delisted (Redirect)",
-      "removed": "Removed (404/403)",
-      "unknown": "Unknown (HTTP {code})"
+      "title": "Check Store Availability",
+      "checking": "Checking store availability...",
+      "available": "✅ Available on Steam Store",
+      "geo_locked": "🚫 Not available in your country (Geo-blocking/Censorship)",
+      "age_gate": "🔞 Age verification required (Store page exists)",
+      "delisted": "❌ No longer available on Store",
+      "removed": "❌ Removed from Store",
+      "unknown": "❓ Unknown status (Code: {code})"
     },
     "visibility": {
       "hidden": "Hidden",
@@ -363,7 +365,8 @@
             "col_release": "Release Year",
             "col_missing_fields": "Missing Fields",
             "missing": "Missing",
-            "save_csv": "Save CSV"
+            "save_csv": "Save CSV",
+            "stats": "{count} games with incomplete metadata found"
         },
         "merger": {
             "title": "Category Import/Export",
