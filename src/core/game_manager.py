@@ -56,6 +56,7 @@ class Game:
     review_count: int = 0
     last_updated: str = ""
     steam_grid_db_url: str = ""
+    pegi_rating: str = ""  # PEGI age rating (e.g., "12", "18")
 
     # Legacy / UI Compatibility
     proton_db_tier: str = ""
@@ -594,7 +595,7 @@ class GameManager:
                 pass
 
         try:
-            url = f'https://store.steampowered.com/appreviews/{app_id}?json=1&language=all'
+            url = f'https://store.steampowered.com/appreviews/{app_id}?json=1&language=german'
             response = requests.get(url, timeout=5)
             data = response.json()
             if 'query_summary' in data:
@@ -738,6 +739,16 @@ class GameManager:
         categories = data.get('categories', [])
         tags = [c['description'] for c in categories]
         game.tags = list(set(game.tags + tags))
+
+        # Extract PEGI rating
+        ratings = data.get('ratings', {})
+        print(f"[DEBUG] Store data for {game.name}: has ratings={bool(ratings)}, has pegi={'pegi' in ratings}")
+        if 'pegi' in ratings:
+            pegi_data = ratings['pegi']
+            game.pegi_rating = pegi_data.get('rating', '')
+            print(f"[DEBUG] PEGI extracted: {game.pegi_rating}")
+        else:
+            print(f"[DEBUG] No PEGI data in ratings: {list(ratings.keys())}")
 
     def get_load_source_message(self) -> str:
         """

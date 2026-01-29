@@ -268,8 +268,8 @@ class GameDetailsWidget(QWidget):
         left_container.addWidget(self.name_label)
         left_container.addStretch()
 
-        button_layout = QHBoxLayout()
-        button_layout.setSpacing(20)
+        button_layout = QVBoxLayout()
+        button_layout.setSpacing(8)
         button_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
         self.btn_store = QPushButton(t('ui.game_details.btn_store'))
@@ -279,9 +279,30 @@ class GameDetailsWidget(QWidget):
         self.btn_edit.clicked.connect(self._on_edit)
         self.btn_edit.setMinimumWidth(120)
 
-        button_layout.addWidget(self.btn_store)
         button_layout.addWidget(self.btn_edit)
-        left_container.addLayout(button_layout)
+        button_layout.addWidget(self.btn_store)
+
+        # PEGI Rating Box (neben Buttons)
+        buttons_pegi_layout = QHBoxLayout()
+        buttons_pegi_layout.setSpacing(12)
+        buttons_pegi_layout.addLayout(button_layout)
+
+        self.pegi_label = QLabel()
+        self.pegi_label.setFixedSize(128, 128)
+        self.pegi_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.pegi_label.setStyleSheet(
+            "border: 1px solid #FDE100; "
+            "background-color: #1b2838; "
+            "color: #FDE100; "
+            "font-size: 48px; "
+            "font-weight: bold;"
+        )
+        self.pegi_label.setScaledContents(True)  # For images
+        self.pegi_label.hide()  # Hidden by default
+        buttons_pegi_layout.addWidget(self.pegi_label)
+        buttons_pegi_layout.addStretch()
+
+        left_container.addLayout(buttons_pegi_layout)
 
         header_layout.addLayout(left_container, stretch=1)
 
@@ -520,11 +541,12 @@ class GameDetailsWidget(QWidget):
         games_categories = [game.categories for game in games]
         self.category_list.set_categories_multi(_all_categories, games_categories)
 
-        # Clear images
+        # Clear images and PEGI
         self.img_grid.clear()
         self.img_hero.clear()
         self.img_logo.clear()
         self.img_icon.clear()
+        self.pegi_label.hide()
 
     def set_game(self, game: Game, _all_categories: List[str]):
         """
@@ -571,6 +593,33 @@ class GameDetailsWidget(QWidget):
         self.edit_rel.setText(safe_text(game.release_year, format_timestamp_to_date))
         self.category_list.set_categories(_all_categories, game.categories)
 
+        # Display PEGI rating if available
+        print(
+            f"[DEBUG] PEGI check for {game.name}: hasattr={hasattr(game, 'pegi_rating')}, value={getattr(game, 'pegi_rating', 'N/A')}")
+        if hasattr(game, 'pegi_rating') and game.pegi_rating:
+            print(f"[DEBUG] Showing PEGI: {game.pegi_rating}")
+
+            # Try to load PEGI image from /resources/icons/
+            from pathlib import Path
+            from PyQt6.QtGui import QPixmap
+            pegi_image_path = Path(f"resources/icons/PEGI{game.pegi_rating}.png")
+
+            if pegi_image_path.exists():
+                print(f"[DEBUG] Loading PEGI image: {pegi_image_path}")
+                pixmap = QPixmap(str(pegi_image_path))
+                self.pegi_label.setPixmap(pixmap.scaled(128, 128, Qt.AspectRatioMode.KeepAspectRatio,
+                                                        Qt.TransformationMode.SmoothTransformation))
+                self.pegi_label.setText("")  # Clear text when showing image
+            else:
+                print(f"[DEBUG] PEGI image not found, using text: {pegi_image_path}")
+                self.pegi_label.setPixmap(QPixmap())  # Clear any previous image
+                self.pegi_label.setText(f"PEGI\n{game.pegi_rating}")
+
+            self.pegi_label.show()
+        else:
+            print(f"[DEBUG] Hiding PEGI (no data)")
+            self.pegi_label.hide()
+
         self._reload_images(game.app_id)
 
     def _reload_images(self, app_id: str):
@@ -600,6 +649,7 @@ class GameDetailsWidget(QWidget):
         self.img_hero.load_image(None)
         self.img_logo.load_image(None)
         self.img_icon.load_image(None)
+        self.pegi_label.hide()
 
         self.category_list.set_categories([], [])
 
