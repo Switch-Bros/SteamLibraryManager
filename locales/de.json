@@ -17,7 +17,8 @@
     "loading": "Lade...",
     "game_fallback": "Unbekannte App {id}",
     "confirm_exit": "Möchten Sie die Anwendung wirklich beenden?",
-    "warning": "Warnung"
+    "warning": "Warnung",
+    "dash": "-"
   },
   "ui": {
     "main_window": {
@@ -55,7 +56,8 @@
       "edit": {
         "root": "Bearbeiten",
         "bulk_edit": "Massenbearbeitung",
-        "auto_categorize": "Auto-Kategorisierung"
+        "auto_categorize": "Auto-Kategorisierung",
+        "restore": "Metadaten wiederherstellen"
       },
       "view": {
         "root": "Ansicht",
@@ -82,6 +84,8 @@
     },
     "settings": {
       "title": "Einstellungen",
+      "save": "Speichern",
+      "saved": "Einstellungen gespeichert.",
       "tabs": {
         "general": "Allgemein",
         "other": "Weitere"
@@ -139,9 +143,12 @@
       "section_basic": "Basis-Infos",
       "section_metadata": "Metadaten",
       "section_ratings": "Bewertungen & Proton",
+      "name": "Name",
+      "app_id": "App ID",
       "developer": "Entwickler",
       "publisher": "Publisher",
       "release": "Release",
+      "release_year": "Erscheinungsjahr",
       "playtime": "Spielzeit",
       "last_update": "Letztes Update",
       "never_played": "Nie gespielt",
@@ -150,6 +157,20 @@
       "btn_edit": "Metadaten bearbeiten",
       "proton_db": "ProtonDB",
       "steam_db": "SteamDB Bewertung",
+      "reviews": "Bewertungen",
+      "value_unknown": "Unbekannt",
+      "select_placeholder": "Wähle ein Spiel für Details",
+      "categories_label": "Kategorien",
+      "proton_tiers": {
+        "platinum": "Platin",
+        "gold": "Gold",
+        "silver": "Silber",
+        "bronze": "Bronze",
+        "native": "Nativ",
+        "borked": "Defekt",
+        "pending": "Ausstehend",
+        "unknown": "Unbekannt"
+      },
       "gallery": {
         "grids": "GRIDS",
         "heroes": "HEROES",
@@ -168,18 +189,49 @@
       "hide_game": "Spiel verstecken",
       "unhide_game": "Spiel sichtbar machen",
       "check_store": "🔍 Store-Verfügbarkeit prüfen",
-      "auto_categorize": "Auto-Kategorisieren"
+      "auto_categorize": "Auto-Kategorisieren",
+      "rename": "Umbenennen",
+      "delete": "Löschen"
     },
     "metadata_editor": {
       "title": "Metadaten bearbeiten",
       "editing_title": "Metadaten bearbeiten: {game}",
       "bulk_title": "Massenbearbeitung - {count} Spiele",
       "info_tracking": "Änderungen sind lokal und werden von der App getrackt.",
+      "game_name_label": "Spielname",
+      "sort_as_label": "Sortieren als",
+      "sort_as_help": "Leer lassen um Spielnamen für Sortierung zu verwenden",
+      "date_help": "Format: JJJJ-MM-TT oder JJJJ",
+      "vdf_section": "VDF Optionen",
+      "write_to_vdf": "In appinfo.vdf schreiben (Steam-Neustart nötig)",
+      "write_to_vdf_tooltip": "Änderungen werden nach Steam-Neustart sichtbar",
+      "vdf_info": "Schreiben in VDF macht Änderungen in Steam sichtbar. Ein Backup wird automatisch erstellt.",
       "original_values": "Original-Werte",
+      "original_values_group": "Original-Werte (Nur Lesen)",
+      "revert_to_original": "Auf Original zurücksetzen",
+      "modified_tooltip": "Original: {original}",
+      "revert_title": "Änderungen zurücksetzen",
+      "revert_no_original": "Keine Original-Werte zum Wiederherstellen verfügbar.",
+      "revert_confirm": "Alle Felder auf Original-Werte zurücksetzen?",
+      "error_empty_name": "Spielname darf nicht leer sein.",
+      "vdf_warning_title": "VDF Schreib-Information",
+      "vdf_warning_text": "Änderungen werden in Steams appinfo.vdf geschrieben.",
+      "vdf_warning_details": "Steam muss neu gestartet werden damit Änderungen sichtbar werden. Ein Backup wird erstellt. Fortfahren?",
       "fields_group": "Zu ändernde Felder",
-      "apply_button": "Anwenden",
-      "restore_button": "Änderungen wiederherstellen",
-      "write_to_vdf": "In appinfo.vdf schreiben (Steam-Neustart nötig)"
+      "bulk_info": "⚠️ Warnung: Dies ändert {count} Spiele!",
+      "bulk_preview": "Betroffene Spiele ({count})",
+      "bulk_more": "...und {count} weitere",
+      "set_field": "{field} setzen",
+      "add_prefix": "Namen-Präfix hinzufügen",
+      "add_suffix": "Namen-Suffix hinzufügen",
+      "remove_text": "Text aus Namen entfernen",
+      "apply_button": "Auf {count} Spiele anwenden",
+      "restore_button": "{count} Spiele wiederherstellen",
+      "restore_info": "{count} Spiele haben geänderte Metadaten die wiederhergestellt werden können.",
+      "updated_single": "Metadaten aktualisiert: {game}",
+      "updated_bulk": "Metadaten für {count} Spiele aktualisiert.",
+      "no_changes_to_restore": "Keine Metadaten-Änderungen zum Wiederherstellen.",
+      "restored_count": "Metadaten für {count} Spiele wiederhergestellt."
     },
     "store_check": {
       "title": "Store-Status",
@@ -221,7 +273,8 @@
       "status_tags": "Tags laden: {game}...",
       "cat_publisher": "Publisher: {name}",
       "cat_franchise": "Franchise: {name}",
-      "cat_genre": "Genre: {name}"
+      "cat_genre": "Genre: {name}",
+      "warning_backup": "⚠️ Erstelle ein Backup vor Massenänderungen!"
     },
     "steamgrid_setup": {
       "title": "SteamGridDB Einrichtung",
@@ -258,7 +311,15 @@
       "steam_running_msg": "Steam Library Manager hat erkannt, dass Steam läuft. Bitte Steam beenden.",
       "confirm_remove_account": "Möchtest du '{game}' wirklich PERMANENT von deinem Account löschen?",
       "restore_success": "{count} Änderungen erfolgreich wiederhergestellt!",
-      "backup_created": "Backup erstellt: {path}"
+      "backup_created": "Backup erstellt: {path}",
+      "cancel": "Abbrechen",
+      "error": "Fehler",
+      "no_changes": "Keine Änderungen",
+      "no_selection": "Bitte wähle mindestens ein Feld zum Ändern aus.",
+      "confirm_bulk_title": "Massenbearbeitung bestätigen",
+      "confirm_bulk": "Änderungen auf {count} Spiele anwenden?",
+      "image_picker_title": "{type} für {game} auswählen",
+      "image_picker_loading": "Lade Bilder..."
     },
     "tools": {
         "missing_metadata": {
@@ -266,13 +327,32 @@
             "header": "{count} Spiele mit unvollständigen Metadaten gefunden",
             "info": "Diesen Spielen fehlen Entwickler-, Publisher- oder Release-Daten.",
             "export_csv": "Als CSV exportieren",
-            "no_games_found": "Keine Spiele mit fehlenden Metadaten"
+            "no_games_found": "Keine Spiele mit fehlenden Metadaten",
+            "all_complete": "Alle Spiele haben vollständige Metadaten!"
         },
         "merger": {
             "title": "Kategorien Import/Export",
             "success": "Erfolgreich {count} Spiele-Kategorien aktualisiert!",
             "btn_merge": "Kategorien übertragen"
         }
+    },
+    "errors": {
+      "no_users_found": "Keine Steam-Benutzer gefunden.",
+      "localconfig_load_error": "Fehler beim Laden von localconfig.vdf",
+      "no_games_found": "Keine Spiele gefunden oder Fehler beim Laden.",
+      "no_selection": "Keine Spiele ausgewählt."
+    },
+    "loading": {
+      "dots": "Lade..."
+    },
+    "status": {
+      "no_results": "Keine Bilder gefunden."
+    },
+    "badges": {
+      "nsfw": "18+",
+      "humor": "Humor",
+      "epilepsy": "Epilepsie",
+      "animated": "GIF"
     }
   },
   "logs": {
