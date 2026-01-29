@@ -590,10 +590,19 @@ class MainWindow(QMainWindow):
             games: List of currently selected games.
         """
         self.selected_games = games
+        all_categories = list(self.game_manager.get_all_categories().keys())
+
         if len(games) > 1:
+            # Show multi-select view in details widget
             self.set_status(t('ui.main_window.games_selected', count=len(games)))
+            self.details_widget.set_games(games, all_categories)
         elif len(games) == 1:
+            # Show single game view
             self.set_status(f"{games[0].name}")
+            self.on_game_selected(games[0])
+        else:
+            # No selection - could clear the details widget
+            pass
 
     def on_game_selected(self, game: Game) -> None:
         """Handles single game selection in the tree.
@@ -612,22 +621,41 @@ class MainWindow(QMainWindow):
     def _on_category_changed_from_details(self, app_id: str, category: str, checked: bool) -> None:
         """Handles category toggle events from the details widget.
 
+        Supports both single and multi-selection. If multiple games are selected,
+        the category change is applied to all selected games.
+
         Args:
-            app_id: The Steam app ID of the game.
+            app_id: The Steam app ID of the game (ignored for multi-select).
             category: The category name being toggled.
             checked: Whether the category should be added or removed.
         """
-        game = self.game_manager.get_game(app_id)
-        if not game or not self.vdf_parser: return
+        if not self.vdf_parser:
+            return
 
-        if checked:
-            if category not in game.categories:
-                game.categories.append(category)
-                self.vdf_parser.add_app_category(app_id, category)
+        # Determine which games to update
+        games_to_update = []
+        if len(self.selected_games) > 1:
+            # Multi-select mode: update all selected games
+            games_to_update = self.selected_games
         else:
-            if category in game.categories:
-                game.categories.remove(category)
-                self.vdf_parser.remove_app_category(app_id, category)
+            # Single game mode
+            game = self.game_manager.get_game(app_id)
+            if game:
+                games_to_update = [game]
+
+        if not games_to_update:
+            return
+
+        # Apply category change to all games
+        for game in games_to_update:
+            if checked:
+                if category not in game.categories:
+                    game.categories.append(category)
+                    self.vdf_parser.add_app_category(game.app_id, category)
+            else:
+                if category in game.categories:
+                    game.categories.remove(category)
+                    self.vdf_parser.remove_app_category(game.app_id, category)
 
         self.vdf_parser.save()
 
@@ -638,7 +666,14 @@ class MainWindow(QMainWindow):
             self._populate_categories()
 
         all_categories = list(self.game_manager.get_all_categories().keys())
-        self.details_widget.set_game(game, all_categories)
+
+        # Refresh details widget
+        if len(self.selected_games) > 1:
+            # Multi-select: refresh the multi-select view
+            self.details_widget.set_games(self.selected_games, all_categories)
+        elif len(self.selected_games) == 1:
+            # Single select: refresh single game view
+            self.details_widget.set_game(self.selected_games[0], all_categories)
 
     def _on_games_dropped(self, games: List[Game], target_category: str) -> None:
         """
@@ -710,10 +745,21 @@ class MainWindow(QMainWindow):
         """Shows context menu for a right-clicked category.
 
         Args:
-            category: The category name that was right-clicked.
+            category: The category name that was right-clicked (or "__MULTI__" for multi-select).
             pos: The screen position for the context menu.
         """
         menu = QMenu(self)
+
+        # Handle multi-category selection
+        if category == "__MULTI__":
+            selected_categories = self.tree.get_selected_categories()
+            if len(selected_categories) > 1:
+                menu.addAction(t('ui.context_menu.merge_categories'),
+                               lambda: self.merge_categories(selected_categories))
+            menu.exec(pos)
+            return
+
+        # Single category
         if category == t('ui.categories.favorites'):
             return
 
@@ -894,6 +940,84 @@ class MainWindow(QMainWindow):
             self.vdf_parser.delete_category(category)
             self.vdf_parser.save()
             self._populate_categories()
+
+    def merge_categories(self, categories: List[str]) -> None:
+        """
+        Merges multiple categories into one.
+
+        Shows a dialog to select the target category, then moves all games
+        from the other categories into the target and deletes the source categories.
+
+        Args:
+            categories: List of category names to merge.
+        """
+        if not self.vdf_parser or len(categories) < 2:
+            return
+
+        # Show selection dialog
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QListWidget, QDialogButtonBox
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(t('ui.categories.merge_title'))
+        dialog.setMinimumWidth(400)
+
+        layout = QVBoxLayout()
+
+        # Instruction label
+        label = QLabel(t('ui.categories.merge_instruction', count=len(categories)))
+        label.setWordWrap(True)
+        layout.addWidget(label)
+
+        # List of categories
+        list_widget = QListWidget()
+        for cat in sorted(categories):
+            list_widget.addItem(cat)
+        list_widget.setCurrentRow(0)
+        layout.addWidget(list_widget)
+
+        # Buttons
+        # noinspection PyTypeChecker
+        buttons = QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        button_box = QDialogButtonBox(buttons)
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+        layout.addWidget(button_box)
+
+        dialog.setLayout(layout)
+
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            selected_item = list_widget.currentItem()
+            if not selected_item:
+                return
+
+            target_category = selected_item.text()
+            source_categories = [cat for cat in categories if cat != target_category]
+
+            # Merge: Move all games from source categories to target
+            for source_cat in source_categories:
+                games_in_source = self.game_manager.get_games_by_category(source_cat)
+                for game in games_in_source:
+                    # Add to target if not already there
+                    if target_category not in game.categories:
+                        game.categories.append(target_category)
+                        self.vdf_parser.add_app_category(game.app_id, target_category)
+                    # Remove from source
+                    if source_cat in game.categories:
+                        game.categories.remove(source_cat)
+                        self.vdf_parser.remove_app_category(game.app_id, source_cat)
+
+                # Delete the source category
+                self.vdf_parser.delete_category(source_cat)
+
+            self.vdf_parser.save()
+            self._populate_categories()
+
+            # Show success message
+            UIHelper.show_success(
+                self,
+                t('ui.categories.merge_success', target=target_category, count=len(source_categories)),
+                t('ui.categories.merge_title')
+            )
 
     def auto_categorize(self) -> None:
         """Opens the auto-categorize dialog for selected or uncategorized games."""

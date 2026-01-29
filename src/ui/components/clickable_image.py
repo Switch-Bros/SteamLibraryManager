@@ -18,6 +18,7 @@ from src.utils.i18n import t
 
 try:
     from PIL import Image, ImageSequence
+
     HAS_PILLOW = True
 except ImportError:
     Image = None
@@ -177,7 +178,8 @@ class ClickableImage(QWidget):
                     self.durations = []
                     for frame in ImageSequence.Iterator(im):
                         frame = frame.convert("RGBA")
-                        qim = QImage(frame.tobytes("raw", "RGBA"), frame.width, frame.height, QImage.Format.Format_RGBA8888)
+                        qim = QImage(frame.tobytes("raw", "RGBA"), frame.width, frame.height,
+                                     QImage.Format.Format_RGBA8888)
                         self.frames.append(QPixmap.fromImage(qim))
                         self.durations.append(frame.info.get('duration', 100))
                     if self.frames:
@@ -227,7 +229,8 @@ class ClickableImage(QWidget):
 
     def _apply_pixmap(self, pixmap: QPixmap):
         """Scales and sets the pixmap on the label."""
-        scaled = pixmap.scaled(self.w, self.h, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        scaled = pixmap.scaled(self.w, self.h, Qt.AspectRatioMode.KeepAspectRatio,
+                               Qt.TransformationMode.SmoothTransformation)
         self.image_label.setPixmap(scaled)
 
     def _load_local_image(self, path: str):
@@ -271,7 +274,8 @@ class ClickableImage(QWidget):
             else:
                 # Fallback to text badge
                 lbl = QLabel(text)
-                lbl.setStyleSheet(f"background-color: {bg_color}; color: white; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; border: 1px solid rgba(255,255,255,0.3);")
+                lbl.setStyleSheet(
+                    f"background-color: {bg_color}; color: white; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; border: 1px solid rgba(255,255,255,0.3);")
                 lbl.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
                 self.badge_layout.addWidget(lbl)
                 self.badges.append(lbl)
@@ -291,3 +295,21 @@ class ClickableImage(QWidget):
             self.badge_layout.removeWidget(b)
             b.deleteLater()
         self.badges = []
+
+    def clear(self):
+        """
+        Clears the image and shows the default image or empty state.
+
+        This method is useful when you want to reset the widget to its initial state,
+        such as when clearing a multi-selection view.
+        """
+        self.timer.stop()
+        self.frames = []
+        self.current_path = None
+        self._clear_badges()
+
+        if self.default_image:
+            self._load_local_image(self.default_image)
+        else:
+            self.image_label.clear()
+            self.image_label.setText("")
