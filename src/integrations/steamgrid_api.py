@@ -32,7 +32,7 @@ class SteamGridDB:
         self.api_key = config.STEAMGRIDDB_API_KEY
         self.headers = {'Authorization': f'Bearer {self.api_key}'}
 
-    def get_images_for_game(self, steam_app_id: str) -> Dict[str, Optional[str]]:
+    def get_images_for_game(self, steam_app_id: str | int) -> Dict[str, Optional[str]]:
         """
         Fetches a single image URL for each image type.
 
@@ -40,7 +40,7 @@ class SteamGridDB:
         logos, icons) for quick access.
 
         Args:
-            steam_app_id (str): The Steam app ID.
+            steam_app_id (str | int): The Steam app ID.
 
         Returns:
             Dict[str, Optional[str]]: A dictionary mapping image types to URLs.
@@ -58,7 +58,7 @@ class SteamGridDB:
             'icons': self._fetch_single_url(game_id, 'icons')
         }
 
-    def get_images_by_type(self, steam_app_id: str, img_type: str) -> List[Dict[str, Any]]:
+    def get_images_by_type(self, steam_app_id: str | int, img_type: str) -> List[Dict[str, Any]]:
         """
         Fetches all images of a specific type across all pages.
 
@@ -66,7 +66,7 @@ class SteamGridDB:
         a game. It includes both static and animated images, and NSFW content.
 
         Args:
-            steam_app_id (str): The Steam app ID.
+            steam_app_id (str | int): The Steam app ID.
             img_type (str): The type of image to fetch ('grids', 'heroes', 'logos', 'icons').
 
         Returns:
@@ -121,12 +121,12 @@ class SteamGridDB:
         print(t('logs.steamgrid.found', count=len(all_images)))
         return all_images
 
-    def _get_game_id(self, steam_app_id: str) -> Optional[int]:
+    def _get_game_id(self, steam_app_id: str | int) -> Optional[int]:
         """
         Resolves a Steam app ID to a SteamGridDB game ID.
 
         Args:
-            steam_app_id (str): The Steam app ID.
+            steam_app_id (str | int): The Steam app ID.
 
         Returns:
             Optional[int]: The SteamGridDB game ID, or None if not found or an error occurs.

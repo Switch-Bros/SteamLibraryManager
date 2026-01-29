@@ -131,12 +131,12 @@ class ClickableImage(QWidget):
         if not self.current_path:
             self._load_local_image(path)
 
-    def load_image(self, url_or_path: str, metadata: dict = None):
+    def load_image(self, url_or_path: str | None, metadata: dict = None):
         """
         Starts loading an image from a URL or local path.
 
         Args:
-            url_or_path (str): The URL or file path of the image to load.
+            url_or_path (str | None): The URL or file path of the image to load, or None to clear.
             metadata (dict): Optional metadata for badge display.
         """
         if metadata is not None:

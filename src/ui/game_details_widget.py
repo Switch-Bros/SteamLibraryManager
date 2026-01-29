@@ -31,13 +31,9 @@ class InfoLabel(QLabel):
     Custom label for displaying key-value pairs with styled formatting.
 
     This label displays a title in gray and a value in bold, formatted as HTML.
-
-    Attributes:
-        title_key (str): The translation key for the title.
-        value (str): The value to display.
     """
 
-    def __init__(self, title_key, value=""):
+    def __init__(self, title_key: str, value: str = ""):
         """
         Initializes the info label.
 
