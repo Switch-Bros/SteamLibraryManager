@@ -260,7 +260,7 @@
       "none": "Keine Bewertung",
       "saved": "PEGI-Bewertung gespeichert: {rating}",
       "removed": "PEGI-Bewertung entfernt",
-      "instruction": "Setze die PEGI Altersstufe",
+      "instruction": "Wähle die korrekte PEGI-Alterseinstufung für dieses Spiel:",
       "remove": "Entfernen"
     },
     "visibility": {
