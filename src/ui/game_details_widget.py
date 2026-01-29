@@ -134,7 +134,7 @@ class GameDetailsWidget(QWidget):
         lbl_playtime (InfoLabel): Label for playtime.
         lbl_updated (InfoLabel): Label for last update date.
         lbl_proton (QLabel): Label for ProtonDB rating.
-        lbl_steamdb (InfoLabel): Label for SteamDB rating.
+        lbl_steam_deck (QLabel): Label for Steam Deck compatibility.
         lbl_reviews (InfoLabel): Label for review score.
         edit_dev (QLineEdit): Read-only field for developer.
         edit_pub (QLineEdit): Read-only field for publisher.
@@ -283,8 +283,11 @@ class GameDetailsWidget(QWidget):
         self.lbl_proton.setStyleSheet("padding: 1px 0;")
         self._update_proton_label("unknown")
         meta_grid.addWidget(self.lbl_proton, 1, 1)
-        self.lbl_steamdb = InfoLabel('ui.game_details.steam_db', t('common.dash'))
-        meta_grid.addWidget(self.lbl_steamdb, 2, 1)
+        self.lbl_steam_deck = QLabel()
+        self.lbl_steam_deck.setTextFormat(Qt.TextFormat.RichText)
+        self.lbl_steam_deck.setStyleSheet("padding: 1px 0;")
+        self._update_steam_deck_label("unknown")
+        meta_grid.addWidget(self.lbl_steam_deck, 2, 1)
         self.lbl_reviews = InfoLabel('ui.game_details.reviews', t('common.dash'))
         meta_grid.addWidget(self.lbl_reviews, 3, 1)
 
@@ -332,18 +335,56 @@ class GameDetailsWidget(QWidget):
         Args:
             tier (str): The ProtonDB tier (platinum, gold, silver, bronze, native, borked, pending, unknown).
         """
-        tier = tier.lower() if tier else "unknown"
+        tier_lower = tier.lower() if tier else "unknown"
+
+        # Valid ProtonDB tiers
+        valid_tiers = ["platinum", "gold", "silver", "bronze", "native", "borked", "pending", "unknown"]
+
+        # If tier is not a valid English tier name (e.g. old cached translation), treat as unknown
+        if tier_lower not in valid_tiers:
+            tier_lower = "unknown"
+
         colors = {
             "platinum": "#B4C7D9", "gold": "#FDE100", "silver": "#C0C0C0",
             "bronze": "#CD7F32", "native": "#5CB85C", "borked": "#D9534F",
             "pending": "#1C39BB", "unknown": "#FE28A2"
         }
-        color = colors.get(tier, "#FE28A2")
-        display_text = t(f'ui.game_details.proton_tiers.{tier}')
+        color = colors.get(tier_lower, "#FE28A2")
+        display_text = t(f'ui.game_details.proton_tiers.{tier_lower}')
         if display_text.startswith("["):
-            display_text = tier.title()
+            display_text = tier_lower.title()
         title = t('ui.game_details.proton_db')
         self.lbl_proton.setText(
+            f"<span style='color:#888;'>{title}:</span> <span style='color:{color}; font-weight:bold;'>{display_text}</span>")
+
+    def _update_steam_deck_label(self, status: str):
+        """
+        Updates the Steam Deck status label with appropriate color and text.
+
+        Args:
+            status (str): The Steam Deck status (verified, playable, unsupported, unknown).
+        """
+        status_lower = status.lower() if status else "unknown"
+
+        # Valid Steam Deck status values
+        valid_statuses = ["verified", "playable", "unsupported", "unknown"]
+
+        # If status is not a valid English status name, treat as unknown
+        if status_lower not in valid_statuses:
+            status_lower = "unknown"
+
+        colors = {
+            "verified": "#59BF40",    # Green - Verified
+            "playable": "#FDE100",    # Yellow - Playable
+            "unsupported": "#D9534F", # Red - Unsupported
+            "unknown": "#808080"      # Gray - Unknown
+        }
+        color = colors.get(status_lower, "#808080")
+        display_text = t(f'ui.game_details.steam_deck_status.{status_lower}')
+        if display_text.startswith("["):
+            display_text = status_lower.title()
+        title = t('ui.game_details.steam_deck')
+        self.lbl_steam_deck.setText(
             f"<span style='color:#888;'>{title}:</span> <span style='color:{color}; font-weight:bold;'>{display_text}</span>")
 
     def set_game(self, game: Game, _all_categories: List[str]):
@@ -368,8 +409,7 @@ class GameDetailsWidget(QWidget):
         self.lbl_updated.setText(
             f"<span style='color:#888;'>{t('ui.game_details.last_update')}:</span> <b>{update_val}</b>")
         self._update_proton_label(game.proton_db_rating)
-        db_val = game.steam_db_rating if game.steam_db_rating else t('common.dash')
-        self.lbl_steamdb.setText(f"<span style='color:#888;'>{t('ui.game_details.steam_db')}:</span> <b>{db_val}</b>")
+        self._update_steam_deck_label(game.steam_deck_status)
 
         review_val = f"{game.review_score} ({game.review_count})" if game.review_score else t('common.dash')
         self.lbl_reviews.setText(

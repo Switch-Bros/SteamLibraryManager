@@ -595,7 +595,8 @@ class MainWindow(QMainWindow):
         self.selected_game = game
         all_categories = list(self.game_manager.get_all_categories().keys())
         self.details_widget.set_game(game, all_categories)
-        if not game.developer:
+        # Fetch details if missing developer, proton rating, or steam deck status
+        if not game.developer or not game.proton_db_rating or not game.steam_deck_status:
             if self.game_manager.fetch_game_details(game.app_id):
                 self.details_widget.set_game(game, all_categories)
 
