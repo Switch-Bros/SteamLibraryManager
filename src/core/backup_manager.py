@@ -30,10 +30,10 @@ class BackupManager:
 
         Args:
             backup_dir (Optional[Path]): Custom directory for storing backups.
-                                         If None, uses the default data/backups directory.
+                                         If None, backups will be created in the same
+                                         directory as the original file.
         """
-        self.backup_dir = backup_dir or (config.DATA_DIR / 'backups')
-        self.backup_dir.mkdir(parents=True, exist_ok=True)
+        self.backup_dir = backup_dir
 
     def create_backup(self, file_path: Path) -> Optional[Path]:
         """
@@ -41,6 +41,9 @@ class BackupManager:
 
         The backup is saved with a timestamp in the filename (e.g., localconfig_20240128_143022.vdf).
         After creating the backup, old backups are automatically rotated based on the MAX_BACKUPS setting.
+
+        If no backup_dir was specified in __init__, the backup is created in the same directory
+        as the original file.
 
         Args:
             file_path (Path): Path to the file to back up.
@@ -52,9 +55,15 @@ class BackupManager:
         if not file_path.exists():
             return None
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # Use Unix timestamp (seconds since 1970) - short and unique
+        timestamp = str(int(datetime.now().timestamp()))
         backup_name = f"{file_path.stem}_{timestamp}{file_path.suffix}"
-        backup_path = self.backup_dir / backup_name
+
+        # Use specified backup_dir or same directory as original file
+        target_dir = self.backup_dir if self.backup_dir else file_path.parent
+        target_dir.mkdir(parents=True, exist_ok=True)
+
+        backup_path = target_dir / backup_name
 
         try:
             shutil.copy2(file_path, backup_path)
@@ -78,7 +87,9 @@ class BackupManager:
         Args:
             file_path (Path): The original file path (used to match backup files).
         """
-        pattern = str(self.backup_dir / f"{file_path.stem}_*{file_path.suffix}")
+        # Use specified backup_dir or same directory as original file
+        target_dir = self.backup_dir if self.backup_dir else file_path.parent
+        pattern = str(target_dir / f"{file_path.stem}_*{file_path.suffix}")
         backups = sorted(glob.glob(pattern), key=os.path.getmtime, reverse=True)
 
         if len(backups) > config.MAX_BACKUPS:
