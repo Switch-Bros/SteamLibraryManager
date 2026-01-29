@@ -234,8 +234,7 @@ class MissingMetadataDialog(QDialog):
             self.table.setItem(row, 4, self._create_item(display_rel))
 
         # Update Statistics
-        stats = t('ui.tools.missing_metadata.stats',
-                  dev=missing_dev, pub=missing_pub, rel=missing_rel)
+        stats = t('ui.tools.missing_metadata.stats', count=len(self.games))
         self.stats_label.setText(stats)
 
         # Initial size adjustment

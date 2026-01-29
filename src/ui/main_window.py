@@ -920,38 +920,48 @@ class MainWindow(QMainWindow):
 
             def run(self):
                 try:
-                    url = f"https://store.steampowered.com/app/{self.app_id}/"
-                    response = requests.get(url, timeout=10, allow_redirects=False, headers={'User-Agent': 'SLM/1.0'})
+                    # Use Steam Store API for reliable geo-blocking detection
+                    # First check with user's country (DE for Germany)
+                    api_url_de = f"https://store.steampowered.com/api/appdetails?appids={self.app_id}&cc=DE"
+                    response_de = requests.get(api_url_de, timeout=10)
 
-                    if response.status_code == 200:
-                        text_lower = response.text.lower()
+                    if response_de.status_code != 200:
+                        self.finished.emit('unknown', t('ui.store_check.unknown', code=response_de.status_code))
+                        return
 
-                        # Check for geo-blocking (works for both English and German)
-                        if ('not available in your country' in text_lower or
-                                'nicht in ihrem land' in text_lower or
-                                'not available in your region' in text_lower or
-                                'currently not available' in text_lower):
-                            self.finished.emit('geo_locked', t('ui.store_check.geo_locked'))
-                        # Check if redirected to age gate
-                        elif 'agecheck' in text_lower:
-                            self.finished.emit('age_gate', t('ui.store_check.age_gate'))
-                        # Check if app page exists
-                        elif 'app_header' in text_lower or 'game_area_purchase' in text_lower:
+                    data_de = response_de.json()
+
+                    if self.app_id in data_de:
+                        app_data_de = data_de[self.app_id]
+
+                        if app_data_de.get('success'):
+                            # Available in Germany
                             self.finished.emit('available', t('ui.store_check.available'))
                         else:
-                            # Page loaded but doesn't look like a valid store page
-                            self.finished.emit('delisted', t('ui.store_check.delisted'))
-                    elif response.status_code == 302:
-                        # Follow redirect to check if it's age gate or delisted
-                        redirect_url = response.headers.get('Location', '')
-                        if 'agecheck' in redirect_url:
-                            self.finished.emit('age_gate', t('ui.store_check.age_gate'))
-                        else:
-                            self.finished.emit('delisted', t('ui.store_check.delisted'))
-                    elif response.status_code in [404, 403]:
-                        self.finished.emit('delisted', t('ui.store_check.removed'))
+                            # Not available in Germany - check if it's geo-blocked or delisted
+                            # Try with US country code
+                            api_url_us = f"https://store.steampowered.com/api/appdetails?appids={self.app_id}&cc=US"
+                            response_us = requests.get(api_url_us, timeout=10)
+
+                            if response_us.status_code == 200:
+                                data_us = response_us.json()
+
+                                if self.app_id in data_us:
+                                    app_data_us = data_us[self.app_id]
+
+                                    if app_data_us.get('success'):
+                                        # Available in US but not in DE → Geo-blocked
+                                        self.finished.emit('geo_locked', t('ui.store_check.geo_locked'))
+                                    else:
+                                        # Not available anywhere → Delisted
+                                        self.finished.emit('delisted', t('ui.store_check.delisted'))
+                                else:
+                                    self.finished.emit('delisted', t('ui.store_check.delisted'))
+                            else:
+                                # Can't check US, assume delisted
+                                self.finished.emit('delisted', t('ui.store_check.delisted'))
                     else:
-                        self.finished.emit('unknown', t('ui.store_check.unknown', code=response.status_code))
+                        self.finished.emit('unknown', t('ui.store_check.unknown', code=0))
 
                 except Exception as ex:
                     self.finished.emit('unknown', str(ex))
@@ -963,8 +973,6 @@ class MainWindow(QMainWindow):
 
             if status == 'available':
                 UIHelper.show_success(self, msg, title)
-            elif status == 'age_gate':
-                UIHelper.show_info(self, msg, title)
             else:
                 UIHelper.show_warning(self, msg, title)
 
