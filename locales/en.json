@@ -144,6 +144,9 @@
       "section_basic": "Basic Info",
       "section_metadata": "Metadata",
       "section_ratings": "Ratings & Proton",
+      "multi_select_title": "{count} Games Selected",
+      "selected": "Selected",
+      "total_playtime": "Total Playtime",
       "name": "Name",
       "app_id": "App ID",
       "developer": "Developer",
@@ -198,7 +201,8 @@
       "check_store": "🔍 Check Store Availability",
       "auto_categorize": "Auto-Categorize",
       "rename": "Rename",
-      "delete": "Delete"
+      "delete": "Delete",
+      "merge_categories": "Merge Categories"
     },
     "metadata_editor": {
       "title": "Edit Metadata",
@@ -264,7 +268,10 @@
       "delete_title": "Delete Category",
       "delete_msg": "Delete '{category}'? Games will not be removed.",
       "category_count": "{name} ({count})",
-      "game_tooltip": "{name}\nDeveloper: {developer}"
+      "game_tooltip": "{name}\nDeveloper: {developer}",
+      "merge_title": "Merge Categories",
+      "merge_instruction": "Select the target category to merge all {count} categories into:",
+      "merge_success": "{count} categories successfully merged into '{target}'"
     },
     "auto_categorize": {
       "title": "Auto-Categorize",
