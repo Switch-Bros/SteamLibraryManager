@@ -12,12 +12,13 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QFrame, QPushButton, QCheckBox,
     QLineEdit, QListWidget, QListWidgetItem,
-    QAbstractItemView, QMenu
+    QAbstractItemView, QMenu, QDialog
 )
 
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from PyQt6.QtGui import QFont, QCursor
 from typing import List
+from pathlib import Path
 from src.core.game_manager import Game
 from src.utils.i18n import t
 from src.utils.date_utils import format_timestamp_to_date
@@ -237,6 +238,7 @@ class GameDetailsWidget(QWidget):
 
     category_changed = pyqtSignal(str, str, bool)
     edit_metadata = pyqtSignal(object)
+    pegi_override_requested = pyqtSignal(str, str)  # app_id, rating
 
     def __init__(self, parent=None):
         """
@@ -288,29 +290,16 @@ class GameDetailsWidget(QWidget):
         buttons_pegi_layout.setAlignment(Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignLeft)
         buttons_pegi_layout.addLayout(button_layout)
 
-        self.pegi_label = QLabel()
-        self.pegi_label.setFixedSize(128, 128)
-        self.pegi_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.pegi_label.setStyleSheet(
+        # PEGI as ClickableImage (like the 4 cover boxes)
+        self.pegi_image = ClickableImage(self, 128, 128)
+        self.pegi_image.set_default_image("resources/images/default_icons.png")
+        self.pegi_image.clicked.connect(self._on_pegi_clicked)
+        self.pegi_image.setStyleSheet(
             "border: 1px solid #FDE100; "
-            "background-color: #1b2838; "
-            "color: #FDE100; "
-            "font-size: 48px; "
-            "font-weight: bold;"
+            "background-color: #1b2838;"
         )
-        self.pegi_label.setScaledContents(True)  # For images
 
-        # Load default icon
-        from pathlib import Path
-        from PyQt6.QtGui import QPixmap
-        default_icon_path = Path("resources/icons/default_icons.png")
-        if default_icon_path.exists():
-            pixmap = QPixmap(str(default_icon_path))
-            self.pegi_label.setPixmap(
-                pixmap.scaled(128, 128, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-        # Always visible (like the 4 cover boxes)
-
-        buttons_pegi_layout.addWidget(self.pegi_label)
+        buttons_pegi_layout.addWidget(self.pegi_image)
         buttons_pegi_layout.addStretch()
 
         left_container.addLayout(buttons_pegi_layout)
@@ -559,14 +548,7 @@ class GameDetailsWidget(QWidget):
         self.img_icon.clear()
 
         # Show default icon for PEGI (multi-select has no rating)
-        from pathlib import Path
-        from PyQt6.QtGui import QPixmap
-        default_icon_path = Path("resources/icons/default_icons.png")
-        if default_icon_path.exists():
-            pixmap = QPixmap(str(default_icon_path))
-            self.pegi_label.setPixmap(
-                pixmap.scaled(128, 128, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-            self.pegi_label.setText("")  # Clear text
+        self.pegi_image.load_image(None)  # Shows default image
 
     def set_game(self, game: Game, _all_categories: List[str]):
         """
@@ -646,32 +628,20 @@ class GameDetailsWidget(QWidget):
             print(f"[DEBUG] Showing PEGI: {pegi_to_display}")
 
             # Try to load PEGI image from /resources/icons/
-            from pathlib import Path
-            from PyQt6.QtGui import QPixmap
             pegi_image_path = Path(f"resources/icons/PEGI{pegi_to_display}.png")
 
             if pegi_image_path.exists():
                 print(f"[DEBUG] Loading PEGI image: {pegi_image_path}")
-                pixmap = QPixmap(str(pegi_image_path))
-                self.pegi_label.setPixmap(pixmap.scaled(128, 128, Qt.AspectRatioMode.KeepAspectRatio,
-                                                        Qt.TransformationMode.SmoothTransformation))
-                self.pegi_label.setText("")  # Clear text when showing image
+                self.pegi_image.load_image(str(pegi_image_path))
             else:
-                print(f"[DEBUG] PEGI image not found, using text: {pegi_image_path}")
-                self.pegi_label.setPixmap(QPixmap())  # Clear any previous image
-                self.pegi_label.setText(f"PEGI\n{pegi_to_display}")
+                print(f"[DEBUG] PEGI image not found: {pegi_image_path}")
+                # ClickableImage doesn't support text, show default
+                self.pegi_image.load_image(None)
 
         else:
             # No rating available - show default icon
             print(f"[DEBUG] No rating, showing default icon")
-            from pathlib import Path
-            from PyQt6.QtGui import QPixmap
-            default_icon_path = Path("resources/icons/default_icons.png")
-            if default_icon_path.exists():
-                pixmap = QPixmap(str(default_icon_path))
-                self.pegi_label.setPixmap(pixmap.scaled(128, 128, Qt.AspectRatioMode.KeepAspectRatio,
-                                                        Qt.TransformationMode.SmoothTransformation))
-                self.pegi_label.setText("")  # Clear text
+            self.pegi_image.load_image(None)  # Shows default image
 
         self._reload_images(game.app_id)
 
@@ -704,18 +674,29 @@ class GameDetailsWidget(QWidget):
         self.img_icon.load_image(None)
 
         # Show default icon for PEGI
-        from pathlib import Path
-        from PyQt6.QtGui import QPixmap
-        default_icon_path = Path("resources/icons/default_icons.png")
-        if default_icon_path.exists():
-            pixmap = QPixmap(str(default_icon_path))
-            self.pegi_label.setPixmap(
-                pixmap.scaled(128, 128, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
-            self.pegi_label.setText("")  # Clear text
+        self.pegi_image.load_image(None)  # Shows default image
 
         self.category_list.set_categories([], [])
 
-    def _on_category_toggle(self, category: str, checked: bool):
+    def _on_pegi_clicked(self):
+        """Handle PEGI box click - open PEGI selector dialog."""
+        if not self.current_game:
+            return
+
+        from src.ui.pegi_selector_dialog import PEGISelectorDialog
+
+        # Get current PEGI rating (including override)
+        current_rating = getattr(self.current_game, 'pegi_rating', '')
+
+        # Open dialog
+        dialog = PEGISelectorDialog(current_rating, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            selected_rating = dialog.get_selected_rating()
+
+            # Emit signal to save override
+            self.pegi_override_requested.emit(self.current_game.app_id, selected_rating)
+
+    def _on_category_toggle(self, category_name: str, state: int):
         """
         Handles category checkbox toggle events.
 
@@ -723,16 +704,18 @@ class GameDetailsWidget(QWidget):
         For multi-select: Emits signal for all selected games.
 
         Args:
-            category (str): The category name.
-            checked (bool): Whether the checkbox is checked.
+            category_name (str): The category name.
+            state (int): The checkbox state (Qt.CheckState).
         """
+        checked = state == Qt.CheckState.Checked.value
+
         if self.current_game:
             # Single game mode
-            self.category_changed.emit(self.current_game.app_id, category, checked)
+            self.category_changed.emit(self.current_game.app_id, category_name, checked)
         elif self.current_games:
             # Multi-select mode - emit for all selected games
             for game in self.current_games:
-                self.category_changed.emit(game.app_id, category, checked)
+                self.category_changed.emit(game.app_id, category_name, checked)
 
     def _on_edit(self):
         """Handles the edit button click event."""

@@ -254,6 +254,13 @@
       "removed": "❌ Aus dem Store entfernt",
       "unknown": "❓ Unbekannter Status (Code: {code})"
     },
+    "pegi_selector": {
+      "title": "PEGI-Bewertung auswählen",
+      "select": "Wählen Sie die richtige PEGI-Bewertung für dieses Spiel:",
+      "none": "Keine Bewertung",
+      "saved": "PEGI-Bewertung gespeichert: {rating}",
+      "removed": "PEGI-Bewertung entfernt"
+    },
     "visibility": {
       "hidden": "Versteckt",
       "visible": "Sichtbar",
