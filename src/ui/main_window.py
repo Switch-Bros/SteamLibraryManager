@@ -588,17 +588,11 @@ class MainWindow(QMainWindow):
         Args:
             games: List of currently selected games.
         """
-        # Debug output
-        print(f"[DEBUG] _on_games_selected called with {len(games)} games")
-        if games:
-            print(f"[DEBUG] First game: {games[0].name if games else 'None'}")
-
         self.selected_games = games
         all_categories = list(self.game_manager.get_all_categories().keys())
 
         if len(games) > 1:
             # Show multi-select view in details widget
-            print(f"[DEBUG] Calling set_games with {len(games)} games")
             self.set_status(t('ui.main_window.games_selected', count=len(games)))
             self.details_widget.set_games(games, all_categories)
         elif len(games) == 1:
@@ -615,6 +609,10 @@ class MainWindow(QMainWindow):
         Args:
             game: The selected game object.
         """
+        # Ignore if multiple games are selected (multi-select mode)
+        if len(self.selected_games) > 1:
+            return
+
         self.selected_game = game
         all_categories = list(self.game_manager.get_all_categories().keys())
         self.details_widget.set_game(game, all_categories)
