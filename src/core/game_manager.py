@@ -25,7 +25,7 @@ class Game:
 
     This dataclass stores all information about a game, including basic info
     (name, app_id), playtime, categories, metadata (developer, publisher),
-    and extended data from external APIs (ProtonDB, SteamDB, reviews).
+    and extended data from external APIs (ProtonDB, Steam Deck, reviews).
     """
     app_id: str
     name: str
@@ -51,7 +51,7 @@ class Game:
 
     # Extended data
     proton_db_rating: str = ""
-    steam_db_rating: str = ""
+    steam_deck_status: str = ""
     review_score: str = ""
     review_count: int = 0
     last_updated: str = ""
@@ -538,6 +538,7 @@ class GameManager:
         self._fetch_store_data(app_id)
         self._fetch_review_stats(app_id)
         self._fetch_proton_rating(app_id)
+        self._fetch_steam_deck_status(app_id)
         return True
 
     def _fetch_store_data(self, app_id: str) -> None:
@@ -612,8 +613,8 @@ class GameManager:
         """
         cache_file = self.cache_dir / 'store_data' / f'{app_id}_proton.json'
 
-        # Helper for unknown status
-        unknown_status = t('common.unknown')
+        # Always use English tier names for internal storage (translated on display)
+        unknown_status = "unknown"
 
         if cache_file.exists():
             try:
@@ -641,7 +642,59 @@ class GameManager:
                 if app_id in self.games:
                     self.games[app_id].proton_db_rating = unknown_status
         except (requests.RequestException, ValueError, KeyError, OSError):
-            pass
+            if app_id in self.games:
+                self.games[app_id].proton_db_rating = unknown_status
+
+    def _fetch_steam_deck_status(self, app_id: str) -> None:
+        """
+        Fetches Steam Deck compatibility status from Steam API.
+
+        Args:
+            app_id (str): The Steam app ID.
+        """
+        cache_file = self.cache_dir / 'store_data' / f'{app_id}_deck.json'
+        unknown_status = "unknown"
+
+        if cache_file.exists():
+            try:
+                cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
+                if cache_age < timedelta(days=7):
+                    with open(cache_file, 'r') as f:
+                        data = json.load(f)
+                        if app_id in self.games:
+                            self.games[app_id].steam_deck_status = data.get('status', unknown_status)
+                    return
+            except (OSError, json.JSONDecodeError):
+                pass
+
+        try:
+            # Steam Deck compatibility is included in the store API response
+            url = f'https://store.steampowered.com/api/appdetails?appids={app_id}'
+            response = requests.get(url, timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                app_data = data.get(str(app_id), {})
+                if app_data.get('success'):
+                    game_data = app_data.get('data', {})
+                    # Steam Deck compatibility categories:
+                    # 0 = Unknown, 1 = Unsupported, 2 = Playable, 3 = Verified
+                    deck_compat = game_data.get('steam_deck_compatibility', {})
+                    category = deck_compat.get('category', 0)
+
+                    status_map = {0: 'unknown', 1: 'unsupported', 2: 'playable', 3: 'verified'}
+                    status = status_map.get(category, unknown_status)
+
+                    with open(cache_file, 'w') as f:
+                        json.dump({'status': status}, f)
+                    if app_id in self.games:
+                        self.games[app_id].steam_deck_status = status
+                    return
+
+            if app_id in self.games:
+                self.games[app_id].steam_deck_status = unknown_status
+        except (requests.RequestException, ValueError, KeyError, OSError):
+            if app_id in self.games:
+                self.games[app_id].steam_deck_status = unknown_status
 
     def _apply_review_data(self, app_id: str, data: Dict) -> None:
         """
@@ -659,11 +712,6 @@ class GameManager:
         game.review_score = summary.get('review_score_desc', t('common.unknown'))
 
         game.review_count = summary.get('total_reviews', 0)
-        positive = summary.get('total_positive', 0)
-        total = summary.get('total_reviews', 0)
-        if total > 0:
-            percent = (positive / total) * 100
-            game.steam_db_rating = f"{percent:.0f}%"
 
     def _apply_store_data(self, app_id: str, data: Dict) -> None:
         """

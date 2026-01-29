@@ -156,7 +156,13 @@
       "btn_store": "Steam Store",
       "btn_edit": "Metadaten bearbeiten",
       "proton_db": "ProtonDB",
-      "steam_db": "SteamDB Bewertung",
+      "steam_deck": "Steam Deck",
+      "steam_deck_status": {
+        "verified": "Verifiziert",
+        "playable": "Spielbar",
+        "unsupported": "Nicht unterstützt",
+        "unknown": "Unbekannt"
+      },
       "reviews": "Bewertungen",
       "value_unknown": "Unbekannt",
       "select_placeholder": "Wähle ein Spiel für Details",
