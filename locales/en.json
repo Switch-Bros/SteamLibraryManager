@@ -254,6 +254,13 @@
       "removed": "❌ Removed from Store",
       "unknown": "❓ Unknown status (Code: {code})"
     },
+    "pegi_selector": {
+      "title": "Select PEGI Rating",
+      "select": "Select the correct PEGI rating for this game:",
+      "none": "No Rating",
+      "saved": "PEGI rating saved: {rating}",
+      "removed": "PEGI rating removed"
+    },
     "visibility": {
       "hidden": "Hidden",
       "visible": "Visible",

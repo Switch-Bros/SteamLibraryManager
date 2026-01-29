@@ -449,6 +449,8 @@ class GameManager:
                     game.publisher = modified['publisher']
                 if modified.get('release_date'):
                     game.release_year = modified['release_date']
+                if modified.get('pegi_rating'):
+                    game.pegi_rating = modified['pegi_rating']
 
                 count += 1
 
