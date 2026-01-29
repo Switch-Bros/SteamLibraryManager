@@ -260,7 +260,7 @@
       "none": "No Rating",
       "saved": "PEGI rating saved: {rating}",
       "removed": "PEGI rating removed",
-      "instruction": "Set the PEGI Rating",
+      "instruction": "Choose the correct PEGI age rating for this game:",
       "remove": "Remove"
     },
     "visibility": {
