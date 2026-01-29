@@ -250,7 +250,6 @@
       "checking": "Checking store availability...",
       "available": "✅ Available on Steam Store",
       "geo_locked": "🚫 Not available in your country (Geo-blocking/Censorship)",
-      "age_gate": "🔞 Age verification required (Store page exists)",
       "delisted": "❌ No longer available on Store",
       "removed": "❌ Removed from Store",
       "unknown": "❓ Unknown status (Code: {code})"
