@@ -18,7 +18,8 @@
     "game_fallback": "Unknown App {id}",
     "confirm_exit": "Do you really want to exit the application?",
     "warning": "Warning",
-    "dash": "-"
+    "dash": "-",
+    "clear": "×"
   },
   "ui": {
     "main_window": {

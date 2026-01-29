@@ -260,7 +260,7 @@ class MainWindow(QMainWindow):
         self.search_entry.textChanged.connect(self.on_search)
         search_layout.addWidget(self.search_entry)
 
-        clear_btn = QPushButton("×")
+        clear_btn = QPushButton(t('common.clear'))
         # noinspection PyUnresolvedReferences
         clear_btn.clicked.connect(self.clear_search)
         clear_btn.setMaximumWidth(30)
