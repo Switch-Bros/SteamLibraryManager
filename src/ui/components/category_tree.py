@@ -132,6 +132,21 @@ class GameTreeWidget(QTreeWidget):
         ]
         self.selection_changed.emit(selected_games)
 
+    def get_selected_categories(self) -> List[str]:
+        """
+        Returns a list of currently selected category names.
+
+        Returns:
+            List[str]: List of selected category names.
+        """
+        selected_categories = []
+        for item in self.selectedItems():
+            if item.data(0, Qt.ItemDataRole.UserRole) == "category":
+                category_name = item.data(0, Qt.ItemDataRole.UserRole + 1)
+                if category_name:
+                    selected_categories.append(category_name)
+        return selected_categories
+
     def contextMenuEvent(self, event) -> None:
         """Emits a signal when an item is right-clicked to show a context menu."""
         item = self.itemAt(event.pos())
@@ -144,7 +159,13 @@ class GameTreeWidget(QTreeWidget):
         if item_type == "game" and data:
             self.game_right_clicked.emit(data, event.globalPos())
         elif item_type == "category" and data:
-            self.category_right_clicked.emit(data, event.globalPos())
+            # Check if multiple categories are selected
+            selected_cats = self.get_selected_categories()
+            if len(selected_cats) > 1:
+                # Multi-category context menu (will be handled in main_window)
+                self.category_right_clicked.emit("__MULTI__", event.globalPos())
+            else:
+                self.category_right_clicked.emit(data, event.globalPos())
 
     # The Drag & Drop events are kept simple as the main logic is often
     # handled in the controller/main window that receives the drop signal.
