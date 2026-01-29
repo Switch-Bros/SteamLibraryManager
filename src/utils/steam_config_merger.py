@@ -1,12 +1,11 @@
-"""
-Steam Configuration Merger - Enhanced Edition
-Utility to transfer categories (tags) between Windows (sharedconfig.vdf) and Linux (localconfig.vdf).
+# src/utils/steam_config_merger.py
 
-Features:
-- Automatic backup creation
-- Dry-run mode for testing
-- Multiple merge strategies (overwrite, merge, skip_existing)
-- Progress callback for UI integration
+"""
+Steam configuration merger for transferring categories between platforms.
+
+This utility transfers game categories (tags) between Windows (sharedconfig.vdf)
+and Linux (localconfig.vdf) with support for multiple merge strategies, automatic
+backups, and dry-run mode for testing.
 """
 import logging
 import shutil
@@ -19,22 +18,46 @@ from src.utils.i18n import t
 
 
 class MergeStrategy(Enum):
-    """Strategy for handling tag conflicts"""
-    OVERWRITE = "overwrite"  # Source replaces target (default)
-    MERGE = "merge"  # Combine unique tags from both
-    SKIP_EXISTING = "skip_existing"  # Only add tags to apps without any
+    """
+    Strategy for handling tag conflicts during merge operations.
+
+    Attributes:
+        OVERWRITE: Source replaces target (default).
+        MERGE: Combine unique tags from both source and target.
+        SKIP_EXISTING: Only add tags to apps that have no existing tags.
+    """
+    OVERWRITE = "overwrite"
+    MERGE = "merge"
+    SKIP_EXISTING = "skip_existing"
 
 
 class SteamConfigMerger:
+    """
+    Merges Steam configuration files between different platforms.
+
+    This class provides functionality to transfer game categories (tags) from
+    one Steam configuration file to another, with support for different merge
+    strategies, automatic backups, and progress tracking.
+    """
+
     def __init__(self):
+        """Initializes the SteamConfigMerger."""
         self.logger = logging.getLogger("SteamConfigMerger")
 
     @staticmethod
     def _find_apps_section(data: dict) -> Optional[dict]:
         """
         Dynamically finds the 'apps' section in a VDF dictionary.
-        Handles both UserLocalConfigStore (localconfig) and UserRoamingConfigStore (sharedconfig).
-        Returns a reference to the dictionary, allowing direct modification.
+
+        This method handles both UserLocalConfigStore (localconfig.vdf) and
+        UserRoamingConfigStore (sharedconfig.vdf) formats. It returns a reference
+        to the dictionary, allowing direct modification.
+
+        Args:
+            data (dict): The parsed VDF data.
+
+        Returns:
+            Optional[dict]: A reference to the 'apps' dictionary, or None if not found.
         """
         # Possible root keys for different config files
         roots = ['UserLocalConfigStore', 'UserRoamingConfigStore']
@@ -51,13 +74,16 @@ class SteamConfigMerger:
     @staticmethod
     def _create_backup(target_path: Path) -> Optional[Path]:
         """
-        Create backup of target file before modification.
+        Creates a backup of the target file before modification.
+
+        This method first attempts to use the BackupManager from core. If that fails,
+        it creates a simple backup with a .backup extension.
 
         Args:
-            target_path: Path to file to back up
+            target_path (Path): Path to the file to back up.
 
         Returns:
-            Path to backup file, or None if backup failed
+            Optional[Path]: Path to the backup file, or None if backup failed.
         """
         try:
             # Import backup manager from core
@@ -77,7 +103,7 @@ class SteamConfigMerger:
                 shutil.copy2(target_path, backup_path)
                 return backup_path
             except (OSError, IOError) as fallback_error:
-                print(f"Backup failed: {fallback_error}")
+                print(t('logs.common.backup_failed', error=str(fallback_error)))
                 return None
 
     def merge_tags(
@@ -92,17 +118,24 @@ class SteamConfigMerger:
         """
         Transfers categories from source_path to target_path.
 
+        This method reads game categories from the source file and merges them into
+        the target file according to the specified strategy. It supports automatic
+        backups, dry-run mode for testing, and progress callbacks for UI integration.
+
         Args:
-            source_path: Path to source VDF file (e.g., sharedconfig.vdf from Windows)
-            target_path: Path to target VDF file (e.g., localconfig.vdf on Linux)
-            strategy: Merge strategy (overwrite, merge, or skip_existing)
-            create_backup: Create backup before modifying target
-            dry_run: If True, simulate changes without saving
-            progress_callback: Optional callback(current, total, app_id) for progress updates
+            source_path (Path): Path to source VDF file (e.g., sharedconfig.vdf from Windows).
+            target_path (Path): Path to target VDF file (e.g., localconfig.vdf on Linux).
+            strategy (MergeStrategy): Merge strategy to use. Defaults to OVERWRITE.
+            create_backup (bool): Whether to create a backup before modifying target. Defaults to True.
+            dry_run (bool): If True, simulate changes without saving. Defaults to False.
+            progress_callback (Optional[Callable[[int, int, str], None]]): Optional callback
+                function(current, total, app_id) for progress updates.
 
         Returns:
-            Tuple of (Success: bool, Message: str, Changes: List[str])
-            Changes list contains descriptions of all modifications made
+            Tuple[bool, str, List[str]]: A tuple containing:
+                - Success (bool): Whether the operation succeeded.
+                - Message (str): A human-readable status message.
+                - Changes (List[str]): Descriptions of all modifications made.
         """
         changes = []
 

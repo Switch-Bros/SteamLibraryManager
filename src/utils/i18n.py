@@ -1,5 +1,11 @@
+# src/utils/i18n.py
+
 """
-i18n System - Core Translation Logic (Robust Path Fix)
+Internationalization (i18n) system for the Steam Library Manager.
+
+This module provides a simple translation system that loads locale files
+(JSON) and provides a translation function `t()` for retrieving localized
+strings with placeholder support.
 """
 import json
 from pathlib import Path
@@ -7,7 +13,20 @@ from typing import Optional, Dict, Any
 
 
 class I18n:
+    """
+    Core internationalization class.
+
+    This class loads translation files from the locales directory and provides
+    methods to retrieve translated strings with placeholder substitution.
+    """
+
     def __init__(self, locale: str = 'en'):
+        """
+        Initializes the I18n system.
+
+        Args:
+            locale (str): The locale code (e.g., 'en', 'de'). Defaults to 'en'.
+        """
         self.locale = locale
         self.translations: Dict[str, Any] = {}
         self.fallback_translations: Dict[str, Any] = {}
@@ -22,6 +41,12 @@ class I18n:
         self._load_translations()
 
     def _load_translations(self):
+        """
+        Loads translation files from the locales directory.
+
+        This method always loads English as a fallback, then loads the target
+        locale if it's different from English.
+        """
         # Always load English as fallback
         fallback_path = self.locales_dir / 'en.json'
         if fallback_path.exists():
@@ -49,6 +74,20 @@ class I18n:
             self.translations = self.fallback_translations.copy()
 
     def t(self, key: str, **kwargs) -> str:
+        """
+        Retrieves a translated string for the given key.
+
+        This method supports nested keys using dot notation (e.g., 'ui.menu.file')
+        and placeholder substitution using Python's str.format() syntax.
+
+        Args:
+            key (str): The translation key in dot notation (e.g., 'ui.menu.file').
+            **kwargs: Placeholder values for string formatting.
+
+        Returns:
+            str: The translated string with placeholders replaced, or a fallback
+                string if the key is not found (e.g., '[ui.menu.file]').
+        """
         keys = key.split('.')
 
         # Try target locale
@@ -89,12 +128,38 @@ _i18n_instance: Optional[I18n] = None
 
 
 def init_i18n(locale: str = 'en') -> I18n:
+    """
+    Initializes the global i18n instance.
+
+    This function creates a new I18n instance and sets it as the global instance
+    used by the `t()` function.
+
+    Args:
+        locale (str): The locale code (e.g., 'en', 'de'). Defaults to 'en'.
+
+    Returns:
+        I18n: The initialized I18n instance.
+    """
     global _i18n_instance
     _i18n_instance = I18n(locale)
     return _i18n_instance
 
 
 def t(key: str, **kwargs) -> str:
+    """
+    Global translation function.
+
+    This is a convenience function that uses the global I18n instance to retrieve
+    translated strings. If no instance exists, it initializes one with the default
+    locale ('en').
+
+    Args:
+        key (str): The translation key in dot notation (e.g., 'ui.menu.file').
+        **kwargs: Placeholder values for string formatting.
+
+    Returns:
+        str: The translated string with placeholders replaced.
+    """
     if _i18n_instance is None:
         init_i18n()
     return _i18n_instance.t(key, **kwargs)
