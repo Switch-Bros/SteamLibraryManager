@@ -57,6 +57,7 @@ class Game:
     last_updated: str = ""
     steam_grid_db_url: str = ""
     pegi_rating: str = ""  # PEGI age rating (e.g., "12", "18")
+    esrb_rating: str = ""  # ESRB age rating (e.g., "Teen", "Mature")
 
     # Legacy / UI Compatibility
     proton_db_tier: str = ""
@@ -742,13 +743,23 @@ class GameManager:
 
         # Extract PEGI rating
         ratings = data.get('ratings', {})
-        print(f"[DEBUG] Store data for {game.name}: has ratings={bool(ratings)}, has pegi={'pegi' in ratings}")
+        print(
+            f"[DEBUG] Store data for {game.name}: has ratings={bool(ratings)}, has pegi={'pegi' in ratings}, has esrb={'esrb' in ratings}")
         if 'pegi' in ratings:
             pegi_data = ratings['pegi']
             game.pegi_rating = pegi_data.get('rating', '')
             print(f"[DEBUG] PEGI extracted: {game.pegi_rating}")
         else:
-            print(f"[DEBUG] No PEGI data in ratings: {list(ratings.keys())}")
+            print(f"[DEBUG] No PEGI data in ratings")
+
+        if 'esrb' in ratings:
+            esrb_data = ratings['esrb']
+            game.esrb_rating = esrb_data.get('rating', '')
+            print(f"[DEBUG] ESRB extracted: {game.esrb_rating}")
+        else:
+            print(f"[DEBUG] No ESRB data in ratings")
+
+        print(f"[DEBUG] Available ratings: {list(ratings.keys())}")
 
     def get_load_source_message(self) -> str:
         """
