@@ -1,6 +1,9 @@
 """
-Metadata Edit Dialogs - Enhanced UX with Visual Indicators & Warnings (100% i18n)
-Save as: src/ui/metadata_dialogs.py
+Metadata editing dialogs for Steam Library Manager.
+
+This module provides dialogs for editing game metadata, including single-game
+editing, bulk editing for multiple games, and restoration of original values.
+All dialogs feature visual indicators for modified fields and VDF write options.
 """
 
 from PyQt6.QtWidgets import (
@@ -15,9 +18,30 @@ from src.utils.date_utils import parse_date_to_timestamp
 
 
 class MetadataEditDialog(QDialog):
-    """Dialog for single-game metadata editing with visual feedback"""
+    """Dialog for editing metadata of a single game.
 
-    def __init__(self, parent, game_name: str, current_metadata: Dict, original_metadata: Optional[Dict] = None):
+    Provides a form interface for editing game metadata fields such as name,
+    developer, publisher, and release date. Features visual highlighting of
+    modified fields and optional VDF write functionality.
+
+    Attributes:
+        game_name: The name of the game being edited.
+        current_metadata: Dictionary containing current metadata values.
+        original_metadata: Dictionary containing original unmodified values.
+        result_metadata: Dictionary containing edited values after save.
+    """
+
+    def __init__(self, parent, game_name: str, current_metadata: Dict,
+                 original_metadata: Optional[Dict] = None):
+        """Initializes the metadata edit dialog.
+
+        Args:
+            parent: Parent widget for the dialog.
+            game_name: Name of the game to display in the title.
+            current_metadata: Dictionary with current metadata values.
+            original_metadata: Optional dictionary with original values for
+                comparison and revert functionality.
+        """
         super().__init__(parent)
         self.game_name = game_name
         self.current_metadata = current_metadata
@@ -32,6 +56,11 @@ class MetadataEditDialog(QDialog):
         self._populate_fields()
 
     def _create_ui(self):
+        """Creates the dialog user interface.
+
+        Sets up the form layout with input fields, VDF options group,
+        original values display, and action buttons.
+        """
         layout = QVBoxLayout(self)
 
         # Title
@@ -125,7 +154,12 @@ class MetadataEditDialog(QDialog):
         layout.addLayout(btn_layout)
 
     def _populate_fields(self):
-        """Populate fields and highlight modified values"""
+        """Populates form fields with current metadata values.
+
+        Fills all input fields with values from current_metadata and applies
+        visual highlighting to fields that differ from original values.
+        Also displays original values in the read-only text area.
+        """
         m = self.current_metadata
 
         # Populate fields
@@ -161,7 +195,11 @@ class MetadataEditDialog(QDialog):
         self.original_text.setPlainText('\n'.join(lines))
 
     def _highlight_modified_fields(self):
-        """Highlight modified fields in yellow"""
+        """Highlights fields that differ from original values.
+
+        Applies a yellow background style and tooltip to fields where the
+        current value differs from the original value.
+        """
         modified_style = "background-color: #FFF3CD; border: 2px solid #FFA500;"
 
         m = self.current_metadata
@@ -192,7 +230,12 @@ class MetadataEditDialog(QDialog):
                                                 original=o.get('release_date', t('ui.game_details.value_unknown'))))
 
     def _revert_to_original(self):
-        """Restore original values"""
+        """Restores all fields to their original values.
+
+        Shows an information dialog if no original values exist, or a
+        confirmation dialog before reverting. Clears all modified styling
+        after successful revert.
+        """
         if not self.original_metadata:
             QMessageBox.information(
                 self,
@@ -230,7 +273,11 @@ class MetadataEditDialog(QDialog):
             self.release_date_edit.setToolTip("")
 
     def _save(self):
-        """Save with optional VDF warning"""
+        """Validates and saves the edited metadata.
+
+        Validates that the name field is not empty, shows a VDF write warning
+        dialog on first use, and stores the result metadata if validation passes.
+        """
         name = self.name_edit.text().strip()
         if not name:
             QMessageBox.warning(self, t('ui.dialogs.error'), t('ui.metadata_editor.error_empty_name'))
@@ -269,13 +316,36 @@ class MetadataEditDialog(QDialog):
         self.accept()
 
     def get_metadata(self) -> Optional[Dict]:
+        """Returns the edited metadata after dialog acceptance.
+
+        Returns:
+            Dictionary containing the edited metadata values, or None if
+            the dialog was cancelled or validation failed.
+        """
         return self.result_metadata
 
 
 class BulkMetadataEditDialog(QDialog):
-    """Dialog for bulk metadata editing"""
+    """Dialog for editing metadata of multiple games simultaneously.
+
+    Allows users to apply the same metadata changes to multiple games at once.
+    Supports setting developer, publisher, release date, and name modifications
+    (prefix, suffix, text removal).
+
+    Attributes:
+        games_count: Number of games to be edited.
+        game_names: List of names of games being edited.
+        result_metadata: Dictionary containing the bulk edit settings after save.
+    """
 
     def __init__(self, parent, games_count: int, game_names: List[str]):
+        """Initializes the bulk metadata edit dialog.
+
+        Args:
+            parent: Parent widget for the dialog.
+            games_count: Total number of games to be edited.
+            game_names: List of game names for preview display.
+        """
         super().__init__(parent)
         self.games_count = games_count
         self.game_names = game_names
@@ -287,7 +357,17 @@ class BulkMetadataEditDialog(QDialog):
         self._create_ui()
 
     @staticmethod
-    def _add_bulk_field(layout, label_text, placeholder=""):
+    def _add_bulk_field(layout, label_text: str, placeholder: str = ""):
+        """Creates a checkbox-controlled input field for bulk editing.
+
+        Args:
+            layout: Parent layout to add the field row to.
+            label_text: Text label for the checkbox.
+            placeholder: Optional placeholder text for the input field.
+
+        Returns:
+            Tuple of (QCheckBox, QLineEdit) for the created field.
+        """
         row_layout = QHBoxLayout()
         checkbox = QCheckBox(label_text)
         line_edit = QLineEdit()
@@ -301,6 +381,11 @@ class BulkMetadataEditDialog(QDialog):
         return checkbox, line_edit
 
     def _create_ui(self):
+        """Creates the bulk edit dialog user interface.
+
+        Sets up the layout with title, game preview list, editable fields
+        with checkboxes, warning label, and action buttons.
+        """
         layout = QVBoxLayout(self)
         title = QLabel(t('ui.metadata_editor.bulk_title', count=self.games_count))
         title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
@@ -362,6 +447,11 @@ class BulkMetadataEditDialog(QDialog):
         layout.addLayout(btn_layout)
 
     def _apply(self):
+        """Validates selections and stores the bulk edit settings.
+
+        Validates that at least one field is selected for editing, shows a
+        confirmation dialog, and stores the result metadata if confirmed.
+        """
         checks = [self.cb_dev, self.cb_pub, self.cb_date, self.cb_pre, self.cb_suf, self.cb_rem]
         if not any(c.isChecked() for c in checks):
             QMessageBox.warning(self, t('ui.dialogs.no_changes'), t('ui.dialogs.no_selection'))
@@ -388,13 +478,33 @@ class BulkMetadataEditDialog(QDialog):
         self.accept()
 
     def get_metadata(self) -> Optional[Dict]:
+        """Returns the bulk edit settings after dialog acceptance.
+
+        Returns:
+            Dictionary containing the bulk edit settings, or None if
+            the dialog was cancelled or no fields were selected.
+        """
         return self.result_metadata
 
 
 class MetadataRestoreDialog(QDialog):
-    """Dialog for restoring changes"""
+    """Dialog for restoring metadata modifications to original values.
+
+    Displays information about the number of modified games and allows
+    the user to confirm restoration of all changes.
+
+    Attributes:
+        modified_count: Number of games with metadata modifications.
+        do_restore: Flag indicating whether restoration was confirmed.
+    """
 
     def __init__(self, parent, modified_count: int):
+        """Initializes the metadata restore dialog.
+
+        Args:
+            parent: Parent widget for the dialog.
+            modified_count: Number of games with modifications to restore.
+        """
         super().__init__(parent)
         self.modified_count = modified_count
         self.do_restore = False
@@ -404,6 +514,11 @@ class MetadataRestoreDialog(QDialog):
         self._create_ui()
 
     def _create_ui(self):
+        """Creates the restore dialog user interface.
+
+        Sets up the layout with title, information label, warning label,
+        and action buttons.
+        """
         layout = QVBoxLayout(self)
         title = QLabel(t('ui.menu.restore'))
         title.setFont(QFont("Arial", 16, QFont.Weight.Bold))
@@ -433,8 +548,17 @@ class MetadataRestoreDialog(QDialog):
         layout.addLayout(btn_layout)
 
     def _restore(self):
+        """Handles the restore button click.
+
+        Sets the restore flag and accepts the dialog.
+        """
         self.do_restore = True
         self.accept()
 
     def should_restore(self) -> bool:
+        """Returns whether restoration was confirmed by the user.
+
+        Returns:
+            True if the user clicked the restore button, False otherwise.
+        """
         return self.do_restore
