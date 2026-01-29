@@ -252,7 +252,9 @@
       "geo_locked": "🚫 Not available in your country (Geo-blocking/Censorship)",
       "delisted": "❌ No longer available on Store",
       "removed": "❌ Removed from Store",
-      "unknown": "❓ Unknown status (Code: {code})"
+      "unknown": "❓ Unknown status (Code: {code})",
+      "instruction": "Set the PEGI Rating",
+      "remove": "Remove"
     },
     "pegi_selector": {
       "title": "Select PEGI Rating",

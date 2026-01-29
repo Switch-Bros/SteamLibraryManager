@@ -252,7 +252,9 @@
       "geo_locked": "🚫 In Ihrem Land nicht verfügbar (Geo-Blocking/Zensur)",
       "delisted": "❌ Nicht mehr im Store verfügbar",
       "removed": "❌ Aus dem Store entfernt",
-      "unknown": "❓ Unbekannter Status (Code: {code})"
+      "unknown": "❓ Unbekannter Status (Code: {code})",
+      "instruction": "Setze die PEGI Altersstufe",
+      "remove": "Entfernen"
     },
     "pegi_selector": {
       "title": "PEGI-Bewertung auswählen",
