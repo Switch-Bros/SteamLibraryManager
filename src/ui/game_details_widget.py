@@ -1,6 +1,11 @@
+# src/ui/game_details_widget.py
+
 """
-Game Details Widget - Layout PRESERVED + Default Images Added
-Save as: src/ui/game_details_widget.py
+Widget for displaying and editing game details.
+
+This module provides a comprehensive widget that displays game information
+including metadata, images (grid, hero, logo, icon), ratings, and categories.
+It allows users to edit metadata, change images, and toggle categories.
 """
 
 from PyQt6.QtWidgets import (
@@ -22,7 +27,24 @@ from src.ui.image_selection_dialog import ImageSelectionDialog
 
 
 class InfoLabel(QLabel):
+    """
+    Custom label for displaying key-value pairs with styled formatting.
+
+    This label displays a title in gray and a value in bold, formatted as HTML.
+
+    Attributes:
+        title_key (str): The translation key for the title.
+        value (str): The value to display.
+    """
+
     def __init__(self, title_key, value=""):
+        """
+        Initializes the info label.
+
+        Args:
+            title_key (str): The translation key for the title.
+            value (str): The value to display. Defaults to empty string.
+        """
         super().__init__()
         title = t(title_key)
         self.setText(f"<span style='color:#888;'>{title}:</span> <b>{value}</b>")
@@ -31,9 +53,26 @@ class InfoLabel(QLabel):
 
 
 class HorizontalCategoryList(QListWidget):
+    """
+    Custom list widget for displaying game categories as checkboxes.
+
+    This widget displays categories in a horizontal, wrapping layout with
+    checkboxes that can be toggled to add or remove categories from a game.
+
+    Signals:
+        category_toggled (str, bool): Emitted when a category checkbox is toggled,
+                                      passes the category name and checked state.
+    """
+
     category_toggled = pyqtSignal(str, bool)
 
     def __init__(self, parent=None):
+        """
+        Initializes the horizontal category list.
+
+        Args:
+            parent: Parent widget. Defaults to None.
+        """
         super().__init__(parent)
         self.setViewMode(QListWidget.ViewMode.IconMode)
         self.setFlow(QListWidget.Flow.TopToBottom)
@@ -48,6 +87,13 @@ class HorizontalCategoryList(QListWidget):
         self.setFixedHeight(190)
 
     def set_categories(self, all_categories: List[str], game_categories: List[str]):
+        """
+        Sets the categories to display and marks which ones are assigned to the game.
+
+        Args:
+            all_categories (List[str]): List of all available categories.
+            game_categories (List[str]): List of categories assigned to the current game.
+        """
         self.clear()
         if not all_categories:
             return
@@ -66,16 +112,57 @@ class HorizontalCategoryList(QListWidget):
 
 
 class GameDetailsWidget(QWidget):
+    """
+    Widget for displaying and editing detailed game information.
+
+    This widget shows comprehensive game details including metadata, images,
+    ratings, and categories. It allows users to edit metadata, change images
+    via SteamGridDB, and toggle category assignments.
+
+    Signals:
+        category_changed (str, str, bool): Emitted when a category is toggled,
+                                           passes (app_id, category, checked).
+        edit_metadata (Game): Emitted when the edit button is clicked,
+                              passes the current game object.
+
+    Attributes:
+        current_game (Game): The currently displayed game.
+        name_label (QLabel): Label displaying the game name.
+        btn_store (QPushButton): Button to open the Steam store page.
+        btn_edit (QPushButton): Button to edit metadata.
+        img_grid (ClickableImage): Grid/cover image widget.
+        img_hero (ClickableImage): Hero/banner image widget.
+        img_logo (ClickableImage): Logo image widget.
+        img_icon (ClickableImage): Icon image widget.
+        lbl_appid (InfoLabel): Label for app ID.
+        lbl_playtime (InfoLabel): Label for playtime.
+        lbl_updated (InfoLabel): Label for last update date.
+        lbl_proton (QLabel): Label for ProtonDB rating.
+        lbl_steamdb (InfoLabel): Label for SteamDB rating.
+        lbl_reviews (InfoLabel): Label for review score.
+        edit_dev (QLineEdit): Read-only field for developer.
+        edit_pub (QLineEdit): Read-only field for publisher.
+        edit_rel (QLineEdit): Read-only field for release date.
+        category_list (HorizontalCategoryList): List of category checkboxes.
+    """
+
     category_changed = pyqtSignal(str, str, bool)
     edit_metadata = pyqtSignal(object)
 
     def __init__(self, parent=None):
+        """
+        Initializes the game details widget.
+
+        Args:
+            parent: Parent widget. Defaults to None.
+        """
         super().__init__(parent)
         self.current_game = None
         self._create_ui()
         self.clear()
 
     def _create_ui(self):
+        """Creates the user interface for the widget."""
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(15, 5, 15, 0)
         main_layout.setSpacing(0)
@@ -119,7 +206,6 @@ class GameDetailsWidget(QWidget):
 
         # 1. LEFT: Grid (Cover)
         self.img_grid = ClickableImage(self, 232, 348)
-        # NEW: Set default image
         self.img_grid.set_default_image("resources/images/default_grids.png")
         self.img_grid.clicked.connect(lambda: self._on_image_click('grids'))
         self.img_grid.right_clicked.connect(lambda: self._on_image_right_click('grids'))
@@ -136,7 +222,6 @@ class GameDetailsWidget(QWidget):
         top_row.setSpacing(4)
 
         self.img_logo = ClickableImage(self, 264, 184)
-        # NEW: Set default image
         self.img_logo.set_default_image("resources/images/default_logos.png")
         self.img_logo.clicked.connect(lambda: self._on_image_click('logos'))
         self.img_logo.right_clicked.connect(lambda: self._on_image_right_click('logos'))
@@ -144,7 +229,6 @@ class GameDetailsWidget(QWidget):
         top_row.addWidget(self.img_logo)
 
         self.img_icon = ClickableImage(self, 80, 80)
-        # NEW: Set default image
         self.img_icon.set_default_image("resources/images/default_icons.png")
         self.img_icon.clicked.connect(lambda: self._on_image_click('icons'))
         self.img_icon.right_clicked.connect(lambda: self._on_image_right_click('icons'))
@@ -160,7 +244,6 @@ class GameDetailsWidget(QWidget):
 
         # 2b. Bottom Right: Hero
         self.img_hero = ClickableImage(self, 348, 160)
-        # NEW: Set default image
         self.img_hero.set_default_image("resources/images/default_heroes.png")
         self.img_hero.clicked.connect(lambda: self._on_image_click('heroes'))
         self.img_hero.right_clicked.connect(lambda: self._on_image_right_click('heroes'))
@@ -212,6 +295,7 @@ class GameDetailsWidget(QWidget):
         meta_grid.addWidget(QLabel(f"<b>{t('ui.game_details.section_metadata')}</b>"), 0, 2)
 
         def add_meta_field(grid, label_key, row):
+            """Helper function to add a metadata field to the grid."""
             l_layout = QHBoxLayout()
             l_lbl = QLabel(t(label_key) + ":")
             l_lbl.setStyleSheet("padding: 1px 0;")
@@ -246,6 +330,12 @@ class GameDetailsWidget(QWidget):
         main_layout.addWidget(self.category_list)
 
     def _update_proton_label(self, tier: str):
+        """
+        Updates the ProtonDB rating label with appropriate color and text.
+
+        Args:
+            tier (str): The ProtonDB tier (platinum, gold, silver, bronze, native, borked, pending, unknown).
+        """
         tier = tier.lower() if tier else "unknown"
         colors = {
             "platinum": "#B4C7D9", "gold": "#FDE100", "silver": "#C0C0C0",
@@ -261,6 +351,16 @@ class GameDetailsWidget(QWidget):
             f"<span style='color:#888;'>{title}:</span> <span style='color:{color}; font-weight:bold;'>{display_text}</span>")
 
     def set_game(self, game: Game, _all_categories: List[str]):
+        """
+        Sets the game to display in the widget.
+
+        This method populates all fields with the game's information and loads
+        the game's images.
+
+        Args:
+            game (Game): The game to display.
+            _all_categories (List[str]): List of all available categories.
+        """
         self.current_game = game
         self.name_label.setText(game.name)
         self.lbl_appid.setText(f"<span style='color:#888;'>{t('ui.game_details.app_id')}:</span> <b>{game.app_id}</b>")
@@ -268,7 +368,7 @@ class GameDetailsWidget(QWidget):
             'ui.game_details.never_played')
         self.lbl_playtime.setText(
             f"<span style='color:#888;'>{t('ui.game_details.playtime')}:</span> <b>{playtime_val}</b>")
-        update_val = game.last_updated if game.last_updated else t('ui.common.dash')
+        update_val = format_timestamp_to_date(game.last_updated) if game.last_updated else t('ui.common.dash')
         self.lbl_updated.setText(
             f"<span style='color:#888;'>{t('ui.game_details.last_update')}:</span> <b>{update_val}</b>")
         self._update_proton_label(game.proton_db_rating)
@@ -282,6 +382,7 @@ class GameDetailsWidget(QWidget):
 
         # Helper for safe text conversion
         def safe_text(value, formatter=None):
+            """Safely converts a value to text with optional formatting."""
             if not value:
                 return unknown
             if formatter:
@@ -297,6 +398,12 @@ class GameDetailsWidget(QWidget):
         self._reload_images(game.app_id)
 
     def _reload_images(self, app_id: str):
+        """
+        Reloads all game images from the asset manager.
+
+        Args:
+            app_id (str): The Steam app ID of the game.
+        """
         asset_map = {
             'grids': self.img_grid,
             'heroes': self.img_hero,
@@ -307,6 +414,7 @@ class GameDetailsWidget(QWidget):
             img_widget.load_image(SteamAssets.get_asset_path(app_id, asset_type))
 
     def clear(self):
+        """Clears the widget and resets it to the default state."""
         self.current_game = None
         self.name_label.setText(t('ui.game_details.select_placeholder'))
         self._update_proton_label("unknown")
@@ -319,19 +427,34 @@ class GameDetailsWidget(QWidget):
         self.category_list.set_categories([], [])
 
     def _on_category_toggle(self, category: str, checked: bool):
+        """
+        Handles category checkbox toggle events.
+
+        Args:
+            category (str): The category name.
+            checked (bool): Whether the checkbox is checked.
+        """
         if self.current_game:
             self.category_changed.emit(self.current_game.app_id, category, checked)
 
     def _on_edit(self):
+        """Handles the edit button click event."""
         if self.current_game:
             self.edit_metadata.emit(self.current_game)
 
     def _open_current_store(self):
+        """Opens the Steam store page for the current game in the default browser."""
         if self.current_game:
             import webbrowser
             webbrowser.open(f"https://store.steampowered.com/app/{self.current_game.app_id}")
 
     def _on_image_click(self, img_type: str):
+        """
+        Handles image click events to open the image selection dialog.
+
+        Args:
+            img_type (str): The type of image ('grids', 'heroes', 'logos', 'icons').
+        """
         if not self.current_game:
             return
         dialog = ImageSelectionDialog(self, self.current_game.name, self.current_game.app_id, img_type)
@@ -341,6 +464,12 @@ class GameDetailsWidget(QWidget):
                 self._reload_single_asset(img_type)
 
     def _on_image_right_click(self, img_type: str):
+        """
+        Handles image right-click events to show a context menu.
+
+        Args:
+            img_type (str): The type of image ('grids', 'heroes', 'logos', 'icons').
+        """
         if not self.current_game:
             return
 
@@ -352,6 +481,12 @@ class GameDetailsWidget(QWidget):
             self._reload_single_asset(img_type)
 
     def _reload_single_asset(self, img_type: str):
+        """
+        Reloads a single image asset.
+
+        Args:
+            img_type (str): The type of image to reload ('grids', 'heroes', 'logos', 'icons').
+        """
         asset_map = {
             'grids': self.img_grid,
             'heroes': self.img_hero,

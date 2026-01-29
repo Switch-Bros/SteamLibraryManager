@@ -1,7 +1,13 @@
+# src/ui/missing_metadata_dialog.py
+
 """
-Missing Metadata Detection Dialog - Clean Code & Optimized
-Save as: src/ui/missing_metadata_dialog.py
+Dialog for displaying and exporting games with missing metadata.
+
+This module provides a dialog that shows a table of games that are missing
+metadata fields (developer, publisher, release date) and allows exporting
+the list to a CSV file.
 """
+
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
     QPushButton, QLabel, QFileDialog, QMessageBox, QHeaderView
@@ -17,9 +23,27 @@ from src.utils.i18n import t
 
 
 class MissingMetadataDialog(QDialog):
-    """Dialog to display games with missing metadata"""
+    """
+    Dialog for displaying games with missing metadata.
+
+    This dialog shows a table of games that are missing one or more metadata
+    fields (developer, publisher, release date) and provides functionality to
+    export the list to a CSV file.
+
+    Attributes:
+        games (List[Game]): List of games with missing metadata.
+        table (QTableWidget): Table widget displaying the games.
+        stats_label (QLabel): Label displaying statistics about missing fields.
+    """
 
     def __init__(self, parent, games: List[Game]):
+        """
+        Initializes the missing metadata dialog.
+
+        Args:
+            parent: Parent widget.
+            games (List[Game]): List of games with missing metadata.
+        """
         super().__init__(parent)
         self.games = games
 
@@ -32,7 +56,15 @@ class MissingMetadataDialog(QDialog):
 
     @staticmethod
     def _is_missing(value) -> bool:
-        """Checks if a value is considered 'missing'"""
+        """
+        Checks if a metadata value is considered missing.
+
+        Args:
+            value: The value to check.
+
+        Returns:
+            bool: True if the value is missing, False otherwise.
+        """
         if value is None:
             return True
         value_str = str(value).strip()
@@ -44,7 +76,15 @@ class MissingMetadataDialog(QDialog):
 
     @staticmethod
     def _format_date(value) -> str:
-        """Converts Unix timestamps to readable date (YYYY-MM-DD)"""
+        """
+        Converts Unix timestamps to readable date format (YYYY-MM-DD).
+
+        Args:
+            value: The value to format (Unix timestamp or string).
+
+        Returns:
+            str: The formatted date string, or the original value if not a timestamp.
+        """
         if not value:
             return ""
 
@@ -64,6 +104,7 @@ class MissingMetadataDialog(QDialog):
         return value_str
 
     def _create_ui(self):
+        """Creates the user interface for the dialog."""
         layout = QVBoxLayout(self)
 
         # Header
@@ -125,7 +166,15 @@ class MissingMetadataDialog(QDialog):
 
     @staticmethod
     def _create_item(text: str) -> QTableWidgetItem:
-        """Helper to create a read-only table item to reduce code duplication"""
+        """
+        Creates a read-only table item.
+
+        Args:
+            text (str): The text to display in the item.
+
+        Returns:
+            QTableWidgetItem: A read-only table item.
+        """
         item = QTableWidgetItem(str(text))
 
         # FIX: Calculate flags as integer first to avoid PyCharm type confusion
@@ -135,7 +184,12 @@ class MissingMetadataDialog(QDialog):
         return item
 
     def _populate_table(self):
-        """Populate table with games"""
+        """
+        Populates the table with games and their missing metadata.
+
+        This method fills the table with game information and marks missing
+        fields with an ❌ emoji. It also updates the statistics label.
+        """
         self.table.setRowCount(len(self.games))
 
         missing_dev = 0
@@ -195,7 +249,12 @@ class MissingMetadataDialog(QDialog):
             self.table.setColumnWidth(1, 600)
 
     def _export_csv(self):
-        """Export list as CSV"""
+        """
+        Exports the missing metadata list to a CSV file.
+
+        This method opens a file dialog for the user to choose a save location,
+        then writes the game data with missing metadata information to a CSV file.
+        """
         default_name = f"missing_metadata_{len(self.games)}_games.csv"
 
         file_path, _ = QFileDialog.getSaveFileName(

@@ -1,7 +1,13 @@
+# src/ui/image_selection_dialog.py
+
 """
-Image Selection Dialog - Full Version (Setup, Speed & Author Info)
-Save as: src/ui/image_selection_dialog.py
+Dialog for selecting game images from SteamGridDB.
+
+This module provides a dialog that allows users to browse and select images
+(grids, heroes, logos, icons) from SteamGridDB for their games. It includes
+API key setup functionality and threaded image loading.
 """
+
 import json
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QScrollArea, QWidget, QGridLayout, QLabel,
                              QPushButton, QLineEdit, QHBoxLayout)
@@ -14,22 +20,80 @@ from src.ui.components.clickable_image import ClickableImage
 
 
 class SearchThread(QThread):
+    """
+    Background thread for fetching images from SteamGridDB.
+
+    This thread performs the API call in the background to avoid blocking
+    the UI while images are being fetched.
+
+    Signals:
+        results_found (list): Emitted when images are fetched, passes the list of image data.
+
+    Attributes:
+        app_id (int): The Steam app ID to fetch images for.
+        img_type (str): The type of images to fetch ('grids', 'heroes', 'logos', 'icons').
+        api (SteamGridDB): The SteamGridDB API client.
+    """
+
     results_found = pyqtSignal(list)
 
     def __init__(self, app_id, img_type):
+        """
+        Initializes the search thread.
+
+        Args:
+            app_id (int): The Steam app ID to fetch images for.
+            img_type (str): The type of images to fetch ('grids', 'heroes', 'logos', 'icons').
+        """
         super().__init__()
         self.app_id = app_id
         self.img_type = img_type
         self.api = SteamGridDB()
 
     def run(self):
+        """
+        Fetches images from SteamGridDB and emits the results.
+
+        This method is called when the thread starts. It fetches all available
+        images of the specified type and emits them via the results_found signal.
+        """
         # Fetches ALL images (via fix in steamgrid_api.py)
         urls = self.api.get_images_by_type(self.app_id, self.img_type)
         self.results_found.emit(urls)
 
 
 class ImageSelectionDialog(QDialog):
+    """
+    Dialog for browsing and selecting game images from SteamGridDB.
+
+    This dialog allows users to browse available images for a game and select
+    one to use. It includes functionality for setting up the SteamGridDB API
+    key if it's not configured.
+
+    Attributes:
+        app_id (int): The Steam app ID of the game.
+        img_type (str): The type of images to display ('grids', 'heroes', 'logos', 'icons').
+        selected_url (str): The URL of the selected image.
+        searcher (SearchThread): The background thread for fetching images.
+        main_layout (QVBoxLayout): The main layout of the dialog.
+        status_label (QLabel): Label for displaying status messages.
+        scroll (QScrollArea): Scroll area for the image grid.
+        grid_widget (QWidget): Widget containing the image grid.
+        grid_layout (QGridLayout): Layout for arranging images in a grid.
+        setup_widget (QWidget): Widget for API key setup.
+        key_input (QLineEdit): Input field for entering the API key.
+    """
+
     def __init__(self, parent, game_name, app_id, img_type):
+        """
+        Initializes the image selection dialog.
+
+        Args:
+            parent: Parent widget.
+            game_name (str): The name of the game.
+            app_id (int): The Steam app ID of the game.
+            img_type (str): The type of images to display ('grids', 'heroes', 'logos', 'icons').
+        """
         super().__init__(parent)
         self.setWindowTitle(
             t('ui.dialogs.image_picker_title', type=t(f'ui.game_details.gallery.{img_type}'), game=game_name))
@@ -44,6 +108,7 @@ class ImageSelectionDialog(QDialog):
         self._check_api_and_start()
 
     def _create_ui(self):
+        """Creates the user interface for the dialog."""
         self.main_layout = QVBoxLayout(self)
 
         # Status / Loading Label
@@ -114,6 +179,12 @@ class ImageSelectionDialog(QDialog):
         self.main_layout.addLayout(btn_layout)
 
     def _check_api_and_start(self):
+        """
+        Checks if the SteamGridDB API key is configured and starts the search.
+
+        If the API key is missing, displays the setup widget. Otherwise, starts
+        the image search.
+        """
         api = SteamGridDB()
         if not api.api_key:
             self.status_label.hide()
@@ -124,6 +195,12 @@ class ImageSelectionDialog(QDialog):
             self._start_search()
 
     def _save_key_and_reload(self):
+        """
+        Saves the entered API key to the config and restarts the search.
+
+        This method is called when the user enters an API key in the setup widget.
+        It saves the key to the settings file and re-checks the API status.
+        """
         key = self.key_input.text().strip()
         if key:
             config.STEAMGRIDDB_API_KEY = key
@@ -144,12 +221,28 @@ class ImageSelectionDialog(QDialog):
             self._check_api_and_start()
 
     def _start_search(self):
+        """
+        Starts the background search thread to fetch images.
+
+        This method creates and starts a SearchThread to fetch images from
+        SteamGridDB without blocking the UI.
+        """
         self.status_label.show()
         self.searcher = SearchThread(self.app_id, self.img_type)
         self.searcher.results_found.connect(self._on_results)
         self.searcher.start()
 
     def _on_results(self, items):
+        """
+        Handles the search results and displays them in the grid.
+
+        This method is called when the search thread finishes. It creates
+        clickable image widgets for each result and arranges them in a grid
+        layout optimized for the image type.
+
+        Args:
+            items (list): List of image data dictionaries from SteamGridDB.
+        """
         self.status_label.hide()
         self.scroll.show()
 
@@ -221,8 +314,23 @@ class ImageSelectionDialog(QDialog):
                 row += 1
 
     def _on_select(self, url):
+        """
+        Handles image selection.
+
+        This method is called when the user clicks on an image. It stores the
+        selected URL and closes the dialog.
+
+        Args:
+            url (str): The URL of the selected image.
+        """
         self.selected_url = url
         self.accept()
 
     def get_selected_url(self):
+        """
+        Gets the URL of the selected image.
+
+        Returns:
+            str: The URL of the selected image, or None if no image was selected.
+        """
         return self.selected_url
