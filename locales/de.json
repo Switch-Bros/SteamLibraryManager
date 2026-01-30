@@ -383,13 +383,16 @@
     "login": {
       "title": "Bei Steam anmelden",
       "window_title": "🔐 Steam Login",
+      "webview_title": "Steam Anmeldung",
+      "webview_closing": "Dieses Fenster schließt sich automatisch...",
       "info": "Klicke unten für den Steam OAuth Login.",
       "button": "Mit Steam anmelden",
       "status_success": "Login erfolgreich!",
       "status_failed": "Login fehlgeschlagen",
       "logged_in_as": "Angemeldet als {user}",
       "html_success_header": "Erfolgreich angemeldet!",
-      "html_success_msg": "Du kannst dieses Fenster jetzt schließen und zur App zurückkehren."
+      "html_success_msg": "Du kannst dieses Fenster jetzt schließen und zur App zurückkehren.",
+      "error_no_steam_id": "Anmeldung fehlgeschlagen: Keine Steam ID erhalten."
     },
     "search": {
       "results_category": "Suchergebnisse ({count})",

@@ -383,13 +383,16 @@
     "login": {
       "title": "Login to Steam",
       "window_title": "🔐 Steam Login",
+      "webview_title": "Steam Login",
+      "webview_closing": "This window will close automatically...",
       "info": "Click below to login via Steam OAuth.",
       "button": "Login with Steam",
       "status_success": "Login successful!",
       "status_failed": "Login failed",
       "logged_in_as": "Logged in as {user}",
       "html_success_header": "Login Successful!",
-      "html_success_msg": "You can close this window and return to the app."
+      "html_success_msg": "You can close this window and return to the app.",
+      "error_no_steam_id": "Login failed: No Steam ID received."
     },
     "search": {
       "results_category": "Search Results ({count})",
