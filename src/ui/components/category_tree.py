@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
     QWidget
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
-from PyQt6.QtGui import QDragEnterEvent, QDropEvent
+from PyQt6.QtGui import QDragEnterEvent, QDragMoveEvent, QDropEvent
 
 from src.core.game_manager import Game
 from src.config import config
@@ -175,7 +175,7 @@ class GameTreeWidget(QTreeWidget):
         else:
             event.ignore()
 
-    def dragMoveEvent(self, event: QDragEnterEvent) -> None:
+    def dragMoveEvent(self, event: QDragMoveEvent) -> None:
         item = self.itemAt(event.position().toPoint())
         # Only allow dropping onto category items
         if item and item.data(0, Qt.ItemDataRole.UserRole) == "category":

@@ -696,7 +696,7 @@ class GameDetailsWidget(QWidget):
             # Emit signal to save override
             self.pegi_override_requested.emit(self.current_game.app_id, selected_rating)
 
-    def _on_category_toggle(self, category_name: str, state: int):
+    def _on_category_toggle(self, category_name: str, checked: bool):
         """
         Handles category checkbox toggle events.
 
@@ -705,9 +705,8 @@ class GameDetailsWidget(QWidget):
 
         Args:
             category_name (str): The category name.
-            state (int): The checkbox state (Qt.CheckState).
+            checked (bool): Whether the category checkbox is checked.
         """
-        checked = state == Qt.CheckState.Checked.value
 
         if self.current_game:
             # Single game mode

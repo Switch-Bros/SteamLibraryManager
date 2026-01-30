@@ -640,14 +640,14 @@ class MainWindow(QMainWindow):
             """Background thread for fetching game details."""
             finished_signal = pyqtSignal(bool)
 
-            def __init__(self, game_manager, app_id):
+            def __init__(self, game_manager, target_app_id):
                 super().__init__()
                 self.game_manager = game_manager
-                self.app_id = app_id
+                self.target_app_id = target_app_id
 
             def run(self):
                 """Executes the fetch operation in background."""
-                success = self.game_manager.fetch_game_details(self.app_id)
+                success = self.game_manager.fetch_game_details(self.target_app_id)
                 self.finished_signal.emit(success)
 
         # Create and start background thread
@@ -670,7 +670,7 @@ class MainWindow(QMainWindow):
         self._fetch_threads.append(fetch_thread)
 
         # Clean up finished threads
-        self._fetch_threads = [t for t in self._fetch_threads if t.isRunning()]
+        self._fetch_threads = [thread for thread in self._fetch_threads if thread.isRunning()]
 
     def _restore_game_selection(self, app_ids: List[str]) -> None:
         """Restores game selection in the tree widget after refresh.
@@ -693,15 +693,15 @@ class MainWindow(QMainWindow):
             category_item = self.tree.topLevelItem(i)
             for j in range(category_item.childCount()):
                 game_item = category_item.child(j)
-                app_id = game_item.data(0, Qt.ItemDataRole.UserRole)
-                if app_id and app_id in app_ids:
+                item_app_id = game_item.data(0, Qt.ItemDataRole.UserRole)
+                if item_app_id and item_app_id in app_ids:
                     game_item.setSelected(True)
 
         # Re-enable signals
         self.tree.blockSignals(False)
 
         # Manually update selected_games list
-        self.selected_games = [self.game_manager.get_game(app_id) for app_id in app_ids]
+        self.selected_games = [self.game_manager.get_game(aid) for aid in app_ids]
         self.selected_games = [g for g in self.selected_games if g is not None]
 
     def _on_category_changed_from_details(self, app_id: str, category: str, checked: bool) -> None:
