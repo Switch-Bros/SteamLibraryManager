@@ -129,10 +129,19 @@ class MissingMetadataDialog(QDialog):
             t('ui.tools.missing_metadata.col_release')
         ])
 
-        # --- Column Behavior: Interactive ---
+        # --- Column Behavior: Fixed widths with stretch for name column ---
         header = self.table.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        header.setStretchLastSection(False)
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # App ID
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Name (stretches)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # Developer
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Publisher
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Release
+
+        # Set fixed column widths
+        self.table.setColumnWidth(0, 70)   # App ID
+        self.table.setColumnWidth(2, 180)  # Developer
+        self.table.setColumnWidth(3, 130)  # Publisher
+        self.table.setColumnWidth(4, 110)  # Release
 
         # Alternating row colors
         self.table.setAlternatingRowColors(True)
@@ -236,16 +245,6 @@ class MissingMetadataDialog(QDialog):
         # Update Statistics
         stats = t('ui.tools.missing_metadata.stats', count=len(self.games))
         self.stats_label.setText(stats)
-
-        # Initial size adjustment
-        self.table.resizeColumnsToContents()
-
-        # Minimum width for Name
-        current_width = self.table.columnWidth(1)
-        if current_width < 200:
-            self.table.setColumnWidth(1, 200)
-        elif current_width > 600:
-            self.table.setColumnWidth(1, 600)
 
     def _export_csv(self):
         """
