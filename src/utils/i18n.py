@@ -1,11 +1,6 @@
-# src/utils/i18n.py
-
 """
-Internationalization (i18n) system for the Steam Library Manager.
-
-This module provides a simple translation system that loads locale files
-(JSON) and provides a translation function `t()` for retrieving localized
-strings with placeholder support.
+Internationalization (i18n) system
+Loads translation files dynamically from resources/i18n/{locale}/*.json
 """
 import json
 from pathlib import Path
@@ -15,83 +10,85 @@ from typing import Optional, Dict, Any
 class I18n:
     """
     Core internationalization class.
-
-    This class loads translation files from the locales directory and provides
-    methods to retrieve translated strings with placeholder substitution.
+    Scans the folder resources/i18n/{locale}/ and loads all JSON files found there.
     """
 
     def __init__(self, locale: str = 'en'):
         """
-        Initializes the I18n system.
-
-        Args:
-            locale (str): The locale code (e.g., 'en', 'de'). Defaults to 'en'.
+        Initialize I18n with a specific locale code.
+        The code is used to find the corresponding directory in resources/i18n/.
         """
         self.locale = locale
         self.translations: Dict[str, Any] = {}
         self.fallback_translations: Dict[str, Any] = {}
 
-        # Navigate safely to project root folder
-        # File is in: PROJECT/src/utils/i18n.py
-        # We want:    PROJECT/locales
+        # Path: PROJECT/resources/i18n
         current_file = Path(__file__).resolve()
         project_root = current_file.parent.parent.parent
-        self.locales_dir = project_root / 'locales'
+        self.i18n_root = project_root / 'resources' / 'i18n'
 
         self._load_translations()
 
     def _load_translations(self):
         """
-        Loads translation files from the locales directory.
-
-        This method always loads English as a fallback, then loads the target
-        locale if it's different from English.
+        Loads translations.
+        1. Loads English fallback from resources/i18n/en/*.json
+        2. Loads Target Locale dynamically from resources/i18n/{self.locale}/*.json
         """
-        # Always load English as fallback
-        fallback_path = self.locales_dir / 'en.json'
-        if fallback_path.exists():
-            try:
-                with open(fallback_path, 'r', encoding='utf-8') as f:
-                    self.fallback_translations = json.load(f)
-            except (OSError, json.JSONDecodeError) as e:
-                print(f"CRITICAL: Error loading fallback locale: {e}")
-        else:
-            # Fallback if we're in wrong directory (debugging)
-            print(f"DEBUG: Locales not found at {fallback_path}")
+        # 1. Load Fallback (English)
+        self.fallback_translations = self._load_locale_directory('en')
 
-        # Load target locale
+        # 2. Load Target Locale (if different from English)
         if self.locale != 'en':
-            locale_path = self.locales_dir / f'{self.locale}.json'
-            if locale_path.exists():
-                try:
-                    with open(locale_path, 'r', encoding='utf-8') as f:
-                        self.translations = json.load(f)
-                except (OSError, json.JSONDecodeError):
-                    self.translations = self.fallback_translations.copy()
-            else:
-                self.translations = self.fallback_translations.copy()
+            # This uses the variable 'self.locale' (e.g. 'it', 'de', 'es')
+            # No hardcoded languages here!
+            target_data = self._load_locale_directory(self.locale)
+
+            # Merge: Target overrides Fallback
+            self.translations = self._deep_merge(self.fallback_translations, target_data)
         else:
-            self.translations = self.fallback_translations.copy()
+            self.translations = self.fallback_translations
 
-    def t(self, key: str, **kwargs) -> str:
+    def _load_locale_directory(self, locale_code: str) -> Dict[str, Any]:
         """
-        Retrieves a translated string for the given key.
-
-        This method supports nested keys using dot notation (e.g., 'ui.menu.file')
-        and placeholder substitution using Python's str.format() syntax.
+        Scans a directory (e.g. 'it') and loads ALL .json files found inside.
 
         Args:
-            key (str): The translation key in dot notation (e.g., 'ui.menu.file').
-            **kwargs: Placeholder values for string formatting.
-
-        Returns:
-            str: The translated string with placeholders replaced, or a fallback
-                string if the key is not found (e.g., '[ui.menu.file]').
+            locale_code: The folder name to look for (from settings).
         """
-        keys = key.split('.')
+        merged_data = {}
+        # Dynamic path construction: resources/i18n/it
+        target_dir = self.i18n_root / locale_code
 
-        # Try target locale
+        if not target_dir.exists():
+            return {}
+
+        # Load all .json files in that folder alphabetically
+        for file_path in sorted(target_dir.glob('*.json')):
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    file_data = json.load(f)
+                    merged_data = self._deep_merge(merged_data, file_data)
+            except (OSError, json.JSONDecodeError) as e:
+                print(f"Error loading i18n file {file_path.name}: {e}")
+
+        return merged_data
+
+    def _deep_merge(self, base: Dict, update: Dict) -> Dict:
+        """Recursive merge of dictionaries."""
+        result = base.copy()
+        for key, value in update.items():
+            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+                result[key] = self._deep_merge(result[key], value)
+            else:
+                result[key] = value
+        return result
+
+    def t(self, key: str, **kwargs) -> str:
+        """Retrieves a translated string."""
+        keys = key.split('.')
         value = self.translations
+
         for k in keys:
             if isinstance(value, dict):
                 value = value.get(k)
@@ -99,21 +96,11 @@ class I18n:
                 value = None
                 break
 
-        # Try fallback
-        if value is None:
-            value = self.fallback_translations
-            for k in keys:
-                if isinstance(value, dict):
-                    value = value.get(k)
-                else:
-                    value = None
-                    break
-
         if value is None:
             return f"[{key}]"
 
         if not isinstance(value, str):
-            return f"[{key}: not a string]"
+            return f"[{key}]"
 
         if kwargs:
             try:
@@ -128,38 +115,12 @@ _i18n_instance: Optional[I18n] = None
 
 
 def init_i18n(locale: str = 'en') -> I18n:
-    """
-    Initializes the global i18n instance.
-
-    This function creates a new I18n instance and sets it as the global instance
-    used by the `t()` function.
-
-    Args:
-        locale (str): The locale code (e.g., 'en', 'de'). Defaults to 'en'.
-
-    Returns:
-        I18n: The initialized I18n instance.
-    """
     global _i18n_instance
     _i18n_instance = I18n(locale)
     return _i18n_instance
 
 
 def t(key: str, **kwargs) -> str:
-    """
-    Global translation function.
-
-    This is a convenience function that uses the global I18n instance to retrieve
-    translated strings. If no instance exists, it initializes one with the default
-    locale ('en').
-
-    Args:
-        key (str): The translation key in dot notation (e.g., 'ui.menu.file').
-        **kwargs: Placeholder values for string formatting.
-
-    Returns:
-        str: The translated string with placeholders replaced.
-    """
     if _i18n_instance is None:
         init_i18n()
     return _i18n_instance.t(key, **kwargs)
