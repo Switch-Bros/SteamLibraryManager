@@ -123,10 +123,8 @@ def main() -> None:
     if config.STEAM_PATH:
         print(t('logs.main.steam_found', path=config.STEAM_PATH))
 
-        # User detection logic
-        short_id, long_id = config.get_detected_user()
-        if short_id and not config.STEAM_USER_ID and long_id:
-            config.STEAM_USER_ID = long_id
+        # User detection is handled in MainWindow._load_data()
+        # STEAM_USER_ID is only set via explicit Steam login, not auto-detection
     else:
         print(t('logs.main.steam_not_found'))
 
