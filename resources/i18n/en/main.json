@@ -51,6 +51,7 @@
         "import": "Import",
         "import_vdf": "Import Categories (.vdf)",
         "import_json": "Restore JSON Backup",
+        "steam_vdf_merge": "Merge Steam *.vdf files",
         "detect_steam": "Redetect Steam Path",
         "switch_user": "Switch User",
         "exit": "Exit"
@@ -449,6 +450,31 @@
         "btn_merge": "Merge Categories"
       }
     },
+    "vdf_merger": {
+      "title": "Merge Steam VDF Files",
+      "info": "Transfer game categories from one Steam config file to another. Useful for migrating your library organization from Windows to Linux.",
+      "source_group": "Source File (e.g. sharedconfig.vdf from Windows)",
+      "target_group": "Target File (e.g. localconfig.vdf on Linux)",
+      "no_file_selected": "No file selected",
+      "browse": "Browse...",
+      "options_group": "Merge Options",
+      "strategy_label": "Strategy:",
+      "strategy_overwrite": "Overwrite (Replace target categories)",
+      "strategy_merge": "Merge (Combine categories from both)",
+      "strategy_skip": "Skip Existing (Only add to uncategorized)",
+      "create_backup": "Create backup before merging",
+      "dry_run": "Dry run (Preview only, no changes)",
+      "dry_run_tooltip": "Simulate the merge without modifying any files",
+      "results_group": "Results",
+      "results_placeholder": "Merge results will appear here...",
+      "btn_merge": "Start Merge",
+      "select_source": "Select Source VDF File",
+      "select_target": "Select Target VDF File",
+      "confirm_title": "Confirm Merge",
+      "confirm_message": "This will modify the target file. Are you sure you want to continue?",
+      "changes_header": "Changes",
+      "more_changes": "...and {count} more changes"
+    },
     "errors": {
       "no_users_found": "No Steam users found.",
       "localconfig_load_error": "Error loading localconfig.vdf",
@@ -548,6 +574,18 @@
       "loaded_total": "Loaded {count} games from local files",
       "no_library_file": "libraryfolders.vdf not found, scanning default steamapps",
       "path_not_exists": "Library path does not exist: {path}"
+    },
+    "merger": {
+      "source_missing": "Source file not found: {path}",
+      "target_missing": "Target file not found: {path}",
+      "load_error_source": "Error loading source file",
+      "load_error_target": "Error loading target file",
+      "no_apps_section": "No apps section found in {file}",
+      "no_changes": "No changes needed - categories are already in sync",
+      "dry_run_complete": "Dry run complete: {count} games would be updated ({changes} changes)",
+      "backup_failed": "Backup creation failed - aborting for safety",
+      "success": "Successfully merged {count} games to {path} (Strategy: {strategy})",
+      "save_error": "Error saving target file"
     }
   }
 }

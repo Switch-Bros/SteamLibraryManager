@@ -103,7 +103,7 @@ class SteamConfigMerger:
                 shutil.copy2(target_path, backup_path)
                 return backup_path
             except (OSError, IOError) as fallback_error:
-                print(t('logs.common.backup_failed', error=str(fallback_error)))
+                print(t('logs.backup.backup_failed', error=str(fallback_error)))
                 return None
 
     def merge_tags(
@@ -141,29 +141,29 @@ class SteamConfigMerger:
 
         # 1. Validate paths
         if not source_path.exists():
-            return False, t('tools.merger.source_missing', path=source_path), []
+            return False, t('logs.merger.source_missing', path=source_path), []
 
         if not target_path.exists():
-            return False, t('tools.merger.target_missing', path=target_path), []
+            return False, t('logs.merger.target_missing', path=target_path), []
 
         # 2. Load Source
         parser_source = LocalConfigParser(source_path)
         if not parser_source.load():
-            return False, t('tools.merger.load_error_source'), []
+            return False, t('logs.merger.load_error_source'), []
 
         # 3. Load Target
         parser_target = LocalConfigParser(target_path)
         if not parser_target.load():
-            return False, t('tools.merger.load_error_target'), []
+            return False, t('logs.merger.load_error_target'), []
 
         # 4. Find Apps Sections
         source_apps = self._find_apps_section(parser_source.data)
         if source_apps is None:
-            return False, t('tools.merger.no_apps_section', file=source_path.name), []
+            return False, t('logs.merger.no_apps_section', file=source_path.name), []
 
         target_apps = self._find_apps_section(parser_target.data)
         if target_apps is None:
-            return False, t('tools.merger.no_apps_section', file=target_path.name), []
+            return False, t('logs.merger.no_apps_section', file=target_path.name), []
 
         # 5. Merge Logic
         count_merged = 0
@@ -241,10 +241,10 @@ class SteamConfigMerger:
 
         # 7. Handle Results
         if count_merged == 0:
-            return True, t('tools.merger.no_changes'), []
+            return True, t('logs.merger.no_changes'), []
 
         if dry_run:
-            return True, t('tools.merger.dry_run_complete', count=count_merged, changes=len(changes)), changes
+            return True, t('logs.merger.dry_run_complete', count=count_merged, changes=len(changes)), changes
 
         # 8. Create Backup (if requested)
         if create_backup:
@@ -252,13 +252,13 @@ class SteamConfigMerger:
             if backup_path:
                 changes.append(f"Backup created: {backup_path.name}")
             else:
-                return False, t('tools.merger.backup_failed'), changes
+                return False, t('logs.merger.backup_failed'), changes
 
         # 9. Save Target
         if parser_target.save():
-            return True, t('tools.merger.success',
+            return True, t('logs.merger.success',
                            count=count_merged,
                            path=target_path.name,
                            strategy=strategy.value), changes
         else:
-            return False, t('tools.merger.save_error'), changes
+            return False, t('logs.merger.save_error'), changes

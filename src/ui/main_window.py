@@ -37,6 +37,7 @@ from src.ui.metadata_dialogs import (
 )
 from src.ui.missing_metadata_dialog import MissingMetadataDialog
 from src.ui.settings_dialog import SettingsDialog
+from src.ui.vdf_merger_dialog import VdfMergerDialog
 
 # Components
 from src.ui.game_details_widget import GameDetailsWidget
@@ -163,6 +164,11 @@ class MainWindow(QMainWindow):
         # noinspection PyUnresolvedReferences
         save_action.triggered.connect(self.force_save)
         file_menu.addAction(save_action)
+
+        vdf_merge_action = QAction(t('ui.menu.file.steam_vdf_merge'), self)
+        # noinspection PyUnresolvedReferences
+        vdf_merge_action.triggered.connect(self._show_vdf_merger)
+        file_menu.addAction(vdf_merge_action)
 
         file_menu.addSeparator()
 
@@ -1420,6 +1426,11 @@ class MainWindow(QMainWindow):
     def refresh_data(self) -> None:
         """Reloads all game data from scratch."""
         self._load_data()
+
+    def _show_vdf_merger(self) -> None:
+        """Opens the VDF merger dialog for transferring categories between platforms."""
+        dialog = VdfMergerDialog(self)
+        dialog.exec()
 
     def show_settings(self) -> None:
         """Opens the settings dialog."""

@@ -51,6 +51,7 @@
         "import": "Importieren",
         "import_vdf": "Kategorien importieren (.vdf)",
         "import_json": "JSON Backup wiederherstellen",
+        "steam_vdf_merge": "Steam *.vdf-Dateien zusammenführen",
         "detect_steam": "Steam-Pfad neu erkennen",
         "switch_user": "Benutzer wechseln",
         "exit": "Beenden"
@@ -449,6 +450,31 @@
         "btn_merge": "Kategorien übertragen"
       }
     },
+    "vdf_merger": {
+      "title": "Steam VDF-Dateien zusammenführen",
+      "info": "Übertrage Spiele-Kategorien von einer Steam-Konfigurationsdatei in eine andere. Nützlich um deine Bibliotheks-Organisation von Windows nach Linux zu migrieren.",
+      "source_group": "Quelldatei (z.B. sharedconfig.vdf von Windows)",
+      "target_group": "Zieldatei (z.B. localconfig.vdf auf Linux)",
+      "no_file_selected": "Keine Datei ausgewählt",
+      "browse": "Durchsuchen...",
+      "options_group": "Merge-Optionen",
+      "strategy_label": "Strategie:",
+      "strategy_overwrite": "Überschreiben (Ziel-Kategorien ersetzen)",
+      "strategy_merge": "Zusammenführen (Kategorien von beiden kombinieren)",
+      "strategy_skip": "Vorhandene überspringen (Nur unkategorisierte ergänzen)",
+      "create_backup": "Backup vor dem Merge erstellen",
+      "dry_run": "Testlauf (Nur Vorschau, keine Änderungen)",
+      "dry_run_tooltip": "Simuliert den Merge ohne Dateien zu ändern",
+      "results_group": "Ergebnisse",
+      "results_placeholder": "Merge-Ergebnisse erscheinen hier...",
+      "btn_merge": "Merge starten",
+      "select_source": "Quell-VDF-Datei auswählen",
+      "select_target": "Ziel-VDF-Datei auswählen",
+      "confirm_title": "Merge bestätigen",
+      "confirm_message": "Die Zieldatei wird geändert. Möchtest du wirklich fortfahren?",
+      "changes_header": "Änderungen",
+      "more_changes": "...und {count} weitere Änderungen"
+    },
     "errors": {
       "no_users_found": "Keine Steam-Benutzer gefunden.",
       "localconfig_load_error": "Fehler beim Laden von localconfig.vdf",
@@ -548,6 +574,18 @@
       "loaded_total": "{count} Spiele aus lokalen Dateien geladen",
       "no_library_file": "libraryfolders.vdf nicht gefunden, scanne Standard-Steamapps",
       "path_not_exists": "Bibliotheks-Pfad existiert nicht: {path}"
+    },
+    "merger": {
+      "source_missing": "Quelldatei nicht gefunden: {path}",
+      "target_missing": "Zieldatei nicht gefunden: {path}",
+      "load_error_source": "Fehler beim Laden der Quelldatei",
+      "load_error_target": "Fehler beim Laden der Zieldatei",
+      "no_apps_section": "Keine Apps-Sektion gefunden in {file}",
+      "no_changes": "Keine Änderungen nötig - Kategorien sind bereits synchron",
+      "dry_run_complete": "Testlauf abgeschlossen: {count} Spiele würden aktualisiert ({changes} Änderungen)",
+      "backup_failed": "Backup-Erstellung fehlgeschlagen - Abbruch zur Sicherheit",
+      "success": "Erfolgreich {count} Spiele nach {path} übertragen (Strategie: {strategy})",
+      "save_error": "Fehler beim Speichern der Zieldatei"
     }
   }
 }
