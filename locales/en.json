@@ -385,6 +385,7 @@
       "window_title": "🔐 Steam Login",
       "webview_title": "Steam Login",
       "webview_closing": "This window will close automatically...",
+      "waiting_browser": "Please login in your browser...\nThis window will close automatically after login.",
       "info": "Click below to login via Steam OAuth.",
       "button": "Login with Steam",
       "status_success": "Login successful!",
