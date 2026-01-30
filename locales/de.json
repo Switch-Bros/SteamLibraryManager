@@ -541,7 +541,9 @@
     },
     "local_loader": {
       "scanning": "Scanne {count} Manifest-Dateien...",
+      "scanning_libraries": "Scanne {count} Bibliotheks-Ordner...",
       "found_manifests": "  -> {path}: {count} Manifeste gefunden",
+      "found_manifests_in_path": "  -> {path}: {count} Manifeste gefunden",
       "library_error": "Fehler beim Lesen der Library-Ordner: {error}",
       "loaded_total": "{count} Spiele aus lokalen Dateien geladen",
       "no_library_file": "libraryfolders.vdf nicht gefunden, scanne Standard-Steamapps",
