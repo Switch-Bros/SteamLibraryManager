@@ -127,9 +127,6 @@ class MainWindow(QMainWindow):
         self.auth_manager = SteamAuthManager()
         self.auth_manager.auth_success.connect(self._on_steam_login_success)
         self.auth_manager.auth_error.connect(self._on_steam_login_error)
-        self.auth_manager.show_waiting_dialog.connect(self._show_login_waiting_dialog)
-        self.auth_manager.hide_waiting_dialog.connect(self._hide_login_waiting_dialog)
-        self.login_waiting_dialog: Optional[QProgressDialog] = None
 
         # State
         self.selected_game: Optional[Game] = None
@@ -392,10 +389,9 @@ class MainWindow(QMainWindow):
     def _start_steam_login(self) -> None:
         """Initiates the Steam OpenID authentication process.
 
-        Opens an embedded webview window for Steam login.
+        Opens an embedded login dialog for Steam login.
         """
-        self.auth_manager.start_login()
-        self.set_status(t('common.loading'))
+        self.auth_manager.start_login(parent=self)
 
     def _on_steam_login_success(self, steam_id_64: str) -> None:
         """Handles successful Steam authentication.
@@ -433,32 +429,6 @@ class MainWindow(QMainWindow):
         self.set_status(t('ui.login.status_failed'))
         self.reload_btn.show()
         UIHelper.show_error(self, error)
-
-    def _show_login_waiting_dialog(self) -> None:
-        """Shows a waiting dialog while user logs in via browser."""
-        self.login_waiting_dialog = QProgressDialog(
-            t('ui.login.waiting_browser'),
-            t('ui.dialogs.cancel'),
-            0, 0,
-            self
-        )
-        self.login_waiting_dialog.setWindowTitle(t('ui.login.title'))
-        self.login_waiting_dialog.setWindowModality(Qt.WindowModality.WindowModal)
-        self.login_waiting_dialog.setMinimumDuration(0)
-        self.login_waiting_dialog.setValue(0)
-        self.login_waiting_dialog.canceled.connect(self._on_login_canceled)
-        self.login_waiting_dialog.show()
-
-    def _hide_login_waiting_dialog(self) -> None:
-        """Hides the login waiting dialog."""
-        if self.login_waiting_dialog:
-            self.login_waiting_dialog.close()
-            self.login_waiting_dialog = None
-
-    def _on_login_canceled(self) -> None:
-        """Handles cancellation of the login process."""
-        self.auth_manager.cancel_login()
-        self.set_status(t('ui.main_window.status_ready'))
 
     # --- Main Logic ---
 
