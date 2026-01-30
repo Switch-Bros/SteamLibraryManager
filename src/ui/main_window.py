@@ -389,9 +389,8 @@ class MainWindow(QMainWindow):
     def _start_steam_login(self) -> None:
         """Initiates the Steam OpenID authentication process.
 
-        Shows an info dialog and starts the authentication manager.
+        Opens an embedded webview window for Steam login.
         """
-        UIHelper.show_success(self, t('ui.login.info'), t('ui.login.title'))
         self.auth_manager.start_login()
         self.set_status(t('common.loading'))
 
