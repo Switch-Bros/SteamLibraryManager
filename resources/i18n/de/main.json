@@ -1,0 +1,553 @@
+{
+  "app": {
+    "name": "Steam Bibliotheks-Manager",
+    "version": "1.0.0",
+    "description": "Moderner Bibliotheks-Manager für Steam auf Linux",
+    "info": "Information"
+  },
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "close": "Schließen",
+    "error": "Fehler",
+    "success": "Erfolg",
+    "unknown": "Unbekannt",
+    "na": "N/A",
+    "yes": "Ja",
+    "no": "Nein",
+    "loading": "Lade...",
+    "game_fallback": "Unbekannte App {id}",
+    "confirm_exit": "Möchten Sie die Anwendung wirklich beenden?",
+    "warning": "Warnung",
+    "dash": "-",
+    "clear": "×"
+  },
+  "ui": {
+    "main_window": {
+      "title": "Steam Bibliotheks-Manager",
+      "search_placeholder": "Spiele durchsuchen...",
+      "status_ready": "Bereit",
+      "games_count": "{count} Spiele",
+      "games_selected": "{count} Spiele ausgewählt",
+      "filtered_count": "{filtered} von {total} Spielen angezeigt",
+      "user_label": "Benutzer: {user_id}",
+      "user_auto": "Benutzer: {user_id} (Automatisch)",
+      "search_icon": "🔍",
+      "expand_all": "Alle ausklappen",
+      "collapse_all": "Alle einklappen"
+    },
+    "images": {
+      "image_load_error": "❌"
+    },
+    "menu": {
+      "file": {
+        "root": "Datei",
+        "refresh": "Bibliothek aktualisieren",
+        "save": "Konfiguration speichern",
+        "export": "Exportieren",
+        "export_csv": "Als CSV exportieren (Alle Spiele)",
+        "export_json": "Als JSON exportieren (Backup)",
+        "export_vdf": "Kategorien exportieren (.vdf)",
+        "import": "Importieren",
+        "import_vdf": "Kategorien importieren (.vdf)",
+        "import_json": "JSON Backup wiederherstellen",
+        "detect_steam": "Steam-Pfad neu erkennen",
+        "switch_user": "Benutzer wechseln",
+        "exit": "Beenden"
+      },
+      "edit": {
+        "root": "Bearbeiten",
+        "bulk_edit": "Massenbearbeitung",
+        "auto_categorize": "Auto-Kategorisierung",
+        "favorites": "Favoriten",
+        "show_favorites": "Alle Favoriten anzeigen",
+        "export_favorites": "Favoriten exportieren",
+        "categories": "Kategorien",
+        "new_category": "Neue Kategorie erstellen",
+        "merge_categories": "Kategorien zusammenführen",
+        "delete_empty": "Leere Kategorien löschen",
+        "sort_categories": "Kategorien alphabetisch sortieren",
+        "restore_metadata": "Metadaten wiederherstellen",
+        "cleanup": "Aufräumen",
+        "show_hidden": "Versteckte Spiele anzeigen",
+        "find_duplicates": "Duplikate finden",
+        "clear_cache": "Cache leeren"
+      },
+      "view": {
+        "root": "Ansicht",
+        "theme": "Theme",
+        "theme_system": "System (Standard)",
+        "theme_light": "Hell",
+        "theme_dark": "Dunkel",
+        "statistics": "Statistiken",
+        "stats": "Statistiken-Dashboard",
+        "total_playtime": "Gesamtspielzeit",
+        "top10": "Top 10 meist gespielte",
+        "genre_distribution": "Verteilung nach Genre",
+        "category_distribution": "Verteilung nach Kategorie",
+        "filters": "Filter",
+        "show_installed": "Installierte Spiele anzeigen",
+        "show_not_installed": "Nicht installierte anzeigen",
+        "show_hidden": "Versteckte Spiele anzeigen",
+        "show_with_playtime": "Nur mit Spielzeit anzeigen",
+        "filter_installed": "Nur installierte Spiele",
+        "filter_favorites": "Favoriten",
+        "filter_uncategorized": "Unkategorisiert",
+        "layout": "Layout",
+        "layout_compact": "Kompakt (Liste)",
+        "layout_normal": "Normal (mit Covers)",
+        "layout_large": "Groß (Grid)",
+        "expand_all": "Alle ausklappen",
+        "collapse_all": "Alle einklappen"
+      },
+      "tools": {
+        "root": "Extras",
+        "steam": "Steam-Integration",
+        "steam_login": "Mit Steam anmelden",
+        "steam_launch": "Steam starten",
+        "steam_bigpicture": "Steam Big Picture starten",
+        "steam_profile": "Steam-Profil öffnen",
+        "images": "Bilder",
+        "download_covers": "Fehlende Cover herunterladen (Alle)",
+        "download_logos": "Fehlende Logos herunterladen",
+        "refresh_cache": "Cache aktualisieren",
+        "manage_images": "Benutzerdefinierte Bilder verwalten",
+        "search": "Erweiterte Suche",
+        "search_publisher": "Nach Publisher suchen",
+        "search_year": "Nach Release-Jahr suchen",
+        "search_tags": "Nach Tags suchen",
+        "batch": "Batch-Operationen",
+        "batch_store": "Alle Store-Seiten prüfen",
+        "batch_proton": "Alle Proton-Ratings aktualisieren",
+        "batch_reviews": "Alle Rezensionen aktualisieren",
+        "dup_finder": "Duplicate Finder",
+        "merge_cats": "Kategorien zusammenführen",
+        "missing_meta": "Spiele mit fehlenden Metadaten finden"
+      },
+      "help": {
+        "root": "Hilfe",
+        "manual": "Benutzerhandbuch",
+        "tips": "Tipps & Tricks",
+        "check_updates": "Auf Aktualisierungen prüfen",
+        "changelog": "Changelog anzeigen",
+        "community": "Community",
+        "shortcuts": "Tastenkombinationen",
+        "github": "Besuche GitHub",
+        "report_issue": "Problem melden",
+        "donate": "Spenden",
+        "donate_paypal": "PayPal spenden",
+        "donate_github": "GitHub Sponsor",
+        "donate_kofi": "Ko-fi",
+        "about": "Über Steam Library Manager"
+      },
+      "placeholder_title": "Bald verfügbar",
+      "placeholder_message": "{feature} wird bald implementiert! 🚀"
+    },
+    "settings": {
+      "title": "Einstellungen",
+      "save": "Speichern",
+      "saved": "Einstellungen gespeichert.",
+      "tabs": {
+        "general": "Allgemein",
+        "other": "Weitere"
+      },
+      "libraries": {
+        "title": "Steam Bibliotheks-Ordner",
+        "add": "Hinzufügen",
+        "remove": "Entfernen",
+        "confirm_remove": "Bibliothek entfernen",
+        "confirm_msg": "Möchtest du diesen Bibliotheks-Pfad wirklich entfernen?"
+      },
+      "api": {
+        "title_group": "API && Integrationen",
+        "steam_label": "Steam Web API Schlüssel (Optional)",
+        "sgdb_label": "SteamGridDB API Schlüssel (Cover/Icons)",
+        "get_key": "Schlüssel holen",
+        "placeholder": "Schlüssel hier einfügen...",
+        "help_text": "Diese Schlüssel ermöglichen Features wie Spielzeit-Sync und Cover-Downloads.",
+        "warning": "Teile deine API-Schlüssel niemals mit anderen!",
+        "info_optional": "Optional: Ermöglicht Spielzeit-Sync für nicht-installierte Spiele."
+      },
+      "general": {
+        "steam_path": "Steam Pfad",
+        "browse": "Durchsuchen...",
+        "language": "Sprache",
+        "ui_language": "Benutzeroberfläche",
+        "tag_language": "Tag Sprache",
+        "restart_required": "Änderung wird sofort wirksam. Ein Neustart wird für vollständige Konsistenz empfohlen."
+      },
+      "languages": {
+        "de": "🇩🇪 Deutsch",
+        "en": "🇬🇧 English",
+        "es": "🇪🇸 Español",
+        "pt": "🇵🇹 Português",
+        "fr": "🇫🇷 Français",
+        "it": "🇮🇹 Italiano",
+        "zh": "🇨🇳 中文",
+        "ja": "🇯🇵 日本語",
+        "ko": "🇰🇷 한국어"
+      },
+      "backup": {
+        "title_group": "Backup",
+        "limit": "Max. Backups:",
+        "files": "Dateien",
+        "tooltip": "Anzahl der Backups pro Datei",
+        "explanation": "Anzahl der Sicherungen von localconfig.vdf, sharedconfig.vdf & appinfo.vdf, bevor die älteste überschrieben wird."
+      },
+      "tags": {
+        "title_group": "Tags && Kategorien",
+        "count": "Tags pro Spiel:",
+        "ignore_common": "Häufige Tags ignorieren (Indie, Singleplayer...)"
+      }
+    },
+    "game_details": {
+      "section_basic": "Basis-Infos",
+      "section_metadata": "Metadaten",
+      "section_ratings": "Bewertungen & Proton",
+      "multi_select_title": "{count} Spiele ausgewählt",
+      "selected": "Ausgewählt",
+      "total_playtime": "Gesamte Spielzeit",
+      "name": "Name",
+      "app_id": "App ID",
+      "developer": "Entwickler",
+      "publisher": "Publisher",
+      "release": "Release",
+      "release_year": "Erscheinungsjahr",
+      "playtime": "Spielzeit",
+      "last_update": "Letztes Update",
+      "never_played": "Nie gespielt",
+      "hours": "{hours} Std.",
+      "btn_store": "Steam Store",
+      "btn_edit": "Metadaten bearbeiten",
+      "proton_db": "ProtonDB",
+      "steam_deck": "Steam Deck",
+      "steam_deck_status": {
+        "verified": "Verifiziert",
+        "playable": "Spielbar",
+        "unsupported": "Nicht unterstützt",
+        "unknown": "Unbekannt"
+      },
+      "reviews": "Bewertungen",
+      "value_unknown": "Unbekannt",
+      "select_placeholder": "Wähle ein Spiel für Details",
+      "categories_label": "Kategorien",
+      "proton_tiers": {
+        "platinum": "Platin",
+        "gold": "Gold",
+        "silver": "Silber",
+        "bronze": "Bronze",
+        "native": "Nativ",
+        "borked": "Defekt",
+        "pending": "Ausstehend",
+        "unknown": "Unbekannt"
+      },
+      "gallery": {
+        "grids": "GRIDS",
+        "heroes": "HEROES",
+        "logos": "LOGOS",
+        "icons": "ICONS",
+        "reset": "Original wiederherstellen"
+      }
+    },
+    "context_menu": {
+      "play": "Spiel starten",
+      "view_details": "Details anzeigen",
+      "toggle_favorite": "Favorit umschalten",
+      "open_store": "Im Steam Shop ansehen",
+      "open_folder": "Installationsordner öffnen",
+      "edit_metadata": "Metadaten bearbeiten",
+      "hide_game": "Spiel verstecken",
+      "unhide_game": "Spiel sichtbar machen",
+      "remove_from_account": "Vom Account entfernen",
+      "check_store": "🔍 Store-Verfügbarkeit prüfen",
+      "auto_categorize": "Auto-Kategorisieren",
+      "rename": "Umbenennen",
+      "delete": "Löschen",
+      "merge_categories": "Kategorien zusammenführen"
+    },
+    "metadata_editor": {
+      "title": "Metadaten bearbeiten",
+      "editing_title": "Metadaten bearbeiten: {game}",
+      "bulk_title": "Massenbearbeitung - {count} Spiele",
+      "info_tracking": "Änderungen sind lokal und werden von der App getrackt.",
+      "game_name_label": "Spielname",
+      "sort_as_label": "Sortieren als",
+      "sort_as_help": "Leer lassen um Spielnamen für Sortierung zu verwenden",
+      "date_help": "Format: JJJJ-MM-TT oder JJJJ",
+      "vdf_section": "VDF Optionen",
+      "write_to_vdf": "In appinfo.vdf schreiben (Steam-Neustart nötig)",
+      "write_to_vdf_tooltip": "Änderungen werden nach Steam-Neustart sichtbar",
+      "vdf_info": "Schreiben in VDF macht Änderungen in Steam sichtbar. Ein Backup wird automatisch erstellt.",
+      "original_values": "Original-Werte",
+      "original_values_group": "Original-Werte (Nur Lesen)",
+      "revert_to_original": "Auf Original zurücksetzen",
+      "modified_tooltip": "Original: {original}",
+      "revert_title": "Änderungen zurücksetzen",
+      "revert_no_original": "Keine Original-Werte zum Wiederherstellen verfügbar.",
+      "revert_confirm": "Alle Felder auf Original-Werte zurücksetzen?",
+      "error_empty_name": "Spielname darf nicht leer sein.",
+      "vdf_warning_title": "VDF Schreib-Information",
+      "vdf_warning_text": "Änderungen werden in Steams appinfo.vdf geschrieben.",
+      "vdf_warning_details": "Steam muss neu gestartet werden damit Änderungen sichtbar werden. Ein Backup wird erstellt. Fortfahren?",
+      "fields_group": "Zu ändernde Felder",
+      "bulk_info": "⚠️ Warnung: Dies ändert {count} Spiele!",
+      "bulk_preview": "Betroffene Spiele ({count})",
+      "bulk_more": "...und {count} weitere",
+      "set_field": "{field} setzen",
+      "add_prefix": "Namen-Präfix hinzufügen",
+      "add_suffix": "Namen-Suffix hinzufügen",
+      "remove_text": "Text aus Namen entfernen",
+      "apply_button": "Auf {count} Spiele anwenden",
+      "restore_button": "{count} Spiele wiederherstellen",
+      "restore_info": "{count} Spiele haben geänderte Metadaten die wiederhergestellt werden können.",
+      "updated_single": "Metadaten aktualisiert: {game}",
+      "updated_bulk": "Metadaten für {count} Spiele aktualisiert.",
+      "no_changes_to_restore": "Keine Metadaten-Änderungen zum Wiederherstellen.",
+      "restored_count": "Metadaten für {count} Spiele wiederhergestellt."
+    },
+    "store_check": {
+      "title": "Store-Verfügbarkeit prüfen",
+      "checking": "Prüfe Store-Verfügbarkeit...",
+      "available": "✅ Im Steam Store verfügbar",
+      "geo_locked": "🚫 In Ihrem Land nicht verfügbar (Geo-Blocking/Zensur)",
+      "delisted": "❌ Nicht mehr im Store verfügbar",
+      "removed": "❌ Aus dem Store entfernt",
+      "unknown": "❓ Unbekannter Status (Code: {code})"
+    },
+    "pegi_selector": {
+      "title": "PEGI-Bewertung auswählen",
+      "select": "Wählen Sie die richtige PEGI-Bewertung für dieses Spiel:",
+      "none": "Keine Bewertung",
+      "saved": "PEGI-Bewertung gespeichert: {rating}",
+      "removed": "PEGI-Bewertung entfernt",
+      "instruction": "Wähle die korrekte PEGI-Alterseinstufung für dieses Spiel:",
+      "remove": "Entfernen"
+    },
+    "visibility": {
+      "hidden": "Versteckt",
+      "visible": "Sichtbar",
+      "title": "Sichtbarkeit geändert",
+      "message": "{game} ist jetzt {status}."
+    },
+    "categories": {
+      "all_games": "Alle Spiele",
+      "favorites": "Favoriten",
+      "uncategorized": "Unkategorisiert",
+      "hidden": "Versteckt",
+      "rename_title": "Kategorie umbenennen",
+      "rename_msg": "Neuer Name für '{old}':",
+      "delete_title": "Kategorie löschen",
+      "delete_msg": "Möchtest du '{category}' löschen? Die Spiele bleiben erhalten.",
+      "category_count": "{name} ({count})",
+      "game_tooltip": "{name}\nEntwickler: {developer}",
+      "merge_title": "Kategorien zusammenführen",
+      "merge_instruction": "Wählen Sie die Ziel-Kategorie aus, in die alle {count} Kategorien zusammengeführt werden sollen:",
+      "merge_success": "{count} Kategorien wurden erfolgreich in '{target}' zusammengeführt"
+    },
+    "auto_categorize": {
+      "title": "Auto-Kategorisierung",
+      "header": "Spiele auto-kategorisieren",
+      "method_tags": "Steam Tags",
+      "method_publisher": "Nach Publisher",
+      "method_genre": "Nach Genre",
+      "method_franchise": "Nach Franchise",
+      "scope_all": "Gesamte Bibliothek ({count} Spiele)",
+      "scope_uncategorized": "Unkategorisierte Spiele ({count})",
+      "start": "Starten",
+      "processing": "Verarbeite {current} von {total}...",
+      "status_tags": "Tags laden: {game}...",
+      "cat_publisher": "Publisher: {name}",
+      "cat_franchise": "Franchise: {name}",
+      "cat_genre": "Genre: {name}",
+      "warning_backup": "⚠️ Erstelle ein Backup vor Massenänderungen!",
+      "method_group": "Kategorisierungs-Methode",
+      "option_tags": "Nach Tags",
+      "by_publisher": "Nach Publisher",
+      "option_franchise": "Nach Franchise",
+      "by_genre": "Nach Genre",
+      "settings": "Einstellungen",
+      "tags_per_game": "Tags pro Spiel",
+      "option_ignore_common": "Häufige Tags ignorieren",
+      "apply_group": "Anwenden auf",
+      "estimate_label": "Geschätzte Kategorien",
+      "cancel": "Abbrechen"
+    },
+    "steamgrid_setup": {
+      "title": "SteamGridDB Einrichtung",
+      "info": "Für Cover-Bilder benötigst du einen kostenlosen API Key.",
+      "step_1": "1. Bei SteamGridDB anmelden",
+      "step_2": "2. API Key generieren/kopieren",
+      "step_3": "3. Key hier einfügen",
+      "get_key_btn": "Key holen (Browser öffnen)"
+    },
+    "login": {
+      "title": "Bei Steam anmelden",
+      "window_title": "🔐 Steam Login",
+      "webview_title": "Steam Anmeldung",
+      "webview_closing": "Dieses Fenster schließt sich automatisch...",
+      "waiting_browser": "Bitte im Browser anmelden...\nDieses Fenster schließt sich nach der Anmeldung automatisch.",
+      "info": "Klicke unten für den Steam OAuth Login.",
+      "button": "Mit Steam anmelden",
+      "status_success": "Login erfolgreich!",
+      "status_failed": "Login fehlgeschlagen",
+      "logged_in_as": "Angemeldet als {user}",
+      "html_success_header": "Erfolgreich angemeldet!",
+      "html_success_msg": "Du kannst dieses Fenster jetzt schließen und zur App zurückkehren.",
+      "error_no_steam_id": "Anmeldung fehlgeschlagen: Keine Steam ID erhalten."
+    },
+    "search": {
+      "results_category": "Suchergebnisse ({count})",
+      "status_found": "{count} Spiele gefunden",
+      "status_none": "Keine Ergebnisse gefunden"
+    },
+    "stats": {
+      "title": "Bibliotheks-Statistiken",
+      "total_playtime": "Gesamtspielzeit",
+      "top_games": "Top 10 Spiele",
+      "genre_dist": "Genre-Verteilung"
+    },
+    "dialogs": {
+      "steam_running_title": "⚠️ Steam läuft!",
+      "steam_running_msg": "Steam Library Manager hat erkannt, dass Steam läuft. Bitte Steam beenden.",
+      "confirm_remove_account": "Möchtest du '{game}' wirklich PERMANENT von deinem Account löschen?",
+      "remove_account_title": "Spiel vom Account entfernen",
+      "remove_account_warning": "⚠️ WARNUNG: Diese Aktion ist DAUERHAFT!\n\nDu wirst zum Steam Support weitergeleitet, wo du dieses Spiel von deinem Account entfernen kannst.\n\nDies kann nicht rückgängig gemacht werden! Das Spiel und alle zugehörigen DLCs werden dauerhaft entfernt.\n\nMöchtest du fortfahren?",
+      "restore_success": "{count} Änderungen erfolgreich wiederhergestellt!",
+      "backup_created": "Backup erstellt: {path}",
+      "cancel": "Abbrechen",
+      "error": "Fehler",
+      "no_changes": "Keine Änderungen",
+      "no_selection": "Bitte wähle mindestens ein Feld zum Ändern aus.",
+      "confirm_bulk_title": "Massenbearbeitung bestätigen",
+      "confirm_bulk": "Änderungen auf {count} Spiele anwenden?",
+      "image_picker_title": "{type} für {game} auswählen",
+      "image_picker_loading": "Lade Bilder...",
+      "close": "Schließen",
+      "success": "Erfolg"
+    },
+    "tools": {
+      "missing_metadata": {
+        "title": "Spiele mit fehlenden Metadaten",
+        "header": "{count} Spiele mit unvollständigen Metadaten gefunden",
+        "info": "Diesen Spielen fehlen Entwickler-, Publisher- oder Release-Daten.",
+        "export_csv": "Als CSV exportieren",
+        "no_games_found": "Keine Spiele mit fehlenden Metadaten",
+        "all_complete": "Alle Spiele haben vollständige Metadaten!",
+        "col_appid": "App ID",
+        "col_name": "Spielname",
+        "col_developer": "Entwickler",
+        "col_publisher": "Publisher",
+        "col_release": "Erscheinungsjahr",
+        "col_missing_fields": "Fehlende Felder",
+        "missing": "Fehlt",
+        "save_csv": "CSV speichern",
+        "stats": "{count} Spiele mit unvollständigen Metadaten gefunden"
+      },
+      "merger": {
+        "title": "Kategorien Import/Export",
+        "success": "Erfolgreich {count} Spiele-Kategorien aktualisiert!",
+        "btn_merge": "Kategorien übertragen"
+      }
+    },
+    "errors": {
+      "no_users_found": "Keine Steam-Benutzer gefunden.",
+      "localconfig_load_error": "Fehler beim Laden von localconfig.vdf",
+      "no_games_found": "Keine Spiele gefunden oder Fehler beim Laden.",
+      "no_selection": "Keine Spiele ausgewählt."
+    },
+    "loading": {
+      "dots": "Lade..."
+    },
+    "status": {
+      "no_results": "Keine Bilder gefunden."
+    },
+    "badges": {
+      "nsfw": "18+",
+      "humor": "Humor",
+      "epilepsy": "Epilepsie",
+      "animated": "GIF"
+    }
+  },
+  "logs": {
+    "main": {
+      "initializing": "Initialisiere...",
+      "steam_found": "Steam gefunden in: {path}",
+      "steam_not_found": "Steam-Installation nicht gefunden",
+      "steam_running_exit": "⚠️ Steam läuft - Anwendung wird beendet",
+      "psutil_missing": "Warnung: psutil nicht installiert",
+      "file_load_error": "Fehler beim Laden der Datei {file}: {error}"
+    },
+    "config": {
+      "loaded": "Einstellungen geladen",
+      "save_error": "Fehler beim Speichern der Konfiguration: {error}",
+      "load_error": "Fehler beim Laden der Konfiguration: {error}"
+    },
+    "manager": {
+      "api_trying": "Versuche Steam Web API...",
+      "local_loading": "Lade aus lokalen Dateien...",
+      "loaded_local": "{count} installierte Spiele geladen",
+      "loaded_api": "{count} Spiele von API geladen",
+      "loaded_mixed": "{count} Spiele geladen (Steam API + lokale Dateien)",
+      "merging": "Führe Kategorien zusammen...",
+      "applied_overrides": "Metadaten-Overrides auf {count} Spiele angewendet",
+      "error_api": "Steam API Fehler: {error}",
+      "error_local": "Fehler beim Laden lokaler Dateien: {error}"
+    },
+    "auth": {
+      "starting": "Starte Steam OAuth Prozess...",
+      "login_success": "Anmeldung erfolgreich! SteamID: {id}",
+      "error": "Auth Fehler: {error}",
+      "profile_error": "Fehler beim Laden des Profilnamens: {error}"
+    },
+    "steam_store": {
+      "fetch_error": "Store-Fehler für App {app_id}: {error}"
+    },
+    "steamgrid": {
+      "saved": "Bild gespeichert: {type} für App {app_id}",
+      "missing_key": "API Key fehlt",
+      "api_error": "API Fehler {code}",
+      "found": "Bilder gefunden: {count}",
+      "save_error": "Fehler beim Speichern des Bildes: {error}",
+      "deleted": "Benutzerdefiniertes Bild gelöscht: {path}",
+      "delete_error": "Fehler beim Löschen des Bildes: {error}"
+    },
+    "backup": {
+      "created": "✅ Backup erstellt: {name}",
+      "failed": "Backup fehlgeschlagen: {error}",
+      "rotated": "Backup rotiert: {name}",
+      "delete_error": "Fehler beim Löschen des alten Backups {name}: {error}",
+      "backup_failed": "Backup fehlgeschlagen: {error}"
+    },
+    "appinfo": {
+      "loaded": "{count} gespeicherte Änderungen geladen",
+      "saved_vdf": "appinfo.vdf gespeichert",
+      "restored": "{count} Änderungen wiederhergestellt",
+      "parse_error": "Warnung: Fehler beim Parsen von App {app_id}: {error}",
+      "loaded_binary": "{count} Apps aus binärer appinfo.vdf geladen",
+      "incompatible_version": "Inkompatible appinfo.vdf Version: {version}",
+      "binary_error": "Fehler beim Laden der binären appinfo.vdf: {error}",
+      "error": "AppInfo Fehler: {error}",
+      "set_error": "Fehler beim Setzen der Metadaten für {app_id}: {error}",
+      "saved_mods": "{count} Änderungen in JSON gespeichert",
+      "not_loaded": "Binäre appinfo.vdf nicht geladen",
+      "backup_created": "Backup erstellt: {path}",
+      "backup_failed": "Backup fehlgeschlagen: {error}",
+      "write_error": "Fehler beim Schreiben der appinfo.vdf: {error}"
+    },
+    "parser": {
+      "apps_not_found": "Apps-Sektion in localconfig.vdf nicht gefunden",
+      "file_not_found": "localconfig.vdf nicht gefunden unter: {path}",
+      "hidden_error": "Fehler beim Setzen des Versteckt-Status: {error}"
+    },
+    "local_loader": {
+      "scanning": "Scanne {count} Manifest-Dateien...",
+      "scanning_libraries": "Scanne {count} Bibliotheks-Ordner...",
+      "found_manifests": "  -> {path}: {count} Manifeste gefunden",
+      "found_manifests_in_path": "  -> {path}: {count} Manifeste gefunden",
+      "library_error": "Fehler beim Lesen der Library-Ordner: {error}",
+      "loaded_total": "{count} Spiele aus lokalen Dateien geladen",
+      "no_library_file": "libraryfolders.vdf nicht gefunden, scanne Standard-Steamapps",
+      "path_not_exists": "Bibliotheks-Pfad existiert nicht: {path}"
+    }
+  }
+}
