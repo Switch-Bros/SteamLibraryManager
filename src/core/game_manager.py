@@ -543,6 +543,7 @@ class GameManager:
         self._fetch_review_stats(app_id)
         self._fetch_proton_rating(app_id)
         self._fetch_steam_deck_status(app_id)
+        self._fetch_last_update(app_id)
         return True
 
     def _fetch_store_data(self, app_id: str) -> None:
@@ -704,6 +705,65 @@ class GameManager:
         except (requests.RequestException, ValueError, KeyError, OSError):
             if app_id in self.games:
                 self.games[app_id].steam_deck_status = unknown_status
+
+    def _fetch_last_update(self, app_id: str) -> None:
+        """
+        Fetches the last developer update date from Steam News API.
+
+        Args:
+            app_id (str): The Steam app ID.
+        """
+        cache_file = self.cache_dir / 'store_data' / f'{app_id}_news.json'
+
+        if cache_file.exists():
+            try:
+                cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
+                if cache_age < timedelta(days=1):
+                    with open(cache_file, 'r') as f:
+                        data = json.load(f)
+                        if app_id in self.games:
+                            self.games[app_id].last_updated = data.get('last_update', '')
+                    return
+            except (OSError, json.JSONDecodeError):
+                pass
+
+        try:
+            # Steam News API - get recent news/updates
+            url = f'https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/'
+            params = {
+                'appid': app_id,
+                'count': 10,  # Get last 10 news items
+                'maxlength': 100,  # We only need the date, not full content
+                'format': 'json'
+            }
+            response = requests.get(url, params=params, timeout=5)
+
+            if response.status_code == 200:
+                data = response.json()
+                news_items = data.get('appnews', {}).get('newsitems', [])
+
+                if news_items:
+                    # Get the most recent news item date
+                    latest_date = news_items[0].get('date', 0)
+                    if latest_date:
+                        dt = datetime.fromtimestamp(int(latest_date))
+                        date_str = dt.strftime('%d. %b %Y')
+
+                        # Cache the result
+                        cache_file.parent.mkdir(exist_ok=True)
+                        with open(cache_file, 'w') as f:
+                            json.dump({'last_update': date_str, 'timestamp': latest_date}, f)
+
+                        if app_id in self.games:
+                            self.games[app_id].last_updated = date_str
+                        return
+
+            # No news found
+            if app_id in self.games and not self.games[app_id].last_updated:
+                self.games[app_id].last_updated = ''
+
+        except (requests.RequestException, ValueError, KeyError, OSError):
+            pass
 
     def _apply_review_data(self, app_id: str, data: Dict) -> None:
         """Parses and applies review data to a game.
