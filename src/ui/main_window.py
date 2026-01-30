@@ -559,29 +559,41 @@ class MainWindow(QMainWindow):
     def _populate_categories(self) -> None:
         """Refreshes the sidebar tree with current game data.
 
-        Builds category data including All Games, Favorites, Uncategorized,
-        and user-defined categories, then updates the tree widget.
+        Builds category data including All Games, Uncategorized, Hidden,
+        and user-defined categories. Hidden games are excluded from normal
+        categories and shown only in the Hidden category.
         """
         if not self.game_manager: return
-        categories_data = {}
-        all_games = sorted(self.game_manager.get_all_games(), key=lambda g: g.sort_name.lower())
 
-        # Localized Category Names
-        categories_data[t('ui.categories.all_games')] = all_games
+        # Separate hidden and visible games
+        all_games_raw = self.game_manager.get_all_games()
+        visible_games = sorted([g for g in all_games_raw if not g.hidden], key=lambda g: g.sort_name.lower())
+        hidden_games = sorted([g for g in all_games_raw if g.hidden], key=lambda g: g.sort_name.lower())
 
-        favorites = sorted(self.game_manager.get_favorites(), key=lambda g: g.sort_name.lower())
+        # 1-3. Build initial categories (All, Uncategorized, Hidden)
+        categories_data = {
+            t('ui.categories.all_games'): visible_games,
+            t('ui.categories.uncategorized'): sorted(
+                [g for g in self.game_manager.get_uncategorized_games() if not g.hidden],
+                key=lambda g: g.sort_name.lower()
+            ),
+            t('ui.categories.hidden'): hidden_games
+        }
+
+        # 4. Favorites (only visible)
+        favorites = sorted([g for g in self.game_manager.get_favorites() if not g.hidden],
+                           key=lambda g: g.sort_name.lower())
         if favorites:
             categories_data[t('ui.categories.favorites')] = favorites
 
-        uncat = sorted(self.game_manager.get_uncategorized_games(), key=lambda g: g.sort_name.lower())
-        if uncat:
-            categories_data[t('ui.categories.uncategorized')] = uncat
-
+        # 5. User categories (only visible games)
         cats = self.game_manager.get_all_categories()
         for cat_name in sorted(cats.keys()):
             if cat_name != 'favorite':
-                cat_games = sorted(self.game_manager.get_games_by_category(cat_name), key=lambda g: g.sort_name.lower())
-                categories_data[cat_name] = cat_games
+                cat_games = sorted([g for g in self.game_manager.get_games_by_category(cat_name) if not g.hidden],
+                                   key=lambda g: g.sort_name.lower())
+                if cat_games:  # Only add if there are visible games
+                    categories_data[cat_name] = cat_games
 
         self.tree.populate_categories(categories_data)
 
@@ -822,6 +834,8 @@ class MainWindow(QMainWindow):
             else:
                 menu.addAction(t('ui.context_menu.hide_game'), lambda: self.toggle_hide_game(game, True))
 
+        menu.addAction(t('ui.context_menu.remove_from_account'), lambda: self.remove_game_from_account(game))
+
         menu.addSeparator()
         menu.addAction(t('ui.context_menu.open_store'), lambda: self.open_in_store(game))
         menu.addAction(t('ui.context_menu.check_store'), lambda: self.check_store_availability(game))
@@ -884,11 +898,32 @@ class MainWindow(QMainWindow):
         if self.vdf_parser.save():
             game.hidden = hide
 
+            # Refresh UI
+            self._populate_categories()
+
             status_word = t('ui.visibility.hidden') if hide else t('ui.visibility.visible')
             self.set_status(f"{status_word}: {game.name}")
 
             msg = t('ui.visibility.message', game=game.name, status=status_word)
             UIHelper.show_success(self, msg, t('ui.visibility.title'))
+
+    def remove_game_from_account(self, game: Game) -> None:
+        """Redirects the user to Steam Support to remove a game from their account.
+
+        Shows a warning dialog before opening the browser.
+
+        Args:
+            game: The game to remove from the account.
+        """
+        if UIHelper.confirm(
+                self,
+                t('ui.dialogs.remove_account_warning'),
+                t('ui.dialogs.remove_account_title')
+        ):
+            import webbrowser
+            # Steam Support URL for removing a game (issueid 123 is "remove from account")
+            url = f"https://help.steampowered.com/en/wizard/HelpWithGameIssue/?appid={game.app_id}&issueid=123"
+            webbrowser.open(url)
 
     def on_search(self, query: str) -> None:
         """Filters the game tree based on search query.
