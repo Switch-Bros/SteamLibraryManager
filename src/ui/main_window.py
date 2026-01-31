@@ -319,6 +319,13 @@ class MainWindow(QMainWindow):
 
         # Statusbar
         self.statusbar = self.statusBar()
+
+        # Statistik-Label (links)
+        self.stats_label = QLabel("")
+        self.stats_label.setStyleSheet("padding: 0 10px;")
+        self.statusbar.addWidget(self.stats_label)
+
+        # Reload-Button (rechts)
         self.reload_btn = QPushButton(t('ui.menu.file.refresh'))
         # noinspection PyUnresolvedReferences
         self.reload_btn.clicked.connect(self.refresh_data)
@@ -560,6 +567,9 @@ class MainWindow(QMainWindow):
         self.set_status(status_msg)
         self.reload_btn.hide()
 
+        # Statistik aktualisieren
+        self._update_statistics()
+
     def _populate_categories(self) -> None:
         """Refreshes the sidebar tree with current game data.
 
@@ -570,7 +580,7 @@ class MainWindow(QMainWindow):
         if not self.game_manager: return
 
         # Separate hidden and visible games
-        all_games_raw = self.game_manager.get_all_games()
+        all_games_raw = self.game_manager.get_real_games()  # Nur echte Spiele (ohne Proton auf Linux)
         visible_games = sorted([g for g in all_games_raw if not g.hidden], key=lambda g: g.sort_name.lower())
         hidden_games = sorted([g for g in all_games_raw if g.hidden], key=lambda g: g.sort_name.lower())
 
@@ -971,7 +981,7 @@ class MainWindow(QMainWindow):
             self._populate_categories()
             return
         if not self.game_manager: return
-        results = [g for g in self.game_manager.get_all_games() if query.lower() in g.name.lower()]
+        results = [g for g in self.game_manager.get_real_games() if query.lower() in g.name.lower()]
 
         if results:
             cat_name = t('ui.search.results_category', count=len(results))
@@ -1230,7 +1240,7 @@ class MainWindow(QMainWindow):
             category: The category name to auto-categorize.
         """
         if category == t('ui.categories.all_games'):
-            self._show_auto_categorize_dialog(self.game_manager.get_all_games(), category)
+            self._show_auto_categorize_dialog(self.game_manager.get_real_games(), category)
         elif category == t('ui.categories.uncategorized'):
             self._show_auto_categorize_dialog(self.game_manager.get_uncategorized_games(), category)
         else:
@@ -1257,7 +1267,7 @@ class MainWindow(QMainWindow):
         """
         if not settings or not self.vdf_parser: return
 
-        games = self.game_manager.get_all_games() if settings['scope'] == 'all' else self.dialog_games
+        games = self.game_manager.get_real_games() if settings['scope'] == 'all' else self.dialog_games
         methods = settings['methods']
 
         progress = QProgressDialog(
@@ -1426,7 +1436,7 @@ class MainWindow(QMainWindow):
     def find_missing_metadata(self) -> None:
         """Shows a dialog listing games with incomplete metadata."""
         if not self.game_manager: return
-        affected = [g for g in self.game_manager.get_all_games() if
+        affected = [g for g in self.game_manager.get_real_games() if
                     not g.developer or not g.publisher or not g.release_year]
 
         if affected:
@@ -1543,6 +1553,21 @@ class MainWindow(QMainWindow):
         """Updates the status bar message.
 
         Args:
-            text: The status message to display.
+            text (str): The status message to display.
         """
         self.statusbar.showMessage(text)
+
+    def _update_statistics(self) -> None:
+        """Aktualisiert die Statistik-Anzeige in der Statusleiste."""
+        if not self.game_manager:
+            return
+
+        stats = self.game_manager.get_game_statistics()
+
+        stats_text = (
+            f"Kategorien: {stats['category_count']} | "
+            f"Spiele in Kategorien: {stats['games_in_categories']} | "
+            f"Echte Spiele: {stats['total_games']}"
+        )
+
+        self.stats_label.setText(stats_text)
