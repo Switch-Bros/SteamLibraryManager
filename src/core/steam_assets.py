@@ -13,7 +13,6 @@ in the Steam client!
 import os
 import shutil
 import requests
-import platform
 from pathlib import Path
 from src.config import config
 from src.utils.i18n import t

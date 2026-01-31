@@ -492,15 +492,6 @@ class GameManager:
         if count > 0:
             print(t('logs.manager.applied_overrides', count=count))
 
-    def get_all_games(self) -> List[Game]:
-        """
-        Returns all games sorted by sort_name.
-
-        Returns:
-            List[Game]: A list of all Game objects, sorted alphabetically by sort_name.
-        """
-        return sorted(list(self.games.values()), key=lambda g: g.sort_name.lower())
-
     def get_game(self, app_id: str) -> Optional[Game]:
         """
         Gets a single game by its app ID.
