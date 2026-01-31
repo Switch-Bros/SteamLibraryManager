@@ -178,6 +178,23 @@ class LocalConfigParser:
             categories.remove(category)
             self.set_app_categories(app_id, categories)
 
+    def remove_app(self, app_id: str) -> bool:
+        """
+        Removes an app entry completely from the local configuration.
+
+        Useful for removing 'ghost' entries that no longer exist in Steam.
+
+        Args:
+            app_id (str): The Steam app ID to remove.
+
+        Returns:
+            bool: True if the app was removed, False if not found.
+        """
+        if self.apps and app_id in self.apps:
+            del self.apps[app_id]
+            return True
+        return False
+
     def get_apps_in_category(self, category: str) -> List[str]:
         """
         Returns all app IDs belonging to a specific category.

@@ -838,6 +838,7 @@ class MainWindow(QMainWindow):
             else:
                 menu.addAction(t('ui.context_menu.hide_game'), lambda: self.toggle_hide_game(game, True))
 
+        menu.addAction(t('ui.context_menu.remove_from_local'), lambda: self.remove_from_local_config(game))
         menu.addAction(t('ui.context_menu.remove_from_account'), lambda: self.remove_game_from_account(game))
 
         menu.addSeparator()
@@ -910,6 +911,35 @@ class MainWindow(QMainWindow):
 
             msg = t('ui.visibility.message', game=game.name, status=status_word)
             UIHelper.show_success(self, msg, t('ui.visibility.title'))
+
+    def remove_from_local_config(self, game: Game) -> None:
+        """Removes a game entry from the local Steam configuration.
+
+        This is useful for removing 'ghost' entries that no longer exist in Steam
+        but still appear in localconfig.vdf.
+
+        Args:
+            game: The game to remove from the local configuration.
+        """
+        if not UIHelper.confirm(
+                self,
+                t('ui.dialogs.remove_local_warning', game=game.name),
+                t('ui.dialogs.remove_local_title')
+        ):
+            return
+
+        if self.vdf_parser:
+            success = self.vdf_parser.remove_app(str(game.app_id))
+            if success:
+                self.vdf_parser.save()
+                # Remove from game manager
+                if self.game_manager:
+                    self.game_manager.games = [g for g in self.game_manager.games if g.app_id != game.app_id]
+                # Refresh tree
+                self._populate_game_tree()
+                UIHelper.show_success(self, t('ui.dialogs.remove_local_success', game=game.name), t('common.success'))
+            else:
+                UIHelper.show_error(self, t('ui.dialogs.remove_local_error'))
 
     def remove_game_from_account(self, game: Game) -> None:
         """Redirects the user to Steam Support to remove a game from their account.
