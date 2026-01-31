@@ -1560,9 +1560,11 @@ class MainWindow(QMainWindow):
     def _update_statistics(self) -> None:
         """Aktualisiert die Statistik-Anzeige in der Statusleiste."""
         if not self.game_manager:
+            print("[DEBUG] _update_statistics: game_manager is None")
             return
 
         stats = self.game_manager.get_game_statistics()
+        print(f"[DEBUG] Statistics: {stats}")
 
         stats_text = (
             f"Kategorien: {stats['category_count']} | "
@@ -1570,4 +1572,5 @@ class MainWindow(QMainWindow):
             f"Echte Spiele: {stats['total_games']}"
         )
 
+        print(f"[DEBUG] Setting stats_label to: {stats_text}")
         self.stats_label.setText(stats_text)

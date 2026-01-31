@@ -380,12 +380,19 @@ class GameManager:
 
         if missing_ids:
             # Add games found in localconfig but not in API/Manifests
+            # ONLY if they have categories assigned!
             for app_id in missing_ids:
+                categories = parser.get_app_categories(app_id)
+
+                # Skip apps without categories (they're just in localconfig but not actually used)
+                if not categories:
+                    continue
+
                 # Use t() for fallback name
                 name = self._get_cached_name(app_id) or t('common.game_fallback', id=app_id)
 
                 game = Game(app_id=app_id, name=name)
-                game.categories = parser.get_app_categories(app_id)
+                game.categories = categories
 
                 if app_id in hidden_apps:
                     game.hidden = True
