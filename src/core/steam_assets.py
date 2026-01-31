@@ -32,20 +32,20 @@ class SteamAssets:
     def get_steam_grid_path() -> Path:
         """
         Returns the Steam grid directory path for the current user.
-
+        
         Returns:
             Path: Path to Steam's grid directory (userdata/<user_id>/config/grid/)
         """
         if not config.STEAM_PATH:
             raise ValueError("Steam path not configured")
-
+        
         short_id, _ = config.get_detected_user()
         if not short_id:
             raise ValueError("Steam user not detected")
-
+        
         grid_dir = config.STEAM_PATH / 'userdata' / short_id / 'config' / 'grid'
         grid_dir.mkdir(parents=True, exist_ok=True)
-
+        
         return grid_dir
 
     @staticmethod
@@ -121,7 +121,7 @@ class SteamAssets:
         try:
             # Get Steam grid directory
             grid_dir = SteamAssets.get_steam_grid_path()
-
+            
             # Determine correct filename for Steam
             if asset_type == 'grids':
                 filename = f"{app_id}p.png"  # Grid = <app_id>p.png
@@ -134,7 +134,7 @@ class SteamAssets:
             else:
                 print(f"Unknown asset type: {asset_type}")
                 return False
-
+            
             target_file = grid_dir / filename
 
             # Download URL
@@ -179,7 +179,7 @@ class SteamAssets:
         try:
             # Get Steam grid directory
             grid_dir = SteamAssets.get_steam_grid_path()
-
+            
             # Determine correct filename
             if asset_type == 'grids':
                 filename = f"{app_id}p.png"
@@ -191,9 +191,9 @@ class SteamAssets:
                 filename = f"{app_id}_icon.jpg"
             else:
                 return False
-
+            
             target_file = grid_dir / filename
-
+            
             if target_file.exists():
                 os.remove(target_file)
                 print(t('logs.steamgrid.deleted', path=target_file.name))

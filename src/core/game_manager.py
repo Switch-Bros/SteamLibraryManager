@@ -119,7 +119,7 @@ class GameManager:
     sources (Steam Web API, local files), merges category data from localconfig.vdf,
     applies metadata overrides, and fetches additional details from external APIs.
     """
-
+    
     # Liste von App IDs die KEINE Spiele sind (Proton, Steam Runtime, etc.)
     NON_GAME_APP_IDS = {
         # Proton Versionen
@@ -131,18 +131,18 @@ class GameManager:
         '1420170',  # Proton 5.0
         '1245040',  # Proton 4.11
         '1113280',  # Proton 4.2
-        '961940',  # Proton 3.16
-        '930400',  # Proton 3.7
-
+        '961940',   # Proton 3.16
+        '930400',   # Proton 3.7
+        
         # Steam Linux Runtime
         '1628350',  # Steam Linux Runtime 3.0 (sniper)
         '1391110',  # Steam Linux Runtime 2.0 (soldier)
         '1070560',  # Steam Linux Runtime 1.0 (scout)
-
+        
         # Steam Tools
-        '228980',  # Steamworks Common Redistributables
+        '228980',   # Steamworks Common Redistributables
     }
-
+    
     # Liste von Namen-Patterns für Nicht-Spiele
     NON_GAME_NAME_PATTERNS = [
         'Proton',
@@ -170,7 +170,7 @@ class GameManager:
         self.steam_user_id: Optional[str] = None
         self.load_source: str = "unknown"
         self.appinfo_manager = None
-
+        
         # Automatisch Proton-Filter auf Linux aktivieren
         self.filter_non_games = platform.system() == 'Linux'
 
@@ -913,31 +913,31 @@ class GameManager:
     def is_real_game(self, game: Game) -> bool:
         """
         Prüft ob ein Spiel ein echtes Spiel ist (kein Proton/Steam-Tool).
-
+        
         Args:
             game: Das zu prüfende Spiel
-
+            
         Returns:
             bool: True wenn echtes Spiel, False wenn Tool
         """
         # App ID Check
         if game.app_id in self.NON_GAME_APP_IDS:
             return False
-
+        
         # Name Pattern Check
         for pattern in self.NON_GAME_NAME_PATTERNS:
             if pattern.lower() in game.name.lower():
                 return False
-
+        
         return True
-
+    
     def get_real_games(self) -> List[Game]:
         """
         Gibt nur echte Spiele zurück (ohne Proton/Steam-Tools).
-
+        
         Auf Linux werden automatisch Proton und Steam Runtime gefiltert.
         Auf Windows werden alle Spiele zurückgegeben.
-
+        
         Returns:
             List[Game]: Liste der echten Spiele
         """
@@ -945,23 +945,23 @@ class GameManager:
             return [g for g in self.games.values() if self.is_real_game(g)]
         else:
             return list(self.games.values())
-
+    
     def get_all_games(self) -> List[Game]:
         """
         Gibt ALLE Spiele zurück (inkl. Tools).
-
+        
         Diese Methode gibt immer alle Spiele zurück, unabhängig vom Filter.
         Für die meisten Zwecke sollte get_real_games() verwendet werden!
-
+        
         Returns:
             List[Game]: Liste aller Spiele
         """
         return list(self.games.values())
-
+    
     def get_game_statistics(self) -> Dict[str, int]:
         """
         Gibt Statistiken über Spiele zurück (für Entwicklung/Debugging).
-
+        
         Returns:
             Dict mit:
             - total_games: Anzahl echter Spiele (ohne Proton/Tools)
@@ -971,20 +971,20 @@ class GameManager:
         """
         # Echte Spiele (ohne Proton auf Linux)
         real_games = self.get_real_games()
-
+        
         # Unique Spiele in Kategorien (jedes Spiel nur 1x)
         games_in_categories = set()
         for game in real_games:
             if game.categories:  # Hat mindestens eine Kategorie
                 games_in_categories.add(game.app_id)
-
+        
         # Anzahl Kategorien (ohne "Alle Spiele")
         all_categories = self.get_all_categories()
         category_count = len(all_categories)
-
+        
         # Unkategorisierte Spiele
         uncategorized = len(real_games) - len(games_in_categories)
-
+        
         return {
             'total_games': len(real_games),
             'games_in_categories': len(games_in_categories),
