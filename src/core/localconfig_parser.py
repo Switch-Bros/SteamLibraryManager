@@ -75,6 +75,19 @@ class LocalConfigParser:
                 user_collections_str = steam_section.get('user-collections', '{}')
                 self._load_user_collections(user_collections_str)
 
+                # AUTO-MIGRATE: If we have old tags but no user-collections, migrate NOW!
+                if not self.collections and self.apps:
+                    has_tags = any('tags' in app_data for app_data in self.apps.values())
+                    if has_tags:
+                        print("[MIGRATION] Found old tags format, migrating to user-collections...")
+                        self._migrate_to_user_collections()
+                        self._save_user_collections()
+                        self.modified = True
+                        # Save immediately so Steam sees the new format
+                        with open(self.config_path, 'w', encoding='utf-8') as f:
+                            vdf.dump(self.data, f, pretty=True)
+                        print(f"[MIGRATION] Successfully migrated {len(self.collections)} collections!")
+
             except KeyError:
                 print(t('logs.parser.apps_not_found'))
                 self.apps = {}
@@ -173,9 +186,12 @@ class LocalConfigParser:
 
         # Create collections from categories
         self.collections = []
-        for idx, (category_name, app_ids) in enumerate(sorted(category_to_apps.items())):
+        import hashlib
+        for category_name, app_ids in sorted(category_to_apps.items()):
+            # Generate unique ID from category name (consistent across runs)
+            collection_id = hashlib.md5(category_name.encode('utf-8')).hexdigest()[:8]
             collection = {
-                'id': str(idx + 1),
+                'id': collection_id,
                 'name': category_name,
                 'added': 0,  # Timestamp (0 = unknown)
                 'apps': app_ids
