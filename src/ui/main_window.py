@@ -320,10 +320,10 @@ class MainWindow(QMainWindow):
         # Statusbar
         self.statusbar = self.statusBar()
 
-        # Statistik-Label (links)
+        # Statistik-Label (links) - PERMANENT damit es nicht von showMessage() überschrieben wird
         self.stats_label = QLabel("")
         self.stats_label.setStyleSheet("padding: 0 10px;")
-        self.statusbar.addWidget(self.stats_label)
+        self.statusbar.addPermanentWidget(self.stats_label, 1)  # stretch=1 für mehr Platz
 
         # Reload-Button (rechts)
         self.reload_btn = QPushButton(t('ui.menu.file.refresh'))
