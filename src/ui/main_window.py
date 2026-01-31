@@ -933,10 +933,10 @@ class MainWindow(QMainWindow):
             if success:
                 self.vdf_parser.save()
                 # Remove from game manager
-                if self.game_manager:
-                    self.game_manager.games = [g for g in self.game_manager.games if g.app_id != game.app_id]
+                if self.game_manager and str(game.app_id) in self.game_manager.games:
+                    del self.game_manager.games[str(game.app_id)]
                 # Refresh tree
-                self._populate_game_tree()
+                self._populate_categories()
                 UIHelper.show_success(self, t('ui.dialogs.remove_local_success', game=game.name), t('common.success'))
             else:
                 UIHelper.show_error(self, t('ui.dialogs.remove_local_error'))

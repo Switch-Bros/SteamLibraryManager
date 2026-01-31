@@ -192,6 +192,7 @@ class LocalConfigParser:
         """
         if self.apps and app_id in self.apps:
             del self.apps[app_id]
+            self.modified = True
             return True
         return False
 
