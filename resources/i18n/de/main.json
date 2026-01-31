@@ -518,7 +518,7 @@
     "manager": {
       "api_trying": "Versuche Steam Web API...",
       "local_loading": "Lade aus lokalen Dateien...",
-      "loaded_local": "{count} installierte Spiele geladen",
+      "loaded_local": "{count} Spiele geladen",
       "loaded_api": "{count} Spiele von API geladen",
       "loaded_mixed": "{count} Spiele geladen (Steam API + lokale Dateien)",
       "merging": "Führe Kategorien zusammen...",
