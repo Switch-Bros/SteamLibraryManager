@@ -294,7 +294,7 @@
       "fields_group": "Zu ändernde Felder",
       "bulk_info": "⚠️ Warnung: Dies ändert {count} Spiele!",
       "bulk_preview": "Betroffene Spiele ({count})",
-      "bulk_more": "...und {count} weitere",
+      "bulk_more": "...and {count} weitere",
       "set_field": "{field} setzen",
       "add_prefix": "Namen-Präfix hinzufügen",
       "add_suffix": "Namen-Suffix hinzufügen",
@@ -311,7 +311,7 @@
       "title": "Store-Verfügbarkeit prüfen",
       "checking": "Prüfe Store-Verfügbarkeit...",
       "available": "✅ Im Steam Store verfügbar",
-      "geo_locked": "🚫 In Ihrem Land nicht verfügbar (Geo-Blocking/Zensur)",
+      "geo_locked": "🚫 In Ihrem Land nicht verfügbar (Geo-Blocking/Censorship)",
       "delisted": "❌ Nicht mehr im Store verfügbar",
       "removed": "❌ Aus dem Store entfernt",
       "unknown": "❓ Unbekannter Status (Code: {code})"
@@ -355,6 +355,8 @@
       "method_franchise": "Nach Franchise",
       "scope_all": "Gesamte Bibliothek ({count} Spiele)",
       "scope_uncategorized": "Unkategorisierte Spiele ({count})",
+      "scope_category": "Kategorie '{name}' ({count} Spiele)",
+      "scope_selected": "Ausgewählte Spiele ({count})",
       "start": "Starten",
       "processing": "Verarbeite {current} von {total}...",
       "status_tags": "Tags laden: {game}...",
@@ -414,6 +416,10 @@
       "confirm_remove_account": "Möchtest du '{game}' wirklich PERMANENT von deinem Account löschen?",
       "remove_account_title": "Spiel vom Account entfernen",
       "remove_account_warning": "⚠️ WARNUNG: Diese Aktion ist DAUERHAFT!\n\nDu wirst zum Steam Support weitergeleitet, wo du dieses Spiel von deinem Account entfernen kannst.\n\nDies kann nicht rückgängig gemacht werden! Das Spiel und alle zugehörigen DLCs werden dauerhaft entfernt.\n\nMöchtest du fortfahren?",
+      "remove_local_title": "Aus lokaler Konfig entfernen",
+      "remove_local_warning": "Möchtest du '{game}' aus der lokalen Steam-Konfiguration entfernen?\n\nDies entfernt den Eintrag aus der localconfig.vdf. Nutze dies für 'Geister'-Spiele, die nicht mehr in deiner Steam-Bibliothek existieren.\n\nDies entfernt das Spiel NICHT von deinem Steam-Account.",
+      "remove_local_success": "'{game}' wurde aus der lokalen Konfiguration entfernt.",
+      "remove_local_error": "Fehler beim Entfernen des Spiels aus der lokalen Konfiguration.",
       "restore_success": "{count} Änderungen erfolgreich wiederhergestellt!",
       "backup_created": "Backup erstellt: {path}",
       "cancel": "Abbrechen",
@@ -474,7 +480,7 @@
       "confirm_title": "Merge bestätigen",
       "confirm_message": "Die Zieldatei wird geändert. Möchtest du wirklich fortfahren?",
       "changes_header": "Änderungen",
-      "more_changes": "...und {count} weitere Änderungen"
+      "more_changes": "...and {count} weitere Änderungen"
     },
     "errors": {
       "no_users_found": "Keine Steam-Benutzer gefunden.",

@@ -355,6 +355,8 @@
       "method_franchise": "By Franchise",
       "scope_all": "Entire Library ({count} games)",
       "scope_uncategorized": "Uncategorized Games ({count})",
+      "scope_category": "Category '{name}' ({count} games)",
+      "scope_selected": "Selected Games ({count})",
       "start": "Start",
       "processing": "Processing {current} of {total}...",
       "status_tags": "Fetching tags: {game}...",

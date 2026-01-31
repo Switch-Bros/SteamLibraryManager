@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFont
 from typing import List, Callable, Optional, Dict, Any
 from src.utils.i18n import t
+from src.config import config
 
 
 class AutoCategorizeDialog(QDialog):
@@ -92,19 +93,15 @@ class AutoCategorizeDialog(QDialog):
 
         self.cb_tags = QCheckBox(t('ui.auto_categorize.option_tags'))
         self.cb_tags.setChecked(True)
-        self.cb_tags.toggled.connect(self._update_estimate)
         methods_layout.addWidget(self.cb_tags)
 
         self.cb_publisher = QCheckBox(t('ui.auto_categorize.by_publisher'))
-        self.cb_publisher.toggled.connect(self._update_estimate)
         methods_layout.addWidget(self.cb_publisher)
 
         self.cb_franchise = QCheckBox(t('ui.auto_categorize.option_franchise'))
-        self.cb_franchise.toggled.connect(self._update_estimate)
         methods_layout.addWidget(self.cb_franchise)
 
         self.cb_genre = QCheckBox(t('ui.auto_categorize.by_genre'))
-        self.cb_genre.toggled.connect(self._update_estimate)
         methods_layout.addWidget(self.cb_genre)
 
         methods_group.setLayout(methods_layout)
@@ -119,9 +116,8 @@ class AutoCategorizeDialog(QDialog):
         tags_per_game_layout.addWidget(QLabel(t('ui.auto_categorize.tags_per_game') + ":"))
         self.tags_count_spin = QSpinBox()
         self.tags_count_spin.setMinimum(1)
-        self.tags_count_spin.setMaximum(20)
-        self.tags_count_spin.setValue(13)
-        self.tags_count_spin.valueChanged.connect(self._update_estimate)
+        self.tags_count_spin.setMaximum(50)  # Increased limit
+        self.tags_count_spin.setValue(config.TAGS_PER_GAME)  # Load from config
         tags_per_game_layout.addWidget(self.tags_count_spin)
         tags_per_game_layout.addStretch()
         tags_layout.addLayout(tags_per_game_layout)
@@ -140,21 +136,25 @@ class AutoCategorizeDialog(QDialog):
 
         self.scope_group = QButtonGroup(self)
 
+        # Determine label for "Selected" option
         if self.category_name:
             scope_text = t('ui.auto_categorize.scope_category', name=self.category_name, count=len(self.games))
         else:
-            scope_text = t('ui.auto_categorize.scope_uncategorized', count=len(self.games))
+            # Use generic "Selected Games" label if no category name is provided
+            scope_text = t('ui.auto_categorize.scope_selected', count=len(self.games))
 
         self.rb_selected = QRadioButton(scope_text)
         self.rb_selected.setChecked(True)
-        self.rb_selected.toggled.connect(self._update_estimate)
         self.scope_group.addButton(self.rb_selected)
         apply_layout.addWidget(self.rb_selected)
 
         self.rb_all = QRadioButton(t('ui.auto_categorize.scope_all', count=self.all_games_count))
-        self.rb_all.toggled.connect(self._update_estimate)
         self.scope_group.addButton(self.rb_all)
         apply_layout.addWidget(self.rb_all)
+
+        # If "All Games" are selected, pre-select "All" option to avoid confusion
+        if len(self.games) == self.all_games_count:
+            self.rb_all.setChecked(True)
 
         apply_group.setLayout(apply_layout)
         layout.addWidget(apply_group)
@@ -191,6 +191,15 @@ class AutoCategorizeDialog(QDialog):
 
         layout.addLayout(button_layout)
 
+        # === CONNECT SIGNALS (After all widgets are created) ===
+        self.cb_tags.toggled.connect(self._update_estimate)
+        self.cb_publisher.toggled.connect(self._update_estimate)
+        self.cb_franchise.toggled.connect(self._update_estimate)
+        self.cb_genre.toggled.connect(self._update_estimate)
+        self.tags_count_spin.valueChanged.connect(self._update_estimate)
+        self.rb_selected.toggled.connect(self._update_estimate)
+        self.rb_all.toggled.connect(self._update_estimate)
+
     def _get_selected_methods(self) -> List[str]:
         """
         Gets the list of selected categorization methods.
@@ -212,6 +221,10 @@ class AutoCategorizeDialog(QDialog):
         This method calculates the estimated processing time based on the number
         of games and selected categorization methods.
         """
+        # Safety check if called before UI is fully initialized
+        if not hasattr(self, 'estimate_label') or not hasattr(self, 'tags_group'):
+            return
+
         self.tags_group.setVisible(self.cb_tags.isChecked())
 
         game_count = self.all_games_count if self.rb_all.isChecked() else len(self.games)
