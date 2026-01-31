@@ -820,7 +820,7 @@ class GameManager:
         game.tags = list(set(game.tags + tags))
 
         # Extract age ratings (PEGI, ESRB, USK)
-        ratings = data.get('ratings', {})
+        ratings = data.get('ratings') or {}
         print(f"[DEBUG] Store data for {game.name}: has ratings={bool(ratings)}, available={list(ratings.keys())}")
 
         # Priority 1: PEGI (used in most of Europe)
