@@ -319,12 +319,12 @@ class MainWindow(QMainWindow):
 
         # Statusbar
         self.statusbar = self.statusBar()
-        
+
         # Statistik-Label (links)
         self.stats_label = QLabel("")
         self.stats_label.setStyleSheet("padding: 0 10px;")
         self.statusbar.addWidget(self.stats_label)
-        
+
         # Reload-Button (rechts)
         self.reload_btn = QPushButton(t('ui.menu.file.refresh'))
         # noinspection PyUnresolvedReferences
@@ -566,7 +566,7 @@ class MainWindow(QMainWindow):
         status_msg = self.game_manager.get_load_source_message()
         self.set_status(status_msg)
         self.reload_btn.hide()
-        
+
         # Statistik aktualisieren
         self._update_statistics()
 
@@ -1556,18 +1556,18 @@ class MainWindow(QMainWindow):
             text (str): The status message to display.
         """
         self.statusbar.showMessage(text)
-    
+
     def _update_statistics(self) -> None:
         """Aktualisiert die Statistik-Anzeige in der Statusleiste."""
         if not self.game_manager:
             return
-        
+
         stats = self.game_manager.get_game_statistics()
-        
+
         stats_text = (
             f"Kategorien: {stats['category_count']} | "
             f"Spiele in Kategorien: {stats['games_in_categories']} | "
             f"Echte Spiele: {stats['total_games']}"
         )
-        
+
         self.stats_label.setText(stats_text)
