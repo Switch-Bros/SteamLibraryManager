@@ -192,6 +192,7 @@ class AutoCategorizeDialog(QDialog):
         layout.addLayout(button_layout)
 
         # === CONNECT SIGNALS (After all widgets are created) ===
+        # noinspection DuplicatedCode
         self.cb_tags.toggled.connect(self._update_estimate)
         self.cb_publisher.toggled.connect(self._update_estimate)
         self.cb_franchise.toggled.connect(self._update_estimate)

@@ -297,7 +297,7 @@ class MainWindow(QMainWindow):
 
         # Tree Widget
         self.tree = GameTreeWidget()
-        # noinspection PyUnresolvedReferences
+        # noinspection PyUnresolvedReferences,DuplicatedCode
         self.tree.game_clicked.connect(self.on_game_selected)
         # noinspection PyUnresolvedReferences
         self.tree.game_right_clicked.connect(self.on_game_right_click)
@@ -1148,7 +1148,7 @@ class MainWindow(QMainWindow):
         expected_counts = {}
         if self.game_manager:
             for category in self.game_manager.get_all_categories():
-                games_in_cat = self.game_manager.get_games_in_category(category)
+                games_in_cat = self.game_manager.get_games_by_category(category)
                 expected_counts[category] = len(games_in_cat)
 
         removed = self.cloud_storage_parser.remove_duplicate_collections(expected_counts)

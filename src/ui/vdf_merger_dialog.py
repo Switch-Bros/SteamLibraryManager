@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
     QFileDialog, QComboBox, QCheckBox, QGroupBox, QTextEdit,
     QProgressBar, QMessageBox
 )
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import QThread, pyqtSignal
 
 from src.config import config
 from src.utils.i18n import t
@@ -74,6 +74,7 @@ class VdfMergerDialog(QDialog):
         layout.addWidget(info_label)
 
         # Source File Group
+        # noinspection DuplicatedCode
         source_group = QGroupBox(t('ui.vdf_merger.source_group'))
         source_layout = QHBoxLayout(source_group)
         self.source_label = QLabel(t('ui.vdf_merger.no_file_selected'))
@@ -85,6 +86,7 @@ class VdfMergerDialog(QDialog):
         layout.addWidget(source_group)
 
         # Target File Group
+        # noinspection DuplicatedCode
         target_group = QGroupBox(t('ui.vdf_merger.target_group'))
         target_layout = QHBoxLayout(target_group)
         self.target_label = QLabel(t('ui.vdf_merger.no_file_selected'))
@@ -228,12 +230,16 @@ class VdfMergerDialog(QDialog):
             backup=self.backup_check.isChecked(),
             dry_run=self.dry_run_check.isChecked()
         )
+        # noinspection PyUnresolvedReferences
         self.worker.progress.connect(self._on_progress)
+        # noinspection PyUnresolvedReferences
         self.worker.finished.connect(self._on_finished)
         self.worker.start()
 
     def _on_progress(self, current: int, total: int, app_id: str):
         """Updates progress bar."""
+        # noinspection PyUnusedLocal
+        _ = app_id  # Unused but required by signal signature
         if total > 0:
             self.progress_bar.setMaximum(total)
             self.progress_bar.setValue(current)
