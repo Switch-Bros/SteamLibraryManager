@@ -21,7 +21,10 @@ Format:
 import json
 import os
 import time
+from pathlib import Path
 from typing import Dict, List
+
+from src.core.backup_manager import BackupManager
 
 
 class CloudStorageParser:
@@ -134,6 +137,12 @@ class CloudStorageParser:
                 ]
 
                 self.data.append(item)
+
+            # Create backup before writing
+            cloud_path = Path(self.cloud_storage_path)
+            if cloud_path.exists():
+                backup_manager = BackupManager()
+                backup_manager.create_backup(cloud_path)
 
             # Write to file
             with open(self.cloud_storage_path, 'w', encoding='utf-8') as f:

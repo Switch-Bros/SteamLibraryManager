@@ -74,8 +74,8 @@ class VdfMergerDialog(QDialog):
         layout.addWidget(info_label)
 
         # Source File Group
-        # noinspection DuplicatedCode
         source_group = QGroupBox(t('ui.vdf_merger.source_group'))
+        # noinspection DuplicatedCode
         source_layout = QHBoxLayout(source_group)
         self.source_label = QLabel(t('ui.vdf_merger.no_file_selected'))
         self.source_label.setStyleSheet("color: gray;")
@@ -86,8 +86,8 @@ class VdfMergerDialog(QDialog):
         layout.addWidget(source_group)
 
         # Target File Group
-        # noinspection DuplicatedCode
         target_group = QGroupBox(t('ui.vdf_merger.target_group'))
+        # noinspection DuplicatedCode
         target_layout = QHBoxLayout(target_group)
         self.target_label = QLabel(t('ui.vdf_merger.no_file_selected'))
         self.target_label.setStyleSheet("color: gray;")
