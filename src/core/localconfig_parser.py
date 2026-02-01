@@ -75,18 +75,38 @@ class LocalConfigParser:
                 user_collections_str = steam_section.get('user-collections', '{}')
                 self._load_user_collections(user_collections_str)
 
-                # AUTO-MIGRATE: If we have old tags but no user-collections, migrate NOW!
+                # AUTO-MIGRATE: Check if we need to migrate
+                needs_migration = False
+                migration_reason = ""
+
+                # Case 1: No user-collections but has old tags
                 if not self.collections and self.apps:
                     has_tags = any('tags' in app_data for app_data in self.apps.values())
                     if has_tags:
-                        print("[MIGRATION] Found old tags format, migrating to user-collections...")
-                        self._migrate_to_user_collections()
-                        self._save_user_collections()
-                        self.modified = True
-                        # Save immediately so Steam sees the new format
-                        with open(self.config_path, 'w', encoding='utf-8') as f:
-                            vdf.dump(self.data, f, pretty=True)
-                        print(f"[MIGRATION] Successfully migrated {len(self.collections)} collections!")
+                        needs_migration = True
+                        migration_reason = "Found old tags format"
+
+                # Case 2: Has user-collections but with wrong ID format (MD5 hash instead of from-tag-)
+                elif self.collections:
+                    # Check if any collection has wrong ID format
+                    for coll in self.collections:
+                        coll_id = coll.get('id', '')
+                        # Steam expects "from-tag-<name>" format
+                        # If ID doesn't start with "from-tag-" and isn't "uc-", it's wrong format
+                        if not coll_id.startswith('from-tag-') and not coll_id.startswith('uc-'):
+                            needs_migration = True
+                            migration_reason = f"Found wrong ID format ('{coll_id}' instead of 'from-tag-...')"
+                            break
+
+                if needs_migration:
+                    print(f"[MIGRATION] {migration_reason}, migrating to user-collections...")
+                    self._migrate_to_user_collections()
+                    self._save_user_collections()
+                    self.modified = True
+                    # Save immediately so Steam sees the new format
+                    with open(self.config_path, 'w', encoding='utf-8') as f:
+                        vdf.dump(self.data, f, pretty=True)
+                    print(f"[MIGRATION] Successfully migrated {len(self.collections)} collections!")
 
             except KeyError:
                 print(t('logs.parser.apps_not_found'))
