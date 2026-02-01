@@ -75,39 +75,6 @@ class LocalConfigParser:
                 user_collections_str = steam_section.get('user-collections', '{}')
                 self._load_user_collections(user_collections_str)
 
-                # AUTO-MIGRATE: Check if we need to migrate
-                needs_migration = False
-                migration_reason = ""
-
-                # Case 1: No user-collections but has old tags
-                if not self.collections and self.apps:
-                    has_tags = any('tags' in app_data for app_data in self.apps.values())
-                    if has_tags:
-                        needs_migration = True
-                        migration_reason = "Found old tags format"
-
-                # Case 2: Has user-collections but with wrong ID format (MD5 hash instead of from-tag-)
-                elif self.collections:
-                    # Check if any collection has wrong ID format
-                    for coll in self.collections:
-                        coll_id = coll.get('id', '')
-                        # Steam expects "from-tag-<name>" format
-                        # If ID doesn't start with "from-tag-" and isn't "uc-", it's wrong format
-                        if not coll_id.startswith('from-tag-') and not coll_id.startswith('uc-'):
-                            needs_migration = True
-                            migration_reason = f"Found wrong ID format ('{coll_id}' instead of 'from-tag-...')"
-                            break
-
-                if needs_migration:
-                    print(f"[MIGRATION] {migration_reason}, migrating to user-collections...")
-                    self._migrate_to_user_collections()
-                    self._save_user_collections()
-                    self.modified = True
-                    # Save immediately so Steam sees the new format
-                    with open(self.config_path, 'w', encoding='utf-8') as f:
-                        vdf.dump(self.data, f, pretty=True)
-                    print(f"[MIGRATION] Successfully migrated {len(self.collections)} collections!")
-
             except KeyError:
                 print(t('logs.parser.apps_not_found'))
                 self.apps = {}
@@ -172,16 +139,12 @@ class LocalConfigParser:
             backup_manager.create_backup(self.config_path)
 
         try:
-            # Migrate to new format if needed (only if collections are empty!)
-            # This prevents overwriting manually modified collections
-            if self.use_new_format and not self.collections:
+            # Migrate to new format if needed
+            if self.use_new_format:
                 self._migrate_to_user_collections()
 
             # Save user-collections
             self._save_user_collections()
-
-            # CRITICAL: Clean up data before saving to prevent VDF syntax errors
-            self._cleanup_vdf_data()
 
             with open(self.config_path, 'w', encoding='utf-8') as f:
                 vdf.dump(self.data, f, pretty=True)
@@ -210,34 +173,51 @@ class LocalConfigParser:
 
         # Create collections from categories
         self.collections = []
-        for category_name, app_ids in sorted(category_to_apps.items()):
-            # Use Steam's expected format: "from-tag-<tagname>"
-            # This is the format Steam uses for collections migrated from old tags
-            collection_id = f"from-tag-{category_name}"
+        for idx, (category_name, app_ids) in enumerate(sorted(category_to_apps.items())):
             collection = {
-                'id': collection_id,
+                'id': str(idx + 1),
                 'name': category_name,
                 'added': 0,  # Timestamp (0 = unknown)
                 'apps': app_ids
             }
             self.collections.append(collection)
 
-        # CRITICAL: Remove old "tags" from all apps!
-        # Steam expects ONLY user-collections, not both formats!
-        tags_removed = 0
-        for app_id in list(self.apps.keys()):
-            if 'tags' in self.apps[app_id]:
-                del self.apps[app_id]['tags']
-                tags_removed += 1
-
         print(f"[DEBUG] Migrated {len(self.collections)} collections from tags")
-        print(f"[DEBUG] Removed old 'tags' from {tags_removed} apps")
+
+    def _remove_all_user_collections(self, data):
+        """
+        Recursively removes ALL 'user-collections' keys from the VDF structure.
+
+        Steam sometimes has multiple 'user-collections' keys in the file.
+        We must remove ALL of them before writing our own!
+
+        Args:
+            data: Dictionary to recursively search and clean
+        """
+        if not isinstance(data, dict):
+            return
+
+        # Remove 'user-collections' from this level
+        if 'user-collections' in data:
+            del data['user-collections']
+
+        # Recursively check all nested dictionaries
+        for key, value in list(data.items()):
+            if isinstance(value, dict):
+                self._remove_all_user_collections(value)
 
     def _save_user_collections(self):
         """
         Saves collections to user-collections field as JSON string.
+
+        CRITICAL: Removes ALL existing 'user-collections' keys first!
         """
         try:
+            # STEP 1: Remove ALL 'user-collections' keys from entire VDF
+            self._remove_all_user_collections(self.data)
+            print("[DEBUG] Removed all existing 'user-collections' keys")
+
+            # STEP 2: Write our collections to the correct location
             steam_section = (self.data.get('UserLocalConfigStore', {})
                              .get('Software', {})
                              .get('Valve', {})
@@ -563,54 +543,3 @@ class LocalConfigParser:
             self.modified = True
         except Exception as e:
             print(t('logs.parser.hidden_error', error=str(e)))
-
-    def _cleanup_vdf_data(self):
-        """
-        Cleans up VDF data structure to prevent syntax errors when saving.
-
-        Removes:
-        - Keys with None values
-        - Keys with empty string values
-        - Empty dictionaries
-        - Invalid data structures
-
-        This is CRITICAL because the VDF library can write invalid syntax
-        if the data structure contains certain problematic values.
-        """
-
-        def clean_dict(d):
-            """Recursively clean a dictionary."""
-            if not isinstance(d, dict):
-                return d
-
-            cleaned = {}
-            for key, value in list(d.items()):
-                # Skip None values
-                if value is None:
-                    continue
-
-                # Skip empty strings as keys (these cause syntax errors!)
-                if isinstance(key, str) and not key.strip():
-                    continue
-
-                # Recursively clean nested dicts
-                if isinstance(value, dict):
-                    cleaned_value = clean_dict(value)
-                    # Only add if not empty
-                    if cleaned_value:
-                        cleaned[key] = cleaned_value
-                # Keep non-empty values
-                elif value != '':
-                    cleaned[key] = value
-
-            return cleaned
-
-        # Clean the entire data structure
-        if isinstance(self.data, dict):
-            self.data = clean_dict(self.data)
-
-        # Also clean apps specifically
-        if self.apps and isinstance(self.apps, dict):
-            self.apps = clean_dict(self.apps)
-
-        print("[DEBUG] VDF data cleaned before saving")
