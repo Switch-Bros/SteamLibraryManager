@@ -388,7 +388,12 @@
       "option_ignore_common": "Häufige Tags ignorieren",
       "apply_group": "Anwenden auf",
       "estimate_label": "Geschätzte Kategorien",
-      "cancel": "Abbrechen"
+      "cancel": "Abbrechen",
+      "cache_warning_title": "⚠️ Wenig Cache-Daten",
+      "cache_warning_message": "Nur {cached} von {total} Spielen haben gecachte Tag-Daten.\n\nDas Abrufen der Tags vom Steam Store dauert ca. {time}.\n\nEMPFEHLUNG:\nVerwende zuerst 'Bearbeiten → Fehlende Metadaten abrufen' um den Cache zu füllen, dann führe Auto-Kategorisierung aus.\n\nTrotzdem fortfahren?",
+      "cache_warning_time_hours": "{hours}h {minutes}m",
+      "cache_warning_time_minutes": "{minutes} Minuten",
+      "cache_warning_time_seconds": "{seconds} Sekunden"
     },
     "steamgrid_setup": {
       "title": "SteamGridDB Einrichtung",

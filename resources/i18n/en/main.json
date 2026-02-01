@@ -388,7 +388,12 @@
       "option_ignore_common": "Ignore common tags",
       "apply_group": "Apply to",
       "estimate_label": "Estimated categories",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "cache_warning_title": "⚠️ Low Cache Coverage",
+      "cache_warning_message": "Only {cached} of {total} games have cached tag data.\n\nFetching tags from Steam Store will take approximately {time}.\n\nRECOMMENDATION:\nUse 'Edit → Fetch Missing Metadata' first to populate the cache, then run Auto-Categorize.\n\nContinue anyway?",
+      "cache_warning_time_hours": "{hours}h {minutes}m",
+      "cache_warning_time_minutes": "{minutes} minutes",
+      "cache_warning_time_seconds": "{seconds} seconds"
     },
     "steamgrid_setup": {
       "title": "Setup SteamGridDB",

@@ -166,6 +166,48 @@ class SteamStoreScraper:
 
         return []
 
+    def get_cache_coverage(self, app_ids: List[str]) -> dict:
+        """
+        Check how many games have cached tag data.
+
+        This method checks the cache directory to determine how many of the
+        provided app IDs already have cached tag data (valid for 30 days).
+
+        Args:
+            app_ids: List of Steam app IDs to check.
+
+        Returns:
+            dict: Dictionary with:
+                - 'total': Total number of app IDs checked
+                - 'cached': Number of app IDs with valid cache
+                - 'missing': Number of app IDs without cache
+                - 'percentage': Percentage of cached apps (0-100)
+        """
+        total = len(app_ids)
+        cached = 0
+
+        for app_id in app_ids:
+            cache_file = self.cache_dir / f"{app_id}_{self.language_code}.json"
+
+            if cache_file.exists():
+                try:
+                    # Cache validation (30 days)
+                    mtime = datetime.fromtimestamp(cache_file.stat().st_mtime)
+                    if datetime.now() - mtime < timedelta(days=30):
+                        cached += 1
+                except (OSError, ValueError):
+                    pass
+
+        missing = total - cached
+        percentage = (cached / total * 100) if total > 0 else 0
+
+        return {
+            'total': total,
+            'cached': cached,
+            'missing': missing,
+            'percentage': percentage
+        }
+
     # --- Franchise Detection (Static) ---
 
     FRANCHISES = {
