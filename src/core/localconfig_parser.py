@@ -219,7 +219,16 @@ class LocalConfigParser:
             }
             self.collections.append(collection)
 
+        # CRITICAL: Remove old "tags" from all apps!
+        # Steam expects ONLY user-collections, not both formats!
+        tags_removed = 0
+        for app_id in list(self.apps.keys()):
+            if 'tags' in self.apps[app_id]:
+                del self.apps[app_id]['tags']
+                tags_removed += 1
+
         print(f"[DEBUG] Migrated {len(self.collections)} collections from tags")
+        print(f"[DEBUG] Removed old 'tags' from {tags_removed} apps")
 
     def _save_user_collections(self):
         """
