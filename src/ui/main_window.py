@@ -589,6 +589,36 @@ class MainWindow(QMainWindow):
         # Statistik aktualisieren
         self._update_statistics()
 
+    @staticmethod
+    def _german_sort_key(text: str) -> str:
+        """
+        Sort key for German text with umlauts and special characters.
+
+        Replaces German umlauts with their base letters for proper alphabetical sorting:
+        Ä/ä → a, Ö/ö → o, Ü/ü → u, ß → ss
+
+        This ensures that "Übernatürlich" comes after "Uhr" (not at the end),
+        and "NIEDLICH", "Niedlich", "niedlich" appear together.
+
+        Args:
+            text: The text to create a sort key for.
+
+        Returns:
+            Normalized lowercase string for sorting.
+        """
+        # Map umlauts to come AFTER their base letter:
+        # a < ä, o < ö, u < ü (German alphabetical order)
+        replacements = {
+            'ä': 'a~', 'Ä': 'a~',  # ~ comes after all letters
+            'ö': 'o~', 'Ö': 'o~',
+            'ü': 'u~', 'Ü': 'u~',
+            'ß': 'ss'
+        }
+        result = text.lower()
+        for old, new in replacements.items():
+            result = result.replace(old, new)
+        return result
+
     def _populate_categories(self) -> None:
         """Refreshes the sidebar tree with current game data.
 
@@ -621,8 +651,8 @@ class MainWindow(QMainWindow):
 
         # 5. User categories (only visible games)
         cats = self.game_manager.get_all_categories()
-        # Sort case-insensitive: NIEDLICH, Niedlich, niedlich appear together
-        for cat_name in sorted(cats.keys(), key=str.lower):
+        # Sort with German umlaut support: Ä→A, Ö→O, Ü→U
+        for cat_name in sorted(cats.keys(), key=self._german_sort_key):
             if cat_name != 'favorite':
                 cat_games = sorted([g for g in self.game_manager.get_games_by_category(cat_name) if not g.hidden],
                                    key=lambda g: g.sort_name.lower())
