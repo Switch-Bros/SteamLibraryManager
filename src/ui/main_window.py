@@ -171,6 +171,11 @@ class MainWindow(QMainWindow):
         # noinspection PyUnresolvedReferences
         vdf_merge_action.triggered.connect(self._show_vdf_merger)
         file_menu.addAction(vdf_merge_action)
+        
+        remove_dupes_action = QAction(t('ui.menu.file.remove_duplicates'), self)
+        # noinspection PyUnresolvedReferences
+        remove_dupes_action.triggered.connect(self.remove_duplicate_collections)
+        file_menu.addAction(remove_dupes_action)
 
         file_menu.addSeparator()
 
@@ -494,15 +499,12 @@ class MainWindow(QMainWindow):
         # Try cloud storage first (new format)
         try:
             self.cloud_storage_parser = CloudStorageParser(config.STEAM_PATH, short_id)
-            if self.cloud_storage_parser.load():
-                print("[INFO] Using cloud storage for collections")
-            else:
-                print("[INFO] Cloud storage not available, falling back to localconfig")
+            if not self.cloud_storage_parser.load():
                 self.cloud_storage_parser = None
         except Exception as e:
             print(f"[WARN] Failed to load cloud storage: {e}")
             self.cloud_storage_parser = None
-
+        
         # Load localconfig (for old backups or as fallback)
         config_path = config.get_localconfig_path(short_id)
         if config_path:
@@ -911,8 +913,12 @@ class MainWindow(QMainWindow):
         special_cats = [t('ui.categories.all_games'), t('ui.categories.uncategorized')]
 
         if category in special_cats:
+            menu.addAction(t('ui.context_menu.new_collection'), self.create_new_collection)
+            menu.addSeparator()
             menu.addAction(t('ui.menu.edit.auto_categorize'), lambda: self.auto_categorize_category(category))
         else:
+            menu.addAction(t('ui.context_menu.new_collection'), self.create_new_collection)
+            menu.addSeparator()
             menu.addAction(t('ui.context_menu.rename'), lambda: self.rename_category(category))
             menu.addAction(t('ui.context_menu.delete'), lambda: self.delete_category(category))
             menu.addSeparator()
@@ -1123,6 +1129,70 @@ class MainWindow(QMainWindow):
         self.store_check_thread.finished.connect(on_check_finished)
         self.store_check_thread.start()
 
+    def remove_duplicate_collections(self) -> None:
+        """
+        Remove duplicate collections from cloud storage.
+        
+        Identifies collections with identical names but different app counts,
+        keeping only the collection that matches the expected count from the
+        game manager. Shows error if cloud storage is not available.
+        
+        Note:
+            Only available when cloud storage parser is active.
+        """
+        if not self.cloud_storage_parser:
+            UIHelper.show_error(self, t('ui.main_window.cloud_storage_only'))
+            return
+        
+        # Get expected counts from game_manager
+        expected_counts = {}
+        if self.game_manager:
+            for category in self.game_manager.get_all_categories():
+                games_in_cat = self.game_manager.get_games_in_category(category)
+                expected_counts[category] = len(games_in_cat)
+        
+        removed = self.cloud_storage_parser.remove_duplicate_collections(expected_counts)
+        
+        if removed > 0:
+            self._save_collections()
+            self._populate_categories()
+            UIHelper.show_success(self, t('ui.main_window.duplicates_removed', count=removed))
+        else:
+            UIHelper.show_info(self, t('ui.main_window.no_duplicates'))
+    
+    def create_new_collection(self) -> None:
+        """
+        Create a new empty collection.
+        
+        Prompts the user for a collection name and creates a new empty collection
+        in the active parser (cloud storage or localconfig). Validates that the
+        name doesn't already exist before creating.
+        
+        Note:
+            Uses the active parser determined by _get_active_parser().
+        """
+        parser = self._get_active_parser()
+        if not parser:
+            return
+        
+        name, ok = UIHelper.ask_text(
+            self,
+            t('ui.main_window.create_collection_title'),
+            t('ui.main_window.create_collection_prompt')
+        )
+        
+        if ok and name:
+            # Check if collection already exists
+            if name in parser.get_all_categories():
+                UIHelper.show_error(self, t('ui.main_window.collection_exists', name=name))
+                return
+            
+            # Create empty collection
+            parser.add_app_category("", name)  # Empty app_id creates collection
+            self._save_collections()
+            self._populate_categories()
+            UIHelper.show_success(self, t('ui.main_window.collection_created', name=name))
+    
     def rename_category(self, old_name: str) -> None:
         """Prompts the user to rename a category.
 
@@ -1155,13 +1225,13 @@ class MainWindow(QMainWindow):
             # Remove from VDF
             self._delete_category(category)
             self._save_collections()
-
+            
             # Remove from all games in memory
             if self.game_manager:
                 for game in self.game_manager.games.values():
                     if category in game.categories:
                         game.categories.remove(category)
-
+            
             # Refresh UI
             self._populate_categories()
             self._update_statistics()
@@ -1174,26 +1244,26 @@ class MainWindow(QMainWindow):
         """
         if not self.vdf_parser: return
         if not categories: return
-
+        
         # Create confirmation message
         category_list = "\n• ".join(categories)
         message = f"Möchten Sie diese {len(categories)} Kategorien wirklich löschen?\n\n• {category_list}"
-
+        
         if UIHelper.confirm(self, message, t('ui.categories.delete_title')):
             # Delete all categories
             for category in categories:
                 # Remove from VDF
                 self._delete_category(category)
-
+                
                 # Remove from all games in memory
                 if self.game_manager:
                     for game in self.game_manager.games.values():
                         if category in game.categories:
                             game.categories.remove(category)
-
+            
             # Save once after all deletions
             self._save_collections()
-
+            
             # Refresh UI
             self._populate_categories()
             self._update_statistics()
@@ -1620,42 +1690,46 @@ class MainWindow(QMainWindow):
         self.statusbar.showMessage(text)
 
     def _update_statistics(self) -> None:
-        """Aktualisiert die Statistik-Anzeige in der Statusleiste."""
+        """
+        Update the statistics display in the status bar.
+        
+        Retrieves game statistics from the game manager and displays them
+        in the permanent status bar widget, showing category count, games
+        in categories, and total real games.
+        """
         if not self.game_manager:
-            print("[DEBUG] _update_statistics: game_manager is None")
             return
 
         stats = self.game_manager.get_game_statistics()
-        print(f"[DEBUG] Statistics: {stats}")
 
-        stats_text = (
-            f"Kategorien: {stats['category_count']} | "
-            f"Spiele in Kategorien: {stats['games_in_categories']} | "
-            f"Echte Spiele: {stats['total_games']}"
+        stats_text = t(
+            'ui.main_window.statistics',
+            category_count=stats['category_count'],
+            games_in_categories=stats['games_in_categories'],
+            total_games=stats['total_games']
         )
 
-        print(f"[DEBUG] Setting stats_label to: {stats_text}")
-        self.stats_label.setText(stats_text)
         self.stats_label.setText(stats_text)
 
     def closeEvent(self, event) -> None:
         """Handle window close event and check for unsaved changes.
-
+        
         Args:
             event: The close event from Qt.
         """
         # Check if there are unsaved changes
-        if self.vdf_parser and self.vdf_parser.modified:
+        parser = self._get_active_parser()
+        if parser and parser.modified:
             reply = QMessageBox.question(
                 self,
                 t('ui.menu.file.unsaved_changes_title'),
                 t('ui.menu.file.unsaved_changes_msg'),
-                QMessageBox.StandardButton.Save |
-                QMessageBox.StandardButton.Discard |
+                QMessageBox.StandardButton.Save | 
+                QMessageBox.StandardButton.Discard | 
                 QMessageBox.StandardButton.Cancel,
                 QMessageBox.StandardButton.Save
             )
-
+            
             if reply == QMessageBox.StandardButton.Save:
                 # Save and close
                 if self._save_collections():
@@ -1683,12 +1757,13 @@ class MainWindow(QMainWindow):
             # No unsaved changes, close normally
             event.accept()
 
+    
     # ========== Parser Wrapper Methods ==========
-
+    
     def _get_active_parser(self):
         """Get the active parser (cloud storage or localconfig)."""
         return self.cloud_storage_parser if self.cloud_storage_parser else self.vdf_parser
-
+    
     def _save_collections(self) -> bool:
         """Save collections using the active parser."""
         # Only save to the active parser (cloud storage OR localconfig, not both!)
@@ -1697,25 +1772,25 @@ class MainWindow(QMainWindow):
         elif self.vdf_parser:
             return self.vdf_parser.save()
         return False
-
+    
     def _add_app_category(self, app_id: str, category: str):
         """Add category to app using the active parser."""
         parser = self._get_active_parser()
         if parser:
             parser.add_app_category(app_id, category)
-
+    
     def _remove_app_category(self, app_id: str, category: str):
         """Remove category from app using the active parser."""
         parser = self._get_active_parser()
         if parser:
             parser.remove_app_category(app_id, category)
-
+    
     def _rename_category(self, old_name: str, new_name: str):
         """Rename category using the active parser."""
         parser = self._get_active_parser()
         if parser:
             parser.rename_category(old_name, new_name)
-
+    
     def _delete_category(self, category: str):
         """Delete category using the active parser."""
         parser = self._get_active_parser()
