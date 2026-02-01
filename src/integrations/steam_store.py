@@ -197,6 +197,7 @@ class SteamStoreScraper:
         'Yakuza': ['yakuza', 'like a dragon'],
         'Need for Speed': ['need for speed'],
         'Star Wars': ['star wars'],
+        'Prince of Persia': ['prince of persia'],
     }
 
     @classmethod

@@ -187,18 +187,21 @@ class HorizontalCategoryList(QListWidget):
             # Was checked (gold) → Make unchecked (empty)
             checkbox.setCheckState(Qt.CheckState.Unchecked)
             checkbox.setStyleSheet("QCheckBox { font-size: 11px; margin-left: 2px; }")
-            self.category_toggled.emit(category, False)
             new_state = Qt.CheckState.Unchecked
+            checked = False
         else:
             # Was unchecked or partial → Make checked (gold)
             checkbox.setCheckState(Qt.CheckState.Checked)
             checkbox.setStyleSheet(
                 "QCheckBox { font-size: 11px; margin-left: 2px; color: #FFD700; font-weight: bold; }")
-            self.category_toggled.emit(category, True)
             new_state = Qt.CheckState.Checked
+            checked = True
 
         # Update the stored previous state
         checkbox.setProperty('previous_state', new_state)
+
+        # Emit signal (will be handled by _on_category_toggle in GameDetailsWidget)
+        self.category_toggled.emit(category, checked)
 
 
 class GameDetailsWidget(QWidget):
