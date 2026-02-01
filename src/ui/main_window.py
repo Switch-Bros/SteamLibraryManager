@@ -881,6 +881,9 @@ class MainWindow(QMainWindow):
             if len(selected_categories) > 1:
                 menu.addAction(t('ui.context_menu.merge_categories'),
                                lambda: self.merge_categories(selected_categories))
+                menu.addSeparator()
+                menu.addAction(t('ui.context_menu.delete'),
+                               lambda: self.delete_multiple_categories(selected_categories))
             menu.exec(pos)
             return
 
@@ -1141,6 +1144,38 @@ class MainWindow(QMainWindow):
                 for game in self.game_manager.games.values():
                     if category in game.categories:
                         game.categories.remove(category)
+
+            # Refresh UI
+            self._populate_categories()
+            self._update_statistics()
+
+    def delete_multiple_categories(self, categories: List[str]) -> None:
+        """Prompts the user to delete multiple categories at once.
+
+        Args:
+            categories: List of category names to delete.
+        """
+        if not self.vdf_parser: return
+        if not categories: return
+
+        # Create confirmation message
+        category_list = "\n• ".join(categories)
+        message = f"Möchten Sie diese {len(categories)} Kategorien wirklich löschen?\n\n• {category_list}"
+
+        if UIHelper.confirm(self, message, t('ui.categories.delete_title')):
+            # Delete all categories
+            for category in categories:
+                # Remove from VDF
+                self.vdf_parser.delete_category(category)
+
+                # Remove from all games in memory
+                if self.game_manager:
+                    for game in self.game_manager.games.values():
+                        if category in game.categories:
+                            game.categories.remove(category)
+
+            # Save once after all deletions
+            self.vdf_parser.save()
 
             # Refresh UI
             self._populate_categories()
