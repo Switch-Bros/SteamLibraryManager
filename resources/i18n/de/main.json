@@ -34,7 +34,15 @@
       "user_auto": "Benutzer: {user_id} (Automatisch)",
       "search_icon": "🔍",
       "expand_all": "Alle ausklappen",
-      "collapse_all": "Alle einklappen"
+      "collapse_all": "Alle einklappen",
+      "statistics": "Kategorien: {category_count} | Spiele in Kategorien: {games_in_categories} | Echte Spiele: {total_games}",
+      "cloud_storage_only": "Nur verfügbar wenn Cloud Storage aktiv ist!",
+      "duplicates_removed": "{count} doppelte Kollektionen wurden entfernt!",
+      "no_duplicates": "Keine doppelten Kollektionen gefunden!",
+      "create_collection_title": "Neue Kollektion erstellen",
+      "create_collection_prompt": "Geben Sie den Namen der neuen Kollektion ein:",
+      "collection_exists": "Eine Kollektion mit dem Namen '{name}' existiert bereits!",
+      "collection_created": "Kollektion '{name}' wurde erstellt!"
     },
     "images": {
       "image_load_error": "❌"
@@ -43,7 +51,7 @@
       "file": {
         "root": "Datei",
         "refresh": "Bibliothek aktualisieren",
-        "save": "Konfiguration speichern",
+        "save": "Kollektionen speichern",
         "unsaved_changes_title": "Ungespeicherte Änderungen",
         "unsaved_changes_msg": "Sie haben ungespeicherte Änderungen. Möchten Sie diese speichern?",
         "save_failed_title": "Speichern fehlgeschlagen",
@@ -55,8 +63,9 @@
         "import": "Importieren",
         "import_vdf": "Kategorien importieren (.vdf)",
         "import_json": "JSON Backup wiederherstellen",
-        "steam_vdf_merge": "Steam *.vdf-Dateien zusammenführen",
-        "detect_steam": "Steam-Pfad neu erkennen",
+      "steam_vdf_merge": "Steam *.vdf-Dateien zusammenführen",
+      "remove_duplicates": "Doppelte Kollektionen entfernen",
+      "detect_steam": "Steam-Pfad neu erkennen",
         "switch_user": "Benutzer wechseln",
         "exit": "Beenden"
       },
@@ -269,7 +278,8 @@
       "auto_categorize": "Auto-Kategorisieren",
       "rename": "Umbenennen",
       "delete": "Löschen",
-      "merge_categories": "Kategorien zusammenführen"
+      "merge_categories": "Kategorien zusammenführen",
+      "create_collection": "Kollektion erstellen"
     },
     "metadata_editor": {
       "title": "Metadaten bearbeiten",
@@ -421,9 +431,9 @@
       "remove_account_title": "Spiel vom Account entfernen",
       "remove_account_warning": "⚠️ WARNUNG: Diese Aktion ist DAUERHAFT!\n\nDu wirst zum Steam Support weitergeleitet, wo du dieses Spiel von deinem Account entfernen kannst.\n\nDies kann nicht rückgängig gemacht werden! Das Spiel und alle zugehörigen DLCs werden dauerhaft entfernt.\n\nMöchtest du fortfahren?",
       "remove_local_title": "Aus lokaler Konfig entfernen",
-      "remove_local_warning": "Möchtest du '{game}' aus der lokalen Steam-Konfiguration entfernen?\n\nDies entfernt den Eintrag aus der localconfig.vdf. Nutze dies für 'Geister'-Spiele, die nicht mehr in deiner Steam-Bibliothek existieren.\n\nDies entfernt das Spiel NICHT von deinem Steam-Account.",
-      "remove_local_success": "'{game}' wurde aus der lokalen Konfiguration entfernt.",
-      "remove_local_error": "Fehler beim Entfernen des Spiels aus der lokalen Konfiguration.",
+      "remove_local_warning": "Möchtest du '{game}' aus der lokalen Steam-Kollektion entfernen?\n\nDies entfernt den Eintrag aus der localconfig.vdf. Nutze dies für 'Geister'-Spiele, die nicht mehr in deiner Steam-Bibliothek existieren.\n\nDies entfernt das Spiel NICHT von deinem Steam-Account.",
+      "remove_local_success": "'{game}' wurde aus der lokalen Kollektion entfernt.",
+      "remove_local_error": "Fehler beim Entfernen des Spiels aus der lokalen Kollektion.",
       "restore_success": "{count} Änderungen erfolgreich wiederhergestellt!",
       "backup_created": "Backup erstellt: {path}",
       "cancel": "Abbrechen",

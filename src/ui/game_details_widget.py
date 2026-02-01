@@ -601,11 +601,9 @@ class GameDetailsWidget(QWidget):
         # Check for PEGI first
         if hasattr(game, 'pegi_rating') and game.pegi_rating:
             pegi_to_display = game.pegi_rating
-            print(f"[DEBUG] Using PEGI: {pegi_to_display}")
         # Fallback to ESRB if PEGI not available
         elif hasattr(game, 'esrb_rating') and game.esrb_rating:
             esrb = game.esrb_rating
-            print(f"[DEBUG] No PEGI, converting ESRB: {esrb}")
             # ESRB → PEGI mapping
             esrb_to_pegi = {
                 'Everyone': '3',
@@ -617,30 +615,19 @@ class GameDetailsWidget(QWidget):
                 'Adults Only 18+': '18'
             }
             pegi_to_display = esrb_to_pegi.get(esrb, '')
-            if pegi_to_display:
-                print(f"[DEBUG] ESRB '{esrb}' → PEGI {pegi_to_display}")
-            else:
-                print(f"[DEBUG] Unknown ESRB rating: {esrb}")
-        else:
-            print(f"[DEBUG] No PEGI or ESRB data available")
 
         if pegi_to_display:
-            print(f"[DEBUG] Showing PEGI: {pegi_to_display}")
-
             # Try to load PEGI image from /resources/icons/
             pegi_image_path = Path(f"resources/icons/PEGI{pegi_to_display}.png")
 
             if pegi_image_path.exists():
-                print(f"[DEBUG] Loading PEGI image: {pegi_image_path}")
                 self.pegi_image.load_image(str(pegi_image_path))
             else:
-                print(f"[DEBUG] PEGI image not found: {pegi_image_path}")
                 # ClickableImage doesn't support text, show default
                 self.pegi_image.load_image(None)
 
         else:
             # No rating available - show default icon
-            print(f"[DEBUG] No rating, showing default icon")
             self.pegi_image.load_image(None)  # Shows default image
 
         self._reload_images(game.app_id)

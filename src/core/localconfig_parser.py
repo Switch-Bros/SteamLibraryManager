@@ -101,13 +101,11 @@ class LocalConfigParser:
                 collections_data = json.loads(collections_str)
                 self.collections = collections_data.get('collections', [])
                 self.use_new_format = True
-                print(f"[DEBUG] Loaded {len(self.collections)} collections from user-collections")
             else:
                 self.collections = []
                 # Check if we have old format (tags)
                 has_tags = any('tags' in app_data for app_data in self.apps.values())
                 self.use_new_format = not has_tags
-                print(f"[DEBUG] No user-collections found, use_new_format={self.use_new_format}")
         except json.JSONDecodeError as e:
             print(f"[ERROR] Failed to parse user-collections: {e}")
             self.collections = []
@@ -183,41 +181,38 @@ class LocalConfigParser:
             }
             self.collections.append(collection)
 
-        print(f"[DEBUG] Migrated {len(self.collections)} collections from tags")
-
     def _remove_all_user_collections(self, data):
         """
         Recursively removes ALL 'user-collections' keys from the VDF structure.
-
+        
         Steam sometimes has multiple 'user-collections' keys in the file.
         We must remove ALL of them before writing our own!
-
+        
         Args:
             data: Dictionary to recursively search and clean
         """
         if not isinstance(data, dict):
             return
-
+        
         # Remove 'user-collections' from this level
         if 'user-collections' in data:
             del data['user-collections']
-
+        
         # Recursively check all nested dictionaries
         for key, value in list(data.items()):
             if isinstance(value, dict):
                 self._remove_all_user_collections(value)
-
+    
     def _save_user_collections(self):
         """
         Saves collections to user-collections field as JSON string.
-
+        
         CRITICAL: Removes ALL existing 'user-collections' keys first!
         """
         try:
             # STEP 1: Remove ALL 'user-collections' keys from entire VDF
             self._remove_all_user_collections(self.data)
-            print("[DEBUG] Removed all existing 'user-collections' keys")
-
+            
             # STEP 2: Write our collections to the correct location
             steam_section = (self.data.get('UserLocalConfigStore', {})
                              .get('Software', {})
@@ -228,7 +223,6 @@ class LocalConfigParser:
                 collections_data = {'collections': self.collections}
                 collections_str = json.dumps(collections_data, separators=(',', ':'))
                 steam_section['user-collections'] = collections_str
-                print(f"[DEBUG] Saved {len(self.collections)} collections to user-collections")
             else:
                 steam_section['user-collections'] = '{}'
 

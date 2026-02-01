@@ -383,11 +383,11 @@ class GameManager:
             # ONLY if they have categories assigned!
             for app_id in missing_ids:
                 categories = parser.get_app_categories(app_id)
-
+                
                 # Skip apps without categories (they're just in localconfig but not actually used)
                 if not categories:
                     continue
-
+                
                 # Use t() for fallback name
                 name = self._get_cached_name(app_id) or t('common.game_fallback', id=app_id)
 
@@ -854,19 +854,16 @@ class GameManager:
 
         # Extract age ratings (PEGI, ESRB, USK)
         ratings = data.get('ratings') or {}
-        print(f"[DEBUG] Store data for {game.name}: has ratings={bool(ratings)}, available={list(ratings.keys())}")
 
         # Priority 1: PEGI (used in most of Europe)
         if 'pegi' in ratings:
             pegi_data = ratings['pegi']
             game.pegi_rating = pegi_data.get('rating', '')
-            print(f"[DEBUG] PEGI extracted: {game.pegi_rating}")
 
         # Priority 2: USK (Germany) → Convert to PEGI
         elif 'usk' in ratings:
             usk_data = ratings['usk']
             usk_rating = usk_data.get('rating', '')
-            print(f"[DEBUG] USK extracted: {usk_rating}")
 
             # USK → PEGI mapping
             usk_to_pegi = {
@@ -879,18 +876,11 @@ class GameManager:
 
             if usk_rating in usk_to_pegi:
                 game.pegi_rating = usk_to_pegi[usk_rating]
-                print(f"[DEBUG] USK {usk_rating} → PEGI {game.pegi_rating}")
-            else:
-                print(f"[DEBUG] Unknown USK rating: {usk_rating}")
 
         # Priority 3: ESRB (USA) - store for fallback display
         if 'esrb' in ratings:
             esrb_data = ratings['esrb']
             game.esrb_rating = esrb_data.get('rating', '')
-            print(f"[DEBUG] ESRB extracted: {game.esrb_rating}")
-
-        if not game.pegi_rating and not game.esrb_rating:
-            print(f"[DEBUG] No age rating found for {game.name}")
 
     def get_load_source_message(self) -> str:
         """

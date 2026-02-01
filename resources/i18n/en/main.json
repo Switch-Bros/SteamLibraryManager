@@ -34,7 +34,15 @@
       "user_auto": "User: {user_id} (Auto-Detected)",
       "search_icon": "🔍",
       "expand_all": "Expand All",
-      "collapse_all": "Collapse All"
+      "collapse_all": "Collapse All",
+      "statistics": "Categories: {category_count} | Games in Categories: {games_in_categories} | Real Games: {total_games}",
+      "cloud_storage_only": "Only available when Cloud Storage is active!",
+      "duplicates_removed": "{count} duplicate collections were removed!",
+      "no_duplicates": "No duplicate collections found!",
+      "create_collection_title": "Create New Collection",
+      "create_collection_prompt": "Enter the name of the new collection:",
+      "collection_exists": "A collection with the name '{name}' already exists!",
+      "collection_created": "Collection '{name}' was created!"
     },
     "images": {
       "image_load_error": "❌"
@@ -43,7 +51,7 @@
       "file": {
         "root": "File",
         "refresh": "Refresh Library",
-        "save": "Save Configuration",
+        "save": "Save Collections",
         "unsaved_changes_title": "Unsaved Changes",
         "unsaved_changes_msg": "You have unsaved changes. Would you like to save them?",
         "save_failed_title": "Save Failed",
@@ -55,8 +63,9 @@
         "import": "Import",
         "import_vdf": "Import Categories (.vdf)",
         "import_json": "Restore JSON Backup",
-        "steam_vdf_merge": "Merge Steam *.vdf files",
-        "detect_steam": "Redetect Steam Path",
+      "steam_vdf_merge": "Merge Steam *.vdf files",
+      "remove_duplicates": "Remove Duplicate Collections",
+      "detect_steam": "Redetect Steam Path",
         "switch_user": "Switch User",
         "exit": "Exit"
       },
@@ -269,7 +278,8 @@
       "auto_categorize": "Auto-Categorize",
       "rename": "Rename",
       "delete": "Delete",
-      "merge_categories": "Merge Categories"
+      "merge_categories": "Merge Categories",
+      "create_collection": "Create Collection"
     },
     "metadata_editor": {
       "title": "Edit Metadata",

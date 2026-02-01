@@ -26,11 +26,11 @@ from typing import Dict, List
 
 class CloudStorageParser:
     """Parser for Steam's cloud-storage-namespace-1.json collections format."""
-
+    
     def __init__(self, steam_path: str, user_id: str):
         """
         Initialize the cloud storage parser.
-
+        
         Args:
             steam_path: Path to Steam installation
             user_id: Steam user ID
@@ -38,32 +38,31 @@ class CloudStorageParser:
         self.steam_path = steam_path
         self.user_id = user_id
         self.cloud_storage_path = os.path.join(
-            steam_path, 'userdata', user_id, 'config', 'cloudstorage',
+            steam_path, 'userdata', user_id, 'config', 'cloudstorage', 
             'cloud-storage-namespace-1.json'
         )
         self.data: List = []
         self.collections: List[Dict] = []
         self.modified = False
-
+    
     def load(self) -> bool:
         """
         Load collections from cloud storage JSON file.
-
+        
         Returns:
             True if successful, False otherwise
         """
         try:
             if not os.path.exists(self.cloud_storage_path):
-                print(f"[DEBUG] Cloud storage file not found: {self.cloud_storage_path}")
                 return False
-
+            
             with open(self.cloud_storage_path, 'r', encoding='utf-8') as f:
                 self.data = json.load(f)
-
+            
             if not isinstance(self.data, list):
                 print(f"[ERROR] Cloud storage data is not a list!")
                 return False
-
+            
             # Extract collections
             self.collections = []
             for item in self.data:
@@ -78,43 +77,42 @@ class CloudStorageParser:
                                 self.collections.append(collection_data)
                             except json.JSONDecodeError:
                                 print(f"[WARN] Failed to parse collection: {key}")
-
-            print(f"[DEBUG] Loaded {len(self.collections)} collections from cloud storage")
+            
             return True
-
+            
         except FileNotFoundError:
             print(f"[ERROR] Cloud storage file not found: {self.cloud_storage_path}")
             return False
         except Exception as e:
             print(f"[ERROR] Failed to load cloud storage: {e}")
             return False
-
+    
     def save(self) -> bool:
         """
         Save collections to cloud storage JSON file.
-
+        
         Returns:
             True if successful, False otherwise
         """
         try:
             # Remove all existing collection items
-            self.data = [item for item in self.data
-                         if not (len(item) == 2 and isinstance(item[1], dict) and
-                                 item[1].get('key', '').startswith('user-collections.'))]
-
+            self.data = [item for item in self.data 
+                        if not (len(item) == 2 and isinstance(item[1], dict) and 
+                               item[1].get('key', '').startswith('user-collections.'))]
+            
             # Add our collections
             timestamp = int(time.time())
             for collection in self.collections:
                 collection_id = collection.get('id', '')
                 collection_name = collection.get('name', '')
-
+                
                 # Ensure ID is in correct format
                 if not collection_id.startswith('from-tag-'):
                     collection_id = f"from-tag-{collection_name}"
                     collection['id'] = collection_id
-
+                
                 key = f"user-collections.{collection_id}"
-
+                
                 # Build value JSON
                 value_data = {
                     'id': collection_id,
@@ -123,7 +121,7 @@ class CloudStorageParser:
                     'removed': collection.get('removed', [])
                 }
                 value_str = json.dumps(value_data, separators=(',', ':'))
-
+                
                 # Create item
                 item = [
                     key,
@@ -134,67 +132,65 @@ class CloudStorageParser:
                         'version': str(int(time.time() % 10000))
                     }
                 ]
-
+                
                 self.data.append(item)
-
-            print(f"[DEBUG] Saved {len(self.collections)} collections to cloud storage")
-
+            
             # Write to file
             with open(self.cloud_storage_path, 'w', encoding='utf-8') as f:
                 json.dump(self.data, f, indent=2, ensure_ascii=False)
-
+            
             self.modified = False
             return True
-
+            
         except OSError as e:
             print(f"[ERROR] Failed to save cloud storage: {e}")
             return False
-
+    
     def get_all_categories(self) -> List[str]:
         """
         Get all unique category names from collections.
-
+        
         Returns:
             List of category names
         """
         return [c.get('name', '') for c in self.collections if c.get('name')]
-
+    
     def get_app_categories(self, app_id: str) -> List[str]:
         """
         Get categories for a specific app.
-
+        
         Args:
             app_id: Steam app ID
-
+            
         Returns:
             List of category names
         """
         categories = []
         app_id_int = int(app_id)
-
+        
         for collection in self.collections:
             apps = collection.get('added', collection.get('apps', []))
             if app_id_int in apps:
                 categories.append(collection.get('name', ''))
-
+        
         return categories
-
+    
     def set_app_categories(self, app_id: str, categories: List[str]):
         """
         Set categories for a specific app.
-
+        
         Args:
             app_id: Steam app ID
             categories: List of category names
         """
         app_id_int = int(app_id)
-
+        
         # Remove app from all collections
         for collection in self.collections:
             apps = collection.get('added', collection.get('apps', []))
             if app_id_int in apps:
                 apps.remove(app_id_int)
-
+        
         # Add app to specified collections
         for category_name in categories:
             # Find or create collection
@@ -203,7 +199,7 @@ class CloudStorageParser:
                 if c.get('name') == category_name:
                     collection = c
                     break
-
+            
             if not collection:
                 # Create new collection
                 collection_id = f"from-tag-{category_name}"
@@ -214,22 +210,22 @@ class CloudStorageParser:
                     'removed': []
                 }
                 self.collections.append(collection)
-
+            
             # Add app
             apps = collection.get('added', collection.get('apps', []))
             if app_id_int not in apps:
                 apps.append(app_id_int)
-
+            
             # Ensure 'added' key exists
             if 'added' not in collection:
                 collection['added'] = apps
-
+        
         self.modified = True
-
+    
     def add_app_category(self, app_id: str, category: str):
         """
         Add a category to an app.
-
+        
         Args:
             app_id: Steam app ID
             category: Category name
@@ -238,11 +234,11 @@ class CloudStorageParser:
         if category not in categories:
             categories.append(category)
             self.set_app_categories(app_id, categories)
-
+    
     def remove_app_category(self, app_id: str, category: str):
         """
         Remove a category from an app.
-
+        
         Args:
             app_id: Steam app ID
             category: Category name
@@ -251,21 +247,21 @@ class CloudStorageParser:
         if category in categories:
             categories.remove(category)
             self.set_app_categories(app_id, categories)
-
+    
     def delete_category(self, category: str):
         """
         Delete a category completely.
-
+        
         Args:
             category: Category name
         """
         self.collections = [c for c in self.collections if c.get('name') != category]
         self.modified = True
-
+    
     def rename_category(self, old_name: str, new_name: str):
         """
         Rename a category.
-
+        
         Args:
             old_name: Old category name
             new_name: New category name
@@ -277,10 +273,11 @@ class CloudStorageParser:
                 self.modified = True
                 break
 
+    
     def get_all_app_ids(self) -> List[str]:
         """
         Get all app IDs from all collections.
-
+        
         Returns:
             List of app IDs as strings
         """
@@ -290,60 +287,61 @@ class CloudStorageParser:
             app_ids.update(str(app_id) for app_id in apps)
         return list(app_ids)
 
+    
     def get_hidden_apps(self) -> List[str]:
         """
         Get hidden apps (not supported in cloud storage).
-
+        
         Returns:
             Empty list (hidden status is stored in localconfig.vdf, not cloud storage)
         """
         return []
-
+    
     def set_app_hidden(self, app_id: str, hidden: bool):
         """
         Set app hidden status (not supported in cloud storage).
-
+        
         Args:
             app_id: Steam app ID
             hidden: True to hide, False to unhide
-
+        
         Note:
             Hidden status is stored in localconfig.vdf, not cloud storage.
             This method does nothing.
         """
         pass
-
+    
     def remove_app(self, app_id: str) -> bool:
         """
         Remove app from all collections.
-
+        
         Args:
             app_id: Steam app ID
-
+            
         Returns:
             True if successful
         """
         app_id_int = int(app_id)
         removed = False
-
+        
         for collection in self.collections:
             apps = collection.get('added', collection.get('apps', []))
             if app_id_int in apps:
                 apps.remove(app_id_int)
                 removed = True
-
+        
         if removed:
             self.modified = True
-
+        
         return removed
-
+    
     def get_apps_in_category(self, category: str) -> List[str]:
         """
         Get all app IDs in a specific category.
-
+        
         Args:
             category: Category name
-
+            
         Returns:
             List of app IDs as strings
         """
@@ -352,3 +350,59 @@ class CloudStorageParser:
                 apps = collection.get('added', collection.get('apps', []))
                 return [str(app_id) for app_id in apps]
         return []
+
+    
+    def remove_duplicate_collections(self, expected_counts: Dict[str, int]) -> int:
+        """
+        Remove duplicate collections that don't match expected app counts.
+        
+        When multiple collections with the same name exist, this method keeps only
+        the collection whose app count matches the expected count from game_manager.
+        If no match is found, it keeps the collection with the most apps.
+        
+        Args:
+            expected_counts: Dictionary mapping collection names to their expected
+                app counts as determined by the game manager.
+        
+        Returns:
+            int: Number of duplicate collections removed.
+        """
+        # Group collections by name
+        by_name: Dict[str, List[Dict]] = {}
+        for collection in self.collections:
+            name = collection.get('name', '')
+            if name not in by_name:
+                by_name[name] = []
+            by_name[name].append(collection)
+        
+        removed_count = 0
+        
+        # For each name with duplicates
+        for name, dupes in by_name.items():
+            if len(dupes) <= 1:
+                continue  # No duplicates
+            
+            expected_count = expected_counts.get(name, -1)
+            
+            # Find the one that matches expected count
+            correct_one = None
+            for dupe in dupes:
+                app_count = len(dupe.get('added', dupe.get('apps', [])))
+                if app_count == expected_count:
+                    correct_one = dupe
+                    break
+            
+            # If no match found, keep the one with most apps
+            if not correct_one:
+                correct_one = max(dupes, key=lambda c: len(c.get('added', c.get('apps', []))))
+            
+            # Remove all others
+            for dupe in dupes:
+                if dupe is not correct_one:
+                    self.collections.remove(dupe)
+                    removed_count += 1
+        
+        if removed_count > 0:
+            self.modified = True
+        
+        return removed_count
