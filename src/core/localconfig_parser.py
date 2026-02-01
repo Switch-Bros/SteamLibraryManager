@@ -152,8 +152,9 @@ class LocalConfigParser:
             backup_manager.create_backup(self.config_path)
 
         try:
-            # Migrate to new format if needed
-            if self.use_new_format:
+            # Migrate to new format if needed (only if collections are empty!)
+            # This prevents overwriting manually modified collections
+            if self.use_new_format and not self.collections:
                 self._migrate_to_user_collections()
 
             # Save user-collections

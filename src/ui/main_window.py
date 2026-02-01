@@ -1132,9 +1132,19 @@ class MainWindow(QMainWindow):
                 t('ui.categories.delete_msg', category=category),
                 t('ui.categories.delete_title')
         ):
+            # Remove from VDF
             self.vdf_parser.delete_category(category)
             self.vdf_parser.save()
+
+            # Remove from all games in memory
+            if self.game_manager:
+                for game in self.game_manager.games.values():
+                    if category in game.categories:
+                        game.categories.remove(category)
+
+            # Refresh UI
             self._populate_categories()
+            self._update_statistics()
 
     def merge_categories(self, categories: List[str]) -> None:
         """
