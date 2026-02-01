@@ -187,10 +187,10 @@ class LocalConfigParser:
 
         # Create collections from categories
         self.collections = []
-        import hashlib
         for category_name, app_ids in sorted(category_to_apps.items()):
-            # Generate unique ID from category name (consistent across runs)
-            collection_id = hashlib.md5(category_name.encode('utf-8')).hexdigest()[:8]
+            # Use Steam's expected format: "from-tag-<tagname>"
+            # This is the format Steam uses for collections migrated from old tags
+            collection_id = f"from-tag-{category_name}"
             collection = {
                 'id': collection_id,
                 'name': category_name,
