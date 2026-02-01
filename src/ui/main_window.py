@@ -1411,17 +1411,72 @@ class MainWindow(QMainWindow):
             self._show_auto_categorize_dialog(self.game_manager.get_games_by_category(category), category)
 
     def _show_auto_categorize_dialog(self, games: List[Game], category_name: Optional[str]) -> None:
-        """Shows the auto-categorize dialog with the specified games.
-
-        Args:
-            games: List of games to potentially categorize.
-            category_name: Optional name of the source category.
-        """
+        """Shows the auto-categorize dialog with the specified games."""
         self.dialog_games = games
         if not self.game_manager: return
         dialog = AutoCategorizeDialog(self, games, len(self.game_manager.games), self._do_auto_categorize,
                                       category_name)
-        dialog.exec()
+        exec_result = dialog.exec()  # ← exec_result statt result!
+
+        # Check if dialog was accepted (not cancelled) and user wants to use tags
+        if exec_result and dialog.result and 'tags' in dialog.result.get('methods', []):
+            self._check_cache_coverage_warning(games, dialog.result)
+
+    def _check_cache_coverage_warning(self, games: List[Game], settings: dict) -> None:
+        """
+        Check cache coverage and warn user if many games need to be fetched.
+
+        If less than 50% of games have cached tag data, show a warning about
+        the time required to fetch tags from Steam Store.
+
+        Args:
+            games: List of games to be auto-categorized.
+            settings: Auto-categorize settings from dialog.
+        """
+        if not self.steam_scraper:
+            return
+
+        # Check cache coverage
+        app_ids = [game.app_id for game in games]
+        coverage = self.steam_scraper.get_cache_coverage(app_ids)
+
+        # If more than 50% is cached, no warning needed
+        if coverage['percentage'] >= 50:
+            # Proceed with auto-categorization
+            self._do_auto_categorize(settings)
+            return
+
+        # Calculate estimated time (1.5 seconds per uncached game)
+        missing = coverage['missing']
+        estimated_seconds = int(missing * 1.5)
+        estimated_minutes = estimated_seconds // 60
+
+        # Format time string
+        if estimated_minutes > 60:
+            hours = estimated_minutes // 60
+            mins = estimated_minutes % 60
+            time_str = t('ui.auto_categorize.cache_warning_time_hours', hours=hours, minutes=mins)
+        elif estimated_minutes > 0:
+            time_str = t('ui.auto_categorize.cache_warning_time_minutes', minutes=estimated_minutes)
+        else:
+            time_str = t('ui.auto_categorize.cache_warning_time_seconds', seconds=estimated_seconds)
+
+        # Show warning dialog
+        reply = QMessageBox.warning(
+            self,
+            t('ui.auto_categorize.cache_warning_title'),
+            t('ui.auto_categorize.cache_warning_message',
+              missing=missing,
+              total=coverage['total'],
+              time=time_str),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+
+        if reply == QMessageBox.StandardButton.Yes:
+            # User wants to continue anyway
+            self._do_auto_categorize(settings)
+        # else: User cancelled, do nothing
 
     def _do_auto_categorize(self, settings: dict) -> None:
         """Executes the auto-categorization process with the given settings.
