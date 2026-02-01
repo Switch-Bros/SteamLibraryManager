@@ -1619,3 +1619,49 @@ class MainWindow(QMainWindow):
 
         print(f"[DEBUG] Setting stats_label to: {stats_text}")
         self.stats_label.setText(stats_text)
+        self.stats_label.setText(stats_text)
+
+    def closeEvent(self, event) -> None:
+        """Handle window close event and check for unsaved changes.
+
+        Args:
+            event: The close event from Qt.
+        """
+        # Check if there are unsaved changes
+        if self.vdf_parser and self.vdf_parser.modified:
+            reply = QMessageBox.question(
+                self,
+                "Ungespeicherte Änderungen",
+                "Sie haben ungespeicherte Änderungen. Möchten Sie diese speichern?",
+                QMessageBox.StandardButton.Save |
+                QMessageBox.StandardButton.Discard |
+                QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Save
+            )
+
+            if reply == QMessageBox.StandardButton.Save:
+                # Save and close
+                if self.vdf_parser.save():
+                    event.accept()
+                else:
+                    # Save failed, ask if they want to close anyway
+                    retry = QMessageBox.warning(
+                        self,
+                        "Speichern fehlgeschlagen",
+                        "Das Speichern ist fehlgeschlagen. Trotzdem schließen?",
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                        QMessageBox.StandardButton.No
+                    )
+                    if retry == QMessageBox.StandardButton.Yes:
+                        event.accept()
+                    else:
+                        event.ignore()
+            elif reply == QMessageBox.StandardButton.Discard:
+                # Close without saving
+                event.accept()
+            else:
+                # Cancel - stay open
+                event.ignore()
+        else:
+            # No unsaved changes, close normally
+            event.accept()
