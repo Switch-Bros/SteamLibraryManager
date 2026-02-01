@@ -521,7 +521,7 @@ class GameManager:
         Returns:
             List[Game]: A sorted list of games in this category.
         """
-        games = [g for g in self.games.values() if g.has_category(category)]
+        games = [g for g in self.get_real_games() if g.has_category(category)]
         return sorted(games, key=lambda g: g.sort_name.lower())
 
     def get_uncategorized_games(self) -> List[Game]:
@@ -531,7 +531,7 @@ class GameManager:
         Returns:
             List[Game]: A sorted list of uncategorized games.
         """
-        games = [g for g in self.games.values()
+        games = [g for g in self.get_real_games()
                  if not g.categories or g.categories == ['favorite']]
         return sorted(games, key=lambda g: g.sort_name.lower())
 
@@ -542,7 +542,7 @@ class GameManager:
         Returns:
             List[Game]: A sorted list of favorite games.
         """
-        games = [g for g in self.games.values() if g.is_favorite()]
+        games = [g for g in self.get_real_games() if g.is_favorite()]
         return sorted(games, key=lambda g: g.sort_name.lower())
 
     def get_all_categories(self) -> Dict[str, int]:
@@ -553,7 +553,7 @@ class GameManager:
             Dict[str, int]: A dictionary mapping category names to game counts.
         """
         categories = {}
-        for game in self.games.values():
+        for game in self.get_real_games():
             for category in game.categories:
                 categories[category] = categories.get(category, 0) + 1
         return categories
