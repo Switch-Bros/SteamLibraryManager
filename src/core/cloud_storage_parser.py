@@ -289,3 +289,66 @@ class CloudStorageParser:
             apps = collection.get('added', collection.get('apps', []))
             app_ids.update(str(app_id) for app_id in apps)
         return list(app_ids)
+
+    def get_hidden_apps(self) -> List[str]:
+        """
+        Get hidden apps (not supported in cloud storage).
+
+        Returns:
+            Empty list (hidden status is stored in localconfig.vdf, not cloud storage)
+        """
+        return []
+
+    def set_app_hidden(self, app_id: str, hidden: bool):
+        """
+        Set app hidden status (not supported in cloud storage).
+
+        Args:
+            app_id: Steam app ID
+            hidden: True to hide, False to unhide
+
+        Note:
+            Hidden status is stored in localconfig.vdf, not cloud storage.
+            This method does nothing.
+        """
+        pass
+
+    def remove_app(self, app_id: str) -> bool:
+        """
+        Remove app from all collections.
+
+        Args:
+            app_id: Steam app ID
+
+        Returns:
+            True if successful
+        """
+        app_id_int = int(app_id)
+        removed = False
+
+        for collection in self.collections:
+            apps = collection.get('added', collection.get('apps', []))
+            if app_id_int in apps:
+                apps.remove(app_id_int)
+                removed = True
+
+        if removed:
+            self.modified = True
+
+        return removed
+
+    def get_apps_in_category(self, category: str) -> List[str]:
+        """
+        Get all app IDs in a specific category.
+
+        Args:
+            category: Category name
+
+        Returns:
+            List of app IDs as strings
+        """
+        for collection in self.collections:
+            if collection.get('name') == category:
+                apps = collection.get('added', collection.get('apps', []))
+                return [str(app_id) for app_id in apps]
+        return []
