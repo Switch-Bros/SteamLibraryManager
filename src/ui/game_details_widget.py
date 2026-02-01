@@ -105,7 +105,9 @@ class HorizontalCategoryList(QListWidget):
                 continue
             item = QListWidgetItem(self)
             item.setSizeHint(QSize(200, 24))
-            cb = QCheckBox(category)
+            # Escape & to && for Qt (otherwise & becomes keyboard shortcut)
+            display_name = category.replace('&', '&&')
+            cb = QCheckBox(display_name)
             cb.setChecked(category in game_categories)
             cb.setFocusPolicy(Qt.FocusPolicy.NoFocus)  # Prevent focus stealing
             cb.setStyleSheet("QCheckBox { font-size: 11px; margin-left: 2px; }")
@@ -144,7 +146,9 @@ class HorizontalCategoryList(QListWidget):
 
             item = QListWidgetItem(self)
             item.setSizeHint(QSize(200, 24))
-            cb = QCheckBox(category)
+            # Escape & to && for Qt (otherwise & becomes keyboard shortcut)
+            display_name = category.replace('&', '&&')
+            cb = QCheckBox(display_name)
             cb.setTristate(True)  # Enable tri-state
             cb.setFocusPolicy(Qt.FocusPolicy.NoFocus)  # Prevent focus stealing
 
@@ -199,7 +203,7 @@ class HorizontalCategoryList(QListWidget):
 
         # Update the stored previous state
         checkbox.setProperty('previous_state', new_state)
-
+        
         # Emit signal (will be handled by _on_category_toggle in GameDetailsWidget)
         self.category_toggled.emit(category, checked)
 
