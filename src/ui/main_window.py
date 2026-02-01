@@ -1631,8 +1631,8 @@ class MainWindow(QMainWindow):
         if self.vdf_parser and self.vdf_parser.modified:
             reply = QMessageBox.question(
                 self,
-                "Ungespeicherte Änderungen",
-                "Sie haben ungespeicherte Änderungen. Möchten Sie diese speichern?",
+                t('ui.menu.file.unsaved_changes_title'),
+                t('ui.menu.file.unsaved_changes_msg'),
                 QMessageBox.StandardButton.Save |
                 QMessageBox.StandardButton.Discard |
                 QMessageBox.StandardButton.Cancel,
@@ -1647,8 +1647,8 @@ class MainWindow(QMainWindow):
                     # Save failed, ask if they want to close anyway
                     retry = QMessageBox.warning(
                         self,
-                        "Speichern fehlgeschlagen",
-                        "Das Speichern ist fehlgeschlagen. Trotzdem schließen?",
+                        t('ui.menu.file.save_failed_title'),
+                        t('ui.menu.file.save_failed_msg'),
                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                         QMessageBox.StandardButton.No
                     )
