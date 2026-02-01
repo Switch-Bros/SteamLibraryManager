@@ -180,6 +180,9 @@ class LocalConfigParser:
             # Save user-collections
             self._save_user_collections()
 
+            # CRITICAL: Clean up data before saving to prevent VDF syntax errors
+            self._cleanup_vdf_data()
+
             with open(self.config_path, 'w', encoding='utf-8') as f:
                 vdf.dump(self.data, f, pretty=True)
             self.modified = False
@@ -560,3 +563,54 @@ class LocalConfigParser:
             self.modified = True
         except Exception as e:
             print(t('logs.parser.hidden_error', error=str(e)))
+
+    def _cleanup_vdf_data(self):
+        """
+        Cleans up VDF data structure to prevent syntax errors when saving.
+
+        Removes:
+        - Keys with None values
+        - Keys with empty string values
+        - Empty dictionaries
+        - Invalid data structures
+
+        This is CRITICAL because the VDF library can write invalid syntax
+        if the data structure contains certain problematic values.
+        """
+
+        def clean_dict(d):
+            """Recursively clean a dictionary."""
+            if not isinstance(d, dict):
+                return d
+
+            cleaned = {}
+            for key, value in list(d.items()):
+                # Skip None values
+                if value is None:
+                    continue
+
+                # Skip empty strings as keys (these cause syntax errors!)
+                if isinstance(key, str) and not key.strip():
+                    continue
+
+                # Recursively clean nested dicts
+                if isinstance(value, dict):
+                    cleaned_value = clean_dict(value)
+                    # Only add if not empty
+                    if cleaned_value:
+                        cleaned[key] = cleaned_value
+                # Keep non-empty values
+                elif value != '':
+                    cleaned[key] = value
+
+            return cleaned
+
+        # Clean the entire data structure
+        if isinstance(self.data, dict):
+            self.data = clean_dict(self.data)
+
+        # Also clean apps specifically
+        if self.apps and isinstance(self.apps, dict):
+            self.apps = clean_dict(self.apps)
+
+        print("[DEBUG] VDF data cleaned before saving")
