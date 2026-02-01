@@ -375,22 +375,28 @@ class CloudStorageParser:
         Returns:
             int: Number of duplicate collections removed.
         """
-        # Group collections by name
+        # Group collections by name (case-insensitive)
         by_name: Dict[str, List[Dict]] = {}
         for collection in self.collections:
             name = collection.get('name', '')
-            if name not in by_name:
-                by_name[name] = []
-            by_name[name].append(collection)
+            name_lower = name.lower()  # Case-insensitive grouping
+            if name_lower not in by_name:
+                by_name[name_lower] = []
+            by_name[name_lower].append(collection)
 
         removed_count = 0
 
         # For each name with duplicates
-        for name, dupes in by_name.items():
+        for name_lower, dupes in by_name.items():
             if len(dupes) <= 1:
                 continue  # No duplicates
 
-            expected_count = expected_counts.get(name, -1)
+            # Find expected count (case-insensitive)
+            expected_count = -1
+            for key, count in expected_counts.items():
+                if key.lower() == name_lower:
+                    expected_count = count
+                    break
 
             # Find the one that matches expected count
             correct_one = None

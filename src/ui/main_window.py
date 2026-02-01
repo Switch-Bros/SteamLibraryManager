@@ -621,7 +621,8 @@ class MainWindow(QMainWindow):
 
         # 5. User categories (only visible games)
         cats = self.game_manager.get_all_categories()
-        for cat_name in sorted(cats.keys()):
+        # Sort case-insensitive: NIEDLICH, Niedlich, niedlich appear together
+        for cat_name in sorted(cats.keys(), key=str.lower):
             if cat_name != 'favorite':
                 cat_games = sorted([g for g in self.game_manager.get_games_by_category(cat_name) if not g.hidden],
                                    key=lambda g: g.sort_name.lower())
@@ -1209,6 +1210,7 @@ class MainWindow(QMainWindow):
             self._rename_category(old_name, new_name)
             self._save_collections()
             self._populate_categories()
+            self._update_statistics()
 
     def delete_category(self, category: str) -> None:
         """Prompts the user to delete a category.
