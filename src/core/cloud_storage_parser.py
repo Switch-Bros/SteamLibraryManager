@@ -276,3 +276,16 @@ class CloudStorageParser:
                 collection['id'] = f"from-tag-{new_name}"
                 self.modified = True
                 break
+
+    def get_all_app_ids(self) -> List[str]:
+        """
+        Get all app IDs from all collections.
+
+        Returns:
+            List of app IDs as strings
+        """
+        app_ids = set()
+        for collection in self.collections:
+            apps = collection.get('added', collection.get('apps', []))
+            app_ids.update(str(app_id) for app_id in apps)
+        return list(app_ids)
