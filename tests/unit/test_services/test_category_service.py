@@ -52,7 +52,10 @@ class TestCategoryService:
             }
         }
 
-        parser = LocalConfigParser(tmp_path, "test_user")
+        # Create test VDF file
+        config_file = tmp_path / "localconfig.vdf"
+        parser = LocalConfigParser(config_file)
+        parser.data = vdf_content
         parser.apps = vdf_content['UserLocalConfigStore']['Software']['Valve']['Steam']['Apps']
         return parser
 
