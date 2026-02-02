@@ -1,23 +1,20 @@
 """Unit tests for AssetService."""
 
 import pytest
-from pathlib import Path
 from unittest.mock import Mock, patch
-from PyQt6.QtGui import QPixmap
 from src.services.asset_service import AssetService
 
 
 @pytest.fixture
-def tmp_cache_dir(tmp_path):
-    """Creates a temporary cache directory."""
-    cache_dir = tmp_path / "cache"
-    cache_dir.mkdir()
-    return cache_dir
+def mock_steam_assets():
+    """Mocks SteamAssets static methods."""
+    with patch('src.services.asset_service.SteamAssets') as mock_sa:
+        yield mock_sa
 
 
 @pytest.fixture
 def mock_steamgrid():
-    """Creates a mock SteamGridDB instance."""
+    """Mocks SteamGridDB."""
     with patch('src.services.asset_service.SteamGridDB') as mock_sg:
         yield mock_sg
 
@@ -25,141 +22,112 @@ def mock_steamgrid():
 class TestAssetService:
     """Test suite for AssetService."""
 
-    def test_init_without_steamgrid(self, tmp_cache_dir):
-        """Test initialization without SteamGridDB API key."""
-        service = AssetService(str(tmp_cache_dir))
+    def test_init_without_steamgrid(self, mock_steamgrid):
+        """Test initialization when SteamGridDB fails."""
+        mock_steamgrid.side_effect = ValueError("No API key")
 
-        assert service.cache_dir == tmp_cache_dir
-        assert service.steamgrid_api_key is None
+        service = AssetService()
+
         assert service.steamgrid is None
 
-    def test_init_with_steamgrid(self, tmp_cache_dir, mock_steamgrid):
-        """Test initialization with SteamGridDB API key."""
-        service = AssetService(str(tmp_cache_dir), "fake_api_key")
+    def test_init_with_steamgrid(self, mock_steamgrid):
+        """Test initialization with SteamGridDB."""
+        mock_instance = Mock()
+        mock_steamgrid.return_value = mock_instance
 
-        assert service.steamgrid_api_key == "fake_api_key"
+        service = AssetService()
+
         assert service.steamgrid is not None
-        mock_steamgrid.assert_called_once_with("fake_api_key")  # type: ignore[attr-defined]
 
-    def test_load_image_exists(self, tmp_cache_dir):
-        """Test loading an existing image."""
-        service = AssetService(str(tmp_cache_dir))
+    def test_get_asset_path(self, mock_steam_assets):
+        """Test getting asset path."""
+        mock_steam_assets.get_asset_path.return_value = "/fake/path/123p.png"
 
-        # Create a fake image file
-        image_dir = tmp_cache_dir / "images" / "header"
-        image_dir.mkdir(parents=True)
-        image_path = image_dir / "123.jpg"
+        service = AssetService()
+        result = service.get_asset_path("123", "grids")
 
-        # Create a minimal valid JPEG
-        with open(image_path, 'wb') as f:
-            # Minimal JPEG header
-            f.write(b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\xd9')
+        assert result == "/fake/path/123p.png"
+        assert mock_steam_assets.get_asset_path.call_count == 1  # type: ignore[attr-defined]
 
-        with patch('src.services.asset_service.QPixmap') as mock_pixmap:
-            mock_instance = Mock()
-            mock_instance.isNull.return_value = False
-            mock_pixmap.return_value = mock_instance
+    def test_save_custom_image(self, mock_steam_assets):
+        """Test saving custom image."""
+        mock_steam_assets.save_custom_image.return_value = True
 
-            result = service.load_image("123", "header")
-
-            assert result is not None
-            mock_pixmap.assert_called_once()  # type: ignore[attr-defined]
-
-    def test_load_image_not_exists(self, tmp_cache_dir):
-        """Test loading a non-existent image."""
-        service = AssetService(str(tmp_cache_dir))
-
-        result = service.load_image("999", "header")
-
-        assert result is None
-
-    def test_save_image(self, tmp_cache_dir):
-        """Test saving an image."""
-        service = AssetService(str(tmp_cache_dir))
-
-        mock_pixmap = Mock(spec=QPixmap)
-        mock_pixmap.save.return_value = True
-
-        result = service.save_image("123", mock_pixmap, "header")
+        service = AssetService()
+        result = service.save_custom_image("123", "grids", "https://example.com/image.png")
 
         assert result is True
-        mock_pixmap.save.assert_called_once()  # type: ignore[attr-defined]
+        assert mock_steam_assets.save_custom_image.call_count == 1  # type: ignore[attr-defined]
 
-        # Check directory was created
-        assert (tmp_cache_dir / "images" / "header").exists()
+    def test_delete_custom_image(self, mock_steam_assets):
+        """Test deleting custom image."""
+        mock_steam_assets.delete_custom_image.return_value = True
 
-    def test_fetch_from_steamgrid_no_api_key(self, tmp_cache_dir):
-        """Test fetching from SteamGridDB without API key."""
-        service = AssetService(str(tmp_cache_dir))
+        service = AssetService()
+        result = service.delete_custom_image("123", "grids")
 
-        with pytest.raises(RuntimeError, match="SteamGridDB not initialized"):
-            service.fetch_from_steamgrid("123", "header")
+        assert result is True
+        assert mock_steam_assets.delete_custom_image.call_count == 1  # type: ignore[attr-defined]
 
-    def test_fetch_from_steamgrid_success(self, tmp_cache_dir, mock_steamgrid):
+    def test_get_steam_grid_path(self, mock_steam_assets):
+        """Test getting Steam grid path."""
+        from pathlib import Path
+        fake_path = Path("/fake/steam/userdata/12345678/config/grid")
+        mock_steam_assets.get_steam_grid_path.return_value = fake_path
+
+        service = AssetService()
+        result = service.get_steam_grid_path()
+
+        assert result == fake_path
+        assert mock_steam_assets.get_steam_grid_path.call_count == 1  # type: ignore[attr-defined]
+
+    def test_fetch_images_from_steamgrid_no_api(self, mock_steamgrid):
+        """Test fetching images without SteamGridDB API."""
+        mock_steamgrid.side_effect = ValueError("No API key")
+
+        service = AssetService()
+        result = service.fetch_images_from_steamgrid("123", "grids")
+
+        assert result == []
+
+    def test_fetch_images_from_steamgrid_success(self, mock_steamgrid):
         """Test successful fetch from SteamGridDB."""
-        service = AssetService(str(tmp_cache_dir), "fake_api_key")
+        mock_instance = Mock()
+        mock_instance.get_images_by_type.return_value = [
+            {"url": "https://example.com/1.png"},
+            {"url": "https://example.com/2.png"}
+        ]
+        mock_steamgrid.return_value = mock_instance
 
-        # Mock SteamGridDB response
-        fake_image_data = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\xd9'
-        service.steamgrid.get_image.return_value = fake_image_data
+        service = AssetService()
+        result = service.fetch_images_from_steamgrid("123", "grids")
 
-        with patch('src.services.asset_service.QPixmap') as mock_pixmap_class:
-            mock_pixmap = Mock()
-            mock_pixmap.isNull.return_value = False
-            mock_pixmap.save.return_value = True
-            mock_pixmap_class.return_value = mock_pixmap
+        assert len(result) == 2
+        assert mock_instance.get_images_by_type.call_count == 1  # type: ignore[attr-defined]
 
-            result = service.fetch_from_steamgrid("123", "header")
+    def test_get_single_images_from_steamgrid_no_api(self, mock_steamgrid):
+        """Test getting single images without SteamGridDB API."""
+        mock_steamgrid.side_effect = ValueError("No API key")
 
-            assert result is not None
-            service.steamgrid.get_image.assert_called_once_with("123", "header")  # type: ignore[attr-defined]
+        service = AssetService()
+        result = service.get_single_images_from_steamgrid("123")
 
-    def test_get_image_from_cache(self, tmp_cache_dir):
-        """Test getting image from cache."""
-        service = AssetService(str(tmp_cache_dir))
+        assert result == {}
 
-        # Create a fake image
-        image_dir = tmp_cache_dir / "images" / "header"
-        image_dir.mkdir(parents=True)
-        (image_dir / "123.jpg").write_bytes(
-            b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\xd9')
+    def test_get_single_images_from_steamgrid_success(self, mock_steamgrid):
+        """Test successful fetch of single images from SteamGridDB."""
+        mock_instance = Mock()
+        mock_instance.get_images_for_game.return_value = {
+            "grids": "https://example.com/grid.png",
+            "heroes": "https://example.com/hero.png",
+            "logos": "https://example.com/logo.png",
+            "icons": "https://example.com/icon.png"
+        }
+        mock_steamgrid.return_value = mock_instance
 
-        with patch('src.services.asset_service.QPixmap') as mock_pixmap:
-            mock_instance = Mock()
-            mock_instance.isNull.return_value = False
-            mock_pixmap.return_value = mock_instance
+        service = AssetService()
+        result = service.get_single_images_from_steamgrid("123")
 
-            result = service.get_image("123", "header", fetch_if_missing=False)
-
-            assert result is not None
-
-    def test_clear_cache_specific_image(self, tmp_cache_dir):
-        """Test clearing specific image from cache."""
-        service = AssetService(str(tmp_cache_dir))
-
-        # Create fake images
-        image_dir = tmp_cache_dir / "images" / "header"
-        image_dir.mkdir(parents=True)
-        (image_dir / "123.jpg").write_text("fake")
-        (image_dir / "456.jpg").write_text("fake")
-
-        deleted = service.clear_cache(app_id="123", image_type="header")
-
-        assert deleted == 1
-        assert not (image_dir / "123.jpg").exists()
-        assert (image_dir / "456.jpg").exists()
-
-    def test_clear_cache_all_images(self, tmp_cache_dir):
-        """Test clearing all images from cache."""
-        service = AssetService(str(tmp_cache_dir))
-
-        # Create fake images
-        for img_type in ["header", "capsule"]:
-            image_dir = tmp_cache_dir / "images" / img_type
-            image_dir.mkdir(parents=True)
-            (image_dir / "123.jpg").write_text("fake")
-            (image_dir / "456.jpg").write_text("fake")
-
-        deleted = service.clear_cache()
-
-        assert deleted == 4
+        assert len(result) == 4
+        assert "grids" in result
+        assert mock_instance.get_images_for_game.call_count == 1  # type: ignore[attr-defined]

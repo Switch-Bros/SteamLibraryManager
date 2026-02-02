@@ -35,6 +35,8 @@ from src.core.cloud_storage_parser import CloudStorageParser
 from src.core.appinfo_manager import AppInfoManager
 from src.core.steam_auth import SteamAuthManager
 from src.integrations.steam_store import SteamStoreScraper
+from src.services.game_service import GameService
+from src.services.asset_service import AssetService
 
 # Dialogs
 from src.ui.auto_categorize_dialog import AutoCategorizeDialog
@@ -62,7 +64,7 @@ class GameLoadThread(QThread):
     emitting progress updates that can be displayed in a progress dialog.
 
     Attributes:
-        game_manager: The GameManager instance to use for loading.
+        game_service: The GameService instance to use for loading.
         user_id: The Steam user ID to load games for.
 
     Signals:
@@ -73,28 +75,28 @@ class GameLoadThread(QThread):
     progress_update = pyqtSignal(str, int, int)
     finished = pyqtSignal(bool)
 
-    def __init__(self, game_manager: GameManager, user_id: str):
+    def __init__(self, game_service: GameService, user_id: str):
         """Initializes the game load thread.
 
         Args:
-            game_manager: The GameManager instance to use for loading.
+            game_service: The GameService instance to use for loading.
             user_id: The Steam user ID to load games for.
         """
         super().__init__()
-        self.game_manager = game_manager
+        self.game_service = game_service
         self.user_id = user_id
 
     def run(self) -> None:
         """Executes the game loading process.
 
-        Calls the game manager's load_games method with a progress callback
+        Calls the game service's load_games method with a progress callback
         and emits the finished signal with the result.
         """
 
         def progress_callback(step: str, current: int, total: int):
             self.progress_update.emit(step, current, total)
 
-        success = self.game_manager.load_games(self.user_id, progress_callback)
+        success = self.game_service.load_games(self.user_id, progress_callback)
         self.finished.emit(success)
 
 
@@ -135,8 +137,8 @@ class MainWindow(QMainWindow):
         self.category_service: Optional['CategoryService'] = None  # Initialized after parsers
         self.metadata_service: Optional['MetadataService'] = None  # Initialized after appinfo_manager
         self.autocategorize_service: Optional['AutoCategorizeService'] = None  # Initialized after category_service
-        self.game_service: Optional['GameService'] = None  # Initialized after parsers
-        self.asset_service: Optional['AssetService'] = None  # Initialized in __init__
+        self.game_service: Optional[GameService] = None  # Initialized in _load_data
+        self.asset_service = AssetService()  # Initialize immediately
 
         # Auth Manager
         self.auth_manager = SteamAuthManager()
@@ -508,25 +510,32 @@ class MainWindow(QMainWindow):
         display_id = self.steam_username if self.steam_username else (target_id if target_id else short_id)
         self.user_label.setText(t('ui.main_window.user_label', user_id=display_id))
 
-        # Try cloud storage first (new format)
-        try:
-            self.cloud_storage_parser = CloudStorageParser(config.STEAM_PATH, short_id)
-            if not self.cloud_storage_parser.load():
-                self.cloud_storage_parser = None
-        except Exception as e:
-            print(f"[WARN] Failed to load cloud storage: {e}")
-            self.cloud_storage_parser = None
+        # Initialize GameService
+        self.game_service = GameService(
+            str(config.STEAM_PATH),
+            config.STEAM_API_KEY,
+            str(config.CACHE_DIR)
+        )
 
-        # Load localconfig (for old backups or as fallback)
+        # Initialize parsers through GameService
         config_path = config.get_localconfig_path(short_id)
-        if config_path:
-            self.vdf_parser = LocalConfigParser(config_path)
-            if not self.vdf_parser.load():
-                UIHelper.show_error(self, t('ui.errors.localconfig_load_error'))
-                self.reload_btn.show()
-                return
+        if not config_path:
+            UIHelper.show_error(self, t('ui.errors.localconfig_load_error'))
+            self.reload_btn.show()
+            return
 
-        self.game_manager = GameManager(config.STEAM_API_KEY, config.CACHE_DIR, config.STEAM_PATH)
+        vdf_success, cloud_success = self.game_service.initialize_parsers(str(config_path), short_id)
+
+        if not vdf_success and not cloud_success:
+            UIHelper.show_error(self, t('ui.errors.localconfig_load_error'))
+            self.reload_btn.show()
+            return
+
+        # Set references for backward compatibility
+        self.vdf_parser = self.game_service.vdf_parser
+        self.cloud_storage_parser = self.game_service.cloud_storage_parser
+
+        # Load games through GameService
         self._load_games_with_progress(target_id)
 
     def _load_games_with_progress(self, user_id: Optional[str]) -> None:
@@ -546,7 +555,7 @@ class MainWindow(QMainWindow):
         self.progress_dialog.setMinimumDuration(0)
         self.progress_dialog.setValue(0)
 
-        self.load_thread = GameLoadThread(self.game_manager, user_id or "local")
+        self.load_thread = GameLoadThread(self.game_service, user_id or "local")
         # noinspection PyUnresolvedReferences
         self.load_thread.progress_update.connect(self._on_load_progress)
         # noinspection PyUnresolvedReferences
@@ -577,21 +586,24 @@ class MainWindow(QMainWindow):
             self.progress_dialog.close()
             self.progress_dialog = None
 
+        # Get game_manager reference from game_service
+        self.game_manager = self.game_service.game_manager if self.game_service else None
+
         if not success or not self.game_manager or not self.game_manager.games:
             UIHelper.show_warning(self, t('ui.errors.no_games_found'))
             self.reload_btn.show()
             self.set_status(t('common.error'))
             return
 
-        # Merge collections from active parser
-        parser = self._get_active_parser()
-        if parser:
-            self.game_manager.merge_with_localconfig(parser)
+        # Merge collections using GameService
+        self.game_service.merge_with_localconfig()
 
+        # Apply metadata using GameService
         self.steam_scraper = SteamStoreScraper(config.CACHE_DIR, config.TAGS_LANGUAGE)
-        self.appinfo_manager = AppInfoManager(config.STEAM_PATH)
-        self.appinfo_manager.load_appinfo()
-        self.game_manager.apply_metadata_overrides(self.appinfo_manager)
+        self.game_service.apply_metadata()
+
+        # Set appinfo_manager reference for backward compatibility
+        self.appinfo_manager = self.game_service.appinfo_manager
 
         # Initialize CategoryService after parsers and game_manager are ready
         from src.services.category_service import CategoryService
