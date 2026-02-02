@@ -46,11 +46,12 @@ class GameService:
         self.game_manager: Optional[GameManager] = None
         self.appinfo_manager: Optional[AppInfoManager] = None
 
-    def initialize_parsers(self, localconfig_path: str) -> tuple[bool, bool]:
+    def initialize_parsers(self, localconfig_path: str, user_id: str) -> tuple[bool, bool]:
         """Initializes VDF and Cloud Storage parsers.
 
         Args:
             localconfig_path: Path to localconfig.vdf file.
+            user_id: Steam user ID (short format, e.g., "12345678").
 
         Returns:
             Tuple of (vdf_success, cloud_success) indicating which parsers initialized successfully.
@@ -60,18 +61,25 @@ class GameService:
 
         # Try VDF parser
         try:
-            self.vdf_parser = LocalConfigParser(localconfig_path)
-            vdf_success = True
+            self.vdf_parser = LocalConfigParser(Path(localconfig_path))
+            if self.vdf_parser.load():
+                vdf_success = True
+            else:
+                self.vdf_parser = None
         except Exception as e:
             print(f"[WARN] Failed to initialize VDF parser: {e}")
+            self.vdf_parser = None
 
         # Try Cloud Storage parser
         try:
-            config_dir = Path(localconfig_path).parent
-            self.cloud_storage_parser = CloudStorageParser(config_dir)
-            cloud_success = True
+            self.cloud_storage_parser = CloudStorageParser(self.steam_path, user_id)
+            if self.cloud_storage_parser.load():
+                cloud_success = True
+            else:
+                self.cloud_storage_parser = None
         except Exception as e:
             print(f"[WARN] Failed to initialize Cloud Storage parser: {e}")
+            self.cloud_storage_parser = None
 
         return vdf_success, cloud_success
 
@@ -79,11 +87,11 @@ class GameService:
         """Loads all games from Steam API and local files.
 
         Args:
-            user_id: Steam user ID to load games for.
+            user_id: Steam user ID (long format, e.g., "76561197960287930") to load games for.
             progress_callback: Optional callback for progress updates (step, current, total).
 
         Returns:
-            True if games were loaded successfully.
+            True if games were loaded successfully and at least one game was found.
 
         Raises:
             RuntimeError: If parsers are not initialized.
@@ -91,8 +99,12 @@ class GameService:
         if not self.vdf_parser and not self.cloud_storage_parser:
             raise RuntimeError("Parsers not initialized. Call initialize_parsers() first.")
 
-        # Initialize GameManager
-        self.game_manager = GameManager(self.api_key, self.cache_dir, self.steam_path)
+        # Initialize GameManager with Path objects
+        self.game_manager = GameManager(
+            self.api_key,
+            Path(self.cache_dir),
+            Path(self.steam_path)
+        )
 
         # Load games
         success = self.game_manager.load_games(user_id, progress_callback)
@@ -128,7 +140,7 @@ class GameService:
 
         # Initialize AppInfoManager if not already done
         if not self.appinfo_manager:
-            self.appinfo_manager = AppInfoManager(self.steam_path)
+            self.appinfo_manager = AppInfoManager(Path(self.steam_path))
             self.appinfo_manager.load_appinfo()
 
         self.game_manager.apply_metadata_overrides(self.appinfo_manager)

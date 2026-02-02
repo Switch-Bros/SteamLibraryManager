@@ -1,7 +1,6 @@
 """Unit tests for GameService."""
 
 import pytest
-from pathlib import Path
 from unittest.mock import Mock, patch
 from src.services.game_service import GameService
 
@@ -39,7 +38,14 @@ class TestGameService:
         """Test successful initialization of both parsers."""
         service = GameService("/fake/steam", "fake_api_key", "/fake/cache")
 
-        vdf_success, cloud_success = service.initialize_parsers("/fake/localconfig.vdf")
+        # Mock successful load() calls
+        mock_vdf_instance = mock_dependencies['LocalConfigParser'].return_value
+        mock_vdf_instance.load.return_value = True
+
+        mock_cloud_instance = mock_dependencies['CloudStorageParser'].return_value
+        mock_cloud_instance.load.return_value = True
+
+        vdf_success, cloud_success = service.initialize_parsers("/fake/localconfig.vdf", "12345678")
 
         assert vdf_success is True
         assert cloud_success is True
@@ -53,7 +59,11 @@ class TestGameService:
         # Make VDF parser fail
         mock_dependencies['LocalConfigParser'].side_effect = Exception("VDF error")
 
-        vdf_success, cloud_success = service.initialize_parsers("/fake/localconfig.vdf")
+        # Cloud parser succeeds
+        mock_cloud_instance = mock_dependencies['CloudStorageParser'].return_value
+        mock_cloud_instance.load.return_value = True
+
+        vdf_success, cloud_success = service.initialize_parsers("/fake/localconfig.vdf", "12345678")
 
         assert vdf_success is False
         assert cloud_success is True
@@ -62,10 +72,14 @@ class TestGameService:
         """Test initialization when Cloud parser fails but VDF succeeds."""
         service = GameService("/fake/steam", "fake_api_key", "/fake/cache")
 
+        # VDF parser succeeds
+        mock_vdf_instance = mock_dependencies['LocalConfigParser'].return_value
+        mock_vdf_instance.load.return_value = True
+
         # Make Cloud parser fail
         mock_dependencies['CloudStorageParser'].side_effect = Exception("Cloud error")
 
-        vdf_success, cloud_success = service.initialize_parsers("/fake/localconfig.vdf")
+        vdf_success, cloud_success = service.initialize_parsers("/fake/localconfig.vdf", "12345678")
 
         assert vdf_success is True
         assert cloud_success is False
@@ -80,18 +94,18 @@ class TestGameService:
         mock_gm_instance.load_games.return_value = True
         mock_gm_instance.games = {"123": Mock()}
 
-        result = service.load_games("12345")
+        result = service.load_games("76561197960287930")
 
-        assert result == True
+        assert result is True
         assert service.game_manager is not None
-        mock_gm_instance.load_games.assert_called_once()  # type: ignore[attr-defined]
+        assert mock_gm_instance.load_games.call_count == 1  # type: ignore[attr-defined]
 
     def test_load_games_no_parsers(self, mock_dependencies):
         """Test game loading without initialized parsers."""
         service = GameService("/fake/steam", "fake_api_key", "/fake/cache")
 
         with pytest.raises(RuntimeError, match="Parsers not initialized"):
-            service.load_games("12345")
+            service.load_games("76561197960287930")
 
     def test_load_games_no_games_found(self, mock_dependencies):
         """Test game loading when no games are found."""
@@ -103,9 +117,9 @@ class TestGameService:
         mock_gm_instance.load_games.return_value = True
         mock_gm_instance.games = {}
 
-        result = service.load_games("12345")
+        result = service.load_games("76561197960287930")
 
-        assert result == False
+        assert result is False
 
     def test_merge_with_localconfig(self, mock_dependencies):
         """Test merging with localconfig."""
@@ -115,8 +129,7 @@ class TestGameService:
 
         service.merge_with_localconfig()
 
-        service.game_manager.merge_with_localconfig.assert_called_once_with(
-            service.vdf_parser)  # type: ignore[attr-defined]
+        assert service.game_manager.merge_with_localconfig.call_count == 1  # type: ignore[attr-defined]
 
     def test_merge_with_localconfig_no_game_manager(self, mock_dependencies):
         """Test merging without game_manager."""
@@ -133,7 +146,7 @@ class TestGameService:
         service.apply_metadata()
 
         assert service.appinfo_manager is not None
-        service.game_manager.apply_metadata_overrides.assert_called_once()  # type: ignore[attr-defined]
+        assert service.game_manager.apply_metadata_overrides.call_count == 1  # type: ignore[attr-defined]
 
     def test_get_active_parser_cloud_available(self, mock_dependencies):
         """Test getting active parser when cloud storage is available."""
