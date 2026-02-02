@@ -1455,18 +1455,18 @@ class MainWindow(QMainWindow):
         if estimated_minutes > 60:
             hours = estimated_minutes // 60
             mins = estimated_minutes % 60
-            time_str = t('ui.auto_categorize.cache_warning_time_hours', hours=hours, minutes=mins)
+            time_str = t('common.time_hours', hours=hours, minutes=mins)
         elif estimated_minutes > 0:
-            time_str = t('ui.auto_categorize.cache_warning_time_minutes', minutes=estimated_minutes)
+            time_str = t('common.time_minutes', minutes=estimated_minutes)
         else:
-            time_str = t('ui.auto_categorize.cache_warning_time_seconds', seconds=estimated_seconds)
+            time_str = t('common.time_seconds', seconds=estimated_seconds)
 
         # Show warning dialog
         reply = QMessageBox.warning(
             self,
             t('ui.auto_categorize.cache_warning_title'),
             t('ui.auto_categorize.cache_warning_message',
-              missing=missing,
+              cached=coverage['cached'],  # ← cached statt missing!
               total=coverage['total'],
               time=time_str),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
