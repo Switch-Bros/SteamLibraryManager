@@ -362,6 +362,7 @@
       "rename_msg": "New name for '{old}':",
       "delete_title": "Delete Collection",
       "delete_msg": "Delete '{category}'? Games will not be removed.",
+      "delete_multiple_msg": "Delete these {count} Collections? Games will not be removed.\n\n{category_list}",
       "category_count": "{name} ({count})",
       "game_tooltip": "{name}\nDeveloper: {developer}",
       "merge_title": "Merge Collections",
