@@ -628,21 +628,6 @@ class MainWindow(QMainWindow):
             steam_scraper=self.steam_scraper
         )
 
-        # Initialize GameService (for future use)
-        from src.services.game_service import GameService
-        self.game_service = GameService(
-            steam_path=config.STEAM_PATH,
-            api_key=config.STEAM_API_KEY,
-            cache_dir=config.CACHE_DIR
-        )
-
-        # Initialize AssetService
-        from src.services.asset_service import AssetService
-        self.asset_service = AssetService(
-            cache_dir=config.CACHE_DIR,
-            steamgrid_api_key=config.STEAMGRID_API_KEY if hasattr(config, 'STEAMGRID_API_KEY') else None
-        )
-
         self._populate_categories()
 
         status_msg = self.game_manager.get_load_source_message()
