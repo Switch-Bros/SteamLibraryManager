@@ -1,7 +1,6 @@
 # tests/unit/test_core/test_proton_filter.py
 
 """Tests for Proton/Steam Tools filtering in App."""
-import pytest
 
 
 class TestGameManagerProtonFilter:

@@ -3,7 +3,6 @@
 """Pytest configuration and shared fixtures for SteamLibraryManager tests."""
 import pytest
 import json
-from pathlib import Path
 
 
 @pytest.fixture

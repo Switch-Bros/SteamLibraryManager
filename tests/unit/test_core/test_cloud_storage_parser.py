@@ -1,7 +1,6 @@
 # tests/unit/test_core/test_cloud_storage_parser.py
 
 """Unit tests for CloudStorageParser."""
-import pytest
 
 
 class TestCloudStorageParser:
