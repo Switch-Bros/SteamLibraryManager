@@ -19,6 +19,9 @@
     "game_fallback": "Unknown App {id}",
     "confirm_exit": "Do you really want to exit the application?",
     "warning": "Warning",
+    "time_hours": "{hours}h {minutes}m",
+    "time_minutes": "{minutes} minutes",
+    "time_seconds": "{seconds} seconds",
     "dash": "-",
     "clear": "×"
   },
@@ -390,11 +393,8 @@
       "estimate_label": "Estimated categories",
       "cancel": "Cancel",
       "cache_warning_title": "⚠️ Low Cache Coverage",
-      "cache_warning_message": "Only {cached} of {total} games have cached tag data.\n\nFetching tags from Steam Store will take approximately {time}.\n\nRECOMMENDATION:\nUse 'Edit → Fetch Missing Metadata' first to populate the cache, then run Auto-Categorize.\n\nContinue anyway?",
-      "cache_warning_time_hours": "{hours}h {minutes}m",
-      "cache_warning_time_minutes": "{minutes} minutes",
-      "cache_warning_time_seconds": "{seconds} seconds"
-    },
+      "cache_warning_message": "Only {cached} of {total} games have cached tag data.\n\nFetching tags from Steam Store will take approximately {time}.\n\nRECOMMENDATION:\nUse 'Edit → Fetch Missing Metadata' first to populate the cache, then run Auto-Categorize.\n\nContinue anyway?"
+      },
     "steamgrid_setup": {
       "title": "Setup SteamGridDB",
       "info": "To download covers, you need a free API Key.",
