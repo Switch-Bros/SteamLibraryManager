@@ -13,6 +13,8 @@ if TYPE_CHECKING:
     from src.services.category_service import CategoryService
     from src.services.metadata_service import MetadataService
     from src.services.autocategorize_service import AutoCategorizeService
+    from src.services.game_service import GameService
+    from src.services.asset_service import AssetService
 
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -133,6 +135,8 @@ class MainWindow(QMainWindow):
         self.category_service: Optional['CategoryService'] = None  # Initialized after parsers
         self.metadata_service: Optional['MetadataService'] = None  # Initialized after appinfo_manager
         self.autocategorize_service: Optional['AutoCategorizeService'] = None  # Initialized after category_service
+        self.game_service: Optional['GameService'] = None  # Initialized after parsers
+        self.asset_service: Optional['AssetService'] = None  # Initialized in __init__
 
         # Auth Manager
         self.auth_manager = SteamAuthManager()
@@ -610,6 +614,21 @@ class MainWindow(QMainWindow):
             game_manager=self.game_manager,
             category_service=self.category_service,
             steam_scraper=self.steam_scraper
+        )
+
+        # Initialize GameService (for future use)
+        from src.services.game_service import GameService
+        self.game_service = GameService(
+            steam_path=config.STEAM_PATH,
+            api_key=config.STEAM_API_KEY,
+            cache_dir=config.CACHE_DIR
+        )
+
+        # Initialize AssetService
+        from src.services.asset_service import AssetService
+        self.asset_service = AssetService(
+            cache_dir=config.CACHE_DIR,
+            steamgrid_api_key=config.STEAMGRID_API_KEY if hasattr(config, 'STEAMGRID_API_KEY') else None
         )
 
         self._populate_categories()
