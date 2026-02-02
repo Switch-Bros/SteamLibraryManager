@@ -7,10 +7,11 @@ and dialogs. It provides the main interface for browsing, searching, and
 managing Steam games.
 """
 from pathlib import Path
-from typing import Optional, List, Dict, TYPE_CHECKING
+from typing import Optional, List, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.services.category_service import CategoryService
+    from src.services.metadata_service import MetadataService
 
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -129,6 +130,7 @@ class MainWindow(QMainWindow):
         self.steam_scraper: Optional[SteamStoreScraper] = None
         self.appinfo_manager: Optional[AppInfoManager] = None
         self.category_service: Optional['CategoryService'] = None  # Initialized after parsers
+        self.metadata_service: Optional['MetadataService'] = None  # Initialized after appinfo_manager
 
         # Auth Manager
         self.auth_manager = SteamAuthManager()
@@ -590,6 +592,13 @@ class MainWindow(QMainWindow):
         self.category_service = CategoryService(
             vdf_parser=self.vdf_parser,
             cloud_parser=self.cloud_storage_parser,
+            game_manager=self.game_manager
+        )
+
+        # Initialize MetadataService after appinfo_manager is ready
+        from src.services.metadata_service import MetadataService
+        self.metadata_service = MetadataService(
+            appinfo_manager=self.appinfo_manager,
             game_manager=self.game_manager
         )
 
@@ -1591,78 +1600,63 @@ class MainWindow(QMainWindow):
             self.on_game_selected(game)
 
     def edit_game_metadata(self, game: Game) -> None:
-        """Opens the metadata edit dialog for a single game.
+        """Opens the metadata edit dialog for a single game using MetadataService.
 
         Args:
             game: The game to edit metadata for.
         """
-        if not self.appinfo_manager: return
-        meta = self.appinfo_manager.get_app_metadata(game.app_id)
+        if not self.metadata_service:
+            return
 
-        # Fill defaults
-        for key, val in {'name': game.name, 'developer': game.developer, 'publisher': game.publisher,
-                         'release_date': game.release_year}.items():
-            if not meta.get(key): meta[key] = val
+        meta = self.metadata_service.get_game_metadata(game.app_id, game)
+        original_meta = self.metadata_service.get_original_metadata(game.app_id, meta.copy())
 
-        original_meta = self.appinfo_manager.modifications.get(game.app_id, {}).get('original', meta.copy())
         dialog = MetadataEditDialog(self, game.name, meta, original_meta)
 
         if dialog.exec():
             new_meta = dialog.get_metadata()
             if new_meta:
                 write_vdf = new_meta.pop('write_to_vdf', False)
-                self.appinfo_manager.set_app_metadata(game.app_id, new_meta)
-                self.appinfo_manager.save_appinfo()
+                self.metadata_service.set_game_metadata(game.app_id, new_meta)
 
                 if write_vdf:
                     self.appinfo_manager.load_appinfo()
                     self.appinfo_manager.write_to_vdf(backup=True)
 
-                if new_meta.get('name'): game.name = new_meta['name']
+                if new_meta.get('name'):
+                    game.name = new_meta['name']
+
                 self._populate_categories()
                 self.on_game_selected(game)
                 UIHelper.show_success(self, t('ui.metadata_editor.updated_single', game=game.name))
 
     def bulk_edit_metadata(self) -> None:
-        """Opens the bulk metadata edit dialog for selected games."""
-        if not self.selected_games:
+        """Opens the bulk metadata edit dialog for selected games using MetadataService."""
+        if not self.selected_games or not self.metadata_service:
             UIHelper.show_warning(self, t('ui.errors.no_selection'))
             return
 
         game_names = [g.name for g in self.selected_games]
         dialog = BulkMetadataEditDialog(self, len(self.selected_games), game_names)
+
         if dialog.exec():
             settings = dialog.get_metadata()
-            if settings: self._do_bulk_metadata_edit(self.selected_games, settings)
-
-    def _do_bulk_metadata_edit(self, games: List[Game], settings: Dict) -> None:
-        """Applies bulk metadata changes to the specified games.
-
-        Args:
-            games: List of games to apply changes to.
-            settings: Dictionary containing the metadata changes and name modifications.
-        """
-        if not self.appinfo_manager: return
-        name_mods = settings.pop('name_modifications', {})
-        for game in games:
-            new_name = game.name
-            if name_mods.get('prefix'): new_name = name_mods['prefix'] + new_name
-            if name_mods.get('suffix'): new_name = new_name + name_mods['suffix']
-            if name_mods.get('remove'): new_name = new_name.replace(name_mods['remove'], '')
-
-            meta = settings.copy()
-            if new_name != game.name: meta['name'] = new_name
-            self.appinfo_manager.set_app_metadata(game.app_id, meta)
-
-        self.appinfo_manager.save_appinfo()
-        self._populate_categories()
-        UIHelper.show_success(self, t('ui.metadata_editor.updated_bulk', count=len(games)))
+            if settings:
+                name_mods = settings.pop('name_modifications', None)
+                count = self.metadata_service.apply_bulk_metadata(
+                    self.selected_games,
+                    settings,
+                    name_mods
+                )
+                self._populate_categories()
+                UIHelper.show_success(self, t('ui.metadata_editor.updated_bulk', count=count))
 
     def find_missing_metadata(self) -> None:
-        """Shows a dialog listing games with incomplete metadata."""
-        if not self.game_manager: return
-        affected = [g for g in self.game_manager.get_real_games() if
-                    not g.developer or not g.publisher or not g.release_year]
+        """Shows a dialog listing games with incomplete metadata using MetadataService."""
+        if not self.metadata_service:
+            return
+
+        affected = self.metadata_service.find_missing_metadata()
 
         if affected:
             dialog = MissingMetadataDialog(self, affected)
@@ -1671,9 +1665,11 @@ class MainWindow(QMainWindow):
             UIHelper.show_success(self, t('ui.tools.missing_metadata.all_complete'))
 
     def restore_metadata_changes(self) -> None:
-        """Opens the metadata restore dialog to revert modifications."""
-        if not self.appinfo_manager: return
-        mod_count = self.appinfo_manager.get_modification_count()
+        """Opens the metadata restore dialog to revert modifications using MetadataService."""
+        if not self.metadata_service:
+            return
+
+        mod_count = self.metadata_service.get_modification_count()
         if mod_count == 0:
             UIHelper.show_success(self, t('ui.metadata_editor.no_changes_to_restore'))
             return
@@ -1681,7 +1677,7 @@ class MainWindow(QMainWindow):
         dialog = MetadataRestoreDialog(self, mod_count)
         if dialog.exec() and dialog.should_restore():
             try:
-                restored = self.appinfo_manager.restore_modifications()
+                restored = self.metadata_service.restore_modifications()
                 if restored > 0:
                     UIHelper.show_success(self, t('ui.metadata_editor.restored_count', count=restored))
                     self.refresh_data()
