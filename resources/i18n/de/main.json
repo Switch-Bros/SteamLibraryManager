@@ -362,6 +362,7 @@
       "rename_msg": "Neuer Name für '{old}':",
       "delete_title": "Kollektionen löschen",
       "delete_msg": "Möchtest du '{category}' löschen? Die Spiele bleiben erhalten.",
+      "delete_multiple_msg": "Diese {count} Kollektionen löschen? Die Spiele bleiben erhalten.\n\n{category_list}",
       "category_count": "{name} ({count})",
       "game_tooltip": "{name}\nEntwickler: {developer}",
       "merge_title": "Kollektionen zusammenführen",
