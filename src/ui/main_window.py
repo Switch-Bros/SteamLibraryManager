@@ -152,6 +152,10 @@ class MainWindow(QMainWindow):
         self.steam_username: Optional[str] = None
         self.current_search_query: str = ""  # Track active search
 
+        # Performance: Cache for _populate_categories
+        self._categories_cache: Optional[dict] = None
+        self._cache_invalidated: bool = True
+
         # Threads & Dialogs
         self.load_thread: Optional[GameLoadThread] = None
         self.store_check_thread: Optional[QThread] = None
@@ -668,6 +672,12 @@ class MainWindow(QMainWindow):
         return result
 
     def _populate_categories(self) -> None:
+        """Use cached data if available."""
+        if hasattr(self, "_categories_cache") and self._categories_cache and not getattr(self, "_cache_invalidated",
+                                                                                         True):
+            self.tree.populate_categories(self._categories_cache)
+            return
+
         """Refreshes the sidebar tree with current game data.
 
         Builds category data including All Games, Uncategorized, Hidden,
@@ -706,6 +716,11 @@ class MainWindow(QMainWindow):
                                    key=lambda g: g.sort_name.lower())
                 if cat_games:  # Only add if there are visible games
                     categories_data[cat_name] = cat_games
+
+        # Store in cache
+        if hasattr(self, "_categories_cache"):
+            self._categories_cache = categories_data
+            self._cache_invalidated = False
 
         self.tree.populate_categories(categories_data)
 
@@ -828,6 +843,24 @@ class MainWindow(QMainWindow):
         self.selected_games = [self.game_manager.get_game(aid) for aid in app_ids]
         self.selected_games = [g for g in self.selected_games if g is not None]
 
+    def _apply_category_to_games(self, games: List[Game], category: str, checked: bool) -> None:
+        """Helper method to apply category changes to a list of games.
+
+        Args:
+            games: List of games to update.
+            category: The category name.
+            checked: Whether to add (True) or remove (False) the category.
+        """
+        for game in games:
+            if checked:
+                if category not in game.categories:
+                    game.categories.append(category)
+                    self._add_app_category(game.app_id, category)
+            else:
+                if category in game.categories:
+                    game.categories.remove(category)
+                    self._remove_app_category(game.app_id, category)
+
     def _on_category_changed_from_details(self, app_id: str, category: str, checked: bool) -> None:
         """Handles category toggle events from the details widget.
 
@@ -839,13 +872,25 @@ class MainWindow(QMainWindow):
             category: The category name being toggled.
             checked: Whether the category should be added or removed.
         """
-        import time
-        start_time = time.time()
-        print(f"\n[DEBUG] === _on_category_changed_from_details CALLED at {start_time} ===")
-        print(f"[DEBUG]   category={category}, checked={checked}, app_id={app_id}")
-
         if not self.vdf_parser:
             return
+
+        # Prevent multiple refreshes during rapid checkbox events
+        if hasattr(self, '_in_batch_update') and self._in_batch_update:
+            # Just update data, skip UI refresh
+            games_to_update = []
+            if len(self.selected_games) > 1:
+                games_to_update = self.selected_games
+            else:
+                game = self.game_manager.get_game(app_id)
+                if game:
+                    games_to_update = [game]
+
+            self._apply_category_to_games(games_to_update, category, checked)
+            return
+
+        # Set batch flag
+        self._in_batch_update = True
 
         # Determine which games to update
         games_to_update = []
@@ -861,36 +906,18 @@ class MainWindow(QMainWindow):
         if not games_to_update:
             return
 
-        print(f"[DEBUG]   games_to_update count: {len(games_to_update)}")
-        loop_start = time.time()
+        # Invalidate cache
+        if hasattr(self, "_cache_invalidated"):
+            self._cache_invalidated = True
 
         # Apply category change to all games
-        for i, game in enumerate(games_to_update):
-            print(f"[DEBUG]   Processing game {i + 1}/{len(games_to_update)}: {game.app_id}")
-            if checked:
-                if category not in game.categories:
-                    game.categories.append(category)
-                    self._add_app_category(game.app_id, category)
-            else:
-                if category in game.categories:
-                    game.categories.remove(category)
-                    remove_start = time.time()
-                    self._remove_app_category(game.app_id, category)
-                    remove_end = time.time()
-                    print(f"[DEBUG]     _remove_app_category took {remove_end - remove_start:.4f}s")
-
-        loop_end = time.time()
-        print(f"[DEBUG]   Loop took {loop_end - loop_start:.4f}s")
+        self._apply_category_to_games(games_to_update, category, checked)
 
         # Schedule save (batched with 100ms delay)
-        print(f"[DEBUG]   Calling _schedule_save()...")
         self._schedule_save()
 
         # Save the current selection before refreshing
         selected_app_ids = [game.app_id for game in self.selected_games]
-
-        print(f"[DEBUG]   Calling _populate_categories()...")
-        populate_start = time.time()
 
         # If search is active, re-run the search instead of showing all categories
         if self.current_search_query:
@@ -898,19 +925,13 @@ class MainWindow(QMainWindow):
         else:
             self._populate_categories()
 
-        populate_end = time.time()
-        print(f"[DEBUG]   _populate_categories() took {populate_end - populate_start:.4f}s")
-
         # Restore the selection
-        print(f"[DEBUG]   Restoring selection...")
         if selected_app_ids:
             self._restore_game_selection(selected_app_ids)
 
         all_categories = list(self.game_manager.get_all_categories().keys())
 
         # Refresh details widget
-        print(f"[DEBUG]   Refreshing details widget...")
-        refresh_start = time.time()
         if len(self.selected_games) > 1:
             # Multi-select: refresh the multi-select view
             self.details_widget.set_games(self.selected_games, all_categories)
@@ -918,11 +939,8 @@ class MainWindow(QMainWindow):
             # Single select: refresh single game view
             self.details_widget.set_game(self.selected_games[0], all_categories)
 
-        refresh_end = time.time()
-        print(f"[DEBUG]   Refresh took {refresh_end - refresh_start:.4f}s")
-
-        end_time = time.time()
-        print(f"[DEBUG] === TOTAL TIME: {end_time - start_time:.4f}s ===")
+        # Reset batch flag after 500ms to allow next batch
+        QTimer.singleShot(500, lambda: setattr(self, '_in_batch_update', False))
 
     def _on_games_dropped(self, games: List[Game], target_category: str) -> None:
         """
@@ -1252,6 +1270,11 @@ class MainWindow(QMainWindow):
             Only available when cloud storage parser is active.
         """
         if not self.category_service:
+            return
+
+        # Show confirmation dialog
+        message = t('ui.main_window.remove_duplicates_confirm')
+        if not UIHelper.confirm(self, message, t('ui.main_window.remove_duplicates_title')):
             return
 
         try:
@@ -1901,34 +1924,21 @@ class MainWindow(QMainWindow):
         Uses a 100ms timer to batch multiple rapid changes into a single save operation.
         This prevents excessive backups when performing bulk operations.
         """
-        import time
-        print(f"[DEBUG] _schedule_save() called at {time.time()}")
         if hasattr(self, '_save_timer') and self._save_timer.isActive():
-            print(f"[DEBUG]   Stopping existing timer")
             self._save_timer.stop()
 
         self._save_timer = QTimer()
         self._save_timer.setSingleShot(True)
         self._save_timer.timeout.connect(self._save_collections)
         self._save_timer.start(100)  # 100ms delay
-        print(f"[DEBUG]   Timer started (100ms)")
 
     def _save_collections(self) -> bool:
         """Save collections using the active parser."""
-        import time
-        save_start = time.time()
-        print(f"[DEBUG] _save_collections() ENTERED at {save_start}")
         # Only save to the active parser (cloud storage OR localconfig, not both!)
         if self.cloud_storage_parser:
-            result = self.cloud_storage_parser.save()
-            save_end = time.time()
-            print(f"[DEBUG] _save_collections() took {save_end - save_start:.4f}s, result={result}")
-            return result
+            return self.cloud_storage_parser.save()
         elif self.vdf_parser:
-            result = self.vdf_parser.save()
-            save_end = time.time()
-            print(f"[DEBUG] _save_collections() took {save_end - save_start:.4f}s, result={result}")
-            return result
+            return self.vdf_parser.save()
         return False
 
     def _add_app_category(self, app_id: str, category: str):
@@ -1953,3 +1963,20 @@ class MainWindow(QMainWindow):
         """Delete category using CategoryService."""
         if self.category_service:
             self.category_service.delete_category(category)
+
+    def keyPressEvent(self, event):
+        """Handle key press events.
+
+        Args:
+            event: The key press event.
+        """
+        # ESC key: Clear selection
+        if event.key() == Qt.Key.Key_Escape:
+            if self.selected_games:
+                self.selected_games = []
+                self.tree.clearSelection()
+                self.details_widget.clear()
+                self.set_status(t('ui.main_window.status_ready'))
+        else:
+            # Pass other keys to parent
+            super().keyPressEvent(event)
