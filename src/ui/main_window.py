@@ -21,7 +21,7 @@ from PyQt6.QtWidgets import (
     QLineEdit, QPushButton, QLabel, QToolBar, QMenu,
     QMessageBox, QSplitter, QProgressDialog, QApplication
 )
-from PyQt6.QtCore import Qt, QUrl, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QUrl, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import QAction, QDesktopServices, QIcon
 
 import requests
@@ -867,7 +867,8 @@ class MainWindow(QMainWindow):
                     game.categories.remove(category)
                     self._remove_app_category(game.app_id, category)
 
-        self._save_collections()
+        # Schedule save (batched with 100ms delay)
+        self._schedule_save()
 
         # Save the current selection before refreshing
         selected_app_ids = [game.app_id for game in self.selected_games]
@@ -1862,6 +1863,20 @@ class MainWindow(QMainWindow):
     def _get_active_parser(self):
         """Get the active parser (cloud storage or localconfig)."""
         return self.cloud_storage_parser if self.cloud_storage_parser else self.vdf_parser
+
+    def _schedule_save(self) -> None:
+        """Schedule a delayed save to batch multiple operations.
+
+        Uses a 100ms timer to batch multiple rapid changes into a single save operation.
+        This prevents excessive backups when performing bulk operations.
+        """
+        if hasattr(self, '_save_timer') and self._save_timer.isActive():
+            self._save_timer.stop()
+
+        self._save_timer = QTimer()
+        self._save_timer.setSingleShot(True)
+        self._save_timer.timeout.connect(self._save_collections)
+        self._save_timer.start(100)  # 100ms delay
 
     def _save_collections(self) -> bool:
         """Save collections using the active parser."""
