@@ -1,0 +1,153 @@
+"""Service for managing game loading and initialization.
+
+This module provides the GameService class which handles loading games from Steam API,
+initializing parsers, and managing game data.
+"""
+
+from typing import Optional, Callable
+from pathlib import Path
+
+from src.core.game_manager import GameManager
+from src.core.localconfig_parser import LocalConfigParser
+from src.core.cloud_storage_parser import CloudStorageParser
+from src.core.appinfo_manager import AppInfoManager
+
+
+class GameService:
+    """Service for managing game loading and initialization.
+
+    Handles loading games from Steam API, initializing VDF and Cloud Storage parsers,
+    and managing game data through GameManager.
+
+    Attributes:
+        steam_path: Path to Steam installation directory.
+        api_key: Steam API key for fetching game data.
+        cache_dir: Directory for caching game data.
+        vdf_parser: Parser for Steam's localconfig.vdf file.
+        cloud_storage_parser: Parser for Steam's cloud storage JSON files.
+        game_manager: Manager for game data.
+        appinfo_manager: Manager for appinfo.vdf metadata.
+    """
+
+    def __init__(self, steam_path: str, api_key: str, cache_dir: str):
+        """Initializes the GameService.
+
+        Args:
+            steam_path: Path to Steam installation directory.
+            api_key: Steam API key for fetching game data.
+            cache_dir: Directory for caching game data.
+        """
+        self.steam_path = steam_path
+        self.api_key = api_key
+        self.cache_dir = cache_dir
+
+        self.vdf_parser: Optional[LocalConfigParser] = None
+        self.cloud_storage_parser: Optional[CloudStorageParser] = None
+        self.game_manager: Optional[GameManager] = None
+        self.appinfo_manager: Optional[AppInfoManager] = None
+
+    def initialize_parsers(self, localconfig_path: str) -> tuple[bool, bool]:
+        """Initializes VDF and Cloud Storage parsers.
+
+        Args:
+            localconfig_path: Path to localconfig.vdf file.
+
+        Returns:
+            Tuple of (vdf_success, cloud_success) indicating which parsers initialized successfully.
+        """
+        vdf_success = False
+        cloud_success = False
+
+        # Try VDF parser
+        try:
+            self.vdf_parser = LocalConfigParser(localconfig_path)
+            vdf_success = True
+        except Exception as e:
+            print(f"[WARN] Failed to initialize VDF parser: {e}")
+
+        # Try Cloud Storage parser
+        try:
+            config_dir = Path(localconfig_path).parent
+            self.cloud_storage_parser = CloudStorageParser(config_dir)
+            cloud_success = True
+        except Exception as e:
+            print(f"[WARN] Failed to initialize Cloud Storage parser: {e}")
+
+        return vdf_success, cloud_success
+
+    def load_games(self, user_id: str, progress_callback: Optional[Callable[[str, int, int], None]] = None) -> bool:
+        """Loads all games from Steam API and local files.
+
+        Args:
+            user_id: Steam user ID to load games for.
+            progress_callback: Optional callback for progress updates (step, current, total).
+
+        Returns:
+            True if games were loaded successfully.
+
+        Raises:
+            RuntimeError: If parsers are not initialized.
+        """
+        if not self.vdf_parser and not self.cloud_storage_parser:
+            raise RuntimeError("Parsers not initialized. Call initialize_parsers() first.")
+
+        # Initialize GameManager
+        self.game_manager = GameManager(self.api_key, self.cache_dir, self.steam_path)
+
+        # Load games
+        success = self.game_manager.load_games(user_id, progress_callback)
+
+        return success and bool(self.game_manager.games)
+
+    def merge_with_localconfig(self) -> None:
+        """Merges collections from active parser into game_manager.
+
+        Uses cloud storage parser if available, otherwise falls back to VDF parser.
+
+        Raises:
+            RuntimeError: If no parser or game_manager is available.
+        """
+        if not self.game_manager:
+            raise RuntimeError("GameManager not initialized. Call load_games() first.")
+
+        parser = self.cloud_storage_parser if self.cloud_storage_parser else self.vdf_parser
+
+        if not parser:
+            raise RuntimeError("No parser available for merging.")
+
+        self.game_manager.merge_with_localconfig(parser)
+
+    def apply_metadata(self) -> None:
+        """Applies metadata overrides from appinfo.vdf to loaded games.
+
+        Raises:
+            RuntimeError: If game_manager is not initialized.
+        """
+        if not self.game_manager:
+            raise RuntimeError("GameManager not initialized. Call load_games() first.")
+
+        # Initialize AppInfoManager if not already done
+        if not self.appinfo_manager:
+            self.appinfo_manager = AppInfoManager(self.steam_path)
+            self.appinfo_manager.load_appinfo()
+
+        self.game_manager.apply_metadata_overrides(self.appinfo_manager)
+
+    def get_active_parser(self) -> Optional[LocalConfigParser | CloudStorageParser]:
+        """Returns the active parser (cloud storage if available, otherwise VDF).
+
+        Returns:
+            Active parser instance, or None if no parser is initialized.
+        """
+        return self.cloud_storage_parser if self.cloud_storage_parser else self.vdf_parser
+
+    def get_load_source_message(self) -> str:
+        """Returns a message indicating which parser was used to load games.
+
+        Returns:
+            Human-readable message about the load source.
+        """
+        if not self.game_manager:
+            return "No games loaded"
+
+        return self.game_manager.get_load_source_message()
