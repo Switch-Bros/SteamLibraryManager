@@ -38,7 +38,7 @@
       "search_icon": "🔍",
       "expand_all": "Alle ausklappen",
       "collapse_all": "Alle einklappen",
-      "statistics": "Kategorien: {category_count} | Spiele in Kategorien: {games_in_categories} | Echte Spiele: {total_games}",
+      "statistics": "Kollektionen: {category_count} | Spiele in Kollektionen: {games_in_categories} | Echte Spiele: {total_games}",
       "cloud_storage_only": "Nur verfügbar wenn Cloud Storage aktiv ist!",
       "duplicates_removed": "{count} doppelte Kollektionen wurden entfernt!",
       "no_duplicates": "Keine doppelten Kollektionen gefunden!",
@@ -62,9 +62,9 @@
         "export": "Exportieren",
         "export_csv": "Als CSV exportieren (Alle Spiele)",
         "export_json": "Als JSON exportieren (Backup)",
-        "export_vdf": "Kategorien exportieren (.vdf)",
+        "export_vdf": "Kollektionen exportieren (.vdf)",
         "import": "Importieren",
-        "import_vdf": "Kategorien importieren (.vdf)",
+        "import_vdf": "Kollektionen importieren (.vdf)",
         "import_json": "JSON Backup wiederherstellen",
       "steam_vdf_merge": "Steam *.vdf-Dateien zusammenführen",
       "remove_duplicates": "Doppelte Kollektionen entfernen",
@@ -79,11 +79,11 @@
         "favorites": "Favoriten",
         "show_favorites": "Alle Favoriten anzeigen",
         "export_favorites": "Favoriten exportieren",
-        "categories": "Kategorien",
-        "new_category": "Neue Kategorie erstellen",
-        "merge_categories": "Kategorien zusammenführen",
-        "delete_empty": "Leere Kategorien löschen",
-        "sort_categories": "Kategorien alphabetisch sortieren",
+        "categories": "Kollektionen",
+        "new_category": "Neue Kollektion erstellen",
+        "merge_categories": "Kollektionen zusammenführen",
+        "delete_empty": "Leere Kollektion löschen",
+        "sort_categories": "Kollektionen alphabetisch sortieren",
         "restore_metadata": "Metadaten wiederherstellen",
         "cleanup": "Aufräumen",
         "show_hidden": "Versteckte Spiele anzeigen",
@@ -101,7 +101,7 @@
         "total_playtime": "Gesamtspielzeit",
         "top10": "Top 10 meist gespielte",
         "genre_distribution": "Verteilung nach Genre",
-        "category_distribution": "Verteilung nach Kategorie",
+        "category_distribution": "Verteilung nach Kollektion",
         "filters": "Filter",
         "show_installed": "Installierte Spiele anzeigen",
         "show_not_installed": "Nicht installierte anzeigen",
@@ -138,7 +138,7 @@
         "batch_proton": "Alle Proton-Ratings aktualisieren",
         "batch_reviews": "Alle Rezensionen aktualisieren",
         "dup_finder": "Duplicate Finder",
-        "merge_cats": "Kategorien zusammenführen",
+        "merge_cats": "Kollektionen zusammenführen",
         "missing_meta": "Spiele mit fehlenden Metadaten finden"
       },
       "help": {
@@ -212,7 +212,7 @@
         "explanation": "Anzahl der Sicherungen von localconfig.vdf, sharedconfig.vdf & appinfo.vdf, bevor die älteste überschrieben wird."
       },
       "tags": {
-        "title_group": "Tags && Kategorien",
+        "title_group": "Tags && Kollektionen",
         "count": "Tags pro Spiel:",
         "ignore_common": "Häufige Tags ignorieren (Indie, Singleplayer...)"
       }
@@ -247,7 +247,7 @@
       "reviews": "Bewertungen",
       "value_unknown": "Unbekannt",
       "select_placeholder": "Wähle ein Spiel für Details",
-      "categories_label": "Kategorien",
+      "categories_label": "Kollektion",
       "proton_tiers": {
         "platinum": "Platin",
         "gold": "Gold",
@@ -281,7 +281,7 @@
       "auto_categorize": "Auto-Kategorisieren",
       "rename": "Umbenennen",
       "delete": "Löschen",
-      "merge_categories": "Kategorien zusammenführen",
+      "merge_categories": "Kollektionen zusammenführen",
       "create_collection": "Kollektion erstellen"
     },
     "metadata_editor": {
@@ -353,15 +353,15 @@
       "favorites": "Favoriten",
       "uncategorized": "Unkategorisiert",
       "hidden": "Versteckt",
-      "rename_title": "Kategorie umbenennen",
+      "rename_title": "Kollektionen umbenennen",
       "rename_msg": "Neuer Name für '{old}':",
-      "delete_title": "Kategorie löschen",
+      "delete_title": "Kollektionen löschen",
       "delete_msg": "Möchtest du '{category}' löschen? Die Spiele bleiben erhalten.",
       "category_count": "{name} ({count})",
       "game_tooltip": "{name}\nEntwickler: {developer}",
-      "merge_title": "Kategorien zusammenführen",
-      "merge_instruction": "Wählen Sie die Ziel-Kategorie aus, in die alle {count} Kategorien zusammengeführt werden sollen:",
-      "merge_success": "{count} Kategorien wurden erfolgreich in '{target}' zusammengeführt"
+      "merge_title": "Kollektionen zusammenführen",
+      "merge_instruction": "Wählen die Ziel-Kollektion aus, in die alle {count} Kollektionen zusammengeführt werden sollen:",
+      "merge_success": "{count} Kollektionen wurden erfolgreich in '{target}' zusammengeführt"
     },
     "auto_categorize": {
       "title": "Auto-Kategorisierung",
@@ -372,7 +372,7 @@
       "method_franchise": "Nach Franchise",
       "scope_all": "Gesamte Bibliothek ({count} Spiele)",
       "scope_uncategorized": "Unkategorisierte Spiele ({count})",
-      "scope_category": "Kategorie '{name}' ({count} Spiele)",
+      "scope_category": "Kollektion '{name}' ({count} Spiele)",
       "scope_selected": "Ausgewählte Spiele ({count})",
       "start": "Starten",
       "processing": "Verarbeite {current} von {total}...",
@@ -390,7 +390,7 @@
       "tags_per_game": "Tags pro Spiel",
       "option_ignore_common": "Häufige Tags ignorieren",
       "apply_group": "Anwenden auf",
-      "estimate_label": "Geschätzte Kategorien",
+      "estimate_label": "Geschätzte Kollektionen",
       "cancel": "Abbrechen",
       "cache_warning_title": "⚠️ Wenig Cache-Daten",
       "cache_warning_message": "Nur {cached} von {total} Spielen haben gecachte Tag-Daten.\n\nDas Abrufen der Tags vom Steam Store dauert ca. {time}.\n\nEMPFEHLUNG:\nVerwende zuerst 'Bearbeiten → Fehlende Metadaten abrufen' um den Cache zu füllen, dann führe Auto-Kategorisierung aus.\n\nTrotzdem fortfahren?"
@@ -471,9 +471,9 @@
         "stats": "{count} Spiele mit unvollständigen Metadaten gefunden"
       },
       "merger": {
-        "title": "Kategorien Import/Export",
+        "title": "Kollektionen Import/Export",
         "success": "Erfolgreich {count} Spiele-Kategorien aktualisiert!",
-        "btn_merge": "Kategorien übertragen"
+        "btn_merge": "Kollektionen übertragen"
       }
     },
     "vdf_merger": {
@@ -485,8 +485,8 @@
       "browse": "Durchsuchen...",
       "options_group": "Merge-Optionen",
       "strategy_label": "Strategie:",
-      "strategy_overwrite": "Überschreiben (Ziel-Kategorien ersetzen)",
-      "strategy_merge": "Zusammenführen (Kategorien von beiden kombinieren)",
+      "strategy_overwrite": "Überschreiben (Ziel-Kollektion ersetzen)",
+      "strategy_merge": "Zusammenführen (Kollektion von beiden kombinieren)",
       "strategy_skip": "Vorhandene überspringen (Nur unkategorisierte ergänzen)",
       "create_backup": "Backup vor dem Merge erstellen",
       "dry_run": "Testlauf (Nur Vorschau, keine Änderungen)",
@@ -540,7 +540,7 @@
       "loaded_local": "{count} Spiele geladen",
       "loaded_api": "{count} Spiele von API geladen",
       "loaded_mixed": "{count} Spiele geladen (Steam API + lokale Dateien)",
-      "merging": "Führe Kategorien zusammen...",
+      "merging": "Führe Kollektionen zusammen...",
       "applied_overrides": "Metadaten-Overrides auf {count} Spiele angewendet",
       "error_api": "Steam API Fehler: {error}",
       "error_local": "Fehler beim Laden lokaler Dateien: {error}"
@@ -607,7 +607,7 @@
       "load_error_source": "Fehler beim Laden der Quelldatei",
       "load_error_target": "Fehler beim Laden der Zieldatei",
       "no_apps_section": "Keine Apps-Sektion gefunden in {file}",
-      "no_changes": "Keine Änderungen nötig - Kategorien sind bereits synchron",
+      "no_changes": "Keine Änderungen nötig - Kollektionen sind bereits synchron",
       "dry_run_complete": "Testlauf abgeschlossen: {count} Spiele würden aktualisiert ({changes} Änderungen)",
       "backup_failed": "Backup-Erstellung fehlgeschlagen - Abbruch zur Sicherheit",
       "success": "Erfolgreich {count} Spiele nach {path} übertragen (Strategie: {strategy})",
