@@ -7,7 +7,10 @@ and dialogs. It provides the main interface for browsing, searching, and
 managing Steam games.
 """
 from pathlib import Path
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.services.category_service import CategoryService
 
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -125,6 +128,7 @@ class MainWindow(QMainWindow):
         self.cloud_storage_parser: Optional[CloudStorageParser] = None
         self.steam_scraper: Optional[SteamStoreScraper] = None
         self.appinfo_manager: Optional[AppInfoManager] = None
+        self.category_service: Optional['CategoryService'] = None  # Initialized after parsers
 
         # Auth Manager
         self.auth_manager = SteamAuthManager()
@@ -580,6 +584,15 @@ class MainWindow(QMainWindow):
         self.appinfo_manager = AppInfoManager(config.STEAM_PATH)
         self.appinfo_manager.load_appinfo()
         self.game_manager.apply_metadata_overrides(self.appinfo_manager)
+
+        # Initialize CategoryService after parsers and game_manager are ready
+        from src.services.category_service import CategoryService
+        self.category_service = CategoryService(
+            vdf_parser=self.vdf_parser,
+            cloud_parser=self.cloud_storage_parser,
+            game_manager=self.game_manager
+        )
+
         self._populate_categories()
 
         status_msg = self.game_manager.get_load_source_message()
@@ -1162,7 +1175,7 @@ class MainWindow(QMainWindow):
 
     def remove_duplicate_collections(self) -> None:
         """
-        Remove duplicate collections from cloud storage.
+        Remove duplicate collections using CategoryService.
 
         Identifies collections with identical names but different app counts,
         keeping only the collection that matches the expected count from the
@@ -1171,39 +1184,33 @@ class MainWindow(QMainWindow):
         Note:
             Only available when cloud storage parser is active.
         """
-        if not self.cloud_storage_parser:
-            UIHelper.show_error(self, t('ui.main_window.cloud_storage_only'))
+        if not self.category_service:
             return
 
-        # Get expected counts from game_manager
-        expected_counts = {}
-        if self.game_manager:
-            for category in self.game_manager.get_all_categories():
-                games_in_cat = self.game_manager.get_games_by_category(category)
-                expected_counts[category] = len(games_in_cat)
+        try:
+            removed = self.category_service.remove_duplicate_collections()
 
-        removed = self.cloud_storage_parser.remove_duplicate_collections(expected_counts)
-
-        if removed > 0:
-            self._save_collections()
-            self._populate_categories()
-            UIHelper.show_success(self, t('ui.main_window.duplicates_removed', count=removed))
-        else:
-            UIHelper.show_info(self, t('ui.main_window.no_duplicates'))
+            if removed > 0:
+                self._save_collections()
+                self._populate_categories()
+                UIHelper.show_success(self, t('ui.main_window.duplicates_removed', count=removed))
+            else:
+                UIHelper.show_info(self, t('ui.main_window.no_duplicates'))
+        except RuntimeError as e:
+            UIHelper.show_error(self, str(e))
 
     def create_new_collection(self) -> None:
         """
-        Create a new empty collection.
+        Create a new empty collection using CategoryService.
 
         Prompts the user for a collection name and creates a new empty collection
         in the active parser (cloud storage or localconfig). Validates that the
         name doesn't already exist before creating.
 
         Note:
-            Uses the active parser determined by _get_active_parser().
+            Uses CategoryService which handles parser selection automatically.
         """
-        parser = self._get_active_parser()
-        if not parser:
+        if not self.category_service:
             return
 
         name, ok = UIHelper.ask_text(
@@ -1213,96 +1220,79 @@ class MainWindow(QMainWindow):
         )
 
         if ok and name:
-            # Check if collection already exists
-            if name in parser.get_all_categories():
-                UIHelper.show_error(self, t('ui.main_window.collection_exists', name=name))
-                return
-
-            # Create empty collection
-            parser.add_app_category("", name)  # Empty app_id creates collection
-            self._save_collections()
-            self._populate_categories()
-            UIHelper.show_success(self, t('ui.main_window.collection_created', name=name))
+            try:
+                self.category_service.create_collection(name)
+                self._save_collections()
+                self._populate_categories()
+                UIHelper.show_success(self, t('ui.main_window.collection_created', name=name))
+            except ValueError as e:
+                UIHelper.show_error(self, str(e))
 
     def rename_category(self, old_name: str) -> None:
-        """Prompts the user to rename a category.
+        """Prompts the user to rename a category using CategoryService.
 
         Args:
             old_name: The current name of the category to rename.
         """
-        if not self.vdf_parser: return
+        if not self.category_service:
+            return
+
         new_name, ok = UIHelper.ask_text(
             self,
             t('ui.categories.rename_title'),
             t('ui.categories.rename_msg', old=old_name)
         )
+
         if ok and new_name and new_name != old_name:
-            self._rename_category(old_name, new_name)
-            self._save_collections()
-            self._populate_categories()
-            self._update_statistics()
+            try:
+                self.category_service.rename_category(old_name, new_name)
+                self._save_collections()
+                self._populate_categories()
+                self._update_statistics()
+            except ValueError as e:
+                UIHelper.show_error(self, str(e))
 
     def delete_category(self, category: str) -> None:
-        """Prompts the user to delete a category.
+        """Prompts the user to delete a category using CategoryService.
 
         Args:
             category: The name of the category to delete.
         """
-        if not self.vdf_parser: return
+        if not self.category_service:
+            return
+
         if UIHelper.confirm(
                 self,
                 t('ui.categories.delete_msg', category=category),
                 t('ui.categories.delete_title')
         ):
-            # Remove from VDF
-            self._delete_category(category)
+            self.category_service.delete_category(category)
             self._save_collections()
-
-            # Remove from all games in memory
-            if self.game_manager:
-                for game in self.game_manager.games.values():
-                    if category in game.categories:
-                        game.categories.remove(category)
-
-            # Refresh UI
             self._populate_categories()
             self._update_statistics()
 
     def delete_multiple_categories(self, categories: List[str]) -> None:
-        """Prompts the user to delete multiple categories at once.
+        """Prompts the user to delete multiple categories using CategoryService.
 
         Args:
             categories: List of category names to delete.
         """
-        if not self.vdf_parser: return
-        if not categories: return
+        if not self.category_service or not categories:
+            return
 
         # Create confirmation message
         category_list = "\n• ".join(categories)
         message = f"Möchten Sie diese {len(categories)} Kategorien wirklich löschen?\n\n• {category_list}"
 
         if UIHelper.confirm(self, message, t('ui.categories.delete_title')):
-            # Delete all categories
-            for category in categories:
-                # Remove from VDF
-                self._delete_category(category)
-
-                # Remove from all games in memory
-                if self.game_manager:
-                    for game in self.game_manager.games.values():
-                        if category in game.categories:
-                            game.categories.remove(category)
-
-            # Save once after all deletions
+            self.category_service.delete_multiple_categories(categories)
             self._save_collections()
-
-            # Refresh UI
             self._populate_categories()
             self._update_statistics()
 
     def merge_categories(self, categories: List[str]) -> None:
         """
-        Merges multiple categories into one.
+        Merges multiple categories into one using CategoryService.
 
         Shows a dialog to select the target category, then moves all games
         from the other categories into the target and deletes the source categories.
@@ -1310,7 +1300,7 @@ class MainWindow(QMainWindow):
         Args:
             categories: List of category names to merge.
         """
-        if not self.vdf_parser or len(categories) < 2:
+        if not self.category_service or len(categories) < 2:
             return
 
         # Show selection dialog
@@ -1352,22 +1342,8 @@ class MainWindow(QMainWindow):
             target_category = selected_item.text()
             source_categories = [cat for cat in categories if cat != target_category]
 
-            # Merge: Move all games from source categories to target
-            for source_cat in source_categories:
-                games_in_source = self.game_manager.get_games_by_category(source_cat)
-                for game in games_in_source:
-                    # Add to target if not already there
-                    if target_category not in game.categories:
-                        game.categories.append(target_category)
-                        self._add_app_category(game.app_id, target_category)
-                    # Remove from source
-                    if source_cat in game.categories:
-                        game.categories.remove(source_cat)
-                        self._remove_app_category(game.app_id, source_cat)
-
-                # Delete the source category
-                self._delete_category(source_cat)
-
+            # Use CategoryService to merge
+            self.category_service.merge_categories(source_categories, target_category)
             self._save_collections()
             self._populate_categories()
 
@@ -1890,25 +1866,24 @@ class MainWindow(QMainWindow):
         return False
 
     def _add_app_category(self, app_id: str, category: str):
-        """Add category to app using the active parser."""
-        parser = self._get_active_parser()
-        if parser:
-            parser.add_app_category(app_id, category)
+        """Add category to app using CategoryService."""
+        if self.category_service:
+            self.category_service.add_app_to_category(app_id, category)
 
     def _remove_app_category(self, app_id: str, category: str):
-        """Remove category from app using the active parser."""
-        parser = self._get_active_parser()
-        if parser:
-            parser.remove_app_category(app_id, category)
+        """Remove category from app using CategoryService."""
+        if self.category_service:
+            self.category_service.remove_app_from_category(app_id, category)
 
     def _rename_category(self, old_name: str, new_name: str):
-        """Rename category using the active parser."""
-        parser = self._get_active_parser()
-        if parser:
-            parser.rename_category(old_name, new_name)
+        """Rename category using CategoryService."""
+        if self.category_service:
+            try:
+                self.category_service.rename_category(old_name, new_name)
+            except ValueError as e:
+                UIHelper.show_error(self, str(e))
 
     def _delete_category(self, category: str):
-        """Delete category using the active parser."""
-        parser = self._get_active_parser()
-        if parser:
-            parser.delete_category(category)
+        """Delete category using CategoryService."""
+        if self.category_service:
+            self.category_service.delete_category(category)
