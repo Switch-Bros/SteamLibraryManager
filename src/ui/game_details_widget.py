@@ -277,27 +277,7 @@ class GameDetailsWidget(QWidget):
         left_container.addWidget(self.name_label)
         left_container.addStretch()
 
-        button_layout = QVBoxLayout()
-        button_layout.setSpacing(8)
-        button_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
-
-        self.btn_store = QPushButton(t('ui.game_details.btn_store'))
-        self.btn_store.clicked.connect(self._open_current_store)
-        self.btn_store.setMinimumWidth(120)
-        self.btn_edit = QPushButton(t('ui.game_details.btn_edit'))
-        self.btn_edit.clicked.connect(self._on_edit)
-        self.btn_edit.setMinimumWidth(120)
-
-        button_layout.addWidget(self.btn_edit)
-        button_layout.addWidget(self.btn_store)
-
-        # PEGI Rating Box (neben Buttons)
-        buttons_pegi_layout = QHBoxLayout()
-        buttons_pegi_layout.setSpacing(12)
-        buttons_pegi_layout.setAlignment(Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignLeft)
-        buttons_pegi_layout.addLayout(button_layout)
-
-        # PEGI as ClickableImage (like the 4 cover boxes)
+        # PEGI Rating Box (now on top!)
         self.pegi_image = ClickableImage(self, 128, 128)
         self.pegi_image.set_default_image("resources/images/default_icons.png")
         self.pegi_image.clicked.connect(self._on_pegi_clicked)
@@ -306,7 +286,32 @@ class GameDetailsWidget(QWidget):
             "background-color: #1b2838;"
         )
 
-        buttons_pegi_layout.addWidget(self.pegi_image)
+        # PEGI layout - centered
+        pegi_layout = QHBoxLayout()
+        pegi_layout.addWidget(self.pegi_image)
+        pegi_layout.addStretch()
+
+        # Buttons layout (below PEGI)
+        button_layout = QVBoxLayout()
+        button_layout.setSpacing(8)
+        button_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+
+        self.btn_edit = QPushButton(t('ui.game_details.btn_edit'))
+        self.btn_edit.clicked.connect(self._on_edit)
+        self.btn_edit.setMinimumWidth(120)
+
+        self.btn_store = QPushButton(t('ui.game_details.btn_store'))
+        self.btn_store.clicked.connect(self._open_current_store)
+        self.btn_store.setMinimumWidth(120)
+
+        button_layout.addWidget(self.btn_edit)
+        button_layout.addWidget(self.btn_store)
+
+        # Combined layout: PEGI on top, buttons below
+        buttons_pegi_layout = QVBoxLayout()
+        buttons_pegi_layout.setSpacing(12)
+        buttons_pegi_layout.addLayout(pegi_layout)
+        buttons_pegi_layout.addLayout(button_layout)
         buttons_pegi_layout.addStretch()
 
         left_container.addLayout(buttons_pegi_layout)
