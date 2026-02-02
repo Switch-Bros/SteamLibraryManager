@@ -21,8 +21,7 @@ from PyQt6.QtWidgets import (
     QLineEdit, QPushButton, QLabel, QToolBar, QMenu,
     QMessageBox, QSplitter, QProgressDialog, QApplication
 )
-from PyQt6.QtCore import Qt, QUrl, QThread, QTimer, pyqtSignal
-from PyQt6.QtGui import QAction, QDesktopServices, QIcon
+from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
 
 import requests
 # noinspection PyPep8Naming
@@ -55,6 +54,7 @@ from src.ui.components.category_tree import GameTreeWidget
 from src.ui.components.ui_helper import UIHelper
 
 from src.utils.i18n import t, init_i18n
+from src.ui.builders import MenuBuilder, ToolbarBuilder, StatusbarBuilder
 
 
 class GameLoadThread(QThread):
@@ -161,6 +161,11 @@ class MainWindow(QMainWindow):
         self.store_check_thread: Optional[QThread] = None
         self.progress_dialog: Optional[QProgressDialog] = None
 
+        # UI Builders (extracted from _create_ui for reuse on language change)
+        self.menu_builder: MenuBuilder = MenuBuilder(self)
+        self.toolbar_builder: ToolbarBuilder = ToolbarBuilder(self)
+        self.statusbar_builder: StatusbarBuilder = StatusbarBuilder(self)
+
         self._create_ui()
         self._load_data()
 
@@ -170,105 +175,14 @@ class MainWindow(QMainWindow):
         Creates the menu bar, toolbar, central widget with splitter layout,
         game tree sidebar, details panel, search bar, and status bar.
         """
-        menubar = self.menuBar()
+        # --- Menu bar (delegated to MenuBuilder) ---
+        self.menu_builder.build(self.menuBar())
+        self.user_label = self.menu_builder.user_label
 
-        # 1. FILE MENU
-        file_menu = menubar.addMenu(t('ui.menu.file.root'))
-
-        refresh_action = QAction(t('ui.menu.file.refresh'), self)
-        # noinspection PyUnresolvedReferences
-        refresh_action.triggered.connect(self.refresh_data)
-        file_menu.addAction(refresh_action)
-
-        save_action = QAction(t('ui.menu.file.save'), self)
-        # noinspection PyUnresolvedReferences
-        save_action.triggered.connect(self.force_save)
-        file_menu.addAction(save_action)
-
-        vdf_merge_action = QAction(t('ui.menu.file.steam_vdf_merge'), self)
-        # noinspection PyUnresolvedReferences
-        vdf_merge_action.triggered.connect(self._show_vdf_merger)
-        file_menu.addAction(vdf_merge_action)
-
-        remove_dupes_action = QAction(t('ui.menu.file.remove_duplicates'), self)
-        # noinspection PyUnresolvedReferences
-        remove_dupes_action.triggered.connect(self.remove_duplicate_collections)
-        file_menu.addAction(remove_dupes_action)
-
-        file_menu.addSeparator()
-
-        exit_action = QAction(t('ui.menu.file.exit'), self)
-        # noinspection PyUnresolvedReferences
-        exit_action.triggered.connect(self.close)
-        file_menu.addAction(exit_action)
-
-        # 2. EDIT MENU
-        edit_menu = menubar.addMenu(t('ui.menu.edit.root'))
-
-        bulk_edit_action = QAction(t('ui.menu.edit.bulk_edit'), self)
-        # noinspection PyUnresolvedReferences
-        bulk_edit_action.triggered.connect(self.bulk_edit_metadata)
-        edit_menu.addAction(bulk_edit_action)
-
-        auto_cat_action = QAction(t('ui.menu.edit.auto_categorize'), self)
-        # noinspection PyUnresolvedReferences
-        auto_cat_action.triggered.connect(self.auto_categorize)
-        edit_menu.addAction(auto_cat_action)
-
-        # 3. SETTINGS MENU (Moved settings logic here)
-        settings_menu = menubar.addMenu(t('ui.settings.title'))
-
-        settings_action = QAction(t('ui.settings.title'), self)
-        # noinspection PyUnresolvedReferences
-        settings_action.triggered.connect(self.show_settings)
-        settings_menu.addAction(settings_action)
-
-        settings_menu.addSeparator()
-
-        # Restore Metadata (Using Import JSON key as closest match/placeholder)
-        restore_action = QAction(t('ui.menu.file.import_json'), self)
-        # noinspection PyUnresolvedReferences
-        restore_action.triggered.connect(self.restore_metadata_changes)
-        settings_menu.addAction(restore_action)
-
-        # 4. TOOLS MENU
-        tools_menu = menubar.addMenu(t('ui.menu.tools.root'))
-
-        find_missing_action = QAction(t('ui.menu.tools.missing_meta'), self)
-        # noinspection PyUnresolvedReferences
-        find_missing_action.triggered.connect(self.find_missing_metadata)
-        tools_menu.addAction(find_missing_action)
-
-        # 5. HELP MENU
-        help_menu = menubar.addMenu(t('ui.menu.help.root'))
-
-        github_action = QAction(t('ui.menu.help.github'), self)
-        # noinspection PyUnresolvedReferences
-        github_action.triggered.connect(
-            lambda: QDesktopServices.openUrl(QUrl("https://github.com/Switch-Bros/SteamLibraryManager")))
-        help_menu.addAction(github_action)
-
-        donate_action = QAction(t('ui.menu.help.donate'), self)
-        # noinspection PyUnresolvedReferences
-        donate_action.triggered.connect(lambda: QDesktopServices.openUrl(QUrl("https://paypal.me/")))
-        help_menu.addAction(donate_action)
-
-        help_menu.addSeparator()
-
-        about_action = QAction(t('ui.menu.help.about'), self)
-        # noinspection PyUnresolvedReferences
-        about_action.triggered.connect(self.show_about)
-        help_menu.addAction(about_action)
-
-        # User Info Label
-        self.user_label = QLabel(t('common.unknown'))
-        self.user_label.setStyleSheet("padding: 5px 10px;")
-        menubar.setCornerWidget(self.user_label, Qt.Corner.TopRightCorner)
-
-        # Toolbar
+        # --- Toolbar (delegated to ToolbarBuilder) ---
         self.toolbar = QToolBar()
         self.addToolBar(self.toolbar)
-        self._refresh_toolbar()
+        self.toolbar_builder.build(self.toolbar)
 
         # Central Widget
         central = QWidget()
@@ -342,63 +256,19 @@ class MainWindow(QMainWindow):
         splitter.setSizes([350, 1050])
         layout.addWidget(splitter)
 
-        # Statusbar
+        # --- Status bar (delegated to StatusbarBuilder) ---
         self.statusbar = self.statusBar()
-
-        # Statistik-Label (links) - PERMANENT damit es nicht von showMessage() überschrieben wird
-        self.stats_label = QLabel("")
-        self.stats_label.setStyleSheet("padding: 0 10px;")
-        self.statusbar.addPermanentWidget(self.stats_label, 1)  # stretch=1 für mehr Platz
-
-        # Reload-Button (rechts)
-        self.reload_btn = QPushButton(t('ui.menu.file.refresh'))
-        # noinspection PyUnresolvedReferences
-        self.reload_btn.clicked.connect(self.refresh_data)
-        self.reload_btn.setMaximumWidth(150)
-        self.reload_btn.hide()
-        self.statusbar.addPermanentWidget(self.reload_btn)
-
-        self.set_status(t('ui.main_window.status_ready'))
+        self.statusbar_builder.build(self.statusbar)
+        self.stats_label = self.statusbar_builder.stats_label
+        self.reload_btn = self.statusbar_builder.reload_btn
 
     def _refresh_toolbar(self) -> None:
         """Rebuilds the toolbar based on current authentication state.
 
-        Clears and recreates toolbar actions. Shows either a login button
-        or the logged-in username depending on authentication state.
+        Delegates entirely to ToolbarBuilder which handles clearing
+        and recreating toolbar actions based on login state.
         """
-        self.toolbar.clear()
-
-        self.toolbar.addAction(t('ui.menu.file.refresh'), self.refresh_data)
-        self.toolbar.addAction(t('ui.menu.edit.auto_categorize'), self.auto_categorize)
-        self.toolbar.addSeparator()
-        self.toolbar.addAction(t('ui.settings.title'), self.show_settings)
-        self.toolbar.addSeparator()
-
-        if self.steam_username:
-            user_action = QAction(self.steam_username, self)
-
-            # Localized Tooltip
-            tooltip = t('ui.login.logged_in_as', user=self.steam_username)
-            user_action.setToolTip(tooltip)
-
-            user_action.triggered.connect(
-                lambda: UIHelper.show_success(self, tooltip, "Steam")
-            )
-
-            icon_path = config.ICONS_DIR / 'steam_login.png'
-            if icon_path.exists():
-                user_action.setIcon(QIcon(str(icon_path)))
-
-            self.toolbar.addAction(user_action)
-        else:
-            login_action = QAction(t('ui.login.button'), self)
-            icon_path = config.ICONS_DIR / 'steam_login.png'
-            if icon_path.exists():
-                login_action.setIcon(QIcon(str(icon_path)))
-
-            # noinspection PyUnresolvedReferences
-            login_action.triggered.connect(self._start_steam_login)
-            self.toolbar.addAction(login_action)
+        self.toolbar_builder.build(self.toolbar)
 
     @staticmethod
     def _fetch_steam_persona_name(steam_id: str) -> str:
@@ -1372,7 +1242,7 @@ class MainWindow(QMainWindow):
 
         # Create confirmation message
         category_list = "\n• ".join(categories)
-        message = f"Möchten Sie diese {len(categories)} Kategorien wirklich löschen?\n\n• {category_list}"
+        message: str = t('ui.categories.delete_multiple_msg', count=len(categories), category_list=f"• {category_list}")
 
         if UIHelper.confirm(self, message, t('ui.categories.delete_title')):
             self.category_service.delete_multiple_categories(categories)
@@ -1782,19 +1652,15 @@ class MainWindow(QMainWindow):
         self.set_status(t('ui.main_window.status_ready'))
 
     def _refresh_menubar(self) -> None:
-        """Rebuilds menu bar and toolbar after language change.
+        """Rebuilds menu bar after language change.
 
-        Clears the menu bar, removes the toolbar to prevent duplicates,
-        and recreates the entire UI with new translations.
+        Only clears and rebuilds the menu bar via MenuBuilder.
+        The toolbar and central widget are untouched here;
+        toolbar refresh is handled separately by the caller.
         """
         self.menuBar().clear()
-
-        if hasattr(self, 'toolbar') and self.toolbar:
-            self.removeToolBar(self.toolbar)
-            self.toolbar.deleteLater()
-            self.toolbar = None
-
-        self._create_ui()
+        self.menu_builder.build(self.menuBar())
+        self.user_label = self.menu_builder.user_label
 
     def _apply_settings(self, settings: dict) -> None:
         """Applies settings from the settings dialog.
