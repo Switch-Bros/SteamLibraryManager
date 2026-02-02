@@ -38,7 +38,7 @@
       "search_icon": "🔍",
       "expand_all": "Expand All",
       "collapse_all": "Collapse All",
-      "statistics": "Categories: {category_count} | Games in Categories: {games_in_categories} | Real Games: {total_games}",
+      "statistics": "Collections: {category_count} | Games in Collections: {games_in_categories} | Real Games: {total_games}",
       "cloud_storage_only": "Only available when Cloud Storage is active!",
       "duplicates_removed": "{count} duplicate collections were removed!",
       "no_duplicates": "No duplicate collections found!",
@@ -62,9 +62,9 @@
         "export": "Export",
         "export_csv": "Export as CSV (All Games)",
         "export_json": "Export as JSON (Backup)",
-        "export_vdf": "Export Categories (.vdf)",
+        "export_vdf": "Export Collections (.vdf)",
         "import": "Import",
-        "import_vdf": "Import Categories (.vdf)",
+        "import_vdf": "Import Collections (.vdf)",
         "import_json": "Restore JSON Backup",
       "steam_vdf_merge": "Merge Steam *.vdf files",
       "remove_duplicates": "Remove Duplicate Collections",
@@ -79,11 +79,11 @@
         "favorites": "Favorites",
         "show_favorites": "Show All Favorites",
         "export_favorites": "Export Favorites",
-        "categories": "Categories",
-        "new_category": "Create New Category",
-        "merge_categories": "Merge Categories",
-        "delete_empty": "Delete Empty Categories",
-        "sort_categories": "Sort Categories Alphabetically",
+        "categories": "Collections",
+        "new_category": "Create New Collection",
+        "merge_categories": "Merge Collections",
+        "delete_empty": "Delete Empty Collection",
+        "sort_categories": "Sort Collections Alphabetically",
         "restore_metadata": "Restore Metadata",
         "cleanup": "Cleanup",
         "show_hidden": "Show Hidden Games",
@@ -101,7 +101,7 @@
         "total_playtime": "Total Playtime",
         "top10": "Top 10 Most Played",
         "genre_distribution": "Distribution by Genre",
-        "category_distribution": "Distribution by Category",
+        "category_distribution": "Distribution by Collection",
         "filters": "Filters",
         "show_installed": "Show Installed Games",
         "show_not_installed": "Show Not Installed",
@@ -138,7 +138,7 @@
         "batch_proton": "Update All Proton Ratings",
         "batch_reviews": "Update All Reviews",
         "dup_finder": "Duplicate Finder",
-        "merge_cats": "Merge Categories",
+        "merge_cats": "Merge Collections",
         "missing_meta": "Find Games with Missing Metadata"
       },
       "help": {
@@ -212,7 +212,7 @@
         "explanation": "Number of backups for localconfig.vdf, sharedconfig.vdf & appinfo.vdf kept before the oldest is overwritten."
       },
       "tags": {
-        "title_group": "Tags && Categories",
+        "title_group": "Tags && Collections",
         "count": "Tags per Game:",
         "ignore_common": "Ignore common tags"
       }
@@ -247,7 +247,7 @@
       "reviews": "Reviews",
       "value_unknown": "Unknown",
       "select_placeholder": "Select a game to view details",
-      "categories_label": "Categories",
+      "categories_label": "Collections",
       "proton_tiers": {
         "platinum": "Platinum",
         "gold": "Gold",
@@ -281,7 +281,7 @@
       "auto_categorize": "Auto-Categorize",
       "rename": "Rename",
       "delete": "Delete",
-      "merge_categories": "Merge Categories",
+      "merge_categories": "Merge Collections",
       "create_collection": "Create Collection"
     },
     "metadata_editor": {
@@ -353,15 +353,15 @@
       "favorites": "Favorites",
       "uncategorized": "Uncategorized",
       "hidden": "Hidden",
-      "rename_title": "Rename Category",
+      "rename_title": "Rename Collection",
       "rename_msg": "New name for '{old}':",
-      "delete_title": "Delete Category",
+      "delete_title": "Delete Collection",
       "delete_msg": "Delete '{category}'? Games will not be removed.",
       "category_count": "{name} ({count})",
       "game_tooltip": "{name}\nDeveloper: {developer}",
-      "merge_title": "Merge Categories",
-      "merge_instruction": "Select the target category to merge all {count} categories into:",
-      "merge_success": "{count} categories successfully merged into '{target}'"
+      "merge_title": "Merge Collections",
+      "merge_instruction": "Select the target Collection to merge all {count} Collections into:",
+      "merge_success": "{count} Collections successfully merged into '{target}'"
     },
     "auto_categorize": {
       "title": "Auto-Categorize",
@@ -372,7 +372,7 @@
       "method_franchise": "By Franchise",
       "scope_all": "Entire Library ({count} games)",
       "scope_uncategorized": "Uncategorized Games ({count})",
-      "scope_category": "Category '{name}' ({count} games)",
+      "scope_category": "Collection '{name}' ({count} games)",
       "scope_selected": "Selected Games ({count})",
       "start": "Start",
       "processing": "Processing {current} of {total}...",
@@ -390,7 +390,7 @@
       "tags_per_game": "Tags per game",
       "option_ignore_common": "Ignore common tags",
       "apply_group": "Apply to",
-      "estimate_label": "Estimated categories",
+      "estimate_label": "Estimated Collections",
       "cancel": "Cancel",
       "cache_warning_title": "⚠️ Low Cache Coverage",
       "cache_warning_message": "Only {cached} of {total} games have cached tag data.\n\nFetching tags from Steam Store will take approximately {time}.\n\nRECOMMENDATION:\nUse 'Edit → Fetch Missing Metadata' first to populate the cache, then run Auto-Categorize.\n\nContinue anyway?"
@@ -471,22 +471,22 @@
         "stats": "{count} games with incomplete metadata found"
       },
       "merger": {
-        "title": "Category Import/Export",
-        "success": "Successfully updated {count} game categories!",
-        "btn_merge": "Merge Categories"
+        "title": "Collections Import/Export",
+        "success": "Successfully updated {count} game Collections!",
+        "btn_merge": "Merge Collections"
       }
     },
     "vdf_merger": {
       "title": "Merge Steam VDF Files",
-      "info": "Transfer game categories from one Steam config file to another. Useful for migrating your library organization from Windows to Linux.",
+      "info": "Transfer game Collections from one Steam config file to another. Useful for migrating your library organization from Windows to Linux.",
       "source_group": "Source File (e.g. sharedconfig.vdf from Windows)",
       "target_group": "Target File (e.g. localconfig.vdf on Linux)",
       "no_file_selected": "No file selected",
       "browse": "Browse...",
       "options_group": "Merge Options",
       "strategy_label": "Strategy:",
-      "strategy_overwrite": "Overwrite (Replace target categories)",
-      "strategy_merge": "Merge (Combine categories from both)",
+      "strategy_overwrite": "Overwrite (Replace target Collections)",
+      "strategy_merge": "Merge (Combine Collections from both)",
       "strategy_skip": "Skip Existing (Only add to uncategorized)",
       "create_backup": "Create backup before merging",
       "dry_run": "Dry run (Preview only, no changes)",
@@ -540,7 +540,7 @@
       "loaded_local": "{count} games loaded",
       "loaded_api": "Loaded {count} games from API",
       "loaded_mixed": "Loaded {count} games (Steam API + local files)",
-      "merging": "Merging categories...",
+      "merging": "Merging Collections...",
       "applied_overrides": "Applied metadata overrides to {count} games",
       "error_api": "Steam API error: {error}",
       "error_local": "Error loading local files: {error}"
@@ -607,7 +607,7 @@
       "load_error_source": "Error loading source file",
       "load_error_target": "Error loading target file",
       "no_apps_section": "No apps section found in {file}",
-      "no_changes": "No changes needed - categories are already in sync",
+      "no_changes": "No changes needed - Collections are already in sync",
       "dry_run_complete": "Dry run complete: {count} games would be updated ({changes} changes)",
       "backup_failed": "Backup creation failed - aborting for safety",
       "success": "Successfully merged {count} games to {path} (Strategy: {strategy})",
