@@ -839,6 +839,11 @@ class MainWindow(QMainWindow):
             category: The category name being toggled.
             checked: Whether the category should be added or removed.
         """
+        import time
+        start_time = time.time()
+        print(f"\n[DEBUG] === _on_category_changed_from_details CALLED at {start_time} ===")
+        print(f"[DEBUG]   category={category}, checked={checked}, app_id={app_id}")
+
         if not self.vdf_parser:
             return
 
@@ -856,8 +861,12 @@ class MainWindow(QMainWindow):
         if not games_to_update:
             return
 
+        print(f"[DEBUG]   games_to_update count: {len(games_to_update)}")
+        loop_start = time.time()
+
         # Apply category change to all games
-        for game in games_to_update:
+        for i, game in enumerate(games_to_update):
+            print(f"[DEBUG]   Processing game {i + 1}/{len(games_to_update)}: {game.app_id}")
             if checked:
                 if category not in game.categories:
                     game.categories.append(category)
@@ -865,13 +874,23 @@ class MainWindow(QMainWindow):
             else:
                 if category in game.categories:
                     game.categories.remove(category)
+                    remove_start = time.time()
                     self._remove_app_category(game.app_id, category)
+                    remove_end = time.time()
+                    print(f"[DEBUG]     _remove_app_category took {remove_end - remove_start:.4f}s")
+
+        loop_end = time.time()
+        print(f"[DEBUG]   Loop took {loop_end - loop_start:.4f}s")
 
         # Schedule save (batched with 100ms delay)
+        print(f"[DEBUG]   Calling _schedule_save()...")
         self._schedule_save()
 
         # Save the current selection before refreshing
         selected_app_ids = [game.app_id for game in self.selected_games]
+
+        print(f"[DEBUG]   Calling _populate_categories()...")
+        populate_start = time.time()
 
         # If search is active, re-run the search instead of showing all categories
         if self.current_search_query:
@@ -879,19 +898,31 @@ class MainWindow(QMainWindow):
         else:
             self._populate_categories()
 
+        populate_end = time.time()
+        print(f"[DEBUG]   _populate_categories() took {populate_end - populate_start:.4f}s")
+
         # Restore the selection
+        print(f"[DEBUG]   Restoring selection...")
         if selected_app_ids:
             self._restore_game_selection(selected_app_ids)
 
         all_categories = list(self.game_manager.get_all_categories().keys())
 
         # Refresh details widget
+        print(f"[DEBUG]   Refreshing details widget...")
+        refresh_start = time.time()
         if len(self.selected_games) > 1:
             # Multi-select: refresh the multi-select view
             self.details_widget.set_games(self.selected_games, all_categories)
         elif len(self.selected_games) == 1:
             # Single select: refresh single game view
             self.details_widget.set_game(self.selected_games[0], all_categories)
+
+        refresh_end = time.time()
+        print(f"[DEBUG]   Refresh took {refresh_end - refresh_start:.4f}s")
+
+        end_time = time.time()
+        print(f"[DEBUG] === TOTAL TIME: {end_time - start_time:.4f}s ===")
 
     def _on_games_dropped(self, games: List[Game], target_category: str) -> None:
         """
@@ -1870,21 +1901,34 @@ class MainWindow(QMainWindow):
         Uses a 100ms timer to batch multiple rapid changes into a single save operation.
         This prevents excessive backups when performing bulk operations.
         """
+        import time
+        print(f"[DEBUG] _schedule_save() called at {time.time()}")
         if hasattr(self, '_save_timer') and self._save_timer.isActive():
+            print(f"[DEBUG]   Stopping existing timer")
             self._save_timer.stop()
 
         self._save_timer = QTimer()
         self._save_timer.setSingleShot(True)
         self._save_timer.timeout.connect(self._save_collections)
         self._save_timer.start(100)  # 100ms delay
+        print(f"[DEBUG]   Timer started (100ms)")
 
     def _save_collections(self) -> bool:
         """Save collections using the active parser."""
+        import time
+        save_start = time.time()
+        print(f"[DEBUG] _save_collections() ENTERED at {save_start}")
         # Only save to the active parser (cloud storage OR localconfig, not both!)
         if self.cloud_storage_parser:
-            return self.cloud_storage_parser.save()
+            result = self.cloud_storage_parser.save()
+            save_end = time.time()
+            print(f"[DEBUG] _save_collections() took {save_end - save_start:.4f}s, result={result}")
+            return result
         elif self.vdf_parser:
-            return self.vdf_parser.save()
+            result = self.vdf_parser.save()
+            save_end = time.time()
+            print(f"[DEBUG] _save_collections() took {save_end - save_start:.4f}s, result={result}")
+            return result
         return False
 
     def _add_app_category(self, app_id: str, category: str):
