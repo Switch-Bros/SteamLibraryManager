@@ -12,6 +12,7 @@ from typing import Optional, List, TYPE_CHECKING
 if TYPE_CHECKING:
     from src.services.category_service import CategoryService
     from src.services.metadata_service import MetadataService
+    from src.services.autocategorize_service import AutoCategorizeService
 
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -131,6 +132,7 @@ class MainWindow(QMainWindow):
         self.appinfo_manager: Optional[AppInfoManager] = None
         self.category_service: Optional['CategoryService'] = None  # Initialized after parsers
         self.metadata_service: Optional['MetadataService'] = None  # Initialized after appinfo_manager
+        self.autocategorize_service: Optional['AutoCategorizeService'] = None  # Initialized after category_service
 
         # Auth Manager
         self.auth_manager = SteamAuthManager()
@@ -600,6 +602,14 @@ class MainWindow(QMainWindow):
         self.metadata_service = MetadataService(
             appinfo_manager=self.appinfo_manager,
             game_manager=self.game_manager
+        )
+
+        # Initialize AutoCategorizeService after category_service is ready
+        from src.services.autocategorize_service import AutoCategorizeService
+        self.autocategorize_service = AutoCategorizeService(
+            game_manager=self.game_manager,
+            category_service=self.category_service,
+            steam_scraper=self.steam_scraper
         )
 
         self._populate_categories()
@@ -1446,9 +1456,8 @@ class MainWindow(QMainWindow):
         else:
             actual_games = self.dialog_games
 
-        # Check cache coverage with ACTUAL games
-        app_ids = [game.app_id for game in actual_games]
-        coverage = self.steam_scraper.get_cache_coverage(app_ids)
+        # Check cache coverage with ACTUAL games using AutoCategorizeService
+        coverage = self.autocategorize_service.get_cache_coverage(actual_games)
 
         # If more than 50% is cached, no warning needed
         if coverage['percentage'] >= 50:
@@ -1458,18 +1467,7 @@ class MainWindow(QMainWindow):
 
         # Low cache coverage - show warning
         missing = coverage['missing']
-        estimated_seconds = int(missing * 1.5)
-        estimated_minutes = estimated_seconds // 60
-
-        # Format time string
-        if estimated_minutes > 60:
-            hours = estimated_minutes // 60
-            mins = estimated_minutes % 60
-            time_str = t('common.time_hours', hours=hours, minutes=mins)
-        elif estimated_minutes > 0:
-            time_str = t('common.time_minutes', minutes=estimated_minutes)
-        else:
-            time_str = t('common.time_seconds', seconds=estimated_seconds)
+        time_str = self.autocategorize_service.estimate_time(missing)
 
         # Show warning dialog (ON TOP of AutoCategorizeDialog)
         msg_box = QMessageBox(self)
@@ -1512,51 +1510,48 @@ class MainWindow(QMainWindow):
 
         step = 0
         for method in methods:
-            if method == 'tags' and self.steam_scraper:
-                for i, game in enumerate(games):
-                    if progress.wasCanceled(): break
-                    progress.setValue(step + i)
-                    if i % 10 == 0:
-                        progress.setLabelText(t('ui.auto_categorize.status_tags', game=game.name[:30]))
+            if progress.wasCanceled():
+                break
+
+            if method == 'tags':
+                # Progress callback for tags
+                def tags_progress(index, name):
+                    if progress.wasCanceled():
+                        return
+                    progress.setValue(step + index)
+                    if index % 10 == 0:
+                        progress.setLabelText(t('ui.auto_categorize.status_tags', game=name[:30]))
                     QApplication.processEvents()
 
-                    all_tags = self.steam_scraper.fetch_tags(game.app_id)
-                    tags = all_tags[:settings['tags_count']]
-
-                    for tag in tags:
-                        self._add_app_category(game.app_id, tag)
-                        if tag not in game.categories: game.categories.append(tag)
+                self.autocategorize_service.categorize_by_tags(
+                    games,
+                    tags_count=settings['tags_count'],
+                    progress_callback=tags_progress
+                )
                 step += len(games)
 
             elif method == 'publisher':
-                for i, game in enumerate(games):
-                    if progress.wasCanceled(): break
+                for i in range(len(games)):
+                    if progress.wasCanceled():
+                        break
                     progress.setValue(step + i)
-                    if game.publisher:
-                        cat = t('ui.auto_categorize.cat_publisher', name=game.publisher)
-                        self._add_app_category(game.app_id, cat)
-                        if cat not in game.categories: game.categories.append(cat)
+                self.autocategorize_service.categorize_by_publisher(games)
                 step += len(games)
 
             elif method == 'franchise':
-                for i, game in enumerate(games):
-                    if progress.wasCanceled(): break
+                for i in range(len(games)):
+                    if progress.wasCanceled():
+                        break
                     progress.setValue(step + i)
-                    franchise = SteamStoreScraper.detect_franchise(game.name)
-                    if franchise:
-                        cat = t('ui.auto_categorize.cat_franchise', name=franchise)
-                        self._add_app_category(game.app_id, cat)
-                        if cat not in game.categories: game.categories.append(cat)
+                self.autocategorize_service.categorize_by_franchise(games)
                 step += len(games)
 
             elif method == 'genre':
-                for i, game in enumerate(games):
-                    if progress.wasCanceled(): break
+                for i in range(len(games)):
+                    if progress.wasCanceled():
+                        break
                     progress.setValue(step + i)
-                    if game.genres:
-                        for genre in game.genres:
-                            self._add_app_category(game.app_id, genre)
-                            if genre not in game.categories: game.categories.append(genre)
+                self.autocategorize_service.categorize_by_genre(games)
                 step += len(games)
 
         self._save_collections()
