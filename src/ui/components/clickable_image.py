@@ -100,26 +100,31 @@ class ClickableImage(QWidget):
 
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # Border nur im Platzhalter-Zustand — wird in _apply_pixmap entfernt
         self.image_label.setStyleSheet("border: 1px solid #FDE100; background-color: #1b2838;")
         self.image_label.setFixedSize(width, height)
         self.image_label.setScaledContents(False)
+        # Mouse-Events durchlassen damit enterEvent/leaveEvent auf self funktionieren
+        self.image_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         layout.addWidget(self.image_label)
 
         # --- Badge-Overlay System (SteamGridDB-Style) ---
         # Konstanten für das Overlay
-        self._STRIPE_HEIGHT: int = 5  # Höhe der sichtbaren Streifen im kollabierten Zustand
-        self._ICON_HEIGHT: int = 24  # Höhe der Badge-Icons
-        self._OVERLAY_PADDING: int = 4  # Padding oben/unten im expandierten Zustand
-        self._EXPANDED_HEIGHT: int = (  # Gesamthöhe wenn expandiert
-                self._OVERLAY_PADDING + self._ICON_HEIGHT + self._OVERLAY_PADDING
+        self._STRIPE_HEIGHT: int = 6          # Höhe der sichtbaren Streifen im kollabierten Zustand
+        self._ICON_HEIGHT: int = 32           # Höhe der Badge-Icons (größer = besser sichtbar)
+        self._OVERLAY_PADDING: int = 2        # Padding unter den Icons
+        self._EXPANDED_HEIGHT: int = (        # Gesamthöhe wenn expandiert
+            self._STRIPE_HEIGHT + self._ICON_HEIGHT + self._OVERLAY_PADDING
         )
-        self._STRIPE_WIDTH: int = 24  # Breite eines einzelnen Streifens = Icon-Breite
-        self._STRIPE_GAP: int = 3  # Spalt zwischen Streifen
+        self._STRIPE_WIDTH: int = 32          # Breite eines einzelnen Streifens = Icon-Breite
+        self._STRIPE_GAP: int = 2             # Spalt zwischen Streifen
 
-        # Overlay-Container — sitzt absolut über das Cover, clips alles was darüber hinausragt
-        self.badge_overlay = QWidget(self.image_label)
+        # Overlay-Container — sitzt absolut über das Cover auf SELF (nicht image_label!)
+        # Wichtig: Child von self damit QLabel.setPixmap() das Overlay nicht überdeckt
+        self.badge_overlay = QWidget(self)
         self.badge_overlay.setGeometry(0, 0, width, self._STRIPE_HEIGHT)
-        self.badge_overlay.setProperty("badge_overlay", True)  # für StyleSheet-Targeting
+        # Overlay sitzt über dem Label in der Z-Reihenfolge
+        self.badge_overlay.raise_()
 
         overlay_layout = QVBoxLayout(self.badge_overlay)
         overlay_layout.setContentsMargins(5, 0, 0, 0)
@@ -138,7 +143,7 @@ class ClickableImage(QWidget):
         # Icon-Reihe — nur bei Hover sichtbar (die echten Badge-Icons)
         self.icon_container = QWidget()
         icon_layout = QHBoxLayout(self.icon_container)
-        icon_layout.setContentsMargins(0, self._OVERLAY_PADDING - self._STRIPE_HEIGHT, 0, 0)
+        icon_layout.setContentsMargins(0, 0, 0, 0)
         icon_layout.setSpacing(self._STRIPE_GAP)
         icon_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         overlay_layout.addWidget(self.icon_container)
@@ -280,10 +285,14 @@ class ClickableImage(QWidget):
             self._apply_pixmap(self.frames[index])
 
     def _apply_pixmap(self, pixmap: QPixmap):
-        """Scales and sets the pixmap on the label."""
+        """Scales and sets the pixmap on the label, removes placeholder border."""
         scaled = pixmap.scaled(self.w, self.h, Qt.AspectRatioMode.KeepAspectRatio,
                                Qt.TransformationMode.SmoothTransformation)
         self.image_label.setPixmap(scaled)
+        # Border entfernen sobald ein echtes Bild da ist (wie bei SteamGridDB)
+        self.image_label.setStyleSheet("border: none; background-color: transparent;")
+        # Overlay erneut nach oben bringen — setPixmap kann Z-Reihenfolge beeinflussen
+        self.badge_overlay.raise_()
 
         # PERFORMANCE: Cache the original pixmap for future reuse
         if self.current_path and self.current_path not in self._pixmap_cache:
@@ -387,14 +396,14 @@ class ClickableImage(QWidget):
                     self._ICON_HEIGHT, Qt.TransformationMode.SmoothTransformation
                 )
                 lbl.setPixmap(pix)
-                lbl.setFixedWidth(self._STRIPE_WIDTH)
+                lbl.setFixedSize(self._STRIPE_WIDTH, self._ICON_HEIGHT)
                 # Subtiler Shadow damit Icons auf dunklen Covers sichtbar bleiben
                 lbl.setStyleSheet(
                     "QLabel { "
-                    "  border: 1px solid rgba(0, 0, 0, 0.45); "
-                    "  border-radius: 0px 0px 3px 3px; "
-                    "  background-color: rgba(0, 0, 0, 0.25); "
-                    "  padding: 1px; "
+                    "  border: 1px solid rgba(0, 0, 0, 0.5); "
+                    "  border-radius: 0px 0px 4px 4px; "
+                    "  background-color: rgba(0, 0, 0, 0.35); "
+                    "  padding: 2px; "
                     "}"
                 )
             else:
@@ -402,8 +411,8 @@ class ClickableImage(QWidget):
                 lbl = QLabel(text)
                 lbl.setStyleSheet(
                     f"background-color: {bg_color}; color: white; "
-                    f"padding: 3px 6px; border-radius: 0px 0px 4px 4px; "
-                    f"font-weight: bold; font-size: 10px; "
+                    f"padding: 4px 8px; border-radius: 0px 0px 4px 4px; "
+                    f"font-weight: bold; font-size: 11px; "
                     f"border: 1px solid rgba(255,255,255,0.3);"
                 )
             icon_layout.addWidget(lbl)
@@ -454,3 +463,5 @@ class ClickableImage(QWidget):
         else:
             self.image_label.clear()
             self.image_label.setText("")
+            # Platzhalter-Border wieder einschalten
+            self.image_label.setStyleSheet("border: 1px solid #FDE100; background-color: #1b2838;")
