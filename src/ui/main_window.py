@@ -575,29 +575,29 @@ class MainWindow(QMainWindow):
             categories_data[t('ui.categories.favorites')] = favorites
 
             # 5. User categories (visible games only — but empty collections stay visible)
-            cats: dict[str, int] = self.game_manager.get_all_categories()
+        cats: dict[str, int] = self.game_manager.get_all_categories()
 
-            # Merge in parser-owned collections that GameManager cannot see.
-            # GameManager builds its list from game.categories only; an empty
-            # collection has no games so it never appears there.  The parser is
-            # the single source of truth for which collections actually exist.
-            active_parser = self.cloud_storage_parser or self.vdf_parser
-            if active_parser:
-                for parser_cat in active_parser.get_all_categories():
-                    if parser_cat not in cats:
-                        cats[parser_cat] = 0  # empty collection — count is zero
+        # Merge in parser-owned collections that GameManager cannot see.
+        # GameManager builds its list from game.categories only; an empty
+        # collection has no games so it never appears there.  The parser is
+        # the single source of truth for which collections actually exist.
+        active_parser = self.cloud_storage_parser or self.vdf_parser
+        if active_parser:
+            for parser_cat in active_parser.get_all_categories():
+                if parser_cat not in cats:
+                    cats[parser_cat] = 0  # empty collection — count is zero
 
-            # Sort with German umlaut support: Ä→A, Ö→O, Ü→U
-            for cat_name in sorted(cats.keys(), key=self._german_sort_key):
-                if cat_name != 'favorite':
-                    cat_games: list[Game] = sorted(
-                        [g for g in self.game_manager.get_games_by_category(cat_name) if not g.hidden],
-                        key=lambda g: g.sort_name.lower()
-                    )
-                    # Always add — empty collections must stay visible as "Name (0)"
-                    categories_data[cat_name] = cat_games
+        # Sort with German umlaut support: Ä→A, Ö→O, Ü→U
+        for cat_name in sorted(cats.keys(), key=self._german_sort_key):
+            if cat_name != 'favorite':
+                cat_games: list[Game] = sorted(
+                    [g for g in self.game_manager.get_games_by_category(cat_name) if not g.hidden],
+                    key=lambda g: g.sort_name.lower()
+                )
+                # Always add — empty collections must stay visible as "Name (0)"
+                categories_data[cat_name] = cat_games
 
-            self.tree.populate_categories(categories_data)
+        self.tree.populate_categories(categories_data)
 
     def _on_games_selected(self, games: List[Game]) -> None:
         """Handles multi-selection changes in the game tree.
