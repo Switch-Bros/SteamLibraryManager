@@ -267,6 +267,25 @@ class CloudStorageParser:
         self.collections = [c for c in self.collections if c.get('name') != category]
         self.modified = True
 
+    def create_empty_collection(self, name: str) -> None:
+        """Creates an empty collection without any app IDs.
+
+        This is the safe way to create a new collection.  Using
+        ``add_app_category("", name)`` would crash because this class
+        calls ``int(app_id)`` internally.
+
+        Args:
+            name: The display name for the new collection.
+        """
+        collection_id: str = f"from-tag-{name}"
+        self.collections.append({
+            'id': collection_id,
+            'name': name,
+            'added': [],
+            'removed': []
+        })
+        self.modified = True
+
     def rename_category(self, old_name: str, new_name: str):
         """
         Rename a category.

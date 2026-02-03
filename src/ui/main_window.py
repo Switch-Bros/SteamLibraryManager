@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLineEdit, QPushButton, QLabel, QToolBar, QMenu,
+    QLineEdit, QPushButton, QLabel, QToolBar,
     QMessageBox, QSplitter, QProgressDialog, QApplication
 )
 from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
@@ -55,6 +55,7 @@ from src.ui.components.ui_helper import UIHelper
 
 from src.utils.i18n import t, init_i18n
 from src.ui.builders import MenuBuilder, ToolbarBuilder, StatusbarBuilder
+from src.ui.handlers import CategoryActionHandler
 
 
 class GameLoadThread(QThread):
@@ -165,6 +166,9 @@ class MainWindow(QMainWindow):
         self.menu_builder: MenuBuilder = MenuBuilder(self)
         self.toolbar_builder: ToolbarBuilder = ToolbarBuilder(self)
         self.statusbar_builder: StatusbarBuilder = StatusbarBuilder(self)
+
+        # UI Action Handlers (extracted category / context-menu logic)
+        self.category_handler: CategoryActionHandler = CategoryActionHandler(self)
 
         self._create_ui()
         self._load_data()
@@ -849,81 +853,24 @@ class MainWindow(QMainWindow):
     def on_game_right_click(self, game: Game, pos) -> None:
         """Shows context menu for a right-clicked game.
 
+        Delegated to CategoryActionHandler.
+
         Args:
             game: The game that was right-clicked.
             pos: The screen position for the context menu.
         """
-        menu = QMenu(self)
-
-        menu.addAction(t('ui.context_menu.view_details'), lambda: self.on_game_selected(game))
-        menu.addAction(t('ui.context_menu.toggle_favorite'), lambda: self.toggle_favorite(game))
-
-        menu.addSeparator()
-
-        if hasattr(game, 'hidden'):
-            if game.hidden:
-                menu.addAction(t('ui.context_menu.unhide_game'), lambda: self.toggle_hide_game(game, False))
-            else:
-                menu.addAction(t('ui.context_menu.hide_game'), lambda: self.toggle_hide_game(game, True))
-
-        menu.addAction(t('ui.context_menu.remove_from_local'), lambda: self.remove_from_local_config(game))
-        menu.addAction(t('ui.context_menu.remove_from_account'), lambda: self.remove_game_from_account(game))
-
-        menu.addSeparator()
-        menu.addAction(t('ui.context_menu.open_store'), lambda: self.open_in_store(game))
-        menu.addAction(t('ui.context_menu.check_store'), lambda: self.check_store_availability(game))
-        menu.addSeparator()
-
-        # Auto-categorize (for single or multiple games)
-        if len(self.selected_games) > 1:
-            menu.addAction(t('ui.menu.edit.auto_categorize'), self.auto_categorize_selected)
-        else:
-            menu.addAction(t('ui.menu.edit.auto_categorize'), lambda: self.auto_categorize_single(game))
-
-        menu.addSeparator()
-        menu.addAction(t('ui.context_menu.edit_metadata'), lambda: self.edit_game_metadata(game))
-        menu.exec(pos)
+        self.category_handler.on_game_right_click(game, pos)
 
     def on_category_right_click(self, category: str, pos) -> None:
         """Shows context menu for a right-clicked category.
+
+        Delegated to CategoryActionHandler.
 
         Args:
             category: The category name that was right-clicked (or "__MULTI__" for multi-select).
             pos: The screen position for the context menu.
         """
-        menu = QMenu(self)
-
-        # Handle multi-category selection
-        if category == "__MULTI__":
-            selected_categories = self.tree.get_selected_categories()
-            if len(selected_categories) > 1:
-                menu.addAction(t('ui.context_menu.merge_categories'),
-                               lambda: self.merge_categories(selected_categories))
-                menu.addSeparator()
-                menu.addAction(t('ui.context_menu.delete'),
-                               lambda: self.delete_multiple_categories(selected_categories))
-            menu.exec(pos)
-            return
-
-        # Single category
-        if category == t('ui.categories.favorites'):
-            return
-
-        special_cats = [t('ui.categories.all_games'), t('ui.categories.uncategorized')]
-
-        if category in special_cats:
-            menu.addAction(t('ui.context_menu.create_collection'), self.create_new_collection)
-            menu.addSeparator()
-            menu.addAction(t('ui.menu.edit.auto_categorize'), lambda: self.auto_categorize_category(category))
-        else:
-            menu.addAction(t('ui.context_menu.create_collection'), self.create_new_collection)
-            menu.addSeparator()
-            menu.addAction(t('ui.context_menu.rename'), lambda: self.rename_category(category))
-            menu.addAction(t('ui.context_menu.delete'), lambda: self.delete_category(category))
-            menu.addSeparator()
-            menu.addAction(t('ui.menu.edit.auto_categorize'), lambda: self.auto_categorize_category(category))
-
-        menu.exec(pos)
+        self.category_handler.on_category_right_click(category, pos)
 
     def toggle_hide_game(self, game: Game, hide: bool) -> None:
         """Toggles the hidden status of a game.
@@ -1129,190 +1076,44 @@ class MainWindow(QMainWindow):
         self.store_check_thread.start()
 
     def remove_duplicate_collections(self) -> None:
-        """
-        Remove duplicate collections using CategoryService.
-
-        Identifies collections with identical names but different app counts,
-        keeping only the collection that matches the expected count from the
-        game manager. Shows error if cloud storage is not available.
-
-        Note:
-            Only available when cloud storage parser is active.
-        """
-        if not self.category_service:
-            return
-
-        # Show confirmation dialog
-        message = t('ui.main_window.remove_duplicates_confirm')
-        if not UIHelper.confirm(self, message, t('ui.main_window.remove_duplicates_title')):
-            return
-
-        try:
-            removed = self.category_service.remove_duplicate_collections()
-
-            if removed > 0:
-                self._save_collections()
-                self._populate_categories()
-                UIHelper.show_success(self, t('ui.main_window.duplicates_removed', count=removed))
-            else:
-                UIHelper.show_info(self, t('ui.main_window.no_duplicates'))
-        except RuntimeError as e:
-            UIHelper.show_error(self, str(e))
+        """Removes duplicate collections. Delegated to CategoryActionHandler."""
+        self.category_handler.remove_duplicate_collections()
 
     def create_new_collection(self) -> None:
-        """
-        Create a new empty collection using CategoryService.
-
-        Prompts the user for a collection name and creates a new empty collection
-        in the active parser (cloud storage or localconfig). Validates that the
-        name doesn't already exist before creating.
-
-        Note:
-            Uses CategoryService which handles parser selection automatically.
-        """
-        if not self.category_service:
-            return
-
-        name, ok = UIHelper.ask_text(
-            self,
-            t('ui.main_window.create_collection_title'),
-            t('ui.main_window.create_collection_prompt')
-        )
-
-        if ok and name:
-            try:
-                self.category_service.create_collection(name)
-                self._save_collections()
-                self._populate_categories()
-                UIHelper.show_success(self, t('ui.main_window.collection_created', name=name))
-            except ValueError as e:
-                UIHelper.show_error(self, str(e))
+        """Creates a new empty collection. Delegated to CategoryActionHandler."""
+        self.category_handler.create_new_collection()
 
     def rename_category(self, old_name: str) -> None:
-        """Prompts the user to rename a category using CategoryService.
+        """Renames a category. Delegated to CategoryActionHandler.
 
         Args:
             old_name: The current name of the category to rename.
         """
-        if not self.category_service:
-            return
-
-        new_name, ok = UIHelper.ask_text(
-            self,
-            t('ui.categories.rename_title'),
-            t('ui.categories.rename_msg', old=old_name)
-        )
-
-        if ok and new_name and new_name != old_name:
-            try:
-                self.category_service.rename_category(old_name, new_name)
-                self._save_collections()
-                self._populate_categories()
-                self._update_statistics()
-            except ValueError as e:
-                UIHelper.show_error(self, str(e))
+        self.category_handler.rename_category(old_name)
 
     def delete_category(self, category: str) -> None:
-        """Prompts the user to delete a category using CategoryService.
+        """Deletes a single category. Delegated to CategoryActionHandler.
 
         Args:
             category: The name of the category to delete.
         """
-        if not self.category_service:
-            return
-
-        if UIHelper.confirm(
-                self,
-                t('ui.categories.delete_msg', category=category),
-                t('ui.categories.delete_title')
-        ):
-            self.category_service.delete_category(category)
-            self._save_collections()
-            self._populate_categories()
-            self._update_statistics()
+        self.category_handler.delete_category(category)
 
     def delete_multiple_categories(self, categories: List[str]) -> None:
-        """Prompts the user to delete multiple categories using CategoryService.
+        """Deletes multiple categories. Delegated to CategoryActionHandler.
 
         Args:
             categories: List of category names to delete.
         """
-        if not self.category_service or not categories:
-            return
-
-        # Create confirmation message
-        category_list = "\n• ".join(categories)
-        message: str = t('ui.categories.delete_multiple_msg', count=len(categories), category_list=f"• {category_list}")
-
-        if UIHelper.confirm(self, message, t('ui.categories.delete_title')):
-            self.category_service.delete_multiple_categories(categories)
-            self._save_collections()
-            self._populate_categories()
-            self._update_statistics()
+        self.category_handler.delete_multiple_categories(categories)
 
     def merge_categories(self, categories: List[str]) -> None:
-        """
-        Merges multiple categories into one using CategoryService.
-
-        Shows a dialog to select the target category, then moves all games
-        from the other categories into the target and deletes the source categories.
+        """Merges multiple categories into one. Delegated to CategoryActionHandler.
 
         Args:
             categories: List of category names to merge.
         """
-        if not self.category_service or len(categories) < 2:
-            return
-
-        # Show selection dialog
-        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QListWidget, QDialogButtonBox
-
-        dialog = QDialog(self)
-        dialog.setWindowTitle(t('ui.categories.merge_title'))
-        dialog.setMinimumWidth(400)
-
-        layout = QVBoxLayout()
-
-        # Instruction label
-        label = QLabel(t('ui.categories.merge_instruction', count=len(categories)))
-        label.setWordWrap(True)
-        layout.addWidget(label)
-
-        # List of categories
-        list_widget = QListWidget()
-        for cat in sorted(categories):
-            list_widget.addItem(cat)
-        list_widget.setCurrentRow(0)
-        layout.addWidget(list_widget)
-
-        # Buttons
-        # noinspection PyTypeChecker
-        buttons = QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        button_box = QDialogButtonBox(buttons)
-        button_box.accepted.connect(dialog.accept)
-        button_box.rejected.connect(dialog.reject)
-        layout.addWidget(button_box)
-
-        dialog.setLayout(layout)
-
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            selected_item = list_widget.currentItem()
-            if not selected_item:
-                return
-
-            target_category = selected_item.text()
-            source_categories = [cat for cat in categories if cat != target_category]
-
-            # Use CategoryService to merge
-            self.category_service.merge_categories(source_categories, target_category)
-            self._save_collections()
-            self._populate_categories()
-
-            # Show success message
-            UIHelper.show_success(
-                self,
-                t('ui.categories.merge_success', target=target_category, count=len(source_categories)),
-                t('ui.categories.merge_title')
-            )
+        self.category_handler.merge_categories(categories)
 
     def auto_categorize(self) -> None:
         """Opens the auto-categorize dialog for selected or uncategorized games."""
@@ -1797,6 +1598,37 @@ class MainWindow(QMainWindow):
         self._save_timer.setSingleShot(True)
         self._save_timer.timeout.connect(self._save_collections)
         self._save_timer.start(100)  # 100ms delay
+
+    # ------------------------------------------------------------------
+    # Public persistence interface (used by extracted action handlers)
+    # ------------------------------------------------------------------
+
+    def save_collections(self) -> bool:
+        """Persists collections to the active parser (cloud or local).
+
+        Public wrapper around ``_save_collections`` so that external
+        handler classes can trigger a save without accessing a protected member.
+
+        Returns:
+            True if the save succeeded, False otherwise.
+        """
+        return self._save_collections()
+
+    def populate_categories(self) -> None:
+        """Rebuilds the category tree widget from current game data.
+
+        Public wrapper around ``_populate_categories`` for use by handlers.
+        """
+        self._populate_categories()
+
+    def update_statistics(self) -> None:
+        """Refreshes the statistics label in the status bar.
+
+        Public wrapper around ``_update_statistics`` for use by handlers.
+        """
+        self._update_statistics()
+
+    # ------------------------------------------------------------------
 
     def _save_collections(self) -> bool:
         """Save collections using the active parser."""

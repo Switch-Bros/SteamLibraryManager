@@ -297,7 +297,7 @@
       "game_name_label": "Game Name",
       "sort_as_label": "Sort As",
       "sort_as_help": "Leave empty to use game name for sorting",
-      "date_help": "Format: YYYY-MM-DD or YYYY",
+      "date_help": "Format: DD.MM.YYYY or YYYY",
       "vdf_section": "VDF Options",
       "write_to_vdf": "Write to appinfo.vdf (Requires Steam Restart)",
       "write_to_vdf_tooltip": "Changes will be visible in Steam after restart",
