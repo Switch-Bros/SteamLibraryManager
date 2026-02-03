@@ -8,8 +8,9 @@ supports animated GIFs (if Pillow is installed), and can display
 superimposed badges based on metadata.
 """
 from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout
-from PyQt6.QtCore import Qt, pyqtSignal, QThread, QByteArray, QTimer
+from PyQt6.QtCore import Qt, pyqtSignal, QThread, QByteArray, QTimer, QPropertyAnimation, QEasingCurve
 from PyQt6.QtGui import QPixmap, QCursor, QImage
+from typing import cast
 import requests
 import os
 import io
@@ -104,10 +105,52 @@ class ClickableImage(QWidget):
         self.image_label.setScaledContents(False)
         layout.addWidget(self.image_label)
 
-        self.badge_layout = QHBoxLayout(self.image_label)
-        self.badge_layout.setContentsMargins(5, 5, 5, 5)
-        self.badge_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        self.badge_layout.setSpacing(4)
+        # --- Badge-Overlay System (SteamGridDB-Style) ---
+        # Konstanten für das Overlay
+        self._STRIPE_HEIGHT: int = 5  # Höhe der sichtbaren Streifen im kollabierten Zustand
+        self._ICON_HEIGHT: int = 24  # Höhe der Badge-Icons
+        self._OVERLAY_PADDING: int = 4  # Padding oben/unten im expandierten Zustand
+        self._EXPANDED_HEIGHT: int = (  # Gesamthöhe wenn expandiert
+                self._OVERLAY_PADDING + self._ICON_HEIGHT + self._OVERLAY_PADDING
+        )
+        self._STRIPE_WIDTH: int = 24  # Breite eines einzelnen Streifens = Icon-Breite
+        self._STRIPE_GAP: int = 3  # Spalt zwischen Streifen
+
+        # Overlay-Container — sitzt absolut über das Cover, clips alles was darüber hinausragt
+        self.badge_overlay = QWidget(self.image_label)
+        self.badge_overlay.setGeometry(0, 0, width, self._STRIPE_HEIGHT)
+        self.badge_overlay.setProperty("badge_overlay", True)  # für StyleSheet-Targeting
+
+        overlay_layout = QVBoxLayout(self.badge_overlay)
+        overlay_layout.setContentsMargins(5, 0, 0, 0)
+        overlay_layout.setSpacing(0)
+        overlay_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        # Streifen-Reihe — immer sichtbar (die 5px hohen farbigen Streifen)
+        self.stripe_container = QWidget()
+        stripe_layout = QHBoxLayout(self.stripe_container)
+        stripe_layout.setContentsMargins(0, 0, 0, 0)
+        stripe_layout.setSpacing(self._STRIPE_GAP)
+        stripe_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.stripe_container.setFixedHeight(self._STRIPE_HEIGHT)
+        overlay_layout.addWidget(self.stripe_container)
+
+        # Icon-Reihe — nur bei Hover sichtbar (die echten Badge-Icons)
+        self.icon_container = QWidget()
+        icon_layout = QHBoxLayout(self.icon_container)
+        icon_layout.setContentsMargins(0, self._OVERLAY_PADDING - self._STRIPE_HEIGHT, 0, 0)
+        icon_layout.setSpacing(self._STRIPE_GAP)
+        icon_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        overlay_layout.addWidget(self.icon_container)
+
+        # Animation für das Overlay — animiert maximumHeight zwischen kollabiert und expandiert
+        self.badge_animation = QPropertyAnimation(self.badge_overlay, b"maximumHeight")
+        self.badge_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.badge_animation.setDuration(180)  # ms — schnell aber nicht instant
+
+        # Badge-Zustand
+        self._badge_colors: list[str] = []  # Farben pro Badge (für die Streifen)
+        self.badges: list[QWidget] = []  # Badge-Icon Widgets
 
         self.default_image = None
         self.current_path = None
@@ -118,8 +161,6 @@ class ClickableImage(QWidget):
         self.current_frame = 0
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._next_frame)
-
-        self.badges = []
 
         # PERFORMANCE: Cache for loaded pixmaps
         self._pixmap_cache = {}  # {path: QPixmap}
@@ -260,12 +301,41 @@ class ClickableImage(QWidget):
         elif event.button() == Qt.MouseButton.RightButton:
             self.right_clicked.emit()
 
+    def enterEvent(self, event):
+        """Triggers badge expansion animation on mouse enter.
+
+        Animates the badge overlay from collapsed (stripes only) to
+        expanded (full badge icons visible), unless no badges exist.
+        """
+        super().enterEvent(event)
+        # Nur animieren wenn Badges vorhanden sind
+        if not self.badges:
+            return
+        self.badge_animation.stop()
+        self.badge_animation.setStartValue(self.badge_overlay.maximumHeight())
+        self.badge_animation.setEndValue(self._EXPANDED_HEIGHT)
+        self.badge_animation.start()
+
+    def leaveEvent(self, event):
+        """Triggers badge collapse animation on mouse leave.
+
+        Animates the badge overlay back from expanded to collapsed
+        (stripes only visible).
+        """
+        super().leaveEvent(event)
+        if not self.badges:
+            return
+        self.badge_animation.stop()
+        self.badge_animation.setStartValue(self.badge_overlay.maximumHeight())
+        self.badge_animation.setEndValue(self._STRIPE_HEIGHT)
+        self.badge_animation.start()
+
     def _create_badges(self, is_animated: bool = False):
         """
-        Creates and displays badges based on game metadata.
+        Creates animated slide-down badges (SteamGridDB style).
 
-        Badges are displayed in the top-left corner of the image. They can be
-        either custom PNG icons or text labels with colored backgrounds.
+        Normal state: only thin colored stripes visible at the top edge.
+        On hover: badges slide down smoothly to reveal full icons.
 
         Args:
             is_animated (bool): Whether the loaded image is an animated GIF.
@@ -274,42 +344,98 @@ class ClickableImage(QWidget):
         if not self.metadata:
             return
 
-        tags = self.metadata.get('tags', [])
+        tags: list[str] = self.metadata.get('tags', [])
 
-        def add_badge(type_key: str, text: str, bg_color: str = "#000000"):
-            """Helper function to add a badge (icon or text)."""
+        # Badge-Definitionen: (type_key, text, bg_color, condition)
+        badge_defs: list[tuple[str, str, str, bool]] = [
+            ('nsfw',      f"{t('emoji.nsfw')} {t('ui.badges.nsfw')}",           "#d9534f",
+             bool(self.metadata.get('nsfw') or 'nsfw' in tags)),
+            ('humor',     f"{t('emoji.humor')} {t('ui.badges.humor')}",         "#f0ad4e",
+             bool(self.metadata.get('humor') or 'humor' in tags)),
+            ('epilepsy',  f"{t('emoji.epilepsy')} {t('ui.badges.epilepsy')}",   "#0275d8",
+             bool(self.metadata.get('epilepsy') or 'epilepsy' in tags)),
+            ('animated',  f"{t('emoji.animated')} {t('ui.badges.animated')}",   "#5cb85c",
+             is_animated),
+        ]
+
+        # Nur die aktiven Badges aufbauen
+        active_badges: list[tuple[str, str, str]] = [
+            (key, text, color) for key, text, color, active in badge_defs if active
+        ]
+
+        if not active_badges:
+            # Keine Badges → Overlay verstecken
+            self.badge_overlay.setMaximumHeight(0)
+            return
+
+        # cast(): .layout() gibt QLayout|None zurück — wir wissen dass es QHBoxLayout ist
+        stripe_layout: QHBoxLayout = cast(QHBoxLayout, self.stripe_container.layout())
+        icon_layout: QHBoxLayout = cast(QHBoxLayout, self.icon_container.layout())
+
+        for type_key, text, bg_color in active_badges:
+            # --- Streifen hinzufügen (immer sichtbar) ---
+            stripe = QWidget()
+            stripe.setFixedSize(self._STRIPE_WIDTH, self._STRIPE_HEIGHT)
+            stripe.setStyleSheet(f"background-color: {bg_color}; border-radius: 2px 2px 0px 0px;")
+            stripe_layout.addWidget(stripe)
+
+            # --- Icon hinzufügen (nur bei Hover sichtbar) ---
             icon_path = config.ICONS_DIR / f"flag_{type_key}.png"
             if icon_path.exists():
                 lbl = QLabel()
-                pix = QPixmap(str(icon_path)).scaledToHeight(24, Qt.TransformationMode.SmoothTransformation)
+                pix = QPixmap(str(icon_path)).scaledToHeight(
+                    self._ICON_HEIGHT, Qt.TransformationMode.SmoothTransformation
+                )
                 lbl.setPixmap(pix)
-                lbl.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-                self.badge_layout.addWidget(lbl)
-                self.badges.append(lbl)
+                lbl.setFixedWidth(self._STRIPE_WIDTH)
+                # Subtiler Shadow damit Icons auf dunklen Covers sichtbar bleiben
+                lbl.setStyleSheet(
+                    "QLabel { "
+                    "  border: 1px solid rgba(0, 0, 0, 0.45); "
+                    "  border-radius: 0px 0px 3px 3px; "
+                    "  background-color: rgba(0, 0, 0, 0.25); "
+                    "  padding: 1px; "
+                    "}"
+                )
             else:
-                # Fallback to text badge
+                # Fallback: Text-Badge wenn kein PNG vorhanden
                 lbl = QLabel(text)
                 lbl.setStyleSheet(
-                    f"background-color: {bg_color}; color: white; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; border: 1px solid rgba(255,255,255,0.3);")
-                lbl.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-                self.badge_layout.addWidget(lbl)
-                self.badges.append(lbl)
+                    f"background-color: {bg_color}; color: white; "
+                    f"padding: 3px 6px; border-radius: 0px 0px 4px 4px; "
+                    f"font-weight: bold; font-size: 10px; "
+                    f"border: 1px solid rgba(255,255,255,0.3);"
+                )
+            icon_layout.addWidget(lbl)
 
-        if self.metadata.get('nsfw') or 'nsfw' in tags:
-            add_badge('nsfw', f"{t('emoji.nsfw')} {t('ui.badges.nsfw')}", "#d9534f")
-        if self.metadata.get('humor') or 'humor' in tags:
-            add_badge('humor', f"{t('emoji.humor')} {t('ui.badges.humor')}", "#f0ad4e")
-        if self.metadata.get('epilepsy') or 'epilepsy' in tags:
-            add_badge('epilepsy', f"{t('emoji.epilepsy')} {t('ui.badges.epilepsy')}", "#0275d8")
-        if is_animated:
-            add_badge('animated', f"{t('emoji.animated')} {t('ui.badges.animated')}", "#5cb85c")
+            # Farbe speichern für spätere Referenz
+            self._badge_colors.append(bg_color)
+            self.badges.append(lbl)
+
+        # Overlay auf kollabierten Zustand setzen (nur Streifen sichtbar)
+        self.badge_overlay.setMaximumHeight(self._STRIPE_HEIGHT)
+        self.badge_overlay.setMinimumHeight(self._STRIPE_HEIGHT)
 
     def _clear_badges(self):
-        """Removes all current badges from the layout."""
+        """Removes all badges, stripes, and resets the overlay to hidden."""
+        # Icons aus dem icon_container entfernen
+        icon_layout: QHBoxLayout = cast(QHBoxLayout, self.icon_container.layout())
         for b in self.badges:
-            self.badge_layout.removeWidget(b)
+            icon_layout.removeWidget(b)
             b.deleteLater()
         self.badges = []
+
+        # Streifen aus dem stripe_container entfernen
+        stripe_layout: QHBoxLayout = cast(QHBoxLayout, self.stripe_container.layout())
+        while stripe_layout.count():
+            item = stripe_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        # Zustand zurücksetzen
+        self._badge_colors = []
+        self.badge_overlay.setMaximumHeight(0)
+        self.badge_overlay.setMinimumHeight(0)
 
     def clear(self):
         """
