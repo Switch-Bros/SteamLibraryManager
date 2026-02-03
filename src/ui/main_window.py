@@ -1536,45 +1536,53 @@ class MainWindow(QMainWindow):
         Args:
             event: The close event from Qt.
         """
-        # Check if there are unsaved changes
         parser = self._get_active_parser()
-        if parser and parser.modified:
-            reply = QMessageBox.question(
-                self,
-                t('ui.menu.file.unsaved_changes_title'),
-                t('ui.menu.file.unsaved_changes_msg'),
-                QMessageBox.StandardButton.Save |
-                QMessageBox.StandardButton.Discard |
-                QMessageBox.StandardButton.Cancel,
-                QMessageBox.StandardButton.Save
-            )
+        if not parser or not parser.modified:
+            # No unsaved changes — close immediately
+            event.accept()
+            return
 
-            if reply == QMessageBox.StandardButton.Save:
-                # Save and close
-                if self._save_collections():
-                    event.accept()
-                else:
-                    # Save failed, ask if they want to close anyway
-                    retry = QMessageBox.warning(
-                        self,
-                        t('ui.menu.file.save_failed_title'),
-                        t('ui.menu.file.save_failed_msg'),
-                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                        QMessageBox.StandardButton.No
-                    )
-                    if retry == QMessageBox.StandardButton.Yes:
-                        event.accept()
-                    else:
-                        event.ignore()
-            elif reply == QMessageBox.StandardButton.Discard:
-                # Close without saving
+        # --- 3-button dialog: Speichern / Verwerfen / Abbrechen ---
+        # Manual buttons — StandardButtons werden auf Linux ohne .qm englisch angezeigt
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Question)
+        msg.setWindowTitle(t('ui.menu.file.unsaved_changes_title'))
+        msg.setText(t('ui.menu.file.unsaved_changes_msg'))
+
+        save_btn    = msg.addButton(t('common.save'),    QMessageBox.ButtonRole.AcceptRole)
+        discard_btn = msg.addButton(t('common.discard'), QMessageBox.ButtonRole.DestructiveRole)
+        msg.addButton(t('common.cancel'), QMessageBox.ButtonRole.RejectRole)
+        msg.setDefaultButton(save_btn)
+
+        msg.exec()
+        clicked = msg.clickedButton()
+
+        if clicked == save_btn:
+            if self._save_collections():
                 event.accept()
             else:
-                # Cancel - stay open
-                event.ignore()
-        else:
-            # No unsaved changes, close normally
+                # Save failed — retry-Dialog (Ja / Nein)
+                retry_msg = QMessageBox(self)
+                retry_msg.setIcon(QMessageBox.Icon.Warning)
+                retry_msg.setWindowTitle(t('ui.menu.file.save_failed_title'))
+                retry_msg.setText(t('ui.menu.file.save_failed_msg'))
+
+                yes_btn = retry_msg.addButton(t('common.yes'), QMessageBox.ButtonRole.YesRole)
+                retry_msg.addButton(t('common.no'), QMessageBox.ButtonRole.NoRole)
+                retry_msg.setDefaultButton(yes_btn)
+
+                retry_msg.exec()
+                if retry_msg.clickedButton() == yes_btn:
+                    event.accept()
+                else:
+                    event.ignore()
+
+        elif clicked == discard_btn:
+            # Close without saving
             event.accept()
+        else:
+            # Cancel — stay open
+            event.ignore()
 
     # ========== Parser Wrapper Methods ==========
 
