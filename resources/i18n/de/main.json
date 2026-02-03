@@ -52,9 +52,6 @@
       "collection_exists": "Eine Kollektion mit dem Namen '{name}' existiert bereits!",
       "collection_created": "Kollektion '{name}' wurde erstellt!"
     },
-    "images": {
-      "image_load_error": "❌"
-    },
     "menu": {
       "file": {
         "root": "Datei",
@@ -327,7 +324,7 @@
       "vdf_warning_text": "Änderungen werden in Steams appinfo.vdf geschrieben.",
       "vdf_warning_details": "Steam muss neu gestartet werden damit Änderungen sichtbar werden. Ein Backup wird erstellt. Fortfahren?",
       "fields_group": "Zu ändernde Felder",
-      "bulk_info": "⚠️ Warnung: Dies ändert {count} Spiele!",
+      "bulk_info": "Warnung: Dies ändert {count} Spiele!",
       "bulk_preview": "Betroffene Spiele ({count})",
       "bulk_more": "...and {count} weitere",
       "set_field": "{field} setzen",
@@ -345,11 +342,11 @@
     "store_check": {
       "title": "Store-Verfügbarkeit prüfen",
       "checking": "Prüfe Store-Verfügbarkeit...",
-      "available": "✅ Im Steam Store verfügbar",
-      "geo_locked": "🚫 In Ihrem Land nicht verfügbar (Geo-Blocking/Censorship)",
-      "delisted": "❌ Nicht mehr im Store verfügbar",
-      "removed": "❌ Aus dem Store entfernt",
-      "unknown": "❓ Unbekannter Status (Code: {code})"
+      "available": "Im Steam Store verfügbar",
+      "geo_locked": "In Ihrem Land nicht verfügbar (Geo-Blocking/Censorship)",
+      "delisted": "Nicht mehr im Store verfügbar",
+      "removed": "Aus dem Store entfernt",
+      "unknown": "Unbekannter Status (Code: {code})"
     },
     "pegi_selector": {
       "title": "PEGI-Bewertung auswählen",
@@ -399,7 +396,7 @@
       "cat_publisher": "Publisher: {name}",
       "cat_franchise": "Franchise: {name}",
       "cat_genre": "Genre: {name}",
-      "warning_backup": "⚠️ Erstelle ein Backup vor Massenänderungen!",
+      "warning_backup": "Erstelle ein Backup vor Massenänderungen!",
       "method_group": "Kategorisierungs-Methode",
       "option_tags": "Nach Tags",
       "by_publisher": "Nach Publisher",
@@ -411,7 +408,7 @@
       "apply_group": "Anwenden auf",
       "estimate_label": "Geschätzte Kollektionen",
       "cancel": "Abbrechen",
-      "cache_warning_title": "⚠️ Wenig Cache-Daten",
+      "cache_warning_title": "Wenig Cache-Daten",
       "cache_warning_message": "Nur {cached} von {total} Spielen haben gecachte Tag-Daten.\n\nDas Abrufen der Tags vom Steam Store dauert ca. {time}.\n\nEMPFEHLUNG:\nVerwende zuerst 'Bearbeiten → Fehlende Metadaten abrufen' um den Cache zu füllen, dann führe Auto-Kategorisierung aus.\n\nTrotzdem fortfahren?"
       },
     "steamgrid_setup": {
@@ -449,11 +446,11 @@
       "genre_dist": "Genre-Verteilung"
     },
     "dialogs": {
-      "steam_running_title": "⚠️ Steam läuft!",
+      "steam_running_title": "Steam läuft!",
       "steam_running_msg": "Steam Library Manager hat erkannt, dass Steam läuft. Bitte Steam beenden.",
       "confirm_remove_account": "Möchtest du '{game}' wirklich PERMANENT von deinem Account löschen?",
       "remove_account_title": "Spiel vom Account entfernen",
-      "remove_account_warning": "⚠️ WARNUNG: Diese Aktion ist DAUERHAFT!\n\nDu wirst zum Steam Support weitergeleitet, wo du dieses Spiel von deinem Account entfernen kannst.\n\nDies kann nicht rückgängig gemacht werden! Das Spiel und alle zugehörigen DLCs werden dauerhaft entfernt.\n\nMöchtest du fortfahren?",
+      "remove_account_warning": "WARNUNG: Diese Aktion ist DAUERHAFT!\n\nDu wirst zum Steam Support weitergeleitet, wo du dieses Spiel von deinem Account entfernen kannst.\n\nDies kann nicht rückgängig gemacht werden! Das Spiel und alle zugehörigen DLCs werden dauerhaft entfernt.\n\nMöchtest du fortfahren?",
       "remove_local_title": "Aus lokaler Konfig entfernen",
       "remove_local_warning": "Möchtest du '{game}' aus der lokalen Steam-Kollektion entfernen?\n\nDies entfernt den Eintrag aus der localconfig.vdf. Nutze dies für 'Geister'-Spiele, die nicht mehr in deiner Steam-Bibliothek existieren.\n\nDies entfernt das Spiel NICHT von deinem Steam-Account.",
       "remove_local_success": "'{game}' wurde aus der lokalen Kollektion entfernt.",
@@ -488,7 +485,7 @@
         "missing": "Fehlt",
         "save_csv": "CSV speichern",
         "stats": "{count} Spiele mit unvollständigen Metadaten gefunden",
-        "missing_marked": "❌ Fehlt"
+        "missing_marked": "Fehlt"
       },
       "merger": {
         "title": "Kollektionen Import/Export",

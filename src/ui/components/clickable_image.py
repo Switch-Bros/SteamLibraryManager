@@ -174,7 +174,8 @@ class ClickableImage(QWidget):
             if self.default_image:
                 self._load_local_image(self.default_image)
             else:
-                self.image_label.setText(t('ui.images.image_load_error'))
+                # Use centralised error emoji — image_load_error key removed
+                self.image_label.setText(t('emoji.error'))
             return
 
         if HAS_PILLOW:
@@ -214,7 +215,7 @@ class ClickableImage(QWidget):
             if self.default_image:
                 self._load_local_image(self.default_image)
             else:
-                self.image_label.setText(t('ui.images.image_load_error'))
+                self.image_label.setText(t('emoji.error'))
 
     def _start_animation(self):
         """Starts or restarts the GIF animation."""

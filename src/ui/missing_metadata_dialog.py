@@ -188,7 +188,8 @@ class MissingMetadataDialog(QDialog):
             # 3. Developer
             dev_val = game.developer if game.developer else ""
             if self._is_missing(dev_val):
-                display_dev = t('ui.tools.missing_metadata.missing_marked')
+                # Emoji prefix assembled here — locale string is plain text
+                display_dev = f"{t('emoji.error')} {t('ui.tools.missing_metadata.missing_marked')}"
                 missing_dev += 1
             else:
                 display_dev = str(dev_val)
@@ -198,7 +199,7 @@ class MissingMetadataDialog(QDialog):
             # 4. Publisher
             pub_val = game.publisher if game.publisher else ""
             if self._is_missing(pub_val):
-                display_pub = t('ui.tools.missing_metadata.missing_marked')
+                display_pub = f"{t('emoji.error')} {t('ui.tools.missing_metadata.missing_marked')}"
                 missing_pub += 1
             else:
                 display_pub = str(pub_val)
@@ -208,7 +209,7 @@ class MissingMetadataDialog(QDialog):
             # 5. Release
             raw_rel = game.release_year if game.release_year else ""
             if self._is_missing(raw_rel):
-                display_rel = t('ui.tools.missing_metadata.missing_marked')
+                display_rel = f"{t('emoji.error')} {t('ui.tools.missing_metadata.missing_marked')}"
                 missing_rel += 1
             else:
                 display_rel = format_timestamp_to_date(raw_rel)
