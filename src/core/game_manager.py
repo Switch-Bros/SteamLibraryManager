@@ -12,6 +12,7 @@ import requests
 import json
 import platform
 from datetime import datetime, timedelta
+from src.utils.date_utils import format_timestamp_to_date
 from typing import Dict, List, Optional, Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -431,8 +432,8 @@ class GameManager:
                 if 'common' in data and 'last_updated' in data['common']:
                     ts = data['common']['last_updated']
                     try:
-                        dt = datetime.fromtimestamp(int(ts))
-                        self.games[app_id].last_updated = dt.strftime('%Y-%m-%d')
+                        # Centralised formatter handles int/str and locale automatically
+                        self.games[app_id].last_updated = format_timestamp_to_date(ts)
                     except (ValueError, TypeError):
                         pass
 
@@ -779,8 +780,8 @@ class GameManager:
                     # Get the most recent news item date
                     latest_date = news_items[0].get('date', 0)
                     if latest_date:
-                        dt = datetime.fromtimestamp(int(latest_date))
-                        date_str = dt.strftime('%d. %b %Y')
+                        # Use centralised formatter — picks DE/EN style automatically
+                        date_str: str = format_timestamp_to_date(latest_date)
 
                         # Cache the result
                         cache_file.parent.mkdir(exist_ok=True)
@@ -812,23 +813,23 @@ class GameManager:
         # Get review score and translate to German
         review_score_en = summary.get('review_score_desc', '')
 
-        # Steam API returns English descriptions even with language=german
-        # Manual translation mapping
-        review_translations = {
-            'Overwhelmingly Positive': 'Äußerst positiv',
-            'Very Positive': 'Sehr positiv',
-            'Positive': 'Positiv',
-            'Mostly Positive': 'Größtenteils positiv',
-            'Mixed': 'Ausgeglichen',
-            'Mostly Negative': 'Größtenteils negativ',
-            'Negative': 'Negativ',
-            'Very Negative': 'Sehr negativ',
-            'Overwhelmingly Negative': 'Äußerst negativ',
-            # Additional variants
-            'No user reviews': 'Keine Nutzerrezensionen'
+        # Map Steam's English review labels to i18n keys for localisation
+        _REVIEW_KEY_MAP: dict[str, str] = {
+            'Overwhelmingly Positive': 'ui.reviews.overwhelmingly_positive',
+            'Very Positive': 'ui.reviews.very_positive',
+            'Positive': 'ui.reviews.positive',
+            'Mostly Positive': 'ui.reviews.mostly_positive',
+            'Mixed': 'ui.reviews.mixed',
+            'Mostly Negative': 'ui.reviews.mostly_negative',
+            'Negative': 'ui.reviews.negative',
+            'Very Negative': 'ui.reviews.very_negative',
+            'Overwhelmingly Negative': 'ui.reviews.overwhelmingly_negative',
+            'No user reviews': 'ui.reviews.no_reviews',
         }
 
-        game.review_score = review_translations.get(review_score_en, review_score_en or t('common.unknown'))
+        # Translate via i18n — falls back to English label if key missing
+        i18n_key: str | None = _REVIEW_KEY_MAP.get(review_score_en)
+        game.review_score = t(i18n_key) if i18n_key else (review_score_en or t('common.unknown'))
         game.review_count = summary.get('total_reviews', 0)
 
     def _apply_store_data(self, app_id: str, data: Dict) -> None:

@@ -271,6 +271,18 @@
         "reset": "Original wiederherstellen"
       }
     },
+    "reviews": {
+      "overwhelmingly_positive": "Äußerst positiv",
+      "very_positive": "Sehr positiv",
+      "positive": "Positiv",
+      "mostly_positive": "Größtenteils positiv",
+      "mixed": "Ausgeglichen",
+      "mostly_negative": "Größtenteils negativ",
+      "negative": "Negativ",
+      "very_negative": "Sehr negativ",
+      "overwhelmingly_negative": "Äußerst negativ",
+      "no_reviews": "Keine Nutzerrezensionen"
+    },
     "context_menu": {
       "play": "Spiel starten",
       "view_details": "Details anzeigen",
@@ -474,7 +486,8 @@
         "col_missing_fields": "Fehlende Felder",
         "missing": "Fehlt",
         "save_csv": "CSV speichern",
-        "stats": "{count} Spiele mit unvollständigen Metadaten gefunden"
+        "stats": "{count} Spiele mit unvollständigen Metadaten gefunden",
+        "missing_marked": "❌ Fehlt"
       },
       "merger": {
         "title": "Kollektionen Import/Export",

@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from src.config import config
+from src.ui.components.ui_helper import UIHelper
 from src.utils.i18n import t
 from src.utils.steam_config_merger import SteamConfigMerger, MergeStrategy
 
@@ -202,16 +203,11 @@ class VdfMergerDialog(QDialog):
         if not self.source_path or not self.target_path:
             return
 
-        # Confirm if not dry-run
+        # Confirm if not dry-run (localised buttons via UIHelper)
         if not self.dry_run_check.isChecked():
-            reply = QMessageBox.question(
-                self,
-                t('ui.vdf_merger.confirm_title'),
-                t('ui.vdf_merger.confirm_message'),
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No
-            )
-            if reply != QMessageBox.StandardButton.Yes:
+            if not UIHelper.confirm(self,
+                                    t('ui.vdf_merger.confirm_message'),
+                                    t('ui.vdf_merger.confirm_title')):
                 return
 
         self.results_text.clear()
@@ -249,12 +245,14 @@ class VdfMergerDialog(QDialog):
         self.progress_bar.setVisible(False)
         self.merge_btn.setEnabled(True)
 
-        # Show results
-        result_text = f"{'✅' if success else '❌'} {message}\n"
+        # Show results — status prefix and bullet via i18n
+        status_prefix: str = t('emoji.success') if success else t('emoji.error')
+        result_text = f"{status_prefix} {message}\n"
         if changes:
+            bullet: str = t('emoji.bullet')
             result_text += f"\n{t('ui.vdf_merger.changes_header')}:\n"
             for change in changes[:50]:  # Limit display
-                result_text += f"  • {change}\n"
+                result_text += f"  {bullet} {change}\n"
             if len(changes) > 50:
                 result_text += f"  ... {t('ui.vdf_merger.more_changes', count=len(changes) - 50)}\n"
 
