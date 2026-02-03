@@ -324,7 +324,7 @@ class CategoryActionHandler:
         # ------------------------------------------------------------------
 
     def _flush(self, *, stats: bool = False) -> None:
-        """Invalidates the category cache and persists + refreshes the UI.
+        """Persists collections and refreshes the UI.
 
         Every mutation method ends with this single call instead of
         manually chaining save / populate / update_statistics.
@@ -332,9 +332,6 @@ class CategoryActionHandler:
         Args:
             stats: If True, also refresh the statistics label.
         """
-        # Invalidate the tree cache so populate_categories re-reads live data
-        self.mw._cache_invalidated = True
-
         self.mw.save_collections()
         self.mw.populate_categories()
 
