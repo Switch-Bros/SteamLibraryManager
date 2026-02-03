@@ -265,8 +265,8 @@ class AutoCategorizeService:
         if estimated_minutes > 60:
             hours = estimated_minutes // 60
             mins = estimated_minutes % 60
-            return t('common.time_hours', hours=hours, minutes=mins)
+            return t('time.time_hours', hours=hours, minutes=mins)
         elif estimated_minutes > 0:
-            return t('common.time_minutes', minutes=estimated_minutes)
+            return t('time.time_minutes', minutes=estimated_minutes)
         else:
-            return t('common.time_seconds', seconds=estimated_seconds)
+            return t('time.time_seconds', seconds=estimated_seconds)

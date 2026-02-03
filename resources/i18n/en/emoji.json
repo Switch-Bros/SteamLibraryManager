@@ -5,6 +5,10 @@
     "warning": "⚠️",
     "blocked": "🚫",
     "unknown": "❓",
-    "bullet": "•"
+    "bullet": "•",
+    "nsfw": "🔞",
+    "humor": "🤡",
+    "epilepsy": "⚡️",
+    "animated": "🎞️"
   }
 }
