@@ -76,31 +76,34 @@ class UIHelper:
 
     @staticmethod
     def confirm(parent: QWidget, question: str, title: Optional[str] = None) -> bool:
-        """
-        Displays a standardized Yes/No confirmation dialog.
+        """Displays a Yes/No confirmation dialog with localised button texts.
 
-        The button texts ("Yes", "No") are automatically translated by Qt.
+        Uses addButton() instead of StandardButtons because Qt6 on Linux does
+        not translate StandardButton labels without .qm translation files.
 
         Args:
-            parent (QWidget): The parent widget for the dialog.
-            question (str): The question to ask the user.
-            title (Optional[str]): The title for the dialog window. Defaults to the
-                                   main application title.
+            parent: The parent widget for the dialog.
+            question: The question to ask the user.
+            title: The title bar text.  Defaults to the app title.
 
         Returns:
-            bool: True if the user clicked Yes, False otherwise.
+            True if the user clicked Yes, False otherwise.
         """
         if title is None:
             title = t('ui.main_window.title')
 
-        reply = QMessageBox.question(
-            parent,
-            title,
-            question,
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No  # Default button
-        )
-        return reply == QMessageBox.StandardButton.Yes
+        msg = QMessageBox(parent)
+        msg.setWindowTitle(title)
+        msg.setText(question)
+        msg.setIcon(QMessageBox.Icon.Question)
+
+        # Manual buttons with i18n text — bypasses broken Qt auto-translation
+        yes_btn = msg.addButton(t('common.yes'), QMessageBox.ButtonRole.YesRole)
+        msg.addButton(t('common.no'), QMessageBox.ButtonRole.NoRole)
+        msg.setDefaultButton(yes_btn)
+
+        msg.exec()
+        return msg.clickedButton() == yes_btn
 
     @staticmethod
     def ask_text(parent: QWidget, title: str, label: str, current_text: str = "") -> Tuple[str, bool]:

@@ -271,6 +271,18 @@
         "reset": "Reset to Original"
       }
     },
+    "reviews": {
+      "overwhelmingly_positive": "Overwhelmingly Positive",
+      "very_positive": "Very Positive",
+      "positive": "Positive",
+      "mostly_positive": "Mostly Positive",
+      "mixed": "Mixed",
+      "mostly_negative": "Mostly Negative",
+      "negative": "Negative",
+      "very_negative": "Very Negative",
+      "overwhelmingly_negative": "Overwhelmingly Negative",
+      "no_reviews": "No user reviews"
+    },
     "context_menu": {
       "play": "Play Game",
       "view_details": "View Details",
@@ -474,7 +486,8 @@
         "col_missing_fields": "Missing Fields",
         "missing": "Missing",
         "save_csv": "Save CSV",
-        "stats": "{count} games with incomplete metadata found"
+        "stats": "{count} games with incomplete metadata found",
+        "missing_marked": "❌ Missing"
       },
       "merger": {
         "title": "Collections Import/Export",

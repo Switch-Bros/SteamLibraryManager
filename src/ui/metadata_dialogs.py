@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QFont
 from typing import Optional, Dict, List
+from src.ui.components.ui_helper import UIHelper
 from src.utils.i18n import t
 from src.utils.date_utils import parse_date_to_timestamp, format_timestamp_to_date
 
@@ -245,13 +246,10 @@ class MetadataEditDialog(QDialog):
             )
             return
 
-        # Confirm
-        reply = QMessageBox.question(
-            self,
-            t('ui.metadata_editor.revert_title'),
-            t('ui.metadata_editor.revert_confirm'),
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
+        # Confirm via centralised helper (localised Yes/No buttons)
+        if UIHelper.confirm(self,
+                            t('ui.metadata_editor.revert_confirm'),
+                            t('ui.metadata_editor.revert_title')):
 
         if reply == QMessageBox.StandardButton.Yes:
             # Set original values
@@ -459,10 +457,10 @@ class BulkMetadataEditDialog(QDialog):
             QMessageBox.warning(self, t('ui.dialogs.no_changes'), t('ui.dialogs.no_selection'))
             return
 
-        confirm = QMessageBox.question(self, t('ui.dialogs.confirm_bulk_title'),
-                                       t('ui.dialogs.confirm_bulk', count=self.games_count),
-                                       QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-        if confirm != QMessageBox.StandardButton.Yes:
+        # Centralised helper — localised Yes/No buttons
+        if not UIHelper.confirm(self,
+                                t('ui.dialogs.confirm_bulk', count=self.games_count),
+                                t('ui.dialogs.confirm_bulk_title')):
             return
 
         self.result_metadata = {}

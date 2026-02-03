@@ -17,9 +17,10 @@ from PyQt6.QtGui import QFont
 from typing import List
 from pathlib import Path
 import csv
-from datetime import datetime
+from src.utils.date_utils import format_timestamp_to_date
 from src.core.game_manager import Game
 from src.utils.i18n import t
+
 
 
 class MissingMetadataDialog(QDialog):
@@ -74,34 +75,6 @@ class MissingMetadataDialog(QDialog):
             return True
         return False
 
-    @staticmethod
-    def _format_date(value) -> str:
-        """
-        Converts Unix timestamps to readable date format (YYYY-MM-DD).
-
-        Args:
-            value: The value to format (Unix timestamp or string).
-
-        Returns:
-            str: The formatted date string, or the original value if not a timestamp.
-        """
-        if not value:
-            return ""
-
-        value_str = str(value).strip()
-
-        # Check if it is a number
-        if value_str.isdigit():
-            try:
-                ts = int(value_str)
-                # Plausibility check: Is number > 100,000,000 (approx year 1973)?
-                if ts > 100000000:
-                    dt = datetime.fromtimestamp(ts)
-                    return dt.strftime("%Y-%m-%d")
-            except (ValueError, TypeError):
-                pass  # Return original on error
-
-        return value_str
 
     def _create_ui(self):
         """Creates the user interface for the dialog."""
@@ -215,7 +188,7 @@ class MissingMetadataDialog(QDialog):
             # 3. Developer
             dev_val = game.developer if game.developer else ""
             if self._is_missing(dev_val):
-                display_dev = f"❌ {t('ui.tools.missing_metadata.missing')}"
+                display_dev = t('ui.tools.missing_metadata.missing_marked')
                 missing_dev += 1
             else:
                 display_dev = str(dev_val)
@@ -225,7 +198,7 @@ class MissingMetadataDialog(QDialog):
             # 4. Publisher
             pub_val = game.publisher if game.publisher else ""
             if self._is_missing(pub_val):
-                display_pub = f"❌ {t('ui.tools.missing_metadata.missing')}"
+                display_pub = t('ui.tools.missing_metadata.missing_marked')
                 missing_pub += 1
             else:
                 display_pub = str(pub_val)
@@ -235,10 +208,10 @@ class MissingMetadataDialog(QDialog):
             # 5. Release
             raw_rel = game.release_year if game.release_year else ""
             if self._is_missing(raw_rel):
-                display_rel = f"❌ {t('ui.tools.missing_metadata.missing')}"
+                display_rel = t('ui.tools.missing_metadata.missing_marked')
                 missing_rel += 1
             else:
-                display_rel = self._format_date(raw_rel)
+                display_rel = format_timestamp_to_date(raw_rel)
 
             self.table.setItem(row, 4, self._create_item(display_rel))
 
@@ -301,7 +274,7 @@ class MissingMetadataDialog(QDialog):
                         rel_val = t('ui.tools.missing_metadata.missing')
                         missing_fields.append(t('ui.game_details.release_year'))
                     else:
-                        rel_val = self._format_date(raw_rel)
+                        rel_val = format_timestamp_to_date(raw_rel)
 
                     writer.writerow([
                         game.app_id,
