@@ -52,9 +52,6 @@
       "collection_exists": "A collection with the name '{name}' already exists!",
       "collection_created": "Collection '{name}' was created!"
     },
-    "images": {
-      "image_load_error": "❌"
-    },
     "menu": {
       "file": {
         "root": "File",
@@ -327,7 +324,7 @@
       "vdf_warning_text": "Changes will be written to Steam's appinfo.vdf file.",
       "vdf_warning_details": "Steam must be restarted for changes to appear. A backup will be created. Continue?",
       "fields_group": "Fields to Modify",
-      "bulk_info": "⚠️ Warning: This will modify {count} games!",
+      "bulk_info": "Warning: This will modify {count} games!",
       "bulk_preview": "Affected Games ({count})",
       "bulk_more": "...and {count} more",
       "set_field": "Set {field}",
@@ -345,11 +342,11 @@
     "store_check": {
       "title": "Check Store Availability",
       "checking": "Checking store availability...",
-      "available": "✅ Available on Steam Store",
-      "geo_locked": "🚫 Not available in your country (Geo-blocking/Censorship)",
-      "delisted": "❌ No longer available on Store",
-      "removed": "❌ Removed from Store",
-      "unknown": "❓ Unknown status (Code: {code})"
+      "available": "Available on Steam Store",
+      "geo_locked": "Not available in your country (Geo-blocking/Censorship)",
+      "delisted": "No longer available on Store",
+      "removed": "Removed from Store",
+      "unknown": "Unknown status (Code: {code})"
     },
     "pegi_selector": {
       "title": "Select PEGI Rating",
@@ -399,7 +396,7 @@
       "cat_publisher": "Publisher: {name}",
       "cat_franchise": "Franchise: {name}",
       "cat_genre": "Genre: {name}",
-      "warning_backup": "⚠️ Create a backup before making bulk changes!",
+      "warning_backup": "Create a backup before making bulk changes!",
       "method_group": "Categorization Method",
       "option_tags": "By Tags",
       "by_publisher": "By Publisher",
@@ -411,7 +408,7 @@
       "apply_group": "Apply to",
       "estimate_label": "Estimated Collections",
       "cancel": "Cancel",
-      "cache_warning_title": "⚠️ Low Cache Coverage",
+      "cache_warning_title": "Low Cache Coverage",
       "cache_warning_message": "Only {cached} of {total} games have cached tag data.\n\nFetching tags from Steam Store will take approximately {time}.\n\nRECOMMENDATION:\nUse 'Edit → Fetch Missing Metadata' first to populate the cache, then run Auto-Categorize.\n\nContinue anyway?"
       },
     "steamgrid_setup": {
@@ -449,11 +446,11 @@
       "genre_dist": "Genre Distribution"
     },
     "dialogs": {
-      "steam_running_title": "⚠️ Steam is Running!",
+      "steam_running_title": "Steam is Running!",
       "steam_running_msg": "Steam Library Manager detected that Steam is running. Please close Steam.",
       "confirm_remove_account": "Do you really want to PERMANENTLY remove '{game}' from your account?",
       "remove_account_title": "Remove Game from Account",
-      "remove_account_warning": "⚠️ WARNING: This action is PERMANENT!\n\nYou will be redirected to Steam Support where you can remove this game from your account.\n\nThis cannot be undone! The game and all related DLCs will be permanently removed.\n\nDo you want to continue?",
+      "remove_account_warning": "WARNING: This action is PERMANENT!\n\nYou will be redirected to Steam Support where you can remove this game from your account.\n\nThis cannot be undone! The game and all related DLCs will be permanently removed.\n\nDo you want to continue?",
       "remove_local_title": "Remove from Local Config",
       "remove_local_warning": "Remove '{game}' from the local Steam configuration?\n\nThis removes the entry from localconfig.vdf. Use this for 'ghost' games that no longer exist in your Steam library.\n\nThis does NOT remove the game from your Steam account.",
       "remove_local_success": "'{game}' has been removed from the local configuration.",
@@ -488,7 +485,7 @@
         "missing": "Missing",
         "save_csv": "Save CSV",
         "stats": "{count} games with incomplete metadata found",
-        "missing_marked": "❌ Missing"
+        "missing_marked": "Missing"
       },
       "merger": {
         "title": "Collections Import/Export",

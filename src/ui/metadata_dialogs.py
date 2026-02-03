@@ -383,7 +383,8 @@ class BulkMetadataEditDialog(QDialog):
         title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         layout.addWidget(title)
 
-        info = QLabel(t('ui.metadata_editor.bulk_info', count=self.games_count))
+        # Emoji prefix assembled in code — keeps locale strings clean
+        info = QLabel(f"{t('emoji.warning')} {t('ui.metadata_editor.bulk_info', count=self.games_count)}")
         info.setStyleSheet("color: orange; font-size: 11px;")
         layout.addWidget(info)
 
@@ -419,7 +420,7 @@ class BulkMetadataEditDialog(QDialog):
         fields_group.setLayout(f_layout)
         layout.addWidget(fields_group)
 
-        warn_lbl = QLabel(t('ui.auto_categorize.warning_backup'))
+        warn_lbl = QLabel(f"{t('emoji.warning')} {t('ui.auto_categorize.warning_backup')}")
         warn_lbl.setStyleSheet("color: orange;")
         layout.addWidget(warn_lbl)
 
@@ -520,7 +521,7 @@ class MetadataRestoreDialog(QDialog):
         info_lbl.setWordWrap(True)
         layout.addWidget(info_lbl)
 
-        warn_lbl = QLabel(t('ui.auto_categorize.warning_backup'))
+        warn_lbl = QLabel(f"{t('emoji.warning')} {t('ui.auto_categorize.warning_backup')}")
         warn_lbl.setStyleSheet("color: orange;")
         layout.addWidget(warn_lbl)
 

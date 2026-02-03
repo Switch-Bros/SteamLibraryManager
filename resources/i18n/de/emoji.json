@@ -2,6 +2,9 @@
   "emoji": {
     "success": "✅",
     "error": "❌",
+    "warning": "⚠️",
+    "blocked": "🚫",
+    "unknown": "❓",
     "bullet": "•"
   }
 }

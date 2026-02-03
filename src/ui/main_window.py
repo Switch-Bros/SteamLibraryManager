@@ -930,7 +930,7 @@ class MainWindow(QMainWindow):
         """
         if UIHelper.confirm(
                 self,
-                t('ui.dialogs.remove_account_warning'),
+                f"{t('emoji.warning')} {t('ui.dialogs.remove_account_warning')}",
                 t('ui.dialogs.remove_account_title')
         ):
             import webbrowser
@@ -1029,28 +1029,31 @@ class MainWindow(QMainWindow):
                         if ('not available in your country' in text_lower or
                                 'nicht in ihrem land' in text_lower or
                                 'not available in your region' in text_lower or
-                                'currently not available' in text_lower):
-                            self.finished.emit('geo_locked', t('ui.store_check.geo_locked'))
+                                'currently not' in text_lower or
+                                'not available' in text_lower):
+                            # Emoji prefix via emoji.json for consistent i18n
+                            self.finished.emit('geo_locked', f"{t('emoji.blocked')} {t('ui.store_check.geo_locked')}")
                         # Check if redirected to age gate
                         elif 'agecheck' in text_lower:
                             self.finished.emit('age_gate', t('ui.store_check.age_gate'))
                         # Check if app page exists
                         elif 'app_header' in text_lower or 'game_area_purchase' in text_lower:
-                            self.finished.emit('available', t('ui.store_check.available'))
+                            self.finished.emit('available', f"{t('emoji.success')} {t('ui.store_check.available')}")
                         else:
                             # Page loaded but doesn't look like a valid store page
-                            self.finished.emit('delisted', t('ui.store_check.delisted'))
+                            self.finished.emit('delisted', f"{t('emoji.error')} {t('ui.store_check.delisted')}")
                     elif response.status_code == 302:
-                        # Follow redirect to check if it's age gate or delisted
-                        redirect_url = response.headers.get('Location', '')
-                        if 'agecheck' in redirect_url:
-                            self.finished.emit('age_gate', t('ui.store_check.age_gate'))
-                        else:
-                            self.finished.emit('delisted', t('ui.store_check.delisted'))
+                            # Follow redirect to check if it's age gate or delisted
+                            redirect_url = response.headers.get('Location', '')
+                            if 'agecheck' in redirect_url:
+                                self.finished.emit('age_gate', t('ui.store_check.age_gate'))
+                            else:
+                                self.finished.emit('delisted', f"{t('emoji.error')} {t('ui.store_check.delisted')}")
                     elif response.status_code in [404, 403]:
-                        self.finished.emit('delisted', t('ui.store_check.removed'))
+                        self.finished.emit('delisted', f"{t('emoji.error')} {t('ui.store_check.removed')}")
                     else:
-                        self.finished.emit('unknown', t('ui.store_check.unknown', code=response.status_code))
+                        self.finished.emit('unknown',
+                                           f"{t('emoji.unknown')} {t('ui.store_check.unknown', code=response.status_code)}")
 
                 except Exception as ex:
                     self.finished.emit('unknown', str(ex))
