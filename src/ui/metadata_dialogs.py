@@ -246,31 +246,24 @@ class MetadataEditDialog(QDialog):
             )
             return
 
-        # Confirm via centralised helper (localised Yes/No buttons)
-        if UIHelper.confirm(self,
-                            t('ui.metadata_editor.revert_confirm'),
-                            t('ui.metadata_editor.revert_title')):
+            # Confirm via centralised helper (localised Yes/No buttons)
+        if not UIHelper.confirm(self,
+                                t('ui.metadata_editor.revert_confirm'),
+                                t('ui.metadata_editor.revert_title')):
+            return  # User clicked "No" → abort
 
-        if reply == QMessageBox.StandardButton.Yes:
-            # Set original values
-            self.name_edit.setText(self.original_metadata.get('name', ''))
-            self.developer_edit.setText(self.original_metadata.get('developer', ''))
-            self.publisher_edit.setText(self.original_metadata.get('publisher', ''))
-            # Format timestamp back to DD.MM.YYYY on revert
-            self.release_date_edit.setText(format_timestamp_to_date(self.original_metadata.get('release_date', '')))
+            # --- Revert all fields to their original values ---
+        self.name_edit.setText(self.original_metadata.get('name', ''))
+        self.developer_edit.setText(self.original_metadata.get('developer', ''))
+        self.publisher_edit.setText(self.original_metadata.get('publisher', ''))
+        # Format timestamp back to localised date on revert
+        self.release_date_edit.setText(format_timestamp_to_date(self.original_metadata.get('release_date', '')))
 
-            # Clear modified styles
-            normal_style = ""
-            self.name_edit.setStyleSheet(normal_style)
-            self.developer_edit.setStyleSheet(normal_style)
-            self.publisher_edit.setStyleSheet(normal_style)
-            self.release_date_edit.setStyleSheet(normal_style)
-
-            # Clear tooltips
-            self.name_edit.setToolTip("")
-            self.developer_edit.setToolTip("")
-            self.publisher_edit.setToolTip("")
-            self.release_date_edit.setToolTip("")
+        # Clear modified styles
+        for widget in (self.name_edit, self.developer_edit,
+                       self.publisher_edit, self.release_date_edit):
+            widget.setStyleSheet("")
+            widget.setToolTip("")
 
     def _save(self):
         """Validates and saves the edited metadata.
@@ -285,23 +278,22 @@ class MetadataEditDialog(QDialog):
 
         # Warning dialog if VDF-Write enabled
         if self.write_to_vdf_cb.isChecked():
-            # Show warning the first time (per session)
+            # Show warning only once per session
             if not hasattr(self.parent(), '_vdf_warning_shown'):
                 msg = QMessageBox(self)
                 msg.setIcon(QMessageBox.Icon.Information)
                 msg.setWindowTitle(t('ui.metadata_editor.vdf_warning_title'))
-
                 msg.setText(t('ui.metadata_editor.vdf_warning_text'))
                 msg.setInformativeText(t('ui.metadata_editor.vdf_warning_details'))
 
-                msg.setStandardButtons(
-                    QMessageBox.StandardButton.Yes |
-                    QMessageBox.StandardButton.No
-                )
-                msg.setDefaultButton(QMessageBox.StandardButton.Yes)
+                # Manual buttons — bypasses broken Qt StandardButton translation on Linux
+                yes_btn = msg.addButton(t('common.yes'), QMessageBox.ButtonRole.YesRole)
+                msg.addButton(t('common.no'), QMessageBox.ButtonRole.NoRole)
+                msg.setDefaultButton(yes_btn)
 
-                if msg.exec() != QMessageBox.StandardButton.Yes:
-                    return
+                msg.exec()
+                if msg.clickedButton() != yes_btn:
+                    return  # User clicked "No" → abort save
 
                 self.parent()._vdf_warning_shown = True
 
