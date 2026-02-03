@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QFont
 from typing import Optional, Dict, List
 from src.utils.i18n import t
-from src.utils.date_utils import parse_date_to_timestamp
+from src.utils.date_utils import parse_date_to_timestamp, format_timestamp_to_date
 
 
 class MetadataEditDialog(QDialog):
@@ -167,13 +167,14 @@ class MetadataEditDialog(QDialog):
         self.sort_as_edit.setText(m.get('sort_as', ''))
         self.developer_edit.setText(m.get('developer', ''))
         self.publisher_edit.setText(m.get('publisher', ''))
-        self.release_date_edit.setText(str(m.get('release_date', '')))
+        # Convert raw timestamp → DD.MM.YYYY before displaying
+        self.release_date_edit.setText(format_timestamp_to_date(m.get('release_date', '')))
 
         # Visual indicator for modified fields
         if self.original_metadata:
             self._highlight_modified_fields()
 
-        # Show original values
+        # Show original values (dates formatted for display)
         na = t('ui.game_details.value_unknown')
         if self.original_metadata:
             # Show REAL originals
@@ -181,7 +182,7 @@ class MetadataEditDialog(QDialog):
                 f"{t('ui.game_details.name')}: {self.original_metadata.get('name', na)}",
                 f"{t('ui.game_details.developer')}: {self.original_metadata.get('developer', na)}",
                 f"{t('ui.game_details.publisher')}: {self.original_metadata.get('publisher', na)}",
-                f"{t('ui.game_details.release_year')}: {self.original_metadata.get('release_date', na)}"
+                f"{t('ui.game_details.release_year')}: {format_timestamp_to_date(self.original_metadata.get('release_date', '')) or na}"
             ]
         else:
             # Fallback: Show current values
@@ -189,7 +190,7 @@ class MetadataEditDialog(QDialog):
                 f"{t('ui.game_details.name')}: {m.get('name', na)}",
                 f"{t('ui.game_details.developer')}: {m.get('developer', na)}",
                 f"{t('ui.game_details.publisher')}: {m.get('publisher', na)}",
-                f"{t('ui.game_details.release_year')}: {m.get('release_date', na)}"
+                f"{t('ui.game_details.release_year')}: {format_timestamp_to_date(m.get('release_date', '')) or na}"
             ]
 
         self.original_text.setPlainText('\n'.join(lines))
@@ -257,7 +258,8 @@ class MetadataEditDialog(QDialog):
             self.name_edit.setText(self.original_metadata.get('name', ''))
             self.developer_edit.setText(self.original_metadata.get('developer', ''))
             self.publisher_edit.setText(self.original_metadata.get('publisher', ''))
-            self.release_date_edit.setText(str(self.original_metadata.get('release_date', '')))
+            # Format timestamp back to DD.MM.YYYY on revert
+            self.release_date_edit.setText(format_timestamp_to_date(self.original_metadata.get('release_date', '')))
 
             # Clear modified styles
             normal_style = ""

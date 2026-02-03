@@ -445,6 +445,27 @@ class LocalConfigParser:
 
         self.modified = True
 
+    def create_empty_collection(self, name: str) -> None:
+        """Creates an empty collection without any app IDs.
+
+        Adds the collection to the internal list so that it persists
+        on the next save, even though no games are assigned yet.
+
+        Args:
+            name: The display name for the new collection.
+        """
+        # Avoid duplicate
+        for collection in self.collections:
+            if collection.get('name') == name:
+                return
+
+        self.collections.append({
+            'id': str(len(self.collections) + 1),
+            'name': name,
+            'apps': []
+        })
+        self.modified = True
+
     def delete_category(self, category: str):
         """
         Removes a category from all apps.

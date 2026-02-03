@@ -297,7 +297,7 @@
       "game_name_label": "Spielname",
       "sort_as_label": "Sortieren als",
       "sort_as_help": "Leer lassen um Spielnamen für Sortierung zu verwenden",
-      "date_help": "Format: JJJJ-MM-TT oder JJJJ",
+      "date_help": "Format: TT.MM.JJJJ oder JJJJ",
       "vdf_section": "VDF Optionen",
       "write_to_vdf": "In appinfo.vdf schreiben (Steam-Neustart nötig)",
       "write_to_vdf_tooltip": "Änderungen werden nach Steam-Neustart sichtbar",

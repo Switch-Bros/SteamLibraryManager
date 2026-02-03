@@ -192,8 +192,9 @@ class CategoryService:
         if name in parser.get_all_categories():
             raise ValueError(t('ui.main_window.collection_exists', name=name))
 
-        # Create empty collection (empty app_id creates collection in parser)
-        parser.add_app_category("", name)
+        # Create# Delegate to a dedicated method — add_app_category("") would crash
+        # because cloud_storage_parser does int(app_id) internally.
+        parser.create_empty_collection(name)
 
         return True
 
