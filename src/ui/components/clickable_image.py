@@ -8,7 +8,7 @@ supports animated GIFs (if Pillow is installed), and can display
 superimposed badges based on metadata.
 """
 from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout
-from PyQt6.QtCore import Qt, pyqtSignal, QThread, QByteArray, QTimer, QPropertyAnimation, QEasingCurve
+from PyQt6.QtCore import Qt, pyqtSignal, QThread, QByteArray, QTimer, QPropertyAnimation, QEasingCurve, QRect
 from PyQt6.QtGui import QPixmap, QCursor, QImage
 from typing import cast
 import requests
@@ -100,7 +100,6 @@ class ClickableImage(QWidget):
 
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        # Border nur im Platzhalter-Zustand — wird in _apply_pixmap entfernt
         self.image_label.setStyleSheet("border: 1px solid #FDE100; background-color: #1b2838;")
         self.image_label.setFixedSize(width, height)
         self.image_label.setScaledContents(False)
@@ -110,20 +109,19 @@ class ClickableImage(QWidget):
 
         # --- Badge-Overlay System (SteamGridDB-Style) ---
         # Konstanten für das Overlay
-        self._STRIPE_HEIGHT: int = 6          # Höhe der sichtbaren Streifen im kollabierten Zustand
-        self._ICON_HEIGHT: int = 32           # Höhe der Badge-Icons (größer = besser sichtbar)
+        self._STRIPE_HEIGHT: int = 5          # Höhe der sichtbaren Streifen (dünn wie bei SteamGridDB)
+        self._ICON_HEIGHT: int = 28           # Höhe der Badge-Icons
         self._OVERLAY_PADDING: int = 2        # Padding unter den Icons
         self._EXPANDED_HEIGHT: int = (        # Gesamthöhe wenn expandiert
             self._STRIPE_HEIGHT + self._ICON_HEIGHT + self._OVERLAY_PADDING
         )
-        self._STRIPE_WIDTH: int = 32          # Breite eines einzelnen Streifens = Icon-Breite
+        self._STRIPE_WIDTH: int = 28          # Breite eines einzelnen Streifens = Icon-Breite
         self._STRIPE_GAP: int = 2             # Spalt zwischen Streifen
 
-        # Overlay-Container — sitzt absolut über das Cover auf SELF (nicht image_label!)
-        # Wichtig: Child von self damit QLabel.setPixmap() das Overlay nicht überdeckt
+        # Overlay-Container — sitzt ABSOLUT auf self (NICHT auf image_label!)
+        # Wichtig: Child von self damit setPixmap() das Overlay nicht überdeckt
         self.badge_overlay = QWidget(self)
         self.badge_overlay.setGeometry(0, 0, width, self._STRIPE_HEIGHT)
-        # Overlay sitzt über dem Label in der Z-Reihenfolge
         self.badge_overlay.raise_()
 
         overlay_layout = QVBoxLayout(self.badge_overlay)
@@ -143,13 +141,15 @@ class ClickableImage(QWidget):
         # Icon-Reihe — nur bei Hover sichtbar (die echten Badge-Icons)
         self.icon_container = QWidget()
         icon_layout = QHBoxLayout(self.icon_container)
-        icon_layout.setContentsMargins(0, 0, 0, 0)
+        icon_layout.setContentsMargins(0, self._OVERLAY_PADDING - self._STRIPE_HEIGHT, 0, 0)
         icon_layout.setSpacing(self._STRIPE_GAP)
         icon_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         overlay_layout.addWidget(self.icon_container)
 
         # Animation für das Overlay — animiert maximumHeight zwischen kollabiert und expandiert
-        self.badge_animation = QPropertyAnimation(self.badge_overlay, b"maximumHeight")
+        # Animation auf "geometry" — funktioniert bei absolut-positionierten Widgets
+        # (maximumHeight wird bei setGeometry-Widgets vom Layout ignoriert)
+        self.badge_animation = QPropertyAnimation(self.badge_overlay, b"geometry")
         self.badge_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
         self.badge_animation.setDuration(180)  # ms — schnell aber nicht instant
 
@@ -285,13 +285,11 @@ class ClickableImage(QWidget):
             self._apply_pixmap(self.frames[index])
 
     def _apply_pixmap(self, pixmap: QPixmap):
-        """Scales and sets the pixmap on the label, removes placeholder border."""
+        """Scales and sets the pixmap on the label."""
         scaled = pixmap.scaled(self.w, self.h, Qt.AspectRatioMode.KeepAspectRatio,
                                Qt.TransformationMode.SmoothTransformation)
         self.image_label.setPixmap(scaled)
-        # Border entfernen sobald ein echtes Bild da ist (wie bei SteamGridDB)
-        self.image_label.setStyleSheet("border: none; background-color: transparent;")
-        # Overlay erneut nach oben bringen — setPixmap kann Z-Reihenfolge beeinflussen
+        # Overlay nach oben bringen — setPixmap kann Z-Reihenfolge beeinflussen
         self.badge_overlay.raise_()
 
         # PERFORMANCE: Cache the original pixmap for future reuse
@@ -313,30 +311,32 @@ class ClickableImage(QWidget):
     def enterEvent(self, event):
         """Triggers badge expansion animation on mouse enter.
 
-        Animates the badge overlay from collapsed (stripes only) to
-        expanded (full badge icons visible), unless no badges exist.
+        Animates the badge overlay geometry from collapsed (stripes only) to
+        expanded (full badge icons visible) via QRect interpolation.
         """
         super().enterEvent(event)
-        # Nur animieren wenn Badges vorhanden sind
         if not self.badges:
             return
         self.badge_animation.stop()
-        self.badge_animation.setStartValue(self.badge_overlay.maximumHeight())
-        self.badge_animation.setEndValue(self._EXPANDED_HEIGHT)
+        # Start = aktuelle Geometrie, End = gleich aber Höhe auf EXPANDED
+        current: QRect = self.badge_overlay.geometry()
+        self.badge_animation.setStartValue(current)
+        self.badge_animation.setEndValue(QRect(0, 0, self.w, self._EXPANDED_HEIGHT))
         self.badge_animation.start()
 
     def leaveEvent(self, event):
         """Triggers badge collapse animation on mouse leave.
 
-        Animates the badge overlay back from expanded to collapsed
-        (stripes only visible).
+        Animates the badge overlay geometry back from expanded to collapsed
+        (stripes only visible) via QRect interpolation.
         """
         super().leaveEvent(event)
         if not self.badges:
             return
         self.badge_animation.stop()
-        self.badge_animation.setStartValue(self.badge_overlay.maximumHeight())
-        self.badge_animation.setEndValue(self._STRIPE_HEIGHT)
+        current: QRect = self.badge_overlay.geometry()
+        self.badge_animation.setStartValue(current)
+        self.badge_animation.setEndValue(QRect(0, 0, self.w, self._STRIPE_HEIGHT))
         self.badge_animation.start()
 
     def _create_badges(self, is_animated: bool = False):
@@ -373,8 +373,8 @@ class ClickableImage(QWidget):
         ]
 
         if not active_badges:
-            # Keine Badges → Overlay verstecken
-            self.badge_overlay.setMaximumHeight(0)
+            # Keine Badges → Overlay komplett verstecken
+            self.badge_overlay.setGeometry(0, 0, self.w, 0)
             return
 
         # cast(): .layout() gibt QLayout|None zurück — wir wissen dass es QHBoxLayout ist
@@ -385,7 +385,7 @@ class ClickableImage(QWidget):
             # --- Streifen hinzufügen (immer sichtbar) ---
             stripe = QWidget()
             stripe.setFixedSize(self._STRIPE_WIDTH, self._STRIPE_HEIGHT)
-            stripe.setStyleSheet(f"background-color: {bg_color}; border-radius: 2px 2px 0px 0px;")
+            stripe.setStyleSheet(f"background-color: {bg_color};")
             stripe_layout.addWidget(stripe)
 
             # --- Icon hinzufügen (nur bei Hover sichtbar) ---
@@ -396,14 +396,14 @@ class ClickableImage(QWidget):
                     self._ICON_HEIGHT, Qt.TransformationMode.SmoothTransformation
                 )
                 lbl.setPixmap(pix)
-                lbl.setFixedSize(self._STRIPE_WIDTH, self._ICON_HEIGHT)
+                lbl.setFixedWidth(self._STRIPE_WIDTH)
                 # Subtiler Shadow damit Icons auf dunklen Covers sichtbar bleiben
                 lbl.setStyleSheet(
                     "QLabel { "
-                    "  border: 1px solid rgba(0, 0, 0, 0.5); "
-                    "  border-radius: 0px 0px 4px 4px; "
-                    "  background-color: rgba(0, 0, 0, 0.35); "
-                    "  padding: 2px; "
+                    "  border: 1px solid rgba(0, 0, 0, 0.45); "
+                    "  border-radius: 0px 0px 3px 3px; "
+                    "  background-color: rgba(0, 0, 0, 0.25); "
+                    "  padding: 1px; "
                     "}"
                 )
             else:
@@ -411,8 +411,8 @@ class ClickableImage(QWidget):
                 lbl = QLabel(text)
                 lbl.setStyleSheet(
                     f"background-color: {bg_color}; color: white; "
-                    f"padding: 4px 8px; border-radius: 0px 0px 4px 4px; "
-                    f"font-weight: bold; font-size: 11px; "
+                    f"padding: 3px 6px; border-radius: 0px 0px 4px 4px; "
+                    f"font-weight: bold; font-size: 10px; "
                     f"border: 1px solid rgba(255,255,255,0.3);"
                 )
             icon_layout.addWidget(lbl)
@@ -421,9 +421,46 @@ class ClickableImage(QWidget):
             self._badge_colors.append(bg_color)
             self.badges.append(lbl)
 
-        # Overlay auf kollabierten Zustand setzen (nur Streifen sichtbar)
-        self.badge_overlay.setMaximumHeight(self._STRIPE_HEIGHT)
-        self.badge_overlay.setMinimumHeight(self._STRIPE_HEIGHT)
+        # Overlay auf kollabierten Zustand setzen — nur Streifen sichtbar
+        # Qt clippt Children automatisch an der Widget-Geometrie
+        self.badge_overlay.setGeometry(0, 0, self.w, self._STRIPE_HEIGHT)
+
+        def add_badge(type_key: str, text: str, bg_color: str = "#000000"):
+            """Helper function to add a badge (icon or text)."""
+            icon_path = config.ICONS_DIR / f"flag_{type_key}.png"
+            if icon_path.exists():
+                lbl = QLabel()
+                pix = QPixmap(str(icon_path)).scaledToHeight(24, Qt.TransformationMode.SmoothTransformation)
+                lbl.setPixmap(pix)
+                # Subtiler Shadow damit Icons auf dunklen Covers sichtbar bleiben
+                lbl.setStyleSheet(
+                    "QLabel { "
+                    "  border: 1px solid rgba(0, 0, 0, 0.45); "
+                    "  border-radius: 3px; "
+                    "  background-color: rgba(0, 0, 0, 0.25); "
+                    "  padding: 1px; "
+                    "}"
+                )
+                lbl.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+                self.badge_layout.addWidget(lbl)
+                self.badges.append(lbl)
+            else:
+                # Fallback to text badge
+                lbl = QLabel(text)
+                lbl.setStyleSheet(
+                    f"background-color: {bg_color}; color: white; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 10px; border: 1px solid rgba(255,255,255,0.3);")
+                lbl.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+                self.badge_layout.addWidget(lbl)
+                self.badges.append(lbl)
+
+        if self.metadata.get('nsfw') or 'nsfw' in tags:
+            add_badge('nsfw', f"{t('emoji.nsfw')} {t('ui.badges.nsfw')}", "#d9534f")
+        if self.metadata.get('humor') or 'humor' in tags:
+            add_badge('humor', f"{t('emoji.humor')} {t('ui.badges.humor')}", "#f0ad4e")
+        if self.metadata.get('epilepsy') or 'epilepsy' in tags:
+            add_badge('epilepsy', f"{t('emoji.epilepsy')} {t('ui.badges.epilepsy')}", "#0275d8")
+        if is_animated:
+            add_badge('animated', f"{t('emoji.animated')} {t('ui.badges.animated')}", "#5cb85c")
 
     def _clear_badges(self):
         """Removes all badges, stripes, and resets the overlay to hidden."""
@@ -441,10 +478,9 @@ class ClickableImage(QWidget):
             if item.widget():
                 item.widget().deleteLater()
 
-        # Zustand zurücksetzen
+        # Zustand zurücksetzen — Overlay unsichtbar
         self._badge_colors = []
-        self.badge_overlay.setMaximumHeight(0)
-        self.badge_overlay.setMinimumHeight(0)
+        self.badge_overlay.setGeometry(0, 0, self.w, 0)
 
     def clear(self):
         """
@@ -463,5 +499,3 @@ class ClickableImage(QWidget):
         else:
             self.image_label.clear()
             self.image_label.setText("")
-            # Platzhalter-Border wieder einschalten
-            self.image_label.setStyleSheet("border: 1px solid #FDE100; background-color: #1b2838;")
