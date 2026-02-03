@@ -526,6 +526,12 @@
     },
     "status": {
       "no_results": "No images found."
+    },
+    "badges": {
+      "nsfw": "18+",
+      "humor": "Humor",
+      "epilepsy": "Epilepsy",
+      "animated": "GIF"
     }
   },
   "logs": {
