@@ -250,7 +250,7 @@ class SteamConfigMerger:
         if create_backup:
             backup_path = self._create_backup(target_path)
             if backup_path:
-                changes.append(f"Backup created: {backup_path.name}")
+                changes.append(f"{t('emoji.success')} {t('logs.backup.created', name=backup_path.name)}")
             else:
                 return False, t('logs.merger.backup_failed'), changes
 
