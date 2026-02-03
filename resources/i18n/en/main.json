@@ -22,9 +22,6 @@
     "game_fallback": "Unknown App {id}",
     "confirm_exit": "Do you really want to exit the application?",
     "warning": "Warning",
-    "time_hours": "{hours}h {minutes}m",
-    "time_minutes": "{minutes} minutes",
-    "time_seconds": "{seconds} seconds",
     "dash": "-",
     "clear": "×"
   },
@@ -529,12 +526,6 @@
     },
     "status": {
       "no_results": "No images found."
-    },
-    "badges": {
-      "nsfw": "18+",
-      "humor": "Humor",
-      "epilepsy": "Epilepsy",
-      "animated": "GIF"
     }
   },
   "logs": {
@@ -542,7 +533,7 @@
       "initializing": "Initializing...",
       "steam_found": "Steam found at: {path}",
       "steam_not_found": "Steam installation not found",
-      "steam_running_exit": "⚠️ Steam is running - exiting application",
+      "steam_running_exit": "Steam is running - exiting application",
       "psutil_missing": "Warning: psutil not installed, skipping Steam check",
       "file_load_error": "Error loading file {file}: {error}"
     },
@@ -581,7 +572,7 @@
       "delete_error": "Error deleting image: {error}"
     },
     "backup": {
-      "created": "✅ Backup created: {name}",
+      "created": "Backup created: {name}",
       "failed": "Backup failed: {error}",
       "rotated": "Rotated backup: {name}",
       "delete_error": "Error deleting old backup {name}: {error}",

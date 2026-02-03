@@ -110,7 +110,7 @@ def main() -> None:
         msg.exec()
 
         # Exit app with log
-        print(f"\n{t('logs.main.steam_running_exit')}")
+        print(f"\n{t('emoji.warning')} {t('logs.main.steam_running_exit')}")
         sys.exit(0)
 
     # 4. Startup logs

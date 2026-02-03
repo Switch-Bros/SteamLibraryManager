@@ -22,9 +22,6 @@
     "game_fallback": "Unbekannte App {id}",
     "confirm_exit": "Möchten Sie die Anwendung wirklich beenden?",
     "warning": "Warnung",
-    "time_hours": "{hours}h {minutes}m",
-    "time_minutes": "{minutes} Minuten",
-    "time_seconds": "{seconds} Sekunden",
     "dash": "-",
     "clear": "×"
   },
@@ -46,7 +43,7 @@
       "duplicates_removed": "{count} doppelte Kollektionen wurden entfernt!",
       "no_duplicates": "Keine doppelten Kollektionen gefunden!",
       "remove_duplicates_title": "Doppelte Kollektionen entfernen",
-      "remove_duplicates_confirm": "M\u00f6chten Sie wirklich nach doppelten Kollektionen suchen und diese automatisch entfernen?\n\nDieser Vorgang kann nicht r\u00fcckg\u00e4ngig gemacht werden!",
+      "remove_duplicates_confirm": "Möchten Sie wirklich nach doppelten Kollektionen suchen und diese automatisch entfernen?\n\nDieser Vorgang kann nicht rückgängig gemacht werden!",
       "create_collection_title": "Neue Kollektion erstellen",
       "create_collection_prompt": "Geben Sie den Namen der neuen Kollektion ein:",
       "collection_exists": "Eine Kollektion mit dem Namen '{name}' existiert bereits!",
@@ -529,12 +526,6 @@
     },
     "status": {
       "no_results": "Keine Bilder gefunden."
-    },
-    "badges": {
-      "nsfw": "18+",
-      "humor": "Humor",
-      "epilepsy": "Epilepsie",
-      "animated": "GIF"
     }
   },
   "logs": {
@@ -542,7 +533,7 @@
       "initializing": "Initialisiere...",
       "steam_found": "Steam gefunden in: {path}",
       "steam_not_found": "Steam-Installation nicht gefunden",
-      "steam_running_exit": "⚠️ Steam läuft - Anwendung wird beendet",
+      "steam_running_exit": "Steam läuft - Anwendung wird beendet",
       "psutil_missing": "Warnung: psutil nicht installiert",
       "file_load_error": "Fehler beim Laden der Datei {file}: {error}"
     },
@@ -581,7 +572,7 @@
       "delete_error": "Fehler beim Löschen des Bildes: {error}"
     },
     "backup": {
-      "created": "✅ Backup erstellt: {name}",
+      "created": "Backup erstellt: {name}",
       "failed": "Backup fehlgeschlagen: {error}",
       "rotated": "Backup rotiert: {name}",
       "delete_error": "Fehler beim Löschen des alten Backups {name}: {error}",
