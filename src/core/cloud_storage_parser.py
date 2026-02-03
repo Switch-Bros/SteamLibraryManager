@@ -103,6 +103,14 @@ class CloudStorageParser:
                          if not (len(item) == 2 and isinstance(item[1], dict) and
                                  item[1].get('key', '').startswith('user-collections.'))]
 
+            # Sanitize: 'added' must always be a list of ints.
+            # Migrated collections sometimes have 'added': 0 (a bare timestamp).
+            for collection in self.collections:
+                added = collection.get('added', collection.get('apps', []))
+                if not isinstance(added, list):
+                    collection['added'] = []
+                    collection.setdefault('apps', [])
+
             # Add our collections
             timestamp = int(time.time())
             for collection in self.collections:
@@ -164,6 +172,25 @@ class CloudStorageParser:
         """
         return [c.get('name', '') for c in self.collections if c.get('name')]
 
+    @staticmethod
+    def _to_app_id_int(app_id) -> int | None:
+        """Safely converts an app-id value to int.
+
+        Returns None when the value is empty, non-numeric, or otherwise
+        un-convertible.  This guards every ``int(app_id)`` call-site so
+        that corrupt or missing IDs never crash the parser.
+
+        Args:
+            app_id: Raw app-id (str, int, or anything else).
+
+        Returns:
+            The integer app-id, or None on failure.
+        """
+        try:
+            return int(app_id)
+        except (ValueError, TypeError):
+            return None
+
     def get_app_categories(self, app_id: str) -> List[str]:
         """
         Get categories for a specific app.
@@ -174,11 +201,16 @@ class CloudStorageParser:
         Returns:
             List of category names
         """
-        categories = []
-        app_id_int = int(app_id)
+        app_id_int: int | None = self._to_app_id_int(app_id)
+        if app_id_int is None:
+            return []
 
+        categories: list[str] = []
         for collection in self.collections:
             apps = collection.get('added', collection.get('apps', []))
+            # Guard: 'added' can be a bare timestamp int (0) in migrated data
+            if not isinstance(apps, list):
+                continue
             if app_id_int in apps:
                 categories.append(collection.get('name', ''))
 
@@ -192,11 +224,15 @@ class CloudStorageParser:
             app_id: Steam app ID
             categories: List of category names
         """
-        app_id_int = int(app_id)
+        app_id_int: int | None = self._to_app_id_int(app_id)
+        if app_id_int is None:
+            return  # silently skip invalid app IDs
 
         # Remove app from all collections
         for collection in self.collections:
             apps = collection.get('added', collection.get('apps', []))
+            if not isinstance(apps, list):
+                continue
             if app_id_int in apps:
                 apps.remove(app_id_int)
 
@@ -349,11 +385,15 @@ class CloudStorageParser:
         Returns:
             True if successful
         """
-        app_id_int = int(app_id)
-        removed = False
+        app_id_int: int | None = self._to_app_id_int(app_id)
+        if app_id_int is None:
+            return False
 
+        removed: bool = False
         for collection in self.collections:
             apps = collection.get('added', collection.get('apps', []))
+            if not isinstance(apps, list):
+                continue
             if app_id_int in apps:
                 apps.remove(app_id_int)
                 removed = True

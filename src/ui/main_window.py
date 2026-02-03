@@ -153,10 +153,6 @@ class MainWindow(QMainWindow):
         self.steam_username: Optional[str] = None
         self.current_search_query: str = ""  # Track active search
 
-        # Performance: Cache for _populate_categories
-        self._categories_cache: Optional[dict] = None
-        self._cache_invalidated: bool = True
-
         # Threads & Dialogs
         self.load_thread: Optional[GameLoadThread] = None
         self.store_check_thread: Optional[QThread] = None
@@ -546,17 +542,14 @@ class MainWindow(QMainWindow):
         return result
 
     def _populate_categories(self) -> None:
-        """Use cached data if available."""
-        if hasattr(self, "_categories_cache") and self._categories_cache and not getattr(self, "_cache_invalidated",
-                                                                                         True):
-            self.tree.populate_categories(self._categories_cache)
-            return
-
         """Refreshes the sidebar tree with current game data.
 
         Builds category data including All Games, Uncategorized, Hidden,
-        and user-defined categories. Hidden games are excluded from normal
+        and user-defined categories.  Hidden games are excluded from normal
         categories and shown only in the Hidden category.
+
+        No caching: the tree is cheap to rebuild (~50 ms for 2 500 games)
+        and a cache only adds invisible staleness bugs.
         """
         if not self.game_manager: return
 
@@ -590,11 +583,6 @@ class MainWindow(QMainWindow):
                                    key=lambda g: g.sort_name.lower())
                 if cat_games:  # Only add if there are visible games
                     categories_data[cat_name] = cat_games
-
-        # Store in cache
-        if hasattr(self, "_categories_cache"):
-            self._categories_cache = categories_data
-            self._cache_invalidated = False
 
         self.tree.populate_categories(categories_data)
 
@@ -779,10 +767,6 @@ class MainWindow(QMainWindow):
 
         if not games_to_update:
             return
-
-        # Invalidate cache
-        if hasattr(self, "_cache_invalidated"):
-            self._cache_invalidated = True
 
         # Apply category change to all games
         self._apply_category_to_games(games_to_update, category, checked)
