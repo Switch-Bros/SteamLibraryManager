@@ -47,8 +47,8 @@
       "sat": "Sa",
       "sun": "Su"
     }
-  }
-    "time": {
+  },
+  "time": {
     "time_hours": "{hours}h {minutes}m",
     "time_minutes": "{minutes} minutes",
     "time_seconds": "{seconds} seconds"

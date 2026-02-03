@@ -296,13 +296,13 @@ class ClickableImage(QWidget):
                 self.badges.append(lbl)
 
         if self.metadata.get('nsfw') or 'nsfw' in tags:
-            add_badge('nsfw', t('emoji.nsfw'), "#d9534f")
+            add_badge('nsfw', f"{t('emoji.nsfw')} {t('ui.badges.nsfw')}", "#d9534f")
         if self.metadata.get('humor') or 'humor' in tags:
-            add_badge('humor', t('emoji.humor'), "#f0ad4e")
+            add_badge('humor', f"{t('emoji.humor')} {t('ui.badges.humor')}", "#f0ad4e")
         if self.metadata.get('epilepsy') or 'epilepsy' in tags:
-            add_badge('epilepsy', t('emoji.epilepsy'), "#0275d8")
+            add_badge('epilepsy', f"{t('emoji.epilepsy')} {t('ui.badges.epilepsy')}", "#0275d8")
         if is_animated:
-            add_badge('animated', t('emoji.animated'), "#5cb85c")
+            add_badge('animated', f"{t('emoji.animated')} {t('ui.badges.animated')}", "#5cb85c")
 
     def _clear_badges(self):
         """Removes all current badges from the layout."""
