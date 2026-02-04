@@ -68,7 +68,7 @@ class StatusbarBuilder:
 
         # --- Reload button (right, permanent, hidden until needed) ---
         self.reload_btn = QPushButton(t('ui.menu.file.refresh'))
-        self.reload_btn.clicked.connect(mw.refresh_data)
+        self.reload_btn.clicked.connect(mw.file_actions.refresh_data)
         self.reload_btn.setMaximumWidth(150)
         self.reload_btn.hide()  # Only shown on load failure
         statusbar.addPermanentWidget(self.reload_btn)
