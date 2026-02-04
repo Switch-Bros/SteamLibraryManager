@@ -22,8 +22,7 @@
     "game_fallback": "Unbekannte App {id}",
     "confirm_exit": "Möchten Sie die Anwendung wirklich beenden?",
     "warning": "Warnung",
-    "dash": "-",
-    "clear": "×"
+    "dash": "-"
   },
   "ui": {
     "main_window": {

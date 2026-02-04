@@ -11,4 +11,9 @@ from src.ui.actions.file_actions import FileActions
 from src.ui.actions.edit_actions import EditActions
 from src.ui.actions.view_actions import ViewActions
 
-__all__ = ["FileActions"]
+# Export public classes
+__all__ = [
+    'FileActions',
+    'EditActions',
+    'ViewActions',
+]
