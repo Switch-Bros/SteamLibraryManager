@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING
 
 from src.ui.components.ui_helper import UIHelper
 from src.ui.vdf_merger_dialog import VdfMergerDialog
-from PyQt6.QtGui import QCloseEvent
 from src.utils.i18n import t
 
 if TYPE_CHECKING:
@@ -121,10 +120,16 @@ class FileActions:
             UIHelper.show_success(self.mw, t('ui.menu.file.no_duplicates_found'))
 
     def exit_application(self) -> None:
-        """Closes the main window with unsaved changes check."""
-        event = QCloseEvent()
-        self.mw.closeEvent(event)
-        if event.isAccepted():
+        """Closes the main window after user confirmation.
+
+        Always asks for confirmation before closing, then triggers closeEvent
+        which handles unsaved changes if present.
+        """
+        if UIHelper.confirm(
+            self.mw,
+            t('common.confirm_exit'),
+            t('ui.main_window.title')
+        ):
             self.mw.close()
 
     # ------------------------------------------------------------------
