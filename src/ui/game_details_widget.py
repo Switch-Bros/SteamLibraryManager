@@ -281,6 +281,7 @@ class GameDetailsWidget(QWidget):
         self.pegi_image = ClickableImage(self, 128, 128)
         self.pegi_image.set_default_image("resources/images/default_icons.png")
         self.pegi_image.clicked.connect(self._on_pegi_clicked)
+        self.pegi_image.right_clicked.connect(self._on_pegi_right_click)  # Connect right click
         self.pegi_image.setStyleSheet(
             "border: 1px solid #FDE100; "
             "background-color: #1b2838;"
@@ -612,7 +613,7 @@ class GameDetailsWidget(QWidget):
 
         # Check for PEGI first
         if hasattr(game, 'pegi_rating') and game.pegi_rating:
-            pegi_to_display = game.pegi_rating
+            pegi_to_display = str(game.pegi_rating).strip()
         # Fallback to ESRB if PEGI not available
         elif hasattr(game, 'esrb_rating') and game.esrb_rating:
             esrb = game.esrb_rating
@@ -694,6 +695,24 @@ class GameDetailsWidget(QWidget):
 
             # Emit signal to save override
             self.pegi_override_requested.emit(self.current_game.app_id, selected_rating)
+
+    def _on_pegi_right_click(self):
+        """Handle PEGI box right click - show context menu to reset."""
+        if not self.current_game:
+            return
+
+        menu = QMenu(self)
+        # Use existing key or fallback
+        reset_text = t('ui.pegi_selector.remove')
+        if reset_text.startswith("["):
+            reset_text = "Reset Rating"
+
+        reset_action = menu.addAction(reset_text)
+        action = menu.exec(QCursor.pos())
+
+        if action == reset_action:
+            # Emit signal to remove override (empty string)
+            self.pegi_override_requested.emit(self.current_game.app_id, "")
 
     def _on_category_toggle(self, category_name: str, checked: bool):
         """

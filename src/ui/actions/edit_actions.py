@@ -324,9 +324,13 @@ class EditActions:
                 if rating:
                     game.pegi_rating = rating
                 else:
-                    # Restore original
-                    orig = self.mw.appinfo_manager.modifications.get(app_id, {}).get('original', {})
-                    game.pegi_rating = orig.get('pegi_rating', '')
+                    # Restore original by re-fetching details
+                    # This re-applies data from store cache (including original PEGI)
+                    self.mw.game_manager.fetch_game_details(app_id)
+
+                    # Re-apply other overrides (name, dev, etc.) just in case
+                    if self.mw.appinfo_manager:
+                        self.mw.game_manager.apply_metadata_overrides(self.mw.appinfo_manager)
 
                 self.mw.on_game_selected(game)
 
