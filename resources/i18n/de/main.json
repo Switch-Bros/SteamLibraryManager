@@ -69,7 +69,10 @@
       "remove_duplicates": "Doppelte Kollektionen entfernen",
       "detect_steam": "Steam-Pfad neu erkennen",
         "switch_user": "Benutzer wechseln",
-        "exit": "Beenden"
+        "exit": "Beenden",
+      "save_success": "Kollektionen erfolgreich gespeichert!",
+      "no_duplicates_found": "Keine doppelten Kollektionen gefunden.",
+      "duplicates_removed": "{count} doppelte Kollektionen entfernt."  
       },
       "edit": {
         "root": "Bearbeiten",

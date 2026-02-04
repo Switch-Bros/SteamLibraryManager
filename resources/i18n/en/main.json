@@ -69,7 +69,10 @@
       "remove_duplicates": "Remove Duplicate Collections",
       "detect_steam": "Redetect Steam Path",
         "switch_user": "Switch User",
-        "exit": "Exit"
+        "exit": "Exit",
+      "save_success": "Collections saved successfully!",
+      "no_duplicates_found": "No duplicate collections found.",
+      "duplicates_removed": "Removed {count} duplicate collections."
       },
       "edit": {
         "root": "Edit",
