@@ -5,6 +5,7 @@ Builder for the main application toolbar.
 
 Extracts the toolbar construction and refresh logic.
 The toolbar is rebuilt on login/logout so the builder exposes a build() method.
+Handles strict I18N compliance by pulling both text and icons/emojis from locales.
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ from typing import TYPE_CHECKING
 
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtWidgets import QToolBar, QWidget, QSizePolicy
+from PyQt6.QtCore import Qt
 
 from src.config import config
 from src.ui.components.ui_helper import UIHelper
@@ -51,7 +53,8 @@ class ToolbarBuilder:
         Populates (or re-populates) a QToolBar with current actions.
 
         Clears the toolbar first so it can be called on every auth-state change
-        without duplicating actions.
+        without duplicating actions. Enforces 'Icon + Text' style by explicitly
+        setting the tool button style.
 
         Args:
             toolbar: The QToolBar instance to populate.
@@ -59,38 +62,42 @@ class ToolbarBuilder:
         toolbar.clear()
         toolbar.setMovable(False)
         toolbar.setFloatable(False)
+        # Ensure text is shown alongside icons/emojis
+        toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
 
         mw = self.main_window
 
         # --- Always-visible actions ---
 
-        # Refresh
-        refresh_action = QAction("⟳", mw)
+        # Refresh: [Emoji] [Text]
+        refresh_text = f"{t('emoji.refresh')} {t('ui.menu.file.refresh')}"
+        refresh_action = QAction(refresh_text, mw)
         refresh_action.setToolTip(t('ui.menu.file.refresh'))
         refresh_action.triggered.connect(mw.file_actions.refresh_data)
         toolbar.addAction(refresh_action)
 
-        # Save
-        save_action = QAction("💾", mw)
+        # Save: [Emoji] [Text]
+        save_text = f"{t('emoji.save')} {t('ui.menu.file.save')}"
+        save_action = QAction(save_text, mw)
         save_action.setToolTip(t('ui.menu.file.save'))
         save_action.triggered.connect(mw.file_actions.force_save)
         toolbar.addAction(save_action)
 
         toolbar.addSeparator()
 
-        # --- Edit Actions (Fixed: redirects to edit_actions) ---
+        # --- Edit Actions ---
 
-        # Auto Categorize
-        auto_cat_action = QAction("⚡", mw)
+        # Auto Categorize: [Emoji] [Text]
+        auto_text = f"{t('emoji.auto')} {t('ui.menu.edit.auto_categorize')}"
+        auto_cat_action = QAction(auto_text, mw)
         auto_cat_action.setToolTip(t('ui.menu.edit.auto_categorize'))
-        # FIX: Was mw.auto_categorize, now mw.edit_actions.auto_categorize
         auto_cat_action.triggered.connect(mw.edit_actions.auto_categorize)
         toolbar.addAction(auto_cat_action)
 
-        # Bulk Edit
-        bulk_edit_action = QAction("✏️", mw)
+        # Bulk Edit: [Emoji] [Text]
+        edit_text = f"{t('emoji.edit')} {t('ui.menu.edit.bulk_edit')}"
+        bulk_edit_action = QAction(edit_text, mw)
         bulk_edit_action.setToolTip(t('ui.menu.edit.bulk_edit'))
-        # FIX: Was mw.bulk_edit_metadata, now mw.edit_actions.bulk_edit_metadata
         bulk_edit_action.triggered.connect(mw.edit_actions.bulk_edit_metadata)
         toolbar.addAction(bulk_edit_action)
 
@@ -98,8 +105,9 @@ class ToolbarBuilder:
 
         # --- Tools ---
 
-        # Missing Metadata
-        missing_meta_action = QAction("🔍", mw)
+        # Missing Metadata: [Emoji] [Text] (Using 'search' emoji as placeholder)
+        search_text = f"{t('emoji.search')} {t('ui.menu.tools.missing_meta')}"
+        missing_meta_action = QAction(search_text, mw)
         missing_meta_action.setToolTip(t('ui.menu.tools.missing_meta'))
         missing_meta_action.triggered.connect(mw.find_missing_metadata)
         toolbar.addAction(missing_meta_action)
@@ -109,7 +117,9 @@ class ToolbarBuilder:
         spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         toolbar.addWidget(spacer)
 
-        settings_action = QAction("⚙️", mw)
+        # Settings: [Emoji] [Text]
+        settings_text = f"{t('emoji.settings')} {t('ui.settings.title')}"
+        settings_action = QAction(settings_text, mw)
         settings_action.setToolTip(t('ui.settings.title'))
         settings_action.triggered.connect(mw.show_settings)
         toolbar.addAction(settings_action)
@@ -134,18 +144,21 @@ class ToolbarBuilder:
             toolbar: The toolbar to add the action to.
         """
         mw = self.main_window
-        user_action = QAction(mw.steam_username, mw)
 
-        # Localized tooltip
-        tooltip: str = t('ui.login.logged_in_as', user=mw.steam_username)
-        user_action.setToolTip(tooltip)
+        # Display: [User Emoji] [Username]
+        action_text = f"{t('emoji.user')} {mw.steam_username}"
+        user_action = QAction(action_text, mw)
 
-        # Show tooltip text in an info popup when clicked
+        # Localized tooltip using t()
+        tooltip_text = t('ui.login.logged_in_as', user=mw.steam_username)
+        user_action.setToolTip(tooltip_text)
+
+        # Show info on click
         user_action.triggered.connect(
-            lambda: UIHelper.show_success(mw, tooltip, "Steam")
+            lambda: UIHelper.show_success(mw, tooltip_text, "Steam")
         )
 
-        # Steam login icon (shared with the login button)
+        # Steam login icon (if available, set as QIcon alongside text)
         icon_path = config.ICONS_DIR / 'steam_login.png'
         if icon_path.exists():
             user_action.setIcon(QIcon(str(icon_path)))
@@ -160,7 +173,11 @@ class ToolbarBuilder:
             toolbar: The toolbar to add the action to.
         """
         mw = self.main_window
-        login_action = QAction(t('ui.login.button'), mw)
+
+        # Display: [Login Emoji] [Login Text]
+        action_text = f"{t('emoji.login')} {t('ui.login.button')}"
+        login_action = QAction(action_text, mw)
+        login_action.setToolTip(t('ui.login.button'))
 
         icon_path = config.ICONS_DIR / 'steam_login.png'
         if icon_path.exists():
