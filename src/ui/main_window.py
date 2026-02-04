@@ -36,6 +36,7 @@ from src.core.steam_auth import SteamAuthManager
 from src.integrations.steam_store import SteamStoreScraper
 from src.services.game_service import GameService
 from src.services.asset_service import AssetService
+from src.services.search_service import SearchService  # <--- NEW
 
 from src.ui.missing_metadata_dialog import MissingMetadataDialog
 from src.ui.settings_dialog import SettingsDialog
@@ -49,9 +50,8 @@ from src.utils.i18n import t, init_i18n
 from src.ui.builders import MenuBuilder, ToolbarBuilder, StatusbarBuilder
 from src.ui.handlers import CategoryActionHandler
 
-from src.ui.actions import FileActions
+from src.ui.actions import FileActions, ViewActions  # <--- UPDATED
 from src.ui.actions.edit_actions import EditActions
-
 
 class GameLoadThread(QThread):
     """Background thread for loading games without blocking the UI.
@@ -135,6 +135,9 @@ class MainWindow(QMainWindow):
         self.autocategorize_service: Optional['AutoCategorizeService'] = None  # Initialized after category_service
         self.game_service: Optional[GameService] = None  # Initialized in _load_data
         self.asset_service = AssetService()  # Initialize immediately
+        
+        # NEW: Initialize SearchService
+        self.search_service = SearchService() 
 
         # Auth Manager
         self.auth_manager = SteamAuthManager()
@@ -160,6 +163,7 @@ class MainWindow(QMainWindow):
 
         self.file_actions = FileActions(self)
         self.edit_actions = EditActions(self)
+        self.view_actions = ViewActions(self)  # <--- NEW
 
         # UI Action Handlers (extracted category / context-menu logic)
         self.category_handler: CategoryActionHandler = CategoryActionHandler(self)
@@ -202,12 +206,12 @@ class MainWindow(QMainWindow):
         self.search_entry = QLineEdit()
         self.search_entry.setPlaceholderText(t('ui.main_window.search_placeholder'))
         # noinspection PyUnresolvedReferences
-        self.search_entry.textChanged.connect(self.on_search)
+        self.search_entry.textChanged.connect(self.view_actions.on_search)  # <--- UPDATED
         search_layout.addWidget(self.search_entry)
 
         clear_btn = QPushButton(t('common.clear'))
         # noinspection PyUnresolvedReferences
-        clear_btn.clicked.connect(self.clear_search)
+        clear_btn.clicked.connect(self.view_actions.clear_search)  # <--- UPDATED
         clear_btn.setMaximumWidth(30)
         search_layout.addWidget(clear_btn)
         left_layout.addLayout(search_layout)
@@ -216,15 +220,14 @@ class MainWindow(QMainWindow):
         btn_layout = QHBoxLayout()
         expand_btn = QPushButton(f"▼ {t('ui.menu.view.expand_all')}")
         # noinspection PyUnresolvedReferences
-        expand_btn.clicked.connect(lambda: self.tree.expandAll())
+        expand_btn.clicked.connect(self.view_actions.expand_all)  # <--- UPDATED
         btn_layout.addWidget(expand_btn)
 
         collapse_btn = QPushButton(f"▲ {t('ui.menu.view.collapse_all')}")
         # noinspection PyUnresolvedReferences
-        collapse_btn.clicked.connect(lambda: self.tree.collapseAll())
+        collapse_btn.clicked.connect(self.view_actions.collapse_all)  # <--- UPDATED
         btn_layout.addWidget(collapse_btn)
-        left_layout.addLayout(btn_layout)
-
+        
         # Tree Widget
         self.tree = GameTreeWidget()
         # noinspection PyUnresolvedReferences,DuplicatedCode
@@ -776,10 +779,10 @@ class MainWindow(QMainWindow):
 
         # Save the current selection before refreshing
         selected_app_ids = [game.app_id for game in self.selected_games]
-
+        
         # If search is active, re-run the search instead of showing all categories
         if self.current_search_query:
-            self.on_search(self.current_search_query)
+            self.view_actions.on_search(self.current_search_query)  # <--- UPDATED
         else:
             self._populate_categories()
 
@@ -824,7 +827,7 @@ class MainWindow(QMainWindow):
 
         # Refresh the tree - maintain search if active
         if self.current_search_query:
-            self.on_search(self.current_search_query)
+            self.view_actions.on_search(self.current_search_query)  # <--- UPDATED
         else:
             self._populate_categories()
 
@@ -924,36 +927,6 @@ class MainWindow(QMainWindow):
             # Steam Support URL for removing a game (issueid 123 is "remove from account")
             url = f"https://help.steampowered.com/en/wizard/HelpWithGameIssue/?appid={game.app_id}&issueid=123"
             webbrowser.open(url)
-
-    def on_search(self, query: str) -> None:
-        """Filters the game tree based on search query.
-
-        Args:
-            query: The search string to filter games by name.
-        """
-        self.current_search_query = query  # Save current search
-
-        if not query:
-            self._populate_categories()
-            return
-        if not self.game_manager: return
-        results = [g for g in self.game_manager.get_real_games() if query.lower() in g.name.lower()]
-
-        if results:
-            cat_name = t('ui.search.results_category', count=len(results))
-            sorted_results = sorted(results, key=lambda g: g.name.lower())
-            self.tree.populate_categories({cat_name: sorted_results})
-            self.tree.expandAll()
-            self.set_status(t('ui.search.status_found', count=len(results)))
-        else:
-            self.tree.clear()
-            self.set_status(t('ui.search.status_none'))
-
-    def clear_search(self) -> None:
-        """Clears the search field and restores the full category view."""
-        self.current_search_query = ""  # Clear search state
-        self.search_entry.clear()
-        self._populate_categories()
 
     def toggle_favorite(self, game: Game) -> None:
         """Toggles the favorite status of a game.
