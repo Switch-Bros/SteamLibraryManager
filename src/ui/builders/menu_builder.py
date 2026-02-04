@@ -77,29 +77,29 @@ class MenuBuilder:
 
         # Refresh
         refresh_action = QAction(t('ui.menu.file.refresh'), mw)
-        refresh_action.triggered.connect(mw.refresh_data)
+        refresh_action.triggered.connect(mw.file_actions.refresh_data)
         file_menu.addAction(refresh_action)
 
         # Save
         save_action = QAction(t('ui.menu.file.save'), mw)
-        save_action.triggered.connect(mw.force_save)
+        save_action.triggered.connect(mw.file_actions.force_save)
         file_menu.addAction(save_action)
 
         # Steam VDF Merge
         vdf_merge_action = QAction(t('ui.menu.file.steam_vdf_merge'), mw)
-        vdf_merge_action.triggered.connect(mw._show_vdf_merger)
+        vdf_merge_action.triggered.connect(mw.file_actions.show_vdf_merger)
         file_menu.addAction(vdf_merge_action)
 
         # Remove duplicate collections
         remove_dupes_action = QAction(t('ui.menu.file.remove_duplicates'), mw)
-        remove_dupes_action.triggered.connect(mw.remove_duplicate_collections)
+        remove_dupes_action.triggered.connect(mw.file_actions.remove_duplicate_collections)
         file_menu.addAction(remove_dupes_action)
 
         file_menu.addSeparator()
 
         # Exit
         exit_action = QAction(t('ui.menu.file.exit'), mw)
-        exit_action.triggered.connect(mw.close)
+        exit_action.triggered.connect(mw.file_actions.exit_application)
         file_menu.addAction(exit_action)
 
     def _build_edit_menu(self, menubar: QMenuBar) -> None:

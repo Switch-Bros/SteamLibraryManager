@@ -46,7 +46,6 @@ from src.ui.metadata_dialogs import (
 )
 from src.ui.missing_metadata_dialog import MissingMetadataDialog
 from src.ui.settings_dialog import SettingsDialog
-from src.ui.vdf_merger_dialog import VdfMergerDialog
 
 # Components
 from src.ui.game_details_widget import GameDetailsWidget
@@ -56,6 +55,8 @@ from src.ui.components.ui_helper import UIHelper
 from src.utils.i18n import t, init_i18n
 from src.ui.builders import MenuBuilder, ToolbarBuilder, StatusbarBuilder
 from src.ui.handlers import CategoryActionHandler
+
+from src.ui.actions import FileActions
 
 
 class GameLoadThread(QThread):
@@ -162,6 +163,8 @@ class MainWindow(QMainWindow):
         self.menu_builder: MenuBuilder = MenuBuilder(self)
         self.toolbar_builder: ToolbarBuilder = ToolbarBuilder(self)
         self.statusbar_builder: StatusbarBuilder = StatusbarBuilder(self)
+
+        self.file_actions = FileActions(self)
 
         # UI Action Handlers (extracted category / context-menu logic)
         self.category_handler: CategoryActionHandler = CategoryActionHandler(self)
@@ -339,17 +342,6 @@ class MainWindow(QMainWindow):
         UIHelper.show_error(self, error)
 
     # --- Main Logic ---
-
-    def force_save(self) -> None:
-        """Manually saves the VDF configuration to disk.
-
-        Shows success status or error dialog based on save result.
-        """
-        if self.vdf_parser:
-            if self._save_collections():
-                self.set_status(t('common.success'))
-            else:
-                UIHelper.show_error(self, t('logs.config.save_error', error="Unknown"))
 
     def show_about(self) -> None:
         """Shows the About dialog with application information."""
@@ -1075,10 +1067,6 @@ class MainWindow(QMainWindow):
         self.store_check_thread.finished.connect(on_check_finished)
         self.store_check_thread.start()
 
-    def remove_duplicate_collections(self) -> None:
-        """Removes duplicate collections. Delegated to CategoryActionHandler."""
-        self.category_handler.remove_duplicate_collections()
-
     def create_new_collection(self) -> None:
         """Creates a new empty collection. Delegated to CategoryActionHandler."""
         self.category_handler.create_new_collection()
@@ -1417,18 +1405,9 @@ class MainWindow(QMainWindow):
                 restored = self.metadata_service.restore_modifications()
                 if restored > 0:
                     UIHelper.show_success(self, t('ui.metadata_editor.restored_count', count=restored))
-                    self.refresh_data()
+                    self.file_actions.refresh_data()
             except Exception as e:
                 UIHelper.show_error(self, str(e))
-
-    def refresh_data(self) -> None:
-        """Reloads all game data from scratch."""
-        self._load_data()
-
-    def _show_vdf_merger(self) -> None:
-        """Opens the VDF merger dialog for transferring categories between platforms."""
-        dialog = VdfMergerDialog(self)
-        dialog.exec()
 
     def show_settings(self) -> None:
         """Opens the settings dialog."""

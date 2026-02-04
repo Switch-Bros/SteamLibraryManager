@@ -59,7 +59,7 @@ class ToolbarBuilder:
         mw = self.main_window
 
         # --- Always-visible actions ---
-        toolbar.addAction(t('ui.menu.file.refresh'), mw.refresh_data)
+        toolbar.addAction(t('ui.menu.file.refresh'), mw.file_actions.refresh_data)
         toolbar.addAction(t('ui.menu.edit.auto_categorize'), mw.auto_categorize)
         toolbar.addSeparator()
         toolbar.addAction(t('ui.settings.title'), mw.show_settings)
@@ -113,5 +113,6 @@ class ToolbarBuilder:
         if icon_path.exists():
             login_action.setIcon(QIcon(str(icon_path)))
 
+        # noinspection PyProtectedMember
         login_action.triggered.connect(mw._start_steam_login)
         toolbar.addAction(login_action)
