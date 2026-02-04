@@ -8,5 +8,4 @@ data/
 .vscode/
 resources/icons/Icon_Namen.txt
 /cleanup_dependencies_dev.sh
-
-/Finaler_Refactoring_Plan.md
+/RefactoringPlan.md
