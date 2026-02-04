@@ -113,12 +113,12 @@ class MenuBuilder:
 
         # Bulk Edit
         bulk_edit_action = QAction(t('ui.menu.edit.bulk_edit'), mw)
-        bulk_edit_action.triggered.connect(mw.bulk_edit_metadata)
+        bulk_edit_action.triggered.connect(mw.edit_actions.bulk_edit_metadata)
         edit_menu.addAction(bulk_edit_action)
 
         # Auto-Categorize
         auto_cat_action = QAction(t('ui.menu.edit.auto_categorize'), mw)
-        auto_cat_action.triggered.connect(mw.auto_categorize)
+        auto_cat_action.triggered.connect(mw.edit_actions.auto_categorize)
         edit_menu.addAction(auto_cat_action)
 
     def _build_settings_menu(self, menubar: QMenuBar) -> None:
@@ -143,7 +143,7 @@ class MenuBuilder:
 
         # Restore Metadata – uses import_json key as placeholder (see note above)
         restore_action = QAction(t('ui.menu.file.import_json'), mw)
-        restore_action.triggered.connect(mw.restore_metadata_changes)
+        restore_action.triggered.connect(mw.edit_actions.restore_metadata_changes)
         settings_menu.addAction(restore_action)
 
     def _build_tools_menu(self, menubar: QMenuBar) -> None:
