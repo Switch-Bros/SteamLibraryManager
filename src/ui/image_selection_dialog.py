@@ -268,13 +268,22 @@ class ImageSelectionDialog(QDialog):
 
         row, col = 0, 0
         for item in items:
-            # Container IMMER gleiche Höhe
+            # Container fixed size
             container = QWidget()
             container.setFixedSize(w, h + 45)
 
-            tags = item.get('tags', [])
-            mime = item.get('mime', '')
-            is_animated = 'webp' in mime or 'gif' in mime or 'animated' in tags
+            # FIX: Use 'tag' instead of 't' to avoid shadowing the global translation function
+            tags = [tag.lower() for tag in item.get('tags', [])]
+            mime = item.get('mime', '').lower()
+
+            # Check for APNG: often labeled as 'image/png' but has 'animated' tag
+            # We treat it as animated if it has the tag, so we load the FULL URL later.
+            is_animated = (
+                    'webp' in mime or
+                    'gif' in mime or
+                    ('png' in mime and 'animated' in tags) or
+                    'animated' in tags
+            )
 
             badge_info = []
             if item.get('nsfw') or 'nsfw' in tags:
@@ -363,7 +372,11 @@ class ImageSelectionDialog(QDialog):
                 container.leaveEvent = leave_handler
 
             # Load
-            load_url = item['thumb'] if not is_animated else item['url']
+            # APNG detection: Check if PNG + animated tag
+            is_apng = 'png' in mime and 'animated' in tags
+            # For APNG, always use full URL (thumbnails are compressed JPEGs)
+            load_url = item['url'] if (is_animated or is_apng) else item['thumb']
+
             img_widget.load_image(load_url)
             img_widget.mousePressEvent = lambda e, u=item['url']: self._on_select(u)
 

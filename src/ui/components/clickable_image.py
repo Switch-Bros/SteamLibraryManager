@@ -200,6 +200,28 @@ class ClickableImage(QWidget):
         if not self.current_path:
             self._load_local_image(path)
 
+    @staticmethod
+    def _is_animated_pillow(im) -> bool:
+        """Checks if a Pillow image is animated (APNG, GIF, WEBP) using seek fallback.
+
+        Args:
+            im: The Pillow Image object.
+
+        Returns:
+            bool: True if animated, False otherwise.
+        """
+        # 1. Standard check (GIF, WEBP often set this)
+        if getattr(im, "is_animated", False):
+            return True
+
+        # 2. Fallback check (APNG detection via seeking)
+        try:
+            im.seek(1)  # Try to go to 2nd frame
+            im.seek(0)  # Reset to 1st frame
+            return True
+        except (EOFError, ValueError):
+            return False
+
     def load_image(self, url_or_path: str | None, metadata: dict = None):
         """Starts loading an image from a URL or local path.
 
@@ -234,45 +256,76 @@ class ClickableImage(QWidget):
         self.loader.start()
 
     def _on_loaded(self, data: QByteArray):
-        """Handles the loaded image data, parsing it with Pillow if available."""
+        """Handles the loaded image data, parsing it with Pillow if available.
+
+        Robust handling for animations (APNG, WEBP, GIF) and fallback to Qt
+        to avoid red crosses or crashes.
+        """
         if data.isEmpty():
             if self.default_image:
                 self._load_local_image(self.default_image)
             else:
-                # Use centralised error emoji — image_load_error key removed
                 self.image_label.setText(t('emoji.error'))
             return
 
+        # 1. Attempt to load with Pillow (for Animations)
         if HAS_PILLOW:
             try:
-                img_data = io.BytesIO(data.data())
+                # Keep bytes alive!
+                raw_bytes = data.data()
+                img_data = io.BytesIO(raw_bytes)
                 im = Image.open(img_data)
-                is_animated = getattr(im, "is_animated", False)
 
-                if is_animated:
+                # Use the static helper method (fixes 'static' warning)
+                if self._is_animated_pillow(im):
                     self.frames = []
                     self.durations = []
+
                     for frame in ImageSequence.Iterator(im):
+                        # Ensure RGBA mode
                         frame = frame.convert("RGBA")
-                        qim = QImage(frame.tobytes("raw", "RGBA"), frame.width, frame.height,
-                                     QImage.Format.Format_RGBA8888)
+
+                        # Save bytes to variable (Fixes garbage collection issue)
+                        img_bytes = frame.tobytes("raw", "RGBA")
+
+                        qim = QImage(
+                            img_bytes,
+                            frame.width,
+                            frame.height,
+                            QImage.Format.Format_RGBA8888
+                        )
+
                         self.frames.append(QPixmap.fromImage(qim))
                         self.durations.append(frame.info.get('duration', 100))
+
                     if self.frames:
                         self._start_animation()
                         self._create_badges(is_animated=True)
                         return
                 else:
+                    # Static image via Pillow
                     im = im.convert("RGBA")
-                    qimg = QImage(im.tobytes("raw", "RGBA"), im.width, im.height, QImage.Format.Format_RGBA8888)
-                    self._apply_pixmap(QPixmap.fromImage(qimg))
+                    # CRITICAL FIX: Save bytes here too!
+                    img_bytes = im.tobytes("raw", "RGBA")
+
+                    qim = QImage(
+                        img_bytes,
+                        im.width,
+                        im.height,
+                        QImage.Format.Format_RGBA8888
+                    )
+                    self._apply_pixmap(QPixmap.fromImage(qim))
                     self._create_badges(is_animated=False)
                     return
-            except (IOError, ValueError):
-                pass  # Fallback to standard QPixmap loading
 
+            # Fix: Catch specific exceptions (Fixes 'Too broad exception clause')
+            except (IOError, ValueError, TypeError, EOFError) as e:
+                print(f"[ClickableImage] Pillow load failed (fallback to Qt): {e}")
+
+        # 2. Fallback: Standard Qt Loading
         pixmap = QPixmap()
         pixmap.loadFromData(data)
+
         if not pixmap.isNull():
             self._apply_pixmap(pixmap)
             self._create_badges(is_animated=False)
