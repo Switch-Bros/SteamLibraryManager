@@ -8,5 +8,7 @@ and are designed to extract action logic from the monolithic main_window.py.
 """
 
 from src.ui.actions.file_actions import FileActions
+from src.ui.actions.edit_actions import EditActions
+from src.ui.actions.view_actions import ViewActions
 
 __all__ = ["FileActions"]
