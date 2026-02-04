@@ -37,13 +37,6 @@ from src.integrations.steam_store import SteamStoreScraper
 from src.services.game_service import GameService
 from src.services.asset_service import AssetService
 
-# Dialogs
-from src.ui.auto_categorize_dialog import AutoCategorizeDialog
-from src.ui.metadata_dialogs import (
-    MetadataEditDialog,
-    BulkMetadataEditDialog,
-    MetadataRestoreDialog
-)
 from src.ui.missing_metadata_dialog import MissingMetadataDialog
 from src.ui.settings_dialog import SettingsDialog
 
@@ -57,6 +50,7 @@ from src.ui.builders import MenuBuilder, ToolbarBuilder, StatusbarBuilder
 from src.ui.handlers import CategoryActionHandler
 
 from src.ui.actions import FileActions
+from src.ui.actions.edit_actions import EditActions
 
 
 class GameLoadThread(QThread):
@@ -165,6 +159,7 @@ class MainWindow(QMainWindow):
         self.statusbar_builder: StatusbarBuilder = StatusbarBuilder(self)
 
         self.file_actions = FileActions(self)
+        self.edit_actions = EditActions(self)
 
         # UI Action Handlers (extracted category / context-menu logic)
         self.category_handler: CategoryActionHandler = CategoryActionHandler(self)
@@ -251,9 +246,9 @@ class MainWindow(QMainWindow):
         # noinspection PyUnresolvedReferences
         self.details_widget.category_changed.connect(self._on_category_changed_from_details)
         # noinspection PyUnresolvedReferences
-        self.details_widget.edit_metadata.connect(self.edit_game_metadata)
+        self.details_widget.edit_metadata.connect(self.edit_actions.edit_game_metadata)
         # noinspection PyUnresolvedReferences
-        self.details_widget.pegi_override_requested.connect(self._on_pegi_override_requested)
+        self.details_widget.pegi_override_requested.connect(self.edit_actions.on_pegi_override_requested)
         splitter.addWidget(self.details_widget)
 
         splitter.setSizes([350, 1050])
@@ -1103,279 +1098,6 @@ class MainWindow(QMainWindow):
         """
         self.category_handler.merge_categories(categories)
 
-    def auto_categorize(self) -> None:
-        """Opens the auto-categorize dialog for selected or uncategorized games."""
-        if self.selected_games:
-            self._show_auto_categorize_dialog(self.selected_games, None)
-        else:
-            self._show_auto_categorize_dialog(self.game_manager.get_uncategorized_games(), None)
-
-    def auto_categorize_selected(self) -> None:
-        """Opens the auto-categorize dialog for currently selected games."""
-        if self.selected_games: self._show_auto_categorize_dialog(self.selected_games, None)
-
-    def auto_categorize_single(self, game: Game) -> None:
-        """Opens the auto-categorize dialog for a single game.
-
-        Args:
-            game: The game to auto-categorize.
-        """
-        self._show_auto_categorize_dialog([game], None)
-
-    def auto_categorize_category(self, category: str) -> None:
-        """Opens the auto-categorize dialog for games in a specific category.
-
-        Args:
-            category: The category name to auto-categorize.
-        """
-        if category == t('ui.categories.all_games'):
-            self._show_auto_categorize_dialog(self.game_manager.get_real_games(), category)
-        elif category == t('ui.categories.uncategorized'):
-            self._show_auto_categorize_dialog(self.game_manager.get_uncategorized_games(), category)
-        else:
-            self._show_auto_categorize_dialog(self.game_manager.get_games_by_category(category), category)
-
-    def _show_auto_categorize_dialog(self, games: List[Game], category_name: Optional[str]) -> None:
-        """Shows the auto-categorize dialog with the specified games.
-
-        Args:
-            games: List of games to potentially categorize.
-            category_name: Optional name of the source category.
-        """
-        self.dialog_games = games
-        if not self.game_manager:
-            return
-
-        # Create dialog with callback that checks cache BEFORE closing
-        dialog = AutoCategorizeDialog(
-            self,
-            games,
-            len(self.game_manager.games),
-            lambda settings: self._check_and_start(settings, dialog),
-            category_name
-        )
-        dialog.exec()
-
-    def _check_and_start(self, settings: dict, dialog: 'AutoCategorizeDialog') -> None:
-        """
-        Check cache coverage before starting auto-categorization.
-
-        This method is called when user clicks "Start" in the dialog.
-        Dialog stays open until cache check is complete.
-
-        Args:
-            settings: Auto-categorize settings from dialog.
-            dialog: The AutoCategorizeDialog instance (to close it later).
-        """
-        # Check if tags method is selected
-        if 'tags' not in settings.get('methods', []):
-            # No tags, no cache check needed
-            dialog.accept()
-            self._do_auto_categorize(settings)
-            return
-
-        # Tags selected - check cache coverage
-        if not self.steam_scraper or not self.game_manager:
-            dialog.accept()
-            self._do_auto_categorize(settings)
-            return
-
-        # Get the RIGHT games based on user's choice!
-        if settings['scope'] == 'all':
-            actual_games = self.game_manager.get_real_games()
-        else:
-            actual_games = self.dialog_games
-
-        # Check cache coverage with ACTUAL games using AutoCategorizeService
-        coverage = self.autocategorize_service.get_cache_coverage(actual_games)
-
-        # If more than 50% is cached, no warning needed
-        if coverage['percentage'] >= 50:
-            dialog.accept()
-            self._do_auto_categorize(settings)
-            return
-
-        # Low cache coverage - show warning
-        missing = coverage['missing']
-        time_str = self.autocategorize_service.estimate_time(missing)
-
-        # Show warning dialog (ON TOP of AutoCategorizeDialog)
-        msg_box = QMessageBox(self)
-        msg_box.setIcon(QMessageBox.Icon.Warning)
-        msg_box.setWindowTitle(t('ui.auto_categorize.cache_warning_title'))
-        msg_box.setText(t('ui.auto_categorize.cache_warning_message',
-                          cached=coverage['cached'],
-                          total=coverage['total'],
-                          time=time_str))
-
-        # Custom buttons
-        yes_button = msg_box.addButton(t('common.yes'), QMessageBox.ButtonRole.YesRole)
-        no_button = msg_box.addButton(t('common.no'), QMessageBox.ButtonRole.NoRole)
-        msg_box.setDefaultButton(no_button)
-
-        msg_box.exec()
-
-        if msg_box.clickedButton() == yes_button:
-            # User wants to continue
-            dialog.accept()
-            self._do_auto_categorize(settings)
-        # else: User cancelled - dialog stays open
-
-    def _do_auto_categorize(self, settings: dict) -> None:
-        """Executes the auto-categorization process with the given settings.
-
-        Args:
-            settings: Dictionary containing scope, methods, and tags_count options.
-        """
-        if not settings or not self.vdf_parser: return
-
-        games = self.game_manager.get_real_games() if settings['scope'] == 'all' else self.dialog_games
-        methods = settings['methods']
-
-        progress = QProgressDialog(
-            t('ui.auto_categorize.processing', current=0, total=len(games)),
-            t('common.cancel'), 0, len(methods) * len(games), self
-        )
-        progress.setWindowModality(Qt.WindowModality.WindowModal)
-
-        step = 0
-        for method in methods:
-            if progress.wasCanceled():
-                break
-
-            if method == 'tags':
-                # Progress callback for tags
-                def tags_progress(index, name):
-                    if progress.wasCanceled():
-                        return
-                    progress.setValue(step + index)
-                    if index % 10 == 0:
-                        progress.setLabelText(t('ui.auto_categorize.status_tags', game=name[:30]))
-                    QApplication.processEvents()
-
-                self.autocategorize_service.categorize_by_tags(
-                    games,
-                    tags_count=settings['tags_count'],
-                    progress_callback=tags_progress
-                )
-                step += len(games)
-
-            elif method == 'publisher':
-                for i in range(len(games)):
-                    if progress.wasCanceled():
-                        break
-                    progress.setValue(step + i)
-                self.autocategorize_service.categorize_by_publisher(games)
-                step += len(games)
-
-            elif method == 'franchise':
-                for i in range(len(games)):
-                    if progress.wasCanceled():
-                        break
-                    progress.setValue(step + i)
-                self.autocategorize_service.categorize_by_franchise(games)
-                step += len(games)
-
-            elif method == 'genre':
-                for i in range(len(games)):
-                    if progress.wasCanceled():
-                        break
-                    progress.setValue(step + i)
-                self.autocategorize_service.categorize_by_genre(games)
-                step += len(games)
-
-        self._save_collections()
-        progress.close()
-        self._populate_categories()
-        UIHelper.show_success(self, t('common.success'))
-
-    def _on_pegi_override_requested(self, app_id: str, rating: str) -> None:
-        """Handle PEGI override request from details widget.
-
-        Args:
-            app_id: The app ID of the game.
-            rating: The selected PEGI rating (e.g., "18") or empty string to remove override.
-        """
-        if not self.appinfo_manager:
-            return
-
-        # Save override
-        if rating:  # Set override
-            self.appinfo_manager.set_app_metadata(app_id, {'pegi_rating': rating})
-            self.appinfo_manager.save_appinfo()
-            UIHelper.show_success(self, t('ui.pegi_selector.saved', rating=rating))
-        else:  # Remove override
-            if app_id in self.appinfo_manager.modifications:
-                if 'pegi_rating' in self.appinfo_manager.modifications[app_id].get('modified', {}):
-                    del self.appinfo_manager.modifications[app_id]['modified']['pegi_rating']
-                    self.appinfo_manager.save_appinfo()
-                    UIHelper.show_success(self, t('ui.pegi_selector.removed'))
-
-        # Reload game to show new rating
-        game = self.game_manager.get_game(app_id)
-        if game:
-            # Apply override to game object
-            if rating:
-                game.pegi_rating = rating
-            else:
-                # Restore original from Steam API
-                original = self.appinfo_manager.modifications.get(app_id, {}).get('original', {})
-                game.pegi_rating = original.get('pegi_rating', '')
-
-            self.on_game_selected(game)
-
-    def edit_game_metadata(self, game: Game) -> None:
-        """Opens the metadata edit dialog for a single game using MetadataService.
-
-        Args:
-            game: The game to edit metadata for.
-        """
-        if not self.metadata_service:
-            return
-
-        meta = self.metadata_service.get_game_metadata(game.app_id, game)
-        original_meta = self.metadata_service.get_original_metadata(game.app_id, meta.copy())
-
-        dialog = MetadataEditDialog(self, game.name, meta, original_meta)
-
-        if dialog.exec():
-            new_meta = dialog.get_metadata()
-            if new_meta:
-                write_vdf = new_meta.pop('write_to_vdf', False)
-                self.metadata_service.set_game_metadata(game.app_id, new_meta)
-
-                if write_vdf:
-                    self.appinfo_manager.load_appinfo()
-                    self.appinfo_manager.write_to_vdf(backup=True)
-
-                if new_meta.get('name'):
-                    game.name = new_meta['name']
-
-                self._populate_categories()
-                self.on_game_selected(game)
-                UIHelper.show_success(self, t('ui.metadata_editor.updated_single', game=game.name))
-
-    def bulk_edit_metadata(self) -> None:
-        """Opens the bulk metadata edit dialog for selected games using MetadataService."""
-        if not self.selected_games or not self.metadata_service:
-            UIHelper.show_warning(self, t('ui.errors.no_selection'))
-            return
-
-        game_names = [g.name for g in self.selected_games]
-        dialog = BulkMetadataEditDialog(self, len(self.selected_games), game_names)
-
-        if dialog.exec():
-            settings = dialog.get_metadata()
-            if settings:
-                name_mods = settings.pop('name_modifications', None)
-                count = self.metadata_service.apply_bulk_metadata(
-                    self.selected_games,
-                    settings,
-                    name_mods
-                )
-                self._populate_categories()
-                UIHelper.show_success(self, t('ui.metadata_editor.updated_bulk', count=count))
-
     def find_missing_metadata(self) -> None:
         """Shows a dialog listing games with incomplete metadata using MetadataService."""
         if not self.metadata_service:
@@ -1388,26 +1110,6 @@ class MainWindow(QMainWindow):
             dialog.exec()
         else:
             UIHelper.show_success(self, t('ui.tools.missing_metadata.all_complete'))
-
-    def restore_metadata_changes(self) -> None:
-        """Opens the metadata restore dialog to revert modifications using MetadataService."""
-        if not self.metadata_service:
-            return
-
-        mod_count = self.metadata_service.get_modification_count()
-        if mod_count == 0:
-            UIHelper.show_success(self, t('ui.metadata_editor.no_changes_to_restore'))
-            return
-
-        dialog = MetadataRestoreDialog(self, mod_count)
-        if dialog.exec() and dialog.should_restore():
-            try:
-                restored = self.metadata_service.restore_modifications()
-                if restored > 0:
-                    UIHelper.show_success(self, t('ui.metadata_editor.restored_count', count=restored))
-                    self.file_actions.refresh_data()
-            except Exception as e:
-                UIHelper.show_error(self, str(e))
 
     def show_settings(self) -> None:
         """Opens the settings dialog."""

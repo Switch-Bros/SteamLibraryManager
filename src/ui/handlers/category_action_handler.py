@@ -89,12 +89,12 @@ class CategoryActionHandler:
 
         # Auto-categorize: single game or current multi-selection
         if len(mw.selected_games) > 1:
-            menu.addAction(t('ui.menu.edit.auto_categorize'), mw.auto_categorize_selected)
+            menu.addAction(t('ui.menu.edit.auto_categorize'), mw.edit_actions.auto_categorize_selected)
         else:
-            menu.addAction(t('ui.menu.edit.auto_categorize'), lambda: mw.auto_categorize_single(game))
+            menu.addAction(t('ui.menu.edit.auto_categorize'), lambda: mw.edit_actions.auto_categorize_single(game))
 
         menu.addSeparator()
-        menu.addAction(t('ui.context_menu.edit_metadata'), lambda: mw.edit_game_metadata(game))
+        menu.addAction(t('ui.context_menu.edit_metadata'), lambda: mw.edit_actions.edit_game_metadata(game))
 
         menu.exec(pos)
 
@@ -139,7 +139,7 @@ class CategoryActionHandler:
         if category in special_cats:
             menu.addAction(t('ui.context_menu.create_collection'), self.create_new_collection)
             menu.addSeparator()
-            menu.addAction(t('ui.menu.edit.auto_categorize'), lambda: mw.auto_categorize_category(category))
+            menu.addAction(t('ui.menu.edit.auto_categorize'), lambda: mw.edit_actions.auto_categorize_category(category))
         else:
             # --- Normal user category ---
             menu.addAction(t('ui.context_menu.create_collection'), self.create_new_collection)
@@ -147,7 +147,7 @@ class CategoryActionHandler:
             menu.addAction(t('ui.context_menu.rename'), lambda: self.rename_category(category))
             menu.addAction(t('ui.context_menu.delete'), lambda: self.delete_category(category))
             menu.addSeparator()
-            menu.addAction(t('ui.menu.edit.auto_categorize'), lambda: mw.auto_categorize_category(category))
+            menu.addAction(t('ui.menu.edit.auto_categorize'), lambda: mw.edit_actions.auto_categorize_category(category))
 
         menu.exec(pos)
 
