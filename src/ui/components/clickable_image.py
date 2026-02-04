@@ -75,7 +75,8 @@ class ClickableImage(QWidget):
     clicked = pyqtSignal()
     right_clicked = pyqtSignal()
 
-    def __init__(self, parent_or_text=None, width: int = 200, height: int = 300, metadata: dict = None):
+    def __init__(self, parent_or_text=None, width: int = 200, height: int = 300,
+                 metadata: dict = None, external_badges: bool = False):
         """
         Initializes the ClickableImage widget.
 
@@ -84,78 +85,96 @@ class ClickableImage(QWidget):
             width (int): The fixed width of the widget.
             height (int): The fixed height of the widget.
             metadata (dict): Optional metadata dictionary for badge display.
+            external_badges (bool): If True, badge system is managed externally.
         """
         parent = parent_or_text if not isinstance(parent_or_text, str) else None
         super().__init__(parent)
         self.w = width
         self.h = height
         self.metadata = metadata
+        self.external_badges = external_badges
 
+        # Widget behält ORIGINALE Größe — Badge-Area ragt nach OBEN raus!
+        # So entsteht KEINE Lücke im Layout
         self.setFixedSize(width, height)
         self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-
-        self.image_label = QLabel()
+        # image_label — füllt das ganze Widget aus (wie vorher)
+        self.image_label = QLabel(self)
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setStyleSheet("border: 1px solid #FDE100; background-color: #1b2838;")
-        self.image_label.setFixedSize(width, height)
+        self.image_label.setGeometry(0, 0, width, height)
         self.image_label.setScaledContents(False)
         # Mouse-Events durchlassen damit enterEvent/leaveEvent auf self funktionieren
         self.image_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        layout.addWidget(self.image_label)
 
         # --- Badge-Overlay System (SteamGridDB-Style) ---
-        # Konstanten für das Overlay
-        self._STRIPE_HEIGHT: int = 5  # Höhe der sichtbaren Streifen (dünn wie bei SteamGridDB)
-        self._ICON_HEIGHT: int = 28  # Höhe der Badge-Icons
-        self._OVERLAY_PADDING: int = 2  # Padding unter den Icons
-        self._EXPANDED_HEIGHT: int = (  # Gesamthöhe wenn expandiert
-                self._STRIPE_HEIGHT + self._ICON_HEIGHT + self._OVERLAY_PADDING
-        )
-        self._STRIPE_WIDTH: int = 28  # Breite eines einzelnen Streifens = Icon-Breite
-        self._STRIPE_GAP: int = 2  # Spalt zwischen Streifen
+        # NUR erstellen wenn external_badges=False!
+        if not external_badges:
+            # LIPPE: Dünner 5px Streifen AUF dem gelben Rahmen
+            # ICON: 28×28px Badge das bei Hover darunter ausfährt
+            self._STRIPE_HEIGHT: int = 5  # Dünne Lippe (wie bei SteamGridDB!)
+            self._ICON_HEIGHT: int = 28  # Icon-Höhe
+            self._BADGE_GAP: int = 2  # Abstand zwischen Lippe und Icon
+            self._EXPANDED_HEIGHT: int = (  # Gesamthöhe wenn expandiert
+                    self._STRIPE_HEIGHT + self._BADGE_GAP + self._ICON_HEIGHT
+            )
+            self._STRIPE_WIDTH: int = 28  # Icon-Breite
+            self._STRIPE_GAP: int = 2  # Spalt zwischen mehreren Badges
 
-        # Overlay-Container — sitzt ABSOLUT auf self (NICHT auf image_label!)
-        # Wichtig: Child von self damit setPixmap() das Overlay nicht überdeckt
-        self.badge_overlay = QWidget(self)
-        self.badge_overlay.setGeometry(0, 0, width, self._STRIPE_HEIGHT)
-        self.badge_overlay.raise_()
+            # Overlay-Container — sitzt bei y=-6 ÜBER dem Widget
+            # HÖHE muss _EXPANDED_HEIGHT sein (35px) damit Icon ausfährt!
+            # Die DÜNNE Lippe (5px) sitzt KOMPLETT ÜBER dem Bild (1px extra!)
+            self.badge_overlay = QWidget(self)
+            self.badge_overlay.setGeometry(0, -6, width, self._EXPANDED_HEIGHT)
+            self.badge_overlay.raise_()
+            self.badge_overlay.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
-        overlay_layout = QVBoxLayout(self.badge_overlay)
-        overlay_layout.setContentsMargins(5, 0, 0, 0)
-        overlay_layout.setSpacing(0)
-        overlay_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+            overlay_layout = QVBoxLayout(self.badge_overlay)
+            overlay_layout.setContentsMargins(5, 0, 0, 0)
+            overlay_layout.setSpacing(self._BADGE_GAP)  # 1px Gap zwischen Lippe und Icon
+            overlay_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # Streifen-Reihe — immer sichtbar (die 5px hohen farbigen Streifen)
-        self.stripe_container = QWidget()
-        stripe_layout = QHBoxLayout(self.stripe_container)
-        stripe_layout.setContentsMargins(0, 0, 0, 0)
-        stripe_layout.setSpacing(self._STRIPE_GAP)
-        stripe_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.stripe_container.setFixedHeight(self._STRIPE_HEIGHT)
-        overlay_layout.addWidget(self.stripe_container)
+            # Streifen-Reihe — immer sichtbar (die 5px hohen farbigen Streifen)
+            self.stripe_container = QWidget()
+            stripe_layout = QHBoxLayout(self.stripe_container)
+            stripe_layout.setContentsMargins(0, 0, 0, 0)
+            stripe_layout.setSpacing(self._STRIPE_GAP)
+            stripe_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+            self.stripe_container.setFixedHeight(self._STRIPE_HEIGHT)
+            overlay_layout.addWidget(self.stripe_container)
 
-        # Icon-Reihe — nur bei Hover sichtbar (die echten Badge-Icons)
-        self.icon_container = QWidget()
-        icon_layout = QHBoxLayout(self.icon_container)
-        icon_layout.setContentsMargins(0, self._OVERLAY_PADDING - self._STRIPE_HEIGHT, 0, 0)
-        icon_layout.setSpacing(self._STRIPE_GAP)
-        icon_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        overlay_layout.addWidget(self.icon_container)
+            # Icon-Reihe — nur bei Hover sichtbar (die echten Badge-Icons)
+            self.icon_container = QWidget()
+            icon_layout = QHBoxLayout(self.icon_container)
+            icon_layout.setContentsMargins(0, 0, 0, 0)
+            icon_layout.setSpacing(self._STRIPE_GAP)
+            icon_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+            overlay_layout.addWidget(self.icon_container)
 
-        # Animation für das Overlay — animiert maximumHeight zwischen kollabiert und expandiert
-        # Animation auf "geometry" — funktioniert bei absolut-positionierten Widgets
-        # (maximumHeight wird bei setGeometry-Widgets vom Layout ignoriert)
-        self.badge_animation = QPropertyAnimation(self.badge_overlay, b"geometry")
-        self.badge_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-        self.badge_animation.setDuration(180)  # ms — schnell aber nicht instant
+            # Animation für das Overlay — animiert maximumHeight zwischen kollabiert und expandiert
+            # Animation auf "geometry" — funktioniert bei absolut-positionierten Widgets
+            # (maximumHeight wird bei setGeometry-Widgets vom Layout ignoriert)
+            self.badge_animation = QPropertyAnimation(self.badge_overlay, b"geometry")
+            self.badge_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+            self.badge_animation.setDuration(180)  # ms — schnell aber nicht instant
 
-        # Badge-Zustand
-        self._badge_colors: list[str] = []  # Farben pro Badge (für die Streifen)
-        self.badges: list[QWidget] = []  # Badge-Icon Widgets
+            # Badge-Zustand
+            self._badge_colors: list[str] = []  # Farben pro Badge (für die Streifen)
+            self.badges: list[QWidget] = []  # Badge-Icon Widgets
+        else:
+            # External badges — setze dummy values
+            self._STRIPE_HEIGHT = 0
+            self._ICON_HEIGHT = 0
+            self._EXPANDED_HEIGHT = 0
+            self._STRIPE_WIDTH = 0
+            self._STRIPE_GAP = 0
+            self.badge_overlay = None
+            self.stripe_container = None
+            self.icon_container = None
+            self.badge_animation = None
+            self._badge_colors = []
+            self.badges = []
 
         self.default_image = None
         self.current_path = None
@@ -290,7 +309,9 @@ class ClickableImage(QWidget):
                                Qt.TransformationMode.SmoothTransformation)
         self.image_label.setPixmap(scaled)
         # Overlay nach oben bringen — setPixmap kann Z-Reihenfolge beeinflussen
-        self.badge_overlay.raise_()
+        # NUR wenn badge_overlay existiert (nicht bei external_badges)
+        if self.badge_overlay:
+            self.badge_overlay.raise_()
 
         # PERFORMANCE: Cache the original pixmap for future reuse
         if self.current_path and self.current_path not in self._pixmap_cache:
@@ -314,7 +335,7 @@ class ClickableImage(QWidget):
         Args:
             target_height (int): The target height in pixels.
         """
-        if not self.badges:
+        if self.external_badges or not self.badges:
             return
         self.badge_animation.stop()
         current: QRect = self.badge_overlay.geometry()
@@ -329,7 +350,8 @@ class ClickableImage(QWidget):
         expanded (full badge icons visible) via QRect interpolation.
         """
         super().enterEvent(event)
-        self._animate_overlay(self._EXPANDED_HEIGHT)
+        if not self.external_badges:
+            self._animate_overlay(self._EXPANDED_HEIGHT)
 
     def leaveEvent(self, event):
         """Triggers badge collapse animation on mouse leave.
@@ -338,7 +360,8 @@ class ClickableImage(QWidget):
         (stripes only visible) via QRect interpolation.
         """
         super().leaveEvent(event)
-        self._animate_overlay(self._STRIPE_HEIGHT)
+        if not self.external_badges:
+            self._animate_overlay(self._STRIPE_HEIGHT)
 
     def _create_badges(self, is_animated: bool = False):
         """
@@ -350,6 +373,9 @@ class ClickableImage(QWidget):
         Args:
             is_animated (bool): Whether the loaded image is an animated GIF.
         """
+        if self.external_badges:
+            return  # Badges werden extern verwaltet
+
         self._clear_badges()
         if not self.metadata:
             return
@@ -383,7 +409,7 @@ class ClickableImage(QWidget):
         icon_layout: QHBoxLayout = cast(QHBoxLayout, self.icon_container.layout())
 
         for type_key, text, bg_color in active_badges:
-            # --- Streifen hinzufügen (immer sichtbar) ---
+            # --- Streifen hinzufügen (immer sichtbar, quadratisch 28×28) ---
             stripe = QWidget()
             stripe.setFixedSize(self._STRIPE_WIDTH, self._STRIPE_HEIGHT)
             stripe.setStyleSheet(f"background-color: {bg_color};")
@@ -409,11 +435,14 @@ class ClickableImage(QWidget):
                 )
             else:
                 # Fallback: Text-Badge wenn kein PNG vorhanden
+                # FEST 28×28px — NICHT dynamisch anpassen!
                 lbl = QLabel(text)
+                lbl.setFixedSize(self._STRIPE_WIDTH, self._ICON_HEIGHT)  # 28×28px FEST!
+                lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Text zentrieren
                 lbl.setStyleSheet(
                     f"background-color: {bg_color}; color: white; "
-                    f"padding: 3px 6px; border-radius: 0px 0px 4px 4px; "
-                    f"font-weight: bold; font-size: 10px; "
+                    f"border-radius: 0px 0px 4px 4px; "
+                    f"font-weight: bold; font-size: 9px; "
                     f"border: 1px solid rgba(255,255,255,0.3);"
                 )
             icon_layout.addWidget(lbl)
@@ -428,6 +457,9 @@ class ClickableImage(QWidget):
 
     def _clear_badges(self):
         """Removes all badges, stripes, and resets the overlay to hidden."""
+        if self.external_badges:
+            return  # Badges werden extern verwaltet — nichts zu clearen
+
         # Icons aus dem icon_container entfernen
         icon_layout: QHBoxLayout = cast(QHBoxLayout, self.icon_container.layout())
         for b in self.badges:

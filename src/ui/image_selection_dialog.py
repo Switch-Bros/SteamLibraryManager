@@ -12,6 +12,7 @@ import json
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QScrollArea, QWidget, QGridLayout, QLabel,
                              QPushButton, QLineEdit, QHBoxLayout)
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QUrl
+from PyQt6.QtGui import QPixmap
 from PyQt6.QtGui import QDesktopServices, QFont
 from src.utils.i18n import t
 from src.config import config
@@ -267,47 +268,113 @@ class ImageSelectionDialog(QDialog):
 
         row, col = 0, 0
         for item in items:
-            # Container for Image + Author
+            # Container IMMER gleiche Höhe
             container = QWidget()
-            container_layout = QVBoxLayout(container)
-            container_layout.setContentsMargins(0, 0, 0, 0)
-            container_layout.setSpacing(2)
+            container.setFixedSize(w, h + 45)
 
-            # 1. The Image
-            # 'metadata' is passed so badges work (NSFW, Humor etc.)
-            img_widget = ClickableImage(self.img_type, w, h, metadata=item)
-
-            # Smart Load: Full URL for WebP/GIF/Animated, otherwise Thumb (SPEED FIX!)
-            load_url = item['thumb']
-            mime = item.get('mime', '')
             tags = item.get('tags', [])
-
+            mime = item.get('mime', '')
             is_animated = 'webp' in mime or 'gif' in mime or 'animated' in tags
+
+            badge_info = []
+            if item.get('nsfw') or 'nsfw' in tags:
+                badge_info.append(('nsfw', '#d9534f'))
+            if item.get('humor') or 'humor' in tags:
+                badge_info.append(('humor', '#f0ad4e'))
+            if item.get('epilepsy') or 'epilepsy' in tags:
+                badge_info.append(('epilepsy', '#0275d8'))
             if is_animated:
-                load_url = item['url']
+                badge_info.append(('animated', '#5cb85c'))
 
+            # IMAGE IMMER BEI y=5! (auch ohne Badges)
+            img_widget = ClickableImage(container, w, h, metadata=item, external_badges=True)
+            img_widget.move(0, 5)
+
+            # BADGES NUR wenn vorhanden
+            if badge_info:
+                badge_area = QWidget(container)
+                badge_area.setGeometry(0, 0, w, 35)
+
+                area_layout = QVBoxLayout(badge_area)
+                area_layout.setContentsMargins(5, 0, 0, 0)
+                area_layout.setSpacing(2)
+                area_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+                # Lippen
+                stripes = QWidget()
+                stripes_layout = QHBoxLayout(stripes)
+                stripes_layout.setContentsMargins(0, 0, 0, 0)
+                stripes_layout.setSpacing(2)
+                stripes_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+
+                for badge_type, color in badge_info:
+                    s = QWidget()
+                    s.setFixedSize(28, 5)
+                    s.setStyleSheet(f"background-color: {color};")
+                    stripes_layout.addWidget(s)
+
+                stripes.setFixedHeight(5)
+                area_layout.addWidget(stripes)
+
+                # Icons
+                icons = QWidget()
+                icons_layout = QHBoxLayout(icons)
+                icons_layout.setContentsMargins(0, 0, 0, 0)
+                icons_layout.setSpacing(2)
+                icons_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+
+                for badge_type, color in badge_info:
+                    icon_path = config.ICONS_DIR / f"flag_{badge_type}.png"
+                    lbl = QLabel()
+
+                    if icon_path.exists():
+                        pix = QPixmap(str(icon_path)).scaledToHeight(28, Qt.TransformationMode.SmoothTransformation)
+                        lbl.setPixmap(pix)
+                        lbl.setFixedSize(28, 28)
+                        lbl.setStyleSheet(
+                            "QLabel { border: 1px solid rgba(0,0,0,0.5); border-radius: 0 0 3px 3px; background: rgba(0,0,0,0.35); padding: 2px; }")
+                    else:
+                        texts = {
+                            'nsfw': f"{t('emoji.nsfw')} {t('ui.badges.nsfw')}",
+                            'humor': f"{t('emoji.humor')} {t('ui.badges.humor')}",
+                            'epilepsy': f"{t('emoji.epilepsy')} {t('ui.badges.epilepsy')}",
+                            'animated': f"{t('emoji.animated')} {t('ui.badges.animated')}"
+                        }
+                        lbl.setText(texts.get(badge_type, ''))
+                        lbl.setFixedSize(28, 28)
+                        lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                        lbl.setStyleSheet(
+                            f"background: {color}; color: white; border-radius: 0 0 4px 4px; font-weight: bold; font-size: 9px; border: 1px solid rgba(255,255,255,0.3);")
+
+                    icons_layout.addWidget(lbl)
+
+                area_layout.addWidget(icons)
+                icons.hide()
+                badge_area.raise_()
+
+                # HOVER - RICHTIG mit closure!
+                def enter_handler(_, icon_widget=icons):
+                    icon_widget.show()
+
+                def leave_handler(_, icon_widget=icons):
+                    icon_widget.hide()
+
+                container.enterEvent = enter_handler
+                container.leaveEvent = leave_handler
+
+            # Load
+            load_url = item['thumb'] if not is_animated else item['url']
             img_widget.load_image(load_url)
+            img_widget.mousePressEvent = lambda e, u=item['url']: self._on_select(u)
 
-            # Click Handler
-            full_url = item['url']
-            img_widget.mousePressEvent = lambda e, u=full_url: self._on_select(u)
-
-            container_layout.addWidget(img_widget)
-
-            # 2. The Author (Left-aligned below image)
-            author_name = t('ui.game_details.value_unknown')
-            if 'author' in item and 'name' in item['author']:
-                author_name = item['author']['name']
-
-            lbl_author = QLabel(f"👤 {author_name}")
-            lbl_author.setStyleSheet("color: #888; font-size: 10px; margin-left: 2px;")
+            # Author
+            author_name = item.get('author', {}).get('name') or t('ui.game_details.value_unknown')
+            lbl_author = QLabel(container)
+            lbl_author.setText(f"👤 {author_name}")
+            lbl_author.setGeometry(0, h + 7, w, 30)
+            lbl_author.setStyleSheet("color: #888; font-size: 10px;")
             lbl_author.setAlignment(Qt.AlignmentFlag.AlignLeft)
-            lbl_author.setFixedWidth(w)
-            container_layout.addWidget(lbl_author)
-
-            # Add container to grid
             self.grid_layout.addWidget(container, row, col)
-
             col += 1
             if col >= cols:
                 col = 0
