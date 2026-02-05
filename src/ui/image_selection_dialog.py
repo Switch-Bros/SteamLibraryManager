@@ -371,19 +371,11 @@ class ImageSelectionDialog(QDialog):
                 container.enterEvent = enter_handler
                 container.leaveEvent = leave_handler
 
-            # Load image for preview
-            # For animated images, use full URL (WEBM for preview, PNG for download)
-            # For static images, use thumbnail for faster loading
-            if is_animated:
-                load_url = item['thumb']  # Use thumb URL which may be WEBM
-            else:
-                load_url = item['thumb']
+            # Load thumbnail for preview (always use thumb, never full URL)
+            # This avoids loading large WEBM videos that cause memory issues
+            img_widget.load_image(item['thumb'])
 
-            img_widget.load_image(load_url)
-
-            # When user clicks, always select the full URL
-            # We'll convert .webm to .png in _on_select for APNG downloads
-            # Create a closure to capture tags safely
+            # When user clicks, select the full URL and convert WEBM to PNG if needed
             def make_click_handler(url, mime_type, tag_list):
                 return lambda e: self._on_select(url, mime_type, tag_list)
 
