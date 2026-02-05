@@ -10,12 +10,16 @@ and are designed to extract action logic from the monolithic main_window.py.
 from src.ui.actions.file_actions import FileActions
 from src.ui.actions.edit_actions import EditActions
 from src.ui.actions.view_actions import ViewActions
-from .tools_actions import ToolsActions
+from src.ui.actions.tools_actions import ToolsActions
+from src.ui.actions.steam_actions import SteamActions
+from src.ui.actions.game_actions import GameActions
 
 # Export public classes
 __all__ = [
     'FileActions',
     'EditActions',
     'ViewActions',
-    'ToolsActions'
+    'ToolsActions',
+    'SteamActions',
+    'GameActions'
 ]
