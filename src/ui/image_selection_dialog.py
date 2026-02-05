@@ -282,8 +282,7 @@ class ImageSelectionDialog(QDialog):
                     'webp' in mime or
                     'gif' in mime or
                     ('png' in mime and 'animated' in tags) or
-                    'animated' in tags or
-                    'apng' in tags  # <-- NEU: Zur Sicherheit
+                    'animated' in tags
             )
 
             badge_info = []
@@ -372,20 +371,19 @@ class ImageSelectionDialog(QDialog):
                 container.enterEvent = enter_handler
                 container.leaveEvent = leave_handler
 
-            # Load image
-            # For animated images (APNG, GIF, WEBP), use full URL
-            # SteamGridDB serves .webm preview but .png download for APNG
+            # Load image for preview
+            # For animated images, use full URL (WEBM for preview, PNG for download)
+            # For static images, use thumbnail for faster loading
             if is_animated:
-                load_url = item['url']
-                # Replace .webm with .png for APNG (SteamGridDB quirk)
-                if load_url.endswith('.webm'):
-                    load_url = load_url.replace('.webm', '.png')
+                load_url = item['thumb']  # Use thumb URL which may be WEBM
             else:
                 load_url = item['thumb']
 
             img_widget.load_image(load_url)
 
-            img_widget.mousePressEvent = lambda e, u=item['url']: self._on_select(u)
+            # When user clicks, always select the full URL
+            # We'll convert .webm to .png in _on_select for APNG downloads
+            img_widget.mousePressEvent = lambda e, u=item['url'], m=mime, tgs=tags: self._on_select(u, m, tgs)
 
             # Author
             author_name = item.get('author', {}).get('name') or t('ui.game_details.value_unknown')
@@ -400,16 +398,30 @@ class ImageSelectionDialog(QDialog):
                 col = 0
                 row += 1
 
-    def _on_select(self, url):
+    def _on_select(self, url, mime='', tags=None):
         """
         Handles image selection.
 
         This method is called when the user clicks on an image. It stores the
-        selected URL and closes the dialog.
+        selected URL and closes the dialog. For APNG images served as WEBM,
+        it converts the URL to PNG format.
 
         Args:
             url (str): The URL of the selected image.
+            mime (str): The MIME type of the image.
+            tags (list): List of tags associated with the image.
         """
+        if tags is None:
+            tags = []
+
+        # Convert WEBM to PNG for APNG downloads
+        # SteamGridDB serves APNG as .webm preview but .png download
+        if url.endswith('.webm'):
+            # Check if this is an APNG (PNG + animated tag)
+            tags_lower = [t.lower() for t in tags]
+            if 'png' in mime.lower() or 'animated' in tags_lower:
+                url = url.replace('.webm', '.png')
+
         self.selected_url = url
         self.accept()
 
