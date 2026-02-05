@@ -383,7 +383,11 @@ class ImageSelectionDialog(QDialog):
 
             # When user clicks, always select the full URL
             # We'll convert .webm to .png in _on_select for APNG downloads
-            img_widget.mousePressEvent = lambda e, u=item['url'], m=mime, tgs=tags: self._on_select(u, m, tgs)
+            # Create a closure to capture tags safely
+            def make_click_handler(url, mime_type, tag_list):
+                return lambda e: self._on_select(url, mime_type, tag_list)
+
+            img_widget.mousePressEvent = make_click_handler(item['url'], mime, tags)
 
             # Author
             author_name = item.get('author', {}).get('name') or t('ui.game_details.value_unknown')
@@ -418,7 +422,7 @@ class ImageSelectionDialog(QDialog):
         # SteamGridDB serves APNG as .webm preview but .png download
         if url.endswith('.webm'):
             # Check if this is an APNG (PNG + animated tag)
-            tags_lower = [t.lower() for t in tags]
+            tags_lower = [tag.lower() for tag in tags]
             if 'png' in mime.lower() or 'animated' in tags_lower:
                 url = url.replace('.webm', '.png')
 
