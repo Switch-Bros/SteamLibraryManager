@@ -6,23 +6,25 @@
     "info": "Information"
   },
   "common": {
+    "open": "Öffnen",
+    "close": "Schließen",
     "save": "Speichern",
+    "loading": "Lade...",
+    "save_under": "Speichern unter...",
     "ok": "OK",
     "cancel": "Abbrechen",
+    "yes": "Ja",
+    "no": "Nein",
     "discard": "Verwerfen",
-    "close": "Schließen",
+    "warning": "Warnung",
     "error": "Fehler",
     "success": "Erfolg",
     "info": "Information",
     "unknown": "Unbekannt",
     "na": "N/A",
-    "yes": "Ja",
-    "no": "Nein",
-    "loading": "Lade...",
-    "game_fallback": "Unbekannte App {id}",
+    "exit": "Beenden",
     "confirm_exit": "Möchten Sie die Anwendung wirklich beenden?",
-    "warning": "Warnung",
-    "dash": "-"
+    "game_fallback": "Unbekannte App {id}"
   },
   "ui": {
     "main_window": {
@@ -68,7 +70,6 @@
       "remove_duplicates": "Doppelte Kollektionen entfernen",
       "detect_steam": "Steam-Pfad neu erkennen",
         "switch_user": "Benutzer wechseln",
-        "exit": "Beenden",
       "save_success": "Kollektionen erfolgreich gespeichert!",
       "no_duplicates_found": "Keine doppelten Kollektionen gefunden.",
       "duplicates_removed": "{count} doppelte Kollektionen entfernt."  

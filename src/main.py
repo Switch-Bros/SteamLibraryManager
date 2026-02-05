@@ -102,7 +102,7 @@ def main() -> None:
 
         # Exit Button (using "Exit" from menu translations)
         exit_btn = msg.addButton(
-            t('ui.menu.file.exit'),
+            t('common.exit'),
             QMessageBox.ButtonRole.AcceptRole
         )
         exit_btn.setDefault(True)
