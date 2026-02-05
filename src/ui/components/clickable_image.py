@@ -256,11 +256,7 @@ class ClickableImage(QWidget):
         self.loader.start()
 
     def _on_loaded(self, data: QByteArray):
-        """Handles the loaded image data, parsing it with Pillow if available.
-
-        Robust handling for animations (APNG, WEBP, GIF) and fallback to Qt
-        to avoid red crosses or crashes.
-        """
+        """Handles the loaded image data, parsing it with Pillow if available."""
         if data.isEmpty():
             if self.default_image:
                 self._load_local_image(self.default_image)
@@ -268,30 +264,32 @@ class ClickableImage(QWidget):
                 self.image_label.setText(t('emoji.error'))
             return
 
-        # 1. Attempt to load with Pillow (for Animations)
+        # 1. Attempt to load with Pillow (ONLY for Animations)
         if HAS_PILLOW:
             try:
-                # Keep bytes alive!
+                # Bytes kopieren
                 raw_bytes = data.data()
                 img_data = io.BytesIO(raw_bytes)
                 im = Image.open(img_data)
 
-                # Use the static helper method (fixes 'static' warning)
+                # Nutzung der statischen Erkennung (mit seek-Trick)
                 if self._is_animated_pillow(im):
                     self.frames = []
                     self.durations = []
 
                     for frame in ImageSequence.Iterator(im):
-                        # Ensure RGBA mode
                         frame = frame.convert("RGBA")
 
-                        # Save bytes to variable (Fixes garbage collection issue)
+                        # WICHTIG: Bytes speichern
                         img_bytes = frame.tobytes("raw", "RGBA")
 
+                        # WICHTIGER FIX: bytes_per_line (Stride) angeben!
+                        # Ohne 'frame.width * 4' bleiben Bilder oft weiß/leer.
                         qim = QImage(
                             img_bytes,
                             frame.width,
                             frame.height,
+                            frame.width * 4,  # <--- HIER IST DER FIX
                             QImage.Format.Format_RGBA8888
                         )
 
@@ -302,32 +300,20 @@ class ClickableImage(QWidget):
                         self._start_animation()
                         self._create_badges(is_animated=True)
                         return
-                else:
-                    # Static image via Pillow
-                    im = im.convert("RGBA")
-                    # CRITICAL FIX: Save bytes here too!
-                    img_bytes = im.tobytes("raw", "RGBA")
 
-                    qim = QImage(
-                        img_bytes,
-                        im.width,
-                        im.height,
-                        QImage.Format.Format_RGBA8888
-                    )
-                    self._apply_pixmap(QPixmap.fromImage(qim))
-                    self._create_badges(is_animated=False)
-                    return
+                # Wenn NICHT animiert: Mach hier gar nichts und lass Qt unten laden.
+                # Das ist viel robuster für statische Bilder.
 
-            # Fix: Catch specific exceptions (Fixes 'Too broad exception clause')
-            except (IOError, ValueError, TypeError, EOFError) as e:
+            except Exception as e:
                 print(f"[ClickableImage] Pillow load failed (fallback to Qt): {e}")
 
-        # 2. Fallback: Standard Qt Loading
+        # 2. Fallback / Standard Qt Loading (für statische Bilder & wenn Pillow scheitert)
         pixmap = QPixmap()
         pixmap.loadFromData(data)
 
         if not pixmap.isNull():
             self._apply_pixmap(pixmap)
+            # Hier Badge auf False, weil wir Animation oben abgehandelt hätten
             self._create_badges(is_animated=False)
         else:
             if self.default_image:
