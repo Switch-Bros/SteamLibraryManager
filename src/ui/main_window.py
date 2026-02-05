@@ -49,8 +49,10 @@ from src.utils.i18n import t, init_i18n
 from src.ui.builders import MenuBuilder, ToolbarBuilder, StatusbarBuilder
 from src.ui.handlers import CategoryActionHandler
 
-from src.ui.actions import FileActions, ViewActions, ToolsActions  # <--- UPDATED
-from src.ui.actions.edit_actions import EditActions
+from src.ui.actions import (
+FileActions, EditActions, ViewActions,
+ToolsActions, SteamActions, GameActions
+)
 
 class GameLoadThread(QThread):
     """Background thread for loading games without blocking the UI.
@@ -160,10 +162,13 @@ class MainWindow(QMainWindow):
         self.toolbar_builder: ToolbarBuilder = ToolbarBuilder(self)
         self.statusbar_builder: StatusbarBuilder = StatusbarBuilder(self)
 
+        # Initialize Action Handlers
         self.file_actions = FileActions(self)
         self.edit_actions = EditActions(self)
         self.view_actions = ViewActions(self)
-        self.tools_actions = ToolsActions(self)# <--- NEW
+        self.tools_actions = ToolsActions(self)
+        self.steam_actions = SteamActions(self)
+        self.game_actions = GameActions(self)
 
         # UI Action Handlers (extracted category / context-menu logic)
         self.category_handler: CategoryActionHandler = CategoryActionHandler(self)
@@ -295,13 +300,6 @@ class MainWindow(QMainWindow):
 
     # --- OpenID Login Logic ---
 
-    def _start_steam_login(self) -> None:
-        """Initiates the Steam OpenID authentication process.
-
-        Opens an embedded login dialog for Steam login.
-        """
-        self.auth_manager.start_login(parent=self)
-
     def _on_steam_login_success(self, steam_id_64: str) -> None:
         """Handles successful Steam authentication.
 
@@ -340,10 +338,6 @@ class MainWindow(QMainWindow):
         UIHelper.show_error(self, error)
 
     # --- Main Logic ---
-
-    def show_about(self) -> None:
-        """Shows the About dialog with application information."""
-        QMessageBox.about(self, t('ui.menu.help.about'), t('app.description'))
 
     def _load_data(self) -> None:
         """Performs the initial data loading sequence.
@@ -858,102 +852,6 @@ class MainWindow(QMainWindow):
             pos: The screen position for the context menu.
         """
         self.category_handler.on_category_right_click(category, pos)
-
-    def toggle_hide_game(self, game: Game, hide: bool) -> None:
-        """Toggles the hidden status of a game.
-
-        Args:
-            game: The game to hide or unhide.
-            hide: True to hide the game, False to show it.
-        """
-        if not self.vdf_parser: return
-        self.vdf_parser.set_app_hidden(game.app_id, hide)
-
-        if self._save_collections():
-            game.hidden = hide
-
-            # Refresh UI
-            self._populate_categories()
-
-            status_word = t('ui.visibility.hidden') if hide else t('ui.visibility.visible')
-            self.set_status(f"{status_word}: {game.name}")
-
-            msg = t('ui.visibility.message', game=game.name, status=status_word)
-            UIHelper.show_success(self, msg, t('ui.visibility.title'))
-
-    def remove_from_local_config(self, game: Game) -> None:
-        """Removes a game entry from the local Steam configuration.
-
-        This is useful for removing 'ghost' entries that no longer exist in Steam
-        but still appear in localconfig.vdf.
-
-        Args:
-            game: The game to remove from the local configuration.
-        """
-        if not UIHelper.confirm(
-                self,
-                t('ui.dialogs.remove_local_warning', game=game.name),
-                t('ui.dialogs.remove_local_title')
-        ):
-            return
-
-        if self.vdf_parser:
-            success = self.vdf_parser.remove_app(str(game.app_id))
-            if success:
-                self._save_collections()
-                # Remove from game manager
-                if self.game_manager and str(game.app_id) in self.game_manager.games:
-                    del self.game_manager.games[str(game.app_id)]
-                # Refresh tree
-                self._populate_categories()
-                UIHelper.show_success(self, t('ui.dialogs.remove_local_success', game=game.name), t('common.success'))
-            else:
-                UIHelper.show_error(self, t('ui.dialogs.remove_local_error'))
-
-    def remove_game_from_account(self, game: Game) -> None:
-        """Redirects the user to Steam Support to remove a game from their account.
-
-        Shows a warning dialog before opening the browser.
-
-        Args:
-            game: The game to remove from the account.
-        """
-        if UIHelper.confirm(
-                self,
-                f"{t('emoji.warning')} {t('ui.dialogs.remove_account_warning')}",
-                t('ui.dialogs.remove_account_title')
-        ):
-            import webbrowser
-            # Steam Support URL for removing a game (issueid 123 is "remove from account")
-            url = f"https://help.steampowered.com/en/wizard/HelpWithGameIssue/?appid={game.app_id}&issueid=123"
-            webbrowser.open(url)
-
-    def toggle_favorite(self, game: Game) -> None:
-        """Toggles the favorite status of a game.
-
-        Args:
-            game: The game to add to or remove from favorites.
-        """
-        if not self.vdf_parser: return
-        if game.is_favorite():
-            if 'favorite' in game.categories: game.categories.remove('favorite')
-            self._remove_app_category(game.app_id, 'favorite')
-        else:
-            if 'favorite' not in game.categories: game.categories.append('favorite')
-            self._add_app_category(game.app_id, 'favorite')
-
-        self._save_collections()
-        self._populate_categories()
-
-    @staticmethod
-    def open_in_store(game: Game) -> None:
-        """Opens the Steam Store page for a game in the default browser.
-
-        Args:
-            game: The game to view in the store.
-        """
-        import webbrowser
-        webbrowser.open(f"https://store.steampowered.com/app/{game.app_id}")
 
     def create_new_collection(self) -> None:
         """Creates a new empty collection. Delegated to CategoryActionHandler."""
