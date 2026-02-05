@@ -282,7 +282,8 @@ class ImageSelectionDialog(QDialog):
                     'webp' in mime or
                     'gif' in mime or
                     ('png' in mime and 'animated' in tags) or
-                    'animated' in tags
+                    'animated' in tags or
+                    item['url'].lower().endswith('.webm')  # WEBM is always animated!
             )
 
             badge_info = []
