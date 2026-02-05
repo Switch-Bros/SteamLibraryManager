@@ -18,6 +18,7 @@ psutil==6.1.0
 # Pillow für Cover-Images, Thumbnails
 Pillow==11.0.0
 # WARUM nicht 12.1.0? → 11.0.0 ist LTS-Version, sehr stabil
+opencv-python-headless>=4.8.0
 
 # ===== Steam File Parsing =====
 # VDF-Parser für Steam-Konfigurationsdateien

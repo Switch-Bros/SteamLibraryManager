@@ -24,6 +24,7 @@ python-dotenv==1.0.1
 # Pillow für Cover-Images, Thumbnails
 Pillow==11.0.0
 # LTS-Version, sehr stabil
+opencv-python-headless>=4.8.0
 
 # ===== Steam File Parsing =====
 # VDF-Parser für Steam-Konfigurationsdateien
