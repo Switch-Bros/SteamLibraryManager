@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLineEdit, QPushButton, QLabel, QToolBar,
-    QMessageBox, QSplitter, QProgressDialog, QApplication
+    QMessageBox, QSplitter, QProgressDialog
 )
 from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
 
@@ -38,7 +38,6 @@ from src.services.game_service import GameService
 from src.services.asset_service import AssetService
 from src.services.search_service import SearchService  # <--- NEW
 
-from src.ui.missing_metadata_dialog import MissingMetadataDialog
 from src.ui.settings_dialog import SettingsDialog
 
 # Components
@@ -50,7 +49,7 @@ from src.utils.i18n import t, init_i18n
 from src.ui.builders import MenuBuilder, ToolbarBuilder, StatusbarBuilder
 from src.ui.handlers import CategoryActionHandler
 
-from src.ui.actions import FileActions, ViewActions  # <--- UPDATED
+from src.ui.actions import FileActions, ViewActions, ToolsActions  # <--- UPDATED
 from src.ui.actions.edit_actions import EditActions
 
 class GameLoadThread(QThread):
@@ -163,7 +162,8 @@ class MainWindow(QMainWindow):
 
         self.file_actions = FileActions(self)
         self.edit_actions = EditActions(self)
-        self.view_actions = ViewActions(self)  # <--- NEW
+        self.view_actions = ViewActions(self)
+        self.tools_actions = ToolsActions(self)# <--- NEW
 
         # UI Action Handlers (extracted category / context-menu logic)
         self.category_handler: CategoryActionHandler = CategoryActionHandler(self)
@@ -955,86 +955,6 @@ class MainWindow(QMainWindow):
         import webbrowser
         webbrowser.open(f"https://store.steampowered.com/app/{game.app_id}")
 
-    def check_store_availability(self, game: Game) -> None:
-        """Checks if a game is still available on the Steam Store.
-
-        Performs an HTTP request to the store page and reports the result
-        based on status code and response content.
-
-        Args:
-            game: The game to check availability for.
-        """
-        progress = QProgressDialog(t('ui.store_check.checking'), None, 0, 0, self)
-        progress.setWindowModality(Qt.WindowModality.WindowModal)
-        progress.setWindowTitle(t('ui.store_check.title'))
-        progress.show()
-        QApplication.processEvents()
-
-        class StoreCheckThread(QThread):
-            finished = pyqtSignal(str, str)
-
-            def __init__(self, app_id: str):
-                super().__init__()
-                self.app_id = app_id
-
-            def run(self):
-                try:
-                    url = f"https://store.steampowered.com/app/{self.app_id}/"
-                    response = requests.get(url, timeout=10, allow_redirects=False, headers={'User-Agent': 'SLM/1.0'})
-
-                    if response.status_code == 200:
-                        text_lower = response.text.lower()
-
-                        # Check for geo-blocking (works for both English and German)
-                        if ('not available in your country' in text_lower or
-                                'nicht in ihrem land' in text_lower or
-                                'not available in your region' in text_lower or
-                                'currently not' in text_lower or
-                                'not available' in text_lower):
-                            # Emoji prefix via emoji.json for consistent i18n
-                            self.finished.emit('geo_locked', f"{t('emoji.blocked')} {t('ui.store_check.geo_locked')}")
-                        # Check if redirected to age gate
-                        elif 'agecheck' in text_lower:
-                            self.finished.emit('age_gate', t('ui.store_check.age_gate'))
-                        # Check if app page exists
-                        elif 'app_header' in text_lower or 'game_area_purchase' in text_lower:
-                            self.finished.emit('available', f"{t('emoji.success')} {t('ui.store_check.available')}")
-                        else:
-                            # Page loaded but doesn't look like a valid store page
-                            self.finished.emit('delisted', f"{t('emoji.error')} {t('ui.store_check.delisted')}")
-                    elif response.status_code == 302:
-                            # Follow redirect to check if it's age gate or delisted
-                            redirect_url = response.headers.get('Location', '')
-                            if 'agecheck' in redirect_url:
-                                self.finished.emit('age_gate', t('ui.store_check.age_gate'))
-                            else:
-                                self.finished.emit('delisted', f"{t('emoji.error')} {t('ui.store_check.delisted')}")
-                    elif response.status_code in [404, 403]:
-                        self.finished.emit('delisted', f"{t('emoji.error')} {t('ui.store_check.removed')}")
-                    else:
-                        self.finished.emit('unknown',
-                                           f"{t('emoji.unknown')} {t('ui.store_check.unknown', code=response.status_code)}")
-
-                except Exception as ex:
-                    self.finished.emit('unknown', str(ex))
-
-        def on_check_finished(status: str, details: str):
-            progress.close()
-            title = t('ui.store_check.title')
-            msg = f"{game.name}: {details}"
-
-            if status == 'available':
-                UIHelper.show_success(self, msg, title)
-            elif status == 'age_gate':
-                UIHelper.show_info(self, msg, title)
-            else:
-                UIHelper.show_warning(self, msg, title)
-
-        self.store_check_thread = StoreCheckThread(game.app_id)
-        # noinspection PyUnresolvedReferences
-        self.store_check_thread.finished.connect(on_check_finished)
-        self.store_check_thread.start()
-
     def create_new_collection(self) -> None:
         """Creates a new empty collection. Delegated to CategoryActionHandler."""
         self.category_handler.create_new_collection()
@@ -1070,19 +990,6 @@ class MainWindow(QMainWindow):
             categories: List of category names to merge.
         """
         self.category_handler.merge_categories(categories)
-
-    def find_missing_metadata(self) -> None:
-        """Shows a dialog listing games with incomplete metadata using MetadataService."""
-        if not self.metadata_service:
-            return
-
-        affected = self.metadata_service.find_missing_metadata()
-
-        if affected:
-            dialog = MissingMetadataDialog(self, affected)
-            dialog.exec()
-        else:
-            UIHelper.show_success(self, t('ui.tools.missing_metadata.all_complete'))
 
     def show_settings(self) -> None:
         """Opens the settings dialog."""
@@ -1323,6 +1230,14 @@ class MainWindow(QMainWindow):
         """Delete category using CategoryService."""
         if self.category_service:
             self.category_service.delete_category(category)
+
+    def find_missing_metadata(self) -> None:
+        """Delegates to ToolsActions (required by MenuBuilder)."""
+        self.tools_actions.find_missing_metadata()
+
+    def check_store_availability(self, game: Game) -> None:
+        """Delegates to ToolsActions (required by Context Menus)."""
+        self.tools_actions.check_store_availability(game)
 
     def keyPressEvent(self, event):
         """Handle key press events.
