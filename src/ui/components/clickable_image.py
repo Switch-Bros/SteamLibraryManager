@@ -13,6 +13,7 @@ from PyQt6.QtGui import QPixmap, QCursor, QImage
 from typing import cast
 import requests
 import os
+os.environ['OPENCV_LOG_LEVEL'] = 'SILENT'
 import io
 from src.config import config
 from src.utils.i18n import t
