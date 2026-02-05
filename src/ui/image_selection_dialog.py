@@ -280,12 +280,14 @@ class ImageSelectionDialog(QDialog):
             # We treat it as animated if it has the tag, so we load the FULL URL later.
             # Check if animated (including WEBM detection via URL)
             url_lower = item['url'].lower()
+            thumb_lower = item.get('thumb', '').lower()
             is_animated = (
                     'webp' in mime or
                     'gif' in mime or
                     ('png' in mime and 'animated' in tags) or
                     'animated' in tags or
-                    url_lower.endswith('.webm')  # WEBM is always animated!
+                    url_lower.endswith('.webm') or  # WEBM is always animated!
+                    thumb_lower.endswith('.webm')  # Thumbnail can also be WEBM!
             )
 
             badge_info = []
