@@ -376,7 +376,7 @@ class ClickableImage(QWidget):
             return
         self.current_frame = 0
         self._show_frame(0)
-        self.timer.start(self.durations[0])
+        self.timer.start(int(self.durations[0]))  # Convert to int!
 
     def _next_frame(self):
         """Advances to the next frame of the animation."""
@@ -384,7 +384,7 @@ class ClickableImage(QWidget):
             return
         self.current_frame = (self.current_frame + 1) % len(self.frames)
         self._show_frame(self.current_frame)
-        self.timer.start(self.durations[self.current_frame])
+        self.timer.start(int(self.durations[self.current_frame]))  # Convert to int!
 
     def _show_frame(self, index: int):
         """Displays a specific frame of the animation."""
