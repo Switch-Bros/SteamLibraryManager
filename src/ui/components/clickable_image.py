@@ -450,7 +450,7 @@ class ClickableImage(QWidget):
         # Convert to QImage
         h, w, ch = frame_rgb.shape
         bytes_per_line = ch * w
-        qt_image = QImage(frame_rgb.data, w, h, bytes_per_line, QImage.Format.Format_RGB888)
+        qt_image = QImage(frame_rgb.tobytes(), w, h, bytes_per_line, QImage.Format.Format_RGB888)
 
         # Convert to QPixmap and display
         pixmap = QPixmap.fromImage(qt_image)
