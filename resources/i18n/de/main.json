@@ -163,7 +163,6 @@
     },
     "settings": {
       "title": "Einstellungen",
-      "save": "Speichern",
       "saved": "Einstellungen gespeichert.",
       "tabs": {
         "general": "Allgemein",
@@ -605,7 +604,9 @@
     "parser": {
       "apps_not_found": "Apps-Sektion in localconfig.vdf nicht gefunden",
       "file_not_found": "localconfig.vdf nicht gefunden unter: {path}",
-      "hidden_error": "Fehler beim Setzen des Versteckt-Status: {error}"
+      "hidden_error": "Fehler beim Setzen des Versteckt-Status: {error}",
+      "save_collection_error": "FEHLER beim speichern der Kollektion {e}",
+      "save_cloud_error": "FEHLER beim schreiben des Cloud-Speichers {e}"
     },
     "local_loader": {
       "scanning": "Scanne {count} Manifest-Dateien...",

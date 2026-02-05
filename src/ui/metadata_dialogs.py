@@ -147,7 +147,7 @@ class MetadataEditDialog(QDialog):
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
 
-        save_btn = QPushButton(t('ui.settings.save'))
+        save_btn = QPushButton(t('common.save'))
         save_btn.setDefault(True)
         save_btn.clicked.connect(self._save)
         btn_layout.addWidget(save_btn)
