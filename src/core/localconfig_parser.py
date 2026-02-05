@@ -227,7 +227,7 @@ class LocalConfigParser:
                 steam_section['user-collections'] = '{}'
 
         except Exception as e:
-            print(f"[ERROR] Failed to save user-collections: {e}")
+            print(t('logs.parser.save_collection_error'))
 
     def get_all_app_ids(self) -> List[str]:
         """

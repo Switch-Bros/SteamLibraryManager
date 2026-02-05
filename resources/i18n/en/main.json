@@ -163,7 +163,6 @@
     },
     "settings": {
       "title": "Settings",
-      "save": "Save",
       "saved": "Settings saved.",
       "tabs": {
         "general": "General",
@@ -605,7 +604,9 @@
     "parser": {
       "apps_not_found": "Apps section not found in localconfig.vdf",
       "file_not_found": "localconfig.vdf not found at: {path}",
-      "hidden_error": "Error setting hidden status: {error}"
+      "hidden_error": "Error setting hidden status: {error}",
+      "save_collection_error": "ERROR saving collection {e}",
+      "save_cloud_error": "ERROR saving cloud storage {e}"
     },
     "local_loader": {
       "scanning": "Scanning {count} manifest files...",

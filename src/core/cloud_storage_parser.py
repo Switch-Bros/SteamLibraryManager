@@ -160,7 +160,7 @@ class CloudStorageParser:
             return True
 
         except OSError as e:
-            print(f"[ERROR] Failed to save cloud storage: {e}")
+            print(t('logs.parser.save_cloud_error'))
             return False
 
     def get_all_categories(self) -> List[str]:
