@@ -447,12 +447,9 @@ class ClickableImage(QWidget):
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         # Convert to QImage
-        # Keep frame data alive to prevent garbage collection
-        frame_rgb = np.ascontiguousarray(frame_rgb)
         h, w, ch = frame_rgb.shape
         bytes_per_line = ch * w
-        qt_image = QImage(frame_rgb.tobytes(), w, h, bytes_per_line, QImage.Format.Format_RGB888)
-
+        qt_image = QImage(frame_rgb.data, w, h, bytes_per_line, QImage.Format.Format_RGB888)
 
         # Convert to QPixmap and display
         pixmap = QPixmap.fromImage(qt_image)

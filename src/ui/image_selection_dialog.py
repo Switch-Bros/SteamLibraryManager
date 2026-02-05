@@ -278,12 +278,14 @@ class ImageSelectionDialog(QDialog):
 
             # Check for APNG: often labeled as 'image/png' but has 'animated' tag
             # We treat it as animated if it has the tag, so we load the FULL URL later.
+            # Check if animated (including WEBM detection via URL)
+            url_lower = item['url'].lower()
             is_animated = (
                     'webp' in mime or
                     'gif' in mime or
                     ('png' in mime and 'animated' in tags) or
                     'animated' in tags or
-                    item['url'].lower().endswith('.webm')  # WEBM is always animated!
+                    url_lower.endswith('.webm')  # WEBM is always animated!
             )
 
             badge_info = []
@@ -372,9 +374,12 @@ class ImageSelectionDialog(QDialog):
                 container.enterEvent = enter_handler
                 container.leaveEvent = leave_handler
 
-            # Load thumbnail for preview (always use thumb, never full URL)
-            # This avoids loading large WEBM videos that cause memory issues
-            img_widget.load_image(item['thumb'])
+            # Smart loading: FULL for animated (WEBM, WEBP, GIF), thumbnail for static
+            # Animated images load progressively, static images load instantly
+            if is_animated:
+                img_widget.load_image(item['url'])  # FULL URL for animation
+            else:
+                img_widget.load_image(item['thumb'])  # Thumbnail for speed
 
             # When user clicks, select the full URL and convert WEBM to PNG if needed
             def make_click_handler(url, mime_type, tag_list):
