@@ -183,6 +183,6 @@ class ToolbarBuilder:
         if icon_path.exists():
             login_action.setIcon(QIcon(str(icon_path)))
 
-        # noinspection PyProtectedMember
-        login_action.triggered.connect(mw._start_steam_login)
+        # Use SteamActions instead of MainWindow method
+        login_action.triggered.connect(mw.steam_actions.start_steam_login)
         toolbar.addAction(login_action)

@@ -67,22 +67,24 @@ class CategoryActionHandler:
         menu = QMenu(mw)
 
         menu.addAction(t('ui.context_menu.view_details'), lambda: mw.on_game_selected(game))
-        menu.addAction(t('ui.context_menu.toggle_favorite'), lambda: mw.toggle_favorite(game))
+        menu.addAction(t('ui.context_menu.toggle_favorite'), lambda: mw.game_actions.toggle_favorite(game))
 
         menu.addSeparator()
 
         # Hide / Unhide toggle
         if hasattr(game, 'hidden'):
             if game.hidden:
-                menu.addAction(t('ui.context_menu.unhide_game'), lambda: mw.toggle_hide_game(game, False))
+                menu.addAction(t('ui.context_menu.unhide_game'), lambda: mw.game_actions.toggle_hide_game(game, False))
             else:
-                menu.addAction(t('ui.context_menu.hide_game'), lambda: mw.toggle_hide_game(game, True))
+                menu.addAction(t('ui.context_menu.hide_game'), lambda: mw.game_actions.toggle_hide_game(game, True))
 
-        menu.addAction(t('ui.context_menu.remove_from_local'), lambda: mw.remove_from_local_config(game))
-        menu.addAction(t('ui.context_menu.remove_from_account'), lambda: mw.remove_game_from_account(game))
+        menu.addAction(t('ui.context_menu.remove_from_local'), lambda: mw.game_actions.remove_from_local_config(game))
+        menu.addAction(t('ui.context_menu.remove_from_account'), lambda: mw.game_actions.remove_game_from_account(game))
 
         menu.addSeparator()
-        menu.addAction(t('ui.context_menu.open_store'), lambda: mw.open_in_store(game))
+        # Note: open_in_store is now a static method in GameActions
+        from src.ui.actions.game_actions import GameActions
+        menu.addAction(t('ui.context_menu.open_store'), lambda: GameActions.open_in_store(game))
         menu.addAction(t('ui.context_menu.check_store'), lambda: mw.check_store_availability(game))
 
         menu.addSeparator()
