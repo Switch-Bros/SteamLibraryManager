@@ -4,18 +4,15 @@
 A custom widget to display clickable and dynamically loaded images.
 
 This widget can load images from local paths or URLs in a separate thread,
-supports animated GIFs/APNGs (if Pillow is installed), WEBM videos (via QMediaPlayer),
-and can display superimposed badges based on metadata.
+supports animated GIFs (if Pillow is installed), and can display
+superimposed badges based on metadata.
 """
 from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout
-from PyQt6.QtCore import Qt, pyqtSignal, QThread, QByteArray, QTimer, QPropertyAnimation, QEasingCurve, QRect, QUrl
+from PyQt6.QtCore import Qt, pyqtSignal, QThread, QByteArray, QTimer, QPropertyAnimation, QEasingCurve, QRect
 from PyQt6.QtGui import QPixmap, QCursor, QImage
-from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
-from PyQt6.QtMultimediaWidgets import QVideoWidget
 from typing import cast
 import requests
 import os
-os.environ['QT_LOGGING_RULES'] = 'qt.multimedia.ffmpeg=false'
 import io
 from src.config import config
 from src.utils.i18n import t
@@ -29,6 +26,16 @@ except ImportError:
     ImageSequence = None
     HAS_PILLOW = False
     print(t('logs.image.pillow_missing'))
+
+try:
+    import cv2
+    import numpy as np
+
+    HAS_OPENCV = True
+except ImportError:
+    cv2 = None
+    np = None
+    HAS_OPENCV = False
 
 
 class ImageLoader(QThread):
@@ -111,21 +118,6 @@ class ClickableImage(QWidget):
         # Mouse-Events durchlassen damit enterEvent/leaveEvent auf self funktionieren
         self.image_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
-        # Video widget for WEBM support (initially hidden)
-        self.video_widget = QVideoWidget(self)
-        self.video_widget.setGeometry(1, 1, width - 2, height - 2)  # Fit inside border
-        self.video_widget.setAspectRatioMode(Qt.AspectRatioMode.KeepAspectRatio)  # WICHTIG!
-        self.video_widget.hide()
-        self.video_widget.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-
-        # Media player for WEBM
-        self.media_player = QMediaPlayer(self)
-        self.audio_output = QAudioOutput(self)
-        self.audio_output.setVolume(0)  # Mute videos
-        self.media_player.setAudioOutput(self.audio_output)
-        self.media_player.setVideoOutput(self.video_widget)
-        self.media_player.setLoops(QMediaPlayer.Loops.Infinite)  # Loop forever
-
         # --- Badge-Overlay System (SteamGridDB-Style) ---
         # NUR erstellen wenn external_badges=False!
         if not external_badges:
@@ -204,6 +196,12 @@ class ClickableImage(QWidget):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._next_frame)
 
+        # WEBM video playback with OpenCV
+        self.video_cap = None  # cv2.VideoCapture object
+        self.video_timer = QTimer(self)
+        self.video_timer.timeout.connect(self._next_video_frame)
+        self.is_playing_video = False
+
         # PERFORMANCE: Cache for loaded pixmaps
         self._pixmap_cache = {}  # {path: QPixmap}
 
@@ -243,7 +241,7 @@ class ClickableImage(QWidget):
     def load_image(self, url_or_path: str | None, metadata: dict = None):
         """Starts loading an image from a URL or local path.
 
-        Supports images (PNG, JPG, GIF, WEBP, APNG) and videos (WEBM).
+        Supports images (PNG, JPG, GIF, WEBP, APNG) and videos (WEBM via OpenCV).
 
         Args:
             url_or_path (str | None): The URL or file path of the image to load, or None to clear.
@@ -254,18 +252,24 @@ class ClickableImage(QWidget):
 
         self.current_path = url_or_path
         self.timer.stop()
+        self.video_timer.stop()
         self.frames = []
         self._clear_badges()
 
         # Stop any playing video
-        self.media_player.stop()
-        self.video_widget.hide()
-        self.image_label.show()
+        if self.video_cap:
+            self.video_cap.release()
+            self.video_cap = None
+        self.is_playing_video = False
 
         # Check if this is a WEBM video
         if url_or_path and url_or_path.lower().endswith('.webm'):
-            self._load_webm_video(url_or_path)
-            return
+            if HAS_OPENCV:
+                self._load_webm_video(url_or_path)
+                return
+            else:
+                # Fallback: try to load as image
+                pass
 
         # PERFORMANCE: Check cache first
         if url_or_path and url_or_path in self._pixmap_cache:
@@ -284,26 +288,6 @@ class ClickableImage(QWidget):
         self.loader = ImageLoader(url_or_path)
         self.loader.loaded.connect(self._on_loaded)
         self.loader.start()
-
-    def _load_webm_video(self, url: str):
-        """Loads and plays a WEBM video.
-
-        Args:
-            url (str): The URL of the WEBM video to load.
-        """
-        self.image_label.hide()
-        self.video_widget.show()
-        self.video_widget.raise_()
-
-        # Raise badges above video if they exist
-        if self.badge_overlay:
-            self.badge_overlay.raise_()
-
-        self.media_player.setSource(QUrl(url))
-        self.media_player.play()
-
-        # Create animated badge for WEBM
-        self._create_badges(is_animated=True)
 
     def _on_loaded(self, data: QByteArray):
         """Handles the loaded image data, parsing it with Pillow if available.
@@ -404,84 +388,142 @@ class ClickableImage(QWidget):
     def _show_frame(self, index: int):
         """Displays a specific frame of the animation."""
         if 0 <= index < len(self.frames):
-            pixmap = self.frames[index]
-            scaled = pixmap.scaled(
-                self.w, self.h,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation
-            )
-            self.image_label.setPixmap(scaled)
+            self._apply_pixmap(self.frames[index])
+
+    def _load_webm_video(self, url: str):
+        """Loads and plays a WEBM video using OpenCV.
+
+        Args:
+            url (str): The URL of the WEBM video to load.
+        """
+        if not HAS_OPENCV:
+            self.image_label.setText(t('emoji.error'))
+            return
+
+        try:
+            self.video_cap = cv2.VideoCapture(url)
+            if not self.video_cap.isOpened():
+                raise Exception("Failed to open video")
+
+            # Get FPS for timer interval
+            fps = self.video_cap.get(cv2.CAP_PROP_FPS)
+            if fps <= 0:
+                fps = 30  # Default to 30 FPS
+
+            interval_ms = int(1000 / fps)
+
+            self.is_playing_video = True
+            self.video_timer.start(interval_ms)
+
+            # Create animated badge for WEBM
+            self._create_badges(is_animated=True)
+
+        except Exception as e:
+            print(f"[ClickableImage] Failed to load WEBM: {e}")
+            self.image_label.setText(t('emoji.error'))
+            if self.video_cap:
+                self.video_cap.release()
+                self.video_cap = None
+
+    def _next_video_frame(self):
+        """Reads and displays the next frame from the WEBM video."""
+        if not self.video_cap or not self.is_playing_video:
+            return
+
+        ret, frame = self.video_cap.read()
+
+        if not ret:
+            # Loop video
+            self.video_cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            ret, frame = self.video_cap.read()
+
+            if not ret:
+                # Failed to loop, stop playback
+                self.video_timer.stop()
+                self.is_playing_video = False
+                return
+
+        # Convert BGR to RGB
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # Convert to QImage
+        # Keep frame data alive to prevent garbage collection
+        frame_rgb = np.ascontiguousarray(frame_rgb)
+        h, w, ch = frame_rgb.shape
+        bytes_per_line = ch * w
+        qt_image = QImage(frame_rgb.tobytes(), w, h, bytes_per_line, QImage.Format.Format_RGB888)
+
+
+        # Convert to QPixmap and display
+        pixmap = QPixmap.fromImage(qt_image)
+        self._apply_pixmap(pixmap)
 
     def _apply_pixmap(self, pixmap: QPixmap):
-        """Applies a pixmap to the image label with scaling."""
-        if pixmap.isNull():
-            return
-        scaled = pixmap.scaled(
-            self.w, self.h,
-            Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
-        )
+        """Scales and sets the pixmap on the label."""
+        scaled = pixmap.scaled(self.w, self.h, Qt.AspectRatioMode.KeepAspectRatio,
+                               Qt.TransformationMode.SmoothTransformation)
         self.image_label.setPixmap(scaled)
+        # Overlay nach oben bringen — setPixmap kann Z-Reihenfolge beeinflussen
+        # NUR wenn badge_overlay existiert (nicht bei external_badges)
+        if self.badge_overlay:
+            self.badge_overlay.raise_()
 
-        # PERFORMANCE: Cache the pixmap
-        if self.current_path:
+        # PERFORMANCE: Cache the original pixmap for future reuse
+        if self.current_path and self.current_path not in self._pixmap_cache:
             self._pixmap_cache[self.current_path] = pixmap
 
     def _load_local_image(self, path: str):
-        """Loads an image from a local file path."""
-        pixmap = QPixmap(path)
-        if not pixmap.isNull():
-            self._apply_pixmap(pixmap)
-        else:
-            self.image_label.setText(t('emoji.error'))
+        """Directly loads an image from a local path."""
+        if os.path.exists(path):
+            self._apply_pixmap(QPixmap(path))
 
     def mousePressEvent(self, event):
-        """Handles mouse press events."""
+        """Emits signals for left and right clicks."""
         if event.button() == Qt.MouseButton.LeftButton:
             self.clicked.emit()
         elif event.button() == Qt.MouseButton.RightButton:
             self.right_clicked.emit()
 
+    def _animate_overlay(self, target_height: int):
+        """Helper method to animate the badge overlay to a target height.
+
+        Args:
+            target_height (int): The target height in pixels.
+        """
+        if self.external_badges or not self.badges:
+            return
+        self.badge_animation.stop()
+        current: QRect = self.badge_overlay.geometry()
+        self.badge_animation.setStartValue(current)
+        self.badge_animation.setEndValue(QRect(0, 0, self.w, target_height))
+        self.badge_animation.start()
+
     def enterEvent(self, event):
-        """Handles mouse enter events for badge animation."""
+        """Triggers badge expansion animation on mouse enter.
+
+        Animates the badge overlay geometry from collapsed (stripes only) to
+        expanded (full badge icons visible) via QRect interpolation.
+        """
         super().enterEvent(event)
-        if not self.external_badges and self.badge_overlay:
+        if not self.external_badges:
             self._animate_overlay(self._EXPANDED_HEIGHT)
 
     def leaveEvent(self, event):
-        """Handles mouse leave events for badge animation."""
-        super().leaveEvent(event)
-        if not self.external_badges and self.badge_overlay:
-            self._animate_overlay(self._STRIPE_HEIGHT)
+        """Triggers badge collapse animation on mouse leave.
 
-    def _animate_overlay(self, target_height: int):
-        """Animates the badge overlay to a target height.
-
-        Args:
-            target_height (int): The target height for the overlay animation.
+        Animates the badge overlay geometry back from expanded to collapsed
+        (stripes only visible) via QRect interpolation.
         """
-        if not self.badge_overlay or not self.badge_animation:
-            return
-
-        current_geo = self.badge_overlay.geometry()
-        target_geo = QRect(
-            current_geo.x(),
-            -6,  # Y bleibt konstant
-            current_geo.width(),
-            target_height
-        )
-
-        self.badge_animation.stop()
-        self.badge_animation.setStartValue(current_geo)
-        self.badge_animation.setEndValue(target_geo)
-        self.badge_animation.start()
+        super().leaveEvent(event)
+        if not self.external_badges:
+            self._animate_overlay(self._STRIPE_HEIGHT)
 
     def _create_badges(self, is_animated: bool = False):
         """
-        Creates and displays badges based on game metadata.
+        Creates animated slide-down badges (SteamGridDB style).
 
-        Badges are displayed in the top-left corner of the image. They can be
-        either custom PNG icons or text labels with colored backgrounds.
+        Normal state: only thin colored stripes visible at the top edge.
+        On hover: badges slide down smoothly to reveal full icons.
 
         Args:
             is_animated (bool): Whether the loaded image is an animated GIF.
@@ -490,92 +532,121 @@ class ClickableImage(QWidget):
             return  # Badges werden extern verwaltet
 
         self._clear_badges()
-
         if not self.metadata:
             return
 
-        tags = [tag.lower() for tag in self.metadata.get('tags', [])]
+        tags: list[str] = self.metadata.get('tags', [])
 
-        def add_badge(badge_type: str, label_text: str, color: str):
-            """Helper function to add a badge stripe and icon.
+        # Badge-Definitionen: (type_key, text, bg_color, condition)
+        badge_defs: list[tuple[str, str, str, bool]] = [
+            ('nsfw', f"{t('emoji.nsfw')} {t('ui.badges.nsfw')}", "#d9534f",
+             bool(self.metadata.get('nsfw') or 'nsfw' in tags)),
+            ('humor', f"{t('emoji.humor')} {t('ui.badges.humor')}", "#f0ad4e",
+             bool(self.metadata.get('humor') or 'humor' in tags)),
+            ('epilepsy', f"{t('emoji.epilepsy')} {t('ui.badges.epilepsy')}", "#0275d8",
+             bool(self.metadata.get('epilepsy') or 'epilepsy' in tags)),
+            ('animated', f"{t('emoji.animated')} {t('ui.badges.animated')}", "#5cb85c",
+             is_animated),
+        ]
 
-            Args:
-                badge_type (str): The type of badge (e.g., 'nsfw', 'humor').
-                label_text (str): The text to display on the badge.
-                color (str): The background color of the badge.
-            """
-            # Stripe (dünne Lippe)
+        # Nur die aktiven Badges aufbauen
+        active_badges: list[tuple[str, str, str]] = [
+            (key, text, color) for key, text, color, active in badge_defs if active
+        ]
+
+        if not active_badges:
+            # Keine Badges → Overlay komplett verstecken
+            self.badge_overlay.setGeometry(0, 0, self.w, 0)
+            return
+
+        # cast(): .layout() gibt QLayout|None zurück — wir wissen dass es QHBoxLayout ist
+        stripe_layout: QHBoxLayout = cast(QHBoxLayout, self.stripe_container.layout())
+        icon_layout: QHBoxLayout = cast(QHBoxLayout, self.icon_container.layout())
+
+        for type_key, text, bg_color in active_badges:
+            # --- Streifen hinzufügen (immer sichtbar, quadratisch 28×28) ---
             stripe = QWidget()
             stripe.setFixedSize(self._STRIPE_WIDTH, self._STRIPE_HEIGHT)
-            stripe.setStyleSheet(f"background-color: {color};")
-            cast(QHBoxLayout, self.stripe_container.layout()).addWidget(stripe)
+            stripe.setStyleSheet(f"background-color: {bg_color};")
+            stripe_layout.addWidget(stripe)
 
-            # Icon (Badge)
-            icon_path = config.ICONS_DIR / f"flag_{badge_type}.png"
-            badge_label = QLabel()
-
+            # --- Icon hinzufügen (nur bei Hover sichtbar) ---
+            icon_path = config.ICONS_DIR / f"flag_{type_key}.png"
             if icon_path.exists():
-                # PNG Icon
+                lbl = QLabel()
                 pix = QPixmap(str(icon_path)).scaledToHeight(
-                    self._ICON_HEIGHT,
-                    Qt.TransformationMode.SmoothTransformation
+                    self._ICON_HEIGHT, Qt.TransformationMode.SmoothTransformation
                 )
-                badge_label.setPixmap(pix)
-                badge_label.setFixedSize(self._STRIPE_WIDTH, self._ICON_HEIGHT)
-                badge_label.setStyleSheet(
-                    "QLabel { border: 1px solid rgba(0,0,0,0.5); "
-                    "border-radius: 0 0 3px 3px; "
-                    "background: rgba(0,0,0,0.35); padding: 2px; }"
+                lbl.setPixmap(pix)
+                lbl.setFixedWidth(self._STRIPE_WIDTH)
+                # Subtiler Shadow damit Icons auf dunklen Covers sichtbar bleiben
+                lbl.setStyleSheet(
+                    "QLabel { "
+                    "  border: 1px solid rgba(0, 0, 0, 0.45); "
+                    "  border-radius: 0px 0px 3px 3px; "
+                    "  background-color: rgba(0, 0, 0, 0.25); "
+                    "  padding: 1px; "
+                    "}"
                 )
             else:
-                # Fallback: Text Badge
-                badge_label.setText(label_text)
-                badge_label.setFixedSize(self._STRIPE_WIDTH, self._ICON_HEIGHT)
-                badge_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                badge_label.setStyleSheet(
-                    f"background: {color}; color: white; "
-                    f"border-radius: 0 0 4px 4px; font-weight: bold; "
-                    f"font-size: 9px; border: 1px solid rgba(255,255,255,0.3);"
+                # Fallback: Text-Badge wenn kein PNG vorhanden
+                # FEST 28×28px — NICHT dynamisch anpassen!
+                lbl = QLabel(text)
+                lbl.setFixedSize(self._STRIPE_WIDTH, self._ICON_HEIGHT)  # 28×28px FEST!
+                lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Text zentrieren
+                lbl.setStyleSheet(
+                    f"background-color: {bg_color}; color: white; "
+                    f"border-radius: 0px 0px 4px 4px; "
+                    f"font-weight: bold; font-size: 9px; "
+                    f"border: 1px solid rgba(255,255,255,0.3);"
                 )
+            icon_layout.addWidget(lbl)
 
-            cast(QHBoxLayout, self.icon_container.layout()).addWidget(badge_label)
-            self.badges.append(badge_label)
-            self._badge_colors.append(color)
+            # Farbe speichern für spätere Referenz
+            self._badge_colors.append(bg_color)
+            self.badges.append(lbl)
 
-        # Add badges based on metadata
-        if self.metadata.get('nsfw') or 'nsfw' in tags:
-            add_badge('nsfw', t('ui.badges.nsfw'), "#d9534f")
-        if self.metadata.get('humor') or 'humor' in tags:
-            add_badge('humor', t('ui.badges.humor'), "#f0ad4e")
-        if self.metadata.get('epilepsy') or 'epilepsy' in tags:
-            add_badge('epilepsy', t('ui.badges.epilepsy'), "#0275d8")
-        if is_animated:
-            add_badge('animated', t('ui.badges.animated'), "#5cb85c")
+        # Overlay auf kollabierten Zustand setzen — nur Streifen sichtbar
+        # Qt clippt Children automatisch an der Widget-Geometrie
+        self.badge_overlay.setGeometry(0, 0, self.w, self._STRIPE_HEIGHT)
 
     def _clear_badges(self):
         """Removes all badges, stripes, and resets the overlay to hidden."""
         if self.external_badges:
-            return
+            return  # Badges werden extern verwaltet — nichts zu clearen
 
-        # Streifen löschen
-        if self.stripe_container:
-            layout = self.stripe_container.layout()
-            if layout:
-                while layout.count():
-                    item = layout.takeAt(0)
-                    widget = item.widget()
-                    if widget:
-                        widget.deleteLater()
+        # Icons aus dem icon_container entfernen
+        icon_layout: QHBoxLayout = cast(QHBoxLayout, self.icon_container.layout())
+        for b in self.badges:
+            icon_layout.removeWidget(b)
+            b.deleteLater()
+        self.badges = []
 
-        # Icons löschen
-        if self.icon_container:
-            layout = self.icon_container.layout()
-            if layout:
-                while layout.count():
-                    item = layout.takeAt(0)
-                    widget = item.widget()
-                    if widget:
-                        widget.deleteLater()
+        # Streifen aus dem stripe_container entfernen
+        stripe_layout: QHBoxLayout = cast(QHBoxLayout, self.stripe_container.layout())
+        while stripe_layout.count():
+            item = stripe_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
 
-        self.badges.clear()
-        self._badge_colors.clear()
+        # Zustand zurücksetzen — Overlay unsichtbar
+        self._badge_colors = []
+        self.badge_overlay.setGeometry(0, 0, self.w, 0)
+
+    def clear(self):
+        """
+        Clears the image and shows the default image or empty state.
+
+        This method is useful when you want to reset the widget to its initial state,
+        such as when clearing a multi-selection view.
+        """
+        self.timer.stop()
+        self.frames = []
+        self.current_path = None
+        self._clear_badges()
+
+        if self.default_image:
+            self._load_local_image(self.default_image)
+        else:
+            self.image_label.clear()
+            self.image_label.setText("")
