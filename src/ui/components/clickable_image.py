@@ -15,6 +15,7 @@ from PyQt6.QtMultimediaWidgets import QVideoWidget
 from typing import cast
 import requests
 import os
+os.environ['QT_LOGGING_RULES'] = 'qt.multimedia.ffmpeg=false'
 import io
 from src.config import config
 from src.utils.i18n import t
@@ -113,6 +114,7 @@ class ClickableImage(QWidget):
         # Video widget for WEBM support (initially hidden)
         self.video_widget = QVideoWidget(self)
         self.video_widget.setGeometry(1, 1, width - 2, height - 2)  # Fit inside border
+        self.video_widget.setAspectRatioMode(Qt.AspectRatioMode.KeepAspectRatio)  # WICHTIG!
         self.video_widget.hide()
         self.video_widget.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
 
