@@ -282,7 +282,8 @@ class ImageSelectionDialog(QDialog):
                     'webp' in mime or
                     'gif' in mime or
                     ('png' in mime and 'animated' in tags) or
-                    'animated' in tags
+                    'animated' in tags or
+                    'apng' in tags  # <-- NEU: Zur Sicherheit
             )
 
             badge_info = []
@@ -371,13 +372,19 @@ class ImageSelectionDialog(QDialog):
                 container.enterEvent = enter_handler
                 container.leaveEvent = leave_handler
 
-            # Load
-            # APNG detection: Check if PNG + animated tag
-            is_apng = 'png' in mime and 'animated' in tags
-            # For APNG, always use full URL (thumbnails are compressed JPEGs)
-            load_url = item['url'] if (is_animated or is_apng) else item['thumb']
+            # Load image
+            # For animated images (APNG, GIF, WEBP), use full URL
+            # SteamGridDB serves .webm preview but .png download for APNG
+            if is_animated:
+                load_url = item['url']
+                # Replace .webm with .png for APNG (SteamGridDB quirk)
+                if load_url.endswith('.webm'):
+                    load_url = load_url.replace('.webm', '.png')
+            else:
+                load_url = item['thumb']
 
             img_widget.load_image(load_url)
+
             img_widget.mousePressEvent = lambda e, u=item['url']: self._on_select(u)
 
             # Author
