@@ -185,9 +185,9 @@ class MenuBuilder:
 
         help_menu.addSeparator()
 
-        # About
+        # About - Use SteamActions instead of MainWindow method
         about_action = QAction(t('ui.menu.help.about'), mw)
-        about_action.triggered.connect(mw.show_about)
+        about_action.triggered.connect(mw.steam_actions.show_about)
         help_menu.addAction(about_action)
 
     def _attach_corner_widget(self, menubar: QMenuBar) -> None:
