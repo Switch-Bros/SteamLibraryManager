@@ -402,7 +402,7 @@ class GameDetailsWidget(QWidget):
         meta_grid.addWidget(self.lbl_appid, 1, 0)
         self.lbl_playtime = InfoLabel('ui.game_details.playtime')
         meta_grid.addWidget(self.lbl_playtime, 2, 0)
-        self.lbl_updated = InfoLabel('ui.game_details.last_update', t('common.dash'))
+        self.lbl_updated = InfoLabel('ui.game_details.last_update', t('emoji.dash'))
         meta_grid.addWidget(self.lbl_updated, 3, 0)
 
         meta_grid.addWidget(QLabel(f"<b>{t('ui.game_details.section_ratings')}</b>"), 0, 1)
@@ -416,7 +416,7 @@ class GameDetailsWidget(QWidget):
         self.lbl_steam_deck.setStyleSheet("padding: 1px 0;")
         self._update_steam_deck_label("unknown")
         meta_grid.addWidget(self.lbl_steam_deck, 2, 1)
-        self.lbl_reviews = InfoLabel('ui.game_details.reviews', t('common.dash'))
+        self.lbl_reviews = InfoLabel('ui.game_details.reviews', t('emoji.dash'))
         meta_grid.addWidget(self.lbl_reviews, 3, 1)
 
         meta_grid.addWidget(QLabel(f"<b>{t('ui.game_details.section_metadata')}</b>"), 0, 2)
@@ -582,13 +582,13 @@ class GameDetailsWidget(QWidget):
             'ui.game_details.never_played')
         self.lbl_playtime.setText(
             f"<span style='color:#888;'>{t('ui.game_details.playtime')}:</span> <b>{playtime_val}</b>")
-        update_val = format_timestamp_to_date(game.last_updated) if game.last_updated else t('common.dash')
+        update_val = format_timestamp_to_date(game.last_updated) if game.last_updated else t('emoji.dash')
         self.lbl_updated.setText(
             f"<span style='color:#888;'>{t('ui.game_details.last_update')}:</span> <b>{update_val}</b>")
         self._update_proton_label(game.proton_db_rating)
         self._update_steam_deck_label(game.steam_deck_status)
 
-        review_val = f"{game.review_score} ({game.review_count})" if game.review_score else t('common.dash')
+        review_val = f"{game.review_score} ({game.review_count})" if game.review_score else t('emoji.dash')
         self.lbl_reviews.setText(
             f"<span style='color:#888;'>{t('ui.game_details.reviews')}:</span> <b>{review_val}</b>")
         unknown = t('ui.game_details.value_unknown')

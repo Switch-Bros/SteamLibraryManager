@@ -98,7 +98,7 @@ class MenuBuilder:
         file_menu.addSeparator()
 
         # Exit
-        exit_action = QAction(t('ui.menu.file.exit'), mw)
+        exit_action = QAction(t('common.exit'), mw)
         exit_action.triggered.connect(mw.file_actions.exit_application)
         file_menu.addAction(exit_action)
 
