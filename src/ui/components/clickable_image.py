@@ -263,6 +263,12 @@ class ClickableImage(QWidget):
             self.video_cap = None
         self.is_playing_video = False
 
+        # If url_or_path is None, load default image immediately without showing loading text
+        if url_or_path is None:
+            if self.default_image:
+                self._load_local_image(self.default_image)
+            return
+
         # Check if this is a WEBM video
         if url_or_path and url_or_path.lower().endswith('.webm'):
             if HAS_OPENCV:
@@ -298,6 +304,7 @@ class ClickableImage(QWidget):
         """
         if data.isEmpty():
             if self.default_image:
+                self.current_path = None  # Reset to prevent caching default image under wrong path
                 self._load_local_image(self.default_image)
             else:
                 self.image_label.setText(t('emoji.error'))
