@@ -19,7 +19,7 @@ from PyQt6.QtCore import pyqtSignal
 
 from src.config import config
 from src.utils.i18n import t
-from src.ui.components.ui_helper import UIHelper
+from src.ui.widgets.ui_helper import UIHelper
 
 
 class SettingsDialog(QDialog):

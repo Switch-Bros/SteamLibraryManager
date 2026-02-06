@@ -42,8 +42,8 @@ from src.ui.settings_dialog import SettingsDialog
 
 # Components
 from src.ui.game_details_widget import GameDetailsWidget
-from src.ui.components.category_tree import GameTreeWidget
-from src.ui.components.ui_helper import UIHelper
+from src.ui.widgets.category_tree import GameTreeWidget
+from src.ui.widgets.ui_helper import UIHelper
 
 from src.utils.i18n import t, init_i18n
 from src.ui.builders import MenuBuilder, ToolbarBuilder, StatusbarBuilder

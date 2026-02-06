@@ -15,7 +15,7 @@ All actions connect back to MainWindow for state access and UI updates.
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from src.ui.components.ui_helper import UIHelper
+from src.ui.widgets.ui_helper import UIHelper
 from src.ui.vdf_merger_dialog import VdfMergerDialog
 from src.utils.i18n import t
 

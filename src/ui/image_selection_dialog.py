@@ -17,7 +17,7 @@ from PyQt6.QtGui import QDesktopServices, QFont
 from src.utils.i18n import t
 from src.config import config
 from src.integrations.steamgrid_api import SteamGridDB
-from src.ui.components.clickable_image import ClickableImage
+from src.ui.widgets.clickable_image import ClickableImage
 
 
 class SearchThread(QThread):

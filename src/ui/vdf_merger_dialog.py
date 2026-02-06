@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from src.config import config
-from src.ui.components.ui_helper import UIHelper
+from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 from src.utils.steam_config_merger import SteamConfigMerger, MergeStrategy
 

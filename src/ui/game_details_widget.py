@@ -22,7 +22,7 @@ from pathlib import Path
 from src.core.game_manager import Game
 from src.utils.i18n import t
 from src.utils.date_utils import format_timestamp_to_date
-from src.ui.components.clickable_image import ClickableImage
+from src.ui.widgets.clickable_image import ClickableImage
 from src.core.steam_assets import SteamAssets
 from src.ui.image_selection_dialog import ImageSelectionDialog
 
