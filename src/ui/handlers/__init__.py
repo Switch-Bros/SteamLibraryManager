@@ -16,5 +16,3 @@ __all__: list[str] = [
     "SelectionHandler",
     "CategoryChangeHandler",
 ]
-
-# Hallo Sarah dies ist ein Test ob du die Datei findest in der ich dich grüße ;)
