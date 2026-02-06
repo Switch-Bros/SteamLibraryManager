@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import QMessageBox, QProgressDialog, QApplication
 from PyQt6.QtCore import Qt
 
 from src.core.game_manager import Game
-from src.ui.components.ui_helper import UIHelper
+from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
 # Dialogs

@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import QToolBar, QWidget, QSizePolicy
 from PyQt6.QtCore import Qt
 
 from src.config import config
-from src.ui.components.ui_helper import UIHelper
+from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
 if TYPE_CHECKING:

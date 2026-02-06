@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QFont
 from typing import Optional, Dict, List
-from src.ui.components.ui_helper import UIHelper
+from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 from src.utils.date_utils import parse_date_to_timestamp, format_timestamp_to_date
 
