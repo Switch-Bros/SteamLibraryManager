@@ -642,9 +642,10 @@ class GameDetailsWidget(QWidget):
 
         # If no rating found, fetch from Steam Store
         if not pegi_to_display:
-            from src.core.steam_store import SteamStoreScraper
+            from src.integrations.steam_store import SteamStoreScraper
 
-            scraper = SteamStoreScraper(Path.home() / '.steam_library_manager' / 'cache', self.parent().language)
+            # Use default language 'en' (English) as standard
+            scraper = SteamStoreScraper(Path.home() / '.steam_library_manager' / 'cache', 'en')
             fetched_pegi = scraper.fetch_age_rating(game.app_id)
 
             if fetched_pegi:
