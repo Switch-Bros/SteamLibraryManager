@@ -378,7 +378,7 @@ class GameDetailsWidget(QWidget):
         header_layout.addWidget(gallery_widget, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
         main_layout.addLayout(header_layout)
 
-        main_layout.addSpacing(20)
+        main_layout.addSpacing(10)
 
         # Separator line
         line1 = QFrame()
@@ -429,6 +429,7 @@ class GameDetailsWidget(QWidget):
             l_layout.addWidget(l_lbl)
             edit = QLineEdit()
             edit.setReadOnly(True)
+            edit.setAlignment(Qt.AlignmentFlag.AlignLeft)  # Left-align text!
             edit.setStyleSheet("background: transparent; border: none; font-weight: bold; padding: 1px 0;")
             l_layout.addWidget(edit)
             grid.addLayout(l_layout, row, 2)
@@ -639,19 +640,30 @@ class GameDetailsWidget(QWidget):
             }
             pegi_to_display = esrb_to_pegi.get(esrb, '')
 
+        # If no rating found, fetch from Steam Store
+        if not pegi_to_display:
+            from src.core.steam_store import SteamStoreScraper
+
+            scraper = SteamStoreScraper(Path.home() / '.steam_library_manager' / 'cache', self.parent().language)
+            fetched_pegi = scraper.fetch_age_rating(game.app_id)
+
+            if fetched_pegi:
+                pegi_to_display = fetched_pegi
+                game.pegi_rating = fetched_pegi  # Save to game object
+
         if pegi_to_display:
-            # Try to load PEGI image from /resources/icons/
+            # Try to load PEGI image
             pegi_image_path = Path(f"resources/icons/PEGI{pegi_to_display}.png")
 
             if pegi_image_path.exists():
                 self.pegi_image.load_image(str(pegi_image_path))
             else:
-                # ClickableImage doesn't support text, show default
-                self.pegi_image.load_image(None)
+                # PEGI file not found - show default icon
+                self.pegi_image.load_image("resources/icons/default_icons.png")
 
         else:
             # No rating available - show default icon
-            self.pegi_image.load_image(None)  # Shows default image
+            self.pegi_image.load_image("resources/icons/default_icons.png")
 
         self._reload_images(game.app_id)
 

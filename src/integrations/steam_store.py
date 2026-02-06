@@ -167,6 +167,138 @@ class SteamStoreScraper:
 
         return []
 
+    def fetch_age_rating(self, app_id: str) -> Optional[str]:
+        """
+        Fetches age rating from the Steam Store page and converts to PEGI.
+
+        This method scrapes the Steam Store page to extract the age rating
+        (Steam age gate, PEGI, ESRB, USK, etc.) and converts it to a PEGI rating.
+        Results are cached for 30 days.
+
+        Args:
+            app_id (str): The Steam app ID.
+
+        Returns:
+            Optional[str]: PEGI rating (e.g., "18", "16", "12", "7", "3") or None if not found.
+        """
+        cache_file = self.cache_dir.parent / 'age_ratings' / f"{app_id}.json"
+        cache_file.parent.mkdir(exist_ok=True, parents=True)
+
+        # 1. Check Cache
+        if cache_file.exists():
+            try:
+                mtime = datetime.fromtimestamp(cache_file.stat().st_mtime)
+                if datetime.now() - mtime < timedelta(days=30):
+                    with open(cache_file, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        return data.get('pegi_rating')
+            except (OSError, ValueError, json.JSONDecodeError):
+                pass
+
+        # 2. Rate Limiting
+        time_since_last = time.time() - self.last_request_time
+        if time_since_last < self.min_request_interval:
+            time.sleep(self.min_request_interval - time_since_last)
+
+        # 3. Fetch from Steam
+        try:
+            self.last_request_time = time.time()
+            cookies = {'Steam_Language': self.steam_language, 'wants_mature_content': '1', 'birthtime': '0'}
+            url = f"https://store.steampowered.com/app/{app_id}/"
+
+            response = requests.get(url, cookies=cookies, timeout=10 )
+            response.raise_for_status()
+
+            soup = BeautifulSoup(response.text, 'html.parser')
+            pegi_rating = None
+
+            # Try to find age rating in various formats
+            # 1. Steam age gate (e.g., "18+", "16+")
+            age_gate = soup.find('div', class_='game_rating_icon')
+            if age_gate and age_gate.get('data-rating'):
+                steam_age = age_gate['data-rating'].replace('+', '')
+                pegi_rating = self._convert_to_pegi(steam_age, 'steam')
+
+            # 2. PEGI rating
+            if not pegi_rating:
+                pegi_elem = soup.find('img', alt=lambda x: x and 'PEGI' in x)
+                if pegi_elem:
+                    alt_text = pegi_elem.get('alt', '')
+                    for age in ['18', '16', '12', '7', '3']:
+                        if age in alt_text:
+                            pegi_rating = age
+                            break
+
+            # 3. ESRB rating
+            if not pegi_rating:
+                esrb_elem = soup.find('img', alt=lambda x: x and 'ESRB' in x)
+                if esrb_elem:
+                    alt_text = esrb_elem.get('alt', '').lower()
+                    if 'adults only' in alt_text or 'ao' in alt_text:
+                        pegi_rating = '18'
+                    elif 'mature' in alt_text or 'm' in alt_text:
+                        pegi_rating = '18'
+                    elif 'teen' in alt_text or 't' in alt_text:
+                        pegi_rating = '16'
+                    elif 'everyone 10+' in alt_text or 'e10+' in alt_text:
+                        pegi_rating = '12'
+                    elif 'everyone' in alt_text or 'e' in alt_text:
+                        pegi_rating = '3'
+
+            # 4. USK rating (German)
+            if not pegi_rating:
+                usk_elem = soup.find('img', alt=lambda x: x and 'USK' in x)
+                if usk_elem:
+                    alt_text = usk_elem.get('alt', '')
+                    for usk_age, pegi_age in [('18', '18'), ('16', '16'), ('12', '12'), ('6', '7'), ('0', '3')]:
+                        if usk_age in alt_text:
+                            pegi_rating = pegi_age
+                            break
+
+            # Cache result
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                json.dump({'pegi_rating': pegi_rating, 'fetched_at': datetime.now().isoformat()}, f)
+
+            return pegi_rating
+
+        except (requests.RequestException, AttributeError) as e:
+            print(f"Failed to fetch age rating for {app_id}: {e}")
+
+        return None
+
+    @staticmethod
+    def _convert_to_pegi(rating: str, system: str) -> Optional[str]:
+        """
+        Converts age ratings from different systems to PEGI.
+
+        Args:
+            rating (str): The rating value (e.g., "18", "Mature").
+            system (str): The rating system ('steam', 'esrb', 'usk').
+
+        Returns:
+            Optional[str]: PEGI rating or None.
+        """
+        if system == 'steam':
+            # Steam age gate: 18+ → PEGI 18, 16+ → PEGI 16, etc.
+            age_map = {'18': '18', '16': '16', '12': '12', '7': '7', '3': '3', '0': '3'}
+            return age_map.get(rating)
+
+        elif system == 'esrb':
+            esrb_map = {
+                'AO': '18', 'Adults Only': '18',
+                'M': '18', 'Mature': '18',
+                'T': '16', 'Teen': '16',
+                'E10+': '12', 'Everyone 10+': '12',
+                'E': '3', 'Everyone': '3'
+            }
+            return esrb_map.get(rating)
+
+        elif system == 'usk':
+            usk_map = {'18': '18', '16': '16', '12': '12', '6': '7', '0': '3'}
+            return usk_map.get(rating)
+
+        return None
+
     def get_cache_coverage(self, app_ids: List[str]) -> dict:
         """
         Check how many games have cached tag data.
