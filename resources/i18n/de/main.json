@@ -23,8 +23,7 @@
     "unknown": "Unbekannt",
     "na": "N/A",
     "exit": "Beenden",
-    "confirm_exit": "Möchten Sie die Anwendung wirklich beenden?",
-    "game_fallback": "Unbekannte App {id}"
+    "confirm_exit": "Möchten Sie die Anwendung wirklich beenden?"
   },
   "ui": {
     "main_window": {
@@ -227,6 +226,7 @@
       "total_playtime": "Gesamte Spielzeit",
       "name": "Name",
       "app_id": "App ID",
+      "game_fallback": "Unbekannte App {id}",
       "developer": "Entwickler",
       "publisher": "Publisher",
       "release": "Release",
@@ -406,7 +406,6 @@
       "option_ignore_common": "Häufige Tags ignorieren",
       "apply_group": "Anwenden auf",
       "estimate_label": "Geschätzte Kollektionen",
-      "cancel": "Abbrechen",
       "cache_warning_title": "Wenig Cache-Daten",
       "cache_warning_message": "Nur {cached} von {total} Spielen haben gecachte Tag-Daten.\n\nDas Abrufen der Tags vom Steam Store dauert ca. {time}.\n\nEMPFEHLUNG:\nVerwende zuerst 'Bearbeiten → Fehlende Metadaten abrufen' um den Cache zu füllen, dann führe Auto-Kategorisierung aus.\n\nTrotzdem fortfahren?"
       },
@@ -456,16 +455,12 @@
       "remove_local_error": "Fehler beim Entfernen des Spiels aus der lokalen Kollektion.",
       "restore_success": "{count} Änderungen erfolgreich wiederhergestellt!",
       "backup_created": "Backup erstellt: {path}",
-      "cancel": "Abbrechen",
-      "error": "Fehler",
       "no_changes": "Keine Änderungen",
       "no_selection": "Bitte wähle mindestens ein Feld zum Ändern aus.",
       "confirm_bulk_title": "Massenbearbeitung bestätigen",
       "confirm_bulk": "Änderungen auf {count} Spiele anwenden?",
       "image_picker_title": "{type} für {game} auswählen",
-      "image_picker_loading": "Lade Bilder...",
-      "close": "Schließen",
-      "success": "Erfolg"
+      "image_picker_loading": "Lade Bilder..."
     },
     "tools": {
       "missing_metadata": {
@@ -522,9 +517,6 @@
       "localconfig_load_error": "Fehler beim Laden von localconfig.vdf",
       "no_games_found": "Keine Spiele gefunden oder Fehler beim Laden.",
       "no_selection": "Keine Spiele ausgewählt."
-    },
-    "loading": {
-      "dots": "Lade..."
     },
     "status": {
       "no_results": "Keine Bilder gefunden."

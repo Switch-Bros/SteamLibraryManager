@@ -41,7 +41,7 @@ class SteamLoginDialog(QDialog):
         # Cancel button
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-        cancel_btn = QPushButton(t('ui.dialogs.cancel'))
+        cancel_btn = QPushButton(t('common.cancel'))
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
         btn_layout.setContentsMargins(10, 5, 10, 10)

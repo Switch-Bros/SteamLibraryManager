@@ -180,7 +180,7 @@ class AutoCategorizeDialog(QDialog):
         button_layout = QHBoxLayout()
         button_layout.addStretch()
 
-        cancel_btn = QPushButton(t('ui.auto_categorize.cancel'))
+        cancel_btn = QPushButton(t('common.cancel'))
         cancel_btn.clicked.connect(self.reject)
         button_layout.addWidget(cancel_btn)
 

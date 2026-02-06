@@ -23,8 +23,7 @@
     "unknown": "Unknown",
     "na": "N/A",
     "exit": "Exit",
-    "confirm_exit": "Do you really want to exit the application?",
-    "game_fallback": "Unknown App {id}"
+    "confirm_exit": "Do you really want to exit the application?"
   },
   "ui": {
     "main_window": {
@@ -227,6 +226,7 @@
       "total_playtime": "Total Playtime",
       "name": "Name",
       "app_id": "App ID",
+      "game_fallback": "Unknown App {id}",
       "developer": "Developer",
       "publisher": "Publisher",
       "release": "Release",
@@ -406,7 +406,6 @@
       "option_ignore_common": "Ignore common tags",
       "apply_group": "Apply to",
       "estimate_label": "Estimated Collections",
-      "cancel": "Cancel",
       "cache_warning_title": "Low Cache Coverage",
       "cache_warning_message": "Only {cached} of {total} games have cached tag data.\n\nFetching tags from Steam Store will take approximately {time}.\n\nRECOMMENDATION:\nUse 'Edit → Fetch Missing Metadata' first to populate the cache, then run Auto-Categorize.\n\nContinue anyway?"
       },
@@ -456,16 +455,12 @@
       "remove_local_error": "Failed to remove the game from the local configuration.",
       "restore_success": "Successfully restored {count} modifications!",
       "backup_created": "Backup created: {path}",
-      "cancel": "Cancel",
-      "error": "Error",
       "no_changes": "No Changes",
       "no_selection": "Please select at least one field to modify.",
       "confirm_bulk_title": "Confirm Bulk Edit",
       "confirm_bulk": "Apply changes to {count} games?",
       "image_picker_title": "Select {type} for {game}",
-      "image_picker_loading": "Loading images...",
-      "close": "Close",
-      "success": "Success"
+      "image_picker_loading": "Loading images..."
     },
     "tools": {
       "missing_metadata": {
@@ -522,9 +517,6 @@
       "localconfig_load_error": "Error loading localconfig.vdf",
       "no_games_found": "No games found or error loading.",
       "no_selection": "No games selected."
-    },
-    "loading": {
-      "dots": "Loading..."
     },
     "status": {
       "no_results": "No images found."
