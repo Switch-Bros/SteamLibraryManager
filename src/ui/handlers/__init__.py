@@ -8,7 +8,11 @@ back-reference so they can call persistence helpers on the window.
 """
 
 from src.ui.handlers.category_action_handler import CategoryActionHandler
+from src.ui.handlers.selection_handler import SelectionHandler
+from src.ui.handlers.category_change_handler import CategoryChangeHandler
 
 __all__: list[str] = [
     "CategoryActionHandler",
+    "SelectionHandler",
+    "CategoryChangeHandler",
 ]
