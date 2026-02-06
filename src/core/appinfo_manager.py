@@ -241,6 +241,17 @@ class AppInfoManager:
                 else:
                     result['release_date'] = ''
 
+                # =============================================
+                # REVIEW PERCENTAGE & METACRITIC SCORE
+                # =============================================
+                # Extract review percentage (0-100)
+                if 'review_percentage' in common:
+                    result['review_percentage'] = common.get('review_percentage', 0)
+
+                # Extract metacritic score (0-100)
+                if 'metacritic_score' in common:
+                    result['metacritic_score'] = common.get('metacritic_score', 0)
+
         # 2. Apply modifications (Custom Overrides)
         if app_id in self.modifications:
             modified = self.modifications[app_id].get('modified', {})
