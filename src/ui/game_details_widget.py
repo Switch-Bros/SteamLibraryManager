@@ -394,7 +394,7 @@ class GameDetailsWidget(QWidget):
         meta_grid.setVerticalSpacing(5)
         meta_grid.setColumnMinimumWidth(0, 180)
         meta_grid.setColumnMinimumWidth(1, 240)
-        meta_grid.setColumnMinimumWidth(2, 380)
+        meta_grid.setColumnMinimumWidth(2, 420)
         meta_grid.setColumnStretch(3, 1)
 
         meta_grid.addWidget(QLabel(f"<b>{t('ui.game_details.section_basic')}</b>"), 0, 0)
