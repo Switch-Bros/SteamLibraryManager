@@ -56,10 +56,10 @@ class Game:
     steam_deck_status: str = ""
     review_score: str = ""
     review_count: int = 0
+    review_percentage: int = 0  # Steam review percentage (0-100)
+    metacritic_score: int = 0   # Metacritic score (0-100)
     last_updated: str = ""
     steam_grid_db_url: str = ""
-    pegi_rating: str = ""  # PEGI age rating (e.g., "12", "18")
-    esrb_rating: str = ""  # ESRB age rating (e.g., "Teen", "Mature")
 
     # Legacy / UI Compatibility
     proton_db_tier: str = ""
@@ -472,6 +472,13 @@ class GameManager:
 
             if not game.release_year and steam_meta.get('release_date'):
                 game.release_year = steam_meta['release_date']
+
+            # Extract review percentage and metacritic score from appinfo.vdf
+            if not game.review_percentage and steam_meta.get('review_percentage'):
+                game.review_percentage = int(steam_meta['review_percentage'])
+
+            if not game.metacritic_score and steam_meta.get('metacritic_score'):
+                game.metacritic_score = int(steam_meta['metacritic_score'])
 
         # 2. CUSTOM OVERRIDES
         for app_id, meta_data in modifications.items():

@@ -392,9 +392,9 @@ class GameDetailsWidget(QWidget):
         meta_grid.setContentsMargins(0, 10, 0, 10)
         meta_grid.setHorizontalSpacing(30)
         meta_grid.setVerticalSpacing(5)
-        meta_grid.setColumnMinimumWidth(0, 220)
-        meta_grid.setColumnMinimumWidth(1, 320)
-        meta_grid.setColumnMinimumWidth(2, 340)
+        meta_grid.setColumnMinimumWidth(0, 180)
+        meta_grid.setColumnMinimumWidth(1, 240)
+        meta_grid.setColumnMinimumWidth(2, 380)
         meta_grid.setColumnStretch(3, 1)
 
         meta_grid.addWidget(QLabel(f"<b>{t('ui.game_details.section_basic')}</b>"), 0, 0)
@@ -588,7 +588,17 @@ class GameDetailsWidget(QWidget):
         self._update_proton_label(game.proton_db_rating)
         self._update_steam_deck_label(game.steam_deck_status)
 
-        review_val = f"{game.review_score} ({game.review_count})" if game.review_score else t('emoji.dash')
+        # Build review display with percentage if available
+        if game.review_score:
+            if game.review_percentage > 0:
+                # Show: "96% | Äußerst Positiv (12.345)"
+                review_val = f"{game.review_percentage}{t('emoji.percent')} | {game.review_score} ({game.review_count})"
+            else:
+                # Show: "Äußerst Positiv (12.345)"
+                review_val = f"{game.review_score} ({game.review_count})"
+        else:
+            review_val = t('emoji.dash')
+
         self.lbl_reviews.setText(
             f"<span style='color:#888;'>{t('ui.game_details.reviews')}:</span> <b>{review_val}</b>")
         unknown = t('ui.game_details.value_unknown')
