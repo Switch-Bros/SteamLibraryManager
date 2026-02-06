@@ -602,7 +602,7 @@ class MainWindow(QMainWindow):
 
     def _fetch_game_details_async(self, app_id: str, all_categories: List[str]) -> None:
         """Fetches game details async. Delegated to SelectionHandler."""
-        self.selection_handler._fetch_game_details_async(app_id, all_categories)
+        self.selection_handler.fetch_game_details_async(app_id, all_categories)
 
     def _restore_game_selection(self, app_ids: List[str]) -> None:
         """Restores game selection. Delegated to SelectionHandler."""
@@ -877,14 +877,42 @@ class MainWindow(QMainWindow):
         """
         self._populate_categories()
 
+    def schedule_save(self) -> None:
+        """Schedules a delayed save to batch multiple operations.
+
+        Public wrapper around ``_schedule_save`` for use by handlers.
+        Uses a 100ms timer to batch rapid changes into a single save.
+        """
+        self._schedule_save()
+
+    def add_app_category(self, app_id: str, category: str) -> None:
+        """Adds a category to an app.
+
+        Public wrapper around ``_add_app_category`` for use by handlers.
+
+        Args:
+            app_id: Steam app ID.
+            category: Category name to add.
+        """
+        self._add_app_category(app_id, category)
+
+    def remove_app_category(self, app_id: str, category: str) -> None:
+        """Removes a category from an app.
+
+        Public wrapper around ``_remove_app_category`` for use by handlers.
+
+        Args:
+            app_id: Steam app ID.
+            category: Category name to remove.
+        """
+        self._remove_app_category(app_id, category)
+
     def update_statistics(self) -> None:
         """Refreshes the statistics label in the status bar.
 
         Public wrapper around ``_update_statistics`` for use by handlers.
         """
         self._update_statistics()
-
-    # ------------------------------------------------------------------
 
     def _save_collections(self) -> bool:
         """Save collections using the active parser."""
