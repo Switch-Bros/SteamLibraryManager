@@ -46,9 +46,16 @@ from src.ui.widgets.category_tree import GameTreeWidget
 from src.ui.widgets.ui_helper import UIHelper
 
 from src.utils.i18n import t, init_i18n
-from src.ui.builders import MenuBuilder, ToolbarBuilder, StatusbarBuilder
-from src.ui.handlers import CategoryActionHandler
 
+# Builders
+from src.ui.builders import MenuBuilder, ToolbarBuilder, StatusbarBuilder
+
+# Handlers
+from src.ui.handlers import CategoryActionHandler
+from src.ui.handlers.selection_handler import SelectionHandler
+from src.ui.handlers.category_change_handler import CategoryChangeHandler
+
+# Actions
 from src.ui.actions import (
 FileActions, EditActions, ViewActions,
 ToolsActions, SteamActions, GameActions
@@ -172,6 +179,8 @@ class MainWindow(QMainWindow):
 
         # UI Action Handlers (extracted category / context-menu logic)
         self.category_handler: CategoryActionHandler = CategoryActionHandler(self)
+        self.selection_handler = SelectionHandler(self)
+        self.category_change_handler = CategoryChangeHandler(self)
 
         self._create_ui()
         self._load_data()
@@ -584,252 +593,32 @@ class MainWindow(QMainWindow):
         self.tree.populate_categories(categories_data)
 
     def _on_games_selected(self, games: List[Game]) -> None:
-        """Handles multi-selection changes in the game tree.
-        Args:
-            games: List of currently selected games.
-        """
-        self.selected_games = games
-        all_categories = list(self.game_manager.get_all_categories().keys())
-
-        if len(games) > 1:
-            # Show multi-select view in details widget
-            self.set_status(t('ui.main_window.games_selected', count=len(games)))
-            self.details_widget.set_games(games, all_categories)
-        elif len(games) == 1:
-            # Show single game view
-            self.set_status(f"{games[0].name}")
-            self.on_game_selected(games[0])
-        else:
-            # No selection - could clear the details widget
-            pass
+        """Handles multi-selection changes. Delegated to SelectionHandler."""
+        self.selection_handler.on_games_selected(games)
 
     def on_game_selected(self, game: Game) -> None:
-        """Handles single game selection in the tree.
-
-        Args:
-            game: The selected game object.
-        """
-        # Ignore if multiple games are selected (multi-select mode)
-        if len(self.selected_games) > 1:
-            return
-
-        self.selected_game = game
-        all_categories = list(self.game_manager.get_all_categories().keys())
-
-        # PERFORMANCE FIX: Show UI immediately, fetch details in background
-        self.details_widget.set_game(game, all_categories)
-
-        # Fetch details asynchronously if missing (non-blocking)
-        if not game.developer or not game.proton_db_rating or not game.steam_deck_status:
-            self._fetch_game_details_async(game.app_id, all_categories)
+        """Handles single game selection. Delegated to SelectionHandler."""
+        self.selection_handler.on_game_selected(game)
 
     def _fetch_game_details_async(self, app_id: str, all_categories: List[str]) -> None:
-        """Fetches game details in a background thread without blocking the UI.
-
-        This method improves performance by loading missing metadata asynchronously,
-        allowing the UI to remain responsive during API calls.
-
-        Args:
-            app_id: The Steam app ID to fetch details for.
-            all_categories: List of all available categories for UI update.
-        """
-
-        class FetchThread(QThread):
-            """Background thread for fetching game details."""
-            finished_signal = pyqtSignal(bool)
-
-            def __init__(self, game_manager, target_app_id):
-                super().__init__()
-                self.game_manager = game_manager
-                self.target_app_id = target_app_id
-
-            def run(self):
-                """Executes the fetch operation in background."""
-                success = self.game_manager.fetch_game_details(self.target_app_id)
-                self.finished_signal.emit(success)
-
-        # Create and start background thread
-        fetch_thread = FetchThread(self.game_manager, app_id)
-
-        def on_fetch_complete(success: bool):
-            """Updates UI when fetch completes."""
-            if success and self.selected_game and self.selected_game.app_id == app_id:
-                # Only update if this game is still selected
-                game = self.game_manager.get_game(app_id)
-                if game:
-                    self.details_widget.set_game(game, all_categories)
-
-        fetch_thread.finished_signal.connect(on_fetch_complete)
-        fetch_thread.start()
-
-        # Store reference to prevent garbage collection
-        if not hasattr(self, '_fetch_threads'):
-            self._fetch_threads = []
-        self._fetch_threads.append(fetch_thread)
-
-        # Clean up finished threads
-        self._fetch_threads = [thread for thread in self._fetch_threads if thread.isRunning()]
+        """Fetches game details async. Delegated to SelectionHandler."""
+        self.selection_handler._fetch_game_details_async(app_id, all_categories)
 
     def _restore_game_selection(self, app_ids: List[str]) -> None:
-        """Restores game selection in the tree widget after refresh.
-
-        This method finds and re-selects games in the tree widget based on their
-        app IDs. It's used to maintain the selection state after operations that
-        refresh the tree (like category changes).
-
-        Args:
-            app_ids: List of Steam app IDs to select.
-        """
-        if not app_ids:
-            return
-
-        # Temporarily block signals to prevent triggering selection events
-        self.tree.blockSignals(True)
-
-        # Find and select the game items in the tree
-        for i in range(self.tree.topLevelItemCount()):
-            category_item = self.tree.topLevelItem(i)
-            for j in range(category_item.childCount()):
-                game_item = category_item.child(j)
-                item_app_id = game_item.data(0, Qt.ItemDataRole.UserRole)
-                if item_app_id and item_app_id in app_ids:
-                    game_item.setSelected(True)
-
-        # Re-enable signals
-        self.tree.blockSignals(False)
-
-        # Manually update selected_games list
-        self.selected_games = [self.game_manager.get_game(aid) for aid in app_ids]
-        self.selected_games = [g for g in self.selected_games if g is not None]
+        """Restores game selection. Delegated to SelectionHandler."""
+        self.selection_handler.restore_game_selection(app_ids)
 
     def _apply_category_to_games(self, games: List[Game], category: str, checked: bool) -> None:
-        """Helper method to apply category changes to a list of games.
-
-        Args:
-            games: List of games to update.
-            category: The category name.
-            checked: Whether to add (True) or remove (False) the category.
-        """
-        for game in games:
-            if checked:
-                if category not in game.categories:
-                    game.categories.append(category)
-                    self._add_app_category(game.app_id, category)
-            else:
-                if category in game.categories:
-                    game.categories.remove(category)
-                    self._remove_app_category(game.app_id, category)
+        """Applies category changes. Delegated to CategoryChangeHandler."""
+        self.category_change_handler.apply_category_to_games(games, category, checked)
 
     def _on_category_changed_from_details(self, app_id: str, category: str, checked: bool) -> None:
-        """Handles category toggle events from the details widget.
-
-        Supports both single and multi-selection. If multiple games are selected,
-        the category change is applied to all selected games.
-
-        Args:
-            app_id: The Steam app ID of the game (ignored for multi-select).
-            category: The category name being toggled.
-            checked: Whether the category should be added or removed.
-        """
-        if not self.vdf_parser:
-            return
-
-        # Prevent multiple refreshes during rapid checkbox events
-        if hasattr(self, '_in_batch_update') and self._in_batch_update:
-            # Just update data, skip UI refresh
-            games_to_update = []
-            if len(self.selected_games) > 1:
-                games_to_update = self.selected_games
-            else:
-                game = self.game_manager.get_game(app_id)
-                if game:
-                    games_to_update = [game]
-
-            self._apply_category_to_games(games_to_update, category, checked)
-            return
-
-        # Set batch flag
-        self._in_batch_update = True
-
-        # Determine which games to update
-        games_to_update = []
-        if len(self.selected_games) > 1:
-            # Multi-select mode: update all selected games
-            games_to_update = self.selected_games
-        else:
-            # Single game mode
-            game = self.game_manager.get_game(app_id)
-            if game:
-                games_to_update = [game]
-
-        if not games_to_update:
-            return
-
-        # Apply category change to all games
-        self._apply_category_to_games(games_to_update, category, checked)
-
-        # Schedule save (batched with 100ms delay)
-        self._schedule_save()
-
-        # Save the current selection before refreshing
-        selected_app_ids = [game.app_id for game in self.selected_games]
-        
-        # If search is active, re-run the search instead of showing all categories
-        if self.current_search_query:
-            self.view_actions.on_search(self.current_search_query)  # <--- UPDATED
-        else:
-            self._populate_categories()
-
-        # Restore the selection
-        if selected_app_ids:
-            self._restore_game_selection(selected_app_ids)
-
-        all_categories = list(self.game_manager.get_all_categories().keys())
-
-        # Refresh details widget
-        if len(self.selected_games) > 1:
-            # Multi-select: refresh the multi-select view
-            self.details_widget.set_games(self.selected_games, all_categories)
-        elif len(self.selected_games) == 1:
-            # Single select: refresh single game view
-            self.details_widget.set_game(self.selected_games[0], all_categories)
-
-        # Reset batch flag after 500ms to allow next batch
-        QTimer.singleShot(500, lambda: setattr(self, '_in_batch_update', False))
+        """Handles category toggles. Delegated to CategoryChangeHandler."""
+        self.category_change_handler.on_category_changed_from_details(app_id, category, checked)
 
     def _on_games_dropped(self, games: List[Game], target_category: str) -> None:
-        """
-        Handles drag-and-drop of games onto a category.
-
-        Updates the game categories in memory and persists changes to the VDF file.
-
-        Args:
-            games: List of games that were dropped.
-            target_category: The category they were dropped onto.
-        """
-        if not self.vdf_parser:
-            return
-
-        for game in games:
-            # Add to target category if not already there
-            if target_category not in game.categories:
-                game.categories.append(target_category)
-                self._add_app_category(game.app_id, target_category)
-
-        # Save changes to VDF file
-        self._save_collections()
-
-        # Refresh the tree - maintain search if active
-        if self.current_search_query:
-            self.view_actions.on_search(self.current_search_query)  # <--- UPDATED
-        else:
-            self._populate_categories()
-
-        # Update details widget if one of the dropped games is currently selected
-        if games and self.details_widget.current_game and self.details_widget.current_game.app_id in [g.app_id for g in
-                                                                                                      games]:
-            all_categories = list(self.game_manager.get_all_categories().keys())
-            self.details_widget.set_game(self.details_widget.current_game, all_categories)
+        """Handles drag-and-drop. Delegated to CategoryChangeHandler."""
+        self.category_change_handler.on_games_dropped(games, target_category)
 
     def on_game_right_click(self, game: Game, pos) -> None:
         """Shows context menu for a right-clicked game.
