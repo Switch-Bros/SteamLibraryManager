@@ -6,23 +6,25 @@
     "info": "Information"
   },
   "common": {
+    "open": "Open",
+    "close": "Close",
     "save": "Save",
+    "save_under": "Save as...",
+    "loading": "Loading...",
     "ok": "OK",
     "cancel": "Cancel",
     "discard": "Discard",
-    "close": "Close",
+    "warning": "Warning",
     "error": "Error",
+    "yes": "Yes",
+    "no": "No",
     "success": "Success",
     "info": "Information",
     "unknown": "Unknown",
     "na": "N/A",
-    "yes": "Yes",
-    "no": "No",
-    "loading": "Loading...",
-    "game_fallback": "Unknown App {id}",
+    "exit": "Exit",
     "confirm_exit": "Do you really want to exit the application?",
-    "warning": "Warning",
-    "dash": "-"
+    "game_fallback": "Unknown App {id}"
   },
   "ui": {
     "main_window": {
@@ -68,7 +70,6 @@
       "remove_duplicates": "Remove Duplicate Collections",
       "detect_steam": "Redetect Steam Path",
         "switch_user": "Switch User",
-        "exit": "Exit",
       "save_success": "Collections saved successfully!",
       "no_duplicates_found": "No duplicate collections found.",
       "duplicates_removed": "Removed {count} duplicate collections."
