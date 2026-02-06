@@ -273,7 +273,7 @@ class MetadataEditDialog(QDialog):
         """
         name = self.name_edit.text().strip()
         if not name:
-            QMessageBox.warning(self, t('ui.dialogs.error'), t('ui.metadata_editor.error_empty_name'))
+            QMessageBox.warning(self, t('common.error'), t('ui.metadata_editor.error_empty_name'))
             return
 
         # Warning dialog if VDF-Write enabled
@@ -428,7 +428,7 @@ class BulkMetadataEditDialog(QDialog):
         btn_layout.addStretch()
 
         for text, callback, is_def in [
-            (t('ui.dialogs.cancel'), self.reject, False),
+            (t('common.cancel'), self.reject, False),
             (t('ui.metadata_editor.apply_button', count=self.games_count), self._apply, True)
         ]:
             btn = QPushButton(text)
@@ -529,7 +529,7 @@ class MetadataRestoreDialog(QDialog):
         btn_layout.addStretch()
 
         for text, callback, is_def in [
-            (t('ui.dialogs.cancel'), self.reject, False),
+            (t('common.cancel'), self.reject, False),
             (t('ui.metadata_editor.restore_button', count=self.modified_count), self._restore, True)
         ]:
             btn = QPushButton(text)

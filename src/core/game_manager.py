@@ -335,7 +335,7 @@ class GameManager:
                 app_id = str(game_data['appid'])
 
                 # Use t() for fallback name instead of f-string
-                original_name = game_data.get('name') or t('common.game_fallback', id=app_id)
+                original_name = game_data.get('name') or t('ui.game_details.game_fallback', id=app_id)
 
                 game = Game(
                     app_id=app_id,
@@ -390,7 +390,7 @@ class GameManager:
                     continue
                 
                 # Use t() for fallback name
-                name = self._get_cached_name(app_id) or t('common.game_fallback', id=app_id)
+                name = self._get_cached_name(app_id) or t('ui.game_details.game_fallback', id=app_id)
 
                 game = Game(app_id=app_id, name=name)
                 game.categories = categories
@@ -457,7 +457,7 @@ class GameManager:
             steam_meta = appinfo_manager.get_app_metadata(app_id)
 
             # Check for fallback name usage
-            fallback_name = t('common.game_fallback', id=app_id)
+            fallback_name = t('ui.game_details.game_fallback', id=app_id)
 
             if (game.name == fallback_name or game.name.startswith("App ")) and steam_meta.get('name'):
                 game.name = steam_meta['name']

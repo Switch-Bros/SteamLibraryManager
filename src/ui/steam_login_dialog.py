@@ -156,7 +156,7 @@ class SteamLoginDialog(QDialog):
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-        cancel_btn = QPushButton(t('ui.dialogs.cancel'))
+        cancel_btn = QPushButton(t('common.cancel'))
         # noinspection PyUnresolvedReferences
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)

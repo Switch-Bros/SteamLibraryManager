@@ -139,7 +139,7 @@ class MissingMetadataDialog(QDialog):
         export_btn.clicked.connect(self._export_csv)
         btn_layout.addWidget(export_btn)
 
-        close_btn = QPushButton(t('ui.dialogs.close'))
+        close_btn = QPushButton(t('common.close'))
         close_btn.setDefault(True)
         close_btn.clicked.connect(self.accept)
         btn_layout.addWidget(close_btn)
@@ -288,7 +288,7 @@ class MissingMetadataDialog(QDialog):
 
             QMessageBox.information(
                 self,
-                t('ui.dialogs.success'),
+                t('common.success'),
                 t('ui.tools.missing_metadata.export_success',
                   count=len(self.games), path=file_path)
             )
@@ -296,6 +296,6 @@ class MissingMetadataDialog(QDialog):
         except OSError as e:
             QMessageBox.critical(
                 self,
-                t('ui.dialogs.error'),
+                t('common.error'),
                 t('ui.tools.missing_metadata.export_error', error=str(e))
             )

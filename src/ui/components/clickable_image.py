@@ -290,7 +290,7 @@ class ClickableImage(QWidget):
             self.loader.stop()
             self.loader.wait()
 
-        self.image_label.setText(t('ui.loading.dots'))
+        self.image_label.setText(t('common.loading'))
 
         self.loader = ImageLoader(url_or_path)
         self.loader.loaded.connect(self._on_loaded)
