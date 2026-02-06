@@ -660,11 +660,11 @@ class GameDetailsWidget(QWidget):
                 self.pegi_image.load_image(str(pegi_image_path))
             else:
                 # PEGI file not found - show default icon
-                self.pegi_image.load_image("resources/icons/default_icons.png")
+                self.pegi_image.load_image(None)
 
         else:
             # No rating available - show default icon
-            self.pegi_image.load_image("resources/icons/default_icons.png")
+            self.pegi_image.load_image(None)
 
         self._reload_images(game.app_id)
 
