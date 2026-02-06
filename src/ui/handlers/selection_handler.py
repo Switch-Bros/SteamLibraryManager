@@ -6,7 +6,7 @@ Handler for game selection and details loading.
 Extracts the following methods from MainWindow:
   - _on_games_selected(games)           (multi-selection handler)
   - on_game_selected(game)              (single selection handler)
-  - _fetch_game_details_async(app_id)   (background details loading)
+  - fetch_game_details_async(app_id)   (background details loading)
   - _restore_game_selection(app_ids)    (selection restoration after refresh)
 
 All UI updates are delegated back to MainWindow.
@@ -86,9 +86,9 @@ class SelectionHandler:
 
         # Fetch details asynchronously if missing (non-blocking)
         if not game.developer or not game.proton_db_rating or not game.steam_deck_status:
-            self._fetch_game_details_async(game.app_id, all_categories)
+            self.fetch_game_details_async(game.app_id, all_categories)
 
-    def _fetch_game_details_async(self, app_id: str, all_categories: List[str]) -> None:
+    def fetch_game_details_async(self, app_id: str, all_categories: List[str]) -> None:
         """Fetches game details in a background thread without blocking the UI.
 
         This method improves performance by loading missing metadata asynchronously,

@@ -55,11 +55,11 @@ class CategoryChangeHandler:
             if checked:
                 if category not in game.categories:
                     game.categories.append(category)
-                    self.mw._add_app_category(game.app_id, category)
+                    self.mw.add_app_category(game.app_id, category)
             else:
                 if category in game.categories:
                     game.categories.remove(category)
-                    self.mw._remove_app_category(game.app_id, category)
+                    self.mw.remove_app_category(game.app_id, category)
 
     def on_category_changed_from_details(self, app_id: str, category: str, checked: bool) -> None:
         """Handles category toggle events from the details widget.
@@ -79,7 +79,7 @@ class CategoryChangeHandler:
             return
 
         # Prevent multiple refreshes during rapid checkbox events
-        if hasattr(self.mw, '_in_batch_update') and self.mw._in_batch_update:
+        if hasattr(self.mw, 'in_batch_update') and self.mw.in_batch_update:
             # Just update data, skip UI refresh
             games_to_update = []
             if len(self.mw.selected_games) > 1:
@@ -93,7 +93,7 @@ class CategoryChangeHandler:
             return
 
         # Set batch flag
-        self.mw._in_batch_update = True
+        self.mw.in_batch_update = True
 
         # Determine which games to update
         games_to_update = []
@@ -113,7 +113,7 @@ class CategoryChangeHandler:
         self.apply_category_to_games(games_to_update, category, checked)
 
         # Schedule save (batched with 100ms delay)
-        self.mw._schedule_save()
+        self.mw.schedule_save()
 
         # Save the current selection before refreshing
         selected_app_ids = [game.app_id for game in self.mw.selected_games]
@@ -122,7 +122,7 @@ class CategoryChangeHandler:
         if self.mw.current_search_query:
             self.mw.view_actions.on_search(self.mw.current_search_query)
         else:
-            self.mw._populate_categories()
+            self.mw.populate_categories()
 
         # Restore the selection
         if selected_app_ids:
@@ -139,7 +139,7 @@ class CategoryChangeHandler:
             self.mw.details_widget.set_game(self.mw.selected_games[0], all_categories)
 
         # Reset batch flag after 500ms to allow next batch
-        QTimer.singleShot(500, lambda: setattr(self.mw, '_in_batch_update', False))
+        QTimer.singleShot(500, lambda: setattr(self.mw, 'in_batch_update', False))
 
     def on_games_dropped(self, games: List[Game], target_category: str) -> None:
         """Handles drag-and-drop of games onto a category.
@@ -158,16 +158,16 @@ class CategoryChangeHandler:
             # Add to target category if not already there
             if target_category not in game.categories:
                 game.categories.append(target_category)
-                self.mw._add_app_category(game.app_id, target_category)
+                self.mw.add_app_category(game.app_id, target_category)
 
         # Save changes to VDF file
-        self.mw._save_collections()
+        self.mw.save_collections()
 
         # Refresh the tree - maintain search if active
         if self.mw.current_search_query:
             self.mw.view_actions.on_search(self.mw.current_search_query)
         else:
-            self.mw._populate_categories()
+            self.mw.populate_categories()
 
         # Update details widget if one of the dropped games is currently selected
         if games and self.mw.details_widget.current_game:
