@@ -286,7 +286,7 @@ class CategoryActionHandler:
         label.setWordWrap(True)
         layout.addWidget(label)
 
-        # Sortierte Liste der Kategorien
+        # Sorted list of categories
         list_widget = QListWidget()
         for cat in sorted(categories):
             list_widget.addItem(cat)

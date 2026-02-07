@@ -501,7 +501,7 @@ class MainWindow(QMainWindow):
         self.set_status(status_msg)
         self.reload_btn.hide()
 
-        # Statistik aktualisieren
+        # Update statistics
         self._update_statistics()
 
     @staticmethod
@@ -547,7 +547,7 @@ class MainWindow(QMainWindow):
         if not self.game_manager: return
 
         # Separate hidden and visible games
-        all_games_raw = self.game_manager.get_real_games()  # Nur echte Spiele (ohne Proton auf Linux)
+        all_games_raw = self.game_manager.get_real_games()  # Only real games (without Proton on Linux)
         visible_games = sorted([g for g in all_games_raw if not g.hidden], key=lambda g: g.sort_name.lower())
         hidden_games = sorted([g for g in all_games_raw if g.hidden], key=lambda g: g.sort_name.lower())
 
@@ -793,8 +793,8 @@ class MainWindow(QMainWindow):
             event.accept()
             return
 
-        # --- 3-button dialog: Speichern / Verwerfen / Abbrechen ---
-        # Manual buttons — StandardButtons werden auf Linux ohne .qm englisch angezeigt
+        # --- 3-button dialog: Save / Discard / Cancel ---
+        # Manual buttons — Standard buttons are displayed in English on Linux without .qm
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Icon.Question)
         msg.setWindowTitle(t('ui.menu.file.unsaved_changes_title'))
@@ -812,7 +812,7 @@ class MainWindow(QMainWindow):
             if self._save_collections():
                 event.accept()
             else:
-                # Save failed — retry-Dialog (Ja / Nein)
+                # Save failed — retry dialog (Yes / No)
                 retry_msg = QMessageBox(self)
                 retry_msg.setIcon(QMessageBox.Icon.Warning)
                 retry_msg.setWindowTitle(t('ui.menu.file.save_failed_title'))
