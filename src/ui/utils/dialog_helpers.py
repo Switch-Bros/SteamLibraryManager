@@ -6,7 +6,10 @@ like confirmations, text input, and choice selections.
 """
 from typing import Optional, List
 
-from PyQt6.QtWidgets import QMessageBox, QInputDialog, QWidget
+from PyQt6.QtWidgets import (
+    QMessageBox, QWidget, QDialog, QVBoxLayout, QLabel,
+    QLineEdit, QComboBox, QDialogButtonBox
+)
 
 from src.utils.i18n import t
 
@@ -31,15 +34,16 @@ def ask_confirmation(
     if not title:
         title = t('ui.dialogs.confirm')
 
-    reply = QMessageBox.question(
-        parent,
-        title,
-        message,
-        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        QMessageBox.StandardButton.No  # Default to No for safety
-    )
+    msg = QMessageBox(parent)
+    msg.setWindowTitle(title)
+    msg.setText(message)
+    msg.setIcon(QMessageBox.Icon.Question)
+    yes_btn = msg.addButton(t('common.yes'), QMessageBox.ButtonRole.YesRole)
+    no_btn = msg.addButton(t('common.no'), QMessageBox.ButtonRole.NoRole)
+    msg.setDefaultButton(no_btn)
+    msg.exec()
 
-    return reply == QMessageBox.StandardButton.Yes
+    return msg.clickedButton() == yes_btn
 
 
 def ask_text_input(
@@ -61,10 +65,33 @@ def ask_text_input(
     Returns:
         Optional[str]: The entered text, or None if cancelled.
     """
-    text, ok = QInputDialog.getText(parent, title, label, text=default_value)
+    dialog = QDialog(parent)
+    dialog.setWindowTitle(title)
+    layout = QVBoxLayout()
 
-    if ok and text:
-        return text
+    # Label
+    label_widget = QLabel(label)
+    layout.addWidget(label_widget)
+
+    # Text input
+    line_edit = QLineEdit()
+    line_edit.setText(default_value)
+    layout.addWidget(line_edit)
+
+    # Buttons
+    button_box = QDialogButtonBox()
+    button_box.addButton(t('common.ok'), QDialogButtonBox.ButtonRole.AcceptRole)
+    button_box.addButton(t('common.cancel'), QDialogButtonBox.ButtonRole.RejectRole)
+    button_box.accepted.connect(dialog.accept)
+    button_box.rejected.connect(dialog.reject)
+    layout.addWidget(button_box)
+
+    dialog.setLayout(layout)
+
+    if dialog.exec() == QDialog.DialogCode.Accepted:
+        text = line_edit.text()
+        if text:
+            return text
     return None
 
 
@@ -89,17 +116,32 @@ def ask_choice(
     Returns:
         Optional[str]: The selected option, or None if cancelled.
     """
-    selected_option, ok = QInputDialog.getItem(
-        parent,
-        title,
-        label,
-        option_list,
-        current,
-        False  # Not editable
-    )
+    dialog = QDialog(parent)
+    dialog.setWindowTitle(title)
+    layout = QVBoxLayout()
 
-    if ok:
-        return selected_option
+    # Label
+    label_widget = QLabel(label)
+    layout.addWidget(label_widget)
+
+    # Combo box
+    combo_box = QComboBox()
+    combo_box.addItems(option_list)
+    combo_box.setCurrentIndex(current)
+    layout.addWidget(combo_box)
+
+    # Buttons
+    button_box = QDialogButtonBox()
+    button_box.addButton(t('common.ok'), QDialogButtonBox.ButtonRole.AcceptRole)
+    button_box.addButton(t('common.cancel'), QDialogButtonBox.ButtonRole.RejectRole)
+    button_box.accepted.connect(dialog.accept)
+    button_box.rejected.connect(dialog.reject)
+    layout.addWidget(button_box)
+
+    dialog.setLayout(layout)
+
+    if dialog.exec() == QDialog.DialogCode.Accepted:
+        return combo_box.currentText()
     return None
 
 
@@ -118,7 +160,12 @@ def show_warning(
     if not title:
         title = t('ui.dialogs.warning')
 
-    QMessageBox.warning(parent, title, message, QMessageBox.StandardButton.Ok)
+    msg = QMessageBox(parent)
+    msg.setWindowTitle(title)
+    msg.setText(message)
+    msg.setIcon(QMessageBox.Icon.Warning)
+    msg.addButton(t('common.ok'), QMessageBox.ButtonRole.AcceptRole)
+    msg.exec()
 
 
 def show_info(
@@ -136,7 +183,12 @@ def show_info(
     if not title:
         title = t('ui.dialogs.info')
 
-    QMessageBox.information(parent, title, message, QMessageBox.StandardButton.Ok)
+    msg = QMessageBox(parent)
+    msg.setWindowTitle(title)
+    msg.setText(message)
+    msg.setIcon(QMessageBox.Icon.Information)
+    msg.addButton(t('common.ok'), QMessageBox.ButtonRole.AcceptRole)
+    msg.exec()
 
 
 def show_error(
@@ -154,7 +206,12 @@ def show_error(
     if not title:
         title = t('ui.dialogs.error')
 
-    QMessageBox.critical(parent, title, message, QMessageBox.StandardButton.Ok)
+    msg = QMessageBox(parent)
+    msg.setWindowTitle(title)
+    msg.setText(message)
+    msg.setIcon(QMessageBox.Icon.Critical)
+    msg.addButton(t('common.ok'), QMessageBox.ButtonRole.AcceptRole)
+    msg.exec()
 
 
 def ask_yes_no_cancel(
@@ -177,19 +234,20 @@ def ask_yes_no_cancel(
     if not title:
         title = t('ui.dialogs.confirm')
 
-    reply = QMessageBox.question(
-        parent,
-        title,
-        message,
-        QMessageBox.StandardButton.Yes |
-        QMessageBox.StandardButton.No |
-        QMessageBox.StandardButton.Cancel,
-        QMessageBox.StandardButton.Cancel  # Default to Cancel for safety
-    )
+    msg = QMessageBox(parent)
+    msg.setWindowTitle(title)
+    msg.setText(message)
+    msg.setIcon(QMessageBox.Icon.Question)
+    yes_btn = msg.addButton(t('common.yes'), QMessageBox.ButtonRole.YesRole)
+    no_btn = msg.addButton(t('common.no'), QMessageBox.ButtonRole.NoRole)
+    cancel_btn = msg.addButton(t('common.cancel'), QMessageBox.ButtonRole.RejectRole)
+    msg.setDefaultButton(cancel_btn)
+    msg.exec()
 
-    if reply == QMessageBox.StandardButton.Yes:
+    clicked = msg.clickedButton()
+    if clicked == yes_btn:
         return True
-    elif reply == QMessageBox.StandardButton.No:
+    elif clicked == no_btn:
         return False
     else:
         return None
