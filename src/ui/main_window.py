@@ -305,7 +305,7 @@ class MainWindow(QMainWindow):
 
         self.tree.populate_categories(categories_data)
 
-    def _on_games_selected(self, games: List[Game]) -> None:
+    def on_games_selected(self, games: List[Game]) -> None:
         """Handles multi-selection changes. Delegated to SelectionHandler."""
         self.selection_handler.on_games_selected(games)
 
@@ -325,11 +325,11 @@ class MainWindow(QMainWindow):
         """Applies category changes. Delegated to CategoryChangeHandler."""
         self.category_change_handler.apply_category_to_games(games, category, checked)
 
-    def _on_category_changed_from_details(self, app_id: str, category: str, checked: bool) -> None:
+    def on_category_changed_from_details(self, app_id: str, category: str, checked: bool) -> None:
         """Handles category toggles. Delegated to CategoryChangeHandler."""
         self.category_change_handler.on_category_changed_from_details(app_id, category, checked)
 
-    def _on_games_dropped(self, games: List[Game], target_category: str) -> None:
+    def on_games_dropped(self, games: List[Game], target_category: str) -> None:
         """Handles drag-and-drop. Delegated to CategoryChangeHandler."""
         self.category_change_handler.on_games_dropped(games, target_category)
 
