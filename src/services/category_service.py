@@ -130,6 +130,23 @@ class CategoryService:
 
         return True
 
+    def check_empty_collection(self, category_name: str):
+    """Check if collection is empty and ask user if it should be deleted."""
+    games_in_category = self.game_manager.get_games_by_category(category_name)
+    
+    if len(games_in_category) == 0:
+        # Show dialog
+        reply = QMessageBox.question(
+            self.mw,
+            t('ui.dialog.empty_collection_title'),
+            t('ui.dialog.empty_collection_message', name=category_name),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            self.category_service.delete_category(category_name)
+            self.mw.populate_categories()
+    
     def merge_categories(self, categories: List[str], target_category: str) -> bool:
         """
         Merge multiple categories into one target category.
