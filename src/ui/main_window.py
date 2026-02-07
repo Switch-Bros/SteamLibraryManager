@@ -17,9 +17,7 @@ if TYPE_CHECKING:
     from src.services.asset_service import AssetService
 
 from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLineEdit, QPushButton, QLabel, QToolBar,
-    QMessageBox, QSplitter, QProgressDialog
+    QMainWindow, QToolBar, QMessageBox
 )
 from PyQt6.QtCore import Qt, QThread, QTimer
 
@@ -37,8 +35,6 @@ from src.services.search_service import SearchService  # <--- NEW
 from src.ui.settings_dialog import SettingsDialog
 
 # Components
-from src.ui.game_details_widget import GameDetailsWidget
-from src.ui.widgets.category_tree import GameTreeWidget
 from src.ui.widgets.ui_helper import UIHelper
 
 from src.utils.i18n import t, init_i18n
@@ -53,12 +49,9 @@ from src.ui.handlers.category_change_handler import CategoryChangeHandler
 
 # Actions
 from src.ui.actions import (
-FileActions, EditActions, ViewActions,
-ToolsActions, SteamActions, GameActions
+    FileActions, EditActions, ViewActions,
+    ToolsActions, SteamActions, GameActions
 )
-
-# Workers
-from src.ui.workers import GameLoadWorker
 
 
 class MainWindow(QMainWindow):
@@ -78,9 +71,9 @@ class MainWindow(QMainWindow):
         selected_games: List of currently selected games (multi-select).
         dialog_games: Games passed to the current dialog.
         steam_username: Logged in Steam username.
-        load_thread: Background thread for game loading.
-        store_check_thread: Background thread for store availability checks.
-        progress_dialog: Progress dialog for long operations.
+        'load_thread': Background thread game loading.
+        store_check_thread: Background thread store availability checks.
+        'progress_dialog': Progress dialog long operations.
     """
 
     def __init__(self):
@@ -100,9 +93,9 @@ class MainWindow(QMainWindow):
         self.autocategorize_service: Optional['AutoCategorizeService'] = None  # Initialized after category_service
         self.game_service: Optional[GameService] = None  # Initialized in _load_data
         self.asset_service = AssetService()  # Initialize immediately
-        
+
         # NEW: Initialize SearchService
-        self.search_service = SearchService() 
+        self.search_service = SearchService()
 
         # Auth Manager
         self.auth_manager = SteamAuthManager()
@@ -159,7 +152,7 @@ class MainWindow(QMainWindow):
         # --- Central Widget (delegated to CentralWidgetBuilder) ---
         central_builder = CentralWidgetBuilder(self)
         widgets = central_builder.build()
-        
+
         self.tree = widgets['tree']
         self.details_widget = widgets['details_widget']
         self.search_entry = widgets['search_entry']
@@ -170,37 +163,13 @@ class MainWindow(QMainWindow):
         self.stats_label = self.statusbar_builder.stats_label
         self.reload_btn = self.statusbar_builder.reload_btn
 
-    def _refresh_toolbar(self) -> None:
+    def refresh_toolbar(self) -> None:
         """Rebuilds the toolbar based on current authentication state.
 
         Delegates entirely to ToolbarBuilder which handles clearing
         and recreating toolbar actions based on login state.
         """
         self.toolbar_builder.build(self.toolbar)
-
-    @staticmethod
-    def _fetch_steam_persona_name(steam_id: str) -> str:
-        """Fetches the public persona name from Steam Community XML.
-
-        Args:
-            steam_id: The Steam ID64 to look up.
-
-        Returns:
-            The persona name if found, otherwise the original steam_id.
-        """
-        try:
-            url = f"https://steamcommunity.com/profiles/{steam_id}/?xml=1"
-            response = requests.get(url, timeout=5)
-            if response.status_code == 200:
-                tree = ET.fromstring(response.content)
-                steam_id_element = tree.find('steamID')
-                if steam_id_element is not None and steam_id_element.text:
-                    return steam_id_element.text
-        except Exception as e:
-            print(t('logs.auth.profile_error', error=str(e)))
-        return steam_id
-
-    # --- OpenID Login Logic ---
 
     def _on_steam_login_success(self, steam_id_64: str) -> None:
         """Handles successful Steam authentication.
@@ -217,14 +186,14 @@ class MainWindow(QMainWindow):
         config.save()
 
         # Fetch persona name
-        self.steam_username = DataLoadHandler._fetch_steam_persona_name(steam_id_64)
+        self.steam_username = DataLoadHandler.fetch_steam_persona_name(steam_id_64)
 
         # Update user label
         display_text = self.steam_username if self.steam_username else steam_id_64
         self.user_label.setText(t('ui.main_window.user_label', user_id=display_text))
 
         # Rebuild toolbar to show name instead of login button
-        self._refresh_toolbar()
+        self.refresh_toolbar()
 
         if self.game_manager:
             self.data_load_handler.load_games_with_progress(steam_id_64)
@@ -344,9 +313,9 @@ class MainWindow(QMainWindow):
         """Handles single game selection. Delegated to SelectionHandler."""
         self.selection_handler.on_game_selected(game)
 
-    def _fetch_game_details_async(self, app_id: str, all_categories: List[str]) -> None:
+    def fetch_game_details_async(self, app_id: str, all_categories: List[str]) -> None:
         """Fetches game details async. Delegated to SelectionHandler."""
-        self.selection_handler._fetch_game_details_async(app_id, all_categories)
+        self.selection_handler.fetch_game_details_async(app_id, all_categories)
 
     def _restore_game_selection(self, app_ids: List[str]) -> None:
         """Restores game selection. Delegated to SelectionHandler."""
@@ -440,7 +409,7 @@ class MainWindow(QMainWindow):
         config.UI_LANGUAGE = new_language
         init_i18n(new_language)
         self._refresh_menubar()
-        self._refresh_toolbar()
+        self.refresh_toolbar()
         self.setWindowTitle(t('ui.main_window.title'))
         self.set_status(t('ui.main_window.status_ready'))
 
@@ -469,7 +438,7 @@ class MainWindow(QMainWindow):
         config.MAX_BACKUPS = settings['max_backups']
         if settings.get('steam_api_key'): config.STEAM_API_KEY = settings['steam_api_key']
         if settings['steam_path']: config.STEAM_PATH = Path(settings['steam_path'])
-        if self.steam_scraper: self.steam_scraper.set_language(config.TAGS_LANGUAGE)
+        # if self.steam_scraper: self.steam_scraper.set_language(config.TAGS_LANGUAGE)
 
         self._save_settings(settings)
         UIHelper.show_success(self, t('ui.settings.saved'))
@@ -544,7 +513,7 @@ class MainWindow(QMainWindow):
         msg.setWindowTitle(t('ui.menu.file.unsaved_changes_title'))
         msg.setText(t('ui.menu.file.unsaved_changes_msg'))
 
-        save_btn    = msg.addButton(t('common.save'),    QMessageBox.ButtonRole.AcceptRole)
+        save_btn = msg.addButton(t('common.save'), QMessageBox.ButtonRole.AcceptRole)
         discard_btn = msg.addButton(t('common.discard'), QMessageBox.ButtonRole.DestructiveRole)
         msg.addButton(t('common.cancel'), QMessageBox.ButtonRole.RejectRole)
         msg.setDefaultButton(save_btn)
