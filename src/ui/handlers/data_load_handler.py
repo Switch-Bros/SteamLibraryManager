@@ -70,8 +70,8 @@ class DataLoadHandler:
         
         # Restore login state if STEAM_USER_ID was saved
         if config.STEAM_USER_ID and not self.mw.steam_username:
-            self.mw.steam_username = self._fetch_steam_persona_name(config.STEAM_USER_ID)
-            self.mw._refresh_toolbar()
+            self.mw.steam_username = DataLoadHandler.fetch_steam_persona_name(config.STEAM_USER_ID)
+            self.mw.refresh_toolbar()
         
         display_id = self.mw.steam_username if self.mw.steam_username else (target_id if target_id else short_id)
         self.mw.user_label.setText(t('ui.main_window.user_label', user_id=display_id))
@@ -203,29 +203,33 @@ class DataLoadHandler:
         
         # Update statistics
         self.mw.update_statistics()
-    
+
     @staticmethod
-    def _fetch_steam_persona_name(steam_id: str) -> str:
-        """Fetch the Steam persona name from Steam API.
-        
+    def fetch_steam_persona_name(steam_id: str) -> str:
+        """Fetches the public persona name from Steam Community XML.
+
         Args:
-            steam_id: The Steam ID (64-bit).
-        
+            steam_id: The Steam ID64 to look up.
+
         Returns:
-            The persona name, or steam_id if fetching fails.
+            The persona name if found, otherwise the original steam_id.
         """
         import requests
         # noinspection PyPep8Naming
         import xml.etree.ElementTree as ET
-        
+
         try:
-            url = f"https://steamcommunity.com/profiles/{steam_id}?xml=1"
+            url = f"https://steamcommunity.com/profiles/{steam_id}/?xml=1"
             response = requests.get(url, timeout=5)
             if response.status_code == 200:
-                root = ET.fromstring(response.content)
-                steam_name = root.find('steamID')
-                if steam_name is not None and steam_name.text:
-                    return steam_name.text
-        except Exception:
-            pass
+                tree = ET.fromstring(response.content)
+                steam_id_element = tree.find('steamID')
+                if steam_id_element is not None and steam_id_element.text:
+                    return steam_id_element.text
+        except (requests.RequestException, ET.ParseError) as e:
+            from src.utils.i18n import t
+            print(t('logs.auth.profile_error', error=str(e)))
+        except Exception as e:
+            print(f"Unexpected error fetching Steam persona name: {e}")
+
         return steam_id
