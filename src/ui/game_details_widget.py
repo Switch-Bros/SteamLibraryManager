@@ -592,10 +592,10 @@ class GameDetailsWidget(QWidget):
         # Build review display with percentage if available
         if game.review_score:
             if game.review_percentage > 0:
-                # Show: "96% | Äußerst Positiv (12.345)"
+                # Show: "96% | Overwhelmingly Positive (12,345)"
                 review_val = f"{game.review_percentage}{t('emoji.percent')} | {game.review_score} ({game.review_count})"
             else:
-                # Show: "Äußerst Positiv (12.345)"
+                # Show: "Overwhelmingly Positive (12,345)"
                 review_val = f"{game.review_score} ({game.review_count})"
         else:
             review_val = t('emoji.dash')
