@@ -294,9 +294,9 @@ class CategoryActionHandler:
         layout.addWidget(list_widget)
 
         # OK / Cancel
-        # noinspection PyTypeChecker
-        buttons = QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        button_box = QDialogButtonBox(buttons)
+        button_box = QDialogButtonBox()
+        button_box.addButton(t('common.ok'), QDialogButtonBox.ButtonRole.AcceptRole)
+        button_box.addButton(t('common.cancel'), QDialogButtonBox.ButtonRole.RejectRole)
         button_box.accepted.connect(dialog.accept)
         button_box.rejected.connect(dialog.reject)
         layout.addWidget(button_box)

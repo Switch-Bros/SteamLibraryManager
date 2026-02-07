@@ -7,7 +7,9 @@ This class centralizes QMessageBox and QInputDialog logic to ensure
 consistent styling, titles, and use of internationalization across the application.
 """
 from typing import Optional, Tuple
-from PyQt6.QtWidgets import QWidget, QMessageBox, QInputDialog
+from PyQt6.QtWidgets import (
+    QWidget, QMessageBox, QDialog, QVBoxLayout, QLabel, QLineEdit, QDialogButtonBox
+)
 from src.utils.i18n import t
 
 
@@ -120,4 +122,29 @@ class UIHelper:
             Tuple[str, bool]: A tuple containing the entered text and a boolean
                               indicating if the user clicked OK (True) or Cancel (False).
         """
-        return QInputDialog.getText(parent, title, label, text=current_text)
+        dialog = QDialog(parent)
+        dialog.setWindowTitle(title)
+        layout = QVBoxLayout()
+
+        # Label
+        label_widget = QLabel(label)
+        layout.addWidget(label_widget)
+
+        # Text input
+        line_edit = QLineEdit()
+        line_edit.setText(current_text)
+        layout.addWidget(line_edit)
+
+        # Buttons
+        button_box = QDialogButtonBox()
+        button_box.addButton(t('common.ok'), QDialogButtonBox.ButtonRole.AcceptRole)
+        button_box.addButton(t('common.cancel'), QDialogButtonBox.ButtonRole.RejectRole)
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+        layout.addWidget(button_box)
+
+        dialog.setLayout(layout)
+
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            return line_edit.text(), True
+        return "", False
