@@ -1,10 +1,12 @@
 # src/integrations/steam_store.py
 
 """
-Steam Store integration for fetching tags and franchise detection.
+Steam Store integration for fetching tags and age ratings.
 
 This module provides functionality to scrape game tags from the Steam Store
 in the user's preferred language and detect game franchises based on name patterns.
+
+FIXED: Age rating fetching now uses Steam Store API instead of unreliable HTML scraping.
 """
 import time
 import json
@@ -19,11 +21,11 @@ from src.utils.i18n import t
 
 class SteamStoreScraper:
     """
-    Fetches game tags from the Steam Store in the selected language.
+    Fetches game tags and age ratings from the Steam Store.
 
     This class scrapes the Steam Store page for a game to extract user-defined
-    tags. It supports multiple languages, implements rate limiting, and caches
-    results for 30 days.
+    tags and age ratings. It supports multiple languages, implements rate limiting,
+    and caches results for 30 days.
     """
 
     # Language mapping (ISO Code -> Steam Internal Name)
@@ -49,58 +51,25 @@ class SteamStoreScraper:
             language (str): Language code ('en', 'de', etc.). Defaults to 'en'.
         """
         self.cache_dir = cache_dir / 'store_tags'
-        self.cache_dir.mkdir(exist_ok=True, parents=True)
-
-        # Pre-initialize attributes
-        self.language_code = 'en'
-        self.steam_language = 'english'
-
-        # Set language
-        self.set_language(language)
-
-        # Rate limiting
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.language_code = language
+        self.steam_language = self.STEAM_LANGUAGES.get(language, 'english')
         self.last_request_time = 0.0
-        self.min_request_interval = 1.5
+        self.min_request_interval = 1.5  # Rate limit: 1.5 seconds between requests
 
-        # Tag blacklist (English & German mixed)
+        # Tag blacklist (common but unhelpful tags)
         self.tag_blacklist = {
-            # English
-            'Singleplayer', 'Multiplayer', 'Co-op', 'Shared/Split Screen',
-            'Full controller support', 'Partial Controller Support',
-            'Steam Cloud', 'Steam Achievements', 'Remote Play',
-            'Captions available', 'Commentary available',
-            'Includes level editor', 'Includes Source SDK',
-            'VR Support', 'Steam Trading Cards', 'Stats',
-            'Steam Leaderboards', 'Steam Workshop',
-            'Cross-Platform Multiplayer', 'Remote Play on Phone',
-            'Remote Play on Tablet', 'Remote Play on TV',
-            'Remote Play Together', 'HDR available',
-            # German
-            'Einzelspieler', 'Mehrspieler', 'Koop', 'Geteilter/Split Screen',
-            'Volle Controllerunterstützung', 'Teilweise Controllerunterstützung',
-            'Steam Cloud', 'Steam-Errungenschaften', 'Remote Play',
-            'Untertitel verfügbar', 'Kommentar verfügbar',
-            'Enthält Level-Editor', 'Enthält Source SDK',
-            'VR-Unterstützung', 'Steam-Sammelkarten', 'Statistiken',
-            'Steam-Bestenlisten', 'Steam Workshop',
-            'Plattformübergreifender Mehrspieler', 'Remote Play auf Smartphones',
-            'Remote Play auf Tablets', 'Remote Play auf Fernsehern',
-            'Remote Play Together', 'HDR verfügbar'
+            'Singleplayer', 'Multiplayer', 'Online Co-Op', 'Local Co-Op',
+            'Steam Achievements', 'Full controller support', 'Steam Trading Cards',
+            'Steam Cloud', 'Stats', 'Includes level editor', 'Steam Workshop',
+            'Partial Controller Support', 'Remote Play on Tablet', 'Remote Play on TV',
+            'Remote Play Together', 'In-App Purchases', 'Valve Anti-Cheat enabled',
+            'Steam Leaderboards'
         }
-
-    def set_language(self, language_code: str):
-        """
-        Sets the language for Steam Store requests.
-
-        Args:
-            language_code (str): ISO language code (e.g., 'en', 'de').
-        """
-        self.language_code = language_code
-        self.steam_language = self.STEAM_LANGUAGES.get(language_code, 'english')
 
     def fetch_tags(self, app_id: str) -> List[str]:
         """
-        Fetches user-defined tags from the Steam Store page.
+        Fetches tags for a game from the Steam Store page.
 
         This method first checks the cache for existing data (valid for 30 days).
         If not cached, it scrapes the Steam Store page, filters out blacklisted
@@ -169,11 +138,11 @@ class SteamStoreScraper:
 
     def fetch_age_rating(self, app_id: str) -> Optional[str]:
         """
-        Fetches age rating from the Steam Store page and converts to PEGI.
+        Fetches age rating from Steam Store API (with HTML fallback).
 
-        This method scrapes the Steam Store page to extract the age rating
-        (Steam age gate, PEGI, ESRB, USK, etc.) and converts it to a PEGI rating.
-        Results are cached for 30 days.
+        FIXED: This method now uses the official Steam Store API to fetch age ratings,
+        which is much more reliable than HTML scraping. Falls back to HTML scraping
+        (with fixed Age-Gate handling) if the API fails. Results are cached for 30 days.
 
         Args:
             app_id (str): The Steam app ID.
@@ -200,76 +169,176 @@ class SteamStoreScraper:
         if time_since_last < self.min_request_interval:
             time.sleep(self.min_request_interval - time_since_last)
 
-        # 3. Fetch from Steam
+        # 3. Try Steam Store API FIRST (RECOMMENDED!)
+        pegi_rating = self._fetch_age_rating_from_api(app_id)
+        
+        # 4. Fallback to HTML scraping if API fails
+        if not pegi_rating:
+            pegi_rating = self._fetch_age_rating_from_html(app_id)
+
+        # 5. Cache result
+        try:
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                json.dump({
+                    'pegi_rating': pegi_rating,
+                    'fetched_at': datetime.now().isoformat(),
+                    'method': 'api' if pegi_rating else 'html_fallback'
+                }, f)
+        except OSError:
+            pass
+
+        return pegi_rating
+
+    def _fetch_age_rating_from_api(self, app_id: str) -> Optional[str]:
+        """
+        Fetches age rating using Steam Store API (NEW METHOD!).
+        
+        This is the RECOMMENDED way to get age ratings. No Age-Gate problems!
+        
+        Args:
+            app_id: Steam app ID
+            
+        Returns:
+            PEGI rating string or None
+        """
         try:
             self.last_request_time = time.time()
-            cookies = {'Steam_Language': self.steam_language, 'wants_mature_content': '1', 'birthtime': '0'}
-            url = f"https://store.steampowered.com/app/{app_id}/"
+            
+            # Steam Store API endpoint
+            url = f"https://store.steampowered.com/api/appdetails?appids={app_id}"
+            
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            
+            data = response.json()
+            
+            # Check if request was successful
+            if not data or str(app_id) not in data:
+                return None
+                
+            app_data = data[str(app_id)]
+            
+            if not app_data.get('success'):
+                return None
+                
+            game_data = app_data.get('data', {})
+            
+            # Get required_age from API
+            required_age = game_data.get('required_age', 0)
+            
+            # Convert to PEGI rating
+            if required_age >= 18:
+                return '18'
+            elif required_age >= 16:
+                return '16'
+            elif required_age >= 12:
+                return '12'
+            elif required_age >= 7:
+                return '7'
+            elif required_age > 0:
+                return '3'
+            else:
+                # Check if game has mature content descriptor
+                content_descriptors = game_data.get('content_descriptors', {})
+                if content_descriptors.get('ids'):
+                    # Has content warnings → probably PEGI 12 or higher
+                    return '12'
+                    
+                # Default for games without age restriction
+                return '3'
+                
+        except (requests.RequestException, ValueError, KeyError) as e:
+            print(f"Steam API fetch failed for {app_id}: {e}")
+            return None
 
-            response = requests.get(url, cookies=cookies, timeout=10 )
+    def _fetch_age_rating_from_html(self, app_id: str) -> Optional[str]:
+        """
+        Fetches age rating via HTML scraping (FALLBACK METHOD).
+        
+        FIXED: Proper Age-Gate bypass with Unix timestamp!
+        This is the old method with FIXED Age-Gate handling.
+        Only used if API fails.
+        
+        Args:
+            app_id: Steam app ID
+            
+        Returns:
+            PEGI rating string or None
+        """
+        try:
+            self.last_request_time = time.time()
+            
+            # FIXED: Proper Age-Gate bypass with Unix timestamp!
+            birthtime = '631152000'  # Unix timestamp for 1990-01-01
+            cookies = {
+                'Steam_Language': self.steam_language,
+                'wants_mature_content': '1',
+                'birthtime': birthtime,  # FIXED: Now uses proper timestamp!
+                'mature_content': '1'
+            }
+            
+            url = f"https://store.steampowered.com/app/{app_id}/"
+            response = requests.get(url, cookies=cookies, timeout=10)
             response.raise_for_status()
 
             soup = BeautifulSoup(response.text, 'html.parser')
-            pegi_rating = None
 
-            # Try to find age rating in various formats
-            # 1. Steam age gate (e.g., "18+", "16+")
-            age_gate = soup.find('div', class_='game_rating_icon')
-            if age_gate and age_gate.get('data-rating'):
-                steam_age = age_gate['data-rating'].replace('+', '')
-                pegi_rating = self._convert_to_pegi(steam_age, 'steam')
+            # Try multiple methods to find age rating
+            
+            # Method 1: Look for PEGI image
+            pegi_elem = soup.find('img', alt=lambda x: x and 'PEGI' in x)
+            if pegi_elem:
+                alt_text = pegi_elem.get('alt', '')
+                for age in ['18', '16', '12', '7', '3']:
+                    if age in alt_text:
+                        return age
 
-            # 2. PEGI rating
-            if not pegi_rating:
-                pegi_elem = soup.find('img', alt=lambda x: x and 'PEGI' in x)
-                if pegi_elem:
-                    alt_text = pegi_elem.get('alt', '')
-                    for age in ['18', '16', '12', '7', '3']:
-                        if age in alt_text:
-                            pegi_rating = age
-                            break
+            # Method 2: Look for USK rating (Germany)
+            usk_elem = soup.find('img', alt=lambda x: x and 'USK' in x)
+            if usk_elem:
+                alt_text = usk_elem.get('alt', '')
+                usk_to_pegi = {'18': '18', '16': '16', '12': '12', '6': '7', '0': '3'}
+                for usk_age, pegi_age in usk_to_pegi.items():
+                    if usk_age in alt_text:
+                        return pegi_age
 
-            # 3. ESRB rating
-            if not pegi_rating:
-                esrb_elem = soup.find('img', alt=lambda x: x and 'ESRB' in x)
-                if esrb_elem:
-                    alt_text = esrb_elem.get('alt', '').lower()
-                    if 'adults only' in alt_text or 'ao' in alt_text:
-                        pegi_rating = '18'
-                    elif 'mature' in alt_text or 'm' in alt_text:
-                        pegi_rating = '18'
-                    elif 'teen' in alt_text or 't' in alt_text:
-                        pegi_rating = '16'
-                    elif 'everyone 10+' in alt_text or 'e10+' in alt_text:
-                        pegi_rating = '12'
-                    elif 'everyone' in alt_text or 'e' in alt_text:
-                        pegi_rating = '3'
+            # Method 3: Look for ESRB rating (USA)
+            esrb_elem = soup.find('img', alt=lambda x: x and 'ESRB' in x)
+            if esrb_elem:
+                alt_text = esrb_elem.get('alt', '').lower()
+                if 'adults only' in alt_text or 'mature' in alt_text:
+                    return '18'
+                elif 'teen' in alt_text:
+                    return '16'
+                elif 'everyone 10+' in alt_text:
+                    return '12'
+                elif 'everyone' in alt_text:
+                    return '3'
 
-            # 4. USK rating (German)
-            if not pegi_rating:
-                usk_elem = soup.find('img', alt=lambda x: x and 'USK' in x)
-                if usk_elem:
-                    alt_text = usk_elem.get('alt', '')
-                    for usk_age, pegi_age in [('18', '18'), ('16', '16'), ('12', '12'), ('6', '7'), ('0', '3')]:
-                        if usk_age in alt_text:
-                            pegi_rating = pegi_age
-                            break
+            # Method 4: Check for age gate div (fallback)
+            age_divs = soup.find_all('div', class_=lambda x: x and 'age' in x.lower())
+            for div in age_divs:
+                text = div.get_text().lower()
+                if '18' in text:
+                    return '18'
+                elif '16' in text:
+                    return '16'
+                elif '12' in text:
+                    return '12'
 
-            # Cache result
-            with open(cache_file, 'w', encoding='utf-8') as f:
-                json.dump({'pegi_rating': pegi_rating, 'fetched_at': datetime.now().isoformat()}, f)
-
-            return pegi_rating
+            return None
 
         except (requests.RequestException, AttributeError) as e:
-            print(f"Failed to fetch age rating for {app_id}: {e}")
-
-        return None
+            print(f"HTML scraping failed for {app_id}: {e}")
+            return None
 
     @staticmethod
     def _convert_to_pegi(rating: str, system: str) -> Optional[str]:
         """
         Converts age ratings from different systems to PEGI.
+
+        Note: This method is kept for backward compatibility but is no longer
+        actively used since the new API method handles conversions internally.
 
         Args:
             rating (str): The rating value (e.g., "18", "Mature").
@@ -310,88 +379,77 @@ class SteamStoreScraper:
             app_ids: List of Steam app IDs to check.
 
         Returns:
-            dict: Dictionary with:
+            Dict with keys:
                 - 'total': Total number of app IDs checked
-                - 'cached': Number of app IDs with valid cache
-                - 'missing': Number of app IDs without cache
+                - 'cached': Number of apps with valid cache
+                - 'missing': Number of apps without cache
                 - 'percentage': Percentage of cached apps (0-100)
         """
         total = len(app_ids)
         cached = 0
+        missing = 0
 
         for app_id in app_ids:
             cache_file = self.cache_dir / f"{app_id}_{self.language_code}.json"
 
             if cache_file.exists():
                 try:
-                    # Cache validation (30 days)
                     mtime = datetime.fromtimestamp(cache_file.stat().st_mtime)
                     if datetime.now() - mtime < timedelta(days=30):
                         cached += 1
-                except (OSError, ValueError):
-                    pass
+                    else:
+                        missing += 1
+                except OSError:
+                    missing += 1
+            else:
+                missing += 1
 
-        missing = total - cached
-        percentage = (cached / total * 100) if total > 0 else 0
+        percentage = (cached / total * 100) if total > 0 else 0.0
 
         return {
             'total': total,
             'cached': cached,
             'missing': missing,
-            'percentage': percentage
+            'percentage': round(percentage, 1)
         }
 
-    # --- Franchise Detection (Static) ---
-
-    FRANCHISES = {
-        'LEGO': ['lego'],
-        "Assassin's Creed": ["assassin's creed", "assassins creed"],
-        'Dark Souls': ['dark souls'],
-        'The Elder Scrolls': ['elder scrolls', 'skyrim', 'oblivion', 'morrowind'],
-        'Fallout': ['fallout'],
-        'Far Cry': ['far cry'],
-        'Call of Duty': ['call of duty'],
-        'Tomb Raider': ['tomb raider', 'lara croft'],
-        'Grand Theft Auto': ['grand theft auto', 'gta'],
-        'The Witcher': ['witcher'],
-        'Batman Arkham': ['batman arkham', 'batman: arkham'],
-        'Borderlands': ['borderlands'],
-        'BioShock': ['bioshock'],
-        'Metro': ['metro 2033', 'metro last light', 'metro exodus'],
-        'Dishonored': ['dishonored'],
-        'Deus Ex': ['deus ex'],
-        'Mass Effect': ['mass effect'],
-        'Dragon Age': ['dragon age'],
-        'Resident Evil': ['resident evil'],
-        'Total War': ['total war'],
-        'Civilization': ['civilization', "sid meier's civilization"],
-        'DOOM': ['doom'],
-        'Wolfenstein': ['wolfenstein'],
-        'Hitman': ['hitman'],
-        'Final Fantasy': ['final fantasy'],
-        'Yakuza': ['yakuza', 'like a dragon'],
-        'Need for Speed': ['need for speed'],
-        'Star Wars': ['star wars'],
-        'Prince of Persia': ['prince of persia'],
-    }
-
-    @classmethod
-    def detect_franchise(cls, game_name: str) -> Optional[str]:
+    @staticmethod
+    def detect_franchise(game_name: str) -> Optional[str]:
         """
-        Detects the franchise a game belongs to based on its name.
+        Detects game franchise from the game name.
 
-        This method uses pattern matching against a predefined list of franchises.
+        Tries to extract franchise names from common patterns:
+        - "Franchise: Subtitle"
+        - "Franchise - Subtitle"
+        - "Franchise™"
+        - "Franchise®"
 
         Args:
-            game_name (str): The name of the game.
+            game_name (str): The full name of the game.
 
         Returns:
-            Optional[str]: The franchise name if detected, or None if no match is found.
+            Optional[str]: The detected franchise name, or None if not detected.
         """
-        name_lower = game_name.lower()
+        if not game_name:
+            return None
 
-        for franchise, patterns in cls.FRANCHISES.items():
-            for pattern in patterns:
-                if pattern in name_lower:
-                    return franchise
+        # Remove trademark symbols
+        name = game_name.replace('™', '').replace('®', '').strip()
+
+        # Split on common delimiters
+        for delimiter in [':', ' - ', ' – ']:
+            if delimiter in name:
+                parts = name.split(delimiter)
+                # Return first part if it looks like a franchise name
+                # (not too short, not all numbers)
+                potential = parts[0].strip()
+                if len(potential) > 3 and not potential.isdigit():
+                    return potential
+
+        # Check for numbered sequels (e.g., "Half-Life 2")
+        import re
+        match = re.match(r'^([A-Za-z\s]+?)\s+\d+', name)
+        if match:
+            return match.group(1).strip()
+
         return None
