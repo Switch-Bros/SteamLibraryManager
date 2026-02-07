@@ -21,11 +21,7 @@ from PyQt6.QtWidgets import (
     QLineEdit, QPushButton, QLabel, QToolBar,
     QMessageBox, QSplitter, QProgressDialog
 )
-from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
-
-import requests
-# noinspection PyPep8Naming
-import xml.etree.ElementTree as ET
+from PyQt6.QtCore import Qt, QThread, QTimer
 
 from src.config import config
 from src.core.game_manager import GameManager, Game
@@ -48,10 +44,10 @@ from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t, init_i18n
 
 # Builders
-from src.ui.builders import MenuBuilder, ToolbarBuilder, StatusbarBuilder
+from src.ui.builders import MenuBuilder, ToolbarBuilder, StatusbarBuilder, CentralWidgetBuilder
 
 # Handlers
-from src.ui.handlers import CategoryActionHandler
+from src.ui.handlers import CategoryActionHandler, DataLoadHandler
 from src.ui.handlers.selection_handler import SelectionHandler
 from src.ui.handlers.category_change_handler import CategoryChangeHandler
 
@@ -61,47 +57,8 @@ FileActions, EditActions, ViewActions,
 ToolsActions, SteamActions, GameActions
 )
 
-class GameLoadThread(QThread):
-    """Background thread for loading games without blocking the UI.
-
-    Loads game data from Steam API and local files in a separate thread,
-    emitting progress updates that can be displayed in a progress dialog.
-
-    Attributes:
-        game_service: The GameService instance to use for loading.
-        user_id: The Steam user ID to load games for.
-
-    Signals:
-        progress_update: Emitted during loading with (step_name, current, total).
-        finished: Emitted when loading completes with success status.
-    """
-
-    progress_update = pyqtSignal(str, int, int)
-    finished = pyqtSignal(bool)
-
-    def __init__(self, game_service: GameService, user_id: str):
-        """Initializes the game load thread.
-
-        Args:
-            game_service: The GameService instance to use for loading.
-            user_id: The Steam user ID to load games for.
-        """
-        super().__init__()
-        self.game_service = game_service
-        self.user_id = user_id
-
-    def run(self) -> None:
-        """Executes the game loading process.
-
-        Calls the game service's load_games method with a progress callback
-        and emits the finished signal with the result.
-        """
-
-        def progress_callback(step: str, current: int, total: int):
-            self.progress_update.emit(step, current, total)
-
-        success = self.game_service.load_games(self.user_id, progress_callback)
-        self.finished.emit(success)
+# Workers
+from src.ui.workers import GameLoadWorker
 
 
 class MainWindow(QMainWindow):
@@ -160,9 +117,7 @@ class MainWindow(QMainWindow):
         self.current_search_query: str = ""  # Track active search
 
         # Threads & Dialogs
-        self.load_thread: Optional[GameLoadThread] = None
         self.store_check_thread: Optional[QThread] = None
-        self.progress_dialog: Optional[QProgressDialog] = None
 
         # UI Builders (extracted from _create_ui for reuse on language change)
         self.menu_builder: MenuBuilder = MenuBuilder(self)
@@ -181,6 +136,7 @@ class MainWindow(QMainWindow):
         self.category_handler: CategoryActionHandler = CategoryActionHandler(self)
         self.selection_handler = SelectionHandler(self)
         self.category_change_handler = CategoryChangeHandler(self)
+        self.data_load_handler = DataLoadHandler(self)
 
         self._create_ui()
         self._load_data()
@@ -200,76 +156,13 @@ class MainWindow(QMainWindow):
         self.addToolBar(self.toolbar)
         self.toolbar_builder.build(self.toolbar)
 
-        # Central Widget
-        central = QWidget()
-        self.setCentralWidget(central)
-        layout = QVBoxLayout(central)
-        layout.setContentsMargins(5, 5, 5, 5)
-
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-
-        # LEFT SIDE
-        left_widget = QWidget()
-        left_layout = QVBoxLayout(left_widget)
-        left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.setSpacing(2)
-
-        # Search
-        search_layout = QHBoxLayout()
-        search_layout.addWidget(QLabel(t('ui.main_window.search_icon')))
-        self.search_entry = QLineEdit()
-        self.search_entry.setPlaceholderText(t('ui.main_window.search_placeholder'))
-        # noinspection PyUnresolvedReferences
-        self.search_entry.textChanged.connect(self.view_actions.on_search)  # <--- UPDATED
-        search_layout.addWidget(self.search_entry)
-
-        clear_btn = QPushButton(t('emoji.clear'))
-        # noinspection PyUnresolvedReferences
-        clear_btn.clicked.connect(self.view_actions.clear_search)  # <--- UPDATED
-        clear_btn.setMaximumWidth(30)
-        search_layout.addWidget(clear_btn)
-        left_layout.addLayout(search_layout)
-
-        # Tree Controls
-        btn_layout = QHBoxLayout()
-        expand_btn = QPushButton(f"▼ {t('ui.menu.view.expand_all')}")
-        # noinspection PyUnresolvedReferences
-        expand_btn.clicked.connect(self.view_actions.expand_all)  # <--- UPDATED
-        btn_layout.addWidget(expand_btn)
-
-        collapse_btn = QPushButton(f"▲ {t('ui.menu.view.collapse_all')}")
-        # noinspection PyUnresolvedReferences
-        collapse_btn.clicked.connect(self.view_actions.collapse_all)  # <--- UPDATED
-        btn_layout.addWidget(collapse_btn)
+        # --- Central Widget (delegated to CentralWidgetBuilder) ---
+        central_builder = CentralWidgetBuilder(self)
+        widgets = central_builder.build()
         
-        # Tree Widget
-        self.tree = GameTreeWidget()
-        # noinspection PyUnresolvedReferences,DuplicatedCode
-        self.tree.game_clicked.connect(self.on_game_selected)
-        # noinspection PyUnresolvedReferences
-        self.tree.game_right_clicked.connect(self.on_game_right_click)
-        # noinspection PyUnresolvedReferences
-        self.tree.category_right_clicked.connect(self.on_category_right_click)
-        # noinspection PyUnresolvedReferences
-        self.tree.selection_changed.connect(self._on_games_selected)
-        # noinspection PyUnresolvedReferences
-        self.tree.games_dropped.connect(self._on_games_dropped)
-        left_layout.addWidget(self.tree)
-
-        splitter.addWidget(left_widget)
-
-        # RIGHT SIDE (Details)
-        self.details_widget = GameDetailsWidget()
-        # noinspection PyUnresolvedReferences
-        self.details_widget.category_changed.connect(self._on_category_changed_from_details)
-        # noinspection PyUnresolvedReferences
-        self.details_widget.edit_metadata.connect(self.edit_actions.edit_game_metadata)
-        # noinspection PyUnresolvedReferences
-        self.details_widget.pegi_override_requested.connect(self.edit_actions.on_pegi_override_requested)
-        splitter.addWidget(self.details_widget)
-
-        splitter.setSizes([350, 1050])
-        layout.addWidget(splitter)
+        self.tree = widgets['tree']
+        self.details_widget = widgets['details_widget']
+        self.search_entry = widgets['search_entry']
 
         # --- Status bar (delegated to StatusbarBuilder) ---
         self.statusbar = self.statusBar()
@@ -324,7 +217,7 @@ class MainWindow(QMainWindow):
         config.save()
 
         # Fetch persona name
-        self.steam_username = self._fetch_steam_persona_name(steam_id_64)
+        self.steam_username = DataLoadHandler._fetch_steam_persona_name(steam_id_64)
 
         # Update user label
         display_text = self.steam_username if self.steam_username else steam_id_64
@@ -334,7 +227,7 @@ class MainWindow(QMainWindow):
         self._refresh_toolbar()
 
         if self.game_manager:
-            self._load_games_with_progress(steam_id_64)
+            self.data_load_handler.load_games_with_progress(steam_id_64)
 
     def _on_steam_login_error(self, error: str) -> None:
         """Handles Steam authentication errors.
@@ -351,158 +244,9 @@ class MainWindow(QMainWindow):
     def _load_data(self) -> None:
         """Performs the initial data loading sequence.
 
-        Detects Steam path and user, initializes parsers and managers,
-        and starts the game loading process.
+        Delegates to DataLoadHandler for all loading operations.
         """
-        self.set_status(t('common.loading'))
-
-        if not config.STEAM_PATH:
-            UIHelper.show_warning(self, t('logs.main.steam_not_found'))
-            self.reload_btn.show()
-            return
-
-        short_id, long_id = config.get_detected_user()
-        target_id = config.STEAM_USER_ID if config.STEAM_USER_ID else long_id
-
-        if not short_id and not target_id:
-            UIHelper.show_warning(self, t('ui.errors.no_users_found'))
-            self.reload_btn.show()
-            return
-
-        # Restore login state if STEAM_USER_ID was saved
-        if config.STEAM_USER_ID and not self.steam_username:
-            self.steam_username = self._fetch_steam_persona_name(config.STEAM_USER_ID)
-            self._refresh_toolbar()
-
-        display_id = self.steam_username if self.steam_username else (target_id if target_id else short_id)
-        self.user_label.setText(t('ui.main_window.user_label', user_id=display_id))
-
-        # Initialize GameService
-        self.game_service = GameService(
-            str(config.STEAM_PATH),
-            config.STEAM_API_KEY,
-            str(config.CACHE_DIR)
-        )
-
-        # Initialize parsers through GameService
-        config_path = config.get_localconfig_path(short_id)
-        if not config_path:
-            UIHelper.show_error(self, t('ui.errors.localconfig_load_error'))
-            self.reload_btn.show()
-            return
-
-        vdf_success, cloud_success = self.game_service.initialize_parsers(str(config_path), short_id)
-
-        if not vdf_success and not cloud_success:
-            UIHelper.show_error(self, t('ui.errors.localconfig_load_error'))
-            self.reload_btn.show()
-            return
-
-        # Set references for backward compatibility
-        self.vdf_parser = self.game_service.vdf_parser
-        self.cloud_storage_parser = self.game_service.cloud_storage_parser
-
-        # Load games through GameService
-        self._load_games_with_progress(target_id)
-
-    def _load_games_with_progress(self, user_id: Optional[str]) -> None:
-        """Starts game loading with a progress dialog.
-
-        Args:
-            user_id: The Steam user ID to load games for, or None for local only.
-        """
-        self.progress_dialog = QProgressDialog(
-            t('common.loading'),
-            t('common.cancel'),
-            0, 100,
-            self
-        )
-        self.progress_dialog.setWindowTitle(t('ui.main_window.status_ready'))
-        self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
-        self.progress_dialog.setMinimumDuration(0)
-        self.progress_dialog.setValue(0)
-
-        self.load_thread = GameLoadThread(self.game_service, user_id or "local")
-        # noinspection PyUnresolvedReferences
-        self.load_thread.progress_update.connect(self._on_load_progress)
-        # noinspection PyUnresolvedReferences
-        self.load_thread.finished.connect(self._on_load_finished)
-        self.load_thread.start()
-
-    def _on_load_progress(self, step: str, current: int, total: int) -> None:
-        """Updates the progress dialog during game loading.
-
-        Args:
-            step: Description of the current loading step.
-            current: Current progress count.
-            total: Total items to process.
-        """
-        if self.progress_dialog:
-            self.progress_dialog.setLabelText(step)
-            if total > 0:
-                percent = int((current / total) * 100)
-                self.progress_dialog.setValue(percent)
-
-    def _on_load_finished(self, success: bool) -> None:
-        """Handles completion of the game loading process.
-
-        Args:
-            success: Whether loading completed successfully.
-        """
-        if self.progress_dialog:
-            self.progress_dialog.close()
-            self.progress_dialog = None
-
-        # Get game_manager reference from game_service
-        self.game_manager = self.game_service.game_manager if self.game_service else None
-
-        if not success or not self.game_manager or not self.game_manager.games:
-            UIHelper.show_warning(self, t('ui.errors.no_games_found'))
-            self.reload_btn.show()
-            self.set_status(t('common.error'))
-            return
-
-        # Merge collections using GameService
-        self.game_service.merge_with_localconfig()
-
-        # Apply metadata using GameService
-        self.steam_scraper = SteamStoreScraper(config.CACHE_DIR, config.TAGS_LANGUAGE)
-        self.game_service.apply_metadata()
-
-        # Set appinfo_manager reference for backward compatibility
-        self.appinfo_manager = self.game_service.appinfo_manager
-
-        # Initialize CategoryService after parsers and game_manager are ready
-        from src.services.category_service import CategoryService
-        self.category_service = CategoryService(
-            vdf_parser=self.vdf_parser,
-            cloud_parser=self.cloud_storage_parser,
-            game_manager=self.game_manager
-        )
-
-        # Initialize MetadataService after appinfo_manager is ready
-        from src.services.metadata_service import MetadataService
-        self.metadata_service = MetadataService(
-            appinfo_manager=self.appinfo_manager,
-            game_manager=self.game_manager
-        )
-
-        # Initialize AutoCategorizeService after category_service is ready
-        from src.services.autocategorize_service import AutoCategorizeService
-        self.autocategorize_service = AutoCategorizeService(
-            game_manager=self.game_manager,
-            category_service=self.category_service,
-            steam_scraper=self.steam_scraper
-        )
-
-        self._populate_categories()
-
-        status_msg = self.game_manager.get_load_source_message()
-        self.set_status(status_msg)
-        self.reload_btn.hide()
-
-        # Update statistics
-        self._update_statistics()
+        self.data_load_handler.load_data()
 
     @staticmethod
     def _german_sort_key(text: str) -> str:
@@ -547,7 +291,7 @@ class MainWindow(QMainWindow):
         if not self.game_manager: return
 
         # Separate hidden and visible games
-        all_games_raw = self.game_manager.get_real_games()  # Only real games (without Proton on Linux)
+        all_games_raw = self.game_manager.get_real_games()  # Nur echte Spiele (ohne Proton auf Linux)
         visible_games = sorted([g for g in all_games_raw if not g.hidden], key=lambda g: g.sort_name.lower())
         hidden_games = sorted([g for g in all_games_raw if g.hidden], key=lambda g: g.sort_name.lower())
 
@@ -602,7 +346,7 @@ class MainWindow(QMainWindow):
 
     def _fetch_game_details_async(self, app_id: str, all_categories: List[str]) -> None:
         """Fetches game details async. Delegated to SelectionHandler."""
-        self.selection_handler.fetch_game_details_async(app_id, all_categories)
+        self.selection_handler._fetch_game_details_async(app_id, all_categories)
 
     def _restore_game_selection(self, app_ids: List[str]) -> None:
         """Restores game selection. Delegated to SelectionHandler."""
@@ -793,8 +537,8 @@ class MainWindow(QMainWindow):
             event.accept()
             return
 
-        # --- 3-button dialog: Save / Discard / Cancel ---
-        # Manual buttons — Standard buttons are displayed in English on Linux without .qm
+        # --- 3-button dialog: Speichern / Verwerfen / Abbrechen ---
+        # Manual buttons — StandardButtons werden auf Linux ohne .qm englisch angezeigt
         msg = QMessageBox(self)
         msg.setIcon(QMessageBox.Icon.Question)
         msg.setWindowTitle(t('ui.menu.file.unsaved_changes_title'))
@@ -812,7 +556,7 @@ class MainWindow(QMainWindow):
             if self._save_collections():
                 event.accept()
             else:
-                # Save failed — retry dialog (Yes / No)
+                # Save failed — retry-Dialog (Ja / Nein)
                 retry_msg = QMessageBox(self)
                 retry_msg.setIcon(QMessageBox.Icon.Warning)
                 retry_msg.setWindowTitle(t('ui.menu.file.save_failed_title'))
@@ -877,42 +621,14 @@ class MainWindow(QMainWindow):
         """
         self._populate_categories()
 
-    def schedule_save(self) -> None:
-        """Schedules a delayed save to batch multiple operations.
-
-        Public wrapper around ``_schedule_save`` for use by handlers.
-        Uses a 100ms timer to batch rapid changes into a single save.
-        """
-        self._schedule_save()
-
-    def add_app_category(self, app_id: str, category: str) -> None:
-        """Adds a category to an app.
-
-        Public wrapper around ``_add_app_category`` for use by handlers.
-
-        Args:
-            app_id: Steam app ID.
-            category: Category name to add.
-        """
-        self._add_app_category(app_id, category)
-
-    def remove_app_category(self, app_id: str, category: str) -> None:
-        """Removes a category from an app.
-
-        Public wrapper around ``_remove_app_category`` for use by handlers.
-
-        Args:
-            app_id: Steam app ID.
-            category: Category name to remove.
-        """
-        self._remove_app_category(app_id, category)
-
     def update_statistics(self) -> None:
         """Refreshes the statistics label in the status bar.
 
         Public wrapper around ``_update_statistics`` for use by handlers.
         """
         self._update_statistics()
+
+    # ------------------------------------------------------------------
 
     def _save_collections(self) -> bool:
         """Save collections using the active parser."""
