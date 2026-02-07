@@ -65,13 +65,13 @@
         "import": "Importieren",
         "import_vdf": "Kollektionen importieren (.vdf)",
         "import_json": "JSON Backup wiederherstellen",
-      "steam_vdf_merge": "Steam *.vdf-Dateien zusammenführen",
-      "remove_duplicates": "Doppelte Kollektionen entfernen",
-      "detect_steam": "Steam-Pfad neu erkennen",
+        "steam_vdf_merge": "Steam *.vdf-Dateien zusammenführen",
+        "remove_duplicates": "Doppelte Kollektionen entfernen",
+        "detect_steam": "Steam-Pfad neu erkennen",
         "switch_user": "Benutzer wechseln",
-      "save_success": "Kollektionen erfolgreich gespeichert!",
-      "no_duplicates_found": "Keine doppelten Kollektionen gefunden.",
-      "duplicates_removed": "{count} doppelte Kollektionen entfernt."  
+        "save_success": "Kollektionen erfolgreich gespeichert!",
+        "no_duplicates_found": "Keine doppelten Kollektionen gefunden.",
+        "duplicates_removed": "{count} doppelte Kollektionen entfernt."
       },
       "edit": {
         "root": "Bearbeiten",
@@ -408,7 +408,7 @@
       "estimate_label": "Geschätzte Kollektionen",
       "cache_warning_title": "Wenig Cache-Daten",
       "cache_warning_message": "Nur {cached} von {total} Spielen haben gecachte Tag-Daten.\n\nDas Abrufen der Tags vom Steam Store dauert ca. {time}.\n\nEMPFEHLUNG:\nVerwende zuerst 'Bearbeiten → Fehlende Metadaten abrufen' um den Cache zu füllen, dann führe Auto-Kategorisierung aus.\n\nTrotzdem fortfahren?"
-      },
+    },
     "steamgrid_setup": {
       "title": "SteamGridDB Einrichtung",
       "info": "Für Cover-Bilder benötigst du einen kostenlosen API Key.",
@@ -460,7 +460,9 @@
       "confirm_bulk_title": "Massenbearbeitung bestätigen",
       "confirm_bulk": "Änderungen auf {count} Spiele anwenden?",
       "image_picker_title": "{type} für {game} auswählen",
-      "image_picker_loading": "Lade Bilder..."
+      "image_picker_loading": "Lade Bilder...",
+      "empty_collection_title": "Leere Kollektion",
+      "empty_collection_message": "Kollektion '{name}' ist leer!\\nSoll die Kollektion gelöscht werden?"
     },
     "tools": {
       "missing_metadata": {
