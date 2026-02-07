@@ -121,9 +121,9 @@ class GameManager:
     applies metadata overrides, and fetches additional details from external APIs.
     """
 
-    # Liste von App IDs die KEINE Spiele sind (Proton, Steam Runtime, etc.)
+    # List of App IDs that are NOT games (Proton, Steam Runtime, etc.)
     NON_GAME_APP_IDS = {
-        # Proton Versionen
+        # Proton Versions
         '1493710',  # Proton Experimental
         '2348590',  # Proton 8.0
         '2230260',  # Proton 7.0
@@ -144,7 +144,7 @@ class GameManager:
         '228980',  # Steamworks Common Redistributables
     }
 
-    # Liste von Namen-Patterns für Nicht-Spiele
+    # List of name patterns for non-games
     NON_GAME_NAME_PATTERNS = [
         'Proton',
         'Steam Linux Runtime',
@@ -172,7 +172,7 @@ class GameManager:
         self.load_source: str = "unknown"
         self.appinfo_manager = None
 
-        # Automatisch Proton-Filter auf Linux aktivieren
+        # Automatically Enable Proton Filter on Linux
         self.filter_non_games = platform.system() == 'Linux'
 
     def load_games(self, steam_user_id: str,
@@ -875,11 +875,11 @@ class GameManager:
 
             # USK → PEGI mapping
             usk_to_pegi = {
-                '0': '3',  # USK 0 (Freigegeben ohne Altersbeschränkung) → PEGI 3
+                '0': '3',  # USK 0 (Released without age restriction) → PEGI 3
                 '6': '7',  # USK 6 → PEGI 7
                 '12': '12',  # USK 12 → PEGI 12
                 '16': '16',  # USK 16 → PEGI 16
-                '18': '18'  # USK 18 (Keine Jugendfreigabe) → PEGI 18
+                '18': '18'  # USK 18 (No Youth Rating) → PEGI 18
             }
 
             if usk_rating in usk_to_pegi:
@@ -908,13 +908,13 @@ class GameManager:
 
     def is_real_game(self, game: Game) -> bool:
         """
-        Prüft ob ein Spiel ein echtes Spiel ist (kein Proton/Steam-Tool).
+        Checks if a game is a real game (not Proton/Steam runtime).
 
         Args:
-            game: Das zu prüfende Spiel
+            game: The game to check.
 
         Returns:
-            bool: True wenn echtes Spiel, False wenn Tool
+            bool: True if real game, False if tool/runtime.
         """
         # App ID Check
         if game.app_id in self.NON_GAME_APP_IDS:
@@ -929,13 +929,13 @@ class GameManager:
 
     def get_real_games(self) -> List[Game]:
         """
-        Gibt nur echte Spiele zurück (ohne Proton/Steam-Tools).
+        Returns only real games (excludes Proton/Steam runtime tools).
 
-        Auf Linux werden automatisch Proton und Steam Runtime gefiltert.
-        Auf Windows werden alle Spiele zurückgegeben.
+        On Linux, Proton and Steam Runtime are automatically filtered.
+        On Windows, all games are returned.
 
         Returns:
-            List[Game]: Liste der echten Spiele
+            List[Game]: List of real games.
         """
         if self.filter_non_games:
             return [g for g in self.games.values() if self.is_real_game(g)]
@@ -944,41 +944,41 @@ class GameManager:
 
     def get_all_games(self) -> List[Game]:
         """
-        Gibt ALLE Spiele zurück (inkl. Tools).
+        Returns ALL games (including tools).
 
-        Diese Methode gibt immer alle Spiele zurück, unabhängig vom Filter.
-        Für die meisten Zwecke sollte get_real_games() verwendet werden!
+        This method always returns all games, regardless of the filter.
+        For most purposes, use get_real_games() instead!
 
         Returns:
-            List[Game]: Liste aller Spiele
+            List[Game]: List of all games.
         """
         return list(self.games.values())
 
     def get_game_statistics(self) -> Dict[str, int]:
         """
-        Gibt Statistiken über Spiele zurück (für Entwicklung/Debugging).
+        Returns game statistics (for development/debugging).
 
         Returns:
-            Dict mit:
-            - total_games: Anzahl echter Spiele (ohne Proton/Tools)
-            - games_in_categories: Anzahl unique Spiele in Kategorien
-            - category_count: Anzahl Kategorien (ohne "Alle Spiele")
-            - uncategorized_games: Anzahl Spiele ohne Kategorien
+            Dict containing:
+            - total_games: Number of real games (excluding Proton/tools)
+            - games_in_categories: Number of unique games in categories
+            - category_count: Number of categories (excluding "All Games")
+            - uncategorized_games: Number of games without categories
         """
-        # Echte Spiele (ohne Proton auf Linux)
+        # Real games (without Proton on Linux)
         real_games = self.get_real_games()
 
-        # Unique Spiele in Kategorien (jedes Spiel nur 1x)
+        # Unique games in collections (each game only 1x)
         games_in_categories = set()
         for game in real_games:
             if game.categories:  # Hat mindestens eine Kategorie
                 games_in_categories.add(game.app_id)
 
-        # Anzahl Kategorien (ohne "Alle Spiele")
+        # Number of collections (excluding "All Games")
         all_categories = self.get_all_categories()
         category_count = len(all_categories)
 
-        # Unkategorisierte Spiele
+        # Uncategorized Games
         uncategorized = len(real_games) - len(games_in_categories)
 
         return {
