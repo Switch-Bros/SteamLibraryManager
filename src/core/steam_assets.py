@@ -82,6 +82,8 @@ class SteamAssets:
                 filename_base = f"{app_id}_logo"
             elif asset_type == 'icons':
                 filename_base = f"{app_id}_icon"
+            elif asset_type == 'capsules':
+                filename_base = f"{app_id}"  # Horizontal grid (no suffix)
 
             if filename_base:
                 # Check all possible extensions
@@ -129,7 +131,9 @@ class SteamAssets:
             elif asset_type == 'logos':
                 filename = f"{app_id}_logo.png"
             elif asset_type == 'icons':
-                filename = f"{app_id}_icon.jpg"  # Icon uses JPG!
+                filename = f"{app_id}_icon.png"  # Icon (PNG for consistency)
+            elif asset_type == 'capsules':
+                filename = f"{app_id}.png"  # Horizontal grid (Big Picture)
             else:
                 print(f"Unknown asset type: {asset_type}")
                 return False
@@ -187,7 +191,9 @@ class SteamAssets:
             elif asset_type == 'logos':
                 filename = f"{app_id}_logo.png"
             elif asset_type == 'icons':
-                filename = f"{app_id}_icon.jpg"
+                filename = f"{app_id}_icon.png"  # Changed to .png
+            elif asset_type == 'capsules':
+                filename = f"{app_id}.png"  # New: horizontal grid
             else:
                 return False
 
