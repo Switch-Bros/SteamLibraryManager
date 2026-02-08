@@ -138,11 +138,11 @@ class SteamStoreScraper:
 
     def fetch_age_rating(self, app_id: str) -> Optional[str]:
         """
-        Fetches age rating from Steam Store API (with HTML fallback).
+        Fetches age rating from Steam Store.
 
-        FIXED: This method now uses the official Steam Store API to fetch age ratings,
-        which is much more reliable than HTML scraping. Falls back to HTML scraping
-        (with fixed Age-Gate handling) if the API fails. Results are cached for 30 days.
+        Priority: HTML scraping FIRST (most reliable!), then API fallback.
+        HTML scraping reads directly from Steam Store page and is more accurate
+        than the API. Results are cached for 30 days.
 
         Args:
             app_id (str): The Steam app ID.
@@ -169,12 +169,12 @@ class SteamStoreScraper:
         if time_since_last < self.min_request_interval:
             time.sleep(self.min_request_interval - time_since_last)
 
-        # 3. Try Steam Store API FIRST (RECOMMENDED!)
-        pegi_rating = self._fetch_age_rating_from_api(app_id)
+        # 3. Try HTML scraping FIRST (most reliable!)
+        pegi_rating = self._fetch_age_rating_from_html(app_id)
 
-        # 4. Fallback to HTML scraping if API fails
+        # 4. Fallback to API if HTML fails
         if not pegi_rating:
-            pegi_rating = self._fetch_age_rating_from_html(app_id)
+            pegi_rating = self._fetch_age_rating_from_api(app_id)
 
         # 5. Cache result
         try:
@@ -245,15 +245,8 @@ class SteamStoreScraper:
             elif required_age > 0:
                 return '3'
             else:
-                # required_age = 0 means Steam API has no age info
-                # Check if game has mature content descriptor
-                content_descriptors = game_data.get('content_descriptors', {})
-                if content_descriptors.get('ids'):
-                    # Has content warnings → probably PEGI 12 or higher
-                    return '12'
-
-                # No age info from API → return None to trigger HTML fallback!
-                # HTML scraping is more reliable for games with required_age = 0
+                # required_age = 0 means API has no reliable info
+                # Return None (HTML was already tried first)
                 return None
 
         except (requests.RequestException, ValueError, KeyError) as e:
@@ -293,6 +286,47 @@ class SteamStoreScraper:
             soup = BeautifulSoup(response.text, 'html.parser')
 
             # Try multiple methods to find age rating
+
+            # Method 0: Look for age rating using CSS classes and img src (language-independent!)
+            # Steam uses consistent class names across all languages
+
+            # Check for "no age restriction" div (class="game_rating_allages")
+            allages_div = soup.find('div', class_='game_rating_allages')
+            if allages_div:
+                # Any text in this div means "no age restriction" regardless of language
+                return '3'  # PEGI 3
+
+            # Check for age rating images (class="game_rating_icon" or similar)
+            # Look for img with src containing age numbers
+            rating_divs = soup.find_all('div', class_=lambda x: x and 'rating' in x.lower())
+            for div in rating_divs:
+                img = div.find('img')
+                if img:
+                    # Check img src for age numbers (e.g., "/6.png", "/12.png", etc.)
+                    src = img.get('src', '')
+                    if '/18.png' in src or '/18_' in src:
+                        return '18'
+                    elif '/16.png' in src or '/16_' in src:
+                        return '16'
+                    elif '/12.png' in src or '/12_' in src:
+                        return '12'
+                    elif '/6.png' in src or '/6_' in src:
+                        return '7'  # Age 6 = PEGI 7
+                    elif '/0.png' in src or '/0_' in src:
+                        return '3'  # Age 0 = PEGI 3
+
+                    # Also check alt text (fallback)
+                    alt_text = img.get('alt', '').strip()
+                    if alt_text in ['18+', '18']:
+                        return '18'
+                    elif alt_text in ['16+', '16']:
+                        return '16'
+                    elif alt_text in ['12+', '12']:
+                        return '12'
+                    elif alt_text in ['6+', '6']:
+                        return '7'
+                    elif alt_text in ['0+', '0']:
+                        return '3'
 
             # Method 1: Look for PEGI image
             pegi_elem = soup.find('img', alt=lambda x: x and 'PEGI' in x)
