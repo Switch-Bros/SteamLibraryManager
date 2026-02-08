@@ -51,26 +51,30 @@ class GameActions:
         """Toggles the favorite status of a game.
 
         Adds or removes the game from the special 'favorite' category.
-        Changes are immediately saved to VDF and the UI is refreshed.
+        Uses cloud storage parser if available, falls back to VDF parser.
+        Changes are immediately saved and the UI is refreshed.
 
         Args:
             game: The game to add to or remove from favorites.
         """
-        if not self.mw.vdf_parser:
+        # Check if we have ANY parser available
+        if not self.mw.cloud_storage_parser and not self.mw.vdf_parser:
             return
+
+        favorites_key = t('ui.categories.favorites')
 
         if game.is_favorite():
             # Remove from favorites
-            if 'favorite' in game.categories:
-                game.categories.remove('favorite')
+            if favorites_key in game.categories:
+                game.categories.remove(favorites_key)
             # noinspection PyProtectedMember
-            self.mw._remove_app_category(game.app_id, 'favorite')
+            self.mw._remove_app_category(game.app_id, favorites_key)
         else:
             # Add to favorites
-            if 'favorite' not in game.categories:
-                game.categories.append('favorite')
+            if favorites_key not in game.categories:
+                game.categories.append(favorites_key)
             # noinspection PyProtectedMember
-            self.mw._add_app_category(game.app_id, 'favorite')
+            self.mw._add_app_category(game.app_id, favorites_key)
 
         # noinspection PyProtectedMember
         self.mw._save_collections()

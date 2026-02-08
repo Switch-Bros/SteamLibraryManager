@@ -264,21 +264,20 @@ class MainWindow(QMainWindow):
         visible_games = sorted([g for g in all_games_raw if not g.hidden], key=lambda g: g.sort_name.lower())
         hidden_games = sorted([g for g in all_games_raw if g.hidden], key=lambda g: g.sort_name.lower())
 
-        # 1-3. Build initial categories (All, Uncategorized, Hidden)
+        # 1-3. Favorites (sorted)
+        favorites = sorted([g for g in self.game_manager.get_favorites() if not g.hidden],
+                           key=lambda g: g.sort_name.lower())
+
+        # 4. Build initial categories with fixed order
         categories_data = {
             t('ui.categories.all_games'): visible_games,
+            t('ui.categories.favorites'): favorites,  # ← IMMER hier! Position 2!
             t('ui.categories.uncategorized'): sorted(
                 [g for g in self.game_manager.get_uncategorized_games() if not g.hidden],
                 key=lambda g: g.sort_name.lower()
             ),
             t('ui.categories.hidden'): hidden_games
         }
-
-        # 4. Favorites (only visible)
-        favorites = sorted([g for g in self.game_manager.get_favorites() if not g.hidden],
-                           key=lambda g: g.sort_name.lower())
-        if favorites:
-            categories_data[t('ui.categories.favorites')] = favorites
 
             # 5. User categories (visible games only — but empty collections stay visible)
         cats: dict[str, int] = self.game_manager.get_all_categories()
@@ -295,7 +294,7 @@ class MainWindow(QMainWindow):
 
         # Sort with German umlaut support: Ä→A, Ö→O, Ü→U
         for cat_name in sorted(cats.keys(), key=self._german_sort_key):
-            if cat_name != 'favorite':
+            if cat_name != t('ui.categories.favorites'):
                 cat_games: list[Game] = sorted(
                     [g for g in self.game_manager.get_games_by_category(cat_name) if not g.hidden],
                     key=lambda g: g.sort_name.lower()
