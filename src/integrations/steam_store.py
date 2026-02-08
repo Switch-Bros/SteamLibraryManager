@@ -222,9 +222,16 @@ class SteamStoreScraper:
                 return None
                 
             game_data = app_data.get('data', {})
-            
+
             # Get required_age from API
             required_age = game_data.get('required_age', 0)
+
+            # ⚠️ FIX: Convert to int (API sometimes returns string!)
+            if isinstance(required_age, str):
+                try:
+                    required_age = int(required_age)
+                except ValueError:
+                    required_age = 0
             
             # Convert to PEGI rating
             if required_age >= 18:
@@ -233,7 +240,7 @@ class SteamStoreScraper:
                 return '16'
             elif required_age >= 12:
                 return '12'
-            elif required_age >= 7:
+            elif required_age >= 6:
                 return '7'
             elif required_age > 0:
                 return '3'
