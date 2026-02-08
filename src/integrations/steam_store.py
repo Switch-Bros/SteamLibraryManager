@@ -171,7 +171,7 @@ class SteamStoreScraper:
 
         # 3. Try Steam Store API FIRST (RECOMMENDED!)
         pegi_rating = self._fetch_age_rating_from_api(app_id)
-        
+
         # 4. Fallback to HTML scraping if API fails
         if not pegi_rating:
             pegi_rating = self._fetch_age_rating_from_html(app_id)
@@ -192,35 +192,35 @@ class SteamStoreScraper:
     def _fetch_age_rating_from_api(self, app_id: str) -> Optional[str]:
         """
         Fetches age rating using Steam Store API (NEW METHOD!).
-        
+
         This is the RECOMMENDED way to get age ratings. No Age-Gate problems!
-        
+
         Args:
             app_id: Steam app ID
-            
+
         Returns:
             PEGI rating string or None
         """
         try:
             self.last_request_time = time.time()
-            
+
             # Steam Store API endpoint
             url = f"https://store.steampowered.com/api/appdetails?appids={app_id}"
-            
+
             response = requests.get(url, timeout=10)
             response.raise_for_status()
-            
+
             data = response.json()
-            
+
             # Check if request was successful
             if not data or str(app_id) not in data:
                 return None
-                
+
             app_data = data[str(app_id)]
-            
+
             if not app_data.get('success'):
                 return None
-                
+
             game_data = app_data.get('data', {})
 
             # Get required_age from API
@@ -232,7 +232,7 @@ class SteamStoreScraper:
                     required_age = int(required_age)
                 except ValueError:
                     required_age = 0
-            
+
             # Convert to PEGI rating
             if required_age >= 18:
                 return '18'
@@ -245,15 +245,17 @@ class SteamStoreScraper:
             elif required_age > 0:
                 return '3'
             else:
+                # required_age = 0 means Steam API has no age info
                 # Check if game has mature content descriptor
                 content_descriptors = game_data.get('content_descriptors', {})
                 if content_descriptors.get('ids'):
                     # Has content warnings → probably PEGI 12 or higher
                     return '12'
-                    
-                # Default for games without age restriction
-                return '3'
-                
+
+                # No age info from API → return None to trigger HTML fallback!
+                # HTML scraping is more reliable for games with required_age = 0
+                return None
+
         except (requests.RequestException, ValueError, KeyError) as e:
             print(f"Steam API fetch failed for {app_id}: {e}")
             return None
@@ -261,20 +263,20 @@ class SteamStoreScraper:
     def _fetch_age_rating_from_html(self, app_id: str) -> Optional[str]:
         """
         Fetches age rating via HTML scraping (FALLBACK METHOD).
-        
+
         FIXED: Proper Age-Gate bypass with Unix timestamp!
         This is the old method with FIXED Age-Gate handling.
         Only used if API fails.
-        
+
         Args:
             app_id: Steam app ID
-            
+
         Returns:
             PEGI rating string or None
         """
         try:
             self.last_request_time = time.time()
-            
+
             # FIXED: Proper Age-Gate bypass with Unix timestamp!
             birthtime = '631152000'  # Unix timestamp for 1990-01-01
             cookies = {
@@ -283,7 +285,7 @@ class SteamStoreScraper:
                 'birthtime': birthtime,  # FIXED: Now uses proper timestamp!
                 'mature_content': '1'
             }
-            
+
             url = f"https://store.steampowered.com/app/{app_id}/"
             response = requests.get(url, cookies=cookies, timeout=10)
             response.raise_for_status()
@@ -291,7 +293,7 @@ class SteamStoreScraper:
             soup = BeautifulSoup(response.text, 'html.parser')
 
             # Try multiple methods to find age rating
-            
+
             # Method 1: Look for PEGI image
             pegi_elem = soup.find('img', alt=lambda x: x and 'PEGI' in x)
             if pegi_elem:
