@@ -57,7 +57,7 @@ class Game:
     review_score: str = ""
     review_count: int = 0
     review_percentage: int = 0  # Steam review percentage (0-100)
-    metacritic_score: int = 0   # Metacritic score (0-100)
+    metacritic_score: int = 0  # Metacritic score (0-100)
     last_updated: str = ""
     steam_grid_db_url: str = ""
 
@@ -106,10 +106,13 @@ class Game:
         """
         Checks if the game is marked as a favorite.
 
+        Supports localized favorite category names (e.g., 'Favoriten' in German).
+
         Returns:
-            bool: True if 'favorite' is in the game's categories, False otherwise.
+            bool: True if the localized 'favorites' category is in the game's categories.
         """
-        return 'favorite' in self.categories
+        favorites_key = t('ui.categories.favorites')
+        return favorites_key in self.categories
 
 
 class GameManager:
@@ -384,11 +387,11 @@ class GameManager:
             # ONLY if they have categories assigned!
             for app_id in missing_ids:
                 categories = parser.get_app_categories(app_id)
-                
+
                 # Skip apps without categories (they're just in localconfig but not actually used)
                 if not categories:
                     continue
-                
+
                 # Use t() for fallback name
                 name = self._get_cached_name(app_id) or t('ui.game_details.game_fallback', id=app_id)
 
@@ -540,7 +543,7 @@ class GameManager:
             List[Game]: A sorted list of uncategorized games.
         """
         games = [g for g in self.get_real_games()
-                 if not g.categories or g.categories == ['favorite']]
+                 if not g.categories or g.categories == [t('ui.categories.favorites')]]
         return sorted(games, key=lambda g: g.sort_name.lower())
 
     def get_favorites(self) -> List[Game]:
