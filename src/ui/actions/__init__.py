@@ -13,6 +13,7 @@ from src.ui.actions.view_actions import ViewActions
 from src.ui.actions.tools_actions import ToolsActions
 from src.ui.actions.steam_actions import SteamActions
 from src.ui.actions.game_actions import GameActions
+from src.ui.actions.settings_actions import SettingsActions
 
 # Export public classes
 __all__ = [

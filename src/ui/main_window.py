@@ -6,7 +6,6 @@ library, handles user interactions, and coordinates between various managers
 and dialogs. It provides the main interface for browsing, searching, and
 managing Steam games.
 """
-from pathlib import Path
 from typing import Optional, List, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -32,12 +31,10 @@ from src.services.game_service import GameService
 from src.services.asset_service import AssetService
 from src.services.search_service import SearchService  # <--- NEW
 
-from src.ui.settings_dialog import SettingsDialog
-
 # Components
 from src.ui.widgets.ui_helper import UIHelper
 
-from src.utils.i18n import t, init_i18n
+from src.utils.i18n import t
 
 # Builders
 from src.ui.builders import MenuBuilder, ToolbarBuilder, StatusbarBuilder, CentralWidgetBuilder
