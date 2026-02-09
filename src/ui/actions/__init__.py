@@ -21,5 +21,6 @@ __all__ = [
     'ViewActions',
     'ToolsActions',
     'SteamActions',
-    'GameActions'
+    'GameActions',
+    'SettingsActions',
 ]

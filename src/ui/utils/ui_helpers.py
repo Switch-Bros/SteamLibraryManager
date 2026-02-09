@@ -270,3 +270,59 @@ def apply_dark_theme_to_widget(widget: QWidget) -> None:
             color: #e0e0e0;
         }
     """)
+
+
+def ask_save_changes(parent: QWidget, save_callback: Callable[[], bool]) -> bool:
+    """Shows a 3-button save changes dialog on close.
+
+    Handles the complete flow:
+    1. Ask: Save / Discard / Cancel
+    2. If Save fails: Ask retry or close anyway
+
+    Args:
+        parent: Parent widget for dialogs.
+        save_callback: Function to call to save (returns True on success).
+
+    Returns:
+        bool: True to close window, False to stay open.
+    """
+    from PyQt6.QtWidgets import QMessageBox
+    from src.utils.i18n import t
+
+    # === 3-BUTTON DIALOG: Save / Discard / Cancel ===
+    msg = QMessageBox(parent)
+    msg.setIcon(QMessageBox.Icon.Question)
+    msg.setWindowTitle(t('ui.menu.file.unsaved_changes_title'))
+    msg.setText(t('ui.menu.file.unsaved_changes_msg'))
+
+    save_btn = msg.addButton(t('common.save'), QMessageBox.ButtonRole.AcceptRole)
+    discard_btn = msg.addButton(t('common.discard'), QMessageBox.ButtonRole.DestructiveRole)
+    msg.addButton(t('common.cancel'), QMessageBox.ButtonRole.RejectRole)
+    msg.setDefaultButton(save_btn)
+
+    msg.exec()
+    clicked = msg.clickedButton()
+
+    if clicked == save_btn:
+        # Try to save
+        if save_callback():
+            return True  # Close
+
+        # === SAVE FAILED - RETRY DIALOG ===
+        retry_msg = QMessageBox(parent)
+        retry_msg.setIcon(QMessageBox.Icon.Warning)
+        retry_msg.setWindowTitle(t('ui.menu.file.save_failed_title'))
+        retry_msg.setText(t('ui.menu.file.save_failed_msg'))
+
+        yes_btn = retry_msg.addButton(t('common.yes'), QMessageBox.ButtonRole.YesRole)
+        retry_msg.addButton(t('common.no'), QMessageBox.ButtonRole.NoRole)
+        retry_msg.setDefaultButton(yes_btn)
+
+        retry_msg.exec()
+        return retry_msg.clickedButton() == yes_btn  # Close anyway if Yes
+
+    elif clicked == discard_btn:
+        return True  # Close without saving
+
+    else:
+        return False  # Cancel - stay open

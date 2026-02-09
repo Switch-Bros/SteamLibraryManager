@@ -15,6 +15,7 @@ from src.ui.utils.ui_helpers import (
     create_labeled_widget,
     set_widget_margins,
     apply_dark_theme_to_widget,
+    ask_save_changes,
 )
 
 # Dialog Helpers - Common dialog patterns
@@ -50,6 +51,7 @@ __all__ = [
     'create_labeled_widget',
     'set_widget_margins',
     'apply_dark_theme_to_widget',
+    'ask_save_changes',
     # Dialog Helpers
     'ask_confirmation',
     'ask_text_input',
