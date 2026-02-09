@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, List
 from PyQt6.QtCore import QTimer
 
 from src.core.game_manager import Game
+from src.ui.handlers.empty_collection_handler import EmptyCollectionHandler
 
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
@@ -40,6 +41,7 @@ class CategoryChangeHandler:
             main_window: The MainWindow instance that owns this handler.
         """
         self.mw: 'MainWindow' = main_window
+        self.empty_handler = EmptyCollectionHandler(main_window)
 
     def apply_category_to_games(self, games: List[Game], category: str, checked: bool) -> None:
         """Helper method to apply category changes to a list of games.
@@ -63,6 +65,8 @@ class CategoryChangeHandler:
                 if category in game.categories:
                     game.categories.remove(category)
                     self.mw.category_service.remove_app_from_category(game.app_id, category)
+
+                    self.empty_handler.check_and_delete_if_empty(category)
 
     def on_category_changed_from_details(self, app_id: str, category: str, checked: bool) -> None:
         """Handles category toggle events from the details widget.
