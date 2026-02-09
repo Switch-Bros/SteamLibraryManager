@@ -97,8 +97,8 @@ def main() -> None:
     if check_steam_running():
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Icon.Warning)
-        msg.setWindowTitle(t('dialogs.steam_running_title'))
-        msg.setText(t('dialogs.steam_running_msg'))
+        msg.setWindowTitle(t('ui.dialogs.steam_running_title'))
+        msg.setText(t('ui.dialogs.steam_running_msg'))
 
         # Exit Button (using "Exit" from menu translations)
         exit_btn = msg.addButton(
