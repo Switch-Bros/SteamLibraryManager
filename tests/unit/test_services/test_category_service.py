@@ -5,8 +5,7 @@ import pytest
 from pathlib import Path
 from src.services.category_service import CategoryService
 from src.core.game_manager import GameManager, Game
-from src.core.localconfig_parser import LocalConfigParser
-
+from src.core.localconfig_helper import LocalConfigHelper
 
 class TestCategoryService:
     """Tests for CategoryService operations."""
@@ -33,8 +32,8 @@ class TestCategoryService:
         return manager
 
     @pytest.fixture
-    def mock_parser(self, tmp_path):
-        """Create a mock LocalConfigParser."""
+    def mock_parser(self, steam_path):
+        """Create a mock LocalConfigHelper."""
         # Create a minimal VDF structure
         vdf_content = {
             'UserLocalConfigStore': {
@@ -53,8 +52,8 @@ class TestCategoryService:
         }
 
         # Create test VDF file
-        config_file = tmp_path / "localconfig.vdf"
-        parser = LocalConfigParser(config_file)
+        config_file = steam_path / "cloud-storage-namespace-1.json"
+        parser = LocalConfigHelper(config_file)
         parser.data = vdf_content
         parser.apps = vdf_content['UserLocalConfigStore']['Software']['Valve']['Steam']['Apps']
         return parser
@@ -63,7 +62,7 @@ class TestCategoryService:
     def category_service(self, mock_parser, mock_game_manager):
         """Create a CategoryService with mock dependencies."""
         return CategoryService(
-            vdf_parser=mock_parser,
+            localconfig_helper=mock_parser,
             cloud_parser=None,
             game_manager=mock_game_manager
         )
