@@ -64,7 +64,11 @@ class GameTreeWidget(QTreeWidget):
             QTreeWidget::item:selected { background-color: #2d5a88; }
         """)
 
-    def populate_categories(self, categories: Dict[str, List[Game]]) -> None:
+    def populate_categories(
+            self,
+            categories: Dict[str, List[Game]],
+            dynamic_collections: Optional[set] = None
+    ) -> None:
         """
         Rebuilds the entire tree with the provided category-to-game mapping.
 
@@ -74,13 +78,24 @@ class GameTreeWidget(QTreeWidget):
         Args:
             categories (Dict[str, List[Game]]): A dictionary mapping category names
                                                 to lists of Game objects.
+            dynamic_collections (Optional[set]): Set of collection names that are dynamic
+                                                (have filterSpec). These will get a ⚡ emoji.
         """
         self.clear()
 
+        if dynamic_collections is None:
+            dynamic_collections = set()
+
         for cat_name, games in categories.items():
             cat_item = QTreeWidgetItem(self)
+
+            # Add ⚡ emoji for dynamic collections
+            display_name = cat_name
+            if cat_name in dynamic_collections:
+                display_name = f"{cat_name} {t('emoji.blitz')}"
+
             # Use i18n key for category count display
-            cat_item.setText(0, t('ui.categories.category_count', name=cat_name, count=len(games)))
+            cat_item.setText(0, t('ui.categories.category_count', name=display_name, count=len(games)))
 
             cat_item.setData(0, Qt.ItemDataRole.UserRole, "category")
             cat_item.setData(0, Qt.ItemDataRole.UserRole + 1, cat_name)
