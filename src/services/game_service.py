@@ -8,7 +8,7 @@ from typing import Optional, Callable
 from pathlib import Path
 
 from src.core.game_manager import GameManager
-from src.core.localconfig_parser import LocalConfigParser
+from src.core.localconfig_helper import LocalConfigHelper
 from src.core.cloud_storage_parser import CloudStorageParser
 from src.core.appinfo_manager import AppInfoManager
 
@@ -23,7 +23,7 @@ class GameService:
         steam_path: Path to Steam installation directory.
         api_key: Steam API key for fetching game data.
         cache_dir: Directory for caching game data.
-        vdf_parser: Parser for Steam's localconfig.vdf file.
+        localconfig_helper: Helper for Steam's localconfig.vdf (hidden status only).
         cloud_storage_parser: Parser for Steam's cloud storage JSON files.
         game_manager: Manager for game data.
         appinfo_manager: Manager for appinfo.vdf metadata.
@@ -41,7 +41,7 @@ class GameService:
         self.api_key = api_key
         self.cache_dir = cache_dir
 
-        self.vdf_parser: Optional[LocalConfigParser] = None
+        self.localconfig_helper: Optional[LocalConfigHelper] = None
         self.cloud_storage_parser: Optional[CloudStorageParser] = None
         self.game_manager: Optional[GameManager] = None
         self.appinfo_manager: Optional[AppInfoManager] = None
@@ -61,14 +61,15 @@ class GameService:
 
         # Try VDF parser
         try:
-            self.vdf_parser = LocalConfigParser(Path(localconfig_path))
-            if self.vdf_parser.load():
+            self.localconfig_helper = LocalConfigHelper(localconfig_path)
+            if self.localconfig_helper.load():
                 vdf_success = True
             else:
-                self.vdf_parser = None
-        except Exception as e:
-            print(f"[WARN] Failed to initialize VDF parser: {e}")
-            self.vdf_parser = None
+                self.localconfig_helper = None
+                vdf_success = False
+        except (OSError, FileNotFoundError, ValueError) as e:
+            print(f"[ERROR] Failed to init localconfig_helper: {e}")
+            self.localconfig_helper = None
 
         # Try Cloud Storage parser
         try:
@@ -96,7 +97,7 @@ class GameService:
         Raises:
             RuntimeError: If parsers are not initialized.
         """
-        if not self.vdf_parser and not self.cloud_storage_parser:
+        if not self.cloud_storage_parser:  # localconfig is not a category parser!
             raise RuntimeError("Parsers not initialized. Call initialize_parsers() first.")
 
         # Initialize GameManager with Path objects
@@ -122,7 +123,7 @@ class GameService:
         if not self.game_manager:
             raise RuntimeError("GameManager not initialized. Call load_games() first.")
 
-        parser = self.cloud_storage_parser if self.cloud_storage_parser else self.vdf_parser
+        parser = self.cloud_storage_parser  # Only cloud_storage handles categories!
 
         if not parser:
             raise RuntimeError("No parser available for merging.")
@@ -145,13 +146,13 @@ class GameService:
 
         self.game_manager.apply_metadata_overrides(self.appinfo_manager)
 
-    def get_active_parser(self) -> Optional[LocalConfigParser | CloudStorageParser]:
-        """Returns the active parser (cloud storage if available, otherwise VDF).
+    def get_active_parser(self) -> Optional[CloudStorageParser]:
+        """Returns the active parser (cloud storage only).
 
         Returns:
-            Active parser instance, or None if no parser is initialized.
+            CloudStorageParser instance, or None if not initialized.
         """
-        return self.cloud_storage_parser if self.cloud_storage_parser else self.vdf_parser
+        return self.cloud_storage_parser  # Only cloud_storage handles categories!
 
     def get_load_source_message(self) -> str:
         """Returns a message indicating which parser was used to load games.

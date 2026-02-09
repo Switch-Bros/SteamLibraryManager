@@ -1,3 +1,5 @@
+# src/core/cloud_storage_parser.py
+
 """
 Steam Cloud Storage Parser
 
@@ -8,11 +10,11 @@ Since 2024, Steam stores collections in:
 
 Format:
 [
-  "user-collections.from-tag-<NAME>",
+  "user-collections.from-tag-<n>",
   {
-    "key": "user-collections.from-tag-<NAME>",
+    "key": "user-collections.from-tag-<n>",
     "timestamp": <UNIX_TIMESTAMP>,
-    "value": "{\"id\":\"from-tag-<NAME>\",\"name\":\"<NAME>\",\"added\":[<APP_IDS>],\"removed\":[]}",
+    "value": "{\"id\":\"from-tag-<n>\",\"name\":\"<n>\",\"added\":[<APP_IDS>],\"removed\":[]}",
     "version": "<VERSION>"
   }
 ]
@@ -29,6 +31,14 @@ from src.core.backup_manager import BackupManager
 
 class CloudStorageParser:
     """Parser for Steam's cloud-storage-namespace-1.json collections format."""
+
+    # UI-only categories that should NOT be written to cloud storage
+    # These are managed by the app UI only, not by Steam
+    UI_ONLY_CATEGORIES = {
+        'Unkategorisiert', 'Uncategorized',
+        'Alle Spiele', 'All Games',
+        'Versteckt', 'Hidden',
+    }
 
     def __init__(self, steam_path: str, user_id: str):
         """
@@ -117,6 +127,11 @@ class CloudStorageParser:
                 collection_id = collection.get('id', '')
                 collection_name = collection.get('name', '')
 
+                # CRITICAL FIX 1: Skip UI-only categories!
+                # These should never be written to cloud storage
+                if collection_name in self.UI_ONLY_CATEGORIES:
+                    continue
+
                 # Ensure ID is in correct format
                 if not collection_id.startswith('from-tag-'):
                     collection_id = f"from-tag-{collection_name}"
@@ -124,13 +139,19 @@ class CloudStorageParser:
 
                 key = f"user-collections.{collection_id}"
 
-                # Build value JSON
+                # CRITICAL FIX 2: Build value JSON with filterSpec preservation!
+                # This keeps dynamic collections dynamic across saves
                 value_data = {
                     'id': collection_id,
                     'name': collection_name,
                     'added': collection.get('added', collection.get('apps', [])),
                     'removed': collection.get('removed', [])
                 }
+
+                # Preserve filterSpec for dynamic collections!
+                if 'filterSpec' in collection:
+                    value_data['filterSpec'] = collection['filterSpec']
+
                 value_str = json.dumps(value_data, separators=(',', ':'))
 
                 # Create item
@@ -159,8 +180,11 @@ class CloudStorageParser:
             self.modified = False
             return True
 
+
         except OSError as e:
+            from src.utils.i18n import t
             print(t('logs.parser.save_cloud_error'))
+            print(f"[DEBUG] Error details: {e}")  # ← Nutze 'e'
             return False
 
     def get_all_categories(self) -> List[str]:
@@ -383,13 +407,13 @@ class CloudStorageParser:
             app_id: Steam app ID
 
         Returns:
-            True if successful
+            True if app was removed, False otherwise
         """
         app_id_int: int | None = self._to_app_id_int(app_id)
         if app_id_int is None:
             return False
 
-        removed: bool = False
+        removed = False
         for collection in self.collections:
             apps = collection.get('added', collection.get('apps', []))
             if not isinstance(apps, list):
@@ -403,79 +427,29 @@ class CloudStorageParser:
 
         return removed
 
-    def get_apps_in_category(self, category: str) -> List[str]:
-        """
-        Get all app IDs in a specific category.
+    def remove_duplicate_collections(self) -> int:
+        """Remove duplicate collections with same name.
 
-        Args:
-            category: Category name
+        Keeps the first occurrence of each name, removes subsequent duplicates.
 
         Returns:
-            List of app IDs as strings
+            Number of duplicates removed
         """
-        for collection in self.collections:
-            if collection.get('name') == category:
-                apps = collection.get('added', collection.get('apps', []))
-                return [str(app_id) for app_id in apps]
-        return []
+        seen = {}
+        duplicates = []
 
-    def remove_duplicate_collections(self, expected_counts: Dict[str, int]) -> int:
-        """
-        Remove duplicate collections that don't match expected app counts.
-
-        When multiple collections with the same name exist, this method keeps only
-        the collection whose app count matches the expected count from game_manager.
-        If no match is found, it keeps the collection with the most apps.
-
-        Args:
-            expected_counts: Dictionary mapping collection names to their expected
-                app counts as determined by the game manager.
-
-        Returns:
-            int: Number of duplicate collections removed.
-        """
-        # Group collections by name (case-insensitive)
-        by_name: Dict[str, List[Dict]] = {}
         for collection in self.collections:
             name = collection.get('name', '')
-            name_lower = name.lower()  # Case-insensitive grouping
-            if name_lower not in by_name:
-                by_name[name_lower] = []
-            by_name[name_lower].append(collection)
+            if name in seen:
+                duplicates.append(collection)
+            else:
+                seen[name] = collection
 
-        removed_count = 0
+        # Remove duplicates
+        for dup in duplicates:
+            self.collections.remove(dup)
 
-        # For each name with duplicates
-        for name_lower, dupes in by_name.items():
-            if len(dupes) <= 1:
-                continue  # No duplicates
-
-            # Find expected count (case-insensitive)
-            expected_count = -1
-            for key, count in expected_counts.items():
-                if key.lower() == name_lower:
-                    expected_count = count
-                    break
-
-            # Find the one that matches expected count
-            correct_one = None
-            for dupe in dupes:
-                app_count = len(dupe.get('added', dupe.get('apps', [])))
-                if app_count == expected_count:
-                    correct_one = dupe
-                    break
-
-            # If no match found, keep the one with most apps
-            if not correct_one:
-                correct_one = max(dupes, key=lambda c: len(c.get('added', c.get('apps', []))))
-
-            # Remove all others
-            for dupe in dupes:
-                if dupe is not correct_one:
-                    self.collections.remove(dupe)
-                    removed_count += 1
-
-        if removed_count > 0:
+        if duplicates:
             self.modified = True
 
-        return removed_count
+        return len(duplicates)

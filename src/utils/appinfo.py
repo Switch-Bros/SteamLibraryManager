@@ -12,7 +12,7 @@ Based on:
 - appinfo-parser (Python) - Version detection
 - Steam-Metadata-Editor - Write support
 
-Author: HeikesFootSlave + Claude
+Author: HeikesFootSlave
 License: GPL-3.0
 """
 
