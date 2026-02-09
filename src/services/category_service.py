@@ -9,7 +9,7 @@ renaming, deleting, and merging categories. It supports both VDF parser
 """
 
 from typing import List, Dict, Optional
-from src.core.localconfig_parser import LocalConfigParser
+from src.core.localconfig_helper import LocalConfigHelper
 from src.core.cloud_storage_parser import CloudStorageParser
 from src.core.game_manager import GameManager
 from src.utils.i18n import t
@@ -24,18 +24,18 @@ class CategoryService:
     """
 
     def __init__(self,
-                 vdf_parser: Optional[LocalConfigParser],
+                 localconfig_helper: Optional[LocalConfigHelper],
                  cloud_parser: Optional[CloudStorageParser],
                  game_manager: GameManager):
         """
         Initialize the CategoryService.
 
         Args:
-            vdf_parser: LocalConfig VDF parser (can be None)
+            localconfig_helper: LocalConfig VDF parser (can be None)
             cloud_parser: Cloud Storage parser (can be None)
             game_manager: Game manager instance
         """
-        self.vdf_parser = vdf_parser
+        self.localconfig_helper = localconfig_helper
         self.cloud_parser = cloud_parser
         self.game_manager = game_manager
 
@@ -46,7 +46,7 @@ class CategoryService:
         Returns:
             CloudStorageParser if available, otherwise LocalConfigParser
         """
-        return self.cloud_parser if self.cloud_parser else self.vdf_parser
+        return self.cloud_parser
 
     def rename_category(self, old_name: str, new_name: str) -> bool:
         """
@@ -230,8 +230,7 @@ class CategoryService:
         """
         Remove duplicate collections (Cloud Storage only).
 
-        Identifies collections with identical names but different app counts,
-        keeping only the collection that matches expected counts.
+        Identifies collections with identical names, keeping only the first occurrence.
 
         Returns:
             int: Number of duplicates removed
@@ -242,14 +241,8 @@ class CategoryService:
         if not self.cloud_parser:
             raise RuntimeError(t('ui.main_window.cloud_storage_only'))
 
-        # Get expected counts from game_manager
-        expected_counts = {}
-        for category in self.game_manager.get_all_categories():
-            games_in_cat = self.game_manager.get_games_by_category(category)
-            expected_counts[category] = len(games_in_cat)
-
-        # Remove duplicates
-        removed = self.cloud_parser.remove_duplicate_collections(expected_counts)
+        # Remove duplicates using cloud_parser's method
+        removed = self.cloud_parser.remove_duplicate_collections()
 
         return removed
 

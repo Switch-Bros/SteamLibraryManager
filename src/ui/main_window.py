@@ -23,7 +23,7 @@ from PyQt6.QtCore import Qt, QThread, QTimer
 
 from src.config import config
 from src.core.game_manager import GameManager, Game
-from src.core.localconfig_parser import LocalConfigParser
+from src.core.localconfig_helper import LocalConfigHelper
 from src.core.cloud_storage_parser import CloudStorageParser
 from src.core.appinfo_manager import AppInfoManager
 from src.core.steam_auth import SteamAuthManager
@@ -63,7 +63,7 @@ class MainWindow(QMainWindow):
 
     Attributes:
         game_manager: Manages game data loading and storage.
-        vdf_parser: Parser for Steam's localconfig.vdf file.
+        localconfig_helper: Parser for Steam's localconfig.vdf file.
         steam_scraper: Scraper for Steam Store data.
         appinfo_manager: Manager for appinfo.vdf metadata.
         auth_manager: Handles Steam OpenID authentication.
@@ -84,7 +84,7 @@ class MainWindow(QMainWindow):
 
         # Managers
         self.game_manager: Optional[GameManager] = None
-        self.vdf_parser: Optional[LocalConfigParser] = None
+        self.localconfig_helper: Optional[LocalConfigHelper] = None
         self.cloud_storage_parser: Optional[CloudStorageParser] = None
         self.steam_scraper: Optional[SteamStoreScraper] = None
         self.appinfo_manager: Optional[AppInfoManager] = None
@@ -286,7 +286,7 @@ class MainWindow(QMainWindow):
         # GameManager builds its list from game.categories only; an empty
         # collection has no games so it never appears there.  The parser is
         # the single source of truth for which collections actually exist.
-        active_parser = self.cloud_storage_parser or self.vdf_parser
+        active_parser = self.cloud_storage_parser or self.localconfig_helper
         if active_parser:
             for parser_cat in active_parser.get_all_categories():
                 if parser_cat not in cats:
@@ -551,7 +551,7 @@ class MainWindow(QMainWindow):
 
     def _get_active_parser(self):
         """Get the active parser (cloud storage or localconfig)."""
-        return self.cloud_storage_parser if self.cloud_storage_parser else self.vdf_parser
+        return self.cloud_storage_parser if self.cloud_storage_parser else self.localconfig_helper
 
     def _schedule_save(self) -> None:
         """Schedule a delayed save to batch multiple operations.
@@ -603,8 +603,8 @@ class MainWindow(QMainWindow):
         # Only save to the active parser (cloud storage OR localconfig, not both!)
         if self.cloud_storage_parser:
             return self.cloud_storage_parser.save()
-        elif self.vdf_parser:
-            return self.vdf_parser.save()
+        elif self.localconfig_helper:
+            return self.localconfig_helper.save()
         return False
 
     def _add_app_category(self, app_id: str, category: str):

@@ -50,15 +50,15 @@ class GameActions:
     def toggle_favorite(self, game: Game) -> None:
         """Toggles the favorite status of a game.
 
-        Adds or removes the game from the special 'favorite' category.
-        Uses cloud storage parser if available, falls back to VDF parser.
+        Adds or removes the game from the special 'favorites' collection.
+        Favorites are stored in cloud-storage-namespace-1.json only.
         Changes are immediately saved and the UI is refreshed.
 
         Args:
             game: The game to add to or remove from favorites.
         """
         # Check if we have ANY parser available
-        if not self.mw.cloud_storage_parser and not self.mw.vdf_parser:
+        if not self.mw.cloud_storage_parser:
             return
 
         favorites_key = t('ui.categories.favorites')
@@ -91,10 +91,9 @@ class GameActions:
             game: The game to hide or unhide.
             hide: True to hide the game, False to show it.
         """
-        if not self.mw.vdf_parser:
+        if not self.mw.localconfig_helper:
             return
-
-        self.mw.vdf_parser.set_app_hidden(game.app_id, hide)
+        self.mw.localconfig_helper.set_app_hidden(game.app_id, hide)
 
         # noinspection PyProtectedMember
         if self.mw._save_collections():
@@ -139,8 +138,8 @@ class GameActions:
         ):
             return
 
-        if self.mw.vdf_parser:
-            success = self.mw.vdf_parser.remove_app(str(game.app_id))
+        if self.mw.localconfig_helper:
+            success = self.mw.localconfig_helper.remove_app(str(game.app_id))
             if success:
                 # noinspection PyProtectedMember
                 self.mw._save_collections()

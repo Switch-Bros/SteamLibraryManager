@@ -44,22 +44,25 @@ class CategoryChangeHandler:
     def apply_category_to_games(self, games: List[Game], category: str, checked: bool) -> None:
         """Helper method to apply category changes to a list of games.
 
-        Updates both the game objects and the VDF parsers.
+        Updates both the game objects and the parsers via category_service.
 
         Args:
             games: List of games to update.
             category: The category name.
             checked: Whether to add (True) or remove (False) the category.
         """
+        if not self.mw.category_service:
+            return
+
         for game in games:
             if checked:
                 if category not in game.categories:
                     game.categories.append(category)
-                    self.mw.add_app_category(game.app_id, category)
+                    self.mw.category_service.add_app_to_category(game.app_id, category)
             else:
                 if category in game.categories:
                     game.categories.remove(category)
-                    self.mw.remove_app_category(game.app_id, category)
+                    self.mw.category_service.remove_app_from_category(game.app_id, category)
 
     def on_category_changed_from_details(self, app_id: str, category: str, checked: bool) -> None:
         """Handles category toggle events from the details widget.
@@ -75,7 +78,7 @@ class CategoryChangeHandler:
             category: The category name being toggled.
             checked: Whether the category should be added or removed.
         """
-        if not self.mw.vdf_parser:
+        if not self.mw.cloud_storage_parser:
             return
 
         # Prevent multiple refreshes during rapid checkbox events
@@ -113,7 +116,8 @@ class CategoryChangeHandler:
         self.apply_category_to_games(games_to_update, category, checked)
 
         # Schedule save (batched with 100ms delay)
-        self.mw.schedule_save()
+        # noinspection PyProtectedMember
+        self.mw._schedule_save()
 
         # Save the current selection before refreshing
         selected_app_ids = [game.app_id for game in self.mw.selected_games]
@@ -144,23 +148,23 @@ class CategoryChangeHandler:
     def on_games_dropped(self, games: List[Game], target_category: str) -> None:
         """Handles drag-and-drop of games onto a category.
 
-        Updates the game categories in memory and persists changes to the VDF file.
+        Updates the game categories in memory and persists changes.
         Refreshes the UI while maintaining active search if present.
 
         Args:
             games: List of games that were dropped.
             target_category: The category they were dropped onto.
         """
-        if not self.mw.vdf_parser:
+        if not self.mw.cloud_storage_parser or not self.mw.category_service:
             return
 
         for game in games:
             # Add to target category if not already there
             if target_category not in game.categories:
                 game.categories.append(target_category)
-                self.mw.add_app_category(game.app_id, target_category)
+                self.mw.category_service.add_app_to_category(game.app_id, target_category)
 
-        # Save changes to VDF file
+        # Save changes
         self.mw.save_collections()
 
         # Refresh the tree - maintain search if active
