@@ -131,7 +131,7 @@ class MenuBuilder:
 
         # Settings dialog
         settings_action = QAction(t('ui.settings.title'), mw)
-        settings_action.triggered.connect(mw.show_settings)
+        settings_action.triggered.connect(mw.settings_actions.show_settings)
         settings_menu.addAction(settings_action)
 
         settings_menu.addSeparator()

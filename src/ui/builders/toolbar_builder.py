@@ -121,7 +121,7 @@ class ToolbarBuilder:
         settings_text = f"{t('emoji.settings')} {t('ui.settings.title')}"
         settings_action = QAction(settings_text, mw)
         settings_action.setToolTip(t('ui.settings.title'))
-        settings_action.triggered.connect(mw.show_settings)
+        settings_action.triggered.connect(mw.settings_actions.show_settings)
         toolbar.addAction(settings_action)
 
         toolbar.addSeparator()

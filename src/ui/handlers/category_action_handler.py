@@ -131,17 +131,21 @@ class CategoryActionHandler:
             menu.exec(pos)
             return
 
-        # --- Favorites are not editable ---
-        if category == t('ui.categories.favorites'):
+        # --- Steam-Standard-Collektions are not editable ---
+        steam_standard_collections: List[str] = [
+            t('ui.categories.all_games'),
+            t('ui.categories.favorites'),
+            t('ui.categories.uncategorized'),
+            t('ui.categories.hidden')
+        ]
+
+        if category in steam_standard_collections:
+            # ONLY allow Auto-Categorize, NOTHING else!
+            menu.addAction(t('ui.menu.edit.auto_categorize'),
+                           lambda: mw.edit_actions.auto_categorize_category(category))
+            menu.exec(pos)
             return
 
-        # --- Special categories (All Games, Uncategorized) ---
-        special_cats: List[str] = [t('ui.categories.all_games'), t('ui.categories.uncategorized')]
-
-        if category in special_cats:
-            menu.addAction(t('ui.context_menu.create_collection'), self.create_new_collection)
-            menu.addSeparator()
-            menu.addAction(t('ui.menu.edit.auto_categorize'), lambda: mw.edit_actions.auto_categorize_category(category))
         else:
             # --- Normal user category ---
             menu.addAction(t('ui.context_menu.create_collection'), self.create_new_collection)
