@@ -97,8 +97,6 @@ class MainWindow(QMainWindow):
 
         # Auth Manager
         self.auth_manager = SteamAuthManager()
-        self.auth_manager.auth_success.connect(self._on_steam_login_success)
-        self.auth_manager.auth_error.connect(self._on_steam_login_error)
 
         # State
         self.selected_game: Optional[Game] = None
@@ -123,6 +121,10 @@ class MainWindow(QMainWindow):
         self.steam_actions = SteamActions(self)
         self.game_actions = GameActions(self)
         self.settings_actions = SettingsActions(self)
+
+        # NOW connect auth signals (after steam_actions exists)
+        self.auth_manager.auth_success.connect(self.steam_actions.on_login_success)
+        self.auth_manager.auth_error.connect(self.steam_actions.on_login_error)
 
         # UI Action Handlers (extracted category / context-menu logic)
         self.category_handler: CategoryActionHandler = CategoryActionHandler(self)
@@ -169,43 +171,6 @@ class MainWindow(QMainWindow):
         and recreating toolbar actions based on login state.
         """
         self.toolbar_builder.build(self.toolbar)
-
-    def _on_steam_login_success(self, steam_id_64: str) -> None:
-        """Handles successful Steam authentication.
-
-        Args:
-            steam_id_64: The authenticated user's Steam ID64.
-        """
-        print(t('logs.auth.login_success', id=steam_id_64))
-        self.set_status(t('ui.login.status_success'))
-        UIHelper.show_success(self, t('ui.login.status_success'), t('ui.login.title'))
-
-        config.STEAM_USER_ID = steam_id_64
-        # Save immediately so login persists after restart
-        config.save()
-
-        # Fetch persona name
-        self.steam_username = DataLoadHandler.fetch_steam_persona_name(steam_id_64)
-
-        # Update user label
-        display_text = self.steam_username if self.steam_username else steam_id_64
-        self.user_label.setText(t('ui.main_window.user_label', user_id=display_text))
-
-        # Rebuild toolbar to show name instead of login button
-        self.refresh_toolbar()
-
-        if self.game_manager:
-            self.data_load_handler.load_games_with_progress(steam_id_64)
-
-    def _on_steam_login_error(self, error: str) -> None:
-        """Handles Steam authentication errors.
-
-        Args:
-            error: The error message from authentication.
-        """
-        self.set_status(t('ui.login.status_failed'))
-        self.reload_btn.show()
-        UIHelper.show_error(self, error)
 
     # --- Main Logic ---
 

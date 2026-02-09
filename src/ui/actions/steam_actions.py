@@ -21,6 +21,8 @@ from src.utils.i18n import t
 
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
+    from src.ui.widgets.ui_helper import UIHelper
+    from src.config import config
 
 
 class SteamActions:
@@ -58,3 +60,42 @@ class SteamActions:
         using Qt's standard About box.
         """
         QMessageBox.about(self.mw, t('ui.menu.help.about'), t('app.description'))
+
+    def on_login_success(self, steam_id_64: str) -> None:
+        """Handles successful Steam authentication.
+
+        Args:
+            steam_id_64: The authenticated user's Steam ID64.
+        """
+        from src.ui.handlers.data_load_handler import DataLoadHandler
+
+        print(t('logs.auth.login_success', id=steam_id_64))
+        self.mw.set_status(t('ui.login.status_success'))
+        UIHelper.show_success(self.mw, t('ui.login.status_success'), t('ui.login.title'))
+
+        config.STEAM_USER_ID = steam_id_64
+        # Save immediately so login persists after restart
+        config.save()
+
+        # Fetch persona name
+        self.mw.steam_username = DataLoadHandler.fetch_steam_persona_name(steam_id_64)
+
+        # Update user label
+        display_text = self.mw.steam_username if self.mw.steam_username else steam_id_64
+        self.mw.user_label.setText(t('ui.main_window.user_label', user_id=display_text))
+
+        # Rebuild toolbar to show name instead of login button
+        self.mw.refresh_toolbar()
+
+        if self.mw.game_manager:
+            self.mw.data_load_handler.load_games_with_progress(steam_id_64)
+
+    def on_login_error(self, error: str) -> None:
+        """Handles Steam authentication errors.
+
+        Args:
+            error: The error message from authentication.
+        """
+        self.mw.set_status(t('ui.login.status_failed'))
+        self.mw.reload_btn.show()
+        UIHelper.show_error(self.mw, error)
