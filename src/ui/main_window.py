@@ -302,7 +302,15 @@ class MainWindow(QMainWindow):
                 # Always add — empty collections must stay visible as "Name (0)"
                 categories_data[cat_name] = cat_games
 
-        self.tree.populate_categories(categories_data)
+        # Identify dynamic collections (have filterSpec)
+        dynamic_collections = set()
+        if self.cloud_storage_parser:
+            for collection in self.cloud_storage_parser.collections:
+                if 'filterSpec' in collection:
+                    dynamic_collections.add(collection['name'])
+
+        # Pass dynamic collections to tree
+        self.tree.populate_categories(categories_data, dynamic_collections)
 
     def on_games_selected(self, games: List[Game]) -> None:
         """Handles multi-selection changes. Delegated to SelectionHandler."""
