@@ -365,7 +365,7 @@
     "categories": {
       "all_games": "All Games",
       "favorites": "Favorites",
-      "uncategorized": "Uncategorized",
+      "uncategorized": "WITHOUT CATEGORY",
       "hidden": "Hidden",
       "rename_title": "Rename Collection",
       "rename_msg": "New name for '{old}':",

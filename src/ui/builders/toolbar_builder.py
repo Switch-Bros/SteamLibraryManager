@@ -88,7 +88,7 @@ class ToolbarBuilder:
         # --- Edit Actions ---
 
         # Auto Categorize: [Emoji] [Text]
-        auto_text = f"{t('emoji.auto')} {t('ui.menu.edit.auto_categorize')}"
+        auto_text = f"{t('emoji.blitz')} {t('ui.menu.edit.auto_categorize')}"
         auto_cat_action = QAction(auto_text, mw)
         auto_cat_action.setToolTip(t('ui.menu.edit.auto_categorize'))
         auto_cat_action.triggered.connect(mw.edit_actions.auto_categorize)

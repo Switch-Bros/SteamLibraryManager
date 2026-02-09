@@ -7,7 +7,7 @@
     "unknown": "❓",
     "refresh": "⟳",
     "save": "💾",
-    "auto": "⚡️",
+    "blitz": "⚡️",
     "edit": "✏️",
     "search": "🔍",
     "settings": "⚙️",
@@ -18,7 +18,6 @@
     "percent": "%",
     "nsfw": "🔞",
     "humor": "🤡",
-    "epilepsy": "⚡️",
     "animated": "🎞️",
     "clear": "💩"
   }

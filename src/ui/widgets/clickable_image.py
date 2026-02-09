@@ -548,7 +548,7 @@ class ClickableImage(QWidget):
              bool(self.metadata.get('nsfw') or 'nsfw' in tags)),
             ('humor', f"{t('emoji.humor')} {t('ui.badges.humor')}", "#f0ad4e",
              bool(self.metadata.get('humor') or 'humor' in tags)),
-            ('epilepsy', f"{t('emoji.epilepsy')} {t('ui.badges.epilepsy')}", "#0275d8",
+            ('epilepsy', f"{t('emoji.blitz')} {t('ui.badges.epilepsy')}", "#0275d8",
              bool(self.metadata.get('epilepsy') or 'epilepsy' in tags)),
             ('animated', f"{t('emoji.animated')} {t('ui.badges.animated')}", "#5cb85c",
              is_animated),
