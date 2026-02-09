@@ -445,7 +445,7 @@
     },
     "dialogs": {
       "steam_running_title": "Steam läuft!",
-      "steam_running_msg": "Steam Library Manager hat erkannt, dass Steam läuft. Bitte Steam beenden.",
+      "steam_running_msg": "Steam Library Manager hat erkannt, dass Steam läuft.\n\nBitte Steam beenden.",
       "confirm_remove_account": "Möchtest du '{game}' wirklich PERMANENT von deinem Account löschen?",
       "remove_account_title": "Spiel vom Account entfernen",
       "remove_account_warning": "WARNUNG: Diese Aktion ist DAUERHAFT!\n\nDu wirst zum Steam Support weitergeleitet, wo du dieses Spiel von deinem Account entfernen kannst.\n\nDies kann nicht rückgängig gemacht werden! Das Spiel und alle zugehörigen DLCs werden dauerhaft entfernt.\n\nMöchtest du fortfahren?",
