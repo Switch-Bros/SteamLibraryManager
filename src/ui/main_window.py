@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from src.services.asset_service import AssetService
 
 from PyQt6.QtWidgets import (
-    QMainWindow, QToolBar, QMessageBox
+    QMainWindow, QToolBar
 )
 from PyQt6.QtCore import Qt, QThread, QTimer
 
@@ -50,7 +50,8 @@ from src.ui.handlers.category_change_handler import CategoryChangeHandler
 # Actions
 from src.ui.actions import (
     FileActions, EditActions, ViewActions,
-    ToolsActions, SteamActions, GameActions
+    ToolsActions, SteamActions, GameActions,
+    SettingsActions
 )
 
 
@@ -124,6 +125,7 @@ class MainWindow(QMainWindow):
         self.tools_actions = ToolsActions(self)
         self.steam_actions = SteamActions(self)
         self.game_actions = GameActions(self)
+        self.settings_actions = SettingsActions(self)
 
         # UI Action Handlers (extracted category / context-menu logic)
         self.category_handler: CategoryActionHandler = CategoryActionHandler(self)
@@ -362,94 +364,6 @@ class MainWindow(QMainWindow):
         """
         self.category_handler.on_category_right_click(category, pos)
 
-    def create_new_collection(self) -> None:
-        """Creates a new empty collection. Delegated to CategoryActionHandler."""
-        self.category_handler.create_new_collection()
-
-    def rename_category(self, old_name: str) -> None:
-        """Renames a category. Delegated to CategoryActionHandler.
-
-        Args:
-            old_name: The current name of the category to rename.
-        """
-        self.category_handler.rename_category(old_name)
-
-    def delete_category(self, category: str) -> None:
-        """Deletes a single category. Delegated to CategoryActionHandler.
-
-        Args:
-            category: The name of the category to delete.
-        """
-        self.category_handler.delete_category(category)
-
-    def delete_multiple_categories(self, categories: List[str]) -> None:
-        """Deletes multiple categories. Delegated to CategoryActionHandler.
-
-        Args:
-            categories: List of category names to delete.
-        """
-        self.category_handler.delete_multiple_categories(categories)
-
-    def merge_categories(self, categories: List[str]) -> None:
-        """Merges multiple categories into one. Delegated to CategoryActionHandler.
-
-        Args:
-            categories: List of category names to merge.
-        """
-        self.category_handler.merge_categories(categories)
-
-    def show_settings(self) -> None:
-        """Opens the settings dialog."""
-        dialog = SettingsDialog(self)
-        # noinspection PyUnresolvedReferences
-        dialog.language_changed.connect(self._on_ui_language_changed_live)
-        if dialog.exec():
-            settings = dialog.get_settings()
-            if settings: self._apply_settings(settings)
-
-    def _on_ui_language_changed_live(self, new_language: str) -> None:
-        """Handles live language change from settings dialog.
-
-        Args:
-            new_language: The new language code (e.g., 'en', 'de').
-        """
-        config.UI_LANGUAGE = new_language
-        init_i18n(new_language)
-        self._refresh_menubar()
-        self.refresh_toolbar()
-        self.setWindowTitle(t('ui.main_window.title'))
-        self.set_status(t('ui.main_window.status_ready'))
-
-    def _refresh_menubar(self) -> None:
-        """Rebuilds menu bar after language change.
-
-        Only clears and rebuilds the menu bar via MenuBuilder.
-        The toolbar and central widget are untouched here;
-        toolbar refresh is handled separately by the caller.
-        """
-        self.menuBar().clear()
-        self.menu_builder.build(self.menuBar())
-        self.user_label = self.menu_builder.user_label
-
-    def _apply_settings(self, settings: dict) -> None:
-        """Applies settings from the settings dialog.
-
-        Args:
-            settings: Dictionary containing all settings values.
-        """
-        config.UI_LANGUAGE = settings['ui_language']
-        config.TAGS_LANGUAGE = settings['tags_language']
-        config.TAGS_PER_GAME = settings['tags_per_game']
-        config.IGNORE_COMMON_TAGS = settings['ignore_common_tags']
-        config.STEAMGRIDDB_API_KEY = settings['steamgriddb_api_key']
-        config.MAX_BACKUPS = settings['max_backups']
-        if settings.get('steam_api_key'): config.STEAM_API_KEY = settings['steam_api_key']
-        if settings['steam_path']: config.STEAM_PATH = Path(settings['steam_path'])
-        # if self.steam_scraper: self.steam_scraper.set_language(config.TAGS_LANGUAGE)
-
-        self._save_settings(settings)
-        UIHelper.show_success(self, t('ui.settings.saved'))
-
     @staticmethod
     def _save_settings(settings: dict) -> None:
         """Saves settings to the settings JSON file.
@@ -507,52 +421,17 @@ class MainWindow(QMainWindow):
         Args:
             event: The close event from Qt.
         """
+        from src.ui.utils import ask_save_changes
+
         parser = self._get_active_parser()
         if not parser or not parser.modified:
-            # No unsaved changes — close immediately
-            event.accept()
+            event.accept()  # No changes - close immediately
             return
 
-        # --- 3-button dialog: Speichern / Verwerfen / Abbrechen ---
-        # Manual buttons — StandardButtons werden auf Linux ohne .qm englisch angezeigt
-        msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Icon.Question)
-        msg.setWindowTitle(t('ui.menu.file.unsaved_changes_title'))
-        msg.setText(t('ui.menu.file.unsaved_changes_msg'))
-
-        save_btn = msg.addButton(t('common.save'), QMessageBox.ButtonRole.AcceptRole)
-        discard_btn = msg.addButton(t('common.discard'), QMessageBox.ButtonRole.DestructiveRole)
-        msg.addButton(t('common.cancel'), QMessageBox.ButtonRole.RejectRole)
-        msg.setDefaultButton(save_btn)
-
-        msg.exec()
-        clicked = msg.clickedButton()
-
-        if clicked == save_btn:
-            if self._save_collections():
-                event.accept()
-            else:
-                # Save failed — retry-Dialog (Ja / Nein)
-                retry_msg = QMessageBox(self)
-                retry_msg.setIcon(QMessageBox.Icon.Warning)
-                retry_msg.setWindowTitle(t('ui.menu.file.save_failed_title'))
-                retry_msg.setText(t('ui.menu.file.save_failed_msg'))
-
-                yes_btn = retry_msg.addButton(t('common.yes'), QMessageBox.ButtonRole.YesRole)
-                retry_msg.addButton(t('common.no'), QMessageBox.ButtonRole.NoRole)
-                retry_msg.setDefaultButton(yes_btn)
-
-                retry_msg.exec()
-                if retry_msg.clickedButton() == yes_btn:
-                    event.accept()
-                else:
-                    event.ignore()
-
-        elif clicked == discard_btn:
-            # Close without saving
+        # Ask user via helper
+        if ask_save_changes(self, self._save_collections):
             event.accept()
         else:
-            # Cancel — stay open
             event.ignore()
 
     # ========== Parser Wrapper Methods ==========
