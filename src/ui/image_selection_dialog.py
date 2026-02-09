@@ -351,7 +351,7 @@ class ImageSelectionDialog(QDialog):
                         texts = {
                             'nsfw': f"{t('emoji.nsfw')} {t('ui.badges.nsfw')}",
                             'humor': f"{t('emoji.humor')} {t('ui.badges.humor')}",
-                            'epilepsy': f"{t('emoji.epilepsy')} {t('ui.badges.epilepsy')}",
+                            'epilepsy': f"{t('emoji.blitz')} {t('ui.badges.epilepsy')}",
                             'animated': f"{t('emoji.animated')} {t('ui.badges.animated')}"
                         }
                         lbl.setText(texts.get(badge_type, ''))
