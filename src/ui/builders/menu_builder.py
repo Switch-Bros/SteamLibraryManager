@@ -85,11 +85,6 @@ class MenuBuilder:
         save_action.triggered.connect(mw.file_actions.force_save)
         file_menu.addAction(save_action)
 
-        # Steam VDF Merge
-        vdf_merge_action = QAction(t('ui.menu.file.steam_vdf_merge'), mw)
-        vdf_merge_action.triggered.connect(mw.file_actions.show_vdf_merger)
-        file_menu.addAction(vdf_merge_action)
-
         # Remove duplicate collections
         remove_dupes_action = QAction(t('ui.menu.file.remove_duplicates'), mw)
         remove_dupes_action.triggered.connect(mw.file_actions.remove_duplicate_collections)
