@@ -44,11 +44,11 @@ class SteamActions:
 
         Opens a modern login dialog with QR code + Username/Password options.
         Supports full 2FA, email verification, and CAPTCHA.
-
+        
         NO API KEY NEEDED! Uses session cookies or OAuth tokens.
         """
         from src.ui.steam_modern_login_dialog import ModernSteamLoginDialog
-
+        
         dialog = ModernSteamLoginDialog(parent=self.mw)
         dialog.login_success.connect(self.on_login_success)
         dialog.exec()
@@ -76,9 +76,9 @@ class SteamActions:
         from src.ui.handlers.data_load_handler import DataLoadHandler
         from src.ui.widgets.ui_helper import UIHelper
         from src.config import config
-
+        
         steam_id_64 = result['steam_id']
-
+        
         # Store session/token for API access
         if result['method'] == 'qr':
             # Log QR login success (using existing key)
@@ -87,12 +87,16 @@ class SteamActions:
             self.mw.access_token = result.get('access_token')
             self.mw.refresh_token = result.get('refresh_token')
             self.mw.session = None
+            
+            # IMPORTANT: Store in config so GameManager can access it!
+            config.STEAM_ACCESS_TOKEN = result.get('access_token')
         else:  # password login
             # Log password login success
             print("Password login successful! Session cookies stored.")
             self.mw.session = result.get('session')
             self.mw.access_token = None
             self.mw.refresh_token = None
+            config.STEAM_ACCESS_TOKEN = None
 
         print(t('logs.auth.login_success', id=steam_id_64))
         self.mw.set_status(t('ui.login.status_success'))
@@ -116,7 +120,7 @@ class SteamActions:
         if self.mw.game_service and self.mw.game_service.game_manager:
             try:
                 self.mw.data_load_handler.load_games_with_steam_login(
-                    steam_id_64,
+                    steam_id_64, 
                     self.mw.session or self.mw.access_token
                 )
             except Exception as e:
@@ -124,7 +128,7 @@ class SteamActions:
                 print(f"Error loading games: {str(e)}")
                 # Show user-facing error with existing key
                 UIHelper.show_error(
-                    self.mw,
+                    self.mw, 
                     t('logs.auth.error', error=str(e))
                 )
         else:

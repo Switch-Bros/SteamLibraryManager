@@ -67,10 +67,6 @@ class Game:
     steam_review_desc: str = ""
     steam_review_total: str = ""
 
-    # Age ratings
-    pegi_rating: str = ""
-    esrb_rating: str = ""
-
     # Images
     icon_url: str = ""
     cover_url: str = ""
@@ -237,75 +233,6 @@ class GameManager:
 
         return True
 
-    def load_from_steam_login(self, steam_user_id: str, session_or_token,
-                              progress_callback: Optional[Callable[[str, int, int], None]] = None) -> bool:
-        """
-        Load games using session or access token from modern Steam login.
-
-        This method uses the session cookies or access token obtained from
-        the new Steam login system (QR code or username/password) to fetch
-        owned games WITHOUT requiring a Steam Web API key.
-
-        This is the REPLACEMENT for load_from_steam_api when using the new
-        login system. It provides the same functionality but uses the user's
-        authenticated session instead of requiring them to configure an API key.
-
-        Args:
-            steam_user_id (str): The SteamID64 of the user
-            session_or_token: requests.Session object (password login) or
-                            access token string (QR login)
-            progress_callback (Optional[Callable]): Optional callback for progress
-                                                   updates (message, current, total)
-
-        Returns:
-            bool: True if games were loaded successfully, False otherwise
-        """
-        from src.core.steam_login_manager import SteamLoginManager
-
-        self.steam_user_id = steam_user_id
-
-        if progress_callback:
-            progress_callback(t('logs.manager.api_trying'), 0, 2)
-
-        try:
-            print("Loading games from Steam login session...")
-
-            # Use session/token to get owned games (NO API KEY!)
-            games_data = SteamLoginManager.get_owned_games(session_or_token, steam_user_id)
-
-            if not games_data or 'games' not in games_data:
-                print(t('logs.manager.error_api', error="No games in response"))
-                return False
-
-            games_list = games_data['games']
-            print(f"✅ Loaded {len(games_list)} games from Steam login session")
-
-            if progress_callback:
-                progress_callback(t('logs.manager.loading_games'), 1, 2)
-
-            # Create Game objects
-            for game_data in games_list:
-                app_id = str(game_data['appid'])
-
-                original_name = game_data.get('name') or t('ui.game_details.game_fallback', id=app_id)
-
-                game = Game(
-                    app_id=app_id,
-                    name=original_name,
-                    playtime_minutes=game_data.get('playtime_forever', 0)
-                )
-                self.games[app_id] = game
-
-            if progress_callback:
-                progress_callback(t('ui.main_window.status_ready'), 2, 2)
-
-            self.load_source = "login_session"
-            return True
-
-        except (requests.RequestException, ValueError, KeyError) as e:
-            print(t('logs.manager.error_api', error=str(e)))
-            return False
-
     def load_from_local_files(self, progress_callback: Optional[Callable] = None) -> bool:
         """
         Loads installed games from local Steam manifests.
@@ -373,7 +300,9 @@ class GameManager:
         Fetches owned games via the Steam Web API.
 
         This method calls the Steam Web API's GetOwnedGames endpoint to retrieve
-        a list of all games owned by the specified user.
+        a list of all games owned by the specified user. It supports both:
+        - Traditional API key (stored in self.api_key)
+        - OAuth2 access token (from Steam login, passed via environment/global)
 
         Args:
             steam_user_id (str): The SteamID64 of the user.
@@ -381,21 +310,41 @@ class GameManager:
         Returns:
             bool: True if the API call succeeded and games were loaded, False otherwise.
         """
-        if not self.api_key:
-            print("Info: No API Key configured.")
+        # Check if we have EITHER an API key OR an access token
+        # Access token might be stored globally after login
+        from src.config import config
+        access_token = getattr(config, 'STEAM_ACCESS_TOKEN', None)
+        
+        if not self.api_key and not access_token:
+            print("Info: No API Key or Access Token configured.")
             return False
 
         try:
             url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
-            params = {
-                'key': self.api_key,
-                'steamid': steam_user_id,
-                'include_appinfo': 1,
-                'include_played_free_games': 1,
-                'format': 'json'
-            }
-
-            response = requests.get(url, params=params, timeout=10)
+            
+            # Use access token if available (takes priority over API key)
+            if access_token:
+                print("🔑 Using OAuth2 Access Token for Steam API")
+                headers = {'Authorization': f'Bearer {access_token}'}
+                params = {
+                    'steamid': steam_user_id,
+                    'include_appinfo': 1,
+                    'include_played_free_games': 1,
+                    'format': 'json'
+                }
+                response = requests.get(url, params=params, headers=headers, timeout=10)
+            else:
+                # Traditional API key method
+                print("🔑 Using API Key for Steam API")
+                params = {
+                    'key': self.api_key,
+                    'steamid': steam_user_id,
+                    'include_appinfo': 1,
+                    'include_played_free_games': 1,
+                    'format': 'json'
+                }
+                response = requests.get(url, params=params, timeout=10)
+            
             response.raise_for_status()
 
             data = response.json()
@@ -437,29 +386,29 @@ class GameManager:
             parser: An instance of CloudStorageParser or LocalConfigHelper
         """
         print(t('logs.manager.merging'))
-
+        
         # Get favorites and hidden from collections (Depressurizer way!)
         favorites_key = t('ui.categories.favorites')
         hidden_key = t('ui.categories.hidden')
-
+        
         favorites_apps = set()
         hidden_apps = set()
-
+        
         # If using cloud_storage_parser, get favorites/hidden from collections
         if hasattr(parser, 'collections'):
             for collection in parser.collections:
                 col_name = collection.get('name', '')
                 col_id = collection.get('id', '')
                 added = collection.get('added', [])
-
+                
                 # Check if this is favorites collection
                 if col_id == 'favorite' or col_name in ['Favoriten', 'Favorites']:
                     favorites_apps.update(str(app_id) for app_id in added)
-
+                
                 # Check if this is hidden collection
                 if col_id == 'hidden' or col_name in ['Versteckt', 'Hidden']:
                     hidden_apps.update(str(app_id) for app_id in added)
-
+        
         # Also check old hidden flag from localconfig (backwards compatibility)
         if hasattr(parser, 'get_hidden_apps'):
             old_hidden = set(parser.get_hidden_apps())
@@ -471,7 +420,7 @@ class GameManager:
             if app_id in favorites_apps:
                 if favorites_key not in game.categories:
                     game.categories.append(favorites_key)
-
+            
             # Set hidden status
             if app_id in hidden_apps:
                 game.hidden = True
@@ -488,7 +437,7 @@ class GameManager:
                             if cat not in [favorites_key, hidden_key]:
                                 if cat not in game.categories:
                                     game.categories.append(cat)
-                except (KeyError, ValueError, TypeError):
+                except:
                     pass  # Game not in parser
 
         # Add missing games from parser (if using cloud_storage)
@@ -501,23 +450,23 @@ class GameManager:
                 if missing_ids:
                     for app_id in missing_ids:
                         categories = []
-
+                        
                         # Check favorites
                         if app_id in favorites_apps:
                             categories.append(favorites_key)
-
+                        
                         # Check hidden
                         is_hidden = app_id in hidden_apps
                         if is_hidden:
                             categories.append(hidden_key)
-
+                        
                         # Get other categories
                         if hasattr(parser, 'get_app_categories'):
                             try:
                                 other_cats = parser.get_app_categories(app_id)
                                 if other_cats:
                                     categories.extend(other_cats)
-                            except (KeyError, ValueError, TypeError):
+                            except:
                                 pass
 
                         # Skip if no categories
@@ -530,7 +479,7 @@ class GameManager:
                         game.categories = categories
                         game.hidden = is_hidden
                         self.games[app_id] = game
-            except (KeyError, ValueError, TypeError, AttributeError):
+            except:
                 pass  # Parser doesn't support get_all_app_ids
 
     def _get_cached_name(self, app_id: str) -> Optional[str]:
@@ -668,7 +617,7 @@ class GameManager:
     def get_uncategorized_games(self) -> List[Game]:
         """
         Gets games that have no category (Depressurizer-compatible logic).
-
+        
         A game is uncategorized if:
         1. It has NO categories at all, OR
         2. It has ONLY the Favorites category (favorites is not a "real" category)
@@ -677,11 +626,11 @@ class GameManager:
             List[Game]: A sorted list of uncategorized games.
         """
         favorites_key = t('ui.categories.favorites')
-
+        
         games = [g for g in self.get_real_games()
                  if not g.categories  # No categories
                  or (len(g.categories) == 1 and favorites_key in g.categories)]  # Only favorites
-
+        
         return sorted(games, key=lambda g: g.sort_name.lower())
 
     def get_favorites(self) -> List[Game]:
