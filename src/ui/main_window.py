@@ -25,7 +25,7 @@ from src.core.game_manager import GameManager, Game
 from src.core.localconfig_helper import LocalConfigHelper
 from src.core.cloud_storage_parser import CloudStorageParser
 from src.core.appinfo_manager import AppInfoManager
-from src.core.steam_auth import SteamAuthManager
+# OLD: from src.core.steam_auth import SteamAuthManager (REMOVED - new login system)
 from src.integrations.steam_store import SteamStoreScraper
 from src.services.game_service import GameService
 from src.services.asset_service import AssetService
@@ -64,7 +64,6 @@ class MainWindow(QMainWindow):
         localconfig_helper: Parser for Steam's localconfig.vdf file.
         steam_scraper: Scraper for Steam Store data.
         appinfo_manager: Manager for appinfo.vdf metadata.
-        auth_manager: Handles Steam OpenID authentication.
         selected_game: Currently selected single game.
         selected_games: List of currently selected games (multi-select).
         dialog_games: Games passed to the current dialog.
@@ -95,8 +94,13 @@ class MainWindow(QMainWindow):
         # NEW: Initialize SearchService
         self.search_service = SearchService()
 
-        # Auth Manager
-        self.auth_manager = SteamAuthManager()
+        # OLD: Auth Manager (REMOVED - new login system)
+        # self.auth_manager = SteamAuthManager()
+
+        # NEW: Session/Token storage for modern Steam login
+        self.session = None  # For password login (requests.Session)
+        self.access_token = None  # For QR login (OAuth token)
+        self.refresh_token = None  # For QR login (refresh token)
 
         # State
         self.selected_game: Optional[Game] = None
@@ -122,9 +126,9 @@ class MainWindow(QMainWindow):
         self.game_actions = GameActions(self)
         self.settings_actions = SettingsActions(self)
 
-        # NOW connect auth signals (after steam_actions exists)
-        self.auth_manager.auth_success.connect(self.steam_actions.on_login_success)
-        self.auth_manager.auth_error.connect(self.steam_actions.on_login_error)
+        # OLD: Auth signals (REMOVED - new login dialog handles signals internally)
+        # self.auth_manager.auth_success.connect(self.steam_actions.on_login_success)
+        # self.auth_manager.auth_error.connect(self.steam_actions.on_login_error)
 
         # UI Action Handlers (extracted category / context-menu logic)
         self.category_handler: CategoryActionHandler = CategoryActionHandler(self)
@@ -214,14 +218,14 @@ class MainWindow(QMainWindow):
     def _populate_categories(self) -> None:
         """Refreshes the sidebar tree with current game data.
 
-        Builds category data including All Games, Favorites (if non-empty), 
+        Builds category data including All Games, Favorites (if non-empty),
         user categories, Uncategorized (if non-empty), and Hidden (if non-empty).
-        
+
         Steam-compatible order:
         1. All Games (always shown)
         2. Favorites (only if non-empty)
         3. User Collections (alphabetically)
-        4. Uncategorized (only if non-empty) 
+        4. Uncategorized (only if non-empty)
         5. Hidden (only if non-empty)
 
         No caching: the tree is cheap to rebuild (~50 ms for 2 500 games)
@@ -237,7 +241,7 @@ class MainWindow(QMainWindow):
         # Favorites (sorted, non-hidden only)
         favorites = sorted([g for g in self.game_manager.get_favorites() if not g.hidden],
                            key=lambda g: g.sort_name.lower())
-        
+
         # Uncategorized games
         uncategorized = sorted(
             [g for g in self.game_manager.get_uncategorized_games() if not g.hidden],
@@ -247,14 +251,14 @@ class MainWindow(QMainWindow):
         # Build categories_data in correct Steam order
         from collections import OrderedDict
         categories_data = OrderedDict()
-        
+
         # 1. All Games (always shown)
         categories_data[t('ui.categories.all_games')] = visible_games
-        
+
         # 2. Favorites (only if non-empty)
         if favorites:
             categories_data[t('ui.categories.favorites')] = favorites
-        
+
         # 3. User categories (alphabetically sorted)
         cats: dict[str, int] = self.game_manager.get_all_categories()
 
@@ -276,7 +280,7 @@ class MainWindow(QMainWindow):
             t('ui.categories.hidden'),
             t('ui.categories.all_games')
         }
-        
+
         for cat_name in sorted(cats.keys(), key=self._german_sort_key):
             if cat_name not in special_categories:
                 cat_games: list[Game] = sorted(
@@ -285,11 +289,11 @@ class MainWindow(QMainWindow):
                 )
                 # Always add — empty collections must stay visible as "Name (0)"
                 categories_data[cat_name] = cat_games
-        
+
         # 4. Uncategorized (only if non-empty)
         if uncategorized:
             categories_data[t('ui.categories.uncategorized')] = uncategorized
-        
+
         # 5. Hidden (only if non-empty)
         if hidden_games:
             categories_data[t('ui.categories.hidden')] = hidden_games

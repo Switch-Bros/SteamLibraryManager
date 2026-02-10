@@ -3,17 +3,12 @@
 """
 Action handler for Steam menu operations.
 
-Extracts the following methods from MainWindow:
-  - start_steam_login()  (initiates Steam OpenID login)
-  - show_about()         (shows application About dialog)
-
-The login callbacks (_on_steam_login_success, _on_steam_login_error) remain
-in MainWindow as they are connected via Qt signals and directly modify
-MainWindow state.
+Handles Steam login with modern QR code + Username/Password dialog.
+NO MORE OpenID! Full 2FA support with session cookies and access tokens.
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict
 
 from PyQt6.QtWidgets import QMessageBox
 
@@ -45,13 +40,18 @@ class SteamActions:
     # ------------------------------------------------------------------
 
     def start_steam_login(self) -> None:
-        """Initiates the Steam OpenID authentication process.
+        """Initiates the modern Steam login process.
 
-        Opens an embedded login dialog for Steam login. The actual login
-        callbacks (_on_steam_login_success, _on_steam_login_error) are
-        handled by MainWindow via Qt signals.
+        Opens a modern login dialog with QR code + Username/Password options.
+        Supports full 2FA, email verification, and CAPTCHA.
+
+        NO API KEY NEEDED! Uses session cookies or OAuth tokens.
         """
-        self.mw.auth_manager.start_login(parent=self.mw)
+        from src.ui.steam_modern_login_dialog import ModernSteamLoginDialog
+
+        dialog = ModernSteamLoginDialog(parent=self.mw)
+        dialog.login_success.connect(self.on_login_success)
+        dialog.exec()
 
     def show_about(self) -> None:
         """Shows the About dialog with application information.
@@ -61,13 +61,35 @@ class SteamActions:
         """
         QMessageBox.about(self.mw, t('ui.menu.help.about'), t('app.description'))
 
-    def on_login_success(self, steam_id_64: str) -> None:
+    def on_login_success(self, result: Dict) -> None:
         """Handles successful Steam authentication.
 
         Args:
-            steam_id_64: The authenticated user's Steam ID64.
+            result: Login result dict containing:
+                - method: 'qr' or 'password'
+                - steam_id: SteamID64
+                - access_token: (if QR login)
+                - refresh_token: (if QR login)
+                - session: (if password login)
+                - account_name: (optional)
         """
         from src.ui.handlers.data_load_handler import DataLoadHandler
+        from src.ui.widgets.ui_helper import UIHelper
+        from src.config import config
+
+        steam_id_64 = result['steam_id']
+
+        # Store session/token for API access
+        if result['method'] == 'qr':
+            print(f"QR Login successful! Access token: {result.get('access_token')[:20]}...")
+            self.mw.access_token = result.get('access_token')
+            self.mw.refresh_token = result.get('refresh_token')
+            self.mw.session = None
+        else:  # password login
+            print("Password login successful! Session cookies stored.")
+            self.mw.session = result.get('session')
+            self.mw.access_token = None
+            self.mw.refresh_token = None
 
         print(t('logs.auth.login_success', id=steam_id_64))
         self.mw.set_status(t('ui.login.status_success'))
@@ -87,8 +109,12 @@ class SteamActions:
         # Rebuild toolbar to show name instead of login button
         self.mw.refresh_toolbar()
 
+        # Load games using new session/token method
         if self.mw.game_manager:
-            self.mw.data_load_handler.load_games_with_progress(steam_id_64)
+            self.mw.data_load_handler.load_games_with_steam_login(
+                steam_id_64,
+                self.mw.session or self.mw.access_token
+            )
 
     def on_login_error(self, error: str) -> None:
         """Handles Steam authentication errors.

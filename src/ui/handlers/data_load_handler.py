@@ -6,10 +6,10 @@ loading sequence including Steam path detection, parser initialization,
 and game loading with progress tracking.
 """
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Union
 
 from PyQt6.QtWidgets import QProgressDialog
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
 
 from src.config import config
 from src.ui.widgets.ui_helper import UIHelper
@@ -19,6 +19,7 @@ from src.ui.workers import GameLoadWorker
 
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
+    from src.services.game_service import GameService
 
 
 class DataLoadHandler:
@@ -45,7 +46,7 @@ class DataLoadHandler:
         """
         self.mw = main_window
         self.progress_dialog: Optional[QProgressDialog] = None
-        self.load_worker: Optional[GameLoadWorker] = None
+        self.load_worker: Optional[Union[GameLoadWorker, SteamLoginGameLoadWorker]] = None
 
     def load_data(self) -> None:
         """Perform the initial data loading sequence.
@@ -123,6 +124,39 @@ class DataLoadHandler:
         self.progress_dialog.setValue(0)
 
         self.load_worker = GameLoadWorker(self.mw.game_service, user_id or "local")
+        # noinspection PyUnresolvedReferences
+        self.load_worker.progress_update.connect(self.on_load_progress)
+        # noinspection PyUnresolvedReferences
+        self.load_worker.finished.connect(self.on_load_finished)
+        self.load_worker.start()
+
+    def load_games_with_steam_login(self, user_id: str, session_or_token) -> None:
+        """Start game loading using Steam login session/token.
+
+        This method loads games using the authenticated session or access token
+        from the modern Steam login system. NO API KEY REQUIRED!
+
+        Args:
+            user_id: The Steam user ID (SteamID64)
+            session_or_token: requests.Session or access token string
+        """
+        self.progress_dialog = QProgressDialog(
+            t('common.loading'),
+            t('common.cancel'),
+            0, 100,
+            self.mw
+        )
+        self.progress_dialog.setWindowTitle(t('ui.main_window.status_ready'))
+        self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self.progress_dialog.setMinimumDuration(0)
+        self.progress_dialog.setValue(0)
+
+        # Use special worker for login-based loading
+        self.load_worker = SteamLoginGameLoadWorker(
+            self.mw.game_service,
+            user_id,
+            session_or_token
+        )
         # noinspection PyUnresolvedReferences
         self.load_worker.progress_update.connect(self.on_load_progress)
         # noinspection PyUnresolvedReferences
@@ -233,3 +267,51 @@ class DataLoadHandler:
             print(f"Unexpected error fetching Steam persona name: {e}")
 
         return steam_id
+
+
+class SteamLoginGameLoadWorker(QThread):
+    """Worker thread for loading games using Steam login session/token.
+
+    Signals:
+        progress_update (str, int, int): Emitted during loading (step, current, total)
+        finished (bool): Emitted when loading completes (success)
+    """
+    progress_update = pyqtSignal(str, int, int)
+    finished = pyqtSignal(bool)
+
+    def __init__(self, game_service: 'GameService', user_id: str, session_or_token):
+        """Initialize the worker.
+
+        Args:
+            game_service: The GameService instance
+            user_id: SteamID64
+            session_or_token: Session or token from Steam login
+        """
+        super().__init__()
+        self.game_service = game_service
+        self.user_id = user_id
+        self.session_or_token = session_or_token
+
+    def run(self):
+        """Execute game loading in background thread."""
+        try:
+            # Load using new login-based method
+            success = self.game_service.game_manager.load_from_steam_login(
+                self.user_id,
+                self.session_or_token,
+                progress_callback=self._emit_progress
+            )
+
+            if success:
+                # Merge with local categories/data
+                self.game_service.merge_with_localconfig()
+
+            self.finished.emit(success)
+
+        except Exception as e:
+            print(f"Error loading games from Steam login: {e}")
+            self.finished.emit(False)
+
+    def _emit_progress(self, step: str, current: int, total: int):
+        """Emit progress update signal."""
+        self.progress_update.emit(step, current, total)
