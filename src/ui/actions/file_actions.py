@@ -65,11 +65,30 @@ class FileActions:
           - VDF files (localconfig.vdf)
           - Cloud storage (remotecache.vdf)
           - Metadata overrides (JSON)
+        
+        Checks if Steam is running before saving. If Steam is running,
+        shows a warning dialog with option to close Steam automatically.
 
         Shows a success message on completion.
         """
-        self.mw.save_collections()
-        UIHelper.show_success(self.mw, t('ui.menu.file.save_success'))
+        from src.core.steam_account_scanner import is_steam_running
+        from src.ui.dialogs.steam_running_dialog import SteamRunningDialog
+        
+        # Check if Steam is running
+        if is_steam_running():
+            # Show warning dialog
+            dialog = SteamRunningDialog(self.mw)
+            result = dialog.exec()
+            
+            if result == SteamRunningDialog.CLOSE_AND_SAVE:
+                # Steam was closed, proceed with save
+                self.mw.save_collections()
+                UIHelper.show_success(self.mw, t('ui.menu.file.save_success'))
+            # else: User cancelled, do nothing
+        else:
+            # Steam not running, safe to save
+            self.mw.save_collections()
+            UIHelper.show_success(self.mw, t('ui.menu.file.save_success'))
 
     def remove_duplicate_collections(self) -> None:
         """Removes duplicate collections from cloud storage.
