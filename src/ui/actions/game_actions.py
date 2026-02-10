@@ -51,13 +51,15 @@ class GameActions:
         """Toggles the favorite status of a game.
 
         Adds or removes the game from the special 'favorites' collection.
-        Favorites are stored in cloud-storage-namespace-1.json only.
+        Favorites are stored in cloud-storage-namespace-1.json as:
+        "user-collections.favorite" (like Depressurizer does it!)
+        
         Changes are immediately saved and the UI is refreshed.
 
         Args:
             game: The game to add to or remove from favorites.
         """
-        # Check if we have ANY parser available
+        # Check if we have cloud_storage_parser available
         if not self.mw.cloud_storage_parser:
             return
 
@@ -76,6 +78,7 @@ class GameActions:
             # noinspection PyProtectedMember
             self.mw._add_app_category(game.app_id, favorites_key)
 
+        # Save and refresh UI
         # noinspection PyProtectedMember
         self.mw._save_collections()
         # noinspection PyProtectedMember
@@ -84,16 +87,33 @@ class GameActions:
     def toggle_hide_game(self, game: Game, hide: bool) -> None:
         """Toggles the hidden status of a game.
 
-        Hidden games are moved to the special "Hidden" category and
-        excluded from other category listings.
+        Hidden games are stored in cloud-storage-namespace-1.json as:
+        "user-collections.hidden" (like Depressurizer does it!)
+        
+        Hidden games are excluded from normal category listings and shown
+        only in the "Hidden" category.
 
         Args:
             game: The game to hide or unhide.
             hide: True to hide the game, False to show it.
         """
-        if not self.mw.localconfig_helper:
+        if not self.mw.cloud_storage_parser:
             return
-        self.mw.localconfig_helper.set_app_hidden(game.app_id, hide)
+        
+        hidden_key = t('ui.categories.hidden')
+        
+        if hide:
+            # Add to hidden collection
+            if hidden_key not in game.categories:
+                game.categories.append(hidden_key)
+            # noinspection PyProtectedMember
+            self.mw._add_app_category(game.app_id, hidden_key)
+        else:
+            # Remove from hidden collection
+            if hidden_key in game.categories:
+                game.categories.remove(hidden_key)
+            # noinspection PyProtectedMember
+            self.mw._remove_app_category(game.app_id, hidden_key)
 
         # noinspection PyProtectedMember
         if self.mw._save_collections():
