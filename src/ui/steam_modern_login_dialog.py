@@ -14,12 +14,11 @@ Features:
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
-    QLineEdit, QFrame, QStackedWidget, QWidget, QMessageBox,
+    QLineEdit, QFrame, QWidget, QMessageBox,
     QProgressBar
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QUrl
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
-from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 
 from src.core.steam_login_manager import SteamLoginManager
 from src.utils.i18n import t
@@ -40,7 +39,6 @@ class ModernSteamLoginDialog(QDialog):
         super().__init__(parent)
 
         self.login_manager = SteamLoginManager()
-        self.network_manager = QNetworkAccessManager(self)
 
         self._setup_ui()
         self._connect_signals()
@@ -51,8 +49,8 @@ class ModernSteamLoginDialog(QDialog):
     def _setup_ui(self):
         """Setup the complete UI."""
         self.setWindowTitle(t('ui.login.steam_login_title'))
-        self.setMinimumSize(800, 600)
-        self.resize(800, 600)
+        self.setMinimumSize(800, 700)
+        self.resize(800, 700)
 
         # Main layout
         main_layout = QVBoxLayout(self)
@@ -195,12 +193,8 @@ class ModernSteamLoginDialog(QDialog):
         title.setStyleSheet("color: white; font-size: 18px; font-weight: bold;")
         layout.addWidget(title)
 
-        # Stack for different states (login, 2FA, email, captcha)
-        self.pwd_stack = QStackedWidget()
-
-        # LOGIN PAGE
-        login_page = QWidget()
-        login_layout = QVBoxLayout(login_page)
+        # Simple login form (no multi-step, just username/password)
+        login_layout = QVBoxLayout()
         login_layout.setSpacing(15)
 
         self.username_input = QLineEdit()
@@ -218,85 +212,15 @@ class ModernSteamLoginDialog(QDialog):
         self.pwd_login_btn.clicked.connect(self.on_password_login)
         login_layout.addWidget(self.pwd_login_btn)
 
+        # Info label for push notification
+        info_label = QLabel(t('ui.login.password_info'))
+        info_label.setStyleSheet("color: #8f98a0; font-size: 11px;")
+        info_label.setWordWrap(True)
+        login_layout.addWidget(info_label)
+
         login_layout.addStretch()
 
-        self.pwd_stack.addWidget(login_page)
-
-        # 2FA PAGE
-        twofa_page = QWidget()
-        twofa_layout = QVBoxLayout(twofa_page)
-        twofa_layout.setSpacing(15)
-
-        twofa_label = QLabel(t('ui.login.enter_2fa_code'))
-        twofa_label.setStyleSheet("color: #c7d5e0;")
-        twofa_label.setWordWrap(True)
-        twofa_layout.addWidget(twofa_label)
-
-        self.twofa_input = QLineEdit()
-        self.twofa_input.setPlaceholderText(t('ui.login.2fa_code'))
-        self.twofa_input.returnPressed.connect(self.on_submit_2fa)
-        twofa_layout.addWidget(self.twofa_input)
-
-        submit_2fa_btn = QPushButton(t('ui.login.submit'))
-        submit_2fa_btn.clicked.connect(self.on_submit_2fa)
-        twofa_layout.addWidget(submit_2fa_btn)
-
-        twofa_layout.addStretch()
-
-        self.pwd_stack.addWidget(twofa_page)
-
-        # EMAIL CODE PAGE
-        email_page = QWidget()
-        email_layout = QVBoxLayout(email_page)
-        email_layout.setSpacing(15)
-
-        email_label = QLabel(t('ui.login.enter_email_code'))
-        email_label.setStyleSheet("color: #c7d5e0;")
-        email_label.setWordWrap(True)
-        email_layout.addWidget(email_label)
-
-        self.email_input = QLineEdit()
-        self.email_input.setPlaceholderText(t('ui.login.email_code'))
-        self.email_input.returnPressed.connect(self.on_submit_email)
-        email_layout.addWidget(self.email_input)
-
-        submit_email_btn = QPushButton(t('ui.login.submit'))
-        submit_email_btn.clicked.connect(self.on_submit_email)
-        email_layout.addWidget(submit_email_btn)
-
-        email_layout.addStretch()
-
-        self.pwd_stack.addWidget(email_page)
-
-        # CAPTCHA PAGE
-        captcha_page = QWidget()
-        captcha_layout = QVBoxLayout(captcha_page)
-        captcha_layout.setSpacing(15)
-
-        captcha_label = QLabel(t('ui.login.solve_captcha'))
-        captcha_label.setStyleSheet("color: #c7d5e0;")
-        captcha_layout.addWidget(captcha_label)
-
-        self.captcha_image = QLabel()
-        self.captcha_image.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.captcha_image.setStyleSheet("background: #32444e; border: 1px solid #16202d;")
-        self.captcha_image.setMinimumHeight(150)
-        captcha_layout.addWidget(self.captcha_image)
-
-        self.captcha_input = QLineEdit()
-        self.captcha_input.setPlaceholderText(t('ui.login.captcha_text'))
-        self.captcha_input.returnPressed.connect(self.on_submit_captcha)
-        captcha_layout.addWidget(self.captcha_input)
-
-        submit_captcha_btn = QPushButton(t('ui.login.submit'))
-        submit_captcha_btn.clicked.connect(self.on_submit_captcha)
-        captcha_layout.addWidget(submit_captcha_btn)
-
-        captcha_layout.addStretch()
-
-        self.pwd_stack.addWidget(captcha_page)
-
-        layout.addWidget(self.pwd_stack)
+        layout.addLayout(login_layout)
 
         return panel
 
@@ -346,20 +270,13 @@ class ModernSteamLoginDialog(QDialog):
 
     def _connect_signals(self):
         """Connect login manager signals."""
-        # noinspection PyUnresolvedReferences
         self.login_manager.login_success.connect(self.on_login_success)
-        # noinspection PyUnresolvedReferences
         self.login_manager.login_error.connect(self.on_login_error)
-        # noinspection PyUnresolvedReferences
         self.login_manager.qr_ready.connect(self.on_qr_ready)
-        # noinspection PyUnresolvedReferences
         self.login_manager.status_update.connect(self.on_status_update)
-        # noinspection PyUnresolvedReferences
-        self.login_manager.captcha_required.connect(self.on_captcha_required)
-        # noinspection PyUnresolvedReferences
-        self.login_manager.email_code_required.connect(self.on_email_required)
-        # noinspection PyUnresolvedReferences
-        self.login_manager.twofactor_required.connect(self.on_2fa_required)
+        # NEW: Mobile approval waiting signal (for password login)
+        if hasattr(self.login_manager, 'waiting_for_approval'):
+            self.login_manager.waiting_for_approval.connect(self.on_waiting_for_approval)
 
     def start_qr_login(self):
         """Start QR code generation."""
@@ -378,27 +295,6 @@ class ModernSteamLoginDialog(QDialog):
         self.show_progress()
         self.pwd_login_btn.setEnabled(False)
         self.login_manager.start_password_login(username, password)
-
-    def on_submit_2fa(self):
-        """Submit 2FA code."""
-        code = self.twofa_input.text().strip()
-        if code:
-            self.show_progress()
-            self.login_manager.submit_twofactor_code(code)
-
-    def on_submit_email(self):
-        """Submit email verification code."""
-        code = self.email_input.text().strip()
-        if code:
-            self.show_progress()
-            self.login_manager.submit_email_code(code)
-
-    def on_submit_captcha(self):
-        """Submit CAPTCHA solution."""
-        text = self.captcha_input.text().strip()
-        if text:
-            self.show_progress()
-            self.login_manager.submit_captcha(text)
 
     def on_qr_ready(self, qr_url: str):
         """Handle QR code ready."""
@@ -422,63 +318,95 @@ class ModernSteamLoginDialog(QDialog):
         """Update status bar."""
         self.status_bar.setText(message)
 
-    def on_captcha_required(self, captcha_url: str):
-        """Show CAPTCHA page."""
+    def on_waiting_for_approval(self, message: str):
+        """Show waiting for mobile approval message."""
         self.hide_progress()
-        self.pwd_stack.setCurrentIndex(3)  # Captcha page
-        self.load_captcha_image(captcha_url)
+        self.on_status_update(message)
+        # Show message in password section
+        QMessageBox.information(
+            self,
+            t('ui.login.waiting_approval_title'),
+            message
+        )
 
-    def on_email_required(self):
-        """Show email code page."""
-        self.hide_progress()
-        self.pwd_stack.setCurrentIndex(2)  # Email page
+    def load_qr_image(self, challenge_url: str):
+        """Generate and display QR code from Steam challenge URL with optional logo."""
+        try:
+            import qrcode
+            from io import BytesIO
+            from PIL import Image, ImageDraw, ImageFont
 
-    def on_2fa_required(self):
-        """Show 2FA page."""
-        self.hide_progress()
-        self.pwd_stack.setCurrentIndex(1)  # 2FA page
+            # Generate QR code with HIGHER error correction (allows logo overlay)
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_H,  # HIGH = 30% can be damaged
+                box_size=15,  # Bigger box = higher resolution (was 10)
+                border=2,  # Smaller border for better use of space
+            )
+            qr.add_data(challenge_url)
+            qr.make(fit=True)
 
-    def load_qr_image(self, url: str):
-        """Load QR code image from URL."""
-        request = QNetworkRequest(QUrl(url))
-        reply = self.network_manager.get(request)
-        # noinspection PyUnresolvedReferences
-        reply.finished.connect(lambda: self._on_qr_loaded(reply))
+            # Create high-quality image
+            img = qr.make_image(fill_color="black", back_color="white").convert('RGB')
 
-    def _on_qr_loaded(self, reply: QNetworkReply):
-        """Handle QR image loaded."""
-        if reply.error() == QNetworkReply.NetworkError.NoError:
-            data = reply.readAll()
+            # OPTIONAL: Add "SLM" logo in center (if space allows)
+            try:
+                # Calculate center position for logo
+                img_width, img_height = img.size
+                logo_size = img_width // 5  # Logo is 20% of QR code size
+                logo_pos = ((img_width - logo_size) // 2, (img_height - logo_size) // 2)
+
+                # Create logo: white rounded square with "SLM" text
+                logo = Image.new('RGB', (logo_size, logo_size), 'white')
+                draw = ImageDraw.Draw(logo)
+
+                # Draw black border
+                draw.rectangle([0, 0, logo_size - 1, logo_size - 1], outline='black', width=3)
+
+                # Try to use a font, fallback to default if not available
+                try:
+                    font_size = logo_size // 3
+                    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
+                except (OSError, IOError):
+                    font = ImageFont.load_default()
+
+                # Draw "SLM" text centered
+                text = "SLM"
+                # Get text bounding box (for PIL >= 8.0.0)
+                bbox = draw.textbbox((0, 0), text, font=font)
+                text_width = bbox[2] - bbox[0]
+                text_height = bbox[3] - bbox[1]
+                text_pos = ((logo_size - text_width) // 2, (logo_size - text_height) // 2)
+                draw.text(text_pos, text, fill='black', font=font)
+
+                # Paste logo onto QR code
+                img.paste(logo, logo_pos)
+            except Exception as logo_error:
+                # If logo fails, continue without it (QR code still works)
+                print(f"Could not add logo to QR code: {logo_error}")
+
+            # Convert to QPixmap
+            buffer = BytesIO()
+            img.save(buffer, format='PNG')
+            buffer.seek(0)
+
             pixmap = QPixmap()
-            pixmap.loadFromData(data)
+            pixmap.loadFromData(buffer.read())
+
+            # Scale to display size (smooth scaling for better quality)
             self.qr_label.setPixmap(pixmap.scaled(
                 300, 300,
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation
             ))
-        else:
-            self.qr_label.setText(t('ui.login.qr_load_failed'))
-        reply.deleteLater()
 
-    def load_captcha_image(self, url: str):
-        """Load CAPTCHA image from URL."""
-        request = QNetworkRequest(QUrl(url))
-        reply = self.network_manager.get(request)
-        # noinspection PyUnresolvedReferences
-        reply.finished.connect(lambda: self._on_captcha_loaded(reply))
-
-    def _on_captcha_loaded(self, reply: QNetworkReply):
-        """Handle CAPTCHA image loaded."""
-        if reply.error() == QNetworkReply.NetworkError.NoError:
-            data = reply.readAll()
-            pixmap = QPixmap()
-            pixmap.loadFromData(data)
-            self.captcha_image.setPixmap(pixmap.scaled(
-                400, 150,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation
-            ))
-        reply.deleteLater()
+        except ImportError:
+            self.qr_label.setText(
+                "QR Code generation requires 'qrcode' package\n\n"
+                "Install: pip install qrcode[pil]"
+            )
+        except Exception as e:
+            self.qr_label.setText(f"Failed to generate QR code: {e}")
 
     def show_progress(self):
         """Show progress bar."""
