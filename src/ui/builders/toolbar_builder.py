@@ -153,10 +153,8 @@ class ToolbarBuilder:
         tooltip_text = t('ui.login.logged_in_as', user=mw.steam_username)
         user_action.setToolTip(tooltip_text)
 
-        # Show info on click
-        user_action.triggered.connect(
-            lambda: UIHelper.show_success(mw, tooltip_text, "Steam")
-        )
+        # Show info on click with logout option
+        user_action.triggered.connect(lambda: ToolbarBuilder._show_user_dialog(mw))
 
         # Steam login icon (if available, set as QIcon alongside text)
         icon_path = config.ICONS_DIR / 'steam_login.png'
@@ -186,3 +184,59 @@ class ToolbarBuilder:
         # Use SteamActions instead of MainWindow method
         login_action.triggered.connect(mw.steam_actions.start_steam_login)
         toolbar.addAction(login_action)
+
+    @staticmethod
+    def _show_user_dialog(mw: 'MainWindow') -> None:
+        """Shows user info dialog with logout option.
+
+        Args:
+            mw: MainWindow instance
+        """
+        from PyQt6.QtWidgets import QMessageBox
+
+        # Create custom message box
+        msg_box = QMessageBox(mw)
+        msg_box.setWindowTitle("Steam")
+        msg_box.setText(t('ui.login.logged_in_as', user=mw.steam_username))
+        msg_box.setIcon(QMessageBox.Icon.Information)
+
+        # Add buttons
+        msg_box.addButton(t('common.ok'), QMessageBox.ButtonRole.AcceptRole)
+        logout_btn = msg_box.addButton(
+            t('ui.login.logout'),
+            QMessageBox.ButtonRole.DestructiveRole
+        )
+
+        # Show dialog
+        msg_box.exec()
+
+        # Check if logout was clicked
+        if msg_box.clickedButton() == logout_btn:
+            ToolbarBuilder._handle_logout(mw)
+
+    @staticmethod
+    def _handle_logout(mw: 'MainWindow') -> None:
+        """Handle user logout.
+
+        Args:
+            mw: MainWindow instance
+        """
+        from src.config import config
+
+        # Clear session/tokens
+        mw.session = None
+        mw.access_token = None
+        mw.refresh_token = None
+        mw.steam_username = None
+
+        # Clear saved user ID
+        config.STEAM_USER_ID = None
+        config.save()
+
+        # Rebuild toolbar to show login button again
+        mw.refresh_toolbar()
+
+        # Update status
+        mw.set_status(t('ui.login.logged_out'))
+
+        UIHelper.show_success(mw, t('ui.login.logged_out'), "Steam")

@@ -81,11 +81,14 @@ class SteamActions:
 
         # Store session/token for API access
         if result['method'] == 'qr':
-            print(f"QR Login successful! Access token: {result.get('access_token')[:20]}...")
+            # Log QR login success (using existing key)
+            token_preview = result.get('access_token', '')[:20] if result.get('access_token') else ''
+            print(f"QR Login successful! Token: {token_preview}...")
             self.mw.access_token = result.get('access_token')
             self.mw.refresh_token = result.get('refresh_token')
             self.mw.session = None
         else:  # password login
+            # Log password login success
             print("Password login successful! Session cookies stored.")
             self.mw.session = result.get('session')
             self.mw.access_token = None
@@ -110,11 +113,23 @@ class SteamActions:
         self.mw.refresh_toolbar()
 
         # Load games using new session/token method
-        if self.mw.game_manager:
-            self.mw.data_load_handler.load_games_with_steam_login(
-                steam_id_64,
-                self.mw.session or self.mw.access_token
-            )
+        if self.mw.game_service and self.mw.game_service.game_manager:
+            try:
+                self.mw.data_load_handler.load_games_with_steam_login(
+                    steam_id_64,
+                    self.mw.session or self.mw.access_token
+                )
+            except Exception as e:
+                # Log error (console only, not user-facing)
+                print(f"Error loading games: {str(e)}")
+                # Show user-facing error with existing key
+                UIHelper.show_error(
+                    self.mw,
+                    t('logs.auth.error', error=str(e))
+                )
+        else:
+            # Game service not ready yet (should not happen normally)
+            print("Warning: game_service not initialized yet")
 
     def on_login_error(self, error: str) -> None:
         """Handles Steam authentication errors.
