@@ -214,9 +214,15 @@ class MainWindow(QMainWindow):
     def _populate_categories(self) -> None:
         """Refreshes the sidebar tree with current game data.
 
-        Builds category data including All Games, Uncategorized, Hidden,
-        and user-defined categories.  Hidden games are excluded from normal
-        categories and shown only in the Hidden category.
+        Builds category data including All Games, Favorites (if non-empty), 
+        user categories, Uncategorized (if non-empty), and Hidden (if non-empty).
+        
+        Steam-compatible order:
+        1. All Games (always shown)
+        2. Favorites (only if non-empty)
+        3. User Collections (alphabetically)
+        4. Uncategorized (only if non-empty) 
+        5. Hidden (only if non-empty)
 
         No caching: the tree is cheap to rebuild (~50 ms for 2 500 games)
         and a cache only adds invisible staleness bugs.
@@ -228,22 +234,28 @@ class MainWindow(QMainWindow):
         visible_games = sorted([g for g in all_games_raw if not g.hidden], key=lambda g: g.sort_name.lower())
         hidden_games = sorted([g for g in all_games_raw if g.hidden], key=lambda g: g.sort_name.lower())
 
-        # 1-3. Favorites (sorted)
+        # Favorites (sorted, non-hidden only)
         favorites = sorted([g for g in self.game_manager.get_favorites() if not g.hidden],
                            key=lambda g: g.sort_name.lower())
+        
+        # Uncategorized games
+        uncategorized = sorted(
+            [g for g in self.game_manager.get_uncategorized_games() if not g.hidden],
+            key=lambda g: g.sort_name.lower()
+        )
 
-        # 4. Build initial categories with fixed order
-        categories_data = {
-            t('ui.categories.all_games'): visible_games,
-            t('ui.categories.favorites'): favorites,  # ← IMMER hier! Position 2!
-            t('ui.categories.uncategorized'): sorted(
-                [g for g in self.game_manager.get_uncategorized_games() if not g.hidden],
-                key=lambda g: g.sort_name.lower()
-            ),
-            t('ui.categories.hidden'): hidden_games
-        }
-
-            # 5. User categories (visible games only — but empty collections stay visible)
+        # Build categories_data in correct Steam order
+        from collections import OrderedDict
+        categories_data = OrderedDict()
+        
+        # 1. All Games (always shown)
+        categories_data[t('ui.categories.all_games')] = visible_games
+        
+        # 2. Favorites (only if non-empty)
+        if favorites:
+            categories_data[t('ui.categories.favorites')] = favorites
+        
+        # 3. User categories (alphabetically sorted)
         cats: dict[str, int] = self.game_manager.get_all_categories()
 
         # Merge in parser-owned collections that GameManager cannot see.
@@ -257,14 +269,30 @@ class MainWindow(QMainWindow):
                     cats[parser_cat] = 0  # empty collection — count is zero
 
         # Sort with German umlaut support: Ä→A, Ö→O, Ü→U
+        # Skip special categories (Favorites, Uncategorized, Hidden, All Games)
+        special_categories = {
+            t('ui.categories.favorites'),
+            t('ui.categories.uncategorized'),
+            t('ui.categories.hidden'),
+            t('ui.categories.all_games')
+        }
+        
         for cat_name in sorted(cats.keys(), key=self._german_sort_key):
-            if cat_name != t('ui.categories.favorites'):
+            if cat_name not in special_categories:
                 cat_games: list[Game] = sorted(
                     [g for g in self.game_manager.get_games_by_category(cat_name) if not g.hidden],
                     key=lambda g: g.sort_name.lower()
                 )
                 # Always add — empty collections must stay visible as "Name (0)"
                 categories_data[cat_name] = cat_games
+        
+        # 4. Uncategorized (only if non-empty)
+        if uncategorized:
+            categories_data[t('ui.categories.uncategorized')] = uncategorized
+        
+        # 5. Hidden (only if non-empty)
+        if hidden_games:
+            categories_data[t('ui.categories.hidden')] = hidden_games
 
         # Identify dynamic collections (have filterSpec)
         dynamic_collections = set()

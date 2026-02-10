@@ -355,53 +355,110 @@ class GameManager:
 
     def merge_with_localconfig(self, parser) -> None:
         """
-        Merges categories and hidden status from localconfig.vdf into loaded games.
+        Merges categories and hidden status from parser into loaded games.
 
-        This method takes a LocalConfigParser instance and applies category
-        assignments and hidden status to the games in memory. It also adds
-        games that exist in localconfig but weren't loaded from other sources.
+        For cloud_storage_parser: loads favorites, hidden, and user collections
+        For localconfig_helper: loads only hidden status (old method)
 
         Args:
-            parser: An instance of LocalConfigParser with loaded localconfig.vdf data.
+            parser: An instance of CloudStorageParser or LocalConfigHelper
         """
         print(t('logs.manager.merging'))
-        local_app_ids = set(parser.get_all_app_ids())
+        
+        # Get favorites and hidden from collections (Depressurizer way!)
+        favorites_key = t('ui.categories.favorites')
+        hidden_key = t('ui.categories.hidden')
+        
+        favorites_apps = set()
+        hidden_apps = set()
+        
+        # If using cloud_storage_parser, get favorites/hidden from collections
+        if hasattr(parser, 'collections'):
+            for collection in parser.collections:
+                col_name = collection.get('name', '')
+                col_id = collection.get('id', '')
+                added = collection.get('added', [])
+                
+                # Check if this is favorites collection
+                if col_id == 'favorite' or col_name in ['Favoriten', 'Favorites']:
+                    favorites_apps.update(str(app_id) for app_id in added)
+                
+                # Check if this is hidden collection
+                if col_id == 'hidden' or col_name in ['Versteckt', 'Hidden']:
+                    hidden_apps.update(str(app_id) for app_id in added)
+        
+        # Also check old hidden flag from localconfig (backwards compatibility)
+        if hasattr(parser, 'get_hidden_apps'):
+            old_hidden = set(parser.get_hidden_apps())
+            hidden_apps.update(old_hidden)
 
-        # List of hidden apps
-        hidden_apps = set(parser.get_hidden_apps())
-
-        for app_id in self.games:
+        # Apply to all games
+        for app_id, game in self.games.items():
+            # Set favorites
+            if app_id in favorites_apps:
+                if favorites_key not in game.categories:
+                    game.categories.append(favorites_key)
+            
             # Set hidden status
             if app_id in hidden_apps:
-                self.games[app_id].hidden = True
+                game.hidden = True
+                if hidden_key not in game.categories:
+                    game.categories.append(hidden_key)
 
-            if app_id in local_app_ids:
-                categories = parser.get_app_categories(app_id)
-                self.games[app_id].categories = categories
+            # Apply other categories from parser
+            if hasattr(parser, 'get_app_categories'):
+                try:
+                    other_cats = parser.get_app_categories(app_id)
+                    if other_cats:
+                        for cat in other_cats:
+                            # Skip special categories (already handled above)
+                            if cat not in [favorites_key, hidden_key]:
+                                if cat not in game.categories:
+                                    game.categories.append(cat)
+                except:
+                    pass  # Game not in parser
 
-        api_app_ids = set(self.games.keys())
-        missing_ids = local_app_ids - api_app_ids
+        # Add missing games from parser (if using cloud_storage)
+        if hasattr(parser, 'get_all_app_ids'):
+            try:
+                local_app_ids = set(parser.get_all_app_ids())
+                api_app_ids = set(self.games.keys())
+                missing_ids = local_app_ids - api_app_ids
 
-        if missing_ids:
-            # Add games found in localconfig but not in API/Manifests
-            # ONLY if they have categories assigned!
-            for app_id in missing_ids:
-                categories = parser.get_app_categories(app_id)
+                if missing_ids:
+                    for app_id in missing_ids:
+                        categories = []
+                        
+                        # Check favorites
+                        if app_id in favorites_apps:
+                            categories.append(favorites_key)
+                        
+                        # Check hidden
+                        is_hidden = app_id in hidden_apps
+                        if is_hidden:
+                            categories.append(hidden_key)
+                        
+                        # Get other categories
+                        if hasattr(parser, 'get_app_categories'):
+                            try:
+                                other_cats = parser.get_app_categories(app_id)
+                                if other_cats:
+                                    categories.extend(other_cats)
+                            except:
+                                pass
 
-                # Skip apps without categories (they're just in localconfig but not actually used)
-                if not categories:
-                    continue
+                        # Skip if no categories
+                        if not categories:
+                            continue
 
-                # Use t() for fallback name
-                name = self._get_cached_name(app_id) or t('ui.game_details.game_fallback', id=app_id)
-
-                game = Game(app_id=app_id, name=name)
-                game.categories = categories
-
-                if app_id in hidden_apps:
-                    game.hidden = True
-
-                self.games[app_id] = game
+                        # Create game entry
+                        name = self._get_cached_name(app_id) or t('ui.game_details.game_fallback', id=app_id)
+                        game = Game(app_id=app_id, name=name)
+                        game.categories = categories
+                        game.hidden = is_hidden
+                        self.games[app_id] = game
+            except:
+                pass  # Parser doesn't support get_all_app_ids
 
     def _get_cached_name(self, app_id: str) -> Optional[str]:
         """
@@ -537,13 +594,21 @@ class GameManager:
 
     def get_uncategorized_games(self) -> List[Game]:
         """
-        Gets games that have no category (excluding favorites).
+        Gets games that have no category (Depressurizer-compatible logic).
+        
+        A game is uncategorized if:
+        1. It has NO categories at all, OR
+        2. It has ONLY the Favorites category (favorites is not a "real" category)
 
         Returns:
             List[Game]: A sorted list of uncategorized games.
         """
+        favorites_key = t('ui.categories.favorites')
+        
         games = [g for g in self.get_real_games()
-                 if not g.categories or g.categories == [t('ui.categories.favorites')]]
+                 if not g.categories  # No categories
+                 or (len(g.categories) == 1 and favorites_key in g.categories)]  # Only favorites
+        
         return sorted(games, key=lambda g: g.sort_name.lower())
 
     def get_favorites(self) -> List[Game]:

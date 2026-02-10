@@ -32,12 +32,20 @@ from src.core.backup_manager import BackupManager
 class CloudStorageParser:
     """Parser for Steam's cloud-storage-namespace-1.json collections format."""
 
-    # UI-only categories that should NOT be written to cloud storage
-    # These are managed by the app UI only, not by Steam
-    UI_ONLY_CATEGORIES = {
-        'Unkategorisiert', 'Uncategorized',
-        'Alle Spiele', 'All Games',
-        'Versteckt', 'Hidden',
+    # Virtual UI-only categories that should NEVER be written to cloud storage
+    # These are calculated dynamically by the UI
+    VIRTUAL_CATEGORIES = {
+        'Unkategorisiert', 'Uncategorized',  # Shows games not in any collection
+        'Alle Spiele', 'All Games',          # Shows all games
+    }
+    
+    # Special Steam collections IDs (like Depressurizer does it!)
+    # These ARE saved in cloud-storage with special IDs
+    SPECIAL_COLLECTION_IDS = {
+        'Favoriten': 'favorite',
+        'Favorites': 'favorite',
+        'Versteckt': 'hidden',
+        'Hidden': 'hidden',
     }
 
     def __init__(self, steam_path: str, user_id: str):
@@ -127,24 +135,39 @@ class CloudStorageParser:
                 collection_id = collection.get('id', '')
                 collection_name = collection.get('name', '')
 
-                # CRITICAL FIX 1: Skip UI-only categories!
+                # CRITICAL FIX 1: Skip VIRTUAL categories!
                 # These should never be written to cloud storage
-                if collection_name in self.UI_ONLY_CATEGORIES:
+                if collection_name in self.VIRTUAL_CATEGORIES:
                     continue
+                
+                # CRITICAL FIX 2: Skip EMPTY special collections (favorites/hidden)!
+                # Steam only shows these if they contain games
+                added_apps = collection.get('added', collection.get('apps', []))
+                if collection_name in self.SPECIAL_COLLECTION_IDS and not added_apps:
+                    continue  # Don't save empty favorites/hidden
 
-                # Ensure ID is in correct format
-                if not collection_id.startswith('from-tag-'):
+                # CRITICAL FIX 3: Use correct Steam ID for special collections (like Depressurizer!)
+                # Depressurizer uses "favorite" and "hidden" (not "favorites"!)
+                if collection_name in self.SPECIAL_COLLECTION_IDS:
+                    special_id = self.SPECIAL_COLLECTION_IDS[collection_name]
+                    collection_id = special_id
+                    collection['id'] = special_id
+                    key = f"user-collections.{special_id}"
+                elif not collection_id.startswith('from-tag-') and not collection_id.startswith('uc-'):
+                    # Regular user collection - ensure from-tag- prefix
                     collection_id = f"from-tag-{collection_name}"
                     collection['id'] = collection_id
+                    key = f"user-collections.{collection_id}"
+                else:
+                    # Already has correct ID
+                    key = f"user-collections.{collection_id}"
 
-                key = f"user-collections.{collection_id}"
-
-                # CRITICAL FIX 2: Build value JSON with filterSpec preservation!
+                # CRITICAL FIX 4: Build value JSON with filterSpec preservation!
                 # This keeps dynamic collections dynamic across saves
                 value_data = {
                     'id': collection_id,
                     'name': collection_name,
-                    'added': collection.get('added', collection.get('apps', [])),
+                    'added': added_apps,
                     'removed': collection.get('removed', [])
                 }
 
