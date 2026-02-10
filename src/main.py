@@ -113,7 +113,30 @@ def main() -> None:
         print(f"\n{t('emoji.warning')} {t('logs.main.steam_running_exit')}")
         sys.exit(0)
 
-    # 4. Startup logs
+    # 4. Check if user profile is configured
+    if not config.STEAM_USER_ID:
+        # First-time setup: Show profile selection dialog
+        from src.ui.dialogs.profile_setup_dialog import ProfileSetupDialog
+        
+        print(t('logs.main.profile_setup_required'))
+        
+        dialog = ProfileSetupDialog(steam_path=config.STEAM_PATH)
+        result = dialog.exec()
+        
+        if result == ProfileSetupDialog.DialogCode.Accepted:
+            # User selected an account
+            config.STEAM_USER_ID = str(dialog.selected_steam_id_64)
+            config.save()
+            
+            print(t('logs.main.profile_configured', 
+                   name=dialog.selected_display_name, 
+                   id=dialog.selected_steam_id_64))
+        else:
+            # User cancelled setup
+            print(f"\n{t('logs.main.setup_cancelled')}")
+            sys.exit(0)
+    
+    # 5. Startup logs
     print("=" * 60)
     print(t('app.name'))
     print("=" * 60)
