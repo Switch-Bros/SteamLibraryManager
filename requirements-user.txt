@@ -30,10 +30,12 @@ vdf==3.4
 requests==2.32.3
 # requests-oauthlib für Steam OAuth2-Login
 requests-oauthlib==2.0.0
+qrcode==8.2
 
 # ===== Steam Integration =====
 # Steam-API Bibliothek
 steam==1.4.4
+pysteamauth==1.1.2
 # Stabil und ausreichend
 
 # ===== Web UI (für OAuth-Login) =====

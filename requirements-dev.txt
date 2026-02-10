@@ -42,10 +42,12 @@ lxml==6.0.2
 requests==2.32.3
 # OAuth2 für Steam-Login
 requests-oauthlib==2.0.0
+qrcode==8.2
 
 # ===== Steam Integration =====
 # Steam-API Bibliothek
 steam==1.4.4
+pysteamauth==1.1.2
 
 # ===== Protobuf (für Steam Manifests) =====
 # KRITISCH: Version 3.20.3 für Kompatibilität!
