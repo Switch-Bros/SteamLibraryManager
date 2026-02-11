@@ -132,22 +132,16 @@ class QRCodeLoginThread(QThread):
                 if result.get('access_token'):
                     # SUCCESS! But we need to get the actual SteamID64!
                     access_token = result.get('access_token')
-                    
-                    # DEBUG: Print full response to see what we get
-                    print(f"=== QR LOGIN SUCCESS ===")
-                    print(f"Response keys: {result.keys()}")
-                    print(f"account_name: {result.get('account_name')}")
-                    print(f"steamid: {result.get('steamid')}")
-                    print(f"new_client_id: {result.get('new_client_id')}")
+                    print("QR login challenge approved")
                     
                     # Get SteamID64 using the access token
                     steam_id_64 = self._get_steamid_from_token(access_token)
                     
                     if not steam_id_64:
-                        # Fallback to account_name (but this won't work for persona name)
-                        print("⚠️ Warning: Could not get SteamID64 from token!")
+                        # Fallback to account_name (might not be SteamID64)
+                        print("Warning: Could not resolve SteamID64 from token")
                         steam_id_64 = result.get('account_name', 'unknown')
-                        print(f"Using account_name as fallback: {steam_id_64}")
+                        print("Falling back to account_name")
                     
                     return {
                         'steam_id': steam_id_64,
@@ -405,19 +399,18 @@ class SteamLoginManager(QObject):
                 # Check if steamid is in the response
                 steam_id = data.get('response', {}).get('steamid')
                 if steam_id:
-                    print(f"✅ Got SteamID64 from GetOwnedGames: {steam_id}")
+                    print("SteamID64 resolved from GetOwnedGames")
                     return str(steam_id)
                 
                 # Alternative: If games are returned, we know the token is valid
                 # but steamid might be in different field
                 if 'response' in data:
-                    print(f"⚠️ GetOwnedGames response: {data.get('response', {}).keys()}")
+                    print("Warning: steamid missing in GetOwnedGames response")
             else:
-                print(f"⚠️ GetOwnedGames returned status {response.status_code}")
-                print(f"Response: {response.text[:200]}")
+                print(f"Warning: GetOwnedGames returned status {response.status_code}")
                 
         except Exception as e:
-            print(f"❌ Error getting SteamID from token: {e}")
+            print(f"Error getting SteamID from token: {e}")
         
         return None
     
@@ -444,11 +437,11 @@ class SteamLoginManager(QObject):
                 data = response.json()
                 steam_id = data.get('response', {}).get('steamid')
                 if steam_id:
-                    print(f"✅ Resolved account_name to SteamID64: {steam_id}")
+                    print("account_name resolved to SteamID64")
                     return str(steam_id)
-        
+
         except Exception as e:
-            print(f"❌ Error resolving account_name: {e}")
+            print(f"Error resolving account_name: {e}")
         
         return None
     
