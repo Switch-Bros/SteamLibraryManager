@@ -23,7 +23,8 @@
     "unknown": "Unknown",
     "na": "N/A",
     "exit": "Exit",
-    "confirm_exit": "Do you really want to exit the application?"
+    "confirm_exit": "Do you really want to exit the application?",
+    "continue": "Continue"
   },
   "ui": {
     "main_window": {
@@ -426,13 +427,16 @@
       "username": "Username",
       "password": "Password",
       "sign_in": "Sign In",
+      "logout": "Logout",
       "password_info": "After login, approve the notification on your Steam Mobile App",
       "qr_instructions": "Scan QR code with Steam Mobile App",
       "qr_hint": "Scan QR code with Steam Mobile App...",
+      "status_scan_qr": "Scan QR code with Steam Mobile App...",
       "button": "Login with Steam",
       "status_success": "Login successful!",
       "status_failed": "Login failed",
       "logged_in_as": "Logged in as {user}",
+      "logged_out": "Logged out",
       "error_no_steam_id": "Login failed: No Steam ID received."
     },
     "search": {
@@ -466,6 +470,36 @@
       "image_picker_loading": "Loading images...",
       "empty_collection_title": "Empty Collection",
       "empty_collection_message": "Collection '{name}' is empty!\\nShould the collection be deleted?"
+    },
+    "profile_setup": {
+      "title": "Profile Setup",
+      "header": "Welcome! Please select your Steam account:",
+      "select_from_list": "Select user from list",
+      "scanning": "Scanning Steam accounts...",
+      "no_accounts_found": "No accounts found",
+      "login_with_steam": "Login with Steam",
+      "enter_manually": "Enter SteamID64 manually",
+      "enter_community_url": "Enter Steam Community custom URL",
+      "steamid64_label": "SteamID64:",
+      "select_account_first": "Please select an account from the list",
+      "login_required": "Login Required",
+      "click_steam_login_button": "Please click the 'Login with Steam' button to authenticate",
+      "enter_steamid64": "Please enter your SteamID64",
+      "invalid_steamid64": "Invalid SteamID64. Please enter a valid 17-digit number",
+      "enter_custom_url": "Please enter your Steam Community custom URL",
+      "custom_url_not_found": "Could not find Steam account with this custom URL"
+
+    },
+    "steam_running": {
+      "title": "Steam is Running",
+      "warning_title": "Steam must be closed to save changes",
+      "explanation": "Steam overwrites collection files when it exits, which would lose your changes.",
+      "info": "To save your categories safely:\n1. Close Steam completely\n2. Save your changes\n3. Restart Steam to see the updated categories",
+      "close_and_save": "Close Steam & Save",
+      "confirm_title": "Confirm Close Steam",
+      "confirm_message": "This will forcefully close Steam. Any unsaved game progress may be lost.\n\nContinue?",
+      "steam_closed": "Steam has been closed. Your changes will now be saved.",
+      "close_failed": "Failed to close Steam. Please close it manually and try again."
     },
     "tools": {
       "missing_metadata": {
@@ -540,7 +574,10 @@
       "steam_not_found": "Steam installation not found",
       "steam_running_exit": "Steam is running - exiting application",
       "psutil_missing": "Warning: psutil not installed, skipping Steam check",
-      "file_load_error": "Error loading file {file}: {error}"
+      "file_load_error": "Error loading file {file}: {error}",
+      "profile_setup_required": "No user profile configured. Starting setup...",
+      "profile_configured": "Profile configured: {name} (SteamID64: {id})",
+      "setup_cancelled": "Profile setup cancelled. Exiting application."
     },
     "config": {
       "loaded": "Settings loaded",
