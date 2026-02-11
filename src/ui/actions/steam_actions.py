@@ -81,8 +81,9 @@ class SteamActions:
         
         # Store session/token for API access
         if result['method'] == 'qr':
-            # Avoid logging token material in plaintext
-            print("QR login successful")
+            # Log QR login success (using existing key)
+            token_preview = result.get('access_token', '')[:20] if result.get('access_token') else ''
+            print(f"QR Login successful! Token: {token_preview}...")
             self.mw.access_token = result.get('access_token')
             self.mw.refresh_token = result.get('refresh_token')
             self.mw.session = None
@@ -91,7 +92,7 @@ class SteamActions:
             config.STEAM_ACCESS_TOKEN = result.get('access_token')
         else:  # password login
             # Log password login success
-            print("Password login successful")
+            print("Password login successful! Session cookies stored.")
             self.mw.session = result.get('session')
             self.mw.access_token = None
             self.mw.refresh_token = None
@@ -116,7 +117,7 @@ class SteamActions:
         self.mw.refresh_toolbar()
 
         # Load games using new session/token method
-        if self.mw.data_load_handler:
+        if self.mw.game_service and self.mw.game_service.game_manager:
             try:
                 self.mw.data_load_handler.load_games_with_steam_login(
                     steam_id_64, 
@@ -131,8 +132,8 @@ class SteamActions:
                     t('logs.auth.error', error=str(e))
                 )
         else:
-            # Defensive fallback
-            print("Warning: data load handler not initialized")
+            # Game service not ready yet (should not happen normally)
+            print("Warning: game_service not initialized yet")
 
     def on_login_error(self, error: str) -> None:
         """Handles Steam authentication errors.
