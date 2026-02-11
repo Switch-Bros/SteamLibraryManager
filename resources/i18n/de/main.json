@@ -23,7 +23,8 @@
     "unknown": "Unbekannt",
     "na": "N/A",
     "exit": "Beenden",
-    "confirm_exit": "Möchten Sie die Anwendung wirklich beenden?"
+    "confirm_exit": "Möchten Sie die Anwendung wirklich beenden?",
+    "continue": "Weiter"
   },
   "ui": {
     "main_window": {
@@ -426,13 +427,16 @@
       "username": "Benutzername",
       "password": "Passwort",
       "sign_in": "Anmelden",
+      "logout": "Abmelden",
       "password_info": "Nach dem Login, bestätige die Benachrichtigung in deiner Steam Mobile App",
       "qr_instructions": "Scanne QR Code mit der Steam Mobile App",
       "qr_hint": "Scanne QR Code mit der Steam Mobile App...",
+      "status_scan_qr": "Scanne den QR-Code mit der Steam Mobile App...",
       "button": "Mit Steam anmelden",
       "status_success": "Login erfolgreich!",
       "status_failed": "Login fehlgeschlagen",
       "logged_in_as": "Angemeldet als {user}",
+      "logged_out": "Abgemeldet",
       "error_no_steam_id": "Anmeldung fehlgeschlagen: Keine Steam ID erhalten."
     },
     "search": {
@@ -466,6 +470,35 @@
       "image_picker_loading": "Lade Bilder...",
       "empty_collection_title": "Leere Kollektion",
       "empty_collection_message": "Kollektion '{name}' ist leer!\\nSoll die Kollektion gelöscht werden?"
+    },
+    "profile_setup": {
+      "title": "Profil Einrichtung",
+      "header": "Willkommen! Bitte wähle dein Steam Konto:",
+      "select_from_list": "Benutzer aus Liste wählen",
+      "scanning": "Scanne Steam Konten...",
+      "no_accounts_found": "Keine Konten gefunden",
+      "login_with_steam": "Mit Steam anmelden",
+      "enter_manually": "SteamID64 manuell eingeben",
+      "enter_community_url": "Steam Community Custom URL eingeben",
+      "steamid64_label": "SteamID64:",
+      "select_account_first": "Bitte wähle ein Konto aus der Liste",
+      "login_required": "Anmeldung erforderlich",
+      "click_steam_login_button": "Bitte klicke auf 'Mit Steam anmelden' um dich zu authentifizieren",
+      "enter_steamid64": "Bitte gib deine SteamID64 ein",
+      "invalid_steamid64": "Ungültige SteamID64. Bitte gib eine gültige 17-stellige Zahl ein",
+      "enter_custom_url": "Bitte gib deine Steam Community Custom URL ein",
+      "custom_url_not_found": "Konnte kein Steam Konto mit dieser Custom URL finden"
+    },
+    "steam_running": {
+      "title": "Steam läuft",
+      "warning_title": "Steam muss geschlossen sein um Änderungen zu speichern",
+      "explanation": "Steam überschreibt die Kollektions-Dateien beim Beenden, wodurch deine Änderungen verloren gehen würden.",
+      "info": "Um deine Kategorien sicher zu speichern:\n1. Schließe Steam komplett\n2. Speichere deine Änderungen\n3. Starte Steam neu um die aktualisierten Kategorien zu sehen",
+      "close_and_save": "Steam schließen & Speichern",
+      "confirm_title": "Steam schließen bestätigen",
+      "confirm_message": "Dies wird Steam zwangsweise beenden. Jeglicher nicht gespeicherte Spielfortschritt kann verloren gehen.\n\nFortfahren?",
+      "steam_closed": "Steam wurde geschlossen. Deine Änderungen werden jetzt gespeichert.",
+      "close_failed": "Konnte Steam nicht schließen. Bitte schließe es manuell und versuche es erneut."
     },
     "tools": {
       "missing_metadata": {
@@ -540,7 +573,10 @@
       "steam_not_found": "Steam-Installation nicht gefunden",
       "steam_running_exit": "Steam läuft - Anwendung wird beendet",
       "psutil_missing": "Warnung: psutil nicht installiert",
-      "file_load_error": "Fehler beim Laden der Datei {file}: {error}"
+      "file_load_error": "Fehler beim Laden der Datei {file}: {error}",
+      "profile_setup_required": "Kein Benutzerprofil konfiguriert. Starte Einrichtung...",
+      "profile_configured": "Profil konfiguriert: {name} (SteamID64: {id})",
+      "setup_cancelled": "Profil-Einrichtung abgebrochen. Beende Anwendung."
     },
     "config": {
       "loaded": "Einstellungen geladen",

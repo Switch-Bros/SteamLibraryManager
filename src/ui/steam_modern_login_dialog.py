@@ -341,7 +341,7 @@ class ModernSteamLoginDialog(QDialog):
                 version=1,
                 error_correction=qrcode.constants.ERROR_CORRECT_H,  # HIGH = 30% can be damaged
                 box_size=15,  # Bigger box = higher resolution (was 10)
-                border=2,  # Smaller border for better use of space
+                border=4,  # Smaller border for better use of space
             )
             qr.add_data(challenge_url)
             qr.make(fit=True)
@@ -353,7 +353,7 @@ class ModernSteamLoginDialog(QDialog):
             try:
                 # Calculate center position for logo
                 img_width, img_height = img.size
-                logo_size = img_width // 5  # Logo is 20% of QR code size
+                logo_size = img_width // 6  # Logo is 20% of QR code size
                 logo_pos = ((img_width - logo_size) // 2, (img_height - logo_size) // 2)
 
                 # Create logo: white rounded square with "SLM" text
@@ -365,7 +365,7 @@ class ModernSteamLoginDialog(QDialog):
 
                 # Try to use a font, fallback to default if not available
                 try:
-                    font_size = logo_size // 3
+                    font_size = int(logo_size * 0.45)
                     font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
                 except (OSError, IOError):
                     font = ImageFont.load_default()
@@ -376,8 +376,11 @@ class ModernSteamLoginDialog(QDialog):
                 bbox = draw.textbbox((0, 0), text, font=font)
                 text_width = bbox[2] - bbox[0]
                 text_height = bbox[3] - bbox[1]
-                text_pos = ((logo_size - text_width) // 2, (logo_size - text_height) // 2)
-                draw.text(text_pos, text, fill='black', font=font)
+
+                # Center text with slight vertical adjustment for better balance
+                text_x = (logo_size - text_width) // 2
+                text_y = (logo_size - text_height) // 2 - 2  # Slight upward shift
+                draw.text((text_x, text_y), text, fill='black', font=font)
 
                 # Paste logo onto QR code
                 img.paste(logo, logo_pos)
