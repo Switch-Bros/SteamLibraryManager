@@ -23,8 +23,7 @@
     "unknown": "Unknown",
     "na": "N/A",
     "exit": "Exit",
-    "confirm_exit": "Do you really want to exit the application?",
-    "continue": "Continue"
+    "confirm_exit": "Do you really want to exit the application?"
   },
   "ui": {
     "main_window": {
@@ -434,21 +433,7 @@
       "status_success": "Login successful!",
       "status_failed": "Login failed",
       "logged_in_as": "Logged in as {user}",
-      "error_no_steam_id": "Login failed: No Steam ID received.",
-      "status_starting_auth": "Starting Steam authentication...",
-      "status_scan_qr": "Scan QR code with Steam Mobile App...",
-      "status_waiting_approval": "QR code scanned! Waiting for approval...",
-      "status_check_mobile": "Check your Steam Mobile App for approval!",
-      "status_starting_qr": "Starting QR code login...",
-      "status_logging_in": "Logging in...",
-      "status_qr_success": "QR login successful!",
-      "error_start_qr_session": "Failed to start QR session!",
-      "error_timeout_cancelled": "Login timeout or canceled!",
-      "error_qr_failed": "QR login failed: {error}",
-      "error_login_failed": "Login failed: {error}",
-      "error_mobile_timeout": "Mobile approval timeout or denied!",
-      "error_no_session_ids": "Could not get session IDs!",
-      "error_login_generic": "Login error: {error}"
+      "error_no_steam_id": "Login failed: No Steam ID received."
     },
     "search": {
       "results_category": "Search Results ({count})",
@@ -481,35 +466,6 @@
       "image_picker_loading": "Loading images...",
       "empty_collection_title": "Empty Collection",
       "empty_collection_message": "Collection '{name}' is empty!\\nShould the collection be deleted?"
-    },
-    "profile_setup": {
-      "title": "Profile Setup",
-      "header": "Welcome! Please select your Steam account:",
-      "select_from_list": "Select user from list",
-      "scanning": "Scanning Steam accounts...",
-      "no_accounts_found": "No accounts found",
-      "login_with_steam": "Login with Steam",
-      "enter_manually": "Enter SteamID64 manually",
-      "enter_community_url": "Enter Steam Community custom URL",
-      "steamid64_label": "SteamID64:",
-      "select_account_first": "Please select an account from the list",
-      "login_required": "Login Required",
-      "click_steam_login_button": "Please click the 'Login with Steam' button to authenticate",
-      "enter_steamid64": "Please enter your SteamID64",
-      "invalid_steamid64": "Invalid SteamID64. Please enter a valid 17-digit number",
-      "enter_custom_url": "Please enter your Steam Community custom URL",
-      "custom_url_not_found": "Could not find Steam account with this custom URL"
-    },
-    "steam_running": {
-      "title": "Steam is Running",
-      "warning_title": "Steam must be closed to save changes",
-      "explanation": "Steam overwrites collection files when it exits, which would lose your changes.",
-      "info": "To save your categories safely:\n1. Close Steam completely\n2. Save your changes\n3. Restart Steam to see the updated categories",
-      "close_and_save": "Close Steam & Save",
-      "confirm_title": "Confirm Close Steam",
-      "confirm_message": "This will forcefully close Steam. Any unsaved game progress may be lost.\n\nContinue?",
-      "steam_closed": "Steam has been closed. Your changes will now be saved.",
-      "close_failed": "Failed to close Steam. Please close it manually and try again."
     },
     "tools": {
       "missing_metadata": {
@@ -575,35 +531,6 @@
       "humor": "Humor",
       "epilepsy": "Epilepsy",
       "animated": "GIF"
-    },
-    "profile_setup": {
-      "title": "Profile Setup",
-      "header": "Welcome! Please select your Steam account:",
-      "select_from_list": "Select user from list",
-      "scanning": "Scanning Steam accounts...",
-      "no_accounts_found": "No accounts found",
-      "login_with_steam": "Login with Steam",
-      "enter_manually": "Enter SteamID64 manually",
-      "enter_community_url": "Enter Steam Community custom URL",
-      "steamid64_label": "SteamID64:",
-      "select_account_first": "Please select an account from the list",
-      "login_required": "Login Required",
-      "click_steam_login_button": "Please click the 'Login with Steam' button to authenticate",
-      "enter_steamid64": "Please enter your SteamID64",
-      "invalid_steamid64": "Invalid SteamID64. Please enter a valid 17-digit number",
-      "enter_custom_url": "Please enter your Steam Community custom URL",
-      "custom_url_not_found": "Could not find Steam account with this custom URL"
-    },
-    "steam_running": {
-      "title": "Steam is Running",
-      "warning_title": "Steam must be closed to save changes",
-      "explanation": "Steam overwrites collection files when it exits, which would lose your changes.",
-      "info": "To save your categories safely:\n1. Close Steam completely\n2. Save your changes\n3. Restart Steam to see the updated categories",
-      "close_and_save": "Close Steam & Save",
-      "confirm_title": "Confirm Close Steam",
-      "confirm_message": "This will forcefully close Steam. Any unsaved game progress may be lost.\n\nContinue?",
-      "steam_closed": "Steam has been closed. Your changes will now be saved.",
-      "close_failed": "Failed to close Steam. Please close it manually and try again."
     }
   },
   "logs": {
@@ -613,10 +540,7 @@
       "steam_not_found": "Steam installation not found",
       "steam_running_exit": "Steam is running - exiting application",
       "psutil_missing": "Warning: psutil not installed, skipping Steam check",
-      "file_load_error": "Error loading file {file}: {error}",
-      "profile_setup_required": "No user profile configured. Starting setup...",
-      "profile_configured": "Profile configured: {name} (SteamID64: {id})",
-      "setup_cancelled": "Profile setup cancelled. Exiting application."
+      "file_load_error": "Error loading file {file}: {error}"
     },
     "config": {
       "loaded": "Settings loaded",
@@ -638,24 +562,7 @@
       "starting": "Starting Steam OAuth process...",
       "login_success": "Login Success! SteamID: {id}",
       "error": "Auth Error: {error}",
-      "profile_error": "Error loading profile name: {error}",
-      "qr_challenge_approved": "QR login challenge approved.",
-      "could_not_resolve_steamid": "Warning: Could not resolve SteamID64 from token.",
-      "fallback_account_name": "Falling back to account_name.",
-      "steamid_resolved": "SteamID64 resolved from GetOwnedGames.",
-      "steamid_missing": "Warning: steamid missing in GetOwnedGames response.",
-      "get_owned_games_status": "Warning: GetOwnedGames returned status {status}.",
-      "steamid_from_token_error": "Error getting SteamID from token: {error}",
-      "account_name_resolved": "account_name resolved to SteamID64.",
-      "account_name_resolve_error": "Error resolving account_name: {error}",
-      "qr_login_success": "QR login successful.",
-      "password_login_success": "Password login successful.",
-      "load_games_error": "Error loading games: {error}",
-      "data_load_handler_missing": "Warning: data load handler not initialized.",
-      "loading_games_after_login": "Loading games after Steam login.",
-      "auth_mode_token": "Using access token authentication.",
-      "auth_mode_session": "Using session cookie authentication.",
-      "unexpected_profile_error": "Unexpected error fetching Steam persona name: {error}"
+      "profile_error": "Error loading profile name: {error}"
     },
     "steam_store": {
       "fetch_error": "Store error for app {app_id}: {error}"
