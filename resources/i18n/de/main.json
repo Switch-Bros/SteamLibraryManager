@@ -487,7 +487,8 @@
       "enter_steamid64": "Bitte gib deine SteamID64 ein",
       "invalid_steamid64": "Ungültige SteamID64. Bitte gib eine gültige 17-stellige Zahl ein",
       "enter_custom_url": "Bitte gib deine Steam Community Custom URL ein",
-      "custom_url_not_found": "Konnte kein Steam Konto mit dieser Custom URL finden"
+      "custom_url_not_found": "Konnte kein Steam Konto mit dieser Custom URL finden",
+      "community_placeholder": "DeinSteamBenutzername"
     },
     "steam_running": {
       "title": "Steam läuft",
@@ -663,6 +664,25 @@
       "backup_failed": "Backup-Erstellung fehlgeschlagen - Abbruch zur Sicherheit",
       "success": "Erfolgreich {count} Spiele nach {path} übertragen (Strategie: {strategy})",
       "save_error": "Fehler beim Speichern der Zieldatei"
+    },
+    "scanner": {
+      "warning_fetch_name": "Warnung: Konnte Display-Namen für {steam_id} nicht abrufen: {error}",
+      "error_fetch_name": "Unerwarteter Fehler beim Abrufen des Steam Display-Namens: {error}",
+      "warning_no_userdata": "Warnung: userdata-Verzeichnis nicht gefunden: {path}",
+      "scanning_accounts": "Scanne Steam Konten in: {path}",
+      "found_account": "Konto gefunden: {account_id} → SteamID64: {steam_id}",
+      "display_name_found": "  → Display-Name: {name}",
+      "warning_invalid_dir": "Warnung: Ungültiger Konto-Verzeichnisname: {name}",
+      "error_processing": "Fehler beim Verarbeiten von Konto {name}: {error}",
+      "total_found": "Insgesamt {count} Konten gefunden",
+      "warning_no_psutil": "Warnung: psutil nicht installiert, Steam-Check nicht möglich",
+      "error_check_steam": "Fehler beim Prüfen ob Steam läuft: {error}",
+      "killing_steam": "Beende Steam Prozess (PID: {pid})",
+      "steam_closed": "Steam erfolgreich geschlossen",
+      "steam_still_running": "Steam Prozess läuft noch nach Kill-Versuch",
+      "no_steam_process": "Kein Steam Prozess zum Beenden gefunden",
+      "error_no_psutil_kill": "Fehler: psutil nicht installiert, kann Steam nicht beenden",
+      "error_kill_steam": "Fehler beim Beenden von Steam: {error}"
     }
   }
 }

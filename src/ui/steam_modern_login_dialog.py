@@ -12,6 +12,7 @@ Features:
 - Beautiful modern design
 """
 
+from typing import Optional
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QLineEdit, QFrame, QWidget, QMessageBox,
@@ -33,12 +34,16 @@ class ModernSteamLoginDialog(QDialog):
     """
 
     login_success = pyqtSignal(dict)
+    steam_id_64: Optional[str]
+    display_name: Optional[str]
 
     def __init__(self, parent=None):
         """Initialize the dialog."""
         super().__init__(parent)
 
         self.login_manager = SteamLoginManager()
+        self.steam_id_64 = None
+        self.display_name = None
 
         self._setup_ui()
         self._connect_signals()
@@ -305,6 +310,8 @@ class ModernSteamLoginDialog(QDialog):
         """Handle successful login."""
         self.hide_progress()
         self.on_status_update(t('ui.login.success'))
+        self.steam_id_64 = result.get('steam_id') or result.get('steamid')
+        self.display_name = result.get('account_name')
         self.login_success.emit(result)
         self.accept()
 
