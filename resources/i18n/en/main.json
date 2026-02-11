@@ -487,8 +487,8 @@
       "enter_steamid64": "Please enter your SteamID64",
       "invalid_steamid64": "Invalid SteamID64. Please enter a valid 17-digit number",
       "enter_custom_url": "Please enter your Steam Community custom URL",
-      "custom_url_not_found": "Could not find Steam account with this custom URL"
-
+      "custom_url_not_found": "Could not find Steam account with this custom URL",
+      "community_placeholder": "YourSteamUsername"
     },
     "steam_running": {
       "title": "Steam is Running",
@@ -664,6 +664,25 @@
       "backup_failed": "Backup creation failed - aborting for safety",
       "success": "Successfully merged {count} games to {path} (Strategy: {strategy})",
       "save_error": "Error saving target file"
+    },
+    "scanner": {
+      "warning_fetch_name": "Warning: Could not fetch display name for {steam_id}: {error}",
+      "error_fetch_name": "Unexpected error fetching Steam display name: {error}",
+      "warning_no_userdata": "Warning: userdata directory not found: {path}",
+      "scanning_accounts": "Scanning Steam accounts in: {path}",
+      "found_account": "Found account: {account_id} → SteamID64: {steam_id}",
+      "display_name_found": "  → Display name: {name}",
+      "warning_invalid_dir": "Warning: Invalid account directory name: {name}",
+      "error_processing": "Error processing account {name}: {error}",
+      "total_found": "Total accounts found: {count}",
+      "warning_no_psutil": "Warning: psutil not installed, cannot check if Steam is running",
+      "error_check_steam": "Error checking if Steam is running: {error}",
+      "killing_steam": "Killing Steam process (PID: {pid})",
+      "steam_closed": "Steam successfully closed",
+      "steam_still_running": "Steam process still running after kill attempt",
+      "no_steam_process": "No Steam process found to kill",
+      "error_no_psutil_kill": "Error: psutil not installed, cannot kill Steam process",
+      "error_kill_steam": "Error killing Steam process: {error}"
     }
   }
 }

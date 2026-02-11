@@ -73,6 +73,8 @@ Overwrite files (use diffs with context).
 📝 DOCUMENTATION:
 
 Google-style docstrings for all modules/classes/methods.
+🚫 NO "Example:" section in docstrings! Code examples inside docstrings only confuse Python tools and formatters.
+Allowed structure: Description → Args: → Returns: (and optionally Raises:). Nothing more.
 Comments only for "why", not "what".
 Type hints for every variable/function.
 
