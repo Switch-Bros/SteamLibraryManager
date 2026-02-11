@@ -433,7 +433,21 @@
       "status_success": "Login successful!",
       "status_failed": "Login failed",
       "logged_in_as": "Logged in as {user}",
-      "error_no_steam_id": "Login failed: No Steam ID received."
+      "error_no_steam_id": "Login failed: No Steam ID received.",
+      "status_starting_auth": "Starting Steam authentication...",
+      "status_scan_qr": "Scan QR code with Steam Mobile App...",
+      "status_waiting_approval": "QR code scanned! Waiting for approval...",
+      "status_check_mobile": "Check your Steam Mobile App for approval!",
+      "status_starting_qr": "Starting QR code login...",
+      "status_logging_in": "Logging in...",
+      "status_qr_success": "QR login successful!",
+      "error_start_qr_session": "Failed to start QR session!",
+      "error_timeout_cancelled": "Login timeout or canceled!",
+      "error_qr_failed": "QR login failed: {error}",
+      "error_login_failed": "Login failed: {error}",
+      "error_mobile_timeout": "Mobile approval timeout or denied!",
+      "error_no_session_ids": "Could not get session IDs!",
+      "error_login_generic": "Login error: {error}"
     },
     "search": {
       "results_category": "Search Results ({count})",
@@ -562,7 +576,24 @@
       "starting": "Starting Steam OAuth process...",
       "login_success": "Login Success! SteamID: {id}",
       "error": "Auth Error: {error}",
-      "profile_error": "Error loading profile name: {error}"
+      "profile_error": "Error loading profile name: {error}",
+      "qr_challenge_approved": "QR login challenge approved.",
+      "could_not_resolve_steamid": "Warning: Could not resolve SteamID64 from token.",
+      "fallback_account_name": "Falling back to account_name.",
+      "steamid_resolved": "SteamID64 resolved from GetOwnedGames.",
+      "steamid_missing": "Warning: steamid missing in GetOwnedGames response.",
+      "get_owned_games_status": "Warning: GetOwnedGames returned status {status}.",
+      "steamid_from_token_error": "Error getting SteamID from token: {error}",
+      "account_name_resolved": "account_name resolved to SteamID64.",
+      "account_name_resolve_error": "Error resolving account_name: {error}",
+      "qr_login_success": "QR login successful.",
+      "password_login_success": "Password login successful.",
+      "load_games_error": "Error loading games: {error}",
+      "data_load_handler_missing": "Warning: data load handler not initialized.",
+      "loading_games_after_login": "Loading games after Steam login.",
+      "auth_mode_token": "Using access token authentication.",
+      "auth_mode_session": "Using session cookie authentication.",
+      "unexpected_profile_error": "Unexpected error fetching Steam persona name: {error}"
     },
     "steam_store": {
       "fetch_error": "Store error for app {app_id}: {error}"

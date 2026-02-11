@@ -139,13 +139,13 @@ class DataLoadHandler:
             steam_id: The Steam ID64 of the authenticated user
             session_or_token: Either a requests.Session or access_token string
         """
-        print(f"🎮 Loading games for SteamID: {steam_id}")
+        print(t("logs.auth.loading_games_after_login"))
         
         # Store session/token for API access
         if isinstance(session_or_token, str):
-            print(f"Using access token: {session_or_token[:20]}...")
+            print(t("logs.auth.auth_mode_token"))
         else:
-            print(f"Using session cookies")
+            print(t("logs.auth.auth_mode_session"))
         
         # Simply reload games with the user_id
         # The GameLoadWorker will use the session/token if available
@@ -252,6 +252,6 @@ class DataLoadHandler:
             from src.utils.i18n import t
             print(t('logs.auth.profile_error', error=str(e)))
         except Exception as e:
-            print(f"Unexpected error fetching Steam persona name: {e}")
+            print(t("logs.auth.unexpected_profile_error", error=str(e)))
 
         return steam_id

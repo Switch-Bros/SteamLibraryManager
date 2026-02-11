@@ -14,6 +14,8 @@ from typing import Optional, Dict
 import requests
 from PyQt6.QtCore import QObject, pyqtSignal, QThread
 
+from src.utils.i18n import t
+
 try:
     import steam.webauth as wa
     WEBAUTH_AVAILABLE = True
@@ -46,19 +48,19 @@ class QRCodeLoginThread(QThread):
     def run(self):
         """Execute QR code login with CORRECT API."""
         try:
-            self.polling_update.emit("Starting Steam authentication...")
+            self.polling_update.emit(t("ui.login.status_starting_auth"))
             
             # Step 1: Start auth session
             client_id, request_id, challenge_url, interval = self._start_qr_session()
             
             if not challenge_url:
-                self.login_error.emit("Failed to start QR session!")
+                self.login_error.emit(t("ui.login.error_start_qr_session"))
                 return
             
             # Step 2: Emit REAL challenge URL (no qrserver!)
             self.qr_ready.emit(challenge_url)  # THIS IS THE REAL URL!
             
-            self.polling_update.emit("Scan QR code with Steam Mobile App...")
+            self.polling_update.emit(t("ui.login.status_scan_qr"))
             
             # Step 3: Poll for completion
             result = self._poll_for_completion(client_id, request_id, interval or 5.0, timeout=300.0)
@@ -67,10 +69,10 @@ class QRCodeLoginThread(QThread):
                 self.login_success.emit(result)
             else:
                 if not self._stop_requested:
-                    self.login_error.emit("Login timeout or canceled!")
+                    self.login_error.emit(t("ui.login.error_timeout_cancelled"))
         
         except Exception as e:
-            self.login_error.emit(f"QR login failed: {str(e)}")
+            self.login_error.emit(t("ui.login.error_qr_failed", error=str(e)))
     
     def stop(self):
         """Stop polling."""
@@ -127,27 +129,21 @@ class QRCodeLoginThread(QThread):
                 result = response.json().get('response', {})
                 
                 if result.get('had_remote_interaction'):
-                    self.polling_update.emit("QR code scanned! Waiting for approval...")
+                    self.polling_update.emit(t("ui.login.status_waiting_approval"))
                 
                 if result.get('access_token'):
                     # SUCCESS! But we need to get the actual SteamID64!
                     access_token = result.get('access_token')
-                    
-                    # DEBUG: Print full response to see what we get
-                    print(f"=== QR LOGIN SUCCESS ===")
-                    print(f"Response keys: {result.keys()}")
-                    print(f"account_name: {result.get('account_name')}")
-                    print(f"steamid: {result.get('steamid')}")
-                    print(f"new_client_id: {result.get('new_client_id')}")
+                    print(t("logs.auth.qr_challenge_approved"))
                     
                     # Get SteamID64 using the access token
                     steam_id_64 = self._get_steamid_from_token(access_token)
                     
                     if not steam_id_64:
-                        # Fallback to account_name (but this won't work for persona name)
-                        print("⚠️ Warning: Could not get SteamID64 from token!")
+                        # Fallback to account_name (might not be SteamID64)
+                        print(t("logs.auth.could_not_resolve_steamid"))
                         steam_id_64 = result.get('account_name', 'unknown')
-                        print(f"Using account_name as fallback: {steam_id_64}")
+                        print(t("logs.auth.fallback_account_name"))
                     
                     return {
                         'steam_id': steam_id_64,
@@ -189,7 +185,7 @@ class UsernamePasswordLoginThread(QThread):
             self._login_with_credentials()
         
         except Exception as e:
-            self.login_error.emit(f"Login failed: {str(e)}")
+            self.login_error.emit(t("ui.login.error_login_failed", error=str(e)))
     
     def _login_with_credentials(self):
         """
@@ -219,7 +215,7 @@ class UsernamePasswordLoginThread(QThread):
             
             if any(c.get('confirmation_type') == 3 for c in allowed_confirmations):
                 # Type 3 = Device confirmation (Push Notification!)
-                self.waiting_for_approval.emit("Check your Steam Mobile App for approval!")
+                self.waiting_for_approval.emit(t("ui.login.status_check_mobile"))
                 
                 # Poll for approval
                 client_id = result.get('client_id')
@@ -230,9 +226,9 @@ class UsernamePasswordLoginThread(QThread):
                     if final_result:
                         self.login_success.emit(final_result)
                     else:
-                        self.login_error.emit("Mobile approval timeout or denied!")
+                        self.login_error.emit(t("ui.login.error_mobile_timeout"))
                 else:
-                    self.login_error.emit("Could not get session IDs!")
+                    self.login_error.emit(t("ui.login.error_no_session_ids"))
             else:
                 # Direct success (no 2FA)
                 self.login_success.emit({
@@ -243,7 +239,7 @@ class UsernamePasswordLoginThread(QThread):
                 })
         
         except (requests.RequestException, ValueError, KeyError) as e:
-            self.login_error.emit(f"Login error: {str(e)}")
+            self.login_error.emit(t("ui.login.error_login_generic", error=str(e)))
     
     def _poll_for_credentials_approval(self, client_id: str, request_id: str) -> Optional[Dict]:
         """Poll for mobile approval."""
@@ -321,7 +317,7 @@ class SteamLoginManager(QObject):
     
     def start_qr_login(self, device_name: str = "SteamLibraryManager"):
         """Start QR code login."""
-        self.status_update.emit("Starting QR code login...")
+        self.status_update.emit(t("ui.login.status_starting_qr"))
         
         self.qr_thread = QRCodeLoginThread(device_name)
         # noinspection PyUnresolvedReferences
@@ -336,7 +332,7 @@ class SteamLoginManager(QObject):
     
     def start_password_login(self, username: str, password: str):
         """Start username/password login with Push Notifications."""
-        self.status_update.emit("Logging in...")
+        self.status_update.emit(t("ui.login.status_logging_in"))
         
         self.pwd_thread = UsernamePasswordLoginThread(username, password)
         # noinspection PyUnresolvedReferences
@@ -359,7 +355,7 @@ class SteamLoginManager(QObject):
     
     def _on_qr_success(self, result: Dict):
         """Handle QR success."""
-        self.status_update.emit("QR login successful!")
+        self.status_update.emit(t("ui.login.status_qr_success"))
         self.login_success.emit({
             'method': 'qr',
             'steam_id': result['steam_id'],
@@ -370,7 +366,7 @@ class SteamLoginManager(QObject):
     
     def _on_pwd_success(self, result: Dict):
         """Handle password success."""
-        self.status_update.emit("Login successful!")
+        self.status_update.emit(t("ui.login.status_success"))
         self.login_success.emit(result)
     
     @staticmethod
@@ -405,19 +401,18 @@ class SteamLoginManager(QObject):
                 # Check if steamid is in the response
                 steam_id = data.get('response', {}).get('steamid')
                 if steam_id:
-                    print(f"✅ Got SteamID64 from GetOwnedGames: {steam_id}")
+                    print(t("logs.auth.steamid_resolved"))
                     return str(steam_id)
                 
                 # Alternative: If games are returned, we know the token is valid
                 # but steamid might be in different field
                 if 'response' in data:
-                    print(f"⚠️ GetOwnedGames response: {data.get('response', {}).keys()}")
+                    print(t("logs.auth.steamid_missing"))
             else:
-                print(f"⚠️ GetOwnedGames returned status {response.status_code}")
-                print(f"Response: {response.text[:200]}")
+                print(t("logs.auth.get_owned_games_status", status=response.status_code))
                 
         except Exception as e:
-            print(f"❌ Error getting SteamID from token: {e}")
+            print(t("logs.auth.steamid_from_token_error", error=str(e)))
         
         return None
     
@@ -444,11 +439,11 @@ class SteamLoginManager(QObject):
                 data = response.json()
                 steam_id = data.get('response', {}).get('steamid')
                 if steam_id:
-                    print(f"✅ Resolved account_name to SteamID64: {steam_id}")
+                    print(t("logs.auth.account_name_resolved"))
                     return str(steam_id)
-        
+
         except Exception as e:
-            print(f"❌ Error resolving account_name: {e}")
+            print(t("logs.auth.account_name_resolve_error", error=str(e)))
         
         return None
     
