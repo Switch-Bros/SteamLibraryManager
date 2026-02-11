@@ -434,7 +434,21 @@
       "status_success": "Login erfolgreich!",
       "status_failed": "Login fehlgeschlagen",
       "logged_in_as": "Angemeldet als {user}",
-      "error_no_steam_id": "Anmeldung fehlgeschlagen: Keine Steam ID erhalten."
+      "error_no_steam_id": "Anmeldung fehlgeschlagen: Keine Steam ID erhalten.",
+      "status_starting_auth": "Steam-Authentifizierung wird gestartet...",
+      "status_scan_qr": "Scanne den QR-Code mit der Steam Mobile App...",
+      "status_waiting_approval": "QR-Code gescannt! Warte auf Bestätigung...",
+      "status_check_mobile": "Bitte bestätige die Anmeldung in der Steam Mobile App!",
+      "status_starting_qr": "QR-Code-Login wird gestartet...",
+      "status_logging_in": "Anmeldung läuft...",
+      "status_qr_success": "QR-Login erfolgreich!",
+      "error_start_qr_session": "QR-Session konnte nicht gestartet werden!",
+      "error_timeout_cancelled": "Login-Timeout oder abgebrochen!",
+      "error_qr_failed": "QR-Login fehlgeschlagen: {error}",
+      "error_login_failed": "Login fehlgeschlagen: {error}",
+      "error_mobile_timeout": "Mobile-Bestätigung abgelaufen oder abgelehnt!",
+      "error_no_session_ids": "Session-IDs konnten nicht ermittelt werden!",
+      "error_login_generic": "Login-Fehler: {error}"
     },
     "search": {
       "results_category": "Suchergebnisse ({count})",
@@ -624,7 +638,24 @@
       "starting": "Starte Steam OAuth Prozess...",
       "login_success": "Anmeldung erfolgreich! SteamID: {id}",
       "error": "Auth Fehler: {error}",
-      "profile_error": "Fehler beim Laden des Profilnamens: {error}"
+      "profile_error": "Fehler beim Laden des Profilnamens: {error}",
+      "qr_challenge_approved": "QR-Login-Challenge bestätigt.",
+      "could_not_resolve_steamid": "Warnung: SteamID64 konnte nicht aus dem Token ermittelt werden.",
+      "fallback_account_name": "Fallback auf account_name.",
+      "steamid_resolved": "SteamID64 über GetOwnedGames ermittelt.",
+      "steamid_missing": "Warnung: steamid fehlt in der GetOwnedGames-Antwort.",
+      "get_owned_games_status": "Warnung: GetOwnedGames lieferte Status {status}.",
+      "steamid_from_token_error": "Fehler beim Ermitteln der SteamID aus dem Token: {error}",
+      "account_name_resolved": "account_name wurde zu SteamID64 aufgelöst.",
+      "account_name_resolve_error": "Fehler beim Auflösen von account_name: {error}",
+      "qr_login_success": "QR-Login erfolgreich.",
+      "password_login_success": "Passwort-Login erfolgreich.",
+      "load_games_error": "Fehler beim Laden der Spiele: {error}",
+      "data_load_handler_missing": "Warnung: DataLoadHandler ist nicht initialisiert.",
+      "loading_games_after_login": "Lade Spiele nach Steam-Login.",
+      "auth_mode_token": "Authentifizierung über Access-Token wird verwendet.",
+      "auth_mode_session": "Authentifizierung über Session-Cookies wird verwendet.",
+      "unexpected_profile_error": "Unerwarteter Fehler beim Laden des Steam-Profilnamens: {error}"
     },
     "steam_store": {
       "fetch_error": "Store-Fehler für App {app_id}: {error}"

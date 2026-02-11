@@ -139,13 +139,13 @@ class DataLoadHandler:
             steam_id: The Steam ID64 of the authenticated user
             session_or_token: Either a requests.Session or access_token string
         """
-        print("Loading games after Steam login")
+        print(f"🎮 Loading games for SteamID: {steam_id}")
         
         # Store session/token for API access
         if isinstance(session_or_token, str):
-            print("Using access token authentication")
+            print(f"Using access token: {session_or_token[:20]}...")
         else:
-            print("Using session cookie authentication")
+            print(f"Using session cookies")
         
         # Simply reload games with the user_id
         # The GameLoadWorker will use the session/token if available
