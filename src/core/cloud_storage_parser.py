@@ -82,6 +82,7 @@ class CloudStorageParser:
         self.data: list = []
         self.collections: list[dict] = []
         self.modified = False
+        self._file_mtime: float = 0.0
 
     def load(self) -> bool:
         """
@@ -100,6 +101,9 @@ class CloudStorageParser:
             if not isinstance(self.data, list):
                 logger.error(t("logs.parser.not_a_list"))
                 return False
+
+            # Record mtime for conflict detection
+            self._file_mtime = os.path.getmtime(self.cloud_storage_path)
 
             # Extract collections
             self.collections = []
@@ -125,14 +129,36 @@ class CloudStorageParser:
             logger.error(t("logs.parser.load_error", error=e))
             return False
 
+    def has_external_changes(self) -> bool:
+        """Check if the cloud storage file was modified externally since last load.
+
+        Compares the current file mtime with the mtime recorded during load().
+
+        Returns:
+            True if the file has been modified since last load.
+        """
+        if not self._file_mtime or not os.path.exists(self.cloud_storage_path):
+            return False
+        current_mtime = os.path.getmtime(self.cloud_storage_path)
+        return current_mtime != self._file_mtime
+
     def save(self) -> bool:
         """
         Save collections to cloud storage JSON file.
+
+        Sets ``had_conflict`` to True if external changes were detected
+        before saving.  The UI layer can inspect this after a successful
+        save to inform the user.
 
         Returns:
             True if successful, False otherwise
         """
         try:
+            # Check for external modifications and expose to callers
+            self.had_conflict: bool = self.has_external_changes()
+            if self.had_conflict:
+                logger.warning(t("logs.parser.external_change_detected"))
+
             # Remove all existing collection items
             self.data = [
                 item
@@ -220,6 +246,8 @@ class CloudStorageParser:
             with open(self.cloud_storage_path, "w", encoding="utf-8") as f:
                 json.dump(self.data, f, indent=2, ensure_ascii=False)
 
+            # Update recorded mtime so subsequent saves don't false-positive
+            self._file_mtime = os.path.getmtime(self.cloud_storage_path)
             self.modified = False
             return True
 

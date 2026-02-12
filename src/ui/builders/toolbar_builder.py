@@ -219,15 +219,21 @@ class ToolbarBuilder:
             mw: MainWindow instance
         """
         from src.config import config
+        from src.core.token_store import TokenStore
 
-        # Clear session/tokens
+        # Clear session/tokens from memory
         mw.session = None
         mw.access_token = None
         mw.refresh_token = None
         mw.steam_username = None
 
+        # Clear persisted tokens
+        token_store = TokenStore()
+        token_store.clear_tokens()
+
         # Clear saved user ID
         config.STEAM_USER_ID = None
+        config.STEAM_ACCESS_TOKEN = None
         config.save()
 
         # Rebuild toolbar to show login button again

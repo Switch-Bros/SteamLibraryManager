@@ -451,7 +451,12 @@
       "error_no_session_ids": "Sitzungsinformationen konnten nicht abgerufen werden",
       "error_login_generic": "Anmeldung fehlgeschlagen. Bitte versuche es erneut.",
       "status_starting_qr": "Starte QR-Authentifizierung...",
-      "status_logging_in": "Melde an..."
+      "status_logging_in": "Melde an...",
+      "token_expired": "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.",
+      "session_restored": "Sitzung aus gespeicherten Anmeldedaten wiederhergestellt."
+    },
+    "save": {
+      "conflict_warning": "Die Cloud-Speicherdatei wurde seit dem letzten Laden extern geändert. Deine Änderungen wurden gespeichert, aber die externen Änderungen könnten überschrieben worden sein. Ein Backup wurde vorher erstellt."
     },
     "search": {
       "results_category": "Suchergebnisse ({count})",

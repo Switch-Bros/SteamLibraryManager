@@ -76,6 +76,7 @@ class SteamActions:
                 - session: (if password login)
                 - account_name: (optional)
         """
+        from src.core.token_store import TokenStore
         from src.ui.handlers.data_load_handler import DataLoadHandler
         from src.ui.widgets.ui_helper import UIHelper
         from src.config import config
@@ -96,9 +97,16 @@ class SteamActions:
             # Log password login success
             logger.info(t("logs.auth.password_login_success"))
             self.mw.session = result.get("session")
-            self.mw.access_token = None
-            self.mw.refresh_token = None
-            config.STEAM_ACCESS_TOKEN = None
+            self.mw.access_token = result.get("access_token")
+            self.mw.refresh_token = result.get("refresh_token")
+            config.STEAM_ACCESS_TOKEN = result.get("access_token")
+
+        # Persist tokens securely for session restore on next startup
+        access_token = result.get("access_token")
+        refresh_token = result.get("refresh_token")
+        if access_token and refresh_token:
+            token_store = TokenStore()
+            token_store.save_tokens(access_token, refresh_token, steam_id_64)
 
         logger.info(t("logs.auth.login_success", id=steam_id_64))
         self.mw.set_status(t("ui.login.status_success"))
@@ -132,6 +140,55 @@ class SteamActions:
         else:
             # Defensive fallback
             logger.info(t("logs.auth.data_load_handler_missing"))
+
+    def restore_session(self) -> bool:
+        """Attempt to restore a previous session from securely stored tokens.
+
+        Called at application startup. Loads stored tokens, refreshes the
+        access token, and restores the authenticated state.
+
+        Returns:
+            True if session was restored successfully.
+        """
+        from src.core.token_store import TokenStore
+        from src.ui.handlers.data_load_handler import DataLoadHandler
+        from src.config import config
+
+        token_store = TokenStore()
+        stored = token_store.load_tokens()
+
+        if stored is None:
+            return False
+
+        # Try to refresh the access token
+        new_access_token = token_store.refresh_access_token(stored.refresh_token, stored.steam_id)
+
+        if new_access_token is None:
+            # Token expired beyond refresh, clear stored tokens
+            token_store.clear_tokens()
+            return False
+
+        # Restore authenticated state
+        self.mw.access_token = new_access_token
+        self.mw.refresh_token = stored.refresh_token
+        self.mw.session = None
+        config.STEAM_ACCESS_TOKEN = new_access_token
+        config.STEAM_USER_ID = stored.steam_id
+
+        # Save updated access token
+        token_store.save_tokens(new_access_token, stored.refresh_token, stored.steam_id)
+
+        # Fetch persona name
+        self.mw.steam_username = DataLoadHandler.fetch_steam_persona_name(stored.steam_id)
+
+        display_text = self.mw.steam_username or stored.steam_id
+        self.mw.user_label.setText(t("ui.main_window.user_label", user_id=display_text))
+        self.mw.refresh_toolbar()
+
+        logger.info(t("logs.auth.token_loaded"))
+        self.mw.set_status(t("ui.login.session_restored"))
+
+        return True
 
     def on_login_error(self, error: str) -> None:
         """Handles Steam authentication errors.

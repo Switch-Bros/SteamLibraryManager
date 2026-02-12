@@ -28,7 +28,6 @@ from src.core.localconfig_helper import LocalConfigHelper
 from src.core.cloud_storage_parser import CloudStorageParser
 from src.core.appinfo_manager import AppInfoManager
 
-# OLD: from src.core.steam_auth import SteamAuthManager (REMOVED - new login system)
 from src.integrations.steam_store import SteamStoreScraper
 from src.services.search_service import SearchService  # <--- NEW
 
@@ -41,9 +40,7 @@ from src.utils.i18n import t
 from src.ui.builders import MenuBuilder, ToolbarBuilder, StatusbarBuilder, CentralWidgetBuilder
 
 # Handlers
-from src.ui.handlers import CategoryActionHandler, DataLoadHandler
-from src.ui.handlers.selection_handler import SelectionHandler
-from src.ui.handlers.category_change_handler import CategoryChangeHandler
+from src.ui.handlers import CategoryActionHandler, DataLoadHandler, SelectionHandler, CategoryChangeHandler
 
 # Actions
 from src.ui.actions import (
@@ -99,9 +96,6 @@ class MainWindow(QMainWindow):
         # NEW: Initialize SearchService
         self.search_service = SearchService()
 
-        # OLD: Auth Manager (REMOVED - new login system)
-        # self.auth_manager = SteamAuthManager()
-
         # NEW: Session/Token storage for modern Steam login
         self.session = None  # For password login (requests.Session)
         self.access_token = None  # For QR login (OAuth token)
@@ -131,10 +125,6 @@ class MainWindow(QMainWindow):
         self.game_actions = GameActions(self)
         self.settings_actions = SettingsActions(self)
 
-        # OLD: Auth signals (REMOVED - new login dialog handles signals internally)
-        # self.auth_manager.auth_success.connect(self.steam_actions.on_login_success)
-        # self.auth_manager.auth_error.connect(self.steam_actions.on_login_error)
-
         # UI Action Handlers (extracted category / context-menu logic)
         self.category_handler: CategoryActionHandler = CategoryActionHandler(self)
         self.selection_handler = SelectionHandler(self)
@@ -143,6 +133,9 @@ class MainWindow(QMainWindow):
 
         self._create_ui()
         self._load_data()
+
+        # Attempt to restore previous session after event loop starts
+        QTimer.singleShot(0, self.steam_actions.restore_session)
 
     def _create_ui(self) -> None:
         """Initializes all UI components, menus, and layouts.
@@ -211,7 +204,7 @@ class MainWindow(QMainWindow):
         # a < ä, o < ö, u < ü (German alphabetical order)
         replacements = {
             "ä": "a~",
-            "Ä": "a~",  # ~ comes after all letters
+            "Ä": "a~",
             "ö": "o~",
             "Ö": "o~",
             "ü": "u~",
@@ -243,7 +236,7 @@ class MainWindow(QMainWindow):
             return
 
         # Separate hidden and visible games
-        all_games_raw = self.game_manager.get_real_games()  # Nur echte Spiele (ohne Proton auf Linux)
+        all_games_raw = self.game_manager.get_real_games()  # Only real games (without Proton on Linux)
         visible_games = sorted([g for g in all_games_raw if not g.hidden], key=lambda g: g.sort_name.lower())
         hidden_games = sorted([g for g in all_games_raw if g.hidden], key=lambda g: g.sort_name.lower())
 
@@ -491,10 +484,22 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _save_collections(self) -> bool:
-        """Save collections using the active parser."""
+        """Save collections using the active parser.
+
+        If the cloud storage file was modified externally since the last
+        load, a warning is shown to the user after saving.
+        """
+        from src.ui.widgets.ui_helper import UIHelper
+
         # Only save to the active parser (cloud storage OR localconfig, not both!)
         if self.cloud_storage_parser:
-            return self.cloud_storage_parser.save()
+            success = self.cloud_storage_parser.save()
+            if success and getattr(self.cloud_storage_parser, "had_conflict", False):
+                UIHelper.show_warning(
+                    self,
+                    t("ui.save.conflict_warning"),
+                )
+            return success
         elif self.localconfig_helper:
             return self.localconfig_helper.save()
         return False
