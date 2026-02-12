@@ -547,9 +547,9 @@ class GameDetailsWidget(QWidget):
         self.lbl_proton.setText(t('ui.game_details.protondb') + ": -")
         self.lbl_steam_deck.setText(t('ui.game_details.steam_deck') + ": -")
         self.lbl_reviews.setText(f"<span style='color:#888;'>{t('ui.game_details.reviews')}:</span> <b>-</b>")
-        self.edit_dev.setText("-")
-        self.edit_pub.setText("-")
-        self.edit_rel.setText("-")
+        self.edit_dev.setText(t('emoji.dash'))
+        self.edit_pub.setText(t('emoji.dash'))
+        self.edit_rel.setText(t('emoji.dash'))
 
         # Show tri-state checkboxes
         games_categories = [game.categories for game in games]
