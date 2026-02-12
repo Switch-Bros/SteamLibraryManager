@@ -21,8 +21,8 @@ from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
 # Dialogs
-from src.ui.auto_categorize_dialog import AutoCategorizeDialog
-from src.ui.metadata_dialogs import (
+from src.ui.dialogs.auto_categorize_dialog import AutoCategorizeDialog
+from src.ui.dialogs.metadata_dialogs import (
     MetadataEditDialog,
     BulkMetadataEditDialog,
     MetadataRestoreDialog

@@ -24,7 +24,7 @@ from src.utils.i18n import t
 from src.utils.date_utils import format_timestamp_to_date
 from src.ui.widgets.clickable_image import ClickableImage
 from src.core.steam_assets import SteamAssets
-from src.ui.image_selection_dialog import ImageSelectionDialog
+from src.ui.dialogs.image_selection_dialog import ImageSelectionDialog
 
 class InfoLabel(QLabel):
     """
@@ -703,7 +703,7 @@ class GameDetailsWidget(QWidget):
         if not self.current_game:
             return
 
-        from src.ui.pegi_selector_dialog import PEGISelectorDialog
+        from src.ui.dialogs.pegi_selector_dialog import PEGISelectorDialog
 
         # Get current PEGI rating (including override)
         current_rating = getattr(self.current_game, 'pegi_rating', '')

@@ -9,7 +9,7 @@ Extracts settings dialog and language change logic from MainWindow.
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
-from src.ui.settings_dialog import SettingsDialog
+from src.ui.dialogs.settings_dialog import SettingsDialog
 from src.config import config
 from src.utils.i18n import t, init_i18n
 
