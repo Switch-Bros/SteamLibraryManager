@@ -17,7 +17,6 @@ from __future__ import annotations
 
 from datetime import datetime
 
-
 __all__ = ["parse_date_to_timestamp", "format_timestamp_to_date"]
 
 # ---------------------------------------------------------------------------

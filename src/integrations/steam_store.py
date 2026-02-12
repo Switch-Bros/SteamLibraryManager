@@ -8,6 +8,7 @@ in the user's preferred language and detect game franchises based on name patter
 
 FIXED: Age rating fetching now uses Steam Store API instead of unreliable HTML scraping.
 """
+
 from __future__ import annotations
 
 import logging

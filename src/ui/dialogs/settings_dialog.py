@@ -7,6 +7,7 @@ This module provides a tabbed settings dialog where users can configure
 language preferences, Steam paths, library locations, tag settings, backup
 limits, and API keys.
 """
+
 from __future__ import annotations
 
 from PyQt6.QtWidgets import (

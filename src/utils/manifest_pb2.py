@@ -8,6 +8,7 @@
 Generierte Protobuf-Datei für Steam-Manifeste.
 Spezielle Kommentare unterdrücken Linter-Warnungen in PyCharm/VSCode.
 """
+
 import sys
 
 _b = sys.version_info[0] < 3 and (lambda x: x) or (lambda x: x.encode("latin1"))

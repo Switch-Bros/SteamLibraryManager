@@ -9,6 +9,7 @@ Only handles:
 
 Collections/Categories are managed by cloud_storage_parser!
 """
+
 from __future__ import annotations
 
 
@@ -17,7 +18,6 @@ import vdf
 from pathlib import Path
 
 from src.utils.i18n import t
-
 
 logger = logging.getLogger("steamlibmgr.localconfig")
 

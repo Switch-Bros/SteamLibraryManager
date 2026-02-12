@@ -1,6 +1,7 @@
 # tests/unit/test_services/test_category_service.py
 
 """Tests for CategoryService."""
+
 import pytest
 from pathlib import Path
 from src.services.category_service import CategoryService

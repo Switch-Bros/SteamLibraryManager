@@ -6,6 +6,7 @@ Provides static helper methods for creating standardized UI dialogs.
 This class centralizes QMessageBox and QInputDialog logic to ensure
 consistent styling, titles, and use of internationalization across the application.
 """
+
 from __future__ import annotations
 
 from PyQt6.QtWidgets import QWidget, QMessageBox, QDialog, QVBoxLayout, QLabel, QLineEdit, QDialogButtonBox

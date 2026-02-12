@@ -11,6 +11,7 @@ Features:
 - Email verification support
 - Beautiful modern design
 """
+
 from __future__ import annotations
 
 from PyQt6.QtWidgets import (
@@ -92,16 +93,14 @@ class ModernSteamLoginDialog(QDialog):
         # Status bar
         self.status_bar = QLabel(t("ui.login.status_ready"))
         self.status_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.status_bar.setStyleSheet(
-            """
+        self.status_bar.setStyleSheet("""
             QLabel {
                 background: #1b2838;
                 color: #c7d5e0;
                 padding: 10px;
                 border-top: 1px solid #16202d;
             }
-        """
-        )
+        """)
         main_layout.addWidget(self.status_bar)
 
         # Progress bar
@@ -125,8 +124,7 @@ class ModernSteamLoginDialog(QDialog):
         main_layout.addLayout(button_layout)
 
         # Apply dark Steam-like theme
-        self.setStyleSheet(
-            """
+        self.setStyleSheet("""
             QDialog {
                 background: #1b2838;
             }
@@ -158,21 +156,18 @@ class ModernSteamLoginDialog(QDialog):
             QLineEdit:focus {
                 border: 1px solid #5c7e10;
             }
-        """
-        )
+        """)
 
     def _create_header(self) -> QWidget:  # noqa: Method can't be static (uses t())
         """Create header with logo and title."""
         header = QFrame()
         header.setFrameShape(QFrame.Shape.StyledPanel)
-        header.setStyleSheet(
-            """
+        header.setStyleSheet("""
             QFrame {
                 background: #171a21;
                 border-bottom: 2px solid #5c7e10;
             }
-        """
-        )
+        """)
 
         layout = QVBoxLayout(header)
         layout.setContentsMargins(20, 20, 20, 20)
@@ -275,16 +270,14 @@ class ModernSteamLoginDialog(QDialog):
         # QR Code
         self.qr_label = QLabel()
         self.qr_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.qr_label.setStyleSheet(
-            """
+        self.qr_label.setStyleSheet("""
             QLabel {
                 background: white;
                 border: 2px solid #5c7e10;
                 border-radius: 5px;
                 padding: 20px;
             }
-        """
-        )
+        """)
         self.qr_label.setMinimumSize(300, 300)
         self.qr_label.setText(t("ui.login.generating_qr"))
         layout.addWidget(self.qr_label, alignment=Qt.AlignmentFlag.AlignCenter)

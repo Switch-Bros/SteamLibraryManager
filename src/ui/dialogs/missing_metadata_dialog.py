@@ -7,6 +7,7 @@ This module provides a dialog that shows a table of games that are missing
 metadata fields (developer, publisher, release date) and allows exporting
 the list to a CSV file.
 """
+
 from __future__ import annotations
 
 from PyQt6.QtWidgets import (

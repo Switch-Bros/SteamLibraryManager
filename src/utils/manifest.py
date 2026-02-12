@@ -7,6 +7,7 @@ This module provides functions to parse Steam's binary depot manifest files,
 which use Protocol Buffers for serialization. It extracts payload, metadata,
 and signature information.
 """
+
 from __future__ import annotations
 
 import struct

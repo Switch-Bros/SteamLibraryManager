@@ -7,6 +7,7 @@ This module provides functionality to read, modify, and write Steam's appinfo.vd
 file, which contains metadata for all Steam applications. It tracks user modifications
 separately and supports restoring them after Steam updates the file.
 """
+
 from __future__ import annotations
 
 

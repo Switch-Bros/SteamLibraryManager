@@ -7,6 +7,7 @@ This module provides a comprehensive widget that displays game information
 including metadata, images (grid, hero, logo, icon), ratings, and categories.
 It allows users to edit metadata, change images, and toggle categories.
 """
+
 from __future__ import annotations
 
 from PyQt6.QtWidgets import (

@@ -10,6 +10,7 @@ including WebP and GIF.
 IMPORTANT: Images are now saved directly in Steam's grid folder so they appear
 in the Steam client!
 """
+
 from __future__ import annotations
 
 import logging
@@ -19,7 +20,6 @@ import requests
 from pathlib import Path
 from src.config import config
 from src.utils.i18n import t
-
 
 logger = logging.getLogger("steamlibmgr.steam_assets")
 

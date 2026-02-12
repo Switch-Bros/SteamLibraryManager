@@ -74,16 +74,14 @@ class SteamRunningDialog(QDialog):
         # Info box
         info_box = QLabel(t("ui.steam_running.info"))
         info_box.setWordWrap(True)
-        info_box.setStyleSheet(
-            """
+        info_box.setStyleSheet("""
             QLabel {
                 background-color: #2a475e;
                 padding: 15px;
                 border-radius: 5px;
                 color: #c7d5e0;
             }
-        """
-        )
+        """)
         layout.addWidget(info_box)
 
         # Buttons
@@ -97,8 +95,7 @@ class SteamRunningDialog(QDialog):
 
         self.btn_close_steam = QPushButton(t("ui.steam_running.close_and_save"))
         self.btn_close_steam.setDefault(True)
-        self.btn_close_steam.setStyleSheet(
-            """
+        self.btn_close_steam.setStyleSheet("""
             QPushButton {
                 background-color: #c75450;
                 color: white;
@@ -108,8 +105,7 @@ class SteamRunningDialog(QDialog):
             QPushButton:hover {
                 background-color: #d66460;
             }
-        """
-        )
+        """)
         self.btn_close_steam.clicked.connect(self._on_close_steam)
         button_layout.addWidget(self.btn_close_steam)
 

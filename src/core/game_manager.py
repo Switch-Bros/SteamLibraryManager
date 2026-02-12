@@ -7,6 +7,7 @@ This module provides the Game dataclass and GameManager class, which handle
 loading games from multiple sources (Steam API, local files), merging metadata,
 and fetching additional details from external APIs.
 """
+
 from __future__ import annotations
 
 import json

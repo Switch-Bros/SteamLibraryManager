@@ -6,6 +6,7 @@ Dialog for automatic game categorization.
 This module provides a dialog that allows users to automatically categorize
 their Steam games using various methods (tags, publisher, franchise, genre).
 """
+
 from __future__ import annotations
 
 from PyQt6.QtWidgets import (

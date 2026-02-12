@@ -10,6 +10,7 @@ These include:
 - Development tools
 - Other non-game content
 """
+
 from __future__ import annotations
 
 __all__ = ["NON_GAME_APP_IDS", "is_real_game"]

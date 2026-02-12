@@ -7,6 +7,7 @@ This widget provides the main navigation sidebar, showing games organized
 by categories. It supports drag-and-drop for re-categorization and persists
 the expanded/collapsed state of categories.
 """
+
 from __future__ import annotations
 
 from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem, QAbstractItemView, QWidget
@@ -57,12 +58,10 @@ class GameTreeWidget(QTreeWidget):
         self.itemCollapsed.connect(self._on_item_collapsed)
 
         # Style
-        self.setStyleSheet(
-            """
+        self.setStyleSheet("""
             QTreeWidget::item { padding: 4px; }
             QTreeWidget::item:selected { background-color: #2d5a88; }
-        """
-        )
+        """)
 
     def populate_categories(self, categories: dict[str, list[Game]], dynamic_collections: set | None = None) -> None:
         """

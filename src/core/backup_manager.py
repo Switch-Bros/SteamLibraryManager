@@ -6,6 +6,7 @@ Manages file backups with automatic rotation.
 This module provides functionality to create timestamped backups of configuration
 files and automatically rotate (delete) old backups when a maximum limit is reached.
 """
+
 from __future__ import annotations
 
 import logging
@@ -16,7 +17,6 @@ from pathlib import Path
 from datetime import datetime
 from src.config import config
 from src.utils.i18n import t
-
 
 logger = logging.getLogger("steamlibmgr.backup_manager")
 

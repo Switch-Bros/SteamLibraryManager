@@ -6,6 +6,7 @@ SteamGridDB API client with full pagination support.
 This module provides a client for the SteamGridDB API to fetch game images
 (grids, heroes, logos, icons) with support for paginated results and NSFW content.
 """
+
 from __future__ import annotations
 
 import logging

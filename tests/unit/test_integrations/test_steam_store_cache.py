@@ -1,6 +1,7 @@
 # tests/unit/test_integrations/test_steam_store_cache.py
 
 """Tests for SteamStoreScraper cache coverage checking."""
+
 import json
 import time
 

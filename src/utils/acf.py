@@ -7,6 +7,7 @@ This module provides functions to parse and serialize Steam's ACF file format,
 which is a simple key-value text format used for configuration files like
 appmanifest_*.acf.
 """
+
 from __future__ import annotations
 
 from typing import Any
