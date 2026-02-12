@@ -4,11 +4,10 @@ Qt-specific utility functions for layout and widget manipulation.
 This module provides low-level Qt utilities for common operations like
 clearing layouts, finding child widgets, and managing widget hierarchies.
 """
-from typing import Optional, List
+from __future__ import annotations
 
 from PyQt6.QtWidgets import QLayout, QWidget
 from PyQt6.QtCore import QObject
-
 
 def clear_layout(target_layout: QLayout) -> None:
     """Removes and deletes all widgets from a layout.
@@ -24,8 +23,7 @@ def clear_layout(target_layout: QLayout) -> None:
         if child.widget():
             child.widget().deleteLater()
 
-
-def find_child_by_name(parent: QWidget, name: str) -> Optional[QWidget]:
+def find_child_by_name(parent: QWidget, name: str) -> QWidget | None:
     """Finds a child widget by its object name.
 
     Searches recursively through all child widgets to find one with
@@ -36,12 +34,11 @@ def find_child_by_name(parent: QWidget, name: str) -> Optional[QWidget]:
         name: Object name to search for.
 
     Returns:
-        Optional[QWidget]: The found widget, or None if not found.
+        QWidget | None: The found widget, or None if not found.
     """
     return parent.findChild(QWidget, name)
 
-
-def find_children_by_type(parent: QWidget, widget_type: type) -> List[QWidget]:
+def find_children_by_type(parent: QWidget, widget_type: type) -> list[QWidget]:
     """Finds all child widgets of a specific type.
 
     Searches recursively through all child widgets and returns all that
@@ -52,10 +49,9 @@ def find_children_by_type(parent: QWidget, widget_type: type) -> List[QWidget]:
         widget_type: The widget class to search for.
 
     Returns:
-        List[QWidget]: List of matching child widgets.
+        list[QWidget]: List of matching child widgets.
     """
     return parent.findChildren(widget_type)
-
 
 def remove_widget_from_layout(widget_to_remove: QWidget) -> None:
     """Removes a widget from its parent layout without deleting it.
@@ -72,7 +68,6 @@ def remove_widget_from_layout(widget_to_remove: QWidget) -> None:
         if parent_layout:
             parent_layout.removeWidget(widget_to_remove)
 
-
 def set_all_widgets_enabled(parent: QWidget, enabled: bool) -> None:
     """Enables or disables all child widgets recursively.
 
@@ -86,8 +81,7 @@ def set_all_widgets_enabled(parent: QWidget, enabled: bool) -> None:
     for child in parent.findChildren(QWidget):
         child.setEnabled(enabled)
 
-
-def get_layout_widgets(target_layout: QLayout) -> List[QWidget]:
+def get_layout_widgets(target_layout: QLayout) -> list[QWidget]:
     """Returns a list of all widgets in a layout.
 
     Extracts all widgets from the layout without removing them.
@@ -96,7 +90,7 @@ def get_layout_widgets(target_layout: QLayout) -> List[QWidget]:
         target_layout: Layout to extract widgets from.
 
     Returns:
-        List[QWidget]: List of widgets in the layout.
+        list[QWidget]: List of widgets in the layout.
     """
     widgets = []
     for i in range(target_layout.count()):
@@ -104,7 +98,6 @@ def get_layout_widgets(target_layout: QLayout) -> List[QWidget]:
         if layout_item and layout_item.widget():
             widgets.append(layout_item.widget())
     return widgets
-
 
 def hide_all_children(parent: QWidget) -> None:
     """Hides all child widgets recursively.
@@ -118,7 +111,6 @@ def hide_all_children(parent: QWidget) -> None:
     for child in parent.findChildren(QWidget):
         child.hide()
 
-
 def show_all_children(parent: QWidget) -> None:
     """Shows all child widgets recursively.
 
@@ -130,7 +122,6 @@ def show_all_children(parent: QWidget) -> None:
     child: QWidget
     for child in parent.findChildren(QWidget):
         child.show()
-
 
 def disconnect_all_signals(obj: QObject) -> None:
     """Disconnects all signals from a QObject.
@@ -146,7 +137,6 @@ def disconnect_all_signals(obj: QObject) -> None:
     except RuntimeError:
         # Object already deleted
         pass
-
 
 def count_visible_widgets(target_layout: QLayout) -> int:
     """Counts how many visible widgets are in a layout.

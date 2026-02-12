@@ -43,7 +43,6 @@ except ImportError:
     np = None
     HAS_OPENCV = False
 
-
 class ImageLoader(QThread):
     """A QThread to load image data from a path or URL without blocking the GUI."""
     loaded = pyqtSignal(QByteArray)
@@ -84,7 +83,6 @@ class ImageLoader(QThread):
     def stop(self):
         """Stops the thread from emitting the loaded signal if it's no longer needed."""
         self._is_running = False
-
 
 class ClickableImage(QWidget):
     """A widget that displays an image and emits signals on clicks."""

@@ -4,6 +4,7 @@ PEGI Rating Selector Dialog.
 This dialog allows users to manually select a PEGI rating for a game
 by clicking on one of the available PEGI icons.
 """
+from __future__ import annotations
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel,
@@ -13,7 +14,6 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap, QIcon
 from pathlib import Path
 from src.utils.i18n import t
-
 
 class PEGIIconButton(QPushButton):
     """A clickable button displaying a PEGI icon."""
@@ -46,7 +46,6 @@ class PEGIIconButton(QPushButton):
             self.setIconSize(scaled_pixmap.size())
         else:
             self.setText(f"PEGI\n{rating}")
-
 
 class PEGISelectorDialog(QDialog):
     """Dialog for selecting a PEGI rating."""

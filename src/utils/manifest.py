@@ -7,8 +7,10 @@ This module provides functions to parse Steam's binary depot manifest files,
 which use Protocol Buffers for serialization. It extracts payload, metadata,
 and signature information.
 """
+from __future__ import annotations
+
 import struct
-from typing import BinaryIO, Dict, Any
+from typing import BinaryIO, Any
 try:
     from .manifest_pb2 import Payload, Metadata, Signature
 except ImportError:
@@ -34,8 +36,7 @@ MessageClass = {
     MSG_SIGNATURE: Signature
 }
 
-
-def loads(data: bytes, wrapper=dict) -> Dict[str, Any]:
+def loads(data: bytes, wrapper=dict) -> dict[str, Any]:
     """
     Parses a Steam depot manifest from bytes.
 
@@ -48,7 +49,7 @@ def loads(data: bytes, wrapper=dict) -> Dict[str, Any]:
         wrapper (type): The dictionary type to use for parsed data. Defaults to dict.
 
     Returns:
-        Dict[str, Any]: A dictionary containing 'payload', 'metadata', and 'signature'
+        dict[str, Any]: A dictionary containing 'payload', 'metadata', and 'signature'
                        keys with their respective parsed data.
     """
     parsed = wrapper()
@@ -77,8 +78,7 @@ def loads(data: bytes, wrapper=dict) -> Dict[str, Any]:
 
     return parsed
 
-
-def load(fp: BinaryIO, wrapper=dict) -> Dict[str, Any]:
+def load(fp: BinaryIO, wrapper=dict) -> dict[str, Any]:
     """
     Parses a Steam depot manifest from a file.
 
@@ -87,7 +87,7 @@ def load(fp: BinaryIO, wrapper=dict) -> Dict[str, Any]:
         wrapper (type): The dictionary type to use for parsed data. Defaults to dict.
 
     Returns:
-        Dict[str, Any]: A dictionary containing 'payload', 'metadata', and 'signature'
+        dict[str, Any]: A dictionary containing 'payload', 'metadata', and 'signature'
                        keys with their respective parsed data.
     """
     return loads(fp.read(), wrapper=wrapper)

@@ -16,7 +16,7 @@ state stays in sync.
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from PyQt6.QtWidgets import (
     QMenu, QDialog, QVBoxLayout, QLabel,
@@ -29,7 +29,6 @@ from src.utils.i18n import t
 
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
-
 
 class CategoryActionHandler:
     """Handles all category/collection CRUD operations and context menus.
@@ -117,7 +116,7 @@ class CategoryActionHandler:
 
         # --- Multi-category selection ---
         if category == "__MULTI__":
-            selected_categories: List[str] = mw.tree.get_selected_categories()
+            selected_categories: list[str] = mw.tree.get_selected_categories()
             if len(selected_categories) > 1:
                 menu.addAction(
                     t('ui.context_menu.merge_categories'),
@@ -132,7 +131,7 @@ class CategoryActionHandler:
             return
 
         # --- Steam-Standard-Collektions are not editable ---
-        steam_standard_collections: List[str] = [
+        steam_standard_collections: list[str] = [
             t('ui.categories.all_games'),
             t('ui.categories.favorites'),
             t('ui.categories.uncategorized'),
@@ -245,7 +244,7 @@ class CategoryActionHandler:
             mw.category_service.delete_category(category)
             self._flush(stats=True)
 
-    def delete_multiple_categories(self, categories: List[str]) -> None:
+    def delete_multiple_categories(self, categories: list[str]) -> None:
         """Confirms and deletes multiple categories at once.
 
         Args:
@@ -265,7 +264,7 @@ class CategoryActionHandler:
             mw.category_service.delete_multiple_categories(categories)
             self._flush(stats=True)
 
-    def merge_categories(self, categories: List[str]) -> None:
+    def merge_categories(self, categories: list[str]) -> None:
         """Shows a target-selection dialog and merges categories.
 
         All games from the non-target categories are moved into the chosen
@@ -314,7 +313,7 @@ class CategoryActionHandler:
                 return
 
             target_category: str = selected_item.text()
-            source_categories: List[str] = [cat for cat in categories if cat != target_category]
+            source_categories: list[str] = [cat for cat in categories if cat != target_category]
 
             mw.category_service.merge_categories(source_categories, target_category)
             self._flush()

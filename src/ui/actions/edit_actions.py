@@ -11,7 +11,7 @@ Connects back to MainWindow to access services and update UI.
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional, List
+from typing import TYPE_CHECKING
 
 from PyQt6.QtWidgets import QMessageBox, QProgressDialog, QApplication
 from PyQt6.QtCore import Qt
@@ -31,7 +31,6 @@ from src.ui.metadata_dialogs import (
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
-
 class EditActions:
     """
     Handles all Edit-related actions (Metadata, Categories).
@@ -49,7 +48,7 @@ class EditActions:
             main_window: The main application window.
         """
         self.mw = main_window
-        self.dialog_games: List[Game] = []
+        self.dialog_games: list[Game] = []
 
     # ------------------------------------------------------------------
     # Auto-Categorization
@@ -93,7 +92,7 @@ class EditActions:
         else:
             self._show_auto_categorize_dialog(self.mw.game_manager.get_games_by_category(category), category)
 
-    def _show_auto_categorize_dialog(self, games: List[Game], category_name: Optional[str]) -> None:
+    def _show_auto_categorize_dialog(self, games: list[Game], category_name: str | None) -> None:
         """
         Internal helper to show the dialog.
 

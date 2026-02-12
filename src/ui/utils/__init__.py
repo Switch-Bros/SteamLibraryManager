@@ -7,6 +7,8 @@ This package provides reusable UI helper functions organized into three modules:
 - qt_utils: Low-level Qt utilities
 """
 
+from __future__ import annotations
+
 # UI Helpers - Widget creation and styling
 from src.ui.utils.ui_helpers import (
     create_splitter,

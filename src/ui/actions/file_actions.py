@@ -21,7 +21,6 @@ from src.utils.i18n import t
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
-
 class FileActions:
     """Handles all File menu actions.
 

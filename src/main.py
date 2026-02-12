@@ -23,6 +23,8 @@ from src.ui.main_window import MainWindow
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
 
+__all__ = ['main']
+
 def check_steam_running() -> bool:
     """Check if Steam is currently running using psutil.
 
@@ -45,7 +47,6 @@ def check_steam_running() -> bool:
     except Exception as e:
         logger.error(t('logs.main.steam_check_error', error=e))
         return False
-
 
 def load_steam_file(file_path: Path) -> Any:
     """Load a Steam file based on its extension/name (.acf or .vdf).
@@ -74,7 +75,6 @@ def load_steam_file(file_path: Path) -> Any:
         return None
 
     return None
-
 
 def main() -> None:
     """Main application execution flow."""
@@ -150,7 +150,6 @@ def main() -> None:
         logger.critical("%s: %s", t('common.error'), e)
         traceback.print_exc()
         sys.exit(1)
-
 
 if __name__ == "__main__":
     main()

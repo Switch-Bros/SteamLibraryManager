@@ -23,6 +23,8 @@ except ImportError:
 logger = logging.getLogger("steamlibmgr.config")
 
 
+__all__ = ['Config', 'config']
+
 @dataclass
 class Config:
     """
@@ -44,17 +46,17 @@ class Config:
     THEME: str = 'dark'
 
     # API KEYS
-    STEAM_API_KEY: Optional[str] = None
-    STEAMGRIDDB_API_KEY: Optional[str] = None
+    STEAM_API_KEY: str | None = None
+    STEAMGRIDDB_API_KEY: str | None = None
 
-    STEAM_PATH: Optional[Path] = None
-    STEAM_USER_ID: Optional[str] = None
+    STEAM_PATH: Path | None = None
+    STEAM_USER_ID: str | None = None
 
     # List for additional libraries
-    STEAM_LIBRARIES: List[str] = None
+    STEAM_LIBRARIES: list[str] = None
 
     # UI State: Which categories are expanded?
-    EXPANDED_CATEGORIES: List[str] = None
+    EXPANDED_CATEGORIES: list[str] = None
 
     MAX_BACKUPS: int = 5
     TAGS_PER_GAME: int = 13
@@ -153,7 +155,7 @@ class Config:
         self.save()
 
     @staticmethod
-    def _find_steam_path() -> Optional[Path]:
+    def _find_steam_path() -> Path | None:
         """Auto-detect Steam path on Linux and Windows."""
         system = platform.system()
 
@@ -210,7 +212,7 @@ class Config:
 
         return list(libraries)
 
-    def get_detected_user(self) -> Tuple[Optional[str], Optional[str]]:
+    def get_detected_user(self) -> tuple[str | None, str | None]:
         if not self.STEAM_PATH: return None, None
         userdata = self.STEAM_PATH / 'userdata'
         if not userdata.exists(): return None, None
@@ -223,10 +225,9 @@ class Config:
                     return str(account_id), steam_id_64
         return None, None
 
-    def get_localconfig_path(self, account_id: str) -> Optional[Path]:
+    def get_localconfig_path(self, account_id: str) -> Path | None:
         if not self.STEAM_PATH or not account_id: return None
         return self.STEAM_PATH / 'userdata' / account_id / 'config' / 'localconfig.vdf'
-
 
 # Global instance
 config = Config()

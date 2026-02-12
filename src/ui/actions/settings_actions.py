@@ -7,7 +7,7 @@ Extracts settings dialog and language change logic from MainWindow.
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, Dict, Any
+from typing import TYPE_CHECKING, Any
 
 from src.ui.settings_dialog import SettingsDialog
 from src.config import config
@@ -15,7 +15,6 @@ from src.utils.i18n import t, init_i18n
 
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
-
 
 class SettingsActions:
     """Handles settings dialog and configuration changes."""
@@ -49,7 +48,7 @@ class SettingsActions:
         init_i18n(new_language)
         self._refresh_ui()
 
-    def apply_settings(self, settings: Dict[str, Any]) -> None:
+    def apply_settings(self, settings: dict[str, Any]) -> None:
         """Applies settings from the settings dialog.
 
         Args:

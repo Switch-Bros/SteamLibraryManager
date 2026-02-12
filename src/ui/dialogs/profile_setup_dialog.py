@@ -8,7 +8,8 @@ Provides 4 options:
 3. Enter SteamID64 manually
 4. Enter Steam Community URL
 """
-from typing import Optional
+from __future__ import annotations
+
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QRadioButton, QComboBox,
     QPushButton, QLabel, QLineEdit, QMessageBox, QProgressBar
@@ -18,7 +19,6 @@ from PyQt6.QtCore import QThread, pyqtSignal
 from src.core.steam_account import SteamAccount
 from src.core.steam_account_scanner import scan_steam_accounts, fetch_steam_display_name
 from src.utils.i18n import t
-
 
 class AccountScanWorker(QThread):
     """Background worker to scan Steam accounts without blocking UI."""
@@ -35,7 +35,6 @@ class AccountScanWorker(QThread):
         accounts = scan_steam_accounts(self.steam_path)
         self.accounts_found.emit(accounts)
         self.scan_complete.emit()
-
 
 class ProfileSetupDialog(QDialog):
     """Profile setup dialog for selecting/configuring Steam user.
@@ -63,8 +62,8 @@ class ProfileSetupDialog(QDialog):
         super().__init__(parent)
 
         self.steam_path = steam_path
-        self.selected_steam_id_64: Optional[int] = None
-        self.selected_display_name: Optional[str] = None
+        self.selected_steam_id_64: int | None = None
+        self.selected_display_name: str | None = None
         self.scanned_accounts: list[SteamAccount] = []
 
         self._setup_ui()
@@ -284,7 +283,7 @@ class ProfileSetupDialog(QDialog):
                 )
 
     @staticmethod
-    def _resolve_custom_url(custom_url: str) -> Optional[int]:
+    def _resolve_custom_url(custom_url: str) -> int | None:
         """Resolve Steam Community custom URL to SteamID64.
 
         Args:

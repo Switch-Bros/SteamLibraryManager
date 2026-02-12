@@ -22,7 +22,6 @@ from src.utils.i18n import t
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
-
 class ToolbarBuilder:
     """
     Constructs and rebuilds the main QToolBar.

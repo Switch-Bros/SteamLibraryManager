@@ -13,7 +13,7 @@ All UI updates are delegated back to MainWindow.
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QThread, pyqtSignal, Qt
 
@@ -22,7 +22,6 @@ from src.utils.i18n import t
 
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
-
 
 class SelectionHandler:
     """Handles game selection events and background details loading.
@@ -39,9 +38,9 @@ class SelectionHandler:
             main_window: The MainWindow instance that owns this handler.
         """
         self.mw: 'MainWindow' = main_window
-        self._fetch_threads: List[QThread] = []
+        self._fetch_threads: list[QThread] = []
 
-    def on_games_selected(self, games: List[Game]) -> None:
+    def on_games_selected(self, games: list[Game]) -> None:
         """Handles multi-selection changes in the game tree.
 
         Updates the details widget to show either a single game view,
@@ -88,7 +87,7 @@ class SelectionHandler:
         if not game.developer or not game.proton_db_rating or not game.steam_deck_status:
             self.fetch_game_details_async(game.app_id, all_categories)
 
-    def fetch_game_details_async(self, app_id: str, all_categories: List[str]) -> None:
+    def fetch_game_details_async(self, app_id: str, all_categories: list[str]) -> None:
         """Fetches game details in a background thread without blocking the UI.
 
         This method improves performance by loading missing metadata asynchronously,
@@ -133,7 +132,7 @@ class SelectionHandler:
         # Clean up finished threads
         self._fetch_threads = [thread for thread in self._fetch_threads if thread.isRunning()]
 
-    def restore_game_selection(self, app_ids: List[str]) -> None:
+    def restore_game_selection(self, app_ids: list[str]) -> None:
         """Restores game selection in the tree widget after refresh.
 
         This method finds and re-selects games in the tree widget based on their

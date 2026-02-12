@@ -4,7 +4,7 @@ Common dialog patterns and confirmations.
 This module provides reusable dialog functions for common user interactions
 like confirmations, text input, and choice selections.
 """
-from typing import Optional, List
+from __future__ import annotations
 
 from PyQt6.QtWidgets import (
     QMessageBox, QWidget, QDialog, QVBoxLayout, QLabel,
@@ -12,7 +12,6 @@ from PyQt6.QtWidgets import (
 )
 
 from src.utils.i18n import t
-
 
 def ask_confirmation(
         parent: QWidget,
@@ -45,13 +44,12 @@ def ask_confirmation(
 
     return msg.clickedButton() == yes_btn
 
-
 def ask_text_input(
         parent: QWidget,
         title: str,
         label: str,
         default_value: str = ""
-) -> Optional[str]:
+) -> str | None:
     """Shows a dialog requesting text input from the user.
 
     Returns the entered text or None if cancelled.
@@ -63,7 +61,7 @@ def ask_text_input(
         default_value: Pre-filled text in the input field. Defaults to empty string.
 
     Returns:
-        Optional[str]: The entered text, or None if cancelled.
+        str | None: The entered text, or None if cancelled.
     """
     dialog = QDialog(parent)
     dialog.setWindowTitle(title)
@@ -94,14 +92,13 @@ def ask_text_input(
             return text
     return None
 
-
 def ask_choice(
         parent: QWidget,
         title: str,
         label: str,
-        option_list: List[str],
+        option_list: list[str],
         current: int = 0
-) -> Optional[str]:
+) -> str | None:
     """Shows a dropdown selection dialog.
 
     Returns the selected option or None if cancelled.
@@ -114,7 +111,7 @@ def ask_choice(
         current: Index of the initially selected option. Defaults to 0.
 
     Returns:
-        Optional[str]: The selected option, or None if cancelled.
+        str | None: The selected option, or None if cancelled.
     """
     dialog = QDialog(parent)
     dialog.setWindowTitle(title)
@@ -144,7 +141,6 @@ def ask_choice(
         return combo_box.currentText()
     return None
 
-
 def show_warning(
         parent: QWidget,
         message: str,
@@ -166,7 +162,6 @@ def show_warning(
     msg.setIcon(QMessageBox.Icon.Warning)
     msg.addButton(t('common.ok'), QMessageBox.ButtonRole.AcceptRole)
     msg.exec()
-
 
 def show_info(
         parent: QWidget,
@@ -190,7 +185,6 @@ def show_info(
     msg.addButton(t('common.ok'), QMessageBox.ButtonRole.AcceptRole)
     msg.exec()
 
-
 def show_error(
         parent: QWidget,
         message: str,
@@ -213,12 +207,11 @@ def show_error(
     msg.addButton(t('common.ok'), QMessageBox.ButtonRole.AcceptRole)
     msg.exec()
 
-
 def ask_yes_no_cancel(
         parent: QWidget,
         message: str,
         title: str = ""
-) -> Optional[bool]:
+) -> bool | None:
     """Shows a Yes/No/Cancel dialog.
 
     Returns True for Yes, False for No, None for Cancel.
@@ -229,7 +222,7 @@ def ask_yes_no_cancel(
         title: Optional title for the dialog window.
 
     Returns:
-        Optional[bool]: True if Yes, False if No, None if Cancel.
+        bool | None: True if Yes, False if No, None if Cancel.
     """
     if not title:
         title = t('ui.dialogs.confirm')

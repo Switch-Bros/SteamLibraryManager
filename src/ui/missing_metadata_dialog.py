@@ -7,6 +7,7 @@ This module provides a dialog that shows a table of games that are missing
 metadata fields (developer, publisher, release date) and allows exporting
 the list to a CSV file.
 """
+from __future__ import annotations
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
@@ -14,14 +15,11 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
-from typing import List
 from pathlib import Path
 import csv
 from src.utils.date_utils import format_timestamp_to_date
 from src.core.game_manager import Game
 from src.utils.i18n import t
-
-
 
 class MissingMetadataDialog(QDialog):
     """
@@ -32,18 +30,18 @@ class MissingMetadataDialog(QDialog):
     export the list to a CSV file.
 
     Attributes:
-        games (List[Game]): List of games with missing metadata.
+        games (list[Game]): List of games with missing metadata.
         table (QTableWidget): Table widget displaying the games.
         stats_label (QLabel): Label displaying statistics about missing fields.
     """
 
-    def __init__(self, parent, games: List[Game]):
+    def __init__(self, parent, games: list[Game]):
         """
         Initializes the missing metadata dialog.
 
         Args:
             parent: Parent widget.
-            games (List[Game]): List of games with missing metadata.
+            games (list[Game]): List of games with missing metadata.
         """
         super().__init__(parent)
         self.games = games
@@ -74,7 +72,6 @@ class MissingMetadataDialog(QDialog):
         if value_str.lower() in ["unknown", "unbekannt", "none", "n/a"]:
             return True
         return False
-
 
     def _create_ui(self):
         """Creates the user interface for the dialog."""

@@ -7,7 +7,6 @@ and fetches their display names from the Steam Community XML API.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
 import logging
 import requests
 import xml.etree.ElementTree as ElementTree
@@ -21,6 +20,9 @@ except ImportError:
     _psutil = None
 
 logger = logging.getLogger("steamlibmgr.account_scanner")
+
+
+__all__ = ['scan_steam_accounts', 'fetch_steam_display_name', 'is_steam_running', 'kill_steam_process', 'STEAM_ID_BASE']
 
 # Steam ID conversion constant
 STEAM_ID_BASE = 76561197960265728
@@ -78,7 +80,7 @@ def fetch_steam_display_name(steam_id_64: int) -> str:
     return str(steam_id_64)
 
 
-def scan_steam_accounts(steam_path: str) -> List[SteamAccount]:
+def scan_steam_accounts(steam_path: str) -> list[SteamAccount]:
     """Scan the Steam userdata directory for all local accounts.
 
     This function:

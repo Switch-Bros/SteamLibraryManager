@@ -8,11 +8,10 @@ after removing games.
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, Set, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
-
 
 class EmptyCollectionHandler:
     """Handles automatic deletion of empty user collections."""
@@ -24,9 +23,9 @@ class EmptyCollectionHandler:
             main_window: The MainWindow instance.
         """
         self.mw: 'MainWindow' = main_window
-        self._protected_collections: Optional[Set[str]] = None
+        self._protected_collections: set[str] | None = None
 
-    def get_protected_collections(self) -> Set[str]:
+    def get_protected_collections(self) -> set[str]:
         """Get the set of Steam standard collections that cannot be deleted.
 
         Returns:

@@ -13,13 +13,15 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Optional, Dict
 import requests
 from PyQt6.QtCore import QObject, pyqtSignal, QThread
 
 from src.utils.i18n import t
 
 logger = logging.getLogger("steamlibmgr.login_manager")
+
+
+__all__ = ['SteamLoginManager', 'QRCodeLoginThread', 'UsernamePasswordLoginThread']
 
 try:
     import steam.webauth as wa
@@ -117,7 +119,7 @@ class QRCodeLoginThread(QThread):
             return None, None, None, None
 
     def _poll_for_completion(self, client_id: str, request_id: str,
-                             interval: float, timeout: float) -> Optional[Dict]:
+                             interval: float, timeout: float) -> dict | None:
         """Poll until user approves or timeout."""
         url = "https://api.steampowered.com/IAuthenticationService/PollAuthSessionStatus/v1/"
 
@@ -248,7 +250,7 @@ class UsernamePasswordLoginThread(QThread):
         except (requests.RequestException, ValueError, KeyError) as e:
             self.login_error.emit(t("ui.login.error_login_generic", error=str(e)))
 
-    def _poll_for_credentials_approval(self, client_id: str, request_id: str) -> Optional[Dict]:
+    def _poll_for_credentials_approval(self, client_id: str, request_id: str) -> dict | None:
         """Poll for mobile approval."""
         url = "https://api.steampowered.com/IAuthenticationService/PollAuthSessionStatus/v1/"
 
@@ -328,8 +330,8 @@ class SteamLoginManager(QObject):
 
     def __init__(self):
         super().__init__()
-        self.qr_thread: Optional[QRCodeLoginThread] = None
-        self.pwd_thread: Optional[UsernamePasswordLoginThread] = None
+        self.qr_thread: QRCodeLoginThread | None = None
+        self.pwd_thread: UsernamePasswordLoginThread | None = None
 
     def start_qr_login(self, device_name: str = "SteamLibraryManager"):
         """Start QR code login."""
@@ -369,7 +371,7 @@ class SteamLoginManager(QObject):
             self.pwd_thread.stop()
             self.pwd_thread.wait()
 
-    def _on_qr_success(self, result: Dict):
+    def _on_qr_success(self, result: dict):
         """Handle QR success."""
         self.status_update.emit(t("ui.login.status_success"))
         self.login_success.emit({
@@ -380,13 +382,13 @@ class SteamLoginManager(QObject):
             'account_name': result.get('account_name'),
         })
 
-    def _on_pwd_success(self, result: Dict):
+    def _on_pwd_success(self, result: dict):
         """Handle password success."""
         self.status_update.emit(t("ui.login.status_success"))
         self.login_success.emit(result)
 
     @staticmethod
-    def get_steamid_from_token(access_token: str) -> Optional[str]:
+    def get_steamid_from_token(access_token: str) -> str | None:
         """Extract SteamID64 by calling GetOwnedGames with the access token.
 
         The GetOwnedGames API will return the SteamID of the authenticated user
@@ -451,7 +453,7 @@ class SteamLoginManager(QObject):
         return None
 
     @staticmethod
-    def _get_steamid_from_account_name(account_name: str) -> Optional[str]:
+    def _get_steamid_from_account_name(account_name: str) -> str | None:
         """Convert account name to SteamID64 using Steam Community API.
 
         Args:
@@ -482,7 +484,7 @@ class SteamLoginManager(QObject):
         return None
 
     @staticmethod
-    def get_owned_games(session_or_token, steam_id: str) -> Optional[Dict]:
+    def get_owned_games(session_or_token, steam_id: str) -> dict | None:
         """Get owned games using token."""
         url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
         params = {

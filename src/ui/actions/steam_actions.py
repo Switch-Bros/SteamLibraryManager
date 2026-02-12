@@ -10,7 +10,7 @@ NO MORE OpenID! Full 2FA support with session cookies and access tokens.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING
 
 from PyQt6.QtWidgets import QMessageBox
 
@@ -21,9 +21,7 @@ if TYPE_CHECKING:
     from src.ui.widgets.ui_helper import UIHelper
     from src.config import config
 
-
 logger = logging.getLogger("steamlibmgr.steam_actions")
-
 
 class SteamActions:
     """Handles all Steam menu actions.
@@ -66,7 +64,7 @@ class SteamActions:
         """
         QMessageBox.about(self.mw, t('ui.menu.help.about'), t('app.description'))
 
-    def on_login_success(self, result: Dict) -> None:
+    def on_login_success(self, result: dict) -> None:
         """Handles successful Steam authentication.
 
         Args:

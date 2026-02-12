@@ -5,7 +5,7 @@ This module contains the CentralWidgetBuilder that constructs the main
 application layout with splitter, game tree, and details panel.
 """
 from __future__ import annotations
-from typing import TYPE_CHECKING, Dict, Any
+from typing import TYPE_CHECKING, Any
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, 
@@ -19,7 +19,6 @@ from src.utils.i18n import t
 
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
-
 
 class CentralWidgetBuilder:
     """Builder for the central widget with splitter layout.
@@ -41,7 +40,7 @@ class CentralWidgetBuilder:
         """
         self.mw = main_window
     
-    def build(self) -> Dict[str, Any]:
+    def build(self) -> dict[str, Any]:
         """Build the central widget layout.
         
         Creates the complete central widget with:
@@ -51,7 +50,7 @@ class CentralWidgetBuilder:
         - Game details panel
         
         Returns:
-            Dict containing references to created widgets:
+            dict containing references to created widgets:
             - 'tree': GameTreeWidget
             - 'details_widget': GameDetailsWidget
             - 'search_entry': QLineEdit

@@ -15,7 +15,7 @@ import platform
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable
 
 import requests
 
@@ -23,6 +23,8 @@ from src.utils.date_utils import format_timestamp_to_date
 from src.utils.i18n import t
 
 logger = logging.getLogger("steamlibmgr.game_manager")
+
+__all__ = ['Game', 'GameManager']
 
 
 @dataclass
@@ -37,8 +39,8 @@ class Game:
     app_id: str
     name: str
     playtime_minutes: int = 0
-    last_played: Optional[datetime] = None
-    categories: List[str] = None
+    last_played: datetime | None = None
+    categories: list[str] = None
 
     # Hidden Status (localconfig)
     hidden: bool = False
@@ -47,8 +49,8 @@ class Game:
     developer: str = ""
     publisher: str = ""
     release_year: str = ""
-    genres: List[str] = None
-    tags: List[str] = None
+    genres: list[str] = None
+    tags: list[str] = None
 
     # Sorting
     sort_name: str = ""
@@ -164,12 +166,12 @@ class GameManager:
         'Steam Play',
     ]
 
-    def __init__(self, steam_api_key: Optional[str], cache_dir: Path, steam_path: Path):
+    def __init__(self, steam_api_key: str | None, cache_dir: Path, steam_path: Path):
         """
         Initializes the GameManager.
 
         Args:
-            steam_api_key (Optional[str]): Optional Steam Web API key for fetching
+            steam_api_key (str | None): Optional Steam Web API key for fetching
                                            owned games from the Steam API.
             cache_dir (Path): Directory to store JSON cache files for API responses.
             steam_path (Path): Path to the local Steam installation directory.
@@ -179,8 +181,8 @@ class GameManager:
         self.steam_path = steam_path
         self.cache_dir.mkdir(exist_ok=True)
 
-        self.games: Dict[str, Game] = {}
-        self.steam_user_id: Optional[str] = None
+        self.games: dict[str, Game] = {}
+        self.steam_user_id: str | None = None
         self.load_source: str = "unknown"
         self.appinfo_manager = None
 
@@ -188,7 +190,7 @@ class GameManager:
         self.filter_non_games = platform.system() == 'Linux'
 
     def load_games(self, steam_user_id: str,
-                   progress_callback: Optional[Callable[[str, int, int], None]] = None) -> bool:
+                   progress_callback: Callable[[str, int, int], None] | None = None) -> bool:
         """
         Main entry point to load games from API and local files.
 
@@ -198,7 +200,7 @@ class GameManager:
 
         Args:
             steam_user_id (str): The SteamID64 of the user whose games to load.
-            progress_callback (Optional[Callable[[str, int, int], None]]): Optional callback
+            progress_callback (Callable[[str, int, int], None] | None): Optional callback
                                                                            for UI progress updates.
                                                                            Receives (message, current, total).
 
@@ -242,7 +244,7 @@ class GameManager:
 
         return True
 
-    def load_from_local_files(self, progress_callback: Optional[Callable] = None) -> bool:
+    def load_from_local_files(self, progress_callback: Callable | None = None) -> bool:
         """
         Loads installed games from local Steam manifests.
 
@@ -250,7 +252,7 @@ class GameManager:
         for appmanifest_*.acf files and extract game information.
 
         Args:
-            progress_callback (Optional[Callable]): Optional callback for progress updates.
+            progress_callback (Callable | None): Optional callback for progress updates.
 
         Returns:
             bool: True if games were found, False otherwise.
@@ -322,6 +324,7 @@ class GameManager:
         # Check if we have EITHER an API key OR an access token
         # Access token might be stored globally after login
         from src.config import config
+
         access_token = getattr(config, 'STEAM_ACCESS_TOKEN', None)
         
         if not self.api_key and not access_token:
@@ -446,7 +449,7 @@ class GameManager:
                             if cat not in [favorites_key, hidden_key]:
                                 if cat not in game.categories:
                                     game.categories.append(cat)
-                except:
+                except (KeyError, ValueError, TypeError):
                     pass  # Game not in parser
 
         # Add missing games from parser (if using cloud_storage)
@@ -475,7 +478,7 @@ class GameManager:
                                 other_cats = parser.get_app_categories(app_id)
                                 if other_cats:
                                     categories.extend(other_cats)
-                            except:
+                            except (KeyError, ValueError, TypeError):
                                 pass
 
                         # Skip if no categories
@@ -488,10 +491,10 @@ class GameManager:
                         game.categories = categories
                         game.hidden = is_hidden
                         self.games[app_id] = game
-            except:
+            except (KeyError, ValueError, TypeError):
                 pass  # Parser doesn't support get_all_app_ids
 
-    def _get_cached_name(self, app_id: str) -> Optional[str]:
+    def _get_cached_name(self, app_id: str) -> str | None:
         """
         Tries to retrieve a game name from the local JSON cache.
 
@@ -499,7 +502,7 @@ class GameManager:
             app_id (str): The app ID to look up.
 
         Returns:
-            Optional[str]: The cached game name, or None if not found.
+            str | None: The cached game name, or None if not found.
         """
         cache_file = self.cache_dir / 'store_data' / f'{app_id}.json'
         if cache_file.exists():
@@ -511,7 +514,7 @@ class GameManager:
                 pass
         return None
 
-    def apply_appinfo_data(self, appinfo_data: Dict) -> None:
+    def apply_appinfo_data(self, appinfo_data: dict) -> None:
         """
         Applies last_updated timestamp from appinfo.vdf data.
 
@@ -598,7 +601,7 @@ class GameManager:
         if count > 0:
             logger.info(t('logs.manager.applied_overrides', count=count))
 
-    def get_game(self, app_id: str) -> Optional[Game]:
+    def get_game(self, app_id: str) -> Game | None:
         """
         Gets a single game by its app ID.
 
@@ -606,11 +609,11 @@ class GameManager:
             app_id (str): The Steam app ID.
 
         Returns:
-            Optional[Game]: The Game object, or None if not found.
+            Game | None: The Game object, or None if not found.
         """
         return self.games.get(app_id)
 
-    def get_games_by_category(self, category: str) -> List[Game]:
+    def get_games_by_category(self, category: str) -> list[Game]:
         """
         Gets all games belonging to a specific category.
 
@@ -618,12 +621,12 @@ class GameManager:
             category (str): The category name.
 
         Returns:
-            List[Game]: A sorted list of games in this category.
+            list[Game]: A sorted list of games in this category.
         """
         games = [g for g in self.get_real_games() if g.has_category(category)]
         return sorted(games, key=lambda g: g.sort_name.lower())
 
-    def get_uncategorized_games(self) -> List[Game]:
+    def get_uncategorized_games(self) -> list[Game]:
         """
         Gets games that have no category (Depressurizer-compatible logic).
         
@@ -632,7 +635,7 @@ class GameManager:
         2. It has ONLY the Favorites category (favorites is not a "real" category)
 
         Returns:
-            List[Game]: A sorted list of uncategorized games.
+            list[Game]: A sorted list of uncategorized games.
         """
         favorites_key = t('ui.categories.favorites')
         
@@ -642,22 +645,22 @@ class GameManager:
         
         return sorted(games, key=lambda g: g.sort_name.lower())
 
-    def get_favorites(self) -> List[Game]:
+    def get_favorites(self) -> list[Game]:
         """
         Gets all favorite games.
 
         Returns:
-            List[Game]: A sorted list of favorite games.
+            list[Game]: A sorted list of favorite games.
         """
         games = [g for g in self.get_real_games() if g.is_favorite()]
         return sorted(games, key=lambda g: g.sort_name.lower())
 
-    def get_all_categories(self) -> Dict[str, int]:
+    def get_all_categories(self) -> dict[str, int]:
         """
         Gets all categories and their game counts.
 
         Returns:
-            Dict[str, int]: A dictionary mapping category names to game counts.
+            dict[str, int]: A dictionary mapping category names to game counts.
         """
         categories = {}
         for game in self.get_real_games():
@@ -905,7 +908,7 @@ class GameManager:
         except (requests.RequestException, ValueError, KeyError, OSError):
             pass
 
-    def _apply_review_data(self, app_id: str, data: Dict) -> None:
+    def _apply_review_data(self, app_id: str, data: dict) -> None:
         """Parses and applies review data to a game.
 
         Args:
@@ -938,7 +941,7 @@ class GameManager:
         game.review_score = t(i18n_key) if i18n_key else (review_score_en or t('common.unknown'))
         game.review_count = summary.get('total_reviews', 0)
 
-    def _apply_store_data(self, app_id: str, data: Dict) -> None:
+    def _apply_store_data(self, app_id: str, data: dict) -> None:
         """
         Parses and applies store data to a game.
 
@@ -1026,7 +1029,7 @@ class GameManager:
 
         return True
 
-    def get_real_games(self) -> List[Game]:
+    def get_real_games(self) -> list[Game]:
         """
         Returns only real games (excludes Proton/Steam runtime tools).
 
@@ -1034,14 +1037,14 @@ class GameManager:
         On Windows, all games are returned.
 
         Returns:
-            List[Game]: List of real games.
+            list[Game]: List of real games.
         """
         if self.filter_non_games:
             return [g for g in self.games.values() if self.is_real_game(g)]
         else:
             return list(self.games.values())
 
-    def get_all_games(self) -> List[Game]:
+    def get_all_games(self) -> list[Game]:
         """
         Returns ALL games (including tools).
 
@@ -1049,16 +1052,16 @@ class GameManager:
         For most purposes, use get_real_games() instead!
 
         Returns:
-            List[Game]: List of all games.
+            list[Game]: List of all games.
         """
         return list(self.games.values())
 
-    def get_game_statistics(self) -> Dict[str, int]:
+    def get_game_statistics(self) -> dict[str, int]:
         """
         Returns game statistics (for development/debugging).
 
         Returns:
-            Dict containing:
+            dict containing:
             - total_games: Number of real games (excluding Proton/tools)
             - games_in_categories: Number of unique games in categories
             - category_count: Number of categories (excluding "All Games")

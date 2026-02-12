@@ -7,7 +7,7 @@ This widget provides the main navigation sidebar, showing games organized
 by categories. It supports drag-and-drop for re-categorization and persists
 the expanded/collapsed state of categories.
 """
-from typing import Dict, List, Optional
+from __future__ import annotations
 
 from PyQt6.QtWidgets import (
     QTreeWidget, QTreeWidgetItem, QAbstractItemView,
@@ -19,7 +19,6 @@ from PyQt6.QtGui import QDragEnterEvent, QDragMoveEvent, QDropEvent
 from src.core.game_manager import Game
 from src.config import config
 from src.utils.i18n import t
-
 
 class GameTreeWidget(QTreeWidget):
     """
@@ -33,10 +32,10 @@ class GameTreeWidget(QTreeWidget):
     game_clicked = pyqtSignal(Game)
     game_right_clicked = pyqtSignal(Game, QPoint)
     category_right_clicked = pyqtSignal(str, QPoint)
-    selection_changed = pyqtSignal(list)  # List[Game]
-    games_dropped = pyqtSignal(list, str)  # (List[Game], target_category)
+    selection_changed = pyqtSignal(list)  # list[Game]
+    games_dropped = pyqtSignal(list, str)  # (list[Game], target_category)
 
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: QWidget | None = None):
         """Initializes the GameTreeWidget."""
         super().__init__(parent)
         self.setHeaderHidden(True)
@@ -66,8 +65,8 @@ class GameTreeWidget(QTreeWidget):
 
     def populate_categories(
             self,
-            categories: Dict[str, List[Game]],
-            dynamic_collections: Optional[set] = None
+            categories: dict[str, list[Game]],
+            dynamic_collections: set | None = None
     ) -> None:
         """
         Rebuilds the entire tree with the provided category-to-game mapping.
@@ -76,9 +75,9 @@ class GameTreeWidget(QTreeWidget):
         expansion state of each category from the application's config.
 
         Args:
-            categories (Dict[str, List[Game]]): A dictionary mapping category names
+            categories (dict[str, list[Game]]): A dictionary mapping category names
                                                 to lists of Game objects.
-            dynamic_collections (Optional[set]): Set of collection names that are dynamic
+            dynamic_collections (set | None): Set of collection names that are dynamic
                                                 (have filterSpec). These will get a ⚡ emoji.
         """
         self.clear()
@@ -147,12 +146,12 @@ class GameTreeWidget(QTreeWidget):
         ]
         self.selection_changed.emit(selected_games)
 
-    def get_selected_categories(self) -> List[str]:
+    def get_selected_categories(self) -> list[str]:
         """
         Returns a list of currently selected category names.
 
         Returns:
-            List[str]: List of selected category names.
+            list[str]: List of selected category names.
         """
         selected_categories = []
         for item in self.selectedItems():

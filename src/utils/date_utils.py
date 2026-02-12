@@ -13,13 +13,16 @@ system so the output adapts automatically:
 Accepted input formats: DD.MM.YYYY, YYYY-MM-DD, YYYY, raw Unix timestamp.
 """
 
+from __future__ import annotations
+
 from datetime import datetime
 
+
+__all__ = ['parse_date_to_timestamp', 'format_timestamp_to_date']
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
-
 
 def parse_date_to_timestamp(date_str: str) -> str:
     """Converts various date formats to a Unix timestamp string.
@@ -61,7 +64,6 @@ def parse_date_to_timestamp(date_str: str) -> str:
 
     # Nothing matched -> return original so the user sees what went wrong
     return date_str
-
 
 def format_timestamp_to_date(value) -> str:
     """Converts a Unix timestamp to a localised, human-readable date string.
@@ -108,7 +110,6 @@ def format_timestamp_to_date(value) -> str:
     # Already a string like "07. Dez 2024" or anything else -> return unchanged
     return value_str
 
-
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
@@ -119,7 +120,6 @@ _MONTH_KEYS: list[str] = [
     "jan", "feb", "mar", "apr", "may", "jun",
     "jul", "aug", "sep", "oct", "nov", "dec",
 ]
-
 
 def _format_date_localised(dt: datetime) -> str:
     """Formats a datetime using a localised short month name from i18n.

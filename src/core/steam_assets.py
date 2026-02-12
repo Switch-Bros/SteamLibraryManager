@@ -24,6 +24,8 @@ from src.utils.i18n import t
 
 logger = logging.getLogger("steamlibmgr.steam_assets")
 
+__all__ = ['SteamAssets']
+
 class SteamAssets:
     """
     Static manager class for Steam game assets (images).

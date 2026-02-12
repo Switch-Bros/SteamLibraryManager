@@ -6,7 +6,7 @@ loading sequence including Steam path detection, parser initialization,
 and game loading with progress tracking.
 """
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from PyQt6.QtWidgets import QProgressDialog
 from PyQt6.QtCore import Qt
@@ -23,7 +23,6 @@ logger = logging.getLogger("steamlibmgr.data_load_handler")
 
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
-
 
 class DataLoadHandler:
     """Handler for all data loading operations.
@@ -48,8 +47,8 @@ class DataLoadHandler:
             main_window: The MainWindow instance.
         """
         self.mw = main_window
-        self.progress_dialog: Optional[QProgressDialog] = None
-        self.load_worker: Optional[GameLoadWorker] = None
+        self.progress_dialog: QProgressDialog | None = None
+        self.load_worker: GameLoadWorker | None = None
 
     def load_data(self) -> None:
         """Perform the initial data loading sequence.
@@ -109,7 +108,7 @@ class DataLoadHandler:
         # Load games through GameService
         self.load_games_with_progress(target_id)
 
-    def load_games_with_progress(self, user_id: Optional[str]) -> None:
+    def load_games_with_progress(self, user_id: str | None) -> None:
         """Start game loading with a progress dialog.
 
         Args:

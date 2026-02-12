@@ -1,4 +1,6 @@
-from typing import Optional, TYPE_CHECKING
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 from PyQt6.QtCore import QThread, pyqtSignal, Qt
 from PyQt6.QtWidgets import QProgressDialog, QApplication
 import requests
@@ -10,7 +12,6 @@ from src.core.game_manager import Game
 
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
-
 
 class StoreCheckThread(QThread):
     """Background thread to check Steam Store availability."""
@@ -63,13 +64,12 @@ class StoreCheckThread(QThread):
         except Exception as ex:
             self.finished.emit('unknown', str(ex))
 
-
 class ToolsActions:
     """Handles tool-related actions like metadata search and store checks."""
 
     def __init__(self, main_window: 'MainWindow'):
         self.main_window = main_window
-        self._store_check_thread: Optional[StoreCheckThread] = None
+        self._store_check_thread: StoreCheckThread | None = None
 
     def find_missing_metadata(self) -> None:
         """Shows a dialog listing games with incomplete metadata."""
