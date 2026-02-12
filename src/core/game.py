@@ -1,0 +1,173 @@
+# src/core/game.py
+
+"""Game dataclass and filtering constants for the Steam Library Manager.
+
+This module defines the central Game dataclass used by 15+ modules across
+the codebase, along with constants and helpers for filtering non-game
+Steam apps (Proton, Steam Runtime, etc.).
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import datetime
+
+from src.utils.i18n import t
+
+__all__ = [
+    "Game",
+    "NON_GAME_APP_IDS",
+    "NON_GAME_NAME_PATTERNS",
+    "is_real_game",
+]
+
+
+@dataclass
+class Game:
+    """Represents a single Steam game with all its metadata.
+
+    This dataclass stores all information about a game, including basic info
+    (name, app_id), playtime, categories, metadata (developer, publisher),
+    and extended data from external APIs (ProtonDB, Steam Deck, reviews).
+    """
+
+    app_id: str
+    name: str
+    playtime_minutes: int = 0
+    last_played: datetime | None = None
+    categories: list[str] = None
+
+    # Hidden Status (localconfig)
+    hidden: bool = False
+
+    # Metadata
+    developer: str = ""
+    publisher: str = ""
+    release_year: str = ""
+    genres: list[str] = None
+    tags: list[str] = None
+
+    # Sorting
+    sort_name: str = ""
+
+    # Override flags
+    name_overridden: bool = False
+
+    # Extended data
+    proton_db_rating: str = ""
+    steam_deck_status: str = ""
+    review_score: str = ""
+    review_count: int = 0
+    review_percentage: int = 0  # Steam review percentage (0-100)
+    metacritic_score: int = 0  # Metacritic score (0-100)
+    last_updated: str = ""
+    steam_grid_db_url: str = ""
+
+    # Legacy / UI Compatibility
+    proton_db_tier: str = ""
+    steam_review_score: int = 0
+    steam_review_desc: str = ""
+    steam_review_total: str = ""
+
+    # Age Ratings
+    pegi_rating: str = ""
+    esrb_rating: str = ""
+
+    # Images
+    icon_url: str = ""
+    cover_url: str = ""
+
+    def __post_init__(self):
+        """Initializes default lists and sort name if missing."""
+        if self.categories is None:
+            self.categories = []
+        if self.genres is None:
+            self.genres = []
+        if self.tags is None:
+            self.tags = []
+
+        if not self.sort_name:
+            self.sort_name = self.name
+
+    @property
+    def playtime_hours(self) -> float:
+        """Returns playtime in hours, rounded to 1 decimal place.
+
+        Returns:
+            Playtime in hours.
+        """
+        return round(self.playtime_minutes / 60, 1)
+
+    def has_category(self, category: str) -> bool:
+        """Checks if the game belongs to a specific category.
+
+        Args:
+            category: The category name to check.
+
+        Returns:
+            True if the game has this category, False otherwise.
+        """
+        return category in self.categories
+
+    def is_favorite(self) -> bool:
+        """Checks if the game is marked as a favorite.
+
+        Supports localized favorite category names (e.g., 'Favoriten' in German).
+
+        Returns:
+            True if the localized 'favorites' category is in the game's categories.
+        """
+        favorites_key = t("ui.categories.favorites")
+        return favorites_key in self.categories
+
+
+# List of App IDs that are NOT games (Proton, Steam Runtime, etc.)
+NON_GAME_APP_IDS: frozenset[str] = frozenset({
+    # Proton Versions
+    "1493710",  # Proton Experimental
+    "2348590",  # Proton 8.0
+    "2230260",  # Proton 7.0
+    "1887720",  # Proton 6.3
+    "1580130",  # Proton 5.13
+    "1420170",  # Proton 5.0
+    "1245040",  # Proton 4.11
+    "1113280",  # Proton 4.2
+    "961940",  # Proton 3.16
+    "930400",  # Proton 3.7
+    # Steam Linux Runtime
+    "1628350",  # Steam Linux Runtime 3.0 (sniper)
+    "1391110",  # Steam Linux Runtime 2.0 (soldier)
+    "1070560",  # Steam Linux Runtime 1.0 (scout)
+    # Steam Tools
+    "228980",  # Steamworks Common Redistributables
+})
+
+# List of name patterns for non-games
+NON_GAME_NAME_PATTERNS: tuple[str, ...] = (
+    "Proton",
+    "Steam Linux Runtime",
+    "Steamworks Common",
+    "Steam Play",
+)
+
+
+def is_real_game(game: Game) -> bool:
+    """Checks if a game is a real game (not Proton/Steam runtime).
+
+    Args:
+        game: The game to check.
+
+    Returns:
+        True if real game, False if tool/runtime.
+    """
+    # App ID Check
+    if game.app_id in NON_GAME_APP_IDS:
+        return False
+
+    # Name Pattern Check
+    name_lower = game.name.lower()
+    for pattern in NON_GAME_NAME_PATTERNS:
+        if pattern.lower() in name_lower:
+            return False
+
+    return True

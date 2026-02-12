@@ -12,6 +12,7 @@ from src.ui.handlers.selection_handler import SelectionHandler
 from src.ui.handlers.category_change_handler import CategoryChangeHandler
 from src.ui.handlers.data_load_handler import DataLoadHandler
 from src.ui.handlers.empty_collection_handler import EmptyCollectionHandler
+from src.ui.handlers.category_populator import CategoryPopulator
 
 __all__ = [
     "CategoryActionHandler",
@@ -19,4 +20,5 @@ __all__ = [
     "CategoryChangeHandler",
     "DataLoadHandler",
     "EmptyCollectionHandler",
+    "CategoryPopulator",
 ]
