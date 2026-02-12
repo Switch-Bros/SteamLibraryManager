@@ -30,9 +30,7 @@ class TestApplyAppinfoData:
         games = {"440": game}
         service = MetadataEnrichmentService(games, tmp_path)
 
-        appinfo_data = {
-            "440": {"common": {"last_updated": 1700000000}}
-        }
+        appinfo_data = {"440": {"common": {"last_updated": 1700000000}}}
         service.apply_appinfo_data(appinfo_data)
 
         # Should have a non-empty date string
@@ -103,9 +101,7 @@ class TestApplyMetadataOverrides:
         service = MetadataEnrichmentService(games, tmp_path)
 
         appinfo_manager = MagicMock()
-        appinfo_manager.load_appinfo.return_value = {
-            "999": {"modified": {"name": "Ghost Game"}}
-        }
+        appinfo_manager.load_appinfo.return_value = {"999": {"modified": {"name": "Ghost Game"}}}
         appinfo_manager.get_app_metadata.return_value = {}
 
         # Should not raise
