@@ -4,8 +4,11 @@ Steam Account Scanner.
 This module scans the Steam userdata directory to find all local Steam accounts
 and fetches their display names from the Steam Community XML API.
 """
+from __future__ import annotations
+
 from pathlib import Path
 from typing import List
+import logging
 import requests
 import xml.etree.ElementTree as ElementTree
 
@@ -16,6 +19,8 @@ try:
     import psutil as _psutil
 except ImportError:
     _psutil = None
+
+logger = logging.getLogger("steamlibmgr.account_scanner")
 
 # Steam ID conversion constant
 STEAM_ID_BASE = 76561197960265728
@@ -68,7 +73,7 @@ def fetch_steam_display_name(steam_id_64: int) -> str:
                 return steam_id_element.text
 
     except (requests.RequestException, ElementTree.ParseError) as e:
-        print(t('logs.scanner.warning_fetch_name', steam_id=steam_id_64, error=str(e)))
+        logger.error(t('logs.scanner.warning_fetch_name', steam_id=steam_id_64, error=str(e)))
 
     return str(steam_id_64)
 
@@ -91,10 +96,10 @@ def scan_steam_accounts(steam_path: str) -> List[SteamAccount]:
     scanned_accounts = []
 
     if not userdata_path.exists():
-        print(t('logs.scanner.warning_no_userdata', path=userdata_path))
+        logger.warning(t('logs.scanner.warning_no_userdata', path=userdata_path))
         return scanned_accounts
 
-    print(t('logs.scanner.scanning_accounts', path=userdata_path))
+    logger.info(t('logs.scanner.scanning_accounts', path=userdata_path))
 
     for account_dir in userdata_path.iterdir():
         if account_dir.is_dir() and account_dir.name.isdigit():
@@ -102,7 +107,7 @@ def scan_steam_accounts(steam_path: str) -> List[SteamAccount]:
                 account_id = int(account_dir.name)
                 steam_id_64 = account_id_to_steam_id_64(account_id)
 
-                print(t('logs.scanner.found_account', account_id=account_id, steam_id=steam_id_64))
+                logger.info(t('logs.scanner.found_account', account_id=account_id, steam_id=steam_id_64))
 
                 display_name = fetch_steam_display_name(steam_id_64)
 
@@ -112,16 +117,16 @@ def scan_steam_accounts(steam_path: str) -> List[SteamAccount]:
                     display_name=display_name
                 ))
 
-                print(t('logs.scanner.display_name_found', name=display_name))
+                logger.info(t('logs.scanner.display_name_found', name=display_name))
 
             except ValueError:
-                print(t('logs.scanner.warning_invalid_dir', name=account_dir.name))
+                logger.warning(t('logs.scanner.warning_invalid_dir', name=account_dir.name))
             except OSError as e:
-                print(t('logs.scanner.error_processing', name=account_dir.name, error=str(e)))
+                logger.error(t('logs.scanner.error_processing', name=account_dir.name, error=str(e)))
 
     scanned_accounts.sort(key=lambda a: a.display_name.lower())
 
-    print(t('logs.scanner.total_found', count=len(scanned_accounts)))
+    logger.info(t('logs.scanner.total_found', count=len(scanned_accounts)))
     return scanned_accounts
 
 
@@ -137,7 +142,7 @@ def is_steam_running() -> bool:
     """
     try:
         if _psutil is None:
-            print(t('logs.scanner.warning_no_psutil'))
+            logger.warning(t('logs.scanner.warning_no_psutil'))
             return False
 
         for proc in _psutil.process_iter(['name']):
@@ -151,7 +156,7 @@ def is_steam_running() -> bool:
         return False
 
     except _psutil.Error as e:
-        print(t('logs.scanner.error_check_steam', error=str(e)))
+        logger.error(t('logs.scanner.error_check_steam', error=str(e)))
         return False
 
 
@@ -166,7 +171,7 @@ def kill_steam_process() -> bool:
     """
     try:
         if _psutil is None:
-            print(t('logs.scanner.error_no_psutil_kill'))
+            logger.error(t('logs.scanner.error_no_psutil_kill'))
             return False
 
         import time
@@ -177,7 +182,7 @@ def kill_steam_process() -> bool:
             try:
                 proc_name = proc.info['name'].lower()
                 if proc_name in ['steam', 'steam.exe']:
-                    print(t('logs.scanner.killing_steam', pid=proc.info['pid']))
+                    logger.info(t('logs.scanner.killing_steam', pid=proc.info['pid']))
                     proc.kill()
                     killed = True
             except (_psutil.NoSuchProcess, _psutil.AccessDenied):
@@ -187,15 +192,15 @@ def kill_steam_process() -> bool:
             time.sleep(2)
 
             if not is_steam_running():
-                print(f"{t('emoji.success')} {t('logs.scanner.steam_closed')}")
+                logger.info(t('logs.scanner.steam_closed'))
                 return True
             else:
-                print(f"{t('emoji.warning')} {t('logs.scanner.steam_still_running')}")
+                logger.warning(t('logs.scanner.steam_still_running'))
                 return False
         else:
-            print(t('logs.scanner.no_steam_process'))
+            logger.info(t('logs.scanner.no_steam_process'))
             return False
 
     except _psutil.Error as e:
-        print(t('logs.scanner.error_kill_steam', error=str(e)))
+        logger.error(t('logs.scanner.error_kill_steam', error=str(e)))
         return False

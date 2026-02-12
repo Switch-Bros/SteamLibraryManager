@@ -3,15 +3,23 @@
 This module provides the GameService class which handles loading games from Steam API,
 initializing parsers, and managing game data.
 """
+from __future__ import annotations
+
+import logging
+
 
 from typing import Optional, Callable
 from pathlib import Path
 
+from src.utils.i18n import t
 from src.core.game_manager import GameManager
 from src.core.localconfig_helper import LocalConfigHelper
 from src.core.cloud_storage_parser import CloudStorageParser
 from src.core.appinfo_manager import AppInfoManager
 
+
+
+logger = logging.getLogger("steamlibmgr.game_service")
 
 class GameService:
     """Service for managing game loading and initialization.
@@ -68,7 +76,7 @@ class GameService:
                 self.localconfig_helper = None
                 vdf_success = False
         except (OSError, FileNotFoundError, ValueError) as e:
-            print(f"[ERROR] Failed to init localconfig_helper: {e}")
+            logger.error(t('logs.service.localconfig_init_error', error=e))
             self.localconfig_helper = None
 
         # Try Cloud Storage parser
@@ -79,7 +87,7 @@ class GameService:
             else:
                 self.cloud_storage_parser = None
         except Exception as e:
-            print(f"[WARN] Failed to initialize Cloud Storage parser: {e}")
+            logger.error(t('logs.service.cloud_parser_init_error', error=e))
             self.cloud_storage_parser = None
 
         return vdf_success, cloud_success

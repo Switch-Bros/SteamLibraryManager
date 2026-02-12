@@ -10,6 +10,9 @@ including WebP and GIF.
 IMPORTANT: Images are now saved directly in Steam's grid folder so they appear
 in the Steam client!
 """
+from __future__ import annotations
+
+import logging
 import os
 import shutil
 import requests
@@ -17,6 +20,9 @@ from pathlib import Path
 from src.config import config
 from src.utils.i18n import t
 
+
+
+logger = logging.getLogger("steamlibmgr.steam_assets")
 
 class SteamAssets:
     """
@@ -135,7 +141,7 @@ class SteamAssets:
             elif asset_type == 'capsules':
                 filename = f"{app_id}.png"  # Horizontal grid (Big Picture)
             else:
-                print(f"Unknown asset type: {asset_type}")
+                logger.info(t('logs.assets.unknown_type', type=asset_type))
                 return False
 
             target_file = grid_dir / filename
@@ -147,19 +153,19 @@ class SteamAssets:
                 if response.status_code == 200:
                     with open(target_file, 'wb') as f:
                         f.write(response.content)
-                    print(t('logs.steamgrid.saved', type=asset_type, app_id=app_id))
-                    print(f"  → Saved to: {target_file}")
+                    logger.info(t('logs.steamgrid.saved', type=asset_type, app_id=app_id))
+                    logger.info(t('logs.assets.saved_to', path=target_file))
                     return True
 
             # Copy local file
             elif os.path.exists(url_or_path):
                 shutil.copy2(url_or_path, target_file)
-                print(t('logs.steamgrid.saved', type=asset_type, app_id=app_id))
-                print(f"  → Saved to: {target_file}")
+                logger.info(t('logs.steamgrid.saved', type=asset_type, app_id=app_id))
+                logger.info(t('logs.assets.saved_to', path=target_file))
                 return True
 
         except (OSError, requests.RequestException, ValueError) as e:
-            print(t('logs.steamgrid.save_error', error=e))
+            logger.error(t('logs.steamgrid.save_error', error=e))
             return False
 
         return False
@@ -201,10 +207,10 @@ class SteamAssets:
 
             if target_file.exists():
                 os.remove(target_file)
-                print(t('logs.steamgrid.deleted', path=target_file.name))
+                logger.info(t('logs.steamgrid.deleted', path=target_file.name))
                 return True
             # Return True even if file didn't exist (idempotent)
             return True
         except (OSError, ValueError) as e:
-            print(t('logs.steamgrid.delete_error', error=e))
+            logger.error(t('logs.steamgrid.delete_error', error=e))
             return False

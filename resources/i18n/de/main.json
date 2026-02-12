@@ -326,7 +326,7 @@
       "fields_group": "Zu ändernde Felder",
       "bulk_info": "Warnung: Dies ändert {count} Spiele!",
       "bulk_preview": "Betroffene Spiele ({count})",
-      "bulk_more": "...and {count} weitere",
+      "bulk_more": "...und {count} weitere",
       "set_field": "{field} setzen",
       "add_prefix": "Namen-Präfix hinzufügen",
       "add_suffix": "Namen-Suffix hinzufügen",
@@ -563,7 +563,7 @@
       "confirm_title": "Merge bestätigen",
       "confirm_message": "Die Zieldatei wird geändert. Möchtest du wirklich fortfahren?",
       "changes_header": "Änderungen",
-      "more_changes": "...and {count} weitere Änderungen"
+      "more_changes": "...und {count} weitere Änderungen"
     },
     "errors": {
       "no_users_found": "Keine Steam-Benutzer gefunden.",
@@ -579,134 +579,6 @@
       "humor": "Humor",
       "epilepsy": "Epilepsie",
       "animated": "GIF"
-    }
-  },
-  "logs": {
-    "main": {
-      "initializing": "Initialisiere...",
-      "steam_found": "Steam gefunden in: {path}",
-      "steam_not_found": "Steam-Installation nicht gefunden",
-      "steam_running_exit": "Steam läuft - Anwendung wird beendet",
-      "psutil_missing": "Warnung: psutil nicht installiert",
-      "file_load_error": "Fehler beim Laden der Datei {file}: {error}",
-      "profile_setup_required": "Kein Benutzerprofil konfiguriert. Starte Einrichtung...",
-      "profile_configured": "Profil konfiguriert: {name} (SteamID64: {id})",
-      "setup_cancelled": "Profil-Einrichtung abgebrochen. Beende Anwendung."
-    },
-    "config": {
-      "loaded": "Einstellungen geladen",
-      "save_error": "Fehler beim Speichern der Konfiguration: {error}",
-      "load_error": "Fehler beim Laden der Konfiguration: {error}"
-    },
-    "manager": {
-      "api_trying": "Versuche Steam Web API...",
-      "local_loading": "Lade aus lokalen Dateien...",
-      "loaded_local": "{count} Spiele geladen",
-      "loaded_api": "{count} Spiele von API geladen",
-      "loaded_mixed": "{count} Spiele geladen (Steam API + lokale Dateien)",
-      "merging": "Führe Kollektionen zusammen...",
-      "applied_overrides": "Metadaten-Overrides auf {count} Spiele angewendet",
-      "error_api": "Steam API Fehler: {error}",
-      "error_local": "Fehler beim Laden lokaler Dateien: {error}"
-    },
-    "auth": {
-      "starting": "Starte Steam OAuth Prozess...",
-      "login_success": "Anmeldung erfolgreich! SteamID: {id}",
-      "error": "Auth Fehler: {error}",
-      "profile_error": "Fehler beim Laden des Profilnamens: {error}",
-      "qr_challenge_approved": "QR-Code Challenge von mobiler App bestätigt",
-      "could_not_resolve_steamid": "SteamID64 konnte nicht vom Access Token aufgelöst werden",
-      "steamid_resolved": "SteamID64 erfolgreich aufgelöst",
-      "steamid_missing": "Warnung: steamid Feld fehlt in API-Antwort",
-      "get_owned_games_status": "GetOwnedGames API gab Status zurück: {status}",
-      "steamid_from_token_error": "Fehler beim Extrahieren der SteamID vom Token: {error}",
-      "account_name_resolved": "Account-Name aufgelöst: {name}",
-      "account_name_resolve_error": "Account-Name konnte nicht aufgelöst werden: {error}",
-      "steamid_from_jwt": "SteamID64 aus JWT Token extrahiert",
-      "jwt_decode_failed": "JWT Token konnte nicht dekodiert werden: {error}"
-    },
-    "steam_store": {
-      "fetch_error": "Store-Fehler für App {app_id}: {error}"
-    },
-    "steamgrid": {
-      "saved": "Bild gespeichert: {type} für App {app_id}",
-      "missing_key": "API Key fehlt",
-      "api_error": "API Fehler {code}",
-      "found": "Bilder gefunden: {count}",
-      "save_error": "Fehler beim Speichern des Bildes: {error}",
-      "deleted": "Benutzerdefiniertes Bild gelöscht: {path}",
-      "delete_error": "Fehler beim Löschen des Bildes: {error}"
-    },
-    "backup": {
-      "created": "Backup erstellt: {name}",
-      "failed": "Backup fehlgeschlagen: {error}",
-      "rotated": "Backup rotiert: {name}",
-      "delete_error": "Fehler beim Löschen des alten Backups {name}: {error}",
-      "backup_failed": "Backup fehlgeschlagen: {error}"
-    },
-    "appinfo": {
-      "loaded": "{count} gespeicherte Änderungen geladen",
-      "saved_vdf": "appinfo.vdf gespeichert",
-      "restored": "{count} Änderungen wiederhergestellt",
-      "parse_error": "Warnung: Fehler beim Parsen von App {app_id}: {error}",
-      "loaded_binary": "{count} Apps aus binärer appinfo.vdf geladen",
-      "incompatible_version": "Inkompatible appinfo.vdf Version: {version}",
-      "binary_error": "Fehler beim Laden der binären appinfo.vdf: {error}",
-      "error": "AppInfo Fehler: {error}",
-      "set_error": "Fehler beim Setzen der Metadaten für {app_id}: {error}",
-      "saved_mods": "{count} Änderungen in JSON gespeichert",
-      "not_loaded": "Binäre appinfo.vdf nicht geladen",
-      "backup_created": "Backup erstellt: {path}",
-      "backup_failed": "Backup fehlgeschlagen: {error}",
-      "write_error": "Fehler beim Schreiben der appinfo.vdf: {error}"
-    },
-    "parser": {
-      "apps_not_found": "Apps-Sektion in localconfig.vdf nicht gefunden",
-      "file_not_found": "localconfig.vdf nicht gefunden unter: {path}",
-      "hidden_error": "Fehler beim Setzen des Versteckt-Status: {error}",
-      "save_collection_error": "FEHLER beim speichern der Kollektion {e}",
-      "save_cloud_error": "FEHLER beim schreiben des Cloud-Speichers {e}"
-    },
-    "local_loader": {
-      "scanning": "Scanne {count} Manifest-Dateien...",
-      "scanning_libraries": "Scanne {count} Bibliotheks-Ordner...",
-      "found_manifests": "  -> {path}: {count} Manifeste gefunden",
-      "found_manifests_in_path": "  -> {path}: {count} Manifeste gefunden",
-      "library_error": "Fehler beim Lesen der Library-Ordner: {error}",
-      "loaded_total": "{count} Spiele aus lokalen Dateien geladen",
-      "no_library_file": "libraryfolders.vdf nicht gefunden, scanne Standard-Steamapps",
-      "path_not_exists": "Bibliotheks-Pfad existiert nicht: {path}"
-    },
-    "merger": {
-      "source_missing": "Quelldatei nicht gefunden: {path}",
-      "target_missing": "Zieldatei nicht gefunden: {path}",
-      "load_error_source": "Fehler beim Laden der Quelldatei",
-      "load_error_target": "Fehler beim Laden der Zieldatei",
-      "no_apps_section": "Keine Apps-Sektion gefunden in {file}",
-      "no_changes": "Keine Änderungen nötig - Kollektionen sind bereits synchron",
-      "dry_run_complete": "Testlauf abgeschlossen: {count} Spiele würden aktualisiert ({changes} Änderungen)",
-      "backup_failed": "Backup-Erstellung fehlgeschlagen - Abbruch zur Sicherheit",
-      "success": "Erfolgreich {count} Spiele nach {path} übertragen (Strategie: {strategy})",
-      "save_error": "Fehler beim Speichern der Zieldatei"
-    },
-    "scanner": {
-      "warning_fetch_name": "Warnung: Konnte Display-Namen für {steam_id} nicht abrufen: {error}",
-      "error_fetch_name": "Unerwarteter Fehler beim Abrufen des Steam Display-Namens: {error}",
-      "warning_no_userdata": "Warnung: userdata-Verzeichnis nicht gefunden: {path}",
-      "scanning_accounts": "Scanne Steam Konten in: {path}",
-      "found_account": "Konto gefunden: {account_id} → SteamID64: {steam_id}",
-      "display_name_found": "  → Display-Name: {name}",
-      "warning_invalid_dir": "Warnung: Ungültiger Konto-Verzeichnisname: {name}",
-      "error_processing": "Fehler beim Verarbeiten von Konto {name}: {error}",
-      "total_found": "Insgesamt {count} Konten gefunden",
-      "warning_no_psutil": "Warnung: psutil nicht installiert, Steam-Check nicht möglich",
-      "error_check_steam": "Fehler beim Prüfen ob Steam läuft: {error}",
-      "killing_steam": "Beende Steam Prozess (PID: {pid})",
-      "steam_closed": "Steam erfolgreich geschlossen",
-      "steam_still_running": "Steam Prozess läuft noch nach Kill-Versuch",
-      "no_steam_process": "Kein Steam Prozess zum Beenden gefunden",
-      "error_no_psutil_kill": "Fehler: psutil nicht installiert, kann Steam nicht beenden",
-      "error_kill_steam": "Fehler beim Beenden von Steam: {error}"
     }
   }
 }

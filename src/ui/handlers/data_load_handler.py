@@ -17,6 +17,10 @@ from src.utils.i18n import t
 from src.integrations.steam_store import SteamStoreScraper
 from src.ui.workers import GameLoadWorker
 
+import logging
+
+logger = logging.getLogger("steamlibmgr.data_load_handler")
+
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
@@ -139,13 +143,13 @@ class DataLoadHandler:
             steam_id: The Steam ID64 of the authenticated user
             session_or_token: Either a requests.Session or access_token string
         """
-        print(t("logs.auth.loading_games_after_login"))
+        logger.info(t("logs.auth.loading_games_after_login"))
         
         # Store session/token for API access
         if isinstance(session_or_token, str):
-            print(t("logs.auth.auth_mode_token"))
+            logger.info(t("logs.auth.auth_mode_token"))
         else:
-            print(t("logs.auth.auth_mode_session"))
+            logger.info(t("logs.auth.auth_mode_session"))
         
         # Simply reload games with the user_id
         # The GameLoadWorker will use the session/token if available
@@ -249,8 +253,8 @@ class DataLoadHandler:
                 if steam_id_element is not None and steam_id_element.text:
                     return steam_id_element.text
         except (requests.RequestException, ET.ParseError) as e:
-            print(t('logs.auth.profile_error', error=str(e)))
+            logger.error(t('logs.auth.profile_error', error=str(e)))
         except Exception as e:
-            print(t("logs.auth.unexpected_profile_error", error=str(e)))
+            logger.error(t("logs.auth.unexpected_profile_error", error=str(e)))
 
         return steam_id

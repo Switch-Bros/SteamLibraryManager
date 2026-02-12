@@ -7,12 +7,18 @@ This module reads Steam's appmanifest_*.acf files across all configured library
 folders to discover installed games. It does NOT load appinfo.vdf, which is
 handled separately by AppInfoManager for better performance.
 """
+from __future__ import annotations
 
+
+import logging
 import vdf
 from pathlib import Path
 from typing import List, Dict, Optional
 from src.utils.i18n import t
 
+
+
+logger = logging.getLogger("steamlibmgr.local_loader")
 
 class LocalGamesLoader:
     """
@@ -56,7 +62,7 @@ class LocalGamesLoader:
         for game in installed:
             all_games[str(game['appid'])] = game
 
-        print(t('logs.local_loader.loaded_total', count=len(all_games)))
+        logger.info(t('logs.local_loader.loaded_total', count=len(all_games)))
         return list(all_games.values())
 
     def get_installed_games(self) -> List[Dict]:
@@ -74,7 +80,7 @@ class LocalGamesLoader:
         # Get Libraries (Linux Native Paths)
         library_folders = self.get_library_folders()
 
-        print(t('logs.local_loader.scanning_libraries', count=len(library_folders)))
+        logger.info(t('logs.local_loader.scanning_libraries', count=len(library_folders)))
 
         for lib_path in library_folders:
             # Manifests are typically in steamapps
@@ -101,8 +107,8 @@ class LocalGamesLoader:
                         pass
 
             if manifests_found_in_lib > 0:
-                print(t('logs.local_loader.found_manifests_in_path',
-                        path=lib_path, count=manifests_found_in_lib))
+                logger.info(t('logs.local_loader.found_manifests_in_path',
+                             path=lib_path, count=manifests_found_in_lib))
 
         return all_installed
 
@@ -130,7 +136,7 @@ class LocalGamesLoader:
                 break
 
         if not libraryfolders_vdf:
-            print(t('logs.local_loader.no_library_file'))
+            logger.info(t('logs.local_loader.no_library_file'))
             return folders
 
         try:
@@ -151,10 +157,10 @@ class LocalGamesLoader:
                         if path_obj not in folders:
                             folders.append(path_obj)
                     else:
-                        print(t('logs.local_loader.path_not_exists', path=path_str))
+                        logger.info(t('logs.local_loader.path_not_exists', path=path_str))
 
         except (OSError, ValueError, KeyError, SyntaxError) as e:
-            print(t('logs.local_loader.library_error', error=e))
+            logger.error(t('logs.local_loader.library_error', error=e))
 
         return list(set(folders))
 

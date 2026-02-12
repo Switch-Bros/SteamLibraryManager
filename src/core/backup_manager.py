@@ -6,6 +6,9 @@ Manages file backups with automatic rotation.
 This module provides functionality to create timestamped backups of configuration
 files and automatically rotate (delete) old backups when a maximum limit is reached.
 """
+from __future__ import annotations
+
+import logging
 import shutil
 import glob
 import os
@@ -15,6 +18,9 @@ from typing import Optional
 from src.config import config
 from src.utils.i18n import t
 
+
+
+logger = logging.getLogger("steamlibmgr.backup_manager")
 
 class BackupManager:
     """
@@ -67,14 +73,14 @@ class BackupManager:
 
         try:
             shutil.copy2(file_path, backup_path)
-            print(t('logs.backup.created', name=backup_name))
+            logger.info(t('logs.backup.created', name=backup_name))
 
             # Rotate old backups
             self._rotate_backups(file_path)
 
             return backup_path
         except OSError as backup_error:
-            print(t('logs.backup.failed', error=str(backup_error)))
+            logger.error(t('logs.backup.failed', error=str(backup_error)))
             return None
 
     def _rotate_backups(self, file_path: Path):
@@ -96,9 +102,9 @@ class BackupManager:
             for old in backups[config.MAX_BACKUPS:]:
                 try:
                     os.remove(old)
-                    print(t('logs.backup.rotated', name=Path(old).name))
+                    logger.info(t('logs.backup.rotated', name=Path(old).name))
                 except OSError as delete_error:
-                    print(t('logs.backup.delete_error', name=Path(old).name, error=str(delete_error)))
+                    logger.error(t('logs.backup.delete_error', name=Path(old).name, error=str(delete_error)))
 
     @staticmethod
     def create_rolling_backup(file_path: Path) -> Optional[str]:

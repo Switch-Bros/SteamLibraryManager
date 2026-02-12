@@ -8,6 +8,9 @@ in the user's preferred language and detect game franchises based on name patter
 
 FIXED: Age rating fetching now uses Steam Store API instead of unreliable HTML scraping.
 """
+from __future__ import annotations
+
+import logging
 import time
 import json
 from pathlib import Path
@@ -17,6 +20,8 @@ from typing import List, Optional
 import requests
 from bs4 import BeautifulSoup
 from src.utils.i18n import t
+
+logger = logging.getLogger("steamlibmgr.steam_store")
 
 
 class SteamStoreScraper:
@@ -132,7 +137,7 @@ class SteamStoreScraper:
                 return tags
 
         except (requests.RequestException, AttributeError) as e:
-            print(t('logs.steam_store.fetch_error', app_id=app_id, error=str(e)))
+            logger.error(t('logs.steam_store.fetch_error', app_id=app_id, error=str(e)))
 
         return []
 
@@ -250,7 +255,7 @@ class SteamStoreScraper:
                 return None
 
         except (requests.RequestException, ValueError, KeyError) as e:
-            print(f"Steam API fetch failed for {app_id}: {e}")
+            logger.error(t('logs.steam_store.api_fetch_failed', app_id=app_id, error=e))
             return None
 
     def _fetch_age_rating_from_html(self, app_id: str) -> Optional[str]:
@@ -372,7 +377,7 @@ class SteamStoreScraper:
             return None
 
         except (requests.RequestException, AttributeError) as e:
-            print(f"HTML scraping failed for {app_id}: {e}")
+            logger.error(t('logs.steam_store.html_scrape_failed', app_id=app_id, error=e))
             return None
 
     @staticmethod
@@ -491,6 +496,7 @@ class SteamStoreScraper:
 
         # Check for numbered sequels (e.g., "Half-Life 2")
         import re
+
         match = re.match(r'^([A-Za-z\s]+?)\s+\d+', name)
         if match:
             return match.group(1).strip()

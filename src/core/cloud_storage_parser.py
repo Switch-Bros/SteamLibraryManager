@@ -19,7 +19,10 @@ Format:
   }
 ]
 """
+from __future__ import annotations
 
+
+import logging
 import json
 import os
 import time
@@ -27,26 +30,38 @@ from pathlib import Path
 from typing import Dict, List
 
 from src.core.backup_manager import BackupManager
+from src.utils.i18n import t
+
+logger = logging.getLogger("steamlibmgr.cloud_parser")
 
 
 class CloudStorageParser:
     """Parser for Steam's cloud-storage-namespace-1.json collections format."""
 
-    # Virtual UI-only categories that should NEVER be written to cloud storage
-    # These are calculated dynamically by the UI
-    VIRTUAL_CATEGORIES = {
-        'Unkategorisiert', 'Uncategorized',  # Shows games not in any collection
-        'Alle Spiele', 'All Games',          # Shows all games
-    }
-    
-    # Special Steam collections IDs (like Depressurizer does it!)
-    # These ARE saved in cloud-storage with special IDs
-    SPECIAL_COLLECTION_IDS = {
-        'Favoriten': 'favorite',
-        'Favorites': 'favorite',
-        'Versteckt': 'hidden',
-        'Hidden': 'hidden',
-    }
+    @staticmethod
+    def _get_virtual_categories() -> set[str]:
+        """Returns virtual UI-only category names that should NEVER be written to cloud storage.
+
+        These are calculated dynamically using the current locale so that
+        any translation of 'Uncategorized' or 'All Games' is recognised.
+        """
+        return {
+            t('ui.categories.uncategorized'),
+            t('ui.categories.all_games'),
+        }
+
+    @staticmethod
+    def _get_special_collection_ids() -> dict[str, str]:
+        """Returns a mapping of localised special-collection names to Steam IDs.
+
+        Steam uses 'favorite' and 'hidden' as internal collection IDs.
+        This mapping allows the parser to recognise the localised display
+        name and map it to the correct Steam-internal ID.
+        """
+        return {
+            t('ui.categories.favorites'): 'favorite',
+            t('ui.categories.hidden'): 'hidden',
+        }
 
     def __init__(self, steam_path: str, user_id: str):
         """
@@ -81,7 +96,8 @@ class CloudStorageParser:
                 self.data = json.load(f)
 
             if not isinstance(self.data, list):
-                print(f"[ERROR] Cloud storage data is not a list!")
+                from src.utils.i18n import t
+                logger.error(t('logs.parser.not_a_list'))
                 return False
 
             # Extract collections
@@ -97,15 +113,15 @@ class CloudStorageParser:
                                 collection_data = json.loads(value_str)
                                 self.collections.append(collection_data)
                             except json.JSONDecodeError:
-                                print(f"[WARN] Failed to parse collection: {key}")
+                                logger.warning(t('logs.parser.parse_failed', key=key))
 
             return True
 
         except FileNotFoundError:
-            print(f"[ERROR] Cloud storage file not found: {self.cloud_storage_path}")
+            logger.error(t('logs.parser.cloud_file_not_found', path=self.cloud_storage_path))
             return False
         except Exception as e:
-            print(f"[ERROR] Failed to load cloud storage: {e}")
+            logger.error(t('logs.parser.load_error', error=e))
             return False
 
     def save(self) -> bool:
@@ -137,19 +153,21 @@ class CloudStorageParser:
 
                 # CRITICAL FIX 1: Skip VIRTUAL categories!
                 # These should never be written to cloud storage
-                if collection_name in self.VIRTUAL_CATEGORIES:
+                virtual = self._get_virtual_categories()
+                if collection_name in virtual:
                     continue
-                
+
                 # CRITICAL FIX 2: Skip EMPTY special collections (favorites/hidden)!
                 # Steam only shows these if they contain games
                 added_apps = collection.get('added', collection.get('apps', []))
-                if collection_name in self.SPECIAL_COLLECTION_IDS and not added_apps:
+                special_ids = self._get_special_collection_ids()
+                if collection_name in special_ids and not added_apps:
                     continue  # Don't save empty favorites/hidden
 
                 # CRITICAL FIX 3: Use correct Steam ID for special collections (like Depressurizer!)
                 # Depressurizer uses "favorite" and "hidden" (not "favorites"!)
-                if collection_name in self.SPECIAL_COLLECTION_IDS:
-                    special_id = self.SPECIAL_COLLECTION_IDS[collection_name]
+                if collection_name in special_ids:
+                    special_id = special_ids[collection_name]
                     collection_id = special_id
                     collection['id'] = special_id
                     key = f"user-collections.{special_id}"
@@ -206,8 +224,8 @@ class CloudStorageParser:
 
         except OSError as e:
             from src.utils.i18n import t
-            print(t('logs.parser.save_cloud_error'))
-            print(f"[DEBUG] Error details: {e}")  # ← Nutze 'e'
+            logger.error(t('logs.parser.save_cloud_error'))
+            logger.debug(t('logs.parser.error_details', error=e))
             return False
 
     def get_all_categories(self) -> List[str]:

@@ -8,13 +8,18 @@ This is the CORRECT implementation that:
 - Supports Push Notifications (not manual 2FA codes!)
 - Uses the NEW Steam IAuthenticationService API (2022+)
 """
+from __future__ import annotations
 
+
+import logging
 import time
 from typing import Optional, Dict
 import requests
 from PyQt6.QtCore import QObject, pyqtSignal, QThread
 
 from src.utils.i18n import t
+
+logger = logging.getLogger("steamlibmgr.login_manager")
 
 try:
     import steam.webauth as wa
@@ -136,14 +141,14 @@ class QRCodeLoginThread(QThread):
                 if result.get('access_token'):
                     # SUCCESS! But we need to get the actual SteamID64!
                     access_token = result.get('access_token')
-                    print(t("logs.auth.qr_challenge_approved"))
+                    logger.info(t("logs.auth.qr_challenge_approved"))
 
                     # Get SteamID64 using the access token
                     steam_id_64 = SteamLoginManager.get_steamid_from_token(access_token)
 
                     if not steam_id_64:
                         # CRITICAL: Cannot proceed without valid SteamID64
-                        print(t("logs.auth.could_not_resolve_steamid"))
+                        logger.info(t("logs.auth.could_not_resolve_steamid"))
                         # Return None to trigger error in run() method
                         return None
 
@@ -279,13 +284,22 @@ class UsernamePasswordLoginThread(QThread):
 
     @staticmethod
     def _encrypt_password(password: str) -> str:
-        """
-        Encrypt password for Steam API.
+        """Encrypt password for Steam API.
 
-        TODO: Implement proper RSA encryption!
-        For now, this is a placeholder.
+        .. warning::
+            SECURITY: This is a Base64 placeholder, NOT real encryption!
+            Steam requires RSA encryption using a per-session public key
+            fetched from ``IAuthenticationService/GetPasswordRSAPublicKey``.
+            Must be replaced in Phase 2 (Auth Hardening).
+
+        Args:
+            password: The plaintext password.
+
+        Returns:
+            Base64-encoded password (insecure placeholder).
         """
-        # This is NOT secure - need proper implementation!
+        # FIXME(phase-2): Replace with proper RSA encryption via
+        # IAuthenticationService/GetPasswordRSAPublicKey
         import base64
         return base64.b64encode(password.encode()).decode()
 
@@ -399,16 +413,16 @@ class SteamLoginManager(QObject):
                 data = response.json()
                 steam_id = data.get('response', {}).get('steamid')
                 if steam_id:
-                    print(t("logs.auth.steamid_resolved"))
+                    logger.info(t("logs.auth.steamid_resolved"))
                     return str(steam_id)
 
                 if 'response' in data:
-                    print(t("logs.auth.steamid_missing"))
+                    logger.info(t("logs.auth.steamid_missing"))
             else:
-                print(t("logs.auth.get_owned_games_status", status=response.status_code))
+                logger.info(t("logs.auth.get_owned_games_status", status=response.status_code))
 
         except Exception as e:
-            print(t("logs.auth.steamid_from_token_error", error=str(e)))
+            logger.error(t("logs.auth.steamid_from_token_error", error=str(e)))
 
         # Method 2: FALLBACK - Try to decode JWT token
         # Steam access tokens are JWTs that contain the steam_id!
@@ -428,11 +442,11 @@ class SteamLoginManager(QObject):
                 # Check for steam_id in various fields
                 steam_id = data.get('sub') or data.get('steamid') or data.get('steam_id')
                 if steam_id:
-                    print(f"{t('emoji.success')} {t('logs.auth.steamid_from_jwt')}")
+                    logger.info(t('logs.auth.steamid_from_jwt'))
                     return str(steam_id)
 
         except Exception as e:
-            print(t("logs.auth.jwt_decode_failed", error=str(e)))
+            logger.error(t("logs.auth.jwt_decode_failed", error=str(e)))
 
         return None
 
@@ -459,11 +473,11 @@ class SteamLoginManager(QObject):
                 data = response.json()
                 steam_id = data.get('response', {}).get('steamid')
                 if steam_id:
-                    print(t("logs.auth.account_name_resolved"))
+                    logger.info(t("logs.auth.account_name_resolved"))
                     return str(steam_id)
 
         except Exception as e:
-            print(t("logs.auth.account_name_resolve_error", error=str(e)))
+            logger.error(t("logs.auth.account_name_resolve_error", error=str(e)))
 
         return None
 

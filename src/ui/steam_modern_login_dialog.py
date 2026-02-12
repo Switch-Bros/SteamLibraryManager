@@ -11,6 +11,8 @@ Features:
 - Email verification support
 - Beautiful modern design
 """
+from __future__ import annotations
+
 
 from typing import Optional
 from PyQt6.QtWidgets import (
@@ -23,6 +25,10 @@ from PyQt6.QtGui import QPixmap
 
 from src.core.steam_login_manager import SteamLoginManager
 from src.utils.i18n import t
+
+import logging
+
+logger = logging.getLogger("steamlibmgr.login_dialog")
 
 
 class ModernSteamLoginDialog(QDialog):
@@ -332,7 +338,7 @@ class ModernSteamLoginDialog(QDialog):
 
             except (ValueError, TypeError) as e:
                 # Conversion failed - set to None
-                print(f"Failed to convert steam_id to int: {steam_id_value}, error: {e}")
+                logger.error(t('logs.auth.steamid_conversion_error', value=steam_id_value, error=e))
                 self.steam_id_64 = None
                 self.display_name = None
         else:
@@ -422,7 +428,7 @@ class ModernSteamLoginDialog(QDialog):
                 img.paste(logo, logo_pos)
             except Exception as logo_error:
                 # If logo fails, continue without it (QR code still works)
-                print(f"Could not add logo to QR code: {logo_error}")
+                logger.error(t('logs.auth.qr_logo_error', error=logo_error))
 
             # Convert to QPixmap
             buffer = BytesIO()
