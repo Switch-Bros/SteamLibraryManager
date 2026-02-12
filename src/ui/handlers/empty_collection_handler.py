@@ -13,16 +13,17 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
+
 class EmptyCollectionHandler:
     """Handles automatic deletion of empty user collections."""
 
-    def __init__(self, main_window: 'MainWindow') -> None:
+    def __init__(self, main_window: "MainWindow") -> None:
         """Initialize the handler.
 
         Args:
             main_window: The MainWindow instance.
         """
-        self.mw: 'MainWindow' = main_window
+        self.mw: "MainWindow" = main_window
         self._protected_collections: set[str] | None = None
 
     def get_protected_collections(self) -> set[str]:
@@ -33,11 +34,12 @@ class EmptyCollectionHandler:
         """
         if self._protected_collections is None:
             from src.utils.i18n import t
+
             self._protected_collections = {
-                t('ui.categories.all_games'),
-                t('ui.categories.favorites'),
-                t('ui.categories.uncategorized'),
-                t('ui.categories.hidden')
+                t("ui.categories.all_games"),
+                t("ui.categories.favorites"),
+                t("ui.categories.uncategorized"),
+                t("ui.categories.hidden"),
             }
         return self._protected_collections
 

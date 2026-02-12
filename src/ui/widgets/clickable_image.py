@@ -16,7 +16,8 @@ from typing import cast
 import logging
 import requests
 import os
-os.environ['OPENCV_LOG_LEVEL'] = 'SILENT'
+
+os.environ["OPENCV_LOG_LEVEL"] = "SILENT"
 import io
 from src.config import config
 from src.utils.i18n import t
@@ -31,7 +32,7 @@ except ImportError:
     Image = None
     ImageSequence = None
     HAS_PILLOW = False
-    logger.info(t('logs.image.pillow_missing'))
+    logger.info(t("logs.image.pillow_missing"))
 
 try:
     import cv2
@@ -43,8 +44,10 @@ except ImportError:
     np = None
     HAS_OPENCV = False
 
+
 class ImageLoader(QThread):
     """A QThread to load image data from a path or URL without blocking the GUI."""
+
     loaded = pyqtSignal(QByteArray)
 
     def __init__(self, url_or_path: str):
@@ -67,10 +70,10 @@ class ImageLoader(QThread):
                 return
 
             if os.path.exists(self.url_or_path):
-                with open(self.url_or_path, 'rb') as f:
+                with open(self.url_or_path, "rb") as f:
                     data = QByteArray(f.read())
-            elif str(self.url_or_path).startswith('http'):
-                headers = {'User-Agent': 'SteamLibraryManager/1.0'}
+            elif str(self.url_or_path).startswith("http"):
+                headers = {"User-Agent": "SteamLibraryManager/1.0"}
                 response = requests.get(self.url_or_path, headers=headers, timeout=10)
                 response.raise_for_status()
                 data = QByteArray(response.content)
@@ -84,13 +87,21 @@ class ImageLoader(QThread):
         """Stops the thread from emitting the loaded signal if it's no longer needed."""
         self._is_running = False
 
+
 class ClickableImage(QWidget):
     """A widget that displays an image and emits signals on clicks."""
+
     clicked = pyqtSignal()
     right_clicked = pyqtSignal()
 
-    def __init__(self, parent_or_text=None, width: int = 200, height: int = 300,
-                 metadata: dict = None, external_badges: bool = False):
+    def __init__(
+        self,
+        parent_or_text=None,
+        width: int = 200,
+        height: int = 300,
+        metadata: dict = None,
+        external_badges: bool = False,
+    ):
         """
         Initializes the ClickableImage widget.
 
@@ -131,7 +142,7 @@ class ClickableImage(QWidget):
             self._ICON_HEIGHT: int = 28  # Icon height
             self._BADGE_GAP: int = 2  # Gap between stripe and icon
             self._EXPANDED_HEIGHT: int = (  # Total height when expanded
-                    self._STRIPE_HEIGHT + self._BADGE_GAP + self._ICON_HEIGHT
+                self._STRIPE_HEIGHT + self._BADGE_GAP + self._ICON_HEIGHT
             )
             self._STRIPE_WIDTH: int = 28  # Icon width
             self._STRIPE_GAP: int = 2  # Gap between multiple badges
@@ -273,7 +284,7 @@ class ClickableImage(QWidget):
             return
 
         # Check if this is a WEBM video
-        if url_or_path and url_or_path.lower().endswith('.webm'):
+        if url_or_path and url_or_path.lower().endswith(".webm"):
             if HAS_OPENCV:
                 self._load_webm_video(url_or_path)
                 return
@@ -293,7 +304,7 @@ class ClickableImage(QWidget):
             self.loader.stop()
             self.loader.wait()
 
-        self.image_label.setText(t('common.loading'))
+        self.image_label.setText(t("common.loading"))
 
         self.loader = ImageLoader(url_or_path)
         self.loader.loaded.connect(self._on_loaded)
@@ -310,7 +321,7 @@ class ClickableImage(QWidget):
                 self.current_path = None  # Reset to prevent caching default image under wrong path
                 self._load_local_image(self.default_image)
             else:
-                self.image_label.setText(t('emoji.error'))
+                self.image_label.setText(t("emoji.error"))
             return
 
         # 1. Attempt to load with Pillow (for Animations)
@@ -333,15 +344,10 @@ class ClickableImage(QWidget):
                         # Save bytes to variable (Fixes garbage collection issue)
                         img_bytes = frame.tobytes("raw", "RGBA")
 
-                        qim = QImage(
-                            img_bytes,
-                            frame.width,
-                            frame.height,
-                            QImage.Format.Format_RGBA8888
-                        )
+                        qim = QImage(img_bytes, frame.width, frame.height, QImage.Format.Format_RGBA8888)
 
                         self.frames.append(QPixmap.fromImage(qim))
-                        self.durations.append(frame.info.get('duration', 100))
+                        self.durations.append(frame.info.get("duration", 100))
 
                     if self.frames:
                         self._start_animation()
@@ -353,19 +359,14 @@ class ClickableImage(QWidget):
                     # CRITICAL FIX: Save bytes here too!
                     img_bytes = im.tobytes("raw", "RGBA")
 
-                    qim = QImage(
-                        img_bytes,
-                        im.width,
-                        im.height,
-                        QImage.Format.Format_RGBA8888
-                    )
+                    qim = QImage(img_bytes, im.width, im.height, QImage.Format.Format_RGBA8888)
                     self._apply_pixmap(QPixmap.fromImage(qim))
                     self._create_badges(is_animated=False)
                     return
 
             # Fix: Catch specific exceptions (Fixes 'Too broad exception clause')
             except (IOError, ValueError, TypeError, EOFError) as e:
-                logger.error(t('logs.image.pillow_fallback', error=e))
+                logger.error(t("logs.image.pillow_fallback", error=e))
 
         # 2. Fallback: Standard Qt Loading
         pixmap = QPixmap()
@@ -378,7 +379,7 @@ class ClickableImage(QWidget):
             if self.default_image:
                 self._load_local_image(self.default_image)
             else:
-                self.image_label.setText(t('emoji.error'))
+                self.image_label.setText(t("emoji.error"))
 
     def _start_animation(self):
         """Starts or restarts the GIF animation."""
@@ -408,7 +409,7 @@ class ClickableImage(QWidget):
             url (str): The URL of the WEBM video to load.
         """
         if not HAS_OPENCV:
-            self.image_label.setText(t('emoji.error'))
+            self.image_label.setText(t("emoji.error"))
             return
 
         try:
@@ -430,8 +431,8 @@ class ClickableImage(QWidget):
             self._create_badges(is_animated=True)
 
         except Exception as e:
-            logger.error(t('logs.image.webm_load_failed', error=e))
-            self.image_label.setText(t('emoji.error'))
+            logger.error(t("logs.image.webm_load_failed", error=e))
+            self.image_label.setText(t("emoji.error"))
             if self.video_cap:
                 self.video_cap.release()
                 self.video_cap = None
@@ -468,8 +469,9 @@ class ClickableImage(QWidget):
 
     def _apply_pixmap(self, pixmap: QPixmap):
         """Scales and sets the pixmap on the label."""
-        scaled = pixmap.scaled(self.w, self.h, Qt.AspectRatioMode.KeepAspectRatio,
-                               Qt.TransformationMode.SmoothTransformation)
+        scaled = pixmap.scaled(
+            self.w, self.h, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+        )
         self.image_label.setPixmap(scaled)
         # Overlay nach oben bringen — setPixmap kann Z-Reihenfolge beeinflussen
         # NUR wenn badge_overlay existiert (nicht bei external_badges)
@@ -543,18 +545,29 @@ class ClickableImage(QWidget):
         if not self.metadata:
             return
 
-        tags: list[str] = self.metadata.get('tags', [])
+        tags: list[str] = self.metadata.get("tags", [])
 
         # Badge-Definitionen: (type_key, text, bg_color, condition)
         badge_defs: list[tuple[str, str, str, bool]] = [
-            ('nsfw', f"{t('emoji.nsfw')} {t('ui.badges.nsfw')}", "#d9534f",
-             bool(self.metadata.get('nsfw') or 'nsfw' in tags)),
-            ('humor', f"{t('emoji.humor')} {t('ui.badges.humor')}", "#f0ad4e",
-             bool(self.metadata.get('humor') or 'humor' in tags)),
-            ('epilepsy', f"{t('emoji.blitz')} {t('ui.badges.epilepsy')}", "#0275d8",
-             bool(self.metadata.get('epilepsy') or 'epilepsy' in tags)),
-            ('animated', f"{t('emoji.animated')} {t('ui.badges.animated')}", "#5cb85c",
-             is_animated),
+            (
+                "nsfw",
+                f"{t('emoji.nsfw')} {t('ui.badges.nsfw')}",
+                "#d9534f",
+                bool(self.metadata.get("nsfw") or "nsfw" in tags),
+            ),
+            (
+                "humor",
+                f"{t('emoji.humor')} {t('ui.badges.humor')}",
+                "#f0ad4e",
+                bool(self.metadata.get("humor") or "humor" in tags),
+            ),
+            (
+                "epilepsy",
+                f"{t('emoji.blitz')} {t('ui.badges.epilepsy')}",
+                "#0275d8",
+                bool(self.metadata.get("epilepsy") or "epilepsy" in tags),
+            ),
+            ("animated", f"{t('emoji.animated')} {t('ui.badges.animated')}", "#5cb85c", is_animated),
         ]
 
         # Nur die aktiven Badges aufbauen

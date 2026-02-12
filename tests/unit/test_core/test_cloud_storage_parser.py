@@ -16,7 +16,7 @@ class TestCloudStorageParser:
 
         assert result == True
         assert len(parser.collections) == 1
-        assert parser.collections[0]['name'] == 'Action'
+        assert parser.collections[0]["name"] == "Action"
 
     def test_get_app_categories(self, mock_cloud_storage_file):
         """Test getting categories for a specific app."""
@@ -26,9 +26,9 @@ class TestCloudStorageParser:
         parser = CloudStorageParser(str(steam_path), user_id)
         parser.load()
 
-        categories = parser.get_app_categories('440')
+        categories = parser.get_app_categories("440")
 
-        assert 'Action' in categories
+        assert "Action" in categories
         assert isinstance(categories, list)
 
     def test_add_app_category(self, mock_cloud_storage_file):
@@ -39,8 +39,8 @@ class TestCloudStorageParser:
         parser = CloudStorageParser(str(steam_path), user_id)
         parser.load()
 
-        parser.add_app_category('570', 'RPG')
+        parser.add_app_category("570", "RPG")
 
-        categories = parser.get_app_categories('570')
-        assert 'RPG' in categories
+        categories = parser.get_app_categories("570")
+        assert "RPG" in categories
         assert parser.modified == True

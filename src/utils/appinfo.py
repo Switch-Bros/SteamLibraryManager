@@ -34,13 +34,15 @@ except ImportError:
 
     def t(key: str, **_kwargs: object) -> str:
         """Fallback translation function for standalone use."""
-        return key.split('.')[-1]
+        return key.split(".")[-1]
 
-__all__ = ('AppInfo', 'AppInfoVersion', 'IncompatibleVersionError', 'load', 'loads')
+
+__all__ = ("AppInfo", "AppInfoVersion", "IncompatibleVersionError", "load", "loads")
 
 logger = logging.getLogger("steamlibmgr.appinfo")
 
 # ===== VERSION DEFINITIONS =====
+
 
 class AppInfoVersion(IntEnum):
     """
@@ -49,6 +51,7 @@ class AppInfoVersion(IntEnum):
     These are the magic numbers used to identify different versions of the
     appinfo.vdf file format.
     """
+
     # Old versions (for reference, not implemented)
     # VERSION_24 = 0x06445624  # circa 2011
     # VERSION_25 = 0x07445625  # circa 2012
@@ -62,17 +65,20 @@ class AppInfoVersion(IntEnum):
     VERSION_40 = 0x07564428  # Alternate magic for v28
     VERSION_41 = 0x07564429  # Alternate magic for v29
 
+
 class EUniverse(IntEnum):
     """
     Steam Universe identifiers.
 
     Defines the Steam environment the appinfo.vdf file belongs to.
     """
+
     Invalid = 0
     Public = 1
     Beta = 2
     Internal = 3
     Dev = 4
+
 
 class IncompatibleVersionError(Exception):
     """
@@ -95,7 +101,9 @@ class IncompatibleVersionError(Exception):
         self.magic = magic
         super().__init__(f"Incompatible version {version} (magic: 0x{magic:08X})")
 
+
 # ===== MAIN PARSER CLASS =====
+
 
 class AppInfo:
     """
@@ -149,7 +157,7 @@ class AppInfo:
         self.magic = 0
         self.version = 0
         self.universe = EUniverse.Public
-        self.apps: dict[int, Dict] = {}
+        self.apps: dict[int, dict] = {}
 
         # Version-specific
         self.string_table: list[str] = []
@@ -157,12 +165,12 @@ class AppInfo:
 
         # Load data
         if path:
-            with open(path, 'rb') as f:
+            with open(path, "rb") as f:
                 self.data = bytearray(f.read())
         elif data:
             self.data = bytearray(data)
         else:
-            raise ValueError(t('errors.appinfo.no_data'))
+            raise ValueError(t("errors.appinfo.no_data"))
 
         # Parse header
         self._parse_header()
@@ -249,7 +257,7 @@ class AppInfo:
                 current_app_data = self._parse_app_entry()
                 self.apps[current_app_id] = current_app_data
             except Exception as e:
-                logger.warning(t('logs.appinfo.parse_warning', app_id=current_app_id, error=e))
+                logger.warning(t("logs.appinfo.parse_warning", app_id=current_app_id, error=e))
                 continue
 
     def _parse_app_entry(self) -> dict:
@@ -264,34 +272,34 @@ class AppInfo:
         # Version-specific parsing
         if self.version >= 36:
             # Read size field
-            app_entry['size'] = self._read_uint32()
+            app_entry["size"] = self._read_uint32()
 
         # Read info state
-        app_entry['info_state'] = self._read_uint32()
+        app_entry["info_state"] = self._read_uint32()
 
         # Read last updated
-        app_entry['last_updated'] = self._read_uint32()
+        app_entry["last_updated"] = self._read_uint32()
 
         # Version 38+ has access token
         if self.version >= 38:
-            app_entry['access_token'] = self._read_uint64()
+            app_entry["access_token"] = self._read_uint64()
 
         # Version 38+ has SHA-1 hash
         if self.version >= 38:
-            app_entry['sha1_hash'] = self.data[self.offset:self.offset + 20]
+            app_entry["sha1_hash"] = self.data[self.offset : self.offset + 20]
             self.offset += 20
 
         # Version 36+ has change number
         if self.version >= 36:
-            app_entry['change_number'] = self._read_uint32()
+            app_entry["change_number"] = self._read_uint32()
 
         # Version 40+ has binary SHA-1 hash
         if self.version >= 40:
-            app_entry['binary_sha1'] = self.data[self.offset:self.offset + 20]
+            app_entry["binary_sha1"] = self.data[self.offset : self.offset + 20]
             self.offset += 20
 
         # Parse binary VDF data
-        app_entry['data'] = self._parse_vdf()
+        app_entry["data"] = self._parse_vdf()
 
         return app_entry
 
@@ -340,7 +348,7 @@ class AppInfo:
 
             else:
                 # Unknown type - skip
-                logger.warning(t('logs.appinfo.unknown_vdf_type', type=f"0x{value_type:02x}"))
+                logger.warning(t("logs.appinfo.unknown_vdf_type", type=f"0x{value_type:02x}"))
                 break
 
         return result
@@ -355,31 +363,31 @@ class AppInfo:
 
     def _read_int32(self) -> int:
         """Reads a signed 32-bit integer."""
-        value = struct.unpack_from('<i', self.data, self.offset)[0]
+        value = struct.unpack_from("<i", self.data, self.offset)[0]
         self.offset += 4
         return value
 
     def _read_uint32(self) -> int:
         """Reads an unsigned 32-bit integer."""
-        value = struct.unpack_from('<I', self.data, self.offset)[0]
+        value = struct.unpack_from("<I", self.data, self.offset)[0]
         self.offset += 4
         return value
 
     def _read_int64(self) -> int:
         """Reads a signed 64-bit integer."""
-        value = struct.unpack_from('<q', self.data, self.offset)[0]
+        value = struct.unpack_from("<q", self.data, self.offset)[0]
         self.offset += 8
         return value
 
     def _read_uint64(self) -> int:
         """Reads an unsigned 64-bit integer."""
-        value = struct.unpack_from('<Q', self.data, self.offset)[0]
+        value = struct.unpack_from("<Q", self.data, self.offset)[0]
         self.offset += 8
         return value
 
     def _read_float32(self) -> float:
         """Reads a 32-bit float."""
-        value = struct.unpack_from('<f', self.data, self.offset)[0]
+        value = struct.unpack_from("<f", self.data, self.offset)[0]
         self.offset += 4
         return value
 
@@ -394,14 +402,14 @@ class AppInfo:
         if end == -1:
             end = len(self.data)
 
-        string_bytes = self.data[self.offset:end]
+        string_bytes = self.data[self.offset : end]
         self.offset = end + 1
 
         # Try UTF-8 first, fallback to latin-1
         try:
-            return string_bytes.decode('utf-8')
+            return string_bytes.decode("utf-8")
         except UnicodeDecodeError:
-            return string_bytes.decode('latin-1', errors='replace')
+            return string_bytes.decode("latin-1", errors="replace")
 
     def _read_key(self) -> str:
         """
@@ -419,8 +427,7 @@ class AppInfo:
 
             # Bounds check
             if index >= len(self.string_table):
-                logger.warning(t('logs.appinfo.string_index_warning',
-                                 index=index, size=len(self.string_table)))
+                logger.warning(t("logs.appinfo.string_index_warning", index=index, size=len(self.string_table)))
                 return f"__unknown_{index}__"
 
             return self.string_table[index]
@@ -447,7 +454,7 @@ class AppInfo:
         """
         if output_path is None:
             if self.file_path is None:
-                raise ValueError(t('errors.appinfo.no_output_path'))
+                raise ValueError(t("errors.appinfo.no_output_path"))
             output_path = self.file_path
 
         try:
@@ -461,21 +468,21 @@ class AppInfo:
             self._write_apps(output)
 
             # Write footer (app_id = 0)
-            output.extend(struct.pack('<I', 0))
+            output.extend(struct.pack("<I", 0))
 
             # Update string table (v41+)
             if self.version >= 41:
                 self._write_string_table(output)
 
             # Write to file
-            with open(output_path, 'wb') as f:
+            with open(output_path, "wb") as f:
                 f.write(output)
 
             return True
 
         except Exception as e:
-            logger.error(t('logs.appinfo.write_error', error=str(e)))
-            logger.debug(t('logs.appinfo.write_error_detail', error=e), exc_info=True)
+            logger.error(t("logs.appinfo.write_error", error=str(e)))
+            logger.debug(t("logs.appinfo.write_error_detail", error=e), exc_info=True)
             return False
 
     def _write_header(self, output: bytearray):
@@ -487,15 +494,15 @@ class AppInfo:
         """
         # Write magic + version
         magic_version = (self.magic << 8) | self.version
-        output.extend(struct.pack('<I', magic_version))
+        output.extend(struct.pack("<I", magic_version))
 
         # Write universe
-        output.extend(struct.pack('<I', self.universe))
+        output.extend(struct.pack("<I", self.universe))
 
         # Version 41+ has string table offset (placeholder)
         if self.version >= 41:
             # Will be updated later
-            output.extend(struct.pack('<Q', 0))
+            output.extend(struct.pack("<Q", 0))
 
     def _write_apps(self, output: bytearray):
         """
@@ -517,45 +524,45 @@ class AppInfo:
             entry_app_data (Dict): The app data dictionary.
         """
         # Write app ID
-        output.extend(struct.pack('<I', entry_app_id))
+        output.extend(struct.pack("<I", entry_app_id))
 
         # Encode VDF data
-        vdf_data = self._encode_vdf(entry_app_data.get('data', {}))
+        vdf_data = self._encode_vdf(entry_app_data.get("data", {}))
 
         # Calculate size (if needed)
         if self.version >= 36:
             # Size = everything after size field
             size = (
-                    4 +  # info_state
-                    4 +  # last_updated
-                    (8 if self.version >= 38 else 0) +  # access_token
-                    (20 if self.version >= 38 else 0) +  # sha1_hash
-                    (4 if self.version >= 36 else 0) +  # change_number
-                    (20 if self.version >= 40 else 0) +  # binary_sha1
-                    len(vdf_data)
+                4  # info_state
+                + 4  # last_updated
+                + (8 if self.version >= 38 else 0)  # access_token
+                + (20 if self.version >= 38 else 0)  # sha1_hash
+                + (4 if self.version >= 36 else 0)  # change_number
+                + (20 if self.version >= 40 else 0)  # binary_sha1
+                + len(vdf_data)
             )
-            output.extend(struct.pack('<I', size))
+            output.extend(struct.pack("<I", size))
 
         # Write info state
-        output.extend(struct.pack('<I', entry_app_data.get('info_state', 2)))
+        output.extend(struct.pack("<I", entry_app_data.get("info_state", 2)))
 
         # Write last updated
-        output.extend(struct.pack('<I', entry_app_data.get('last_updated', 0)))
+        output.extend(struct.pack("<I", entry_app_data.get("last_updated", 0)))
 
         # Version 38+ has access token
         if self.version >= 38:
-            output.extend(struct.pack('<Q', entry_app_data.get('access_token', 0)))
+            output.extend(struct.pack("<Q", entry_app_data.get("access_token", 0)))
 
         # Version 38+ has SHA-1 hash
         if self.version >= 38:
             # Calculate text VDF SHA-1
-            text_vdf = self._dict_to_text_vdf(entry_app_data.get('data', {}))
+            text_vdf = self._dict_to_text_vdf(entry_app_data.get("data", {}))
             sha1_hash = hashlib.sha1(text_vdf).digest()
             output.extend(sha1_hash)
 
         # Version 36+ has change number
         if self.version >= 36:
-            output.extend(struct.pack('<I', entry_app_data.get('change_number', 0)))
+            output.extend(struct.pack("<I", entry_app_data.get("change_number", 0)))
 
         # Version 40+ has binary SHA-1 hash
         if self.version >= 40:
@@ -594,7 +601,7 @@ class AppInfo:
                 # Float value
                 output.append(self.TYPE_FLOAT32)
                 output.extend(self._encode_key(key))
-                output.extend(struct.pack('<f', value))
+                output.extend(struct.pack("<f", value))
 
             elif isinstance(value, int):
                 # Integer value - check range
@@ -602,12 +609,12 @@ class AppInfo:
                     # 32-bit
                     output.append(self.TYPE_INT32)
                     output.extend(self._encode_key(key))
-                    output.extend(struct.pack('<i', value))
+                    output.extend(struct.pack("<i", value))
                 else:
                     # 64-bit
                     output.append(self.TYPE_INT64)
                     output.extend(self._encode_key(key))
-                    output.extend(struct.pack('<q', value))
+                    output.extend(struct.pack("<q", value))
 
         # End marker
         output.append(self.TYPE_SECTION_END)
@@ -636,7 +643,7 @@ class AppInfo:
                 index = len(self.string_table)
                 self.string_table.append(key)
 
-            return bytearray(struct.pack('<I', index))
+            return bytearray(struct.pack("<I", index))
         else:
             # Direct string
             return self._encode_cstring(key)
@@ -653,9 +660,9 @@ class AppInfo:
             bytearray: The encoded string with null terminator.
         """
         try:
-            return bytearray(string.encode('utf-8') + b'\x00')
+            return bytearray(string.encode("utf-8") + b"\x00")
         except UnicodeEncodeError:
-            return bytearray(string.encode('latin-1', errors='replace') + b'\x00')
+            return bytearray(string.encode("latin-1", errors="replace") + b"\x00")
 
     def _write_string_table(self, output: bytearray):
         """
@@ -668,14 +675,14 @@ class AppInfo:
         string_table_offset = len(output)
 
         # Write string count
-        output.extend(struct.pack('<I', len(self.string_table)))
+        output.extend(struct.pack("<I", len(self.string_table)))
 
         # Write strings
         for string in self.string_table:
             output.extend(self._encode_cstring(string))
 
         # Update offset in header (byte 8-15)
-        struct.pack_into('<Q', output, 8, string_table_offset)
+        struct.pack_into("<Q", output, 8, string_table_offset)
 
     def _dict_to_text_vdf(self, vdf_dict: dict, indent: int = 0) -> bytes:
         """
@@ -699,15 +706,21 @@ class AppInfo:
 
             if isinstance(value, dict):
                 # Nested dict
-                output += tabs + b'"' + key_escaped.encode('utf-8', errors='replace') + b'"\n'
+                output += tabs + b'"' + key_escaped.encode("utf-8", errors="replace") + b'"\n'
                 output += tabs + b"{\n"
                 output += self._dict_to_text_vdf(value, indent + 1)
                 output += tabs + b"}\n"
             else:
                 # Value
                 value_str = str(value).replace("\\", "\\\\")
-                output += (tabs + b'"' + key_escaped.encode('utf-8', errors='replace') +
-                           b'"\t\t"' + value_str.encode('utf-8', errors='replace') + b'"\n')
+                output += (
+                    tabs
+                    + b'"'
+                    + key_escaped.encode("utf-8", errors="replace")
+                    + b'"\t\t"'
+                    + value_str.encode("utf-8", errors="replace")
+                    + b'"\n'
+                )
 
         return output
 
@@ -736,13 +749,9 @@ class AppInfo:
             set_data (Dict): The app data dictionary.
         """
         if set_app_id not in self.apps:
-            self.apps[set_app_id] = {
-                'info_state': 2,
-                'last_updated': 0,
-                'data': {}
-            }
+            self.apps[set_app_id] = {"info_state": 2, "last_updated": 0, "data": {}}
 
-        self.apps[set_app_id]['data'] = set_data
+        self.apps[set_app_id]["data"] = set_data
 
     def update_app_metadata(self, update_app_id: int, metadata: dict):
         """
@@ -759,22 +768,22 @@ class AppInfo:
         if update_app_id not in self.apps:
             return False
 
-        app_data_dict = self.apps[update_app_id].get('data', {})
+        app_data_dict = self.apps[update_app_id].get("data", {})
 
-        if 'common' not in app_data_dict:
-            app_data_dict['common'] = {}
+        if "common" not in app_data_dict:
+            app_data_dict["common"] = {}
 
-        common_section = app_data_dict['common']
+        common_section = app_data_dict["common"]
 
         # Update fields
-        if 'name' in metadata:
-            common_section['name'] = metadata['name']
-        if 'developer' in metadata:
-            common_section['developer'] = metadata['developer']
-        if 'publisher' in metadata:
-            common_section['publisher'] = metadata['publisher']
-        if 'release_date' in metadata:
-            common_section['steam_release_date'] = metadata['release_date']
+        if "name" in metadata:
+            common_section["name"] = metadata["name"]
+        if "developer" in metadata:
+            common_section["developer"] = metadata["developer"]
+        if "publisher" in metadata:
+            common_section["publisher"] = metadata["publisher"]
+        if "release_date" in metadata:
+            common_section["steam_release_date"] = metadata["release_date"]
 
         return True
 
@@ -794,7 +803,9 @@ class AppInfo:
         """Returns a string representation of the AppInfo object."""
         return f"<AppInfo v{self.version} with {len(self.apps)} apps>"
 
+
 # ===== SIMPLE API =====
+
 
 def load(fp: BinaryIO) -> AppInfo:
     """
@@ -808,6 +819,7 @@ def load(fp: BinaryIO) -> AppInfo:
     """
     return AppInfo(data=fp.read())
 
+
 def loads(file_data: bytes) -> AppInfo:
     """
     Loads appinfo.vdf from bytes.
@@ -819,6 +831,7 @@ def loads(file_data: bytes) -> AppInfo:
         AppInfo: The parsed AppInfo object.
     """
     return AppInfo(data=file_data)
+
 
 # ===== MAIN (for testing) =====
 
@@ -843,9 +856,9 @@ if __name__ == "__main__":
 
     # Show first few apps
     for i, (show_app_id, show_app_data) in enumerate(list(appinfo.apps.items())[:5]):
-        show_data_dict = show_app_data.get('data', {})
-        common_data = show_data_dict.get('common', {})
-        name = common_data.get('name', f'App {show_app_id}')
+        show_data_dict = show_app_data.get("data", {})
+        common_data = show_data_dict.get("common", {})
+        name = common_data.get("name", f"App {show_app_id}")
         print(f"  {show_app_id}: {name}")
 
     print("\n✅ Parse successful!")

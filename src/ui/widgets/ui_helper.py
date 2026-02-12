@@ -8,10 +8,9 @@ consistent styling, titles, and use of internationalization across the applicati
 """
 from __future__ import annotations
 
-from PyQt6.QtWidgets import (
-    QWidget, QMessageBox, QDialog, QVBoxLayout, QLabel, QLineEdit, QDialogButtonBox
-)
+from PyQt6.QtWidgets import QWidget, QMessageBox, QDialog, QVBoxLayout, QLabel, QLineEdit, QDialogButtonBox
 from src.utils.i18n import t
+
 
 class UIHelper:
     """A static helper class for common UI dialog interactions."""
@@ -28,7 +27,7 @@ class UIHelper:
                                    common 'Error' translation.
         """
         if title is None:
-            title = t('common.error')
+            title = t("common.error")
         QMessageBox.critical(parent, title, message)
 
     @staticmethod
@@ -43,7 +42,7 @@ class UIHelper:
                                    common 'Success' translation.
         """
         if title is None:
-            title = t('common.success')
+            title = t("common.success")
         QMessageBox.information(parent, title, message)
 
     @staticmethod
@@ -58,7 +57,7 @@ class UIHelper:
                                    common 'Warning' translation.
         """
         if title is None:
-            title = t('common.warning')  # Use the new 'warning' key
+            title = t("common.warning")  # Use the new 'warning' key
         QMessageBox.warning(parent, title, message)
 
     @staticmethod
@@ -73,7 +72,7 @@ class UIHelper:
                                    common 'Info' translation.
         """
         if title is None:
-            title = t('common.info')
+            title = t("common.info")
         QMessageBox.information(parent, title, message)
 
     @staticmethod
@@ -92,7 +91,7 @@ class UIHelper:
             True if the user clicked Yes, False otherwise.
         """
         if title is None:
-            title = t('ui.main_window.title')
+            title = t("ui.main_window.title")
 
         msg = QMessageBox(parent)
         msg.setWindowTitle(title)
@@ -100,8 +99,8 @@ class UIHelper:
         msg.setIcon(QMessageBox.Icon.Question)
 
         # Manual buttons with i18n text — bypasses broken Qt auto-translation
-        yes_btn = msg.addButton(t('common.yes'), QMessageBox.ButtonRole.YesRole)
-        msg.addButton(t('common.no'), QMessageBox.ButtonRole.NoRole)
+        yes_btn = msg.addButton(t("common.yes"), QMessageBox.ButtonRole.YesRole)
+        msg.addButton(t("common.no"), QMessageBox.ButtonRole.NoRole)
         msg.setDefaultButton(yes_btn)
 
         msg.exec()
@@ -137,8 +136,8 @@ class UIHelper:
 
         # Buttons
         button_box = QDialogButtonBox()
-        button_box.addButton(t('common.ok'), QDialogButtonBox.ButtonRole.AcceptRole)
-        button_box.addButton(t('common.cancel'), QDialogButtonBox.ButtonRole.RejectRole)
+        button_box.addButton(t("common.ok"), QDialogButtonBox.ButtonRole.AcceptRole)
+        button_box.addButton(t("common.cancel"), QDialogButtonBox.ButtonRole.RejectRole)
         button_box.accepted.connect(dialog.accept)
         button_box.rejected.connect(dialog.reject)
         layout.addWidget(button_box)

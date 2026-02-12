@@ -21,7 +21,7 @@ from src.utils.i18n import t
 logger = logging.getLogger("steamlibmgr.login_manager")
 
 
-__all__ = ['SteamLoginManager', 'QRCodeLoginThread', 'UsernamePasswordLoginThread']
+__all__ = ["SteamLoginManager", "QRCodeLoginThread", "UsernamePasswordLoginThread"]
 
 try:
     import steam.webauth as wa
@@ -97,29 +97,28 @@ class QRCodeLoginThread(QThread):
         url = "https://api.steampowered.com/IAuthenticationService/BeginAuthSessionViaQR/v1/"
 
         data = {
-            'device_friendly_name': self.device_name,
-            'platform_type': 2,  # Web browser
+            "device_friendly_name": self.device_name,
+            "platform_type": 2,  # Web browser
         }
 
         try:
             response = requests.post(url, data=data, timeout=10)
             response.raise_for_status()
 
-            result = response.json().get('response', {})
+            result = response.json().get("response", {})
 
             return (
-                result.get('client_id'),
-                result.get('request_id'),
-                result.get('challenge_url'),  # THIS IS THE REAL URL!
-                result.get('interval', 5.0)
+                result.get("client_id"),
+                result.get("request_id"),
+                result.get("challenge_url"),  # THIS IS THE REAL URL!
+                result.get("interval", 5.0),
             )
 
         except (requests.RequestException, ValueError, KeyError):
             # Error starting QR session - will be shown to user via login_error signal
             return None, None, None, None
 
-    def _poll_for_completion(self, client_id: str, request_id: str,
-                             interval: float, timeout: float) -> dict | None:
+    def _poll_for_completion(self, client_id: str, request_id: str, interval: float, timeout: float) -> dict | None:
         """Poll until user approves or timeout."""
         url = "https://api.steampowered.com/IAuthenticationService/PollAuthSessionStatus/v1/"
 
@@ -128,21 +127,21 @@ class QRCodeLoginThread(QThread):
         while not self._stop_requested and (time.time() - start_time) < timeout:
             try:
                 data = {
-                    'client_id': client_id,
-                    'request_id': request_id,
+                    "client_id": client_id,
+                    "request_id": request_id,
                 }
 
                 response = requests.post(url, data=data, timeout=10)
                 response.raise_for_status()
 
-                result = response.json().get('response', {})
+                result = response.json().get("response", {})
 
-                if result.get('had_remote_interaction'):
+                if result.get("had_remote_interaction"):
                     self.polling_update.emit(t("ui.login.status_waiting_approval"))
 
-                if result.get('access_token'):
+                if result.get("access_token"):
                     # SUCCESS! But we need to get the actual SteamID64!
-                    access_token = result.get('access_token')
+                    access_token = result.get("access_token")
                     logger.info(t("logs.auth.qr_challenge_approved"))
 
                     # Get SteamID64 using the access token
@@ -155,10 +154,10 @@ class QRCodeLoginThread(QThread):
                         return None
 
                     return {
-                        'steam_id': steam_id_64,
-                        'access_token': access_token,
-                        'refresh_token': result.get('refresh_token'),
-                        'account_name': result.get('account_name'),
+                        "steam_id": steam_id_64,
+                        "access_token": access_token,
+                        "refresh_token": result.get("refresh_token"),
+                        "account_name": result.get("account_name"),
                     }
 
                 time.sleep(interval)
@@ -205,30 +204,30 @@ class UsernamePasswordLoginThread(QThread):
         url = "https://api.steampowered.com/IAuthenticationService/BeginAuthSessionViaCredentials/v1/"
 
         data = {
-            'account_name': self.username,
-            'encrypted_password': self._encrypt_password(self.password),
-            'encryption_timestamp': str(int(time.time())),
-            'remember_login': 'true',
-            'platform_type': 2,  # Web
-            'device_friendly_name': 'SteamLibraryManager',
+            "account_name": self.username,
+            "encrypted_password": self._encrypt_password(self.password),
+            "encryption_timestamp": str(int(time.time())),
+            "remember_login": "true",
+            "platform_type": 2,  # Web
+            "device_friendly_name": "SteamLibraryManager",
         }
 
         try:
             response = requests.post(url, data=data, timeout=10)
             response.raise_for_status()
 
-            result = response.json().get('response', {})
+            result = response.json().get("response", {})
 
             # Check if we need confirmation (Push Notification!)
-            allowed_confirmations = result.get('allowed_confirmations', [])
+            allowed_confirmations = result.get("allowed_confirmations", [])
 
-            if any(c.get('confirmation_type') == 3 for c in allowed_confirmations):
+            if any(c.get("confirmation_type") == 3 for c in allowed_confirmations):
                 # Type 3 = Device confirmation (Push Notification!)
                 self.waiting_for_approval.emit(t("ui.login.status_check_mobile"))
 
                 # Poll for approval
-                client_id = result.get('client_id')
-                request_id = result.get('request_id')
+                client_id = result.get("client_id")
+                request_id = result.get("request_id")
 
                 if client_id and request_id:
                     final_result = self._poll_for_credentials_approval(client_id, request_id)
@@ -240,12 +239,14 @@ class UsernamePasswordLoginThread(QThread):
                     self.login_error.emit(t("ui.login.error_no_session_ids"))
             else:
                 # Direct success (no 2FA)
-                self.login_success.emit({
-                    'method': 'password',
-                    'steam_id': result.get('steamid'),
-                    'access_token': result.get('access_token'),
-                    'refresh_token': result.get('refresh_token'),
-                })
+                self.login_success.emit(
+                    {
+                        "method": "password",
+                        "steam_id": result.get("steamid"),
+                        "access_token": result.get("access_token"),
+                        "refresh_token": result.get("refresh_token"),
+                    }
+                )
 
         except (requests.RequestException, ValueError, KeyError) as e:
             self.login_error.emit(t("ui.login.error_login_generic", error=str(e)))
@@ -260,21 +261,21 @@ class UsernamePasswordLoginThread(QThread):
         while not self._stop_requested and (time.time() - start_time) < timeout:
             try:
                 data = {
-                    'client_id': client_id,
-                    'request_id': request_id,
+                    "client_id": client_id,
+                    "request_id": request_id,
                 }
 
                 response = requests.post(url, data=data, timeout=10)
                 response.raise_for_status()
 
-                result = response.json().get('response', {})
+                result = response.json().get("response", {})
 
-                if result.get('access_token'):
+                if result.get("access_token"):
                     return {
-                        'method': 'password',
-                        'steam_id': result.get('steamid') or result.get('account_name'),
-                        'access_token': result.get('access_token'),
-                        'refresh_token': result.get('refresh_token'),
+                        "method": "password",
+                        "steam_id": result.get("steamid") or result.get("account_name"),
+                        "access_token": result.get("access_token"),
+                        "refresh_token": result.get("refresh_token"),
                     }
 
                 time.sleep(5.0)
@@ -303,6 +304,7 @@ class UsernamePasswordLoginThread(QThread):
         # FIXME(phase-2): Replace with proper RSA encryption via
         # IAuthenticationService/GetPasswordRSAPublicKey
         import base64
+
         return base64.b64encode(password.encode()).decode()
 
     def stop(self):
@@ -374,13 +376,15 @@ class SteamLoginManager(QObject):
     def _on_qr_success(self, result: dict):
         """Handle QR success."""
         self.status_update.emit(t("ui.login.status_success"))
-        self.login_success.emit({
-            'method': 'qr',
-            'steam_id': result['steam_id'],
-            'access_token': result['access_token'],
-            'refresh_token': result['refresh_token'],
-            'account_name': result.get('account_name'),
-        })
+        self.login_success.emit(
+            {
+                "method": "qr",
+                "steam_id": result["steam_id"],
+                "access_token": result["access_token"],
+                "refresh_token": result["refresh_token"],
+                "account_name": result.get("account_name"),
+            }
+        )
 
     def _on_pwd_success(self, result: dict):
         """Handle password success."""
@@ -403,22 +407,19 @@ class SteamLoginManager(QObject):
         # Method 1: Try GetOwnedGames
         try:
             url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
-            headers = {'Authorization': f'Bearer {access_token}'}
-            params = {
-                'include_appinfo': 0,
-                'format': 'json'
-            }
+            headers = {"Authorization": f"Bearer {access_token}"}
+            params = {"include_appinfo": 0, "format": "json"}
 
             response = requests.get(url, params=params, headers=headers, timeout=10)
 
             if response.status_code == 200:
                 data = response.json()
-                steam_id = data.get('response', {}).get('steamid')
+                steam_id = data.get("response", {}).get("steamid")
                 if steam_id:
                     logger.info(t("logs.auth.steamid_resolved"))
                     return str(steam_id)
 
-                if 'response' in data:
+                if "response" in data:
                     logger.info(t("logs.auth.steamid_missing"))
             else:
                 logger.info(t("logs.auth.get_owned_games_status", status=response.status_code))
@@ -433,18 +434,18 @@ class SteamLoginManager(QObject):
             import json
 
             # JWT format: header.payload.signature
-            parts = access_token.split('.')
+            parts = access_token.split(".")
             if len(parts) >= 2:
                 # Decode payload (add padding if needed)
                 payload = parts[1]
-                payload += '=' * (4 - len(payload) % 4)
+                payload += "=" * (4 - len(payload) % 4)
                 decoded = base64.urlsafe_b64decode(payload)
                 data = json.loads(decoded)
 
                 # Check for steam_id in various fields
-                steam_id = data.get('sub') or data.get('steamid') or data.get('steam_id')
+                steam_id = data.get("sub") or data.get("steamid") or data.get("steam_id")
                 if steam_id:
-                    logger.info(t('logs.auth.steamid_from_jwt'))
+                    logger.info(t("logs.auth.steamid_from_jwt"))
                     return str(steam_id)
 
         except Exception as e:
@@ -465,15 +466,12 @@ class SteamLoginManager(QObject):
         try:
             # Try ResolveVanityURL API
             url = "https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/"
-            params = {
-                'key': 'YOUR_API_KEY_HERE',  # This won't work without API key
-                'vanityurl': account_name
-            }
+            params = {"key": "YOUR_API_KEY_HERE", "vanityurl": account_name}  # This won't work without API key
 
             response = requests.get(url, params=params, timeout=10)
             if response.status_code == 200:
                 data = response.json()
-                steam_id = data.get('response', {}).get('steamid')
+                steam_id = data.get("response", {}).get("steamid")
                 if steam_id:
                     logger.info(t("logs.auth.account_name_resolved"))
                     return str(steam_id)
@@ -487,24 +485,19 @@ class SteamLoginManager(QObject):
     def get_owned_games(session_or_token, steam_id: str) -> dict | None:
         """Get owned games using token."""
         url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
-        params = {
-            'steamid': steam_id,
-            'include_appinfo': 1,
-            'include_played_free_games': 1,
-            'format': 'json'
-        }
+        params = {"steamid": steam_id, "include_appinfo": 1, "include_played_free_games": 1, "format": "json"}
 
         try:
             if isinstance(session_or_token, str):
                 # Access token
-                headers = {'Authorization': f'Bearer {session_or_token}'}
+                headers = {"Authorization": f"Bearer {session_or_token}"}
                 response = requests.get(url, params=params, headers=headers, timeout=10)
             else:
                 # Session
                 response = session_or_token.get(url, params=params, timeout=10)
 
             response.raise_for_status()
-            return response.json().get('response', {})
+            return response.json().get("response", {})
 
         except (requests.RequestException, ValueError, KeyError):
             # Error fetching games - return None to signal failure

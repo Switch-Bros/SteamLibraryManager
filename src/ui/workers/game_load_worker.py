@@ -4,6 +4,7 @@ Worker thread for loading games in the background.
 This module contains the GameLoadWorker thread that handles game loading
 asynchronously without blocking the UI.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -12,6 +13,7 @@ from PyQt6.QtCore import QThread, pyqtSignal
 
 if TYPE_CHECKING:
     from src.services.game_service import GameService
+
 
 class GameLoadWorker(QThread):
     """Background thread for loading games without blocking the UI.
@@ -31,7 +33,7 @@ class GameLoadWorker(QThread):
     progress_update = pyqtSignal(str, int, int)
     finished = pyqtSignal(bool)
 
-    def __init__(self, game_service: 'GameService', user_id: str):
+    def __init__(self, game_service: "GameService", user_id: str):
         """Initializes the game load worker.
 
         Args:

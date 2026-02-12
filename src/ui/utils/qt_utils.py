@@ -4,10 +4,12 @@ Qt-specific utility functions for layout and widget manipulation.
 This module provides low-level Qt utilities for common operations like
 clearing layouts, finding child widgets, and managing widget hierarchies.
 """
+
 from __future__ import annotations
 
 from PyQt6.QtWidgets import QLayout, QWidget
 from PyQt6.QtCore import QObject
+
 
 def clear_layout(target_layout: QLayout) -> None:
     """Removes and deletes all widgets from a layout.
@@ -22,6 +24,7 @@ def clear_layout(target_layout: QLayout) -> None:
         child = target_layout.takeAt(0)
         if child.widget():
             child.widget().deleteLater()
+
 
 def find_child_by_name(parent: QWidget, name: str) -> QWidget | None:
     """Finds a child widget by its object name.
@@ -38,6 +41,7 @@ def find_child_by_name(parent: QWidget, name: str) -> QWidget | None:
     """
     return parent.findChild(QWidget, name)
 
+
 def find_children_by_type(parent: QWidget, widget_type: type) -> list[QWidget]:
     """Finds all child widgets of a specific type.
 
@@ -52,6 +56,7 @@ def find_children_by_type(parent: QWidget, widget_type: type) -> list[QWidget]:
         list[QWidget]: List of matching child widgets.
     """
     return parent.findChildren(widget_type)
+
 
 def remove_widget_from_layout(widget_to_remove: QWidget) -> None:
     """Removes a widget from its parent layout without deleting it.
@@ -68,6 +73,7 @@ def remove_widget_from_layout(widget_to_remove: QWidget) -> None:
         if parent_layout:
             parent_layout.removeWidget(widget_to_remove)
 
+
 def set_all_widgets_enabled(parent: QWidget, enabled: bool) -> None:
     """Enables or disables all child widgets recursively.
 
@@ -80,6 +86,7 @@ def set_all_widgets_enabled(parent: QWidget, enabled: bool) -> None:
     child: QWidget
     for child in parent.findChildren(QWidget):
         child.setEnabled(enabled)
+
 
 def get_layout_widgets(target_layout: QLayout) -> list[QWidget]:
     """Returns a list of all widgets in a layout.
@@ -99,6 +106,7 @@ def get_layout_widgets(target_layout: QLayout) -> list[QWidget]:
             widgets.append(layout_item.widget())
     return widgets
 
+
 def hide_all_children(parent: QWidget) -> None:
     """Hides all child widgets recursively.
 
@@ -111,6 +119,7 @@ def hide_all_children(parent: QWidget) -> None:
     for child in parent.findChildren(QWidget):
         child.hide()
 
+
 def show_all_children(parent: QWidget) -> None:
     """Shows all child widgets recursively.
 
@@ -122,6 +131,7 @@ def show_all_children(parent: QWidget) -> None:
     child: QWidget
     for child in parent.findChildren(QWidget):
         child.show()
+
 
 def disconnect_all_signals(obj: QObject) -> None:
     """Disconnects all signals from a QObject.
@@ -137,6 +147,7 @@ def disconnect_all_signals(obj: QObject) -> None:
     except RuntimeError:
         # Object already deleted
         pass
+
 
 def count_visible_widgets(target_layout: QLayout) -> int:
     """Counts how many visible widgets are in a layout.

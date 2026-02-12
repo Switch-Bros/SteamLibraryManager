@@ -12,6 +12,7 @@ This service handles all auto-categorization operations including:
 The service acts as a bridge between the UI and various managers,
 providing a clean API for auto-categorization operations.
 """
+
 from __future__ import annotations
 
 from typing import Callable, Any
@@ -21,16 +22,17 @@ from src.services.category_service import CategoryService
 from src.integrations.steam_store import SteamStoreScraper
 from src.utils.i18n import t
 
-__all__ = ['AutoCategorizeService']
+__all__ = ["AutoCategorizeService"]
+
 
 class AutoCategorizeService:
     """Service for managing auto-categorization operations."""
 
     def __init__(
-            self,
-            game_manager: GameManager,
-            category_service: CategoryService,
-            steam_scraper: SteamStoreScraper | None = None
+        self,
+        game_manager: GameManager,
+        category_service: CategoryService,
+        steam_scraper: SteamStoreScraper | None = None,
     ):
         """
         Initialize the AutoCategorizeService.
@@ -47,10 +49,7 @@ class AutoCategorizeService:
     # === TAGS CATEGORIZATION ===
 
     def categorize_by_tags(
-            self,
-            games: list[Game],
-            tags_count: int,
-            progress_callback: Callable[[int, str], None] | None = None
+        self, games: list[Game], tags_count: int, progress_callback: Callable[[int, str], None] | None = None
     ) -> int:
         """
         Categorize games by Steam Store tags.
@@ -94,9 +93,7 @@ class AutoCategorizeService:
     # === PUBLISHER CATEGORIZATION ===
 
     def categorize_by_publisher(
-            self,
-            games: list[Game],
-            progress_callback: Callable[[int, str], None] | None = None
+        self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
     ) -> int:
         """
         Categorize games by publisher.
@@ -120,7 +117,7 @@ class AutoCategorizeService:
                 continue
 
             # Create publisher category
-            category = t('ui.auto_categorize.cat_publisher', name=game.publisher)
+            category = t("ui.auto_categorize.cat_publisher", name=game.publisher)
 
             try:
                 self.category_service.add_app_to_category(game.app_id, category)
@@ -136,9 +133,7 @@ class AutoCategorizeService:
     # === FRANCHISE CATEGORIZATION ===
 
     def categorize_by_franchise(
-            self,
-            games: list[Game],
-            progress_callback: Callable[[int, str], None] | None = None
+        self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
     ) -> int:
         """
         Categorize games by detected franchise.
@@ -166,7 +161,7 @@ class AutoCategorizeService:
                 continue
 
             # Create franchise category
-            category = t('ui.auto_categorize.cat_franchise', name=franchise)
+            category = t("ui.auto_categorize.cat_franchise", name=franchise)
 
             try:
                 self.category_service.add_app_to_category(game.app_id, category)
@@ -182,9 +177,7 @@ class AutoCategorizeService:
     # === GENRE CATEGORIZATION ===
 
     def categorize_by_genre(
-            self,
-            games: list[Game],
-            progress_callback: Callable[[int, str], None] | None = None
+        self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
     ) -> int:
         """
         Categorize games by genre.
@@ -236,12 +229,7 @@ class AutoCategorizeService:
             Returns zeros if steam_scraper is not available.
         """
         if not self.steam_scraper:
-            return {
-                'total': len(games),
-                'cached': 0,
-                'missing': len(games),
-                'percentage': 0.0
-            }
+            return {"total": len(games), "cached": 0, "missing": len(games), "percentage": 0.0}
 
         app_ids = [game.app_id for game in games]
         return self.steam_scraper.get_cache_coverage(app_ids)
@@ -268,8 +256,8 @@ class AutoCategorizeService:
         if estimated_minutes > 60:
             hours = estimated_minutes // 60
             mins = estimated_minutes % 60
-            return t('time.time_hours', hours=hours, minutes=mins)
+            return t("time.time_hours", hours=hours, minutes=mins)
         elif estimated_minutes > 0:
-            return t('time.time_minutes', minutes=estimated_minutes)
+            return t("time.time_minutes", minutes=estimated_minutes)
         else:
-            return t('time.time_seconds', seconds=estimated_seconds)
+            return t("time.time_seconds", seconds=estimated_seconds)

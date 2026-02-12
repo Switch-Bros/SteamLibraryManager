@@ -22,6 +22,7 @@ from src.utils.i18n import t
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
+
 class ToolbarBuilder:
     """
     Constructs and rebuilds the main QToolBar.
@@ -34,14 +35,14 @@ class ToolbarBuilder:
         main_window: Back-reference to the owning MainWindow instance.
     """
 
-    def __init__(self, main_window: 'MainWindow') -> None:
+    def __init__(self, main_window: "MainWindow") -> None:
         """
         Initializes the ToolbarBuilder.
 
         Args:
             main_window: The MainWindow instance that owns the toolbar.
         """
-        self.main_window: 'MainWindow' = main_window
+        self.main_window: "MainWindow" = main_window
 
     # ------------------------------------------------------------------
     # Public API
@@ -71,14 +72,14 @@ class ToolbarBuilder:
         # Refresh: [Emoji] [Text]
         refresh_text = f"{t('emoji.refresh')} {t('ui.menu.file.refresh')}"
         refresh_action = QAction(refresh_text, mw)
-        refresh_action.setToolTip(t('ui.menu.file.refresh'))
+        refresh_action.setToolTip(t("ui.menu.file.refresh"))
         refresh_action.triggered.connect(mw.file_actions.refresh_data)
         toolbar.addAction(refresh_action)
 
         # Save: [Emoji] [Text]
         save_text = f"{t('emoji.save')} {t('ui.menu.file.save')}"
         save_action = QAction(save_text, mw)
-        save_action.setToolTip(t('ui.menu.file.save'))
+        save_action.setToolTip(t("ui.menu.file.save"))
         save_action.triggered.connect(mw.file_actions.force_save)
         toolbar.addAction(save_action)
 
@@ -89,14 +90,14 @@ class ToolbarBuilder:
         # Auto Categorize: [Emoji] [Text]
         auto_text = f"{t('emoji.blitz')} {t('ui.menu.edit.auto_categorize')}"
         auto_cat_action = QAction(auto_text, mw)
-        auto_cat_action.setToolTip(t('ui.menu.edit.auto_categorize'))
+        auto_cat_action.setToolTip(t("ui.menu.edit.auto_categorize"))
         auto_cat_action.triggered.connect(mw.edit_actions.auto_categorize)
         toolbar.addAction(auto_cat_action)
 
         # Bulk Edit: [Emoji] [Text]
         edit_text = f"{t('emoji.edit')} {t('ui.menu.edit.bulk_edit')}"
         bulk_edit_action = QAction(edit_text, mw)
-        bulk_edit_action.setToolTip(t('ui.menu.edit.bulk_edit'))
+        bulk_edit_action.setToolTip(t("ui.menu.edit.bulk_edit"))
         bulk_edit_action.triggered.connect(mw.edit_actions.bulk_edit_metadata)
         toolbar.addAction(bulk_edit_action)
 
@@ -107,7 +108,7 @@ class ToolbarBuilder:
         # Missing Metadata: [Emoji] [Text] (Using 'search' emoji as placeholder)
         search_text = f"{t('emoji.search')} {t('ui.menu.tools.missing_meta')}"
         missing_meta_action = QAction(search_text, mw)
-        missing_meta_action.setToolTip(t('ui.menu.tools.missing_meta'))
+        missing_meta_action.setToolTip(t("ui.menu.tools.missing_meta"))
         missing_meta_action.triggered.connect(mw.find_missing_metadata)
         toolbar.addAction(missing_meta_action)
 
@@ -119,7 +120,7 @@ class ToolbarBuilder:
         # Settings: [Emoji] [Text]
         settings_text = f"{t('emoji.settings')} {t('ui.settings.title')}"
         settings_action = QAction(settings_text, mw)
-        settings_action.setToolTip(t('ui.settings.title'))
+        settings_action.setToolTip(t("ui.settings.title"))
         settings_action.triggered.connect(mw.settings_actions.show_settings)
         toolbar.addAction(settings_action)
 
@@ -149,14 +150,14 @@ class ToolbarBuilder:
         user_action = QAction(action_text, mw)
 
         # Localized tooltip using t()
-        tooltip_text = t('ui.login.logged_in_as', user=mw.steam_username)
+        tooltip_text = t("ui.login.logged_in_as", user=mw.steam_username)
         user_action.setToolTip(tooltip_text)
 
         # Show info on click with logout option
         user_action.triggered.connect(lambda: ToolbarBuilder._show_user_dialog(mw))
 
         # Steam login icon (if available, set as QIcon alongside text)
-        icon_path = config.ICONS_DIR / 'steam_login.png'
+        icon_path = config.ICONS_DIR / "steam_login.png"
         if icon_path.exists():
             user_action.setIcon(QIcon(str(icon_path)))
 
@@ -174,9 +175,9 @@ class ToolbarBuilder:
         # Display: [Login Emoji] [Login Text]
         action_text = f"{t('emoji.login')} {t('ui.login.button')}"
         login_action = QAction(action_text, mw)
-        login_action.setToolTip(t('ui.login.button'))
+        login_action.setToolTip(t("ui.login.button"))
 
-        icon_path = config.ICONS_DIR / 'steam_login.png'
+        icon_path = config.ICONS_DIR / "steam_login.png"
         if icon_path.exists():
             login_action.setIcon(QIcon(str(icon_path)))
 
@@ -185,7 +186,7 @@ class ToolbarBuilder:
         toolbar.addAction(login_action)
 
     @staticmethod
-    def _show_user_dialog(mw: 'MainWindow') -> None:
+    def _show_user_dialog(mw: "MainWindow") -> None:
         """Shows user info dialog with logout option.
 
         Args:
@@ -196,15 +197,12 @@ class ToolbarBuilder:
         # Create custom message box
         msg_box = QMessageBox(mw)
         msg_box.setWindowTitle("Steam")
-        msg_box.setText(t('ui.login.logged_in_as', user=mw.steam_username))
+        msg_box.setText(t("ui.login.logged_in_as", user=mw.steam_username))
         msg_box.setIcon(QMessageBox.Icon.Information)
 
         # Add buttons
-        msg_box.addButton(t('common.ok'), QMessageBox.ButtonRole.AcceptRole)
-        logout_btn = msg_box.addButton(
-            t('ui.login.logout'),
-            QMessageBox.ButtonRole.DestructiveRole
-        )
+        msg_box.addButton(t("common.ok"), QMessageBox.ButtonRole.AcceptRole)
+        logout_btn = msg_box.addButton(t("ui.login.logout"), QMessageBox.ButtonRole.DestructiveRole)
 
         # Show dialog
         msg_box.exec()
@@ -214,7 +212,7 @@ class ToolbarBuilder:
             ToolbarBuilder._handle_logout(mw)
 
     @staticmethod
-    def _handle_logout(mw: 'MainWindow') -> None:
+    def _handle_logout(mw: "MainWindow") -> None:
         """Handle user logout.
 
         Args:
@@ -236,6 +234,6 @@ class ToolbarBuilder:
         mw.refresh_toolbar()
 
         # Update status
-        mw.set_status(t('ui.login.logged_out'))
+        mw.set_status(t("ui.login.logged_out"))
 
-        UIHelper.show_success(mw, t('ui.login.logged_out'), "Steam")
+        UIHelper.show_success(mw, t("ui.login.logged_out"), "Steam")

@@ -11,8 +11,8 @@ from src.ui.builders.statusbar_builder import StatusbarBuilder
 from src.ui.builders.central_widget_builder import CentralWidgetBuilder
 
 __all__ = [
-    'MenuBuilder',
-    'ToolbarBuilder',
-    'StatusbarBuilder',
-    'CentralWidgetBuilder',
+    "MenuBuilder",
+    "ToolbarBuilder",
+    "StatusbarBuilder",
+    "CentralWidgetBuilder",
 ]

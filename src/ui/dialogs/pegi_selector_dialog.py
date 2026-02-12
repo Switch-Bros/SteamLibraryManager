@@ -4,16 +4,15 @@ PEGI Rating Selector Dialog.
 This dialog allows users to manually select a PEGI rating for a game
 by clicking on one of the available PEGI icons.
 """
+
 from __future__ import annotations
 
-from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel,
-    QPushButton, QGridLayout, QWidget
-)
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QGridLayout, QWidget
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap, QIcon
 from pathlib import Path
 from src.utils.i18n import t
+
 
 class PEGIIconButton(QPushButton):
     """A clickable button displaying a PEGI icon."""
@@ -22,7 +21,8 @@ class PEGIIconButton(QPushButton):
         super().__init__(parent)
         self.rating = rating
         self.setFixedSize(140, 140)
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
             QPushButton {
                 border: 2px solid #3d4450;
                 background-color: #1b2838;
@@ -35,17 +35,20 @@ class PEGIIconButton(QPushButton):
             QPushButton:pressed {
                 background-color: #1a2332;
             }
-        """)
+        """
+        )
 
         # Load and display icon
         if icon_path.exists():
             pixmap = QPixmap(str(icon_path))
-            scaled_pixmap = pixmap.scaled(120, 120, Qt.AspectRatioMode.KeepAspectRatio,
-                                          Qt.TransformationMode.SmoothTransformation)
+            scaled_pixmap = pixmap.scaled(
+                120, 120, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+            )
             self.setIcon(QIcon(scaled_pixmap))
             self.setIconSize(scaled_pixmap.size())
         else:
             self.setText(f"PEGI\n{rating}")
+
 
 class PEGISelectorDialog(QDialog):
     """Dialog for selecting a PEGI rating."""
@@ -60,7 +63,7 @@ class PEGISelectorDialog(QDialog):
 
     def _init_ui(self):
         """Initialize the user interface."""
-        self.setWindowTitle(t('ui.pegi_selector.title'))
+        self.setWindowTitle(t("ui.pegi_selector.title"))
         self.setModal(True)
         self.setMinimumWidth(500)
 
@@ -68,7 +71,7 @@ class PEGISelectorDialog(QDialog):
         layout.setSpacing(20)
 
         # Title
-        title = QLabel(t('ui.pegi_selector.instruction'))
+        title = QLabel(t("ui.pegi_selector.instruction"))
         title.setStyleSheet("font-size: 14px; font-weight: bold; color: #c7d5e0;")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
@@ -79,7 +82,7 @@ class PEGISelectorDialog(QDialog):
         grid.setSpacing(15)
 
         # Available PEGI ratings
-        pegi_ratings = ['3', '7', '12', '16', '18']
+        pegi_ratings = ["3", "7", "12", "16", "18"]
         icons_dir = Path("resources/icons")
 
         row, col = 0, 0
@@ -90,11 +93,14 @@ class PEGISelectorDialog(QDialog):
 
             # Highlight current rating
             if rating == self.current_rating:
-                btn.setStyleSheet(btn.styleSheet() + """
+                btn.setStyleSheet(
+                    btn.styleSheet()
+                    + """
                     QPushButton {
                         border: 3px solid #FDE100;
                     }
-                """)
+                """
+                )
 
             grid.addWidget(btn, row, col)
             col += 1
@@ -109,8 +115,9 @@ class PEGISelectorDialog(QDialog):
         button_layout.addStretch()
 
         # Remove rating button
-        self.btn_remove = QPushButton(t('ui.pegi_selector.remove'))
-        self.btn_remove.setStyleSheet("""
+        self.btn_remove = QPushButton(t("ui.pegi_selector.remove"))
+        self.btn_remove.setStyleSheet(
+            """
             QPushButton {
                 background-color: #c23030;
                 color: white;
@@ -121,13 +128,15 @@ class PEGISelectorDialog(QDialog):
             QPushButton:hover {
                 background-color: #d04040;
             }
-        """)
+        """
+        )
         self.btn_remove.clicked.connect(self._on_remove_clicked)
         button_layout.addWidget(self.btn_remove)
 
         # Cancel button
-        self.btn_cancel = QPushButton(t('common.cancel'))
-        self.btn_cancel.setStyleSheet("""
+        self.btn_cancel = QPushButton(t("common.cancel"))
+        self.btn_cancel.setStyleSheet(
+            """
             QPushButton {
                 background-color: #3d4450;
                 color: white;
@@ -137,7 +146,8 @@ class PEGISelectorDialog(QDialog):
             QPushButton:hover {
                 background-color: #4d5460;
             }
-        """)
+        """
+        )
         self.btn_cancel.clicked.connect(self.reject)
         button_layout.addWidget(self.btn_cancel)
 

@@ -19,7 +19,7 @@ from src.utils.appinfo import AppInfo, IncompatibleVersionError
 
 logger = logging.getLogger("steamlibmgr.appinfo_manager")
 
-__all__ = ['AppInfoManager']
+__all__ = ["AppInfoManager"]
 
 
 class AppInfoManager:
@@ -40,8 +40,8 @@ class AppInfoManager:
                                          If provided, appinfo.vdf will be loaded from
                                          <steam_path>/appcache/appinfo.vdf.
         """
-        self.data_dir = Path(__file__).parent.parent.parent / 'data'
-        self.metadata_file = self.data_dir / 'custom_metadata.json'
+        self.data_dir = Path(__file__).parent.parent.parent / "data"
+        self.metadata_file = self.data_dir / "custom_metadata.json"
 
         # Tracking dictionaries
         self.modifications: dict[str, dict] = {}
@@ -55,7 +55,7 @@ class AppInfoManager:
         self.steam_apps: dict[int, dict] = {}
 
         if steam_path:
-            self.appinfo_path = steam_path / 'appcache' / 'appinfo.vdf'
+            self.appinfo_path = steam_path / "appcache" / "appinfo.vdf"
 
     def load_appinfo(self, _app_ids: list[str] | None = None, _load_all: bool = False) -> dict:
         """
@@ -86,13 +86,14 @@ class AppInfoManager:
                 self.steam_apps = self.appinfo.apps
 
                 count = len(self.appinfo.apps)
-                logger.info(t('logs.appinfo.loaded_binary', count=count))
+                logger.info(t("logs.appinfo.loaded_binary", count=count))
 
             except IncompatibleVersionError as e:
-                logger.info(t('logs.appinfo.incompatible_version', version=hex(e.version)))
+                logger.info(t("logs.appinfo.incompatible_version", version=hex(e.version)))
             except Exception as e:
-                logger.error(t('logs.appinfo.binary_error', error=str(e)))
+                logger.error(t("logs.appinfo.binary_error", error=str(e)))
                 import traceback
+
                 traceback.print_exc()
 
         return self.modifications
@@ -109,7 +110,7 @@ class AppInfoManager:
             return
 
         try:
-            with open(self.metadata_file, 'r', encoding='utf-8') as f:
+            with open(self.metadata_file, "r", encoding="utf-8") as f:
                 file_data = json.load(f)
 
             # Support both old and new formats
@@ -119,21 +120,18 @@ class AppInfoManager:
             for app_id_str, mod_data in file_data.items():
                 if isinstance(mod_data, dict):
                     # New format: {"original": {...}, "modified": {...}}
-                    if 'original' in mod_data or 'modified' in mod_data:
+                    if "original" in mod_data or "modified" in mod_data:
                         self.modifications[app_id_str] = mod_data
                     else:
                         # Old format: Direct metadata
-                        self.modifications[app_id_str] = {
-                            'original': {},
-                            'modified': mod_data
-                        }
+                        self.modifications[app_id_str] = {"original": {}, "modified": mod_data}
 
                     self.modified_apps.append(app_id_str)
 
-            logger.info(t('logs.appinfo.loaded', count=len(self.modifications)))
+            logger.info(t("logs.appinfo.loaded", count=len(self.modifications)))
 
         except (OSError, json.JSONDecodeError) as e:
-            logger.error(t('logs.appinfo.error', error=str(e)))
+            logger.error(t("logs.appinfo.error", error=str(e)))
             self.modifications = {}
             self.modified_apps = []
 
@@ -152,21 +150,21 @@ class AppInfoManager:
             dict: The 'common' section dictionary, or an empty dict if not found.
         """
         # 1. Direct hit
-        if 'common' in data:
-            return data['common']
+        if "common" in data:
+            return data["common"]
 
         # 2. Nested in appinfo
-        if 'appinfo' in data and 'common' in data['appinfo']:
-            return data['appinfo']['common']
+        if "appinfo" in data and "common" in data["appinfo"]:
+            return data["appinfo"]["common"]
 
         # 3. Recursive search (limited depth)
         for key, value in data.items():
             if isinstance(value, dict):
-                if 'common' in value:
-                    return value['common']
+                if "common" in value:
+                    return value["common"]
                 # Search only one level deeper to save performance
-                if 'appinfo' in value and 'common' in value['appinfo']:
-                    return value['appinfo']['common']
+                if "appinfo" in value and "common" in value["appinfo"]:
+                    return value["appinfo"]["common"]
 
         return {}
 
@@ -191,15 +189,15 @@ class AppInfoManager:
         # 1. Get from binary appinfo
         if self.appinfo and int(app_id) in self.appinfo.apps:
             app_data_full = self.appinfo.apps[int(app_id)]
-            vdf_data = app_data_full.get('data', {})
+            vdf_data = app_data_full.get("data", {})
 
             # Find common section - use helper method!
             common = self._find_common_section(vdf_data)
 
             if common:
                 # Name & Type
-                result['name'] = common.get('name', '')
-                result['type'] = common.get('type', '')
+                result["name"] = common.get("name", "")
+                result["type"] = common.get("type", "")
 
                 # =============================================
                 # DEVELOPER & PUBLISHER - ASSOCIATIONS FIRST!
@@ -208,60 +206,60 @@ class AppInfoManager:
                 pubs = []
 
                 # A) TRY 'associations' FIRST (new format)
-                if 'associations' in common:
-                    assoc = common['associations']
+                if "associations" in common:
+                    assoc = common["associations"]
 
                     # associations is a dict with index as Key ("0", "1", ...)
                     for entry in assoc.values():
                         if isinstance(entry, dict):
-                            entry_type = entry.get('type', '')
-                            entry_name = entry.get('name', '')
+                            entry_type = entry.get("type", "")
+                            entry_name = entry.get("name", "")
 
-                            if entry_type == 'developer' and entry_name:
+                            if entry_type == "developer" and entry_name:
                                 devs.append(entry_name)
-                            elif entry_type == 'publisher' and entry_name:
+                            elif entry_type == "publisher" and entry_name:
                                 pubs.append(entry_name)
 
                 # B) FALLBACK: Direct fields (old format)
                 if not devs:
-                    dev_direct = common.get('developer', '')
+                    dev_direct = common.get("developer", "")
                     if dev_direct:
                         devs = [dev_direct] if isinstance(dev_direct, str) else list(dev_direct)
 
                 if not pubs:
-                    pub_direct = common.get('publisher', '')
+                    pub_direct = common.get("publisher", "")
                     if pub_direct:
                         pubs = [pub_direct] if isinstance(pub_direct, str) else list(pub_direct)
 
                 # Set results
-                result['developer'] = ", ".join(devs) if devs else ''
-                result['publisher'] = ", ".join(pubs) if pubs else ''
+                result["developer"] = ", ".join(devs) if devs else ""
+                result["publisher"] = ", ".join(pubs) if pubs else ""
 
                 # =============================================
                 # RELEASE DATE
                 # =============================================
                 # Try multiple keys
-                if 'steam_release_date' in common:
-                    result['release_date'] = common.get('steam_release_date', '')
-                elif 'release_date' in common:
-                    result['release_date'] = common.get('release_date', '')
+                if "steam_release_date" in common:
+                    result["release_date"] = common.get("steam_release_date", "")
+                elif "release_date" in common:
+                    result["release_date"] = common.get("release_date", "")
                 else:
-                    result['release_date'] = ''
+                    result["release_date"] = ""
 
                 # =============================================
                 # REVIEW PERCENTAGE & METACRITIC SCORE
                 # =============================================
                 # Extract review percentage (0-100)
-                if 'review_percentage' in common:
-                    result['review_percentage'] = common.get('review_percentage', 0)
+                if "review_percentage" in common:
+                    result["review_percentage"] = common.get("review_percentage", 0)
 
                 # Extract metacritic score (0-100)
-                if 'metacritic_score' in common:
-                    result['metacritic_score'] = common.get('metacritic_score', 0)
+                if "metacritic_score" in common:
+                    result["metacritic_score"] = common.get("metacritic_score", 0)
 
         # 2. Apply modifications (Custom Overrides)
         if app_id in self.modifications:
-            modified = self.modifications[app_id].get('modified', {})
+            modified = self.modifications[app_id].get("modified", {})
             result.update(modified)
 
         return result
@@ -286,13 +284,10 @@ class AppInfoManager:
             # Get original values
             if app_id not in self.modifications:
                 original = self.get_app_metadata(app_id)
-                self.modifications[app_id] = {
-                    'original': original.copy(),
-                    'modified': {}
-                }
+                self.modifications[app_id] = {"original": original.copy(), "modified": {}}
 
             # Update modified values
-            self.modifications[app_id]['modified'].update(metadata)
+            self.modifications[app_id]["modified"].update(metadata)
 
             # Track as modified
             if app_id not in self.modified_apps:
@@ -305,7 +300,7 @@ class AppInfoManager:
             return True
 
         except Exception as e:
-            logger.error(t('logs.appinfo.set_error', app_id=app_id, error=str(e)))
+            logger.error(t("logs.appinfo.set_error", app_id=app_id, error=str(e)))
             return False
 
     def save_appinfo(self) -> bool:
@@ -317,12 +312,12 @@ class AppInfoManager:
         """
         try:
             self.data_dir.mkdir(exist_ok=True, parents=True)
-            with open(self.metadata_file, 'w', encoding='utf-8') as f:
+            with open(self.metadata_file, "w", encoding="utf-8") as f:
                 json.dump(self.modifications, f, indent=2)
-            logger.info(t('logs.appinfo.saved_mods', count=len(self.modifications)))
+            logger.info(t("logs.appinfo.saved_mods", count=len(self.modifications)))
             return True
         except OSError as e:
-            logger.error(t('logs.appinfo.error', error=str(e)))
+            logger.error(t("logs.appinfo.error", error=str(e)))
             return False
 
     def write_to_vdf(self, backup: bool = True) -> bool:
@@ -339,7 +334,7 @@ class AppInfoManager:
             bool: True if the write operation succeeded, False otherwise.
         """
         if not self.appinfo:
-            logger.info(t('logs.appinfo.not_loaded'))
+            logger.info(t("logs.appinfo.not_loaded"))
             return False
 
         try:
@@ -350,19 +345,19 @@ class AppInfoManager:
                 backup_manager = BackupManager()
                 backup_path = backup_manager.create_rolling_backup(self.appinfo_path)
                 if backup_path:
-                    logger.info(t('logs.appinfo.backup_created', path=backup_path))
+                    logger.info(t("logs.appinfo.backup_created", path=backup_path))
                 else:
-                    logger.error(t('logs.appinfo.backup_failed', error=t('common.unknown')))
+                    logger.error(t("logs.appinfo.backup_failed", error=t("common.unknown")))
 
             # Write using appinfo_v2's method
             success = self.appinfo.write()
             if success:
-                logger.info(t('logs.appinfo.saved_vdf'))
+                logger.info(t("logs.appinfo.saved_vdf"))
             return success
 
         except Exception as e:
-            logger.error(t('logs.appinfo.write_error', error=str(e)))
-            logger.error(t('logs.appinfo.write_error_detail', error=e), exc_info=True)
+            logger.error(t("logs.appinfo.write_error", error=str(e)))
+            logger.error(t("logs.appinfo.write_error_detail", error=e), exc_info=True)
             return False
 
     def restore_modifications(self, app_ids: list[str] | None = None) -> int:
@@ -391,13 +386,13 @@ class AppInfoManager:
         restored = 0
         for app_id in app_ids:
             if app_id in self.modifications:
-                modified = self.modifications[app_id].get('modified', {})
+                modified = self.modifications[app_id].get("modified", {})
                 if modified and self.set_app_metadata(app_id, modified):
                     restored += 1
 
         if restored > 0:
             self.write_to_vdf()
-            logger.info(t('logs.appinfo.restored', count=restored))
+            logger.info(t("logs.appinfo.restored", count=restored))
 
         return restored
 

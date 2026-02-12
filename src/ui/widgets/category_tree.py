@@ -9,16 +9,14 @@ the expanded/collapsed state of categories.
 """
 from __future__ import annotations
 
-from PyQt6.QtWidgets import (
-    QTreeWidget, QTreeWidgetItem, QAbstractItemView,
-    QWidget
-)
+from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem, QAbstractItemView, QWidget
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 from PyQt6.QtGui import QDragEnterEvent, QDragMoveEvent, QDropEvent
 
 from src.core.game_manager import Game
 from src.config import config
 from src.utils.i18n import t
+
 
 class GameTreeWidget(QTreeWidget):
     """
@@ -28,6 +26,7 @@ class GameTreeWidget(QTreeWidget):
     selection changes. Handles drag-and-drop operations for moving games
     between categories.
     """
+
     # Signals
     game_clicked = pyqtSignal(Game)
     game_right_clicked = pyqtSignal(Game, QPoint)
@@ -58,16 +57,14 @@ class GameTreeWidget(QTreeWidget):
         self.itemCollapsed.connect(self._on_item_collapsed)
 
         # Style
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
             QTreeWidget::item { padding: 4px; }
             QTreeWidget::item:selected { background-color: #2d5a88; }
-        """)
+        """
+        )
 
-    def populate_categories(
-            self,
-            categories: dict[str, list[Game]],
-            dynamic_collections: set | None = None
-    ) -> None:
+    def populate_categories(self, categories: dict[str, list[Game]], dynamic_collections: set | None = None) -> None:
         """
         Rebuilds the entire tree with the provided category-to-game mapping.
 
@@ -94,7 +91,7 @@ class GameTreeWidget(QTreeWidget):
                 display_name = f"{cat_name} {t('emoji.blitz')}"
 
             # Use i18n key for category count display
-            cat_item.setText(0, t('ui.categories.category_count', name=display_name, count=len(games)))
+            cat_item.setText(0, t("ui.categories.category_count", name=display_name, count=len(games)))
 
             cat_item.setData(0, Qt.ItemDataRole.UserRole, "category")
             cat_item.setData(0, Qt.ItemDataRole.UserRole + 1, cat_name)
@@ -109,8 +106,8 @@ class GameTreeWidget(QTreeWidget):
                 game_item.setData(0, Qt.ItemDataRole.UserRole + 1, game)
 
                 # Use i18n key for the tooltip
-                developer = game.developer if game.developer else t('common.unknown')
-                game_item.setToolTip(0, t('ui.categories.game_tooltip', name=game.name, developer=developer))
+                developer = game.developer if game.developer else t("common.unknown")
+                game_item.setToolTip(0, t("ui.categories.game_tooltip", name=game.name, developer=developer))
 
     @staticmethod
     def _on_item_expanded(item: QTreeWidgetItem) -> None:

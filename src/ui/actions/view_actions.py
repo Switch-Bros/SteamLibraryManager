@@ -6,10 +6,11 @@ from src.utils.i18n import t
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
+
 class ViewActions:
     """Handles actions related to the view, like searching and tree expansion."""
 
-    def __init__(self, main_window: 'MainWindow'):
+    def __init__(self, main_window: "MainWindow"):
         self.main_window = main_window
 
     def expand_all(self):
@@ -33,7 +34,7 @@ class ViewActions:
         if not query:
             self.main_window.populate_categories()
             return
-            
+
         if not self.main_window.game_manager or not self.main_window.search_service:
             return
 
@@ -42,16 +43,16 @@ class ViewActions:
         results = self.main_window.search_service.filter_games(all_games, query)
 
         if results:
-            cat_name = t('ui.search.results_category', count=len(results))
+            cat_name = t("ui.search.results_category", count=len(results))
             # Sort for display
             sorted_results = sorted(results, key=lambda g: g.name.lower())
-            
+
             self.main_window.tree.populate_categories({cat_name: sorted_results})
             self.main_window.tree.expandAll()
-            self.main_window.set_status(t('ui.search.status_found', count=len(results)))
+            self.main_window.set_status(t("ui.search.status_found", count=len(results)))
         else:
             self.main_window.tree.clear()
-            self.main_window.set_status(t('ui.search.status_none'))
+            self.main_window.set_status(t("ui.search.status_none"))
 
     def clear_search(self):
         """Clears the search field and restores the full category view."""

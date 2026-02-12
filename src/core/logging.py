@@ -3,6 +3,7 @@
 Provides a pre-configured logger with console output and optional file logging.
 All modules should import the logger from here instead of using print().
 """
+
 from __future__ import annotations
 
 import logging

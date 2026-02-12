@@ -4,23 +4,27 @@ Generic UI helper functions for common widget patterns.
 This module provides reusable functions for creating standard UI elements
 with consistent styling and behavior across the application.
 """
+
 from __future__ import annotations
 
 from typing import Callable
 
 from PyQt6.QtWidgets import (
-    QSplitter, QWidget, QHBoxLayout, QLineEdit,
-    QPushButton, QProgressDialog, QVBoxLayout, QLabel
+    QSplitter,
+    QWidget,
+    QHBoxLayout,
+    QLineEdit,
+    QPushButton,
+    QProgressDialog,
+    QVBoxLayout,
+    QLabel,
 )
 from PyQt6.QtCore import Qt
 
 from src.utils.i18n import t
 
-def create_splitter(
-        left_widget: QWidget,
-        right_widget: QWidget,
-        ratio: tuple[int, int] = (1, 3)
-) -> QSplitter:
+
+def create_splitter(left_widget: QWidget, right_widget: QWidget, ratio: tuple[int, int] = (1, 3)) -> QSplitter:
     """Creates a horizontal QSplitter with two widgets.
 
     The splitter uses the given ratio to set initial sizes. For example,
@@ -49,11 +53,12 @@ def create_splitter(
 
     return splitter
 
+
 def create_search_bar(
-        parent: QWidget,
-        on_search_callback: Callable[[str], None],
-        on_clear_callback: Callable[[], None] | None = None,
-        placeholder: str = ""
+    parent: QWidget,
+    on_search_callback: Callable[[str], None],
+    on_clear_callback: Callable[[], None] | None = None,
+    placeholder: str = "",
 ) -> tuple[QWidget, QLineEdit]:
     """Creates a search bar widget with search field and clear button.
 
@@ -80,13 +85,14 @@ def create_search_bar(
     if placeholder:
         search_entry.setPlaceholderText(placeholder)
     else:
-        search_entry.setPlaceholderText(t('ui.search.placeholder'))
+        search_entry.setPlaceholderText(t("ui.search.placeholder"))
 
     # Clear button (X icon)
     clear_button = QPushButton()
     clear_button.setText("✕")
     clear_button.setFixedSize(30, 30)
-    clear_button.setStyleSheet("""
+    clear_button.setStyleSheet(
+        """
         QPushButton {
             border: none;
             background: transparent;
@@ -98,8 +104,9 @@ def create_search_bar(
             background: #555;
             border-radius: 15px;
         }
-    """)
-    clear_button.setToolTip(t('ui.search.clear'))
+    """
+    )
+    clear_button.setToolTip(t("ui.search.clear"))
 
     # Initially hide clear button
     clear_button.hide()
@@ -129,12 +136,9 @@ def create_search_bar(
 
     return container, search_entry
 
+
 def create_progress_dialog(
-        parent: QWidget,
-        title: str,
-        message: str,
-        maximum: int = 100,
-        cancelable: bool = True
+    parent: QWidget, title: str, message: str, maximum: int = 100, cancelable: bool = True
 ) -> QProgressDialog:
     """Creates a standardized progress dialog with consistent styling.
 
@@ -151,7 +155,7 @@ def create_progress_dialog(
     Returns:
         QProgressDialog: Configured progress dialog ready to show.
     """
-    dialog = QProgressDialog(message, t('common.cancel') if cancelable else "", 0, maximum, parent)
+    dialog = QProgressDialog(message, t("common.cancel") if cancelable else "", 0, maximum, parent)
     dialog.setWindowTitle(title)
     dialog.setWindowModality(Qt.WindowModality.WindowModal)
     dialog.setMinimumDuration(0)  # Show immediately
@@ -160,7 +164,8 @@ def create_progress_dialog(
         dialog.setCancelButton(None)
 
     # Style the progress bar
-    dialog.setStyleSheet("""
+    dialog.setStyleSheet(
+        """
         QProgressDialog {
             min-width: 400px;
             min-height: 100px;
@@ -175,15 +180,13 @@ def create_progress_dialog(
             background: #4a9eff;
             border-radius: 4px;
         }
-    """)
+    """
+    )
 
     return dialog
 
-def create_labeled_widget(
-        label_text: str,
-        widget: QWidget,
-        layout_direction: str = "horizontal"
-) -> QWidget:
+
+def create_labeled_widget(label_text: str, widget: QWidget, layout_direction: str = "horizontal") -> QWidget:
     """Creates a labeled widget container with flexible layout.
 
     Combines a label and any widget into a single container with either
@@ -217,10 +220,8 @@ def create_labeled_widget(
 
     return container
 
-def set_widget_margins(
-        widget: QWidget,
-        margins: tuple[int, int, int, int] = (0, 0, 0, 0)
-) -> None:
+
+def set_widget_margins(widget: QWidget, margins: tuple[int, int, int, int] = (0, 0, 0, 0)) -> None:
     """Sets margins on a widget with consistent parameter order.
 
     Args:
@@ -228,6 +229,7 @@ def set_widget_margins(
         margins: Margins as (left, top, right, bottom). Defaults to (0, 0, 0, 0).
     """
     widget.setContentsMargins(*margins)
+
 
 def apply_dark_theme_to_widget(widget: QWidget) -> None:
     """Applies a consistent dark theme stylesheet to a widget.
@@ -237,7 +239,8 @@ def apply_dark_theme_to_widget(widget: QWidget) -> None:
     Args:
         widget: Widget to apply dark theme to.
     """
-    widget.setStyleSheet("""
+    widget.setStyleSheet(
+        """
         QWidget {
             background-color: #2b2b2b;
             color: #e0e0e0;
@@ -265,7 +268,9 @@ def apply_dark_theme_to_widget(widget: QWidget) -> None:
         QLabel {
             color: #e0e0e0;
         }
-    """)
+    """
+    )
+
 
 def ask_save_changes(parent: QWidget, save_callback: Callable[[], bool]) -> bool:
     """Shows a 3-button save changes dialog on close.
@@ -287,12 +292,12 @@ def ask_save_changes(parent: QWidget, save_callback: Callable[[], bool]) -> bool
     # === 3-BUTTON DIALOG: Save / Discard / Cancel ===
     msg = QMessageBox(parent)
     msg.setIcon(QMessageBox.Icon.Question)
-    msg.setWindowTitle(t('ui.menu.file.unsaved_changes_title'))
-    msg.setText(t('ui.menu.file.unsaved_changes_msg'))
+    msg.setWindowTitle(t("ui.menu.file.unsaved_changes_title"))
+    msg.setText(t("ui.menu.file.unsaved_changes_msg"))
 
-    save_btn = msg.addButton(t('common.save'), QMessageBox.ButtonRole.AcceptRole)
-    discard_btn = msg.addButton(t('common.discard'), QMessageBox.ButtonRole.DestructiveRole)
-    msg.addButton(t('common.cancel'), QMessageBox.ButtonRole.RejectRole)
+    save_btn = msg.addButton(t("common.save"), QMessageBox.ButtonRole.AcceptRole)
+    discard_btn = msg.addButton(t("common.discard"), QMessageBox.ButtonRole.DestructiveRole)
+    msg.addButton(t("common.cancel"), QMessageBox.ButtonRole.RejectRole)
     msg.setDefaultButton(save_btn)
 
     msg.exec()
@@ -306,11 +311,11 @@ def ask_save_changes(parent: QWidget, save_callback: Callable[[], bool]) -> bool
         # === SAVE FAILED - RETRY DIALOG ===
         retry_msg = QMessageBox(parent)
         retry_msg.setIcon(QMessageBox.Icon.Warning)
-        retry_msg.setWindowTitle(t('ui.menu.file.save_failed_title'))
-        retry_msg.setText(t('ui.menu.file.save_failed_msg'))
+        retry_msg.setWindowTitle(t("ui.menu.file.save_failed_title"))
+        retry_msg.setText(t("ui.menu.file.save_failed_msg"))
 
-        yes_btn = retry_msg.addButton(t('common.yes'), QMessageBox.ButtonRole.YesRole)
-        retry_msg.addButton(t('common.no'), QMessageBox.ButtonRole.NoRole)
+        yes_btn = retry_msg.addButton(t("common.yes"), QMessageBox.ButtonRole.YesRole)
+        retry_msg.addButton(t("common.no"), QMessageBox.ButtonRole.NoRole)
         retry_msg.setDefaultButton(yes_btn)
 
         retry_msg.exec()

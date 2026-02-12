@@ -6,6 +6,7 @@ library, handles user interactions, and coordinates between various managers
 and dialogs. It provides the main interface for browsing, searching, and
 managing Steam games.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -17,9 +18,7 @@ if TYPE_CHECKING:
     from src.services.game_service import GameService
     from src.services.asset_service import AssetService
 
-from PyQt6.QtWidgets import (
-    QMainWindow, QToolBar
-)
+from PyQt6.QtWidgets import QMainWindow, QToolBar
 from PyQt6.QtCore import Qt, QThread, QTimer
 
 from src.config import config
@@ -27,10 +26,9 @@ from src.core.game_manager import GameManager, Game
 from src.core.localconfig_helper import LocalConfigHelper
 from src.core.cloud_storage_parser import CloudStorageParser
 from src.core.appinfo_manager import AppInfoManager
+
 # OLD: from src.core.steam_auth import SteamAuthManager (REMOVED - new login system)
 from src.integrations.steam_store import SteamStoreScraper
-from src.services.game_service import GameService
-from src.services.asset_service import AssetService
 from src.services.search_service import SearchService  # <--- NEW
 
 # Components
@@ -48,10 +46,15 @@ from src.ui.handlers.category_change_handler import CategoryChangeHandler
 
 # Actions
 from src.ui.actions import (
-    FileActions, EditActions, ViewActions,
-    ToolsActions, SteamActions, GameActions,
-    SettingsActions
+    FileActions,
+    EditActions,
+    ViewActions,
+    ToolsActions,
+    SteamActions,
+    GameActions,
+    SettingsActions,
 )
+
 
 class MainWindow(QMainWindow):
     """Primary application window for Steam Library Manager.
@@ -77,7 +80,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         """Initializes the main window and loads initial data."""
         super().__init__()
-        self.setWindowTitle(t('ui.main_window.title'))
+        self.setWindowTitle(t("ui.main_window.title"))
         self.resize(1400, 800)
 
         # Managers
@@ -159,9 +162,9 @@ class MainWindow(QMainWindow):
         central_builder = CentralWidgetBuilder(self)
         widgets = central_builder.build()
 
-        self.tree = widgets['tree']
-        self.details_widget = widgets['details_widget']
-        self.search_entry = widgets['search_entry']
+        self.tree = widgets["tree"]
+        self.details_widget = widgets["details_widget"]
+        self.search_entry = widgets["search_entry"]
 
         # --- Status bar (delegated to StatusbarBuilder) ---
         self.statusbar = self.statusBar()
@@ -206,10 +209,13 @@ class MainWindow(QMainWindow):
         # Map umlauts to come AFTER their base letter:
         # a < ä, o < ö, u < ü (German alphabetical order)
         replacements = {
-            'ä': 'a~', 'Ä': 'a~',  # ~ comes after all letters
-            'ö': 'o~', 'Ö': 'o~',
-            'ü': 'u~', 'Ü': 'u~',
-            'ß': 'ss'
+            "ä": "a~",
+            "Ä": "a~",  # ~ comes after all letters
+            "ö": "o~",
+            "Ö": "o~",
+            "ü": "u~",
+            "Ü": "u~",
+            "ß": "ss",
         }
         result = text.lower()
         for old, new in replacements.items():
@@ -232,7 +238,8 @@ class MainWindow(QMainWindow):
         No caching: the tree is cheap to rebuild (~50 ms for 2 500 games)
         and a cache only adds invisible staleness bugs.
         """
-        if not self.game_manager: return
+        if not self.game_manager:
+            return
 
         # Separate hidden and visible games
         all_games_raw = self.game_manager.get_real_games()  # Nur echte Spiele (ohne Proton auf Linux)
@@ -240,25 +247,26 @@ class MainWindow(QMainWindow):
         hidden_games = sorted([g for g in all_games_raw if g.hidden], key=lambda g: g.sort_name.lower())
 
         # Favorites (sorted, non-hidden only)
-        favorites = sorted([g for g in self.game_manager.get_favorites() if not g.hidden],
-                           key=lambda g: g.sort_name.lower())
+        favorites = sorted(
+            [g for g in self.game_manager.get_favorites() if not g.hidden], key=lambda g: g.sort_name.lower()
+        )
 
         # Uncategorized games
         uncategorized = sorted(
-            [g for g in self.game_manager.get_uncategorized_games() if not g.hidden],
-            key=lambda g: g.sort_name.lower()
+            [g for g in self.game_manager.get_uncategorized_games() if not g.hidden], key=lambda g: g.sort_name.lower()
         )
 
         # Build categories_data in correct Steam order
         from collections import OrderedDict
+
         categories_data = OrderedDict()
 
         # 1. All Games (always shown)
-        categories_data[t('ui.categories.all_games')] = visible_games
+        categories_data[t("ui.categories.all_games")] = visible_games
 
         # 2. Favorites (only if non-empty)
         if favorites:
-            categories_data[t('ui.categories.favorites')] = favorites
+            categories_data[t("ui.categories.favorites")] = favorites
 
         # 3. User categories (alphabetically sorted)
         cats: dict[str, int] = self.game_manager.get_all_categories()
@@ -276,35 +284,35 @@ class MainWindow(QMainWindow):
         # Sort with German umlaut support: Ä→A, Ö→O, Ü→U
         # Skip special categories (Favorites, Uncategorized, Hidden, All Games)
         special_categories = {
-            t('ui.categories.favorites'),
-            t('ui.categories.uncategorized'),
-            t('ui.categories.hidden'),
-            t('ui.categories.all_games')
+            t("ui.categories.favorites"),
+            t("ui.categories.uncategorized"),
+            t("ui.categories.hidden"),
+            t("ui.categories.all_games"),
         }
 
         for cat_name in sorted(cats.keys(), key=self._german_sort_key):
             if cat_name not in special_categories:
                 cat_games: list[Game] = sorted(
                     [g for g in self.game_manager.get_games_by_category(cat_name) if not g.hidden],
-                    key=lambda g: g.sort_name.lower()
+                    key=lambda g: g.sort_name.lower(),
                 )
                 # Always add — empty collections must stay visible as "Name (0)"
                 categories_data[cat_name] = cat_games
 
         # 4. Uncategorized (only if non-empty)
         if uncategorized:
-            categories_data[t('ui.categories.uncategorized')] = uncategorized
+            categories_data[t("ui.categories.uncategorized")] = uncategorized
 
         # 5. Hidden (only if non-empty)
         if hidden_games:
-            categories_data[t('ui.categories.hidden')] = hidden_games
+            categories_data[t("ui.categories.hidden")] = hidden_games
 
         # Identify dynamic collections (have filterSpec)
         dynamic_collections = set()
         if self.cloud_storage_parser:
             for collection in self.cloud_storage_parser.collections:
-                if 'filterSpec' in collection:
-                    dynamic_collections.add(collection['name'])
+                if "filterSpec" in collection:
+                    dynamic_collections.add(collection["name"])
 
         # Pass dynamic collections to tree
         self.tree.populate_categories(categories_data, dynamic_collections)
@@ -367,17 +375,18 @@ class MainWindow(QMainWindow):
             settings: Dictionary containing all settings values.
         """
         import json
-        settings_file = config.DATA_DIR / 'settings.json'
+
+        settings_file = config.DATA_DIR / "settings.json"
         data = {
-            'ui_language': settings['ui_language'],
-            'tags_language': settings['tags_language'],
-            'tags_per_game': settings['tags_per_game'],
-            'ignore_common_tags': settings['ignore_common_tags'],
-            'steamgriddb_api_key': settings['steamgriddb_api_key'],
-            'steam_api_key': settings.get('steam_api_key', ''),
-            'max_backups': settings['max_backups']
+            "ui_language": settings["ui_language"],
+            "tags_language": settings["tags_language"],
+            "tags_per_game": settings["tags_per_game"],
+            "ignore_common_tags": settings["ignore_common_tags"],
+            "steamgriddb_api_key": settings["steamgriddb_api_key"],
+            "steam_api_key": settings.get("steam_api_key", ""),
+            "max_backups": settings["max_backups"],
         }
-        with open(settings_file, 'w') as f:
+        with open(settings_file, "w") as f:
             json.dump(data, f, indent=2)
 
     def set_status(self, text: str) -> None:
@@ -402,10 +411,10 @@ class MainWindow(QMainWindow):
         stats = self.game_manager.get_game_statistics()
 
         stats_text = t(
-            'ui.main_window.statistics',
-            category_count=stats['category_count'],
-            games_in_categories=stats['games_in_categories'],
-            total_games=stats['total_games']
+            "ui.main_window.statistics",
+            category_count=stats["category_count"],
+            games_in_categories=stats["games_in_categories"],
+            total_games=stats["total_games"],
         )
 
         self.stats_label.setText(stats_text)
@@ -441,7 +450,7 @@ class MainWindow(QMainWindow):
         Uses a 100ms timer to batch multiple rapid changes into a single save operation.
         This prevents excessive backups when performing bulk operations.
         """
-        if hasattr(self, '_save_timer') and self._save_timer.isActive():
+        if hasattr(self, "_save_timer") and self._save_timer.isActive():
             self._save_timer.stop()
 
         self._save_timer = QTimer()
@@ -532,7 +541,7 @@ class MainWindow(QMainWindow):
                 self.selected_games = []
                 self.tree.clearSelection()
                 self.details_widget.clear()
-                self.set_status(t('ui.main_window.status_ready'))
+                self.set_status(t("ui.main_window.status_ready"))
         else:
             # Pass other keys to parent
             super().keyPressEvent(event)

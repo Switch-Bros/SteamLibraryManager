@@ -18,10 +18,7 @@ state stays in sync.
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-from PyQt6.QtWidgets import (
-    QMenu, QDialog, QVBoxLayout, QLabel,
-    QListWidget, QDialogButtonBox
-)
+from PyQt6.QtWidgets import QMenu, QDialog, QVBoxLayout, QLabel, QListWidget, QDialogButtonBox
 
 from src.core.game_manager import Game
 from src.ui.widgets.ui_helper import UIHelper
@@ -29,6 +26,7 @@ from src.utils.i18n import t
 
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
+
 
 class CategoryActionHandler:
     """Handles all category/collection CRUD operations and context menus.
@@ -43,13 +41,13 @@ class CategoryActionHandler:
         mw: Back-reference to the owning MainWindow instance.
     """
 
-    def __init__(self, main_window: 'MainWindow') -> None:
+    def __init__(self, main_window: "MainWindow") -> None:
         """Initializes the handler.
 
         Args:
             main_window: The MainWindow instance that owns this handler.
         """
-        self.mw: 'MainWindow' = main_window
+        self.mw: "MainWindow" = main_window
 
     # ------------------------------------------------------------------
     # Context menus
@@ -65,37 +63,38 @@ class CategoryActionHandler:
         mw = self.mw
         menu = QMenu(mw)
 
-        menu.addAction(t('ui.context_menu.view_details'), lambda: mw.on_game_selected(game))
-        menu.addAction(t('ui.context_menu.toggle_favorite'), lambda: mw.game_actions.toggle_favorite(game))
+        menu.addAction(t("ui.context_menu.view_details"), lambda: mw.on_game_selected(game))
+        menu.addAction(t("ui.context_menu.toggle_favorite"), lambda: mw.game_actions.toggle_favorite(game))
 
         menu.addSeparator()
 
         # Hide / Unhide toggle
-        if hasattr(game, 'hidden'):
+        if hasattr(game, "hidden"):
             if game.hidden:
-                menu.addAction(t('ui.context_menu.unhide_game'), lambda: mw.game_actions.toggle_hide_game(game, False))
+                menu.addAction(t("ui.context_menu.unhide_game"), lambda: mw.game_actions.toggle_hide_game(game, False))
             else:
-                menu.addAction(t('ui.context_menu.hide_game'), lambda: mw.game_actions.toggle_hide_game(game, True))
+                menu.addAction(t("ui.context_menu.hide_game"), lambda: mw.game_actions.toggle_hide_game(game, True))
 
-        menu.addAction(t('ui.context_menu.remove_from_local'), lambda: mw.game_actions.remove_from_local_config(game))
-        menu.addAction(t('ui.context_menu.remove_from_account'), lambda: mw.game_actions.remove_game_from_account(game))
+        menu.addAction(t("ui.context_menu.remove_from_local"), lambda: mw.game_actions.remove_from_local_config(game))
+        menu.addAction(t("ui.context_menu.remove_from_account"), lambda: mw.game_actions.remove_game_from_account(game))
 
         menu.addSeparator()
         # Note: open_in_store is now a static method in GameActions
         from src.ui.actions.game_actions import GameActions
-        menu.addAction(t('ui.context_menu.open_store'), lambda: GameActions.open_in_store(game))
-        menu.addAction(t('ui.context_menu.check_store'), lambda: mw.check_store_availability(game))
+
+        menu.addAction(t("ui.context_menu.open_store"), lambda: GameActions.open_in_store(game))
+        menu.addAction(t("ui.context_menu.check_store"), lambda: mw.check_store_availability(game))
 
         menu.addSeparator()
 
         # Auto-categorize: single game or current multi-selection
         if len(mw.selected_games) > 1:
-            menu.addAction(t('ui.menu.edit.auto_categorize'), mw.edit_actions.auto_categorize_selected)
+            menu.addAction(t("ui.menu.edit.auto_categorize"), mw.edit_actions.auto_categorize_selected)
         else:
-            menu.addAction(t('ui.menu.edit.auto_categorize'), lambda: mw.edit_actions.auto_categorize_single(game))
+            menu.addAction(t("ui.menu.edit.auto_categorize"), lambda: mw.edit_actions.auto_categorize_single(game))
 
         menu.addSeparator()
-        menu.addAction(t('ui.context_menu.edit_metadata'), lambda: mw.edit_actions.edit_game_metadata(game))
+        menu.addAction(t("ui.context_menu.edit_metadata"), lambda: mw.edit_actions.edit_game_metadata(game))
 
         menu.exec(pos)
 
@@ -119,40 +118,41 @@ class CategoryActionHandler:
             selected_categories: list[str] = mw.tree.get_selected_categories()
             if len(selected_categories) > 1:
                 menu.addAction(
-                    t('ui.context_menu.merge_categories'),
-                    lambda: self.merge_categories(selected_categories)
+                    t("ui.context_menu.merge_categories"), lambda: self.merge_categories(selected_categories)
                 )
                 menu.addSeparator()
                 menu.addAction(
-                    t('ui.context_menu.delete'),
-                    lambda: self.delete_multiple_categories(selected_categories)
+                    t("ui.context_menu.delete"), lambda: self.delete_multiple_categories(selected_categories)
                 )
             menu.exec(pos)
             return
 
         # --- Steam-Standard-Collektions are not editable ---
         steam_standard_collections: list[str] = [
-            t('ui.categories.all_games'),
-            t('ui.categories.favorites'),
-            t('ui.categories.uncategorized'),
-            t('ui.categories.hidden')
+            t("ui.categories.all_games"),
+            t("ui.categories.favorites"),
+            t("ui.categories.uncategorized"),
+            t("ui.categories.hidden"),
         ]
 
         if category in steam_standard_collections:
             # ONLY allow Auto-Categorize, NOTHING else!
-            menu.addAction(t('ui.menu.edit.auto_categorize'),
-                           lambda: mw.edit_actions.auto_categorize_category(category))
+            menu.addAction(
+                t("ui.menu.edit.auto_categorize"), lambda: mw.edit_actions.auto_categorize_category(category)
+            )
             menu.exec(pos)
             return
 
         else:
             # --- Normal user category ---
-            menu.addAction(t('ui.context_menu.create_collection'), self.create_new_collection)
+            menu.addAction(t("ui.context_menu.create_collection"), self.create_new_collection)
             menu.addSeparator()
-            menu.addAction(t('ui.context_menu.rename'), lambda: self.rename_category(category))
-            menu.addAction(t('ui.context_menu.delete'), lambda: self.delete_category(category))
+            menu.addAction(t("ui.context_menu.rename"), lambda: self.rename_category(category))
+            menu.addAction(t("ui.context_menu.delete"), lambda: self.delete_category(category))
             menu.addSeparator()
-            menu.addAction(t('ui.menu.edit.auto_categorize'), lambda: mw.edit_actions.auto_categorize_category(category))
+            menu.addAction(
+                t("ui.menu.edit.auto_categorize"), lambda: mw.edit_actions.auto_categorize_category(category)
+            )
 
         menu.exec(pos)
 
@@ -170,8 +170,9 @@ class CategoryActionHandler:
         if not mw.category_service:
             return
 
-        if not UIHelper.confirm(mw, t('ui.main_window.remove_duplicates_confirm'),
-                                t('ui.main_window.remove_duplicates_title')):
+        if not UIHelper.confirm(
+            mw, t("ui.main_window.remove_duplicates_confirm"), t("ui.main_window.remove_duplicates_title")
+        ):
             return
 
         try:
@@ -179,9 +180,9 @@ class CategoryActionHandler:
 
             if removed > 0:
                 self._flush()
-                UIHelper.show_success(mw, t('ui.main_window.duplicates_removed', count=removed))
+                UIHelper.show_success(mw, t("ui.main_window.duplicates_removed", count=removed))
             else:
-                UIHelper.show_info(mw, t('ui.main_window.no_duplicates'))
+                UIHelper.show_info(mw, t("ui.main_window.no_duplicates"))
         except RuntimeError as e:
             UIHelper.show_error(mw, str(e))
 
@@ -192,16 +193,14 @@ class CategoryActionHandler:
             return
 
         name, ok = UIHelper.ask_text(
-            mw,
-            t('ui.main_window.create_collection_title'),
-            t('ui.main_window.create_collection_prompt')
+            mw, t("ui.main_window.create_collection_title"), t("ui.main_window.create_collection_prompt")
         )
 
         if ok and name:
             try:
                 mw.category_service.create_collection(name)
                 self._flush()
-                UIHelper.show_success(mw, t('ui.main_window.collection_created', name=name))
+                UIHelper.show_success(mw, t("ui.main_window.collection_created", name=name))
             except ValueError as e:
                 UIHelper.show_error(mw, str(e))
 
@@ -216,9 +215,7 @@ class CategoryActionHandler:
             return
 
         new_name, ok = UIHelper.ask_text(
-            mw,
-            t('ui.categories.rename_title'),
-            t('ui.categories.rename_msg', old=old_name)
+            mw, t("ui.categories.rename_title"), t("ui.categories.rename_msg", old=old_name)
         )
 
         if ok and new_name and new_name != old_name:
@@ -238,9 +235,7 @@ class CategoryActionHandler:
         if not mw.category_service:
             return
 
-        if UIHelper.confirm(mw,
-                            t('ui.categories.delete_msg', category=category),
-                            t('ui.categories.delete_title')):
+        if UIHelper.confirm(mw, t("ui.categories.delete_msg", category=category), t("ui.categories.delete_title")):
             mw.category_service.delete_category(category)
             self._flush(stats=True)
 
@@ -256,11 +251,9 @@ class CategoryActionHandler:
 
         # Build bullet-point list for the confirmation dialog
         category_list: str = "\n• ".join(categories)
-        message: str = t('ui.categories.delete_multiple_msg',
-                         count=len(categories),
-                         category_list=f"• {category_list}")
+        message: str = t("ui.categories.delete_multiple_msg", count=len(categories), category_list=f"• {category_list}")
 
-        if UIHelper.confirm(mw, message, t('ui.categories.delete_title')):
+        if UIHelper.confirm(mw, message, t("ui.categories.delete_title")):
             mw.category_service.delete_multiple_categories(categories)
             self._flush(stats=True)
 
@@ -279,13 +272,13 @@ class CategoryActionHandler:
 
         # --- Build the selection dialog inline (small, one-off UI) ---
         dialog = QDialog(mw)
-        dialog.setWindowTitle(t('ui.categories.merge_title'))
+        dialog.setWindowTitle(t("ui.categories.merge_title"))
         dialog.setMinimumWidth(400)
 
         layout = QVBoxLayout()
 
         # Instruction text
-        label = QLabel(t('ui.categories.merge_instruction', count=len(categories)))
+        label = QLabel(t("ui.categories.merge_instruction", count=len(categories)))
         label.setWordWrap(True)
         layout.addWidget(label)
 
@@ -298,8 +291,8 @@ class CategoryActionHandler:
 
         # OK / Cancel
         button_box = QDialogButtonBox()
-        button_box.addButton(t('common.ok'), QDialogButtonBox.ButtonRole.AcceptRole)
-        button_box.addButton(t('common.cancel'), QDialogButtonBox.ButtonRole.RejectRole)
+        button_box.addButton(t("common.ok"), QDialogButtonBox.ButtonRole.AcceptRole)
+        button_box.addButton(t("common.cancel"), QDialogButtonBox.ButtonRole.RejectRole)
         button_box.accepted.connect(dialog.accept)
         button_box.rejected.connect(dialog.reject)
         layout.addWidget(button_box)
@@ -320,8 +313,8 @@ class CategoryActionHandler:
 
             UIHelper.show_success(
                 mw,
-                t('ui.categories.merge_success', target=target_category, count=len(source_categories)),
-                t('ui.categories.merge_title')
+                t("ui.categories.merge_success", target=target_category, count=len(source_categories)),
+                t("ui.categories.merge_title"),
             )
 
         # ------------------------------------------------------------------

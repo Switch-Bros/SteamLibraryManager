@@ -23,6 +23,7 @@ from src.utils.i18n import t
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
+
 class SelectionHandler:
     """Handles game selection events and background details loading.
 
@@ -31,13 +32,13 @@ class SelectionHandler:
         _fetch_threads: List of active fetch threads (for cleanup).
     """
 
-    def __init__(self, main_window: 'MainWindow') -> None:
+    def __init__(self, main_window: "MainWindow") -> None:
         """Initializes the selection handler.
 
         Args:
             main_window: The MainWindow instance that owns this handler.
         """
-        self.mw: 'MainWindow' = main_window
+        self.mw: "MainWindow" = main_window
         self._fetch_threads: list[QThread] = []
 
     def on_games_selected(self, games: list[Game]) -> None:
@@ -54,7 +55,7 @@ class SelectionHandler:
 
         if len(games) > 1:
             # Show multi-select view in details widget
-            self.mw.set_status(t('ui.main_window.games_selected', count=len(games)))
+            self.mw.set_status(t("ui.main_window.games_selected", count=len(games)))
             self.mw.details_widget.set_games(games, all_categories)
         elif len(games) == 1:
             # Show single game view
@@ -100,6 +101,7 @@ class SelectionHandler:
 
         class FetchThread(QThread):
             """Background thread for fetching game details."""
+
             finished_signal = pyqtSignal(bool)
 
             def __init__(self, game_manager, target_app_id):

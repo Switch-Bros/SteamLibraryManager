@@ -19,10 +19,10 @@ from pathlib import Path
 from src.utils.i18n import t
 
 
-
 logger = logging.getLogger("steamlibmgr.localconfig")
 
-__all__ = ['LocalConfigHelper']
+__all__ = ["LocalConfigHelper"]
+
 
 class LocalConfigHelper:
     """Minimal helper for localconfig.vdf operations."""
@@ -45,23 +45,22 @@ class LocalConfigHelper:
             True if successful, False otherwise
         """
         try:
-            with open(self.config_path, 'r', encoding='utf-8') as f:
+            with open(self.config_path, "r", encoding="utf-8") as f:
                 self.data = vdf.load(f)
 
             # Navigate to Apps section
-            steam_section = (self.data.get('UserLocalConfigStore', {})
-                             .get('Software', {})
-                             .get('Valve', {})
-                             .get('Steam', {}))
+            steam_section = (
+                self.data.get("UserLocalConfigStore", {}).get("Software", {}).get("Valve", {}).get("Steam", {})
+            )
 
-            self.apps = steam_section.get('Apps', {})
+            self.apps = steam_section.get("Apps", {})
             return True
 
         except FileNotFoundError:
-            logger.error(t('logs.localconfig.not_found', path=self.config_path))
+            logger.error(t("logs.localconfig.not_found", path=self.config_path))
             return False
         except Exception as e:
-            logger.error(t('logs.localconfig.load_error', error=e))
+            logger.error(t("logs.localconfig.load_error", error=e))
             return False
 
     def save(self) -> bool:
@@ -74,13 +73,13 @@ class LocalConfigHelper:
             return True
 
         try:
-            with open(self.config_path, 'w', encoding='utf-8') as f:
+            with open(self.config_path, "w", encoding="utf-8") as f:
                 vdf.dump(self.data, f, pretty=True)
             self.modified = False
             return True
 
         except OSError as e:
-            logger.error(t('logs.localconfig.save_error', error=e))
+            logger.error(t("logs.localconfig.save_error", error=e))
             return False
 
     # ===== HIDDEN STATUS =====
@@ -93,7 +92,7 @@ class LocalConfigHelper:
         """
         hidden = []
         for app_id, app_data in self.apps.items():
-            if app_data.get('hidden', '0') == '1':
+            if app_data.get("hidden", "0") == "1":
                 hidden.append(app_id)
         return hidden
 
@@ -109,7 +108,7 @@ class LocalConfigHelper:
         if app_id not in self.apps:
             self.apps[app_id] = {}
 
-        self.apps[app_id]['hidden'] = '1' if hidden else '0'
+        self.apps[app_id]["hidden"] = "1" if hidden else "0"
         self.modified = True
 
     # ===== EXPANDED/COLLAPSED STATE =====
@@ -126,9 +125,9 @@ class LocalConfigHelper:
         if category_id not in self.apps:
             return True  # Default: expanded
 
-        cloud_state = self.apps[category_id].get('CloudLocalAppState', {})
-        expanded = cloud_state.get('Expanded', '1')
-        return expanded == '1'
+        cloud_state = self.apps[category_id].get("CloudLocalAppState", {})
+        expanded = cloud_state.get("Expanded", "1")
+        return expanded == "1"
 
     def set_expanded_state(self, category_id: str, expanded: bool):
         """Set expanded state for a category.
@@ -140,10 +139,10 @@ class LocalConfigHelper:
         if category_id not in self.apps:
             self.apps[category_id] = {}
 
-        if 'CloudLocalAppState' not in self.apps[category_id]:
-            self.apps[category_id]['CloudLocalAppState'] = {}
+        if "CloudLocalAppState" not in self.apps[category_id]:
+            self.apps[category_id]["CloudLocalAppState"] = {}
 
-        self.apps[category_id]['CloudLocalAppState']['Expanded'] = '1' if expanded else '0'
+        self.apps[category_id]["CloudLocalAppState"]["Expanded"] = "1" if expanded else "0"
         self.modified = True
 
     def get_all_expanded_states(self) -> dict[str, bool]:
@@ -154,10 +153,10 @@ class LocalConfigHelper:
         """
         states = {}
         for app_id, app_data in self.apps.items():
-            cloud_state = app_data.get('CloudLocalAppState', {})
-            if 'Expanded' in cloud_state:
-                expanded = cloud_state.get('Expanded', '1')
-                states[app_id] = (expanded == '1')
+            cloud_state = app_data.get("CloudLocalAppState", {})
+            if "Expanded" in cloud_state:
+                expanded = cloud_state.get("Expanded", "1")
+                states[app_id] = expanded == "1"
         return states
 
     # ===== CLEANUP =====
