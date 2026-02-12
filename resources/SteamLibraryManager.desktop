@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=SteamLibraryManager
+Comment=Organize your Steam library, edit metadata, and automate categories
+Exec=SteamLibraryManager
+Icon=SteamLibraryManager
+Terminal=false
+Type=Application
+Categories=Game;Utility;
+Keywords=steam;library;manager;categories;
+StartupNotify=true

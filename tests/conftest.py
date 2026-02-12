@@ -1,64 +1,73 @@
 # tests/conftest.py
+import tempfile
+from pathlib import Path
+from typing import Generator
 
-"""Pytest configuration and shared fixtures for SteamLibraryManager tests."""
 import pytest
-import json
+from pytestqt.qtbot import QtBot
+from PyQt6.QtWidgets import QApplication
+
+
+@pytest.fixture(scope="session")
+def qapp():
+    """QApplication instance for all Qt tests."""
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication([])
+    yield app
 
 
 @pytest.fixture
-def mock_config(tmp_path):
-    """Provide a test configuration with temporary paths."""
-    from src.config import Config
-
-    config = Config()
-    config.STEAM_PATH = tmp_path / "steam"
-    config.DATA_DIR = tmp_path / "data"
-    config.CACHE_DIR = tmp_path / "cache"
-
-    config.STEAM_PATH.mkdir(parents=True, exist_ok=True)
-    config.DATA_DIR.mkdir(parents=True, exist_ok=True)
-    config.CACHE_DIR.mkdir(parents=True, exist_ok=True)
-
-    return config
+def qtbot(qapp, request):
+    """Provide qtbot fixture with automatic cleanup."""
+    bot = QtBot(request)
+    yield bot
+    bot.cleanup()
 
 
 @pytest.fixture
-def sample_game():
-    """Provide a sample Game object for testing."""
-    from src.core.game_manager import Game
-    return Game(
-        app_id='440',
-        name='Team Fortress 2',
-        playtime_minutes=1337
-    )
+def temp_db_path() -> Generator[Path, None, None]:
+    """Temporary SQLite database file path."""
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+        path = Path(f.name)
+    yield path
+    if path.exists():
+        path.unlink()
 
 
 @pytest.fixture
-def mock_cloud_storage_file(tmp_path):
-    """Create a temporary cloud storage file with proper Steam directory structure."""
-    # Create proper Steam directory structure
-    user_id = '123456789'
-    steam_path = tmp_path / "steam"
-    cloud_dir = steam_path / "userdata" / user_id / "config" / "cloudstorage"
-    cloud_dir.mkdir(parents=True, exist_ok=True)
+def temp_vdf_content() -> str:
+    """Minimal valid VDF content for testing."""
+    return '''
+"appinfo"
+{
+    "12345"
+    {
+        "common"
+        {
+            "name" "Test Game"
+            "developer" "TestDev"
+            "publisher" "TestPub"
+        }
+    }
+}
+'''
 
-    # Create cloud storage file
-    cloud_file = cloud_dir / "cloud-storage-namespace-1.json"
 
-    cloud_data = [
-        ["user-collections.from-tag-Action", {
-            "key": "user-collections.from-tag-Action",
-            "timestamp": 1234567890,
-            "value": json.dumps({
-                "id": "from-tag-Action",
-                "name": "Action",
-                "added": [440, 730],
-                "removed": []
-            })
-        }]
-    ]
+@pytest.fixture
+def temp_vdf_file(temp_vdf_content) -> Generator[Path, None, None]:
+    """Write temporary VDF file."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".vdf", delete=False) as f:
+        f.write(temp_vdf_content)
+        path = Path(f.name)
+    yield path
+    if path.exists():
+        path.unlink()
 
-    with open(cloud_file, 'w') as f:
-        json.dump(cloud_data, f)
 
-    return steam_path, user_id
+@pytest.fixture
+def isolated_token_store(tmp_path) -> Path:
+    """Simulate a token storage directory."""
+    token_dir = tmp_path / "tokens"
+    token_dir.mkdir()
+    return token_dir

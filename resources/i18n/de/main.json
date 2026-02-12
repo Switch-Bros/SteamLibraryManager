@@ -599,7 +599,9 @@
       "starting": "Starte Steam OAuth Prozess...",
       "login_success": "Anmeldung erfolgreich! SteamID: {id}",
       "error": "Auth Fehler: {error}",
-      "profile_error": "Fehler beim Laden des Profilnamens: {error}"
+      "profile_error": "Fehler beim Laden des Profilnamens: {error}",
+      "steamid_from_jwt": "SteamID64 aus JWT Token extrahiert",
+      "jwt_decode_failed": "JWT Token konnte nicht dekodiert werden: {error}"
     },
     "steam_store": {
       "fetch_error": "Store-Fehler für App {app_id}: {error}"
