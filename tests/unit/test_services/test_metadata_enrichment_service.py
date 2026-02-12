@@ -3,7 +3,6 @@
 """Tests for MetadataEnrichmentService."""
 
 import json
-from pathlib import Path
 from unittest.mock import MagicMock
 
 from src.core.game import Game
