@@ -2,9 +2,7 @@
 
 """Tests for GameDetailService."""
 
-import json
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from src.core.game import Game
 from src.services.game_detail_service import GameDetailService
