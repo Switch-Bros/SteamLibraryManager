@@ -25,6 +25,7 @@ from src.core.game_manager import GameManager, Game
 from src.core.localconfig_helper import LocalConfigHelper
 from src.core.cloud_storage_parser import CloudStorageParser
 from src.core.appinfo_manager import AppInfoManager
+# OLD: from src.core.steam_auth import SteamAuthManager (REMOVED - new login system)
 from src.integrations.steam_store import SteamStoreScraper
 from src.services.game_service import GameService
 from src.services.asset_service import AssetService
@@ -36,18 +37,18 @@ from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
 # Builders
-from src.ui.builders import (
-    MenuBuilder, ToolbarBuilder, StatusbarBuilder, CentralWidgetBuilder
-)
+from src.ui.builders import MenuBuilder, ToolbarBuilder, StatusbarBuilder, CentralWidgetBuilder
 
 # Handlers
-from src.ui.handlers import (
-    CategoryActionHandler, DataLoadHandler, SelectionHandler, CategoryChangeHandler
-)
+from src.ui.handlers import CategoryActionHandler, DataLoadHandler
+from src.ui.handlers.selection_handler import SelectionHandler
+from src.ui.handlers.category_change_handler import CategoryChangeHandler
 
 # Actions
 from src.ui.actions import (
-    FileActions, EditActions, ViewActions, ToolsActions, SteamActions, GameActions, SettingsActions
+    FileActions, EditActions, ViewActions,
+    ToolsActions, SteamActions, GameActions,
+    SettingsActions
 )
 
 
@@ -93,6 +94,9 @@ class MainWindow(QMainWindow):
         # NEW: Initialize SearchService
         self.search_service = SearchService()
 
+        # OLD: Auth Manager (REMOVED - new login system)
+        # self.auth_manager = SteamAuthManager()
+
         # NEW: Session/Token storage for modern Steam login
         self.session = None  # For password login (requests.Session)
         self.access_token = None  # For QR login (OAuth token)
@@ -121,6 +125,10 @@ class MainWindow(QMainWindow):
         self.steam_actions = SteamActions(self)
         self.game_actions = GameActions(self)
         self.settings_actions = SettingsActions(self)
+
+        # OLD: Auth signals (REMOVED - new login dialog handles signals internally)
+        # self.auth_manager.auth_success.connect(self.steam_actions.on_login_success)
+        # self.auth_manager.auth_error.connect(self.steam_actions.on_login_error)
 
         # UI Action Handlers (extracted category / context-menu logic)
         self.category_handler: CategoryActionHandler = CategoryActionHandler(self)
@@ -226,7 +234,7 @@ class MainWindow(QMainWindow):
         if not self.game_manager: return
 
         # Separate hidden and visible games
-        all_games_raw = self.game_manager.get_real_games()  # Only real games (without Proton on Linux)
+        all_games_raw = self.game_manager.get_real_games()  # Nur echte Spiele (ohne Proton auf Linux)
         visible_games = sorted([g for g in all_games_raw if not g.hidden], key=lambda g: g.sort_name.lower())
         hidden_games = sorted([g for g in all_games_raw if g.hidden], key=lambda g: g.sort_name.lower())
 
