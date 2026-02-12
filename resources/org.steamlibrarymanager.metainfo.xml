@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.steamlibrarymanager.SteamLibraryManager</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Steam Library Manager</name>
+  <summary>Linux-native Steam library organizer</summary>
+  <description>
+    <p>
+      A modern, powerful library manager for Steam on Linux and Steam Deck.
+      Features include:
+    </p>
+    <ul>
+      <li>Auto-categorization based on tags, genres, publishers</li>
+      <li>Full metadata editor with bulk editing</li>
+      <li>Multilingual interface (English, German)</li>
+      <li>Automatic backups and restore</li>
+    </ul>
+  </description>
+  <categories>
+    <category>Game</category>
+    <category>Utility</category>
+  </categories>
+  <keywords>
+    <keyword>steam</keyword>
+    <keyword>library</keyword>
+    <keyword>manager</keyword>
+  </keywords>
+  <url type="homepage">https://github.com/Switch-Bros/SteamLibraryManager</url>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/Switch-Bros/SteamLibraryManager/main/resources/screenshot.png</image>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release version="0.1.0" date="2026-02-11">
+      <description>
+        <p>Initial alpha release</p>
+      </description>
+    </release>
+  </releases>
+  <content_rating type="oars-1.1"/>
+</component>

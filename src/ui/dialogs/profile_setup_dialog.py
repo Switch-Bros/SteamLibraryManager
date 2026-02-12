@@ -206,19 +206,9 @@ class ProfileSetupDialog(QDialog):
         result = dialog.exec()
 
         if result == QDialog.DialogCode.Accepted:
-            # Get SteamID64 directly from dialog (fixed loop!)
-            if dialog.steam_id_64:
-                try:
-                    steam_id_64 = int(dialog.steam_id_64)
-                except (TypeError, ValueError):
-                    QMessageBox.warning(
-                        self,
-                        t('common.error'),
-                        t('ui.login.error_no_steam_id')
-                    )
-                    return
-
-                self.selected_steam_id_64 = steam_id_64
+            # Get steam_id_64 directly (already int!)
+            if dialog.steam_id_64 is not None:
+                self.selected_steam_id_64 = dialog.steam_id_64
                 self.selected_display_name = dialog.display_name
                 self.accept()
             else:
@@ -318,6 +308,6 @@ class ProfileSetupDialog(QDialog):
                     return int(steam_id_element.text)
 
         except (requests.RequestException, ElementTree.ParseError, ValueError):
-            return None
+            pass
 
         return None

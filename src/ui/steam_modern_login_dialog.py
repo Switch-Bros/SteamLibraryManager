@@ -31,10 +31,16 @@ class ModernSteamLoginDialog(QDialog):
 
     Signals:
         login_success (dict): Emitted when login succeeds with session/tokens
+
+    Attributes:
+        steam_id_64: The SteamID64 as integer (for profile_setup_dialog)
+        display_name: The Steam display name (for profile_setup_dialog)
     """
 
     login_success = pyqtSignal(dict)
-    steam_id_64: Optional[str]
+
+    # Type hints for attributes
+    steam_id_64: Optional[int]
     display_name: Optional[str]
 
     def __init__(self, parent=None):
@@ -42,8 +48,10 @@ class ModernSteamLoginDialog(QDialog):
         super().__init__(parent)
 
         self.login_manager = SteamLoginManager()
-        self.steam_id_64 = None
-        self.display_name = None
+
+        # Store login result for profile_setup_dialog
+        self.steam_id_64: Optional[int] = None
+        self.display_name: Optional[str] = None
 
         self._setup_ui()
         self._connect_signals()
@@ -309,9 +317,30 @@ class ModernSteamLoginDialog(QDialog):
     def on_login_success(self, result: dict):
         """Handle successful login."""
         self.hide_progress()
-        self.on_status_update(t('ui.login.success'))
-        self.steam_id_64 = result.get('steam_id') or result.get('steamid')
-        self.display_name = result.get('account_name')
+
+        # Get SteamID64 (may be string or int)
+        steam_id_value = result.get('steam_id') or result.get('steamid')
+
+        if steam_id_value:
+            try:
+                # Convert to int (works for both str and int input)
+                self.steam_id_64 = int(steam_id_value)
+
+                # Fetch proper display name from Steam Community API
+                from src.core.steam_account_scanner import fetch_steam_display_name
+                self.display_name = fetch_steam_display_name(self.steam_id_64)
+
+            except (ValueError, TypeError) as e:
+                # Conversion failed - set to None
+                print(f"Failed to convert steam_id to int: {steam_id_value}, error: {e}")
+                self.steam_id_64 = None
+                self.display_name = None
+        else:
+            # No steam_id in result
+            self.steam_id_64 = None
+            self.display_name = None
+
+        self.on_status_update(t('ui.login.status_success'))
         self.login_success.emit(result)
         self.accept()
 
