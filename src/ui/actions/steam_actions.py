@@ -50,7 +50,7 @@ class SteamActions:
         
         NO API KEY NEEDED! Uses session cookies or OAuth tokens.
         """
-        from src.ui.steam_modern_login_dialog import ModernSteamLoginDialog
+        from src.ui.dialogs.steam_modern_login_dialog import ModernSteamLoginDialog
         
         dialog = ModernSteamLoginDialog(parent=self.mw)
         dialog.login_success.connect(self.on_login_success)

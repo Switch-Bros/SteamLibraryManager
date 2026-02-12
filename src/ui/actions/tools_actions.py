@@ -7,7 +7,7 @@ import requests
 
 from src.utils.i18n import t
 from src.ui.widgets.ui_helper import UIHelper
-from src.ui.missing_metadata_dialog import MissingMetadataDialog
+from src.ui.dialogs.missing_metadata_dialog import MissingMetadataDialog
 from src.core.game_manager import Game
 
 if TYPE_CHECKING:

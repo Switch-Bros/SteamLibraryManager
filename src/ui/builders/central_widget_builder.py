@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 
-from src.ui.game_details_widget import GameDetailsWidget
+from src.ui.widgets.game_details_widget import GameDetailsWidget
 from src.ui.widgets.category_tree import GameTreeWidget
 from src.utils.i18n import t
 

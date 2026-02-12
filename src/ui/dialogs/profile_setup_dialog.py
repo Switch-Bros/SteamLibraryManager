@@ -199,7 +199,7 @@ class ProfileSetupDialog(QDialog):
 
     def _on_steam_login(self):
         """Handle Steam login button click."""
-        from src.ui.steam_modern_login_dialog import ModernSteamLoginDialog
+        from src.ui.dialogs.steam_modern_login_dialog import ModernSteamLoginDialog
 
         dialog = ModernSteamLoginDialog(self)
         result = dialog.exec()
