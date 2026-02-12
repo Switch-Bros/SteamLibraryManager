@@ -54,6 +54,7 @@ class Config:
 
     STEAM_PATH: Path | None = None
     STEAM_USER_ID: str | None = None
+    STEAM_ACCESS_TOKEN: str | None = None  # Runtime-only, NOT persisted to JSON
 
     # List for additional libraries
     STEAM_LIBRARIES: list[str] = None

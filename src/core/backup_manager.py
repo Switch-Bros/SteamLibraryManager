@@ -107,6 +107,48 @@ class BackupManager:
                 except OSError as delete_error:
                     logger.error(t("logs.backup.delete_error", name=Path(old).name, error=str(delete_error)))
 
+    def list_backups(self, file_path: Path) -> list[Path]:
+        """List all backups for a file, sorted newest first.
+
+        Args:
+            file_path: The original file path to find backups for.
+
+        Returns:
+            List of backup Paths sorted by modification time (newest first).
+        """
+        target_dir = self.backup_dir if self.backup_dir else file_path.parent
+        pattern = str(target_dir / f"{file_path.stem}_*{file_path.suffix}")
+        backups = sorted(glob.glob(pattern), key=os.path.getmtime, reverse=True)
+        return [Path(b) for b in backups]
+
+    def restore_backup(self, backup_path: Path, original_path: Path) -> bool:
+        """Restore a backup file to its original location.
+
+        Creates a safety backup of the current file before restoring.
+
+        Args:
+            backup_path: Path to the backup file to restore.
+            original_path: Path where the backup should be restored to.
+
+        Returns:
+            True if restore succeeded, False otherwise.
+        """
+        if not backup_path.exists():
+            logger.error(t("logs.backup.restore_failed", error="Backup file not found"))
+            return False
+
+        try:
+            # Create safety backup of current state before restoring
+            if original_path.exists():
+                self.create_backup(original_path)
+
+            shutil.copy2(backup_path, original_path)
+            logger.info(t("logs.backup.restore_success", name=backup_path.name))
+            return True
+        except OSError as e:
+            logger.error(t("logs.backup.restore_failed", error=str(e)))
+            return False
+
     @staticmethod
     def create_rolling_backup(file_path: Path) -> str | None:
         """

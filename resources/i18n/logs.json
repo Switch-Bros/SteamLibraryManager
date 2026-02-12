@@ -56,7 +56,17 @@
       "auth_mode_session": "Auth mode: Session",
       "unexpected_profile_error": "Unexpected error loading profile: {error}",
       "steamid_conversion_error": "Failed to convert steam_id to int: {value}, error: {error}",
-      "qr_logo_error": "Could not add logo to QR code: {error}"
+      "qr_logo_error": "Could not add logo to QR code: {error}",
+      "token_saved": "Authentication tokens saved securely",
+      "token_loaded": "Authentication tokens loaded from storage",
+      "token_cleared": "Authentication tokens cleared",
+      "token_save_failed": "Failed to save authentication tokens: {error}",
+      "token_load_failed": "Failed to load authentication tokens: {error}",
+      "token_clear_failed": "Failed to clear authentication tokens: {error}",
+      "token_refresh_success": "Access token refreshed successfully",
+      "token_refresh_failed": "Failed to refresh access token: {error}",
+      "rsa_key_fetched": "RSA public key fetched for password encryption",
+      "rsa_key_error": "Failed to fetch RSA public key: {error}"
     },
     "steam_store": {
       "fetch_error": "Store error for app {app_id}: {error}",
@@ -78,7 +88,9 @@
       "failed": "Backup failed: {error}",
       "rotated": "Rotated backup: {name}",
       "delete_error": "Error deleting old backup {name}: {error}",
-      "backup_failed": "Backup failed: {error}"
+      "backup_failed": "Backup failed: {error}",
+      "restore_success": "Backup restored: {name}",
+      "restore_failed": "Backup restore failed: {error}"
     },
     "appinfo": {
       "loaded": "Loaded {count} saved modifications",
@@ -112,7 +124,8 @@
       "parse_failed": "Failed to parse collection: {key}",
       "cloud_file_not_found": "Cloud storage file not found: {path}",
       "load_error": "Failed to load cloud storage: {error}",
-      "error_details": "Error details: {error}"
+      "error_details": "Error details: {error}",
+      "external_change_detected": "Cloud storage file modified externally since last load"
     },
     "local_loader": {
       "scanning": "Scanning {count} manifest files...",

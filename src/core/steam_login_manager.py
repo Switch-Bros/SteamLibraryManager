@@ -17,6 +17,7 @@ import time
 import requests
 from PyQt6.QtCore import QObject, pyqtSignal, QThread
 
+from src.core.token_store import TokenStore
 from src.utils.i18n import t
 
 logger = logging.getLogger("steamlibmgr.login_manager")
@@ -146,7 +147,7 @@ class QRCodeLoginThread(QThread):
                     logger.info(t("logs.auth.qr_challenge_approved"))
 
                     # Get SteamID64 using the access token
-                    steam_id_64 = SteamLoginManager.get_steamid_from_token(access_token)
+                    steam_id_64 = TokenStore.get_steamid_from_token(access_token)
 
                     if not steam_id_64:
                         # CRITICAL: Cannot proceed without valid SteamID64
@@ -202,12 +203,21 @@ class UsernamePasswordLoginThread(QThread):
 
         This triggers PUSH NOTIFICATION to Steam Mobile App!
         """
+        # Fetch RSA public key for password encryption
+        rsa_result = self._fetch_rsa_key(self.username)
+        if not rsa_result:
+            self.login_error.emit(t("ui.login.error_login_generic"))
+            return
+
+        mod, exp, rsa_timestamp = rsa_result
+        encrypted_password = self._rsa_encrypt_password(self.password, mod, exp)
+
         url = "https://api.steampowered.com/IAuthenticationService/BeginAuthSessionViaCredentials/v1/"
 
         data = {
             "account_name": self.username,
-            "encrypted_password": self._encrypt_password(self.password),
-            "encryption_timestamp": str(int(time.time())),
+            "encrypted_password": encrypted_password,
+            "encryption_timestamp": rsa_timestamp,
             "remember_login": "true",
             "platform_type": 2,  # Web
             "device_friendly_name": "SteamLibraryManager",
@@ -240,11 +250,19 @@ class UsernamePasswordLoginThread(QThread):
                     self.login_error.emit(t("ui.login.error_no_session_ids"))
             else:
                 # Direct success (no 2FA)
+                access_token = result.get("access_token")
+                steam_id = result.get("steamid")
+                if not steam_id and access_token:
+                    steam_id = TokenStore.get_steamid_from_token(access_token)
+                if not steam_id:
+                    self.login_error.emit(t("ui.login.error_no_steam_id"))
+                    return
+
                 self.login_success.emit(
                     {
                         "method": "password",
-                        "steam_id": result.get("steamid"),
-                        "access_token": result.get("access_token"),
+                        "steam_id": steam_id,
+                        "access_token": access_token,
                         "refresh_token": result.get("refresh_token"),
                     }
                 )
@@ -272,10 +290,19 @@ class UsernamePasswordLoginThread(QThread):
                 result = response.json().get("response", {})
 
                 if result.get("access_token"):
+                    access_token = result["access_token"]
+                    # Resolve real SteamID64 from token (same as QR flow)
+                    steam_id = result.get("steamid")
+                    if not steam_id:
+                        steam_id = TokenStore.get_steamid_from_token(access_token)
+                    if not steam_id:
+                        logger.warning(t("logs.auth.could_not_resolve_steamid"))
+                        return None
+
                     return {
                         "method": "password",
-                        "steam_id": result.get("steamid") or result.get("account_name"),
-                        "access_token": result.get("access_token"),
+                        "steam_id": steam_id,
+                        "access_token": access_token,
                         "refresh_token": result.get("refresh_token"),
                     }
 
@@ -287,26 +314,53 @@ class UsernamePasswordLoginThread(QThread):
         return None
 
     @staticmethod
-    def _encrypt_password(password: str) -> str:
-        """Encrypt password for Steam API.
+    def _fetch_rsa_key(username: str) -> tuple[str, str, str] | None:
+        """Fetch RSA public key from Steam for password encryption.
 
-        .. warning::
-            SECURITY: This is a Base64 placeholder, NOT real encryption!
-            Steam requires RSA encryption using a per-session public key
-            fetched from ``IAuthenticationService/GetPasswordRSAPublicKey``.
-            Must be replaced in Phase 2 (Auth Hardening).
+        Args:
+            username: Steam account name.
+
+        Returns:
+            Tuple of (modulus_hex, exponent_hex, timestamp) or None on failure.
+        """
+        url = "https://api.steampowered.com/IAuthenticationService/GetPasswordRSAPublicKey/v1/"
+        try:
+            response = requests.get(url, params={"account_name": username}, timeout=10)
+            response.raise_for_status()
+            result = response.json().get("response", {})
+            mod = result.get("publickey_mod")
+            exp = result.get("publickey_exp")
+            timestamp = result.get("timestamp")
+            if mod and exp and timestamp:
+                logger.info(t("logs.auth.rsa_key_fetched"))
+                return mod, exp, str(timestamp)
+        except (requests.RequestException, ValueError, KeyError) as e:
+            logger.error(t("logs.auth.rsa_key_error", error=str(e)))
+        return None
+
+    @staticmethod
+    def _rsa_encrypt_password(password: str, mod_hex: str, exp_hex: str) -> str:
+        """Encrypt password with Steam's RSA public key.
 
         Args:
             password: The plaintext password.
+            mod_hex: RSA modulus as hexadecimal string.
+            exp_hex: RSA exponent as hexadecimal string.
 
         Returns:
-            Base64-encoded password (insecure placeholder).
+            Base64-encoded RSA-encrypted password.
         """
-        # FIXME(phase-2): Replace with proper RSA encryption via
-        # IAuthenticationService/GetPasswordRSAPublicKey
         import base64
 
-        return base64.b64encode(password.encode()).decode()
+        from Cryptodome.Cipher import PKCS1_v1_5
+        from Cryptodome.PublicKey import RSA
+
+        mod = int(mod_hex, 16)
+        exp = int(exp_hex, 16)
+        rsa_key = RSA.construct((mod, exp))
+        cipher = PKCS1_v1_5.new(rsa_key)
+        encrypted = cipher.encrypt(password.encode("utf-8"))
+        return base64.b64encode(encrypted).decode()
 
     def stop(self):
         """Stop polling."""
@@ -391,68 +445,6 @@ class SteamLoginManager(QObject):
         """Handle password success."""
         self.status_update.emit(t("ui.login.status_success"))
         self.login_success.emit(result)
-
-    @staticmethod
-    def get_steamid_from_token(access_token: str) -> str | None:
-        """Extract SteamID64 by calling GetOwnedGames with the access token.
-
-        The GetOwnedGames API will return the SteamID of the authenticated user
-        even if we don't provide a steamid parameter!
-
-        Args:
-            access_token: The Steam access token
-
-        Returns:
-            SteamID64 as string, or None if failed
-        """
-        # Method 1: Try GetOwnedGames
-        try:
-            url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
-            headers = {"Authorization": f"Bearer {access_token}"}
-            params = {"include_appinfo": 0, "format": "json"}
-
-            response = requests.get(url, params=params, headers=headers, timeout=10)
-
-            if response.status_code == 200:
-                data = response.json()
-                steam_id = data.get("response", {}).get("steamid")
-                if steam_id:
-                    logger.info(t("logs.auth.steamid_resolved"))
-                    return str(steam_id)
-
-                if "response" in data:
-                    logger.info(t("logs.auth.steamid_missing"))
-            else:
-                logger.info(t("logs.auth.get_owned_games_status", status=response.status_code))
-
-        except Exception as e:
-            logger.error(t("logs.auth.steamid_from_token_error", error=str(e)))
-
-        # Method 2: FALLBACK - Try to decode JWT token
-        # Steam access tokens are JWTs that contain the steam_id!
-        try:
-            import base64
-            import json
-
-            # JWT format: header.payload.signature
-            parts = access_token.split(".")
-            if len(parts) >= 2:
-                # Decode payload (add padding if needed)
-                payload = parts[1]
-                payload += "=" * (4 - len(payload) % 4)
-                decoded = base64.urlsafe_b64decode(payload)
-                data = json.loads(decoded)
-
-                # Check for steam_id in various fields
-                steam_id = data.get("sub") or data.get("steamid") or data.get("steam_id")
-                if steam_id:
-                    logger.info(t("logs.auth.steamid_from_jwt"))
-                    return str(steam_id)
-
-        except Exception as e:
-            logger.error(t("logs.auth.jwt_decode_failed", error=str(e)))
-
-        return None
 
     @staticmethod
     def _get_steamid_from_account_name(account_name: str) -> str | None:

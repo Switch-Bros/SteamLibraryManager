@@ -451,7 +451,12 @@
       "error_no_session_ids": "Failed to get session information",
       "error_login_generic": "Login failed. Please try again.",
       "status_starting_qr": "Starting QR authentication...",
-      "status_logging_in": "Logging in..."
+      "status_logging_in": "Logging in...",
+      "token_expired": "Your session has expired. Please log in again.",
+      "session_restored": "Session restored from saved credentials."
+    },
+    "save": {
+      "conflict_warning": "The cloud storage file was modified externally since it was last loaded. Your changes have been saved, but the external modifications may have been overwritten. A backup was created before saving."
     },
     "search": {
       "results_category": "Search Results ({count})",
