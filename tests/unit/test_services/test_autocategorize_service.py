@@ -1,6 +1,7 @@
 # tests/unit/test_services/test_autocategorize_service.py
 
 """Unit tests for AutoCategorizeService."""
+
 import pytest
 from unittest.mock import Mock
 

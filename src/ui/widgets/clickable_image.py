@@ -7,6 +7,7 @@ This widget can load images from local paths or URLs in a separate thread,
 supports animated GIFs (if Pillow is installed), and can display
 superimposed badges based on metadata.
 """
+
 from __future__ import annotations
 
 from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout

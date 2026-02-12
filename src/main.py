@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Steam Library Manager - Main Entry Point (PyQt6 Version)."""
+
 from __future__ import annotations
 
 import sys
@@ -21,7 +22,6 @@ from src.ui.main_window import MainWindow
 
 # PyQt6 imports
 from PyQt6.QtWidgets import QApplication, QMessageBox
-
 
 __all__ = ["main"]
 

@@ -91,8 +91,7 @@ def create_search_bar(
     clear_button = QPushButton()
     clear_button.setText("✕")
     clear_button.setFixedSize(30, 30)
-    clear_button.setStyleSheet(
-        """
+    clear_button.setStyleSheet("""
         QPushButton {
             border: none;
             background: transparent;
@@ -104,8 +103,7 @@ def create_search_bar(
             background: #555;
             border-radius: 15px;
         }
-    """
-    )
+    """)
     clear_button.setToolTip(t("ui.search.clear"))
 
     # Initially hide clear button
@@ -164,8 +162,7 @@ def create_progress_dialog(
         dialog.setCancelButton(None)
 
     # Style the progress bar
-    dialog.setStyleSheet(
-        """
+    dialog.setStyleSheet("""
         QProgressDialog {
             min-width: 400px;
             min-height: 100px;
@@ -180,8 +177,7 @@ def create_progress_dialog(
             background: #4a9eff;
             border-radius: 4px;
         }
-    """
-    )
+    """)
 
     return dialog
 
@@ -239,8 +235,7 @@ def apply_dark_theme_to_widget(widget: QWidget) -> None:
     Args:
         widget: Widget to apply dark theme to.
     """
-    widget.setStyleSheet(
-        """
+    widget.setStyleSheet("""
         QWidget {
             background-color: #2b2b2b;
             color: #e0e0e0;
@@ -268,8 +263,7 @@ def apply_dark_theme_to_widget(widget: QWidget) -> None:
         QLabel {
             color: #e0e0e0;
         }
-    """
-    )
+    """)
 
 
 def ask_save_changes(parent: QWidget, save_callback: Callable[[], bool]) -> bool:

@@ -15,7 +15,6 @@ from src.core.cloud_storage_parser import CloudStorageParser
 from src.core.game_manager import GameManager
 from src.utils.i18n import t
 
-
 __all__ = ["CategoryService"]
 
 

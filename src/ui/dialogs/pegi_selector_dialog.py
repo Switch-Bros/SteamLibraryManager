@@ -21,8 +21,7 @@ class PEGIIconButton(QPushButton):
         super().__init__(parent)
         self.rating = rating
         self.setFixedSize(140, 140)
-        self.setStyleSheet(
-            """
+        self.setStyleSheet("""
             QPushButton {
                 border: 2px solid #3d4450;
                 background-color: #1b2838;
@@ -35,8 +34,7 @@ class PEGIIconButton(QPushButton):
             QPushButton:pressed {
                 background-color: #1a2332;
             }
-        """
-        )
+        """)
 
         # Load and display icon
         if icon_path.exists():
@@ -93,14 +91,11 @@ class PEGISelectorDialog(QDialog):
 
             # Highlight current rating
             if rating == self.current_rating:
-                btn.setStyleSheet(
-                    btn.styleSheet()
-                    + """
+                btn.setStyleSheet(btn.styleSheet() + """
                     QPushButton {
                         border: 3px solid #FDE100;
                     }
-                """
-                )
+                """)
 
             grid.addWidget(btn, row, col)
             col += 1
@@ -116,8 +111,7 @@ class PEGISelectorDialog(QDialog):
 
         # Remove rating button
         self.btn_remove = QPushButton(t("ui.pegi_selector.remove"))
-        self.btn_remove.setStyleSheet(
-            """
+        self.btn_remove.setStyleSheet("""
             QPushButton {
                 background-color: #c23030;
                 color: white;
@@ -128,15 +122,13 @@ class PEGISelectorDialog(QDialog):
             QPushButton:hover {
                 background-color: #d04040;
             }
-        """
-        )
+        """)
         self.btn_remove.clicked.connect(self._on_remove_clicked)
         button_layout.addWidget(self.btn_remove)
 
         # Cancel button
         self.btn_cancel = QPushButton(t("common.cancel"))
-        self.btn_cancel.setStyleSheet(
-            """
+        self.btn_cancel.setStyleSheet("""
             QPushButton {
                 background-color: #3d4450;
                 color: white;
@@ -146,8 +138,7 @@ class PEGISelectorDialog(QDialog):
             QPushButton:hover {
                 background-color: #4d5460;
             }
-        """
-        )
+        """)
         self.btn_cancel.clicked.connect(self.reject)
         button_layout.addWidget(self.btn_cancel)
 

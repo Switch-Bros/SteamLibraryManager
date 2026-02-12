@@ -7,6 +7,7 @@ This module provides a dialog that allows users to browse and select images
 (grids, heroes, logos, icons) from SteamGridDB for their games. It includes
 API key setup functionality and threaded image loading.
 """
+
 from __future__ import annotations
 
 import logging

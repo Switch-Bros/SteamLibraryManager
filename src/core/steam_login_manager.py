@@ -8,6 +8,7 @@ This is the CORRECT implementation that:
 - Supports Push Notifications (not manual 2FA codes!)
 - Uses the NEW Steam IAuthenticationService API (2022+)
 """
+
 from __future__ import annotations
 
 

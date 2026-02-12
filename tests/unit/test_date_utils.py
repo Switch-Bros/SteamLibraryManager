@@ -15,7 +15,6 @@ import pytest
 from unittest.mock import patch
 from datetime import datetime
 
-
 # ---------------------------------------------------------------------------
 # Mock translation dictionaries — simulate what t() returns per locale
 # ---------------------------------------------------------------------------

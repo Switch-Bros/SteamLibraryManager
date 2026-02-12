@@ -7,6 +7,7 @@ This module reads Steam's appmanifest_*.acf files across all configured library
 folders to discover installed games. It does NOT load appinfo.vdf, which is
 handled separately by AppInfoManager for better performance.
 """
+
 from __future__ import annotations
 
 
@@ -14,7 +15,6 @@ import logging
 import vdf
 from pathlib import Path
 from src.utils.i18n import t
-
 
 logger = logging.getLogger("steamlibmgr.local_loader")
 
