@@ -326,7 +326,7 @@ class SteamStoreScraper:
                 img = div.find("img")
                 if img:
                     # Check img src for age numbers (e.g., "/6.png", "/12.png", etc.)
-                    src = img.get("src", "")
+                    src = str(img.get("src", ""))
                     if "/18.png" in src or "/18_" in src:
                         return "18"
                     elif "/16.png" in src or "/16_" in src:
@@ -339,7 +339,7 @@ class SteamStoreScraper:
                         return "3"  # Age 0 = PEGI 3
 
                     # Also check alt text (fallback)
-                    alt_text = img.get("alt", "").strip()
+                    alt_text = str(img.get("alt", "")).strip()
                     if alt_text in ["18+", "18"]:
                         return "18"
                     elif alt_text in ["16+", "16"]:
@@ -354,7 +354,7 @@ class SteamStoreScraper:
             # Method 1: Look for PEGI image
             pegi_elem = soup.find("img", alt=lambda x: x and "PEGI" in x)
             if pegi_elem:
-                alt_text = pegi_elem.get("alt", "")
+                alt_text = str(pegi_elem.get("alt", ""))
                 for age in ["18", "16", "12", "7", "3"]:
                     if age in alt_text:
                         return age
@@ -362,7 +362,7 @@ class SteamStoreScraper:
             # Method 2: Look for USK rating (Germany)
             usk_elem = soup.find("img", alt=lambda x: x and "USK" in x)
             if usk_elem:
-                alt_text = usk_elem.get("alt", "")
+                alt_text = str(usk_elem.get("alt", ""))
                 usk_to_pegi = {"18": "18", "16": "16", "12": "12", "6": "7", "0": "3"}
                 for usk_age, pegi_age in usk_to_pegi.items():
                     if usk_age in alt_text:
