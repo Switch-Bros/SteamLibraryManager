@@ -13,11 +13,13 @@ from __future__ import annotations
 import logging
 import json
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Any
 from src.utils.i18n import t
 from src.utils.appinfo import AppInfo, IncompatibleVersionError
 
 logger = logging.getLogger("steamlibmgr.appinfo_manager")
+
+__all__ = ['AppInfoManager']
 
 
 class AppInfoManager:
@@ -29,12 +31,12 @@ class AppInfoManager:
     and writing those changes back to the VDF file with correct checksums.
     """
 
-    def __init__(self, steam_path: Optional[Path] = None):
+    def __init__(self, steam_path: Path | None = None):
         """
         Initializes the AppInfoManager.
 
         Args:
-            steam_path (Optional[Path]): Path to the Steam installation directory.
+            steam_path (Path | None): Path to the Steam installation directory.
                                          If provided, appinfo.vdf will be loaded from
                                          <steam_path>/appcache/appinfo.vdf.
         """
@@ -42,20 +44,20 @@ class AppInfoManager:
         self.metadata_file = self.data_dir / 'custom_metadata.json'
 
         # Tracking dictionaries
-        self.modifications: Dict[str, Dict] = {}
-        self.modified_apps: List[str] = []
+        self.modifications: dict[str, dict] = {}
+        self.modified_apps: list[str] = []
 
         # Steam appinfo.vdf object
-        self.appinfo: Optional[AppInfo] = None
-        self.appinfo_path: Optional[Path] = None
+        self.appinfo: AppInfo | None = None
+        self.appinfo_path: Path | None = None
 
         # Steam apps cache (for backwards compatibility)
-        self.steam_apps: Dict[int, Dict] = {}
+        self.steam_apps: dict[int, dict] = {}
 
         if steam_path:
             self.appinfo_path = steam_path / 'appcache' / 'appinfo.vdf'
 
-    def load_appinfo(self, _app_ids: Optional[List[str]] = None, _load_all: bool = False) -> Dict:
+    def load_appinfo(self, _app_ids: list[str] | None = None, _load_all: bool = False) -> dict:
         """
         Loads the binary appinfo.vdf and previously saved modifications.
 
@@ -63,11 +65,11 @@ class AppInfoManager:
         and loads any custom metadata modifications from the JSON file.
 
         Args:
-            _app_ids (Optional[List[str]]): Reserved for future use (currently ignored).
+            _app_ids (list[str] | None): Reserved for future use (currently ignored).
             _load_all (bool): Reserved for future use (currently ignored).
 
         Returns:
-            Dict: A dictionary of all tracked modifications, keyed by app_id.
+            dict: A dictionary of all tracked modifications, keyed by app_id.
         """
         self.data_dir.mkdir(exist_ok=True)
 
@@ -136,7 +138,7 @@ class AppInfoManager:
             self.modified_apps = []
 
     @staticmethod
-    def _find_common_section(data: Dict) -> Dict:
+    def _find_common_section(data: dict) -> dict:
         """
         Recursively searches for the 'common' section in VDF data.
 
@@ -147,7 +149,7 @@ class AppInfoManager:
             data (Dict): The VDF data dictionary to search.
 
         Returns:
-            Dict: The 'common' section dictionary, or an empty dict if not found.
+            dict: The 'common' section dictionary, or an empty dict if not found.
         """
         # 1. Direct hit
         if 'common' in data:
@@ -168,7 +170,7 @@ class AppInfoManager:
 
         return {}
 
-    def get_app_metadata(self, app_id: str) -> Dict[str, Any]:
+    def get_app_metadata(self, app_id: str) -> dict[str, Any]:
         """
         Retrieves app metadata with user modifications applied.
 
@@ -181,7 +183,7 @@ class AppInfoManager:
             app_id (str): The Steam app ID as a string.
 
         Returns:
-            Dict[str, Any]: A dictionary containing metadata fields like 'name',
+            dict[str, Any]: A dictionary containing metadata fields like 'name',
                            'developer', 'publisher', 'release_date', etc.
         """
         result = {}
@@ -209,7 +211,7 @@ class AppInfoManager:
                 if 'associations' in common:
                     assoc = common['associations']
 
-                    # associations is a Dict with index as Key ("0", "1", ...)
+                    # associations is a dict with index as Key ("0", "1", ...)
                     for entry in assoc.values():
                         if isinstance(entry, dict):
                             entry_type = entry.get('type', '')
@@ -264,7 +266,7 @@ class AppInfoManager:
 
         return result
 
-    def set_app_metadata(self, app_id: str, metadata: Dict[str, Any]) -> bool:
+    def set_app_metadata(self, app_id: str, metadata: dict[str, Any]) -> bool:
         """
         Sets custom metadata for an app and tracks the modification.
 
@@ -274,7 +276,7 @@ class AppInfoManager:
 
         Args:
             app_id (str): The Steam app ID as a string.
-            metadata (Dict[str, Any]): A dictionary of metadata fields to update
+            metadata (dict[str, Any]): A dictionary of metadata fields to update
                                        (e.g., {'developer': 'New Dev', 'publisher': 'New Pub'}).
 
         Returns:
@@ -344,6 +346,7 @@ class AppInfoManager:
             # Create backup
             if backup:
                 from src.core.backup_manager import BackupManager
+
                 backup_manager = BackupManager()
                 backup_path = backup_manager.create_rolling_backup(self.appinfo_path)
                 if backup_path:
@@ -362,7 +365,7 @@ class AppInfoManager:
             logger.error(t('logs.appinfo.write_error_detail', error=e), exc_info=True)
             return False
 
-    def restore_modifications(self, app_ids: Optional[List[str]] = None) -> int:
+    def restore_modifications(self, app_ids: list[str] | None = None) -> int:
         """
         Restores saved modifications to the binary appinfo.vdf.
 
@@ -370,7 +373,7 @@ class AppInfoManager:
         custom metadata. The method re-applies all tracked modifications.
 
         Args:
-            app_ids (Optional[List[str]]): A list of app IDs to restore. If None,
+            app_ids (list[str] | None): A list of app IDs to restore. If None,
                                           all tracked modifications are restored.
 
         Returns:

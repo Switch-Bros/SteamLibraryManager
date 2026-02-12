@@ -7,8 +7,8 @@ This module provides a tabbed settings dialog where users can configure
 language preferences, Steam paths, library locations, tag settings, backup
 limits, and API keys.
 """
+from __future__ import annotations
 
-from typing import Dict
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel,
     QComboBox, QPushButton, QFileDialog, QLineEdit,
@@ -20,7 +20,6 @@ from PyQt6.QtCore import pyqtSignal
 from src.config import config
 from src.utils.i18n import t
 from src.ui.widgets.ui_helper import UIHelper
-
 
 class SettingsDialog(QDialog):
     """
@@ -234,7 +233,7 @@ class SettingsDialog(QDialog):
         layout.addStretch()
 
     def _load_current_settings(self):
-        """Loads the current settings from config and populates the UI fields."""
+        """Load current configuration values into the settings form fields."""
         # General
         idx_ui = self.combo_ui_lang.findData(config.UI_LANGUAGE)
         if idx_ui >= 0: self.combo_ui_lang.setCurrentIndex(idx_ui)
@@ -258,13 +257,13 @@ class SettingsDialog(QDialog):
         self.sgdb_key_edit.setText(config.STEAMGRIDDB_API_KEY or "")
 
     def _browse_steam_path(self):
-        """Opens a directory browser for selecting the Steam installation path."""
+        """Open a file dialog to select the Steam installation directory."""
         path = QFileDialog.getExistingDirectory(self, t('ui.settings.general.browse'), self.path_edit.text())
         if path:
             self.path_edit.setText(path)
 
     def _add_library(self):
-        """Opens a directory browser for adding a new Steam library folder."""
+        """Open a file dialog to add a new Steam library folder path."""
         title = t('ui.settings.libraries.add')
         path = QFileDialog.getExistingDirectory(self, title)
         if path:
@@ -274,7 +273,7 @@ class SettingsDialog(QDialog):
                 self.lib_list.addItem(path)
 
     def _remove_library(self):
-        """Removes the currently selected library folder from the list."""
+        """Remove the currently selected library folder from the list."""
         row = self.lib_list.currentRow()
         if row >= 0:
             if UIHelper.confirm(self, t('ui.settings.libraries.confirm_msg'),
@@ -291,12 +290,12 @@ class SettingsDialog(QDialog):
         code = self.combo_ui_lang.itemData(index)
         self.language_changed.emit(code)
 
-    def get_settings(self) -> Dict:
+    def get_settings(self) -> dict:
         """
         Collects all settings from the dialog.
 
         Returns:
-            Dict: A dictionary containing all configured settings.
+            dict: A dictionary containing all configured settings.
         """
         libraries = []
         for i in range(self.lib_list.count()):

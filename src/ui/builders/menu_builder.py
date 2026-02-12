@@ -19,7 +19,6 @@ from src.utils.i18n import t
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
-
 class MenuBuilder:
     """Constructs the entire QMenuBar for the application.
 

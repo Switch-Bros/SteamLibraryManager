@@ -6,7 +6,9 @@ library, handles user interactions, and coordinates between various managers
 and dialogs. It provides the main interface for browsing, searching, and
 managing Steam games.
 """
-from typing import Optional, List, TYPE_CHECKING
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.services.category_service import CategoryService
@@ -51,7 +53,6 @@ from src.ui.actions import (
     SettingsActions
 )
 
-
 class MainWindow(QMainWindow):
     """Primary application window for Steam Library Manager.
 
@@ -80,15 +81,15 @@ class MainWindow(QMainWindow):
         self.resize(1400, 800)
 
         # Managers
-        self.game_manager: Optional[GameManager] = None
-        self.localconfig_helper: Optional[LocalConfigHelper] = None
-        self.cloud_storage_parser: Optional[CloudStorageParser] = None
-        self.steam_scraper: Optional[SteamStoreScraper] = None
-        self.appinfo_manager: Optional[AppInfoManager] = None
-        self.category_service: Optional['CategoryService'] = None  # Initialized after parsers
-        self.metadata_service: Optional['MetadataService'] = None  # Initialized after appinfo_manager
-        self.autocategorize_service: Optional['AutoCategorizeService'] = None  # Initialized after category_service
-        self.game_service: Optional[GameService] = None  # Initialized in _load_data
+        self.game_manager: GameManager | None = None
+        self.localconfig_helper: LocalConfigHelper | None = None
+        self.cloud_storage_parser: CloudStorageParser | None = None
+        self.steam_scraper: SteamStoreScraper | None = None
+        self.appinfo_manager: AppInfoManager | None = None
+        self.category_service: CategoryService | None = None  # Initialized after parsers
+        self.metadata_service: MetadataService | None = None  # Initialized after appinfo_manager
+        self.autocategorize_service: AutoCategorizeService | None = None  # Initialized after category_service
+        self.game_service: GameService | None = None  # Initialized in _load_data
         self.asset_service = AssetService()  # Initialize immediately
 
         # NEW: Initialize SearchService
@@ -103,14 +104,14 @@ class MainWindow(QMainWindow):
         self.refresh_token = None  # For QR login (refresh token)
 
         # State
-        self.selected_game: Optional[Game] = None
-        self.selected_games: List[Game] = []
-        self.dialog_games: List[Game] = []
-        self.steam_username: Optional[str] = None
+        self.selected_game: Game | None = None
+        self.selected_games: list[Game] = []
+        self.dialog_games: list[Game] = []
+        self.steam_username: str | None = None
         self.current_search_query: str = ""  # Track active search
 
         # Threads & Dialogs
-        self.store_check_thread: Optional[QThread] = None
+        self.store_check_thread: QThread | None = None
 
         # UI Builders (extracted from _create_ui for reuse on language change)
         self.menu_builder: MenuBuilder = MenuBuilder(self)
@@ -308,7 +309,7 @@ class MainWindow(QMainWindow):
         # Pass dynamic collections to tree
         self.tree.populate_categories(categories_data, dynamic_collections)
 
-    def on_games_selected(self, games: List[Game]) -> None:
+    def on_games_selected(self, games: list[Game]) -> None:
         """Handles multi-selection changes. Delegated to SelectionHandler."""
         self.selection_handler.on_games_selected(games)
 
@@ -316,15 +317,15 @@ class MainWindow(QMainWindow):
         """Handles single game selection. Delegated to SelectionHandler."""
         self.selection_handler.on_game_selected(game)
 
-    def fetch_game_details_async(self, app_id: str, all_categories: List[str]) -> None:
+    def fetch_game_details_async(self, app_id: str, all_categories: list[str]) -> None:
         """Fetches game details async. Delegated to SelectionHandler."""
         self.selection_handler.fetch_game_details_async(app_id, all_categories)
 
-    def _restore_game_selection(self, app_ids: List[str]) -> None:
+    def _restore_game_selection(self, app_ids: list[str]) -> None:
         """Restores game selection. Delegated to SelectionHandler."""
         self.selection_handler.restore_game_selection(app_ids)
 
-    def _apply_category_to_games(self, games: List[Game], category: str, checked: bool) -> None:
+    def _apply_category_to_games(self, games: list[Game], category: str, checked: bool) -> None:
         """Applies category changes. Delegated to CategoryChangeHandler."""
         self.category_change_handler.apply_category_to_games(games, category, checked)
 
@@ -332,7 +333,7 @@ class MainWindow(QMainWindow):
         """Handles category toggles. Delegated to CategoryChangeHandler."""
         self.category_change_handler.on_category_changed_from_details(app_id, category, checked)
 
-    def on_games_dropped(self, games: List[Game], target_category: str) -> None:
+    def on_games_dropped(self, games: list[Game], target_category: str) -> None:
         """Handles drag-and-drop. Delegated to CategoryChangeHandler."""
         self.category_change_handler.on_games_dropped(games, target_category)
 
@@ -430,7 +431,7 @@ class MainWindow(QMainWindow):
 
     # ========== Parser Wrapper Methods ==========
 
-    def _get_active_parser(self):
+    def _get_active_parser(self) -> CloudStorageParser | None:
         """Get the active parser (cloud storage or localconfig)."""
         return self.cloud_storage_parser if self.cloud_storage_parser else self.localconfig_helper
 
@@ -488,17 +489,17 @@ class MainWindow(QMainWindow):
             return self.localconfig_helper.save()
         return False
 
-    def _add_app_category(self, app_id: str, category: str):
+    def _add_app_category(self, app_id: str, category: str) -> None:
         """Add category to app using CategoryService."""
         if self.category_service:
             self.category_service.add_app_to_category(app_id, category)
 
-    def _remove_app_category(self, app_id: str, category: str):
+    def _remove_app_category(self, app_id: str, category: str) -> None:
         """Remove category from app using CategoryService."""
         if self.category_service:
             self.category_service.remove_app_from_category(app_id, category)
 
-    def _rename_category(self, old_name: str, new_name: str):
+    def _rename_category(self, old_name: str, new_name: str) -> None:
         """Rename category using CategoryService."""
         if self.category_service:
             try:
@@ -506,7 +507,7 @@ class MainWindow(QMainWindow):
             except ValueError as e:
                 UIHelper.show_error(self, str(e))
 
-    def _delete_category(self, category: str):
+    def _delete_category(self, category: str) -> None:
         """Delete category using CategoryService."""
         if self.category_service:
             self.category_service.delete_category(category)
@@ -519,7 +520,7 @@ class MainWindow(QMainWindow):
         """Delegates to ToolsActions (required by Context Menus)."""
         self.tools_actions.check_store_availability(game)
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event) -> None:
         """Handle key press events.
 
         Args:

@@ -27,13 +27,15 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Dict, List
 
 from src.core.backup_manager import BackupManager
 from src.utils.i18n import t
 
 logger = logging.getLogger("steamlibmgr.cloud_parser")
 
+
+
+__all__ = ['CloudStorageParser']
 
 class CloudStorageParser:
     """Parser for Steam's cloud-storage-namespace-1.json collections format."""
@@ -77,8 +79,8 @@ class CloudStorageParser:
             steam_path, 'userdata', user_id, 'config', 'cloudstorage',
             'cloud-storage-namespace-1.json'
         )
-        self.data: List = []
-        self.collections: List[Dict] = []
+        self.data: list = []
+        self.collections: list[dict] = []
         self.modified = False
 
     def load(self) -> bool:
@@ -96,7 +98,6 @@ class CloudStorageParser:
                 self.data = json.load(f)
 
             if not isinstance(self.data, list):
-                from src.utils.i18n import t
                 logger.error(t('logs.parser.not_a_list'))
                 return False
 
@@ -223,12 +224,11 @@ class CloudStorageParser:
 
 
         except OSError as e:
-            from src.utils.i18n import t
             logger.error(t('logs.parser.save_cloud_error'))
             logger.debug(t('logs.parser.error_details', error=e))
             return False
 
-    def get_all_categories(self) -> List[str]:
+    def get_all_categories(self) -> list[str]:
         """
         Get all unique category names from collections.
 
@@ -256,7 +256,7 @@ class CloudStorageParser:
         except (ValueError, TypeError):
             return None
 
-    def get_app_categories(self, app_id: str) -> List[str]:
+    def get_app_categories(self, app_id: str) -> list[str]:
         """
         Get categories for a specific app.
 
@@ -281,7 +281,7 @@ class CloudStorageParser:
 
         return categories
 
-    def set_app_categories(self, app_id: str, categories: List[str]):
+    def set_app_categories(self, app_id: str, categories: list[str]):
         """
         Set categories for a specific app.
 
@@ -402,7 +402,7 @@ class CloudStorageParser:
                 self.modified = True
                 break
 
-    def get_all_app_ids(self) -> List[str]:
+    def get_all_app_ids(self) -> list[str]:
         """
         Get all app IDs from all collections.
 
@@ -416,7 +416,7 @@ class CloudStorageParser:
         return list(app_ids)
 
     @staticmethod
-    def get_hidden_apps() -> List[str]:
+    def get_hidden_apps() -> list[str]:
         """
         Get hidden apps (not supported in cloud storage).
 

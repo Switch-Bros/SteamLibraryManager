@@ -7,6 +7,8 @@ They hold no persistent state beyond a back-reference to MainWindow
 and are designed to extract action logic from the monolithic main_window.py.
 """
 
+from __future__ import annotations
+
 from src.ui.actions.file_actions import FileActions
 from src.ui.actions.edit_actions import EditActions
 from src.ui.actions.view_actions import ViewActions

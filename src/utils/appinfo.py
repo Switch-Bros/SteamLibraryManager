@@ -40,7 +40,6 @@ __all__ = ('AppInfo', 'AppInfoVersion', 'IncompatibleVersionError', 'load', 'loa
 
 logger = logging.getLogger("steamlibmgr.appinfo")
 
-
 # ===== VERSION DEFINITIONS =====
 
 class AppInfoVersion(IntEnum):
@@ -63,7 +62,6 @@ class AppInfoVersion(IntEnum):
     VERSION_40 = 0x07564428  # Alternate magic for v28
     VERSION_41 = 0x07564429  # Alternate magic for v29
 
-
 class EUniverse(IntEnum):
     """
     Steam Universe identifiers.
@@ -75,7 +73,6 @@ class EUniverse(IntEnum):
     Beta = 2
     Internal = 3
     Dev = 4
-
 
 class IncompatibleVersionError(Exception):
     """
@@ -98,7 +95,6 @@ class IncompatibleVersionError(Exception):
         self.magic = magic
         super().__init__(f"Incompatible version {version} (magic: 0x{magic:08X})")
 
-
 # ===== MAIN PARSER CLASS =====
 
 class AppInfo:
@@ -110,14 +106,14 @@ class AppInfo:
     correct checksum calculation and string table handling.
 
     Attributes:
-        file_path (Optional[str]): Path to the appinfo.vdf file.
+        file_path (str | None): Path to the appinfo.vdf file.
         data (bytearray): Raw file data.
         offset (int): Current read position in the data.
         magic (int): Magic number identifying the file format.
         version (int): Version number of the file format.
         universe (EUniverse): Steam universe identifier.
-        apps (Dict[int, Dict]): Dictionary of app data keyed by app ID.
-        string_table (List[str]): String table for version 41+ files.
+        apps (dict[int, Dict]): Dictionary of app data keyed by app ID.
+        string_table (list[str]): String table for version 41+ files.
         string_table_offset (int): Offset of the string table in the file.
     """
 
@@ -133,13 +129,13 @@ class AppInfo:
     TYPE_INT64 = 0x07
     TYPE_END = 0x08
 
-    def __init__(self, path: Optional[str] = None, data: Optional[bytes] = None):
+    def __init__(self, path: str | None = None, data: bytes | None = None):
         """
         Initializes the AppInfo parser.
 
         Args:
-            path (Optional[str]): Path to an appinfo.vdf file to load.
-            data (Optional[bytes]): Raw bytes to parse instead of loading from a file.
+            path (str | None): Path to an appinfo.vdf file to load.
+            data (bytes | None): Raw bytes to parse instead of loading from a file.
 
         Raises:
             ValueError: If neither path nor data is provided.
@@ -153,10 +149,10 @@ class AppInfo:
         self.magic = 0
         self.version = 0
         self.universe = EUniverse.Public
-        self.apps: Dict[int, Dict] = {}
+        self.apps: dict[int, Dict] = {}
 
         # Version-specific
-        self.string_table: List[str] = []
+        self.string_table: list[str] = []
         self.string_table_offset = 0
 
         # Load data
@@ -256,12 +252,12 @@ class AppInfo:
                 logger.warning(t('logs.appinfo.parse_warning', app_id=current_app_id, error=e))
                 continue
 
-    def _parse_app_entry(self) -> Dict:
+    def _parse_app_entry(self) -> dict:
         """
         Parses a single app entry.
 
         Returns:
-            Dict: A dictionary containing the app's metadata and data.
+            dict: A dictionary containing the app's metadata and data.
         """
         app_entry = {}
 
@@ -301,12 +297,12 @@ class AppInfo:
 
     # ===== VDF PARSING =====
 
-    def _parse_vdf(self) -> Dict:
+    def _parse_vdf(self) -> dict:
         """
         Parses binary VDF (Key-Value) data.
 
         Returns:
-            Dict: A nested dictionary representing the VDF data.
+            dict: A nested dictionary representing the VDF data.
         """
         result = {}
 
@@ -434,14 +430,14 @@ class AppInfo:
 
     # ===== WRITE SUPPORT =====
 
-    def write(self, output_path: Optional[str] = None) -> bool:
+    def write(self, output_path: str | None = None) -> bool:
         """
         Writes the appinfo.vdf back to disk.
 
         This method rebuilds the entire file with correct checksums and string tables.
 
         Args:
-            output_path (Optional[str]): Output path. If None, overwrites the original file.
+            output_path (str | None): Output path. If None, overwrites the original file.
 
         Returns:
             bool: True if successful, False otherwise.
@@ -511,7 +507,7 @@ class AppInfo:
         for current_app_id, current_app_data in self.apps.items():
             self._write_app_entry(output, current_app_id, current_app_data)
 
-    def _write_app_entry(self, output: bytearray, entry_app_id: int, entry_app_data: Dict):
+    def _write_app_entry(self, output: bytearray, entry_app_id: int, entry_app_data: dict):
         """
         Writes a single app entry.
 
@@ -569,7 +565,7 @@ class AppInfo:
         # Write VDF data
         output.extend(vdf_data)
 
-    def _encode_vdf(self, vdf_data: Dict) -> bytearray:
+    def _encode_vdf(self, vdf_data: dict) -> bytearray:
         """
         Encodes a dictionary to binary VDF format.
 
@@ -681,7 +677,7 @@ class AppInfo:
         # Update offset in header (byte 8-15)
         struct.pack_into('<Q', output, 8, string_table_offset)
 
-    def _dict_to_text_vdf(self, vdf_dict: Dict, indent: int = 0) -> bytes:
+    def _dict_to_text_vdf(self, vdf_dict: dict, indent: int = 0) -> bytes:
         """
         Converts a dictionary to text VDF format for SHA-1 calculation.
 
@@ -717,7 +713,7 @@ class AppInfo:
 
     # ===== CONVENIENCE METHODS =====
 
-    def get_app(self, app_id: int) -> Optional[Dict]:
+    def get_app(self, app_id: int) -> dict | None:
         """
         Gets app data by ID.
 
@@ -725,11 +721,11 @@ class AppInfo:
             app_id (int): The app ID.
 
         Returns:
-            Optional[Dict]: The app data dictionary, or None if not found.
+            dict | None: The app data dictionary, or None if not found.
         """
         return self.apps.get(app_id)
 
-    def set_app(self, set_app_id: int, set_data: Dict):
+    def set_app(self, set_app_id: int, set_data: dict):
         """
         Sets app data for a specific app ID.
 
@@ -748,7 +744,7 @@ class AppInfo:
 
         self.apps[set_app_id]['data'] = set_data
 
-    def update_app_metadata(self, update_app_id: int, metadata: Dict):
+    def update_app_metadata(self, update_app_id: int, metadata: dict):
         """
         Updates app metadata in the 'common' section.
 
@@ -790,14 +786,13 @@ class AppInfo:
         """Checks if an app exists."""
         return check_app_id in self.apps
 
-    def __getitem__(self, get_app_id: int) -> Dict:
+    def __getitem__(self, get_app_id: int) -> dict:
         """Gets app data by ID (dictionary-style access)."""
         return self.apps[get_app_id]
 
     def __repr__(self) -> str:
         """Returns a string representation of the AppInfo object."""
         return f"<AppInfo v{self.version} with {len(self.apps)} apps>"
-
 
 # ===== SIMPLE API =====
 
@@ -813,7 +808,6 @@ def load(fp: BinaryIO) -> AppInfo:
     """
     return AppInfo(data=fp.read())
 
-
 def loads(file_data: bytes) -> AppInfo:
     """
     Loads appinfo.vdf from bytes.
@@ -825,7 +819,6 @@ def loads(file_data: bytes) -> AppInfo:
         AppInfo: The parsed AppInfo object.
     """
     return AppInfo(data=file_data)
-
 
 # ===== MAIN (for testing) =====
 

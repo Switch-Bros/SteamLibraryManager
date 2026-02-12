@@ -9,7 +9,6 @@ API key setup functionality and threaded image loading.
 """
 from __future__ import annotations
 
-
 import logging
 import json
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QScrollArea, QWidget, QGridLayout, QLabel,
@@ -21,8 +20,6 @@ from src.utils.i18n import t
 from src.config import config
 from src.integrations.steamgrid_api import SteamGridDB
 from src.ui.widgets.clickable_image import ClickableImage
-
-
 
 logger = logging.getLogger("steamlibmgr.image_dialog")
 
@@ -67,7 +64,6 @@ class SearchThread(QThread):
         # Fetches ALL images (via fix in steamgrid_api.py)
         urls = self.api.get_images_by_type(self.app_id, self.img_type)
         self.results_found.emit(urls)
-
 
 class ImageSelectionDialog(QDialog):
     """

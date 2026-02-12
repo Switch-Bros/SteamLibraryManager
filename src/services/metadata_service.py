@@ -10,11 +10,14 @@ This service handles all metadata-related operations including:
 The service acts as a bridge between the UI and AppInfoManager,
 providing a clean API for metadata operations.
 """
-from typing import Dict, Any, List, Optional
+from __future__ import annotations
+
+from typing import Any
 
 from src.core.game_manager import Game, GameManager
 from src.core.appinfo_manager import AppInfoManager
 
+__all__ = ['MetadataService']
 
 class MetadataService:
     """Service for managing game metadata operations."""
@@ -32,7 +35,7 @@ class MetadataService:
 
     # === SINGLE GAME METADATA ===
 
-    def get_game_metadata(self, app_id: str, game: Optional[Game] = None) -> Dict[str, Any]:
+    def get_game_metadata(self, app_id: str, game: Game | None = None) -> dict[str, Any]:
         """
         Get metadata for a single game with defaults from game object.
 
@@ -59,7 +62,7 @@ class MetadataService:
 
         return meta
 
-    def set_game_metadata(self, app_id: str, metadata: Dict[str, Any]) -> None:
+    def set_game_metadata(self, app_id: str, metadata: dict[str, Any]) -> None:
         """
         Set metadata for a single game.
 
@@ -70,7 +73,7 @@ class MetadataService:
         self.appinfo_manager.set_app_metadata(app_id, metadata)
         self.appinfo_manager.save_appinfo()
 
-    def get_original_metadata(self, app_id: str, fallback: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def get_original_metadata(self, app_id: str, fallback: dict[str, Any] | None = None) -> dict[str, Any]:
         """
         Get original (unmodified) metadata for a game.
 
@@ -93,9 +96,9 @@ class MetadataService:
 
     def apply_bulk_metadata(
             self,
-            games: List[Game],
-            metadata: Dict[str, Any],
-            name_modifications: Optional[Dict[str, str]] = None
+            games: list[Game],
+            metadata: dict[str, Any],
+            name_modifications: dict[str, str] | None = None
     ) -> int:
         """
         Apply metadata changes to multiple games.
@@ -134,7 +137,7 @@ class MetadataService:
         return modified_count
 
     @staticmethod
-    def _apply_name_modifications(name: str, mods: Dict[str, str]) -> str:
+    def _apply_name_modifications(name: str, mods: dict[str, str]) -> str:
         """
         Apply prefix, suffix, and remove modifications to a name.
 
@@ -163,7 +166,7 @@ class MetadataService:
 
     # === MISSING METADATA ===
 
-    def find_missing_metadata(self) -> List[Game]:
+    def find_missing_metadata(self) -> list[Game]:
         """
         Find games with incomplete metadata.
 

@@ -5,6 +5,7 @@ This module provides dialogs for editing game metadata, including single-game
 editing, bulk editing for multiple games, and restoration of original values.
 All dialogs feature visual indicators for modified fields and VDF write options.
 """
+from __future__ import annotations
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
@@ -12,11 +13,9 @@ from PyQt6.QtWidgets import (
     QCheckBox, QMessageBox
 )
 from PyQt6.QtGui import QFont
-from typing import Optional, Dict, List
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 from src.utils.date_utils import parse_date_to_timestamp, format_timestamp_to_date
-
 
 class MetadataEditDialog(QDialog):
     """Dialog for editing metadata of a single game.
@@ -32,8 +31,8 @@ class MetadataEditDialog(QDialog):
         result_metadata: Dictionary containing edited values after save.
     """
 
-    def __init__(self, parent, game_name: str, current_metadata: Dict,
-                 original_metadata: Optional[Dict] = None):
+    def __init__(self, parent, game_name: str, current_metadata: dict,
+                 original_metadata: dict | None = None):
         """Initializes the metadata edit dialog.
 
         Args:
@@ -307,7 +306,7 @@ class MetadataEditDialog(QDialog):
         }
         self.accept()
 
-    def get_metadata(self) -> Optional[Dict]:
+    def get_metadata(self) -> dict | None:
         """Returns the edited metadata after dialog acceptance.
 
         Returns:
@@ -315,7 +314,6 @@ class MetadataEditDialog(QDialog):
             the dialog was cancelled or validation failed.
         """
         return self.result_metadata
-
 
 class BulkMetadataEditDialog(QDialog):
     """Dialog for editing metadata of multiple games simultaneously.
@@ -330,7 +328,7 @@ class BulkMetadataEditDialog(QDialog):
         result_metadata: Dictionary containing the bulk edit settings after save.
     """
 
-    def __init__(self, parent, games_count: int, game_names: List[str]):
+    def __init__(self, parent, games_count: int, game_names: list[str]):
         """Initializes the bulk metadata edit dialog.
 
         Args:
@@ -470,7 +468,7 @@ class BulkMetadataEditDialog(QDialog):
 
         self.accept()
 
-    def get_metadata(self) -> Optional[Dict]:
+    def get_metadata(self) -> dict | None:
         """Returns the bulk edit settings after dialog acceptance.
 
         Returns:
@@ -478,7 +476,6 @@ class BulkMetadataEditDialog(QDialog):
             the dialog was cancelled or no fields were selected.
         """
         return self.result_metadata
-
 
 class MetadataRestoreDialog(QDialog):
     """Dialog for restoring metadata modifications to original values.

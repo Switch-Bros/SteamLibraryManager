@@ -15,7 +15,6 @@ import time
 import json
 from pathlib import Path
 from datetime import datetime, timedelta
-from typing import List, Optional
 
 import requests
 from bs4 import BeautifulSoup
@@ -23,6 +22,8 @@ from src.utils.i18n import t
 
 logger = logging.getLogger("steamlibmgr.steam_store")
 
+
+__all__ = ['SteamStoreScraper']
 
 class SteamStoreScraper:
     """
@@ -72,7 +73,7 @@ class SteamStoreScraper:
             'Steam Leaderboards'
         }
 
-    def fetch_tags(self, app_id: str) -> List[str]:
+    def fetch_tags(self, app_id: str) -> list[str]:
         """
         Fetches tags for a game from the Steam Store page.
 
@@ -84,7 +85,7 @@ class SteamStoreScraper:
             app_id (str): The Steam app ID.
 
         Returns:
-            List[str]: A list of tag names in the selected language, or an empty
+            list[str]: A list of tag names in the selected language, or an empty
                       list if fetching failed.
         """
         cache_file = self.cache_dir / f"{app_id}_{self.language_code}.json"
@@ -141,7 +142,7 @@ class SteamStoreScraper:
 
         return []
 
-    def fetch_age_rating(self, app_id: str) -> Optional[str]:
+    def fetch_age_rating(self, app_id: str) -> str | None:
         """
         Fetches age rating from Steam Store.
 
@@ -153,7 +154,7 @@ class SteamStoreScraper:
             app_id (str): The Steam app ID.
 
         Returns:
-            Optional[str]: PEGI rating (e.g., "18", "16", "12", "7", "3") or None if not found.
+            str | None: PEGI rating (e.g., "18", "16", "12", "7", "3") or None if not found.
         """
         cache_file = self.cache_dir.parent / 'age_ratings' / f"{app_id}.json"
         cache_file.parent.mkdir(exist_ok=True, parents=True)
@@ -194,7 +195,7 @@ class SteamStoreScraper:
 
         return pegi_rating
 
-    def _fetch_age_rating_from_api(self, app_id: str) -> Optional[str]:
+    def _fetch_age_rating_from_api(self, app_id: str) -> str | None:
         """
         Fetches age rating using Steam Store API (NEW METHOD!).
 
@@ -258,7 +259,7 @@ class SteamStoreScraper:
             logger.error(t('logs.steam_store.api_fetch_failed', app_id=app_id, error=e))
             return None
 
-    def _fetch_age_rating_from_html(self, app_id: str) -> Optional[str]:
+    def _fetch_age_rating_from_html(self, app_id: str) -> str | None:
         """
         Fetches age rating via HTML scraping (FALLBACK METHOD).
 
@@ -381,7 +382,7 @@ class SteamStoreScraper:
             return None
 
     @staticmethod
-    def _convert_to_pegi(rating: str, system: str) -> Optional[str]:
+    def _convert_to_pegi(rating: str, system: str) -> str | None:
         """
         Converts age ratings from different systems to PEGI.
 
@@ -393,7 +394,7 @@ class SteamStoreScraper:
             system (str): The rating system ('steam', 'esrb', 'usk').
 
         Returns:
-            Optional[str]: PEGI rating or None.
+            str | None: PEGI rating or None.
         """
         if system == 'steam':
             # Steam age gate: 18+ → PEGI 18, 16+ → PEGI 16, etc.
@@ -416,7 +417,7 @@ class SteamStoreScraper:
 
         return None
 
-    def get_cache_coverage(self, app_ids: List[str]) -> dict:
+    def get_cache_coverage(self, app_ids: list[str]) -> dict:
         """
         Check how many games have cached tag data.
 
@@ -427,7 +428,7 @@ class SteamStoreScraper:
             app_ids: List of Steam app IDs to check.
 
         Returns:
-            Dict with keys:
+            dict with keys:
                 - 'total': Total number of app IDs checked
                 - 'cached': Number of apps with valid cache
                 - 'missing': Number of apps without cache
@@ -462,7 +463,7 @@ class SteamStoreScraper:
         }
 
     @staticmethod
-    def detect_franchise(game_name: str) -> Optional[str]:
+    def detect_franchise(game_name: str) -> str | None:
         """
         Detects game franchise from the game name.
 
@@ -476,7 +477,7 @@ class SteamStoreScraper:
             game_name (str): The full name of the game.
 
         Returns:
-            Optional[str]: The detected franchise name, or None if not detected.
+            str | None: The detected franchise name, or None if not detected.
         """
         if not game_name:
             return None

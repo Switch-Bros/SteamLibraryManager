@@ -10,13 +10,13 @@ from __future__ import annotations
 
 import logging
 import requests
-from typing import Dict, List, Optional, Any
+from typing import Any
 from src.config import config
 from src.utils.i18n import t
 
-
-
 logger = logging.getLogger("steamlibmgr.steamgrid")
+
+__all__ = ['SteamGridDB']
 
 class SteamGridDB:
     """
@@ -38,7 +38,7 @@ class SteamGridDB:
         self.api_key = config.STEAMGRIDDB_API_KEY
         self.headers = {'Authorization': f'Bearer {self.api_key}'}
 
-    def get_images_for_game(self, steam_app_id: str | int) -> Dict[str, Optional[str]]:
+    def get_images_for_game(self, steam_app_id: str | int) -> dict[str, str | None]:
         """
         Fetches a single image URL for each image type.
 
@@ -49,7 +49,7 @@ class SteamGridDB:
             steam_app_id (str | int): The Steam app ID.
 
         Returns:
-            Dict[str, Optional[str]]: A dictionary mapping image types to URLs.
+            dict[str, str | None]: A dictionary mapping image types to URLs.
                                      Returns an empty dict if no API key is configured
                                      or if the game is not found.
         """
@@ -64,7 +64,7 @@ class SteamGridDB:
             'icons': self._fetch_single_url(game_id, 'icons')
         }
 
-    def get_images_by_type(self, steam_app_id: str | int, img_type: str) -> List[Dict[str, Any]]:
+    def get_images_by_type(self, steam_app_id: str | int, img_type: str) -> list[dict[str, Any]]:
         """
         Fetches all images of a specific type across all pages.
 
@@ -76,7 +76,7 @@ class SteamGridDB:
             img_type (str): The type of image to fetch ('grids', 'heroes', 'logos', 'icons').
 
         Returns:
-            List[Dict[str, Any]]: A list of image data dictionaries. Each dictionary
+            list[dict[str, Any]]: A list of image data dictionaries. Each dictionary
                                  contains image metadata (url, dimensions, etc.).
                                  Returns an empty list if no API key is configured,
                                  the game is not found, or an error occurs.
@@ -92,7 +92,7 @@ class SteamGridDB:
         while True:
             try:
                 # nsfw='any' -> Shows EVERYTHING (Standard + Adult)
-                params: Dict[str, Any] = {
+                params: dict[str, Any] = {
                     'page': page,
                     'nsfw': 'any',
                     'types': 'static,animated'
@@ -127,7 +127,7 @@ class SteamGridDB:
         logger.info(t('logs.steamgrid.found', count=len(all_images)))
         return all_images
 
-    def _get_game_id(self, steam_app_id: str | int) -> Optional[int]:
+    def _get_game_id(self, steam_app_id: str | int) -> int | None:
         """
         Resolves a Steam app ID to a SteamGridDB game ID.
 
@@ -135,7 +135,7 @@ class SteamGridDB:
             steam_app_id (str | int): The Steam app ID.
 
         Returns:
-            Optional[int]: The SteamGridDB game ID, or None if not found or an error occurs.
+            int | None: The SteamGridDB game ID, or None if not found or an error occurs.
         """
         try:
             url = f"{self.BASE_URL}/games/steam/{steam_app_id}"
@@ -148,7 +148,7 @@ class SteamGridDB:
             pass
         return None
 
-    def _fetch_single_url(self, game_id: int, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Optional[str]:
+    def _fetch_single_url(self, game_id: int, endpoint: str, params: dict[str, Any] | None = None) -> str | None:
         """
         Fetches a single image URL for a specific endpoint.
 
@@ -158,10 +158,10 @@ class SteamGridDB:
         Args:
             game_id (int): The SteamGridDB game ID.
             endpoint (str): The API endpoint ('grids', 'heroes', 'logos', 'icons').
-            params (Optional[Dict[str, Any]]): Optional query parameters (e.g., dimensions).
+            params (dict[str, Any] | None): Optional query parameters (e.g., dimensions).
 
         Returns:
-            Optional[str]: The URL of the first image, or None if not found or an error occurs.
+            str | None: The URL of the first image, or None if not found or an error occurs.
         """
         try:
             url = f"{self.BASE_URL}/{endpoint}/game/{game_id}"

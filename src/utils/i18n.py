@@ -16,7 +16,6 @@ __all__ = ["I18n", "init_i18n", "t"]
 
 logger = logging.getLogger("steamlibmgr.i18n")
 
-
 class I18n:
     """Core internationalization class.
 
@@ -161,9 +160,7 @@ class I18n:
 
         return value
 
-
 _i18n_instance: I18n | None = None
-
 
 def init_i18n(locale: str = "en") -> I18n:
     """Initialize the global i18n instance.
@@ -177,7 +174,6 @@ def init_i18n(locale: str = "en") -> I18n:
     global _i18n_instance
     _i18n_instance = I18n(locale)
     return _i18n_instance
-
 
 def t(key: str, **kwargs: Any) -> str:
     """Retrieve a translated string using the global i18n instance.

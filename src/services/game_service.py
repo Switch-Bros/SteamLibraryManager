@@ -7,8 +7,7 @@ from __future__ import annotations
 
 import logging
 
-
-from typing import Optional, Callable
+from typing import Callable
 from pathlib import Path
 
 from src.utils.i18n import t
@@ -17,9 +16,9 @@ from src.core.localconfig_helper import LocalConfigHelper
 from src.core.cloud_storage_parser import CloudStorageParser
 from src.core.appinfo_manager import AppInfoManager
 
-
-
 logger = logging.getLogger("steamlibmgr.game_service")
+
+__all__ = ['GameService']
 
 class GameService:
     """Service for managing game loading and initialization.
@@ -49,10 +48,10 @@ class GameService:
         self.api_key = api_key
         self.cache_dir = cache_dir
 
-        self.localconfig_helper: Optional[LocalConfigHelper] = None
-        self.cloud_storage_parser: Optional[CloudStorageParser] = None
-        self.game_manager: Optional[GameManager] = None
-        self.appinfo_manager: Optional[AppInfoManager] = None
+        self.localconfig_helper: LocalConfigHelper | None = None
+        self.cloud_storage_parser: CloudStorageParser | None = None
+        self.game_manager: GameManager | None = None
+        self.appinfo_manager: AppInfoManager | None = None
 
     def initialize_parsers(self, localconfig_path: str, user_id: str) -> tuple[bool, bool]:
         """Initializes VDF and Cloud Storage parsers.
@@ -92,7 +91,7 @@ class GameService:
 
         return vdf_success, cloud_success
 
-    def load_games(self, user_id: str, progress_callback: Optional[Callable[[str, int, int], None]] = None) -> bool:
+    def load_games(self, user_id: str, progress_callback: Callable[[str, int, int], None] | None = None) -> bool:
         """Loads all games from Steam API and local files.
 
         Args:
@@ -154,7 +153,7 @@ class GameService:
 
         self.game_manager.apply_metadata_overrides(self.appinfo_manager)
 
-    def get_active_parser(self) -> Optional[CloudStorageParser]:
+    def get_active_parser(self) -> CloudStorageParser | None:
         """Returns the active parser (cloud storage only).
 
         Returns:

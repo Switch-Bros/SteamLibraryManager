@@ -7,6 +7,8 @@ This package contains custom Qt widgets used throughout the application:
 - ClickableImage: Clickable image widget with hover effects
 """
 
+from __future__ import annotations
+
 from src.ui.widgets.ui_helper import UIHelper
 from src.ui.widgets.category_tree import GameTreeWidget
 from src.ui.widgets.clickable_image import ClickableImage

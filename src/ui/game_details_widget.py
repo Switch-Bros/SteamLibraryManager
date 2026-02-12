@@ -7,6 +7,7 @@ This module provides a comprehensive widget that displays game information
 including metadata, images (grid, hero, logo, icon), ratings, and categories.
 It allows users to edit metadata, change images, and toggle categories.
 """
+from __future__ import annotations
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
@@ -17,7 +18,6 @@ from PyQt6.QtWidgets import (
 
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from PyQt6.QtGui import QFont, QCursor
-from typing import List
 from pathlib import Path
 from src.core.game_manager import Game
 from src.utils.i18n import t
@@ -25,7 +25,6 @@ from src.utils.date_utils import format_timestamp_to_date
 from src.ui.widgets.clickable_image import ClickableImage
 from src.core.steam_assets import SteamAssets
 from src.ui.image_selection_dialog import ImageSelectionDialog
-
 
 class InfoLabel(QLabel):
     """
@@ -47,7 +46,6 @@ class InfoLabel(QLabel):
         self.setText(f"<span style='color:#888;'>{title}:</span> <b>{value}</b>")
         self.setTextFormat(Qt.TextFormat.RichText)
         self.setStyleSheet("padding: 1px 0;")
-
 
 class HorizontalCategoryList(QListWidget):
     """
@@ -89,13 +87,13 @@ class HorizontalCategoryList(QListWidget):
         # For multi-select mode
         self.games_categories = []
 
-    def set_categories(self, all_categories: List[str], game_categories: List[str]):
+    def set_categories(self, all_categories: list[str], game_categories: list[str]):
         """
         Sets the categories to display and marks which ones are assigned to the game.
 
         Args:
-            all_categories (List[str]): List of all available categories.
-            game_categories (List[str]): List of categories assigned to the current game.
+            all_categories (list[str]): List of all available categories.
+            game_categories (list[str]): List of categories assigned to the current game.
         """
         self.clear()
         if not all_categories:
@@ -116,7 +114,7 @@ class HorizontalCategoryList(QListWidget):
             )
             self.setItemWidget(item, cb)
 
-    def set_categories_multi(self, all_categories: List[str], games_categories: List[List[str]]):
+    def set_categories_multi(self, all_categories: list[str], games_categories: list[list[str]]):
         """
         Sets categories for multiple games with tri-state checkboxes.
 
@@ -126,8 +124,8 @@ class HorizontalCategoryList(QListWidget):
         - Checked (gold): All games have this category
 
         Args:
-            all_categories (List[str]): List of all available categories.
-            games_categories (List[List[str]]): List of category lists, one per game.
+            all_categories (list[str]): List of all available categories.
+            games_categories (list[list[str]]): List of category lists, one per game.
         """
         self.clear()
         if not all_categories or not games_categories:
@@ -207,7 +205,6 @@ class HorizontalCategoryList(QListWidget):
         # Emit signal (will be handled by _on_category_toggle in GameDetailsWidget)
         self.category_toggled.emit(category, checked)
 
-
 class GameDetailsWidget(QWidget):
     """
     Widget for displaying and editing detailed game information.
@@ -261,7 +258,7 @@ class GameDetailsWidget(QWidget):
         self.clear()
 
     def _create_ui(self):
-        """Creates the user interface for the widget."""
+        """Initialize and lay out all UI components for the game details panel."""
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(15, 5, 15, 0)
         main_layout.setSpacing(0)
@@ -516,15 +513,15 @@ class GameDetailsWidget(QWidget):
         self.lbl_steam_deck.setText(
             f"<span style='color:#888;'>{title}:</span> <span style='color:{color}; font-weight:bold;'>{display_text}</span>")
 
-    def set_games(self, games: List[Game], _all_categories: List[str]):
+    def set_games(self, games: list[Game], _all_categories: list[str]):
         """
         Sets multiple games for multi-selection display.
 
         Shows a summary and allows bulk category operations with tri-state checkboxes.
 
         Args:
-            games (List[Game]): List of selected games.
-            _all_categories (List[str]): List of all available categories.
+            games (list[Game]): List of selected games.
+            _all_categories (list[str]): List of all available categories.
         """
         if not games:
             return
@@ -564,7 +561,7 @@ class GameDetailsWidget(QWidget):
         # Show default icon for PEGI (multi-select has no rating)
         self.pegi_image.load_image(None)  # Shows default image
 
-    def set_game(self, game: Game, _all_categories: List[str]):
+    def set_game(self, game: Game, _all_categories: list[str]):
         """
         Sets the game to display in the widget.
 
@@ -573,7 +570,7 @@ class GameDetailsWidget(QWidget):
 
         Args:
             game (Game): The game to display.
-            _all_categories (List[str]): List of all available categories.
+            _all_categories (list[str]): List of all available categories.
         """
         self.current_game = game
         self.current_games = []  # Clear multi-select mode
@@ -685,7 +682,7 @@ class GameDetailsWidget(QWidget):
             img_widget.load_image(SteamAssets.get_asset_path(app_id, asset_type))
 
     def clear(self):
-        """Clears the widget and resets it to the default state."""
+        """Reset all displayed game details to their default empty state."""
         self.current_game = None
         self.current_games = []
         self.name_label.setText(t('ui.game_details.select_placeholder'))
@@ -702,7 +699,7 @@ class GameDetailsWidget(QWidget):
         self.category_list.set_categories([], [])
 
     def _on_pegi_clicked(self):
-        """Handle PEGI box click - open PEGI selector dialog."""
+        """Handle click on the PEGI rating icon to open the PEGI selector dialog."""
         if not self.current_game:
             return
 
@@ -720,7 +717,7 @@ class GameDetailsWidget(QWidget):
             self.pegi_override_requested.emit(self.current_game.app_id, selected_rating)
 
     def _on_pegi_right_click(self):
-        """Handle PEGI box right click - show context menu to reset."""
+        """Handle right-click on the PEGI rating icon to clear the rating."""
         if not self.current_game:
             return
 
@@ -758,12 +755,12 @@ class GameDetailsWidget(QWidget):
                 self.category_changed.emit(game.app_id, category_name, checked)
 
     def _on_edit(self):
-        """Handles the edit button click event."""
+        """Open the metadata editor dialog for the currently displayed game."""
         if self.current_game:
             self.edit_metadata.emit(self.current_game)
 
     def _open_current_store(self):
-        """Opens the Steam store page for the current game in the default browser."""
+        """Open the Steam Store page for the currently displayed game in the default browser."""
         if self.current_game:
             import webbrowser
             webbrowser.open(f"https://store.steampowered.com/app/{self.current_game.app_id}")

@@ -15,13 +15,14 @@ from __future__ import annotations
 import logging
 import vdf
 from pathlib import Path
-from typing import List, Dict
 
 from src.utils.i18n import t
 
 
 
 logger = logging.getLogger("steamlibmgr.localconfig")
+
+__all__ = ['LocalConfigHelper']
 
 class LocalConfigHelper:
     """Minimal helper for localconfig.vdf operations."""
@@ -33,8 +34,8 @@ class LocalConfigHelper:
             config_path: Path to localconfig.vdf file
         """
         self.config_path = Path(config_path)
-        self.data: Dict = {}
-        self.apps: Dict = {}
+        self.data: dict = {}
+        self.apps: dict = {}
         self.modified = False
 
     def load(self) -> bool:
@@ -84,7 +85,7 @@ class LocalConfigHelper:
 
     # ===== HIDDEN STATUS =====
 
-    def get_hidden_apps(self) -> List[str]:
+    def get_hidden_apps(self) -> list[str]:
         """Get list of hidden app IDs.
 
         Returns:
@@ -145,7 +146,7 @@ class LocalConfigHelper:
         self.apps[category_id]['CloudLocalAppState']['Expanded'] = '1' if expanded else '0'
         self.modified = True
 
-    def get_all_expanded_states(self) -> Dict[str, bool]:
+    def get_all_expanded_states(self) -> dict[str, bool]:
         """Get expanded states for all categories.
 
         Returns:

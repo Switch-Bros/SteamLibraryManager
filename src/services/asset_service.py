@@ -4,12 +4,14 @@ This module provides the AssetService class which wraps SteamAssets functionalit
 for loading, saving, and managing game assets from local storage and Steam CDN.
 """
 
-from typing import Optional
+from __future__ import annotations
+
 from pathlib import Path
 
 from src.core.steam_assets import SteamAssets
 from src.integrations.steamgrid_api import SteamGridDB
 
+__all__ = ['AssetService']
 
 class AssetService:
     """Service for managing game assets.
@@ -26,7 +28,7 @@ class AssetService:
 
         Creates a SteamGridDB instance if API key is configured.
         """
-        self.steamgrid: Optional[SteamGridDB] = None
+        self.steamgrid: SteamGridDB | None = None
 
         try:
             self.steamgrid = SteamGridDB()

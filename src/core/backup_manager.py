@@ -14,13 +14,14 @@ import glob
 import os
 from pathlib import Path
 from datetime import datetime
-from typing import Optional
 from src.config import config
 from src.utils.i18n import t
 
 
 
 logger = logging.getLogger("steamlibmgr.backup_manager")
+
+__all__ = ['BackupManager']
 
 class BackupManager:
     """
@@ -30,18 +31,18 @@ class BackupManager:
     old backups when the configured maximum number is exceeded.
     """
 
-    def __init__(self, backup_dir: Optional[Path] = None):
+    def __init__(self, backup_dir: Path | None = None):
         """
         Initializes the BackupManager.
 
         Args:
-            backup_dir (Optional[Path]): Custom directory for storing backups.
+            backup_dir (Path | None): Custom directory for storing backups.
                                          If None, backups will be created in the same
                                          directory as the original file.
         """
         self.backup_dir = backup_dir
 
-    def create_backup(self, file_path: Path) -> Optional[Path]:
+    def create_backup(self, file_path: Path) -> Path | None:
         """
         Creates a timestamped backup of a file.
 
@@ -55,7 +56,7 @@ class BackupManager:
             file_path (Path): Path to the file to back up.
 
         Returns:
-            Optional[Path]: Path to the created backup file, or None if the operation failed
+            Path | None: Path to the created backup file, or None if the operation failed
                            (e.g., source file doesn't exist).
         """
         if not file_path.exists():
@@ -107,7 +108,7 @@ class BackupManager:
                     logger.error(t('logs.backup.delete_error', name=Path(old).name, error=str(delete_error)))
 
     @staticmethod
-    def create_rolling_backup(file_path: Path) -> Optional[str]:
+    def create_rolling_backup(file_path: Path) -> str | None:
         """
         Legacy static method for creating backups with default settings.
 
@@ -119,7 +120,7 @@ class BackupManager:
             file_path (Path): Path to the file to back up.
 
         Returns:
-            Optional[str]: String path to the created backup, or None if the operation failed.
+            str | None: String path to the created backup, or None if the operation failed.
         """
         manager = BackupManager()
         backup_path = manager.create_backup(file_path)

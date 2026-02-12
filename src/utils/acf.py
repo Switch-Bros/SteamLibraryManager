@@ -7,13 +7,16 @@ This module provides functions to parse and serialize Steam's ACF file format,
 which is a simple key-value text format used for configuration files like
 appmanifest_*.acf.
 """
+from __future__ import annotations
+
+from typing import Any
+
 __all__ = ('load', 'loads', 'dump', 'dumps')
 
 SECTION_START = '{'
 SECTION_END = '}'
 
-
-def loads(data: str, wrapper=dict):
+def loads(data: str, wrapper=dict) -> dict[str, Any]:
     """
     Parses an ACF string into a dictionary.
 
@@ -57,8 +60,7 @@ def loads(data: str, wrapper=dict):
             continue
     return parsed
 
-
-def load(fp, wrapper=dict):
+def load(fp, wrapper=dict) -> dict[str, Any]:
     """
     Parses an ACF file into a dictionary.
 
@@ -70,7 +72,6 @@ def load(fp, wrapper=dict):
         dict: A nested dictionary representing the parsed ACF data.
     """
     return loads(fp.read(), wrapper=wrapper)
-
 
 def dumps(obj: dict, level: int = 0) -> str:
     """
@@ -94,7 +95,6 @@ def dumps(obj: dict, level: int = 0) -> str:
             lines.append(f'{indent}"{key}"\t\t"{value}"')
     return '\n'.join(lines) + '\n'
 
-
 def dump(obj: dict, fp):
     """
     Serializes a dictionary into an ACF file.
@@ -105,8 +105,7 @@ def dump(obj: dict, fp):
     """
     fp.write(dumps(obj))
 
-
-def _prepare_subsection(data, sections, wrapper):
+def _prepare_subsection(data, sections, wrapper) -> dict[str, Any]:
     """
     Prepares a subsection for nested data.
 

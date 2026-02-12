@@ -6,13 +6,14 @@ Provides options to:
 - Cancel the save operation
 - Close Steam and save (kills Steam process)
 """
+from __future__ import annotations
+
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
     QLabel, QMessageBox
 )
 
 from src.utils.i18n import t
-
 
 class SteamRunningDialog(QDialog):
     """Warning dialog shown when Steam is running during save operation.

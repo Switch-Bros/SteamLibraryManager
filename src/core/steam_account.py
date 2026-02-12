@@ -4,8 +4,11 @@ Steam Account data structure.
 This module defines the SteamAccount dataclass which represents a Steam user account
 with their various IDs and display information.
 """
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Optional
+
+__all__ = ['SteamAccount']
 
 
 @dataclass
@@ -21,7 +24,7 @@ class SteamAccount:
     account_id: int
     steam_id_64: int
     display_name: str
-    avatar_url: Optional[str] = None
+    avatar_url: str | None = None
     
     def __str__(self) -> str:
         """String representation showing account ID and display name."""

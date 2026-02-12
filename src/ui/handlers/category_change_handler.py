@@ -12,7 +12,7 @@ All persistence and UI updates are delegated back to MainWindow.
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QTimer
 
@@ -21,7 +21,6 @@ from src.ui.handlers.empty_collection_handler import EmptyCollectionHandler
 
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
-
 
 class CategoryChangeHandler:
     """Handles category assignment changes from UI events.
@@ -43,7 +42,7 @@ class CategoryChangeHandler:
         self.mw: 'MainWindow' = main_window
         self.empty_handler = EmptyCollectionHandler(main_window)
 
-    def apply_category_to_games(self, games: List[Game], category: str, checked: bool) -> None:
+    def apply_category_to_games(self, games: list[Game], category: str, checked: bool) -> None:
         """Helper method to apply category changes to a list of games.
 
         Updates both the game objects and the parsers via category_service.
@@ -149,7 +148,7 @@ class CategoryChangeHandler:
         # Reset batch flag after 500ms to allow next batch
         QTimer.singleShot(500, lambda: setattr(self.mw, 'in_batch_update', False))
 
-    def on_games_dropped(self, games: List[Game], target_category: str) -> None:
+    def on_games_dropped(self, games: list[Game], target_category: str) -> None:
         """Handles drag-and-drop of games onto a category.
 
         Updates the game categories in memory and persists changes.

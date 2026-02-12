@@ -8,12 +8,15 @@ renaming, deleting, and merging categories. It supports both VDF parser
 (localconfig.vdf) and Cloud Storage parser.
 """
 
-from typing import List, Dict, Optional
+from __future__ import annotations
+
 from src.core.localconfig_helper import LocalConfigHelper
 from src.core.cloud_storage_parser import CloudStorageParser
 from src.core.game_manager import GameManager
 from src.utils.i18n import t
 
+
+__all__ = ['CategoryService']
 
 class CategoryService:
     """
@@ -24,8 +27,8 @@ class CategoryService:
     """
 
     def __init__(self,
-                 localconfig_helper: Optional[LocalConfigHelper],
-                 cloud_parser: Optional[CloudStorageParser],
+                 localconfig_helper: LocalConfigHelper | None,
+                 cloud_parser: CloudStorageParser | None,
                  game_manager: GameManager):
         """
         Initialize the CategoryService.
@@ -39,12 +42,12 @@ class CategoryService:
         self.cloud_parser = cloud_parser
         self.game_manager = game_manager
 
-    def get_active_parser(self):
+    def get_active_parser(self) -> CloudStorageParser | None:
         """
         Get the currently active parser.
 
         Returns:
-            CloudStorageParser if available, otherwise LocalConfigParser
+            CloudStorageParser if available, otherwise LocalConfigParser.
         """
         return self.cloud_parser
 
@@ -105,7 +108,7 @@ class CategoryService:
 
         return True
 
-    def delete_multiple_categories(self, categories: List[str]) -> bool:
+    def delete_multiple_categories(self, categories: list[str]) -> bool:
         """
         Delete multiple categories at once.
 
@@ -158,7 +161,7 @@ class CategoryService:
 
         return False
 
-    def merge_categories(self, categories: List[str], target_category: str) -> bool:
+    def merge_categories(self, categories: list[str], target_category: str) -> bool:
         """
         Merge multiple categories into one target category.
 
@@ -246,14 +249,14 @@ class CategoryService:
 
         return removed
 
-    def get_all_categories(self) -> Dict[str, int]:
+    def get_all_categories(self) -> dict[str, int]:
         """
         Get all categories with game counts.
 
         Delegates to game_manager for consistent counts.
 
         Returns:
-            Dict mapping category names to game counts
+            dict mapping category names to game counts
         """
         return self.game_manager.get_all_categories()
 

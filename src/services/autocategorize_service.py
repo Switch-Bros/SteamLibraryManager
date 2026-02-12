@@ -12,13 +12,16 @@ This service handles all auto-categorization operations including:
 The service acts as a bridge between the UI and various managers,
 providing a clean API for auto-categorization operations.
 """
-from typing import List, Optional, Callable, Dict, Any
+from __future__ import annotations
+
+from typing import Callable, Any
 
 from src.core.game_manager import Game, GameManager
 from src.services.category_service import CategoryService
 from src.integrations.steam_store import SteamStoreScraper
 from src.utils.i18n import t
 
+__all__ = ['AutoCategorizeService']
 
 class AutoCategorizeService:
     """Service for managing auto-categorization operations."""
@@ -27,7 +30,7 @@ class AutoCategorizeService:
             self,
             game_manager: GameManager,
             category_service: CategoryService,
-            steam_scraper: Optional[SteamStoreScraper] = None
+            steam_scraper: SteamStoreScraper | None = None
     ):
         """
         Initialize the AutoCategorizeService.
@@ -45,9 +48,9 @@ class AutoCategorizeService:
 
     def categorize_by_tags(
             self,
-            games: List[Game],
+            games: list[Game],
             tags_count: int,
-            progress_callback: Optional[Callable[[int, str], None]] = None
+            progress_callback: Callable[[int, str], None] | None = None
     ) -> int:
         """
         Categorize games by Steam Store tags.
@@ -92,8 +95,8 @@ class AutoCategorizeService:
 
     def categorize_by_publisher(
             self,
-            games: List[Game],
-            progress_callback: Optional[Callable[[int, str], None]] = None
+            games: list[Game],
+            progress_callback: Callable[[int, str], None] | None = None
     ) -> int:
         """
         Categorize games by publisher.
@@ -134,8 +137,8 @@ class AutoCategorizeService:
 
     def categorize_by_franchise(
             self,
-            games: List[Game],
-            progress_callback: Optional[Callable[[int, str], None]] = None
+            games: list[Game],
+            progress_callback: Callable[[int, str], None] | None = None
     ) -> int:
         """
         Categorize games by detected franchise.
@@ -180,8 +183,8 @@ class AutoCategorizeService:
 
     def categorize_by_genre(
             self,
-            games: List[Game],
-            progress_callback: Optional[Callable[[int, str], None]] = None
+            games: list[Game],
+            progress_callback: Callable[[int, str], None] | None = None
     ) -> int:
         """
         Categorize games by genre.
@@ -219,7 +222,7 @@ class AutoCategorizeService:
 
     # === CACHE COVERAGE ===
 
-    def get_cache_coverage(self, games: List[Game]) -> Dict[str, Any]:
+    def get_cache_coverage(self, games: list[Game]) -> dict[str, Any]:
         """
         Get cache coverage for games (for tags method).
 

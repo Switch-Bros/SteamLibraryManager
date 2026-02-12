@@ -4,7 +4,9 @@ Generic UI helper functions for common widget patterns.
 This module provides reusable functions for creating standard UI elements
 with consistent styling and behavior across the application.
 """
-from typing import Callable, Tuple, Optional
+from __future__ import annotations
+
+from typing import Callable
 
 from PyQt6.QtWidgets import (
     QSplitter, QWidget, QHBoxLayout, QLineEdit,
@@ -14,11 +16,10 @@ from PyQt6.QtCore import Qt
 
 from src.utils.i18n import t
 
-
 def create_splitter(
         left_widget: QWidget,
         right_widget: QWidget,
-        ratio: Tuple[int, int] = (1, 3)
+        ratio: tuple[int, int] = (1, 3)
 ) -> QSplitter:
     """Creates a horizontal QSplitter with two widgets.
 
@@ -48,13 +49,12 @@ def create_splitter(
 
     return splitter
 
-
 def create_search_bar(
         parent: QWidget,
         on_search_callback: Callable[[str], None],
-        on_clear_callback: Optional[Callable[[], None]] = None,
+        on_clear_callback: Callable[[], None] | None = None,
         placeholder: str = ""
-) -> Tuple[QWidget, QLineEdit]:
+) -> tuple[QWidget, QLineEdit]:
     """Creates a search bar widget with search field and clear button.
 
     The search bar consists of a QLineEdit for text input and a clear button
@@ -129,7 +129,6 @@ def create_search_bar(
 
     return container, search_entry
 
-
 def create_progress_dialog(
         parent: QWidget,
         title: str,
@@ -180,7 +179,6 @@ def create_progress_dialog(
 
     return dialog
 
-
 def create_labeled_widget(
         label_text: str,
         widget: QWidget,
@@ -219,10 +217,9 @@ def create_labeled_widget(
 
     return container
 
-
 def set_widget_margins(
         widget: QWidget,
-        margins: Tuple[int, int, int, int] = (0, 0, 0, 0)
+        margins: tuple[int, int, int, int] = (0, 0, 0, 0)
 ) -> None:
     """Sets margins on a widget with consistent parameter order.
 
@@ -231,7 +228,6 @@ def set_widget_margins(
         margins: Margins as (left, top, right, bottom). Defaults to (0, 0, 0, 0).
     """
     widget.setContentsMargins(*margins)
-
 
 def apply_dark_theme_to_widget(widget: QWidget) -> None:
     """Applies a consistent dark theme stylesheet to a widget.
@@ -270,7 +266,6 @@ def apply_dark_theme_to_widget(widget: QWidget) -> None:
             color: #e0e0e0;
         }
     """)
-
 
 def ask_save_changes(parent: QWidget, save_callback: Callable[[], bool]) -> bool:
     """Shows a 3-button save changes dialog on close.

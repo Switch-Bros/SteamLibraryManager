@@ -13,8 +13,6 @@ Features:
 """
 from __future__ import annotations
 
-
-from typing import Optional
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QLineEdit, QFrame, QWidget, QMessageBox,
@@ -29,7 +27,6 @@ from src.utils.i18n import t
 import logging
 
 logger = logging.getLogger("steamlibmgr.login_dialog")
-
 
 class ModernSteamLoginDialog(QDialog):
     """
@@ -46,8 +43,8 @@ class ModernSteamLoginDialog(QDialog):
     login_success = pyqtSignal(dict)
 
     # Type hints for attributes
-    steam_id_64: Optional[int]
-    display_name: Optional[str]
+    steam_id_64: int | None
+    display_name: str | None
 
     def __init__(self, parent=None):
         """Initialize the dialog."""
@@ -56,8 +53,8 @@ class ModernSteamLoginDialog(QDialog):
         self.login_manager = SteamLoginManager()
 
         # Store login result for profile_setup_dialog
-        self.steam_id_64: Optional[int] = None
-        self.display_name: Optional[str] = None
+        self.steam_id_64: int | None = None
+        self.display_name: str | None = None
 
         self._setup_ui()
         self._connect_signals()

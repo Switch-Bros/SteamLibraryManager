@@ -1,13 +1,15 @@
+from __future__ import annotations
+
 import re
-from typing import List
 from src.core.game_manager import Game
 
+__all__ = ['SearchService']
 
 class SearchService:
     """Service handling complex game search logic including Regex support."""
 
     @staticmethod
-    def filter_games(games: List[Game], query: str) -> List[Game]:
+    def filter_games(games: list[Game], query: str) -> list[Game]:
         """Filters a list of games based on a search query.
 
         Supports standard text search (case-insensitive).
@@ -18,7 +20,7 @@ class SearchService:
             query: The search string.
 
         Returns:
-            List[Game]: The filtered list of games.
+            list[Game]: The filtered list of games.
         """
         if not query:
             return games

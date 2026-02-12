@@ -13,12 +13,13 @@ from __future__ import annotations
 import logging
 import vdf
 from pathlib import Path
-from typing import List, Dict, Optional
 from src.utils.i18n import t
 
 
 
 logger = logging.getLogger("steamlibmgr.local_loader")
+
+__all__ = ['LocalGamesLoader']
 
 class LocalGamesLoader:
     """
@@ -40,7 +41,7 @@ class LocalGamesLoader:
         # appinfo.vdf is now ONLY loaded via AppInfoManager
         self.appinfo_vdf_path = steam_path / 'appcache' / 'appinfo.vdf'
 
-    def get_all_games(self) -> List[Dict]:
+    def get_all_games(self) -> list[dict]:
         """
         Loads all installed games from manifest files across all libraries.
 
@@ -52,7 +53,7 @@ class LocalGamesLoader:
             on-demand for better performance.
 
         Returns:
-            List[Dict]: A list of dictionaries, each containing 'appid', 'name',
+            list[Dict]: A list of dictionaries, each containing 'appid', 'name',
                        and 'installdir' for an installed game.
         """
         all_games = {}
@@ -65,7 +66,7 @@ class LocalGamesLoader:
         logger.info(t('logs.local_loader.loaded_total', count=len(all_games)))
         return list(all_games.values())
 
-    def get_installed_games(self) -> List[Dict]:
+    def get_installed_games(self) -> list[dict]:
         """
         Reads all installed games from appmanifest_*.acf files across all libraries.
 
@@ -73,7 +74,7 @@ class LocalGamesLoader:
         appmanifest files, parsing them to extract game information.
 
         Returns:
-            List[Dict]: A list of dictionaries containing game data (appid, name, installdir).
+            list[Dict]: A list of dictionaries containing game data (appid, name, installdir).
         """
         all_installed = []
 
@@ -112,7 +113,7 @@ class LocalGamesLoader:
 
         return all_installed
 
-    def get_library_folders(self) -> List[Path]:
+    def get_library_folders(self) -> list[Path]:
         """
         Finds all Steam library folders based on libraryfolders.vdf.
 
@@ -120,7 +121,7 @@ class LocalGamesLoader:
         Steam library locations. It reads Linux paths (e.g., /mnt/...) directly.
 
         Returns:
-            List[Path]: A list of Path objects representing all Steam library folders.
+            list[Path]: A list of Path objects representing all Steam library folders.
         """
         folders = [self.steam_path]
 
@@ -165,7 +166,7 @@ class LocalGamesLoader:
         return list(set(folders))
 
     @staticmethod
-    def _parse_manifest(manifest_path: Path) -> Optional[Dict]:
+    def _parse_manifest(manifest_path: Path) -> dict | None:
         """
         Parses a single appmanifest_*.acf file.
 
@@ -173,7 +174,7 @@ class LocalGamesLoader:
             manifest_path (Path): Path to the appmanifest file.
 
         Returns:
-            Optional[Dict]: A dictionary containing 'appid', 'name', and 'installdir',
+            dict | None: A dictionary containing 'appid', 'name', and 'installdir',
                            or None if parsing failed.
         """
         try:
@@ -191,7 +192,7 @@ class LocalGamesLoader:
             return None
 
     @staticmethod
-    def get_playtime_from_localconfig(localconfig_path: Path) -> Dict[str, int]:
+    def get_playtime_from_localconfig(localconfig_path: Path) -> dict[str, int]:
         """
         Extracts playtime data from localconfig.vdf.
 
@@ -203,7 +204,7 @@ class LocalGamesLoader:
             localconfig_path (Path): Path to the localconfig.vdf file.
 
         Returns:
-            Dict[str, int]: A dictionary mapping app_id (as string) to playtime in minutes.
+            dict[str, int]: A dictionary mapping app_id (as string) to playtime in minutes.
         """
         playtimes = {}
         if not localconfig_path.exists():

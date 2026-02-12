@@ -6,25 +6,25 @@ Provides static helper methods for creating standardized UI dialogs.
 This class centralizes QMessageBox and QInputDialog logic to ensure
 consistent styling, titles, and use of internationalization across the application.
 """
-from typing import Optional, Tuple
+from __future__ import annotations
+
 from PyQt6.QtWidgets import (
     QWidget, QMessageBox, QDialog, QVBoxLayout, QLabel, QLineEdit, QDialogButtonBox
 )
 from src.utils.i18n import t
 
-
 class UIHelper:
     """A static helper class for common UI dialog interactions."""
 
     @staticmethod
-    def show_error(parent: QWidget, message: str, title: Optional[str] = None) -> None:
+    def show_error(parent: QWidget, message: str, title: str | None = None) -> None:
         """
         Displays a standardized critical error message box.
 
         Args:
             parent (QWidget): The parent widget for the dialog.
             message (str): The main error message to display.
-            title (Optional[str]): The title for the dialog window. Defaults to the
+            title (str | None): The title for the dialog window. Defaults to the
                                    common 'Error' translation.
         """
         if title is None:
@@ -32,14 +32,14 @@ class UIHelper:
         QMessageBox.critical(parent, title, message)
 
     @staticmethod
-    def show_success(parent: QWidget, message: str, title: Optional[str] = None) -> None:
+    def show_success(parent: QWidget, message: str, title: str | None = None) -> None:
         """
         Displays a standardized informational success message box.
 
         Args:
             parent (QWidget): The parent widget for the dialog.
             message (str): The success message to display.
-            title (Optional[str]): The title for the dialog window. Defaults to the
+            title (str | None): The title for the dialog window. Defaults to the
                                    common 'Success' translation.
         """
         if title is None:
@@ -47,14 +47,14 @@ class UIHelper:
         QMessageBox.information(parent, title, message)
 
     @staticmethod
-    def show_warning(parent: QWidget, message: str, title: Optional[str] = None) -> None:
+    def show_warning(parent: QWidget, message: str, title: str | None = None) -> None:
         """
         Displays a standardized warning message box.
 
         Args:
             parent (QWidget): The parent widget for the dialog.
             message (str): The warning message to display.
-            title (Optional[str]): The title for the dialog window. Defaults to the
+            title (str | None): The title for the dialog window. Defaults to the
                                    common 'Warning' translation.
         """
         if title is None:
@@ -62,14 +62,14 @@ class UIHelper:
         QMessageBox.warning(parent, title, message)
 
     @staticmethod
-    def show_info(parent: QWidget, message: str, title: Optional[str] = None) -> None:
+    def show_info(parent: QWidget, message: str, title: str | None = None) -> None:
         """
         Displays a standardized informational message box.
 
         Args:
             parent (QWidget): The parent widget for the dialog.
             message (str): The informational message to display.
-            title (Optional[str]): The title for the dialog window. Defaults to the
+            title (str | None): The title for the dialog window. Defaults to the
                                    common 'Info' translation.
         """
         if title is None:
@@ -77,7 +77,7 @@ class UIHelper:
         QMessageBox.information(parent, title, message)
 
     @staticmethod
-    def confirm(parent: QWidget, question: str, title: Optional[str] = None) -> bool:
+    def confirm(parent: QWidget, question: str, title: str | None = None) -> bool:
         """Displays a Yes/No confirmation dialog with localised button texts.
 
         Uses addButton() instead of StandardButtons because Qt6 on Linux does
@@ -108,7 +108,7 @@ class UIHelper:
         return msg.clickedButton() == yes_btn
 
     @staticmethod
-    def ask_text(parent: QWidget, title: str, label: str, current_text: str = "") -> Tuple[str, bool]:
+    def ask_text(parent: QWidget, title: str, label: str, current_text: str = "") -> tuple[str, bool]:
         """
         Displays a standardized input dialog to ask the user for text.
 
@@ -119,7 +119,7 @@ class UIHelper:
             current_text (str): The default text to show in the input field.
 
         Returns:
-            Tuple[str, bool]: A tuple containing the entered text and a boolean
+            tuple[str, bool]: A tuple containing the entered text and a boolean
                               indicating if the user clicked OK (True) or Cancel (False).
         """
         dialog = QDialog(parent)
