@@ -11,12 +11,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from src.services.asset_service import AssetService
+
 if TYPE_CHECKING:
     from src.services.category_service import CategoryService
     from src.services.metadata_service import MetadataService
     from src.services.autocategorize_service import AutoCategorizeService
     from src.services.game_service import GameService
-    from src.services.asset_service import AssetService
 
 from PyQt6.QtWidgets import QMainWindow, QToolBar
 from PyQt6.QtCore import Qt, QThread, QTimer
