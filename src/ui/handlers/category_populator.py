@@ -1,0 +1,159 @@
+# src/ui/handlers/category_populator.py
+
+"""Populates the sidebar category tree from game data.
+
+Extracted from MainWindow to reduce its line count and isolate
+the category-tree-building logic into a single, testable unit.
+"""
+
+from __future__ import annotations
+
+from collections import OrderedDict
+from typing import TYPE_CHECKING
+
+from src.core.game import Game
+from src.utils.i18n import t
+
+if TYPE_CHECKING:
+    from src.ui.main_window import MainWindow
+
+__all__ = ["CategoryPopulator"]
+
+
+class CategoryPopulator:
+    """Builds and populates the sidebar category tree.
+
+    Uses the same back-reference pattern as all other MainWindow handlers.
+
+    Args:
+        main_window: The MainWindow instance that owns this populator.
+    """
+
+    def __init__(self, main_window: MainWindow) -> None:
+        self._mw = main_window
+
+    @staticmethod
+    def german_sort_key(text: str) -> str:
+        """Sort key for German text with umlauts and special characters.
+
+        Replaces German umlauts with their base letters for proper alphabetical sorting:
+        A/a -> a, O/o -> o, U/u -> u, ss -> ss
+
+        This ensures that "Ubernatuerlich" comes after "Uhr" (not at the end),
+        and "NIEDLICH", "Niedlich", "niedlich" appear together.
+
+        Args:
+            text: The text to create a sort key for.
+
+        Returns:
+            Normalized lowercase string for sorting.
+        """
+        # Map umlauts to come AFTER their base letter:
+        # a < ae, o < oe, u < ue (German alphabetical order)
+        replacements = {
+            "\u00e4": "a~",
+            "\u00c4": "a~",
+            "\u00f6": "o~",
+            "\u00d6": "o~",
+            "\u00fc": "u~",
+            "\u00dc": "u~",
+            "\u00df": "ss",
+        }
+        result = text.lower()
+        for old, new in replacements.items():
+            result = result.replace(old, new)
+        return result
+
+    def populate(self) -> None:
+        """Refreshes the sidebar tree with current game data.
+
+        Builds category data including All Games, Favorites (if non-empty),
+        user categories, Uncategorized (if non-empty), and Hidden (if non-empty).
+
+        Steam-compatible order:
+        1. All Games (always shown)
+        2. Favorites (only if non-empty)
+        3. User Collections (alphabetically)
+        4. Uncategorized (only if non-empty)
+        5. Hidden (only if non-empty)
+
+        No caching: the tree is cheap to rebuild (~50 ms for 2 500 games)
+        and a cache only adds invisible staleness bugs.
+        """
+        mw = self._mw
+        if not mw.game_manager:
+            return
+
+        # Separate hidden and visible games
+        all_games_raw = mw.game_manager.get_real_games()
+        visible_games = sorted([g for g in all_games_raw if not g.hidden], key=lambda g: g.sort_name.lower())
+        hidden_games = sorted([g for g in all_games_raw if g.hidden], key=lambda g: g.sort_name.lower())
+
+        # Favorites (sorted, non-hidden only)
+        favorites = sorted(
+            [g for g in mw.game_manager.get_favorites() if not g.hidden], key=lambda g: g.sort_name.lower()
+        )
+
+        # Uncategorized games
+        uncategorized = sorted(
+            [g for g in mw.game_manager.get_uncategorized_games() if not g.hidden], key=lambda g: g.sort_name.lower()
+        )
+
+        # Build categories_data in correct Steam order
+        categories_data: OrderedDict[str, list[Game]] = OrderedDict()
+
+        # 1. All Games (always shown)
+        categories_data[t("ui.categories.all_games")] = visible_games
+
+        # 2. Favorites (only if non-empty)
+        if favorites:
+            categories_data[t("ui.categories.favorites")] = favorites
+
+        # 3. User categories (alphabetically sorted)
+        cats: dict[str, int] = mw.game_manager.get_all_categories()
+
+        # Merge in parser-owned collections that GameManager cannot see.
+        # GameManager builds its list from game.categories only; an empty
+        # collection has no games so it never appears there.  The parser is
+        # the single source of truth for which collections actually exist.
+        active_parser = mw.cloud_storage_parser or mw.localconfig_helper
+        if active_parser:
+            for parser_cat in active_parser.get_all_categories():
+                if parser_cat not in cats:
+                    cats[parser_cat] = 0  # empty collection — count is zero
+
+        # Sort with German umlaut support
+        # Skip special categories (Favorites, Uncategorized, Hidden, All Games)
+        special_categories = {
+            t("ui.categories.favorites"),
+            t("ui.categories.uncategorized"),
+            t("ui.categories.hidden"),
+            t("ui.categories.all_games"),
+        }
+
+        for cat_name in sorted(cats.keys(), key=self.german_sort_key):
+            if cat_name not in special_categories:
+                cat_games: list[Game] = sorted(
+                    [g for g in mw.game_manager.get_games_by_category(cat_name) if not g.hidden],
+                    key=lambda g: g.sort_name.lower(),
+                )
+                # Always add — empty collections must stay visible as "Name (0)"
+                categories_data[cat_name] = cat_games
+
+        # 4. Uncategorized (only if non-empty)
+        if uncategorized:
+            categories_data[t("ui.categories.uncategorized")] = uncategorized
+
+        # 5. Hidden (only if non-empty)
+        if hidden_games:
+            categories_data[t("ui.categories.hidden")] = hidden_games
+
+        # Identify dynamic collections (have filterSpec)
+        dynamic_collections: set[str] = set()
+        if mw.cloud_storage_parser:
+            for collection in mw.cloud_storage_parser.collections:
+                if "filterSpec" in collection:
+                    dynamic_collections.add(collection["name"])
+
+        # Pass dynamic collections to tree
+        mw.tree.populate_categories(categories_data, dynamic_collections)

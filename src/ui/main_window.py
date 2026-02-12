@@ -41,6 +41,7 @@ from src.ui.builders import MenuBuilder, ToolbarBuilder, StatusbarBuilder, Centr
 
 # Handlers
 from src.ui.handlers import CategoryActionHandler, DataLoadHandler, SelectionHandler, CategoryChangeHandler
+from src.ui.handlers.category_populator import CategoryPopulator
 
 # Actions
 from src.ui.actions import (
@@ -130,6 +131,7 @@ class MainWindow(QMainWindow):
         self.selection_handler = SelectionHandler(self)
         self.category_change_handler = CategoryChangeHandler(self)
         self.data_load_handler = DataLoadHandler(self)
+        self.category_populator = CategoryPopulator(self)
 
         self._create_ui()
         self._load_data()
@@ -183,133 +185,12 @@ class MainWindow(QMainWindow):
         """
         self.data_load_handler.load_data()
 
-    @staticmethod
-    def _german_sort_key(text: str) -> str:
-        """
-        Sort key for German text with umlauts and special characters.
-
-        Replaces German umlauts with their base letters for proper alphabetical sorting:
-        Ä/ä → a, Ö/ö → o, Ü/ü → u, ß → ss
-
-        This ensures that "Übernatürlich" comes after "Uhr" (not at the end),
-        and "NIEDLICH", "Niedlich", "niedlich" appear together.
-
-        Args:
-            text: The text to create a sort key for.
-
-        Returns:
-            Normalized lowercase string for sorting.
-        """
-        # Map umlauts to come AFTER their base letter:
-        # a < ä, o < ö, u < ü (German alphabetical order)
-        replacements = {
-            "ä": "a~",
-            "Ä": "a~",
-            "ö": "o~",
-            "Ö": "o~",
-            "ü": "u~",
-            "Ü": "u~",
-            "ß": "ss",
-        }
-        result = text.lower()
-        for old, new in replacements.items():
-            result = result.replace(old, new)
-        return result
-
     def _populate_categories(self) -> None:
         """Refreshes the sidebar tree with current game data.
 
-        Builds category data including All Games, Favorites (if non-empty),
-        user categories, Uncategorized (if non-empty), and Hidden (if non-empty).
-
-        Steam-compatible order:
-        1. All Games (always shown)
-        2. Favorites (only if non-empty)
-        3. User Collections (alphabetically)
-        4. Uncategorized (only if non-empty)
-        5. Hidden (only if non-empty)
-
-        No caching: the tree is cheap to rebuild (~50 ms for 2 500 games)
-        and a cache only adds invisible staleness bugs.
+        Delegates to CategoryPopulator.populate().
         """
-        if not self.game_manager:
-            return
-
-        # Separate hidden and visible games
-        all_games_raw = self.game_manager.get_real_games()  # Only real games (without Proton on Linux)
-        visible_games = sorted([g for g in all_games_raw if not g.hidden], key=lambda g: g.sort_name.lower())
-        hidden_games = sorted([g for g in all_games_raw if g.hidden], key=lambda g: g.sort_name.lower())
-
-        # Favorites (sorted, non-hidden only)
-        favorites = sorted(
-            [g for g in self.game_manager.get_favorites() if not g.hidden], key=lambda g: g.sort_name.lower()
-        )
-
-        # Uncategorized games
-        uncategorized = sorted(
-            [g for g in self.game_manager.get_uncategorized_games() if not g.hidden], key=lambda g: g.sort_name.lower()
-        )
-
-        # Build categories_data in correct Steam order
-        from collections import OrderedDict
-
-        categories_data = OrderedDict()
-
-        # 1. All Games (always shown)
-        categories_data[t("ui.categories.all_games")] = visible_games
-
-        # 2. Favorites (only if non-empty)
-        if favorites:
-            categories_data[t("ui.categories.favorites")] = favorites
-
-        # 3. User categories (alphabetically sorted)
-        cats: dict[str, int] = self.game_manager.get_all_categories()
-
-        # Merge in parser-owned collections that GameManager cannot see.
-        # GameManager builds its list from game.categories only; an empty
-        # collection has no games so it never appears there.  The parser is
-        # the single source of truth for which collections actually exist.
-        active_parser = self.cloud_storage_parser or self.localconfig_helper
-        if active_parser:
-            for parser_cat in active_parser.get_all_categories():
-                if parser_cat not in cats:
-                    cats[parser_cat] = 0  # empty collection — count is zero
-
-        # Sort with German umlaut support: Ä→A, Ö→O, Ü→U
-        # Skip special categories (Favorites, Uncategorized, Hidden, All Games)
-        special_categories = {
-            t("ui.categories.favorites"),
-            t("ui.categories.uncategorized"),
-            t("ui.categories.hidden"),
-            t("ui.categories.all_games"),
-        }
-
-        for cat_name in sorted(cats.keys(), key=self._german_sort_key):
-            if cat_name not in special_categories:
-                cat_games: list[Game] = sorted(
-                    [g for g in self.game_manager.get_games_by_category(cat_name) if not g.hidden],
-                    key=lambda g: g.sort_name.lower(),
-                )
-                # Always add — empty collections must stay visible as "Name (0)"
-                categories_data[cat_name] = cat_games
-
-        # 4. Uncategorized (only if non-empty)
-        if uncategorized:
-            categories_data[t("ui.categories.uncategorized")] = uncategorized
-
-        # 5. Hidden (only if non-empty)
-        if hidden_games:
-            categories_data[t("ui.categories.hidden")] = hidden_games
-
-        # Identify dynamic collections (have filterSpec)
-        dynamic_collections = set()
-        if self.cloud_storage_parser:
-            for collection in self.cloud_storage_parser.collections:
-                if "filterSpec" in collection:
-                    dynamic_collections.add(collection["name"])
-
-        # Pass dynamic collections to tree
-        self.tree.populate_categories(categories_data, dynamic_collections)
+        self.category_populator.populate()
 
     def on_games_selected(self, games: list[Game]) -> None:
         """Handles multi-selection changes. Delegated to SelectionHandler."""
