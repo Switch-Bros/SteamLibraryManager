@@ -122,25 +122,27 @@ class Game:
 
 
 # List of App IDs that are NOT games (Proton, Steam Runtime, etc.)
-NON_GAME_APP_IDS: frozenset[str] = frozenset({
-    # Proton Versions
-    "1493710",  # Proton Experimental
-    "2348590",  # Proton 8.0
-    "2230260",  # Proton 7.0
-    "1887720",  # Proton 6.3
-    "1580130",  # Proton 5.13
-    "1420170",  # Proton 5.0
-    "1245040",  # Proton 4.11
-    "1113280",  # Proton 4.2
-    "961940",  # Proton 3.16
-    "930400",  # Proton 3.7
-    # Steam Linux Runtime
-    "1628350",  # Steam Linux Runtime 3.0 (sniper)
-    "1391110",  # Steam Linux Runtime 2.0 (soldier)
-    "1070560",  # Steam Linux Runtime 1.0 (scout)
-    # Steam Tools
-    "228980",  # Steamworks Common Redistributables
-})
+NON_GAME_APP_IDS: frozenset[str] = frozenset(
+    {
+        # Proton Versions
+        "1493710",  # Proton Experimental
+        "2348590",  # Proton 8.0
+        "2230260",  # Proton 7.0
+        "1887720",  # Proton 6.3
+        "1580130",  # Proton 5.13
+        "1420170",  # Proton 5.0
+        "1245040",  # Proton 4.11
+        "1113280",  # Proton 4.2
+        "961940",  # Proton 3.16
+        "930400",  # Proton 3.7
+        # Steam Linux Runtime
+        "1628350",  # Steam Linux Runtime 3.0 (sniper)
+        "1391110",  # Steam Linux Runtime 2.0 (soldier)
+        "1070560",  # Steam Linux Runtime 1.0 (scout)
+        # Steam Tools
+        "228980",  # Steamworks Common Redistributables
+    }
+)
 
 # List of name patterns for non-games
 NON_GAME_NAME_PATTERNS: tuple[str, ...] = (
