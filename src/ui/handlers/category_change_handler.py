@@ -22,6 +22,7 @@ from src.ui.handlers.empty_collection_handler import EmptyCollectionHandler
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
+
 class CategoryChangeHandler:
     """Handles category assignment changes from UI events.
 
@@ -33,13 +34,13 @@ class CategoryChangeHandler:
         mw: Back-reference to the owning MainWindow instance.
     """
 
-    def __init__(self, main_window: 'MainWindow') -> None:
+    def __init__(self, main_window: "MainWindow") -> None:
         """Initializes the category change handler.
 
         Args:
             main_window: The MainWindow instance that owns this handler.
         """
-        self.mw: 'MainWindow' = main_window
+        self.mw: "MainWindow" = main_window
         self.empty_handler = EmptyCollectionHandler(main_window)
 
     def apply_category_to_games(self, games: list[Game], category: str, checked: bool) -> None:
@@ -85,7 +86,7 @@ class CategoryChangeHandler:
             return
 
         # Prevent multiple refreshes during rapid checkbox events
-        if hasattr(self.mw, 'in_batch_update') and self.mw.in_batch_update:
+        if hasattr(self.mw, "in_batch_update") and self.mw.in_batch_update:
             # Just update data, skip UI refresh
             games_to_update = []
             if len(self.mw.selected_games) > 1:
@@ -146,7 +147,7 @@ class CategoryChangeHandler:
             self.mw.details_widget.set_game(self.mw.selected_games[0], all_categories)
 
         # Reset batch flag after 500ms to allow next batch
-        QTimer.singleShot(500, lambda: setattr(self.mw, 'in_batch_update', False))
+        QTimer.singleShot(500, lambda: setattr(self.mw, "in_batch_update", False))
 
     def on_games_dropped(self, games: list[Game], target_category: str) -> None:
         """Handles drag-and-drop of games onto a category.

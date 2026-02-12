@@ -1,0 +1,28 @@
+[flake8]
+max-line-length = 120
+extend-ignore =
+    # whitespace before ':' (conflicts with black)
+    E203,
+    # line break before binary operator (conflicts with black)
+    W503,
+    # multiple statements on one line (dataclass __post_init__, one-liners)
+    E701,
+    # blank line formatting (handled by black)
+    E302, E303, E305,
+    # trailing/blank line whitespace (handled by black)
+    W291, W292, W293,
+    # lambda assignment (used in config.py)
+    E731,
+    # module level import not at top (needed for sys.path setup)
+    E402,
+exclude =
+    .git,
+    __pycache__,
+    build,
+    dist,
+    .venv,
+    venv,
+    *.egg-info
+per-file-ignores =
+    __init__.py:F401
+    tests/*:E712

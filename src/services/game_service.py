@@ -3,6 +3,7 @@
 This module provides the GameService class which handles loading games from Steam API,
 initializing parsers, and managing game data.
 """
+
 from __future__ import annotations
 
 import logging
@@ -18,7 +19,8 @@ from src.core.appinfo_manager import AppInfoManager
 
 logger = logging.getLogger("steamlibmgr.game_service")
 
-__all__ = ['GameService']
+__all__ = ["GameService"]
+
 
 class GameService:
     """Service for managing game loading and initialization.
@@ -75,7 +77,7 @@ class GameService:
                 self.localconfig_helper = None
                 vdf_success = False
         except (OSError, FileNotFoundError, ValueError) as e:
-            logger.error(t('logs.service.localconfig_init_error', error=e))
+            logger.error(t("logs.service.localconfig_init_error", error=e))
             self.localconfig_helper = None
 
         # Try Cloud Storage parser
@@ -86,7 +88,7 @@ class GameService:
             else:
                 self.cloud_storage_parser = None
         except Exception as e:
-            logger.error(t('logs.service.cloud_parser_init_error', error=e))
+            logger.error(t("logs.service.cloud_parser_init_error", error=e))
             self.cloud_storage_parser = None
 
         return vdf_success, cloud_success
@@ -108,11 +110,7 @@ class GameService:
             raise RuntimeError("Parsers not initialized. Call initialize_parsers() first.")
 
         # Initialize GameManager with Path objects
-        self.game_manager = GameManager(
-            self.api_key,
-            Path(self.cache_dir),
-            Path(self.steam_path)
-        )
+        self.game_manager = GameManager(self.api_key, Path(self.cache_dir), Path(self.steam_path))
 
         # Load games
         success = self.game_manager.load_games(user_id, progress_callback)

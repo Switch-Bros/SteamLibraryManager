@@ -15,7 +15,7 @@ from src.ui.widgets.category_tree import GameTreeWidget
 from src.ui.widgets.clickable_image import ClickableImage
 
 __all__ = [
-    'UIHelper',
-    'GameTreeWidget',
-    'ClickableImage',
+    "UIHelper",
+    "GameTreeWidget",
+    "ClickableImage",
 ]

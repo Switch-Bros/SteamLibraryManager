@@ -23,7 +23,8 @@ from src.ui.main_window import MainWindow
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
 
-__all__ = ['main']
+__all__ = ["main"]
+
 
 def check_steam_running() -> bool:
     """Check if Steam is currently running using psutil.
@@ -33,20 +34,22 @@ def check_steam_running() -> bool:
     """
     try:
         import psutil
-        for proc in psutil.process_iter(['name']):
+
+        for proc in psutil.process_iter(["name"]):
             try:
-                proc_name = proc.info['name'].lower()
-                if proc_name in ['steam', 'steam.exe', 'steamwebhelper', 'steamwebhelper.exe']:
+                proc_name = proc.info["name"].lower()
+                if proc_name in ["steam", "steam.exe", "steamwebhelper", "steamwebhelper.exe"]:
                     return True
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
         return False
     except ImportError:
-        logger.warning(t('logs.main.psutil_missing'))
+        logger.warning(t("logs.main.psutil_missing"))
         return False
     except Exception as e:
-        logger.error(t('logs.main.steam_check_error', error=e))
+        logger.error(t("logs.main.steam_check_error", error=e))
         return False
+
 
 def load_steam_file(file_path: Path) -> Any:
     """Load a Steam file based on its extension/name (.acf or .vdf).
@@ -64,17 +67,18 @@ def load_steam_file(file_path: Path) -> Any:
     name = file_path.name.lower()
 
     try:
-        if ext == '.acf' or name == 'localconfig.vdf':
-            with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
+        if ext == ".acf" or name == "localconfig.vdf":
+            with open(file_path, "r", encoding="utf-8", errors="replace") as f:
                 return acf.load(f)
-        elif name == 'appinfo.vdf':
-            with open(file_path, 'rb') as f:
+        elif name == "appinfo.vdf":
+            with open(file_path, "rb") as f:
                 return appinfo.load(f)
     except Exception as e:
-        logger.error(t('logs.main.file_load_error', file=file_path.name, error=str(e)))
+        logger.error(t("logs.main.file_load_error", file=file_path.name, error=str(e)))
         return None
 
     return None
+
 
 def main() -> None:
     """Main application execution flow."""
@@ -92,25 +96,22 @@ def main() -> None:
     if check_steam_running():
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Icon.Warning)
-        msg.setWindowTitle(t('ui.dialogs.steam_running_title'))
-        msg.setText(t('ui.dialogs.steam_running_msg'))
+        msg.setWindowTitle(t("ui.dialogs.steam_running_title"))
+        msg.setText(t("ui.dialogs.steam_running_msg"))
 
-        exit_btn = msg.addButton(
-            t('common.exit'),
-            QMessageBox.ButtonRole.AcceptRole
-        )
+        exit_btn = msg.addButton(t("common.exit"), QMessageBox.ButtonRole.AcceptRole)
         exit_btn.setDefault(True)
 
         msg.exec()
 
-        logger.info(t('logs.main.steam_running_exit'))
+        logger.info(t("logs.main.steam_running_exit"))
         sys.exit(0)
 
     # 5. Check if user profile is configured
     if not config.STEAM_USER_ID:
         from src.ui.dialogs.profile_setup_dialog import ProfileSetupDialog
 
-        logger.info(t('logs.main.profile_setup_required'))
+        logger.info(t("logs.main.profile_setup_required"))
 
         dialog = ProfileSetupDialog(steam_path=config.STEAM_PATH)
         result = dialog.exec()
@@ -119,26 +120,26 @@ def main() -> None:
             config.STEAM_USER_ID = str(dialog.selected_steam_id_64)
             config.save()
 
-            logger.info(t('logs.main.profile_configured',
-                          name=dialog.selected_display_name,
-                          id=dialog.selected_steam_id_64))
+            logger.info(
+                t("logs.main.profile_configured", name=dialog.selected_display_name, id=dialog.selected_steam_id_64)
+            )
         else:
-            logger.info(t('logs.main.setup_cancelled'))
+            logger.info(t("logs.main.setup_cancelled"))
             sys.exit(0)
 
     # 6. Startup logs
     logger.info("=" * 60)
-    logger.info(t('app.name'))
+    logger.info(t("app.name"))
     logger.info("=" * 60)
 
-    logger.info(t('logs.main.initializing'))
+    logger.info(t("logs.main.initializing"))
 
     if config.STEAM_PATH:
-        logger.info(t('logs.main.steam_found', path=config.STEAM_PATH))
+        logger.info(t("logs.main.steam_found", path=config.STEAM_PATH))
     else:
-        logger.warning(t('logs.main.steam_not_found'))
+        logger.warning(t("logs.main.steam_not_found"))
 
-    logger.info(t('common.loading'))
+    logger.info(t("common.loading"))
 
     try:
         window = MainWindow()
@@ -147,9 +148,10 @@ def main() -> None:
         sys.exit(app.exec())
 
     except Exception as e:
-        logger.critical("%s: %s", t('common.error'), e)
+        logger.critical("%s: %s", t("common.error"), e)
         traceback.print_exc()
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

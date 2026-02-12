@@ -18,10 +18,10 @@ from src.config import config
 from src.utils.i18n import t
 
 
-
 logger = logging.getLogger("steamlibmgr.backup_manager")
 
-__all__ = ['BackupManager']
+__all__ = ["BackupManager"]
+
 
 class BackupManager:
     """
@@ -74,14 +74,14 @@ class BackupManager:
 
         try:
             shutil.copy2(file_path, backup_path)
-            logger.info(t('logs.backup.created', name=backup_name))
+            logger.info(t("logs.backup.created", name=backup_name))
 
             # Rotate old backups
             self._rotate_backups(file_path)
 
             return backup_path
         except OSError as backup_error:
-            logger.error(t('logs.backup.failed', error=str(backup_error)))
+            logger.error(t("logs.backup.failed", error=str(backup_error)))
             return None
 
     def _rotate_backups(self, file_path: Path):
@@ -100,12 +100,12 @@ class BackupManager:
         backups = sorted(glob.glob(pattern), key=os.path.getmtime, reverse=True)
 
         if len(backups) > config.MAX_BACKUPS:
-            for old in backups[config.MAX_BACKUPS:]:
+            for old in backups[config.MAX_BACKUPS :]:
                 try:
                     os.remove(old)
-                    logger.info(t('logs.backup.rotated', name=Path(old).name))
+                    logger.info(t("logs.backup.rotated", name=Path(old).name))
                 except OSError as delete_error:
-                    logger.error(t('logs.backup.delete_error', name=Path(old).name, error=str(delete_error)))
+                    logger.error(t("logs.backup.delete_error", name=Path(old).name, error=str(delete_error)))
 
     @staticmethod
     def create_rolling_backup(file_path: Path) -> str | None:

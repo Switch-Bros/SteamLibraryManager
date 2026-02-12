@@ -21,10 +21,10 @@ from src.config import config
 from src.utils.i18n import t
 
 
-
 logger = logging.getLogger("steamlibmgr.steam_assets")
 
-__all__ = ['SteamAssets']
+__all__ = ["SteamAssets"]
+
 
 class SteamAssets:
     """
@@ -50,7 +50,7 @@ class SteamAssets:
         if not short_id:
             raise ValueError("Steam user not detected")
 
-        grid_dir = config.STEAM_PATH / 'userdata' / short_id / 'config' / 'grid'
+        grid_dir = config.STEAM_PATH / "userdata" / short_id / "config" / "grid"
         grid_dir.mkdir(parents=True, exist_ok=True)
 
         return grid_dir
@@ -78,34 +78,34 @@ class SteamAssets:
 
         # Try to find local image in Steam user config
         if config.STEAM_PATH and short_id:
-            grid_dir = config.STEAM_PATH / 'userdata' / short_id / 'config' / 'grid'
+            grid_dir = config.STEAM_PATH / "userdata" / short_id / "config" / "grid"
 
             # Determine base filename based on asset type
             filename_base = ""
-            if asset_type == 'grids':
+            if asset_type == "grids":
                 filename_base = f"{app_id}p"  # Grid = <app_id>p
-            elif asset_type == 'heroes':
+            elif asset_type == "heroes":
                 filename_base = f"{app_id}_hero"
-            elif asset_type == 'logos':
+            elif asset_type == "logos":
                 filename_base = f"{app_id}_logo"
-            elif asset_type == 'icons':
+            elif asset_type == "icons":
                 filename_base = f"{app_id}_icon"
-            elif asset_type == 'capsules':
+            elif asset_type == "capsules":
                 filename_base = f"{app_id}"  # Horizontal grid (no suffix)
 
             if filename_base:
                 # Check all possible extensions
-                for ext in ['.png', '.jpg', '.jpeg', '.webp', '.gif']:
+                for ext in [".png", ".jpg", ".jpeg", ".webp", ".gif"]:
                     local_path = grid_dir / (filename_base + ext)
                     if local_path.exists():
                         return str(local_path)
 
         # Web Fallbacks (Standard Steam URLs)
-        if asset_type == 'grids':
+        if asset_type == "grids":
             return f"https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id}/library_600x900.jpg"
-        elif asset_type == 'heroes':
+        elif asset_type == "heroes":
             return f"https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id}/library_hero.jpg"
-        elif asset_type == 'logos':
+        elif asset_type == "logos":
             return f"https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id}/logo.png"
 
         return ""
@@ -132,42 +132,42 @@ class SteamAssets:
             grid_dir = SteamAssets.get_steam_grid_path()
 
             # Determine correct filename for Steam
-            if asset_type == 'grids':
+            if asset_type == "grids":
                 filename = f"{app_id}p.png"  # Grid = <app_id>p.png
-            elif asset_type == 'heroes':
+            elif asset_type == "heroes":
                 filename = f"{app_id}_hero.png"
-            elif asset_type == 'logos':
+            elif asset_type == "logos":
                 filename = f"{app_id}_logo.png"
-            elif asset_type == 'icons':
+            elif asset_type == "icons":
                 filename = f"{app_id}_icon.png"  # Icon (PNG for consistency)
-            elif asset_type == 'capsules':
+            elif asset_type == "capsules":
                 filename = f"{app_id}.png"  # Horizontal grid (Big Picture)
             else:
-                logger.info(t('logs.assets.unknown_type', type=asset_type))
+                logger.info(t("logs.assets.unknown_type", type=asset_type))
                 return False
 
             target_file = grid_dir / filename
 
             # Download URL
-            if str(url_or_path).startswith('http'):
-                headers = {'User-Agent': 'SteamLibraryManager/1.0'}
+            if str(url_or_path).startswith("http"):
+                headers = {"User-Agent": "SteamLibraryManager/1.0"}
                 response = requests.get(url_or_path, headers=headers, timeout=10)
                 if response.status_code == 200:
-                    with open(target_file, 'wb') as f:
+                    with open(target_file, "wb") as f:
                         f.write(response.content)
-                    logger.info(t('logs.steamgrid.saved', type=asset_type, app_id=app_id))
-                    logger.info(t('logs.assets.saved_to', path=target_file))
+                    logger.info(t("logs.steamgrid.saved", type=asset_type, app_id=app_id))
+                    logger.info(t("logs.assets.saved_to", path=target_file))
                     return True
 
             # Copy local file
             elif os.path.exists(url_or_path):
                 shutil.copy2(url_or_path, target_file)
-                logger.info(t('logs.steamgrid.saved', type=asset_type, app_id=app_id))
-                logger.info(t('logs.assets.saved_to', path=target_file))
+                logger.info(t("logs.steamgrid.saved", type=asset_type, app_id=app_id))
+                logger.info(t("logs.assets.saved_to", path=target_file))
                 return True
 
         except (OSError, requests.RequestException, ValueError) as e:
-            logger.error(t('logs.steamgrid.save_error', error=e))
+            logger.error(t("logs.steamgrid.save_error", error=e))
             return False
 
         return False
@@ -192,15 +192,15 @@ class SteamAssets:
             grid_dir = SteamAssets.get_steam_grid_path()
 
             # Determine correct filename
-            if asset_type == 'grids':
+            if asset_type == "grids":
                 filename = f"{app_id}p.png"
-            elif asset_type == 'heroes':
+            elif asset_type == "heroes":
                 filename = f"{app_id}_hero.png"
-            elif asset_type == 'logos':
+            elif asset_type == "logos":
                 filename = f"{app_id}_logo.png"
-            elif asset_type == 'icons':
+            elif asset_type == "icons":
                 filename = f"{app_id}_icon.png"  # Changed to .png
-            elif asset_type == 'capsules':
+            elif asset_type == "capsules":
                 filename = f"{app_id}.png"  # New: horizontal grid
             else:
                 return False
@@ -209,10 +209,10 @@ class SteamAssets:
 
             if target_file.exists():
                 os.remove(target_file)
-                logger.info(t('logs.steamgrid.deleted', path=target_file.name))
+                logger.info(t("logs.steamgrid.deleted", path=target_file.name))
                 return True
             # Return True even if file didn't exist (idempotent)
             return True
         except (OSError, ValueError) as e:
-            logger.error(t('logs.steamgrid.delete_error', error=e))
+            logger.error(t("logs.steamgrid.delete_error", error=e))
             return False

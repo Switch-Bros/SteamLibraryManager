@@ -16,16 +16,17 @@ from src.utils.i18n import t, init_i18n
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
+
 class SettingsActions:
     """Handles settings dialog and configuration changes."""
 
-    def __init__(self, main_window: 'MainWindow') -> None:
+    def __init__(self, main_window: "MainWindow") -> None:
         """Initialize SettingsActions.
 
         Args:
             main_window: The MainWindow instance.
         """
-        self.mw: 'MainWindow' = main_window
+        self.mw: "MainWindow" = main_window
 
     def show_settings(self) -> None:
         """Opens the settings dialog and applies changes."""
@@ -55,32 +56,32 @@ class SettingsActions:
             settings: Dictionary containing all settings values.
         """
         # Steam path
-        if 'steam_path' in settings and settings['steam_path']:
-            config.STEAM_PATH = settings['steam_path']
+        if "steam_path" in settings and settings["steam_path"]:
+            config.STEAM_PATH = settings["steam_path"]
 
         # User ID
-        if 'user_id' in settings and settings['user_id']:
-            config.USER_ID = settings['user_id']
+        if "user_id" in settings and settings["user_id"]:
+            config.USER_ID = settings["user_id"]
 
         # UI Language
-        if 'ui_language' in settings and settings['ui_language']:
-            new_lang = settings['ui_language']
+        if "ui_language" in settings and settings["ui_language"]:
+            new_lang = settings["ui_language"]
             if new_lang != config.UI_LANGUAGE:
                 config.UI_LANGUAGE = new_lang
                 init_i18n(new_lang)
                 self._refresh_ui()
 
         # Tags Language
-        if 'tags_language' in settings and settings['tags_language']:
-            config.TAGS_LANGUAGE = settings['tags_language']
+        if "tags_language" in settings and settings["tags_language"]:
+            config.TAGS_LANGUAGE = settings["tags_language"]
 
         # SteamGridDB API Key
-        if 'steamgriddb_api_key' in settings:
-            config.STEAMGRIDDB_API_KEY = settings['steamgriddb_api_key']
+        if "steamgriddb_api_key" in settings:
+            config.STEAMGRIDDB_API_KEY = settings["steamgriddb_api_key"]
 
         # Save config
         config.save()
-        self.mw.set_status(t('ui.settings.applied'))
+        self.mw.set_status(t("ui.settings.applied"))
 
     def _refresh_ui(self) -> None:
         """Refreshes UI after language change."""
@@ -88,5 +89,5 @@ class SettingsActions:
         self.mw.menu_builder.build(self.mw.menuBar())
         self.mw.user_label = self.mw.menu_builder.user_label
         self.mw.refresh_toolbar()
-        self.mw.setWindowTitle(t('ui.main_window.title'))
-        self.mw.set_status(t('ui.main_window.status_ready'))
+        self.mw.setWindowTitle(t("ui.main_window.title"))
+        self.mw.set_status(t("ui.main_window.status_ready"))

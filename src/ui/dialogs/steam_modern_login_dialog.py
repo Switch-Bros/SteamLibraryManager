@@ -14,9 +14,16 @@ Features:
 from __future__ import annotations
 
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
-    QLineEdit, QFrame, QWidget, QMessageBox,
-    QProgressBar
+    QDialog,
+    QVBoxLayout,
+    QHBoxLayout,
+    QPushButton,
+    QLabel,
+    QLineEdit,
+    QFrame,
+    QWidget,
+    QMessageBox,
+    QProgressBar,
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
@@ -27,6 +34,7 @@ from src.utils.i18n import t
 import logging
 
 logger = logging.getLogger("steamlibmgr.login_dialog")
+
 
 class ModernSteamLoginDialog(QDialog):
     """
@@ -64,7 +72,7 @@ class ModernSteamLoginDialog(QDialog):
 
     def _setup_ui(self):
         """Setup the complete UI."""
-        self.setWindowTitle(t('ui.login.steam_login_title'))
+        self.setWindowTitle(t("ui.login.steam_login_title"))
         self.setMinimumSize(800, 700)
         self.resize(800, 700)
 
@@ -82,16 +90,18 @@ class ModernSteamLoginDialog(QDialog):
         main_layout.addWidget(content, stretch=1)
 
         # Status bar
-        self.status_bar = QLabel(t('ui.login.status_ready'))
+        self.status_bar = QLabel(t("ui.login.status_ready"))
         self.status_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.status_bar.setStyleSheet("""
+        self.status_bar.setStyleSheet(
+            """
             QLabel {
                 background: #1b2838;
                 color: #c7d5e0;
                 padding: 10px;
                 border-top: 1px solid #16202d;
             }
-        """)
+        """
+        )
         main_layout.addWidget(self.status_bar)
 
         # Progress bar
@@ -107,7 +117,7 @@ class ModernSteamLoginDialog(QDialog):
         button_layout.setContentsMargins(20, 10, 20, 20)
         button_layout.addStretch()
 
-        self.cancel_btn = QPushButton(t('common.cancel'))
+        self.cancel_btn = QPushButton(t("common.cancel"))
         self.cancel_btn.setMinimumWidth(120)
         self.cancel_btn.clicked.connect(self.reject)
         button_layout.addWidget(self.cancel_btn)
@@ -115,7 +125,8 @@ class ModernSteamLoginDialog(QDialog):
         main_layout.addLayout(button_layout)
 
         # Apply dark Steam-like theme
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
             QDialog {
                 background: #1b2838;
             }
@@ -147,27 +158,30 @@ class ModernSteamLoginDialog(QDialog):
             QLineEdit:focus {
                 border: 1px solid #5c7e10;
             }
-        """)
+        """
+        )
 
     def _create_header(self) -> QWidget:  # noqa: Method can't be static (uses t())
         """Create header with logo and title."""
         header = QFrame()
         header.setFrameShape(QFrame.Shape.StyledPanel)
-        header.setStyleSheet("""
+        header.setStyleSheet(
+            """
             QFrame {
                 background: #171a21;
                 border-bottom: 2px solid #5c7e10;
             }
-        """)
+        """
+        )
 
         layout = QVBoxLayout(header)
         layout.setContentsMargins(20, 20, 20, 20)
 
-        title = QLabel(t('ui.login.sign_in_steam'))
+        title = QLabel(t("ui.login.sign_in_steam"))
         title.setStyleSheet("color: white; font-size: 24px; font-weight: bold;")
         layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        subtitle = QLabel(t('ui.login.choose_method'))
+        subtitle = QLabel(t("ui.login.choose_method"))
         subtitle.setStyleSheet("color: #c7d5e0; font-size: 14px;")
         layout.addWidget(subtitle, alignment=Qt.AlignmentFlag.AlignCenter)
 
@@ -205,7 +219,7 @@ class ModernSteamLoginDialog(QDialog):
         layout.setSpacing(20)
 
         # Title
-        title = QLabel(t('ui.login.password_method'))
+        title = QLabel(t("ui.login.password_method"))
         title.setStyleSheet("color: white; font-size: 18px; font-weight: bold;")
         layout.addWidget(title)
 
@@ -214,22 +228,22 @@ class ModernSteamLoginDialog(QDialog):
         login_layout.setSpacing(15)
 
         self.username_input = QLineEdit()
-        self.username_input.setPlaceholderText(t('ui.login.username'))
+        self.username_input.setPlaceholderText(t("ui.login.username"))
         login_layout.addWidget(self.username_input)
 
         self.password_input = QLineEdit()
-        self.password_input.setPlaceholderText(t('ui.login.password'))
+        self.password_input.setPlaceholderText(t("ui.login.password"))
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.password_input.returnPressed.connect(self.on_password_login)
         login_layout.addWidget(self.password_input)
 
-        self.pwd_login_btn = QPushButton(t('ui.login.sign_in'))
+        self.pwd_login_btn = QPushButton(t("ui.login.sign_in"))
         self.pwd_login_btn.setMinimumHeight(40)
         self.pwd_login_btn.clicked.connect(self.on_password_login)
         login_layout.addWidget(self.pwd_login_btn)
 
         # Info label for push notification
-        info_label = QLabel(t('ui.login.password_info'))
+        info_label = QLabel(t("ui.login.password_info"))
         info_label.setStyleSheet("color: #8f98a0; font-size: 11px;")
         info_label.setWordWrap(True)
         login_layout.addWidget(info_label)
@@ -248,12 +262,12 @@ class ModernSteamLoginDialog(QDialog):
         layout.setSpacing(20)
 
         # Title
-        title = QLabel(t('ui.login.qr_method'))
+        title = QLabel(t("ui.login.qr_method"))
         title.setStyleSheet("color: white; font-size: 18px; font-weight: bold;")
         layout.addWidget(title)
 
         # Instructions
-        instructions = QLabel(t('ui.login.qr_instructions'))
+        instructions = QLabel(t("ui.login.qr_instructions"))
         instructions.setStyleSheet("color: #c7d5e0;")
         instructions.setWordWrap(True)
         layout.addWidget(instructions)
@@ -261,20 +275,22 @@ class ModernSteamLoginDialog(QDialog):
         # QR Code
         self.qr_label = QLabel()
         self.qr_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.qr_label.setStyleSheet("""
+        self.qr_label.setStyleSheet(
+            """
             QLabel {
                 background: white;
                 border: 2px solid #5c7e10;
                 border-radius: 5px;
                 padding: 20px;
             }
-        """)
+        """
+        )
         self.qr_label.setMinimumSize(300, 300)
-        self.qr_label.setText(t('ui.login.generating_qr'))
+        self.qr_label.setText(t("ui.login.generating_qr"))
         layout.addWidget(self.qr_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Hint
-        hint = QLabel(t('ui.login.qr_hint'))
+        hint = QLabel(t("ui.login.qr_hint"))
         hint.setStyleSheet("color: #8f98a0; font-size: 12px;")
         hint.setWordWrap(True)
         hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -291,7 +307,7 @@ class ModernSteamLoginDialog(QDialog):
         self.login_manager.qr_ready.connect(self.on_qr_ready)
         self.login_manager.status_update.connect(self.on_status_update)
         # NEW: Mobile approval waiting signal (for password login)
-        if hasattr(self.login_manager, 'waiting_for_approval'):
+        if hasattr(self.login_manager, "waiting_for_approval"):
             self.login_manager.waiting_for_approval.connect(self.on_waiting_for_approval)
 
     def start_qr_login(self):
@@ -305,7 +321,7 @@ class ModernSteamLoginDialog(QDialog):
         password = self.password_input.text()
 
         if not username or not password:
-            self.on_status_update(t('ui.login.enter_credentials'))
+            self.on_status_update(t("ui.login.enter_credentials"))
             return
 
         self.show_progress()
@@ -322,7 +338,7 @@ class ModernSteamLoginDialog(QDialog):
         self.hide_progress()
 
         # Get SteamID64 (may be string or int)
-        steam_id_value = result.get('steam_id') or result.get('steamid')
+        steam_id_value = result.get("steam_id") or result.get("steamid")
 
         if steam_id_value:
             try:
@@ -331,11 +347,12 @@ class ModernSteamLoginDialog(QDialog):
 
                 # Fetch proper display name from Steam Community API
                 from src.core.steam_account_scanner import fetch_steam_display_name
+
                 self.display_name = fetch_steam_display_name(self.steam_id_64)
 
             except (ValueError, TypeError) as e:
                 # Conversion failed - set to None
-                logger.error(t('logs.auth.steamid_conversion_error', value=steam_id_value, error=e))
+                logger.error(t("logs.auth.steamid_conversion_error", value=steam_id_value, error=e))
                 self.steam_id_64 = None
                 self.display_name = None
         else:
@@ -343,7 +360,7 @@ class ModernSteamLoginDialog(QDialog):
             self.steam_id_64 = None
             self.display_name = None
 
-        self.on_status_update(t('ui.login.status_success'))
+        self.on_status_update(t("ui.login.status_success"))
         self.login_success.emit(result)
         self.accept()
 
@@ -351,7 +368,7 @@ class ModernSteamLoginDialog(QDialog):
         """Handle login error."""
         self.hide_progress()
         self.pwd_login_btn.setEnabled(True)
-        QMessageBox.critical(self, t('common.error'), error)
+        QMessageBox.critical(self, t("common.error"), error)
 
     def on_status_update(self, message: str):
         """Update status bar."""
@@ -362,11 +379,7 @@ class ModernSteamLoginDialog(QDialog):
         self.hide_progress()
         self.on_status_update(message)
         # Show message in password section
-        QMessageBox.information(
-            self,
-            t('ui.login.waiting_approval_title'),
-            message
-        )
+        QMessageBox.information(self, t("ui.login.waiting_approval_title"), message)
 
     def load_qr_image(self, challenge_url: str):
         """Generate and display QR code from Steam challenge URL with optional logo."""
@@ -386,7 +399,7 @@ class ModernSteamLoginDialog(QDialog):
             qr.make(fit=True)
 
             # Create high-quality image
-            img = qr.make_image(fill_color="black", back_color="white").convert('RGB')
+            img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
 
             # OPTIONAL: Add "SLM" logo in center (if space allows)
             try:
@@ -396,11 +409,11 @@ class ModernSteamLoginDialog(QDialog):
                 logo_pos = ((img_width - logo_size) // 2, (img_height - logo_size) // 2)
 
                 # Create logo: white rounded square with "SLM" text
-                logo = Image.new('RGB', (logo_size, logo_size), 'white')
+                logo = Image.new("RGB", (logo_size, logo_size), "white")
                 draw = ImageDraw.Draw(logo)
 
                 # Draw black border
-                draw.rectangle([0, 0, logo_size - 1, logo_size - 1], outline='black', width=3)
+                draw.rectangle([0, 0, logo_size - 1, logo_size - 1], outline="black", width=3)
 
                 # Try to use a font, fallback to default if not available
                 try:
@@ -419,34 +432,29 @@ class ModernSteamLoginDialog(QDialog):
                 # Center text with slight vertical adjustment for better balance
                 text_x = (logo_size - text_width) // 2
                 text_y = (logo_size - text_height) // 2 - 2  # Slight upward shift
-                draw.text((text_x, text_y), text, fill='black', font=font)
+                draw.text((text_x, text_y), text, fill="black", font=font)
 
                 # Paste logo onto QR code
                 img.paste(logo, logo_pos)
             except Exception as logo_error:
                 # If logo fails, continue without it (QR code still works)
-                logger.error(t('logs.auth.qr_logo_error', error=logo_error))
+                logger.error(t("logs.auth.qr_logo_error", error=logo_error))
 
             # Convert to QPixmap
             buffer = BytesIO()
-            img.save(buffer, format='PNG')
+            img.save(buffer, format="PNG")
             buffer.seek(0)
 
             pixmap = QPixmap()
             pixmap.loadFromData(buffer.read())
 
             # Scale to display size (smooth scaling for better quality)
-            self.qr_label.setPixmap(pixmap.scaled(
-                300, 300,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation
-            ))
+            self.qr_label.setPixmap(
+                pixmap.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            )
 
         except ImportError:
-            self.qr_label.setText(
-                "QR Code generation requires 'qrcode' package\n\n"
-                "Install: pip install qrcode[pil]"
-            )
+            self.qr_label.setText("QR Code generation requires 'qrcode' package\n\n" "Install: pip install qrcode[pil]")
         except Exception as e:
             self.qr_label.setText(f"Failed to generate QR code: {e}")
 

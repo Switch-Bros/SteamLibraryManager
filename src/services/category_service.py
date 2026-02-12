@@ -16,7 +16,8 @@ from src.core.game_manager import GameManager
 from src.utils.i18n import t
 
 
-__all__ = ['CategoryService']
+__all__ = ["CategoryService"]
+
 
 class CategoryService:
     """
@@ -26,10 +27,12 @@ class CategoryService:
     providing a unified interface for category management.
     """
 
-    def __init__(self,
-                 localconfig_helper: LocalConfigHelper | None,
-                 cloud_parser: CloudStorageParser | None,
-                 game_manager: GameManager):
+    def __init__(
+        self,
+        localconfig_helper: LocalConfigHelper | None,
+        cloud_parser: CloudStorageParser | None,
+        game_manager: GameManager,
+    ):
         """
         Initialize the CategoryService.
 
@@ -71,7 +74,7 @@ class CategoryService:
 
         # Check if new name already exists
         if new_name in parser.get_all_categories():
-            raise ValueError(t('ui.main_window.collection_exists', name=new_name))
+            raise ValueError(t("ui.main_window.collection_exists", name=new_name))
 
         # Rename in parser
         parser.rename_category(old_name, new_name)
@@ -144,15 +147,16 @@ class CategoryService:
             bool: True if collection was deleted, False otherwise
         """
         from PyQt6.QtWidgets import QMessageBox
+
         games_in_category = self.game_manager.get_games_by_category(category_name)
 
         if len(games_in_category) == 0:
             # Show dialog
             reply = QMessageBox.question(
                 parent_window,
-                t('ui.dialog.empty_collection_title'),
-                t('ui.dialog.empty_collection_message', name=category_name),
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                t("ui.dialog.empty_collection_title"),
+                t("ui.dialog.empty_collection_message", name=category_name),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
 
             if reply == QMessageBox.StandardButton.Yes:
@@ -221,7 +225,7 @@ class CategoryService:
 
         # Check if collection already exists
         if name in parser.get_all_categories():
-            raise ValueError(t('ui.main_window.collection_exists', name=name))
+            raise ValueError(t("ui.main_window.collection_exists", name=name))
 
         # Create# Delegate to a dedicated method — add_app_category("") would crash
         # because cloud_storage_parser does int(app_id) internally.
@@ -242,7 +246,7 @@ class CategoryService:
             RuntimeError: If cloud storage is not available
         """
         if not self.cloud_parser:
-            raise RuntimeError(t('ui.main_window.cloud_storage_only'))
+            raise RuntimeError(t("ui.main_window.cloud_storage_only"))
 
         # Remove duplicates using cloud_parser's method
         removed = self.cloud_parser.remove_duplicate_collections()

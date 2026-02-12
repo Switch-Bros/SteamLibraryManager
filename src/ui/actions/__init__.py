@@ -19,11 +19,11 @@ from src.ui.actions.settings_actions import SettingsActions
 
 # Export public classes
 __all__ = [
-    'FileActions',
-    'EditActions',
-    'ViewActions',
-    'ToolsActions',
-    'SteamActions',
-    'GameActions',
-    'SettingsActions',
+    "FileActions",
+    "EditActions",
+    "ViewActions",
+    "ToolsActions",
+    "SteamActions",
+    "GameActions",
+    "SettingsActions",
 ]

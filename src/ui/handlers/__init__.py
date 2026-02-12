@@ -14,9 +14,9 @@ from src.ui.handlers.data_load_handler import DataLoadHandler
 from src.ui.handlers.empty_collection_handler import EmptyCollectionHandler
 
 __all__ = [
-    'CategoryActionHandler',
-    'SelectionHandler',
-    'CategoryChangeHandler',
-    'DataLoadHandler',
-    'EmptyCollectionHandler',
+    "CategoryActionHandler",
+    "SelectionHandler",
+    "CategoryChangeHandler",
+    "DataLoadHandler",
+    "EmptyCollectionHandler",
 ]

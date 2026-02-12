@@ -3,7 +3,8 @@ from __future__ import annotations
 import re
 from src.core.game_manager import Game
 
-__all__ = ['SearchService']
+__all__ = ["SearchService"]
+
 
 class SearchService:
     """Service handling complex game search logic including Regex support."""
@@ -27,10 +28,7 @@ class SearchService:
 
         # Simple case-insensitive substring search
         # This can be expanded later to support Regex or Tags (e.g. "tag:RPG")
-        return [
-            g for g in games
-            if query.lower() in g.name.lower()
-        ]
+        return [g for g in games if query.lower() in g.name.lower()]
 
     @staticmethod
     def validate_regex(pattern: str) -> bool:

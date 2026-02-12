@@ -7,6 +7,7 @@ Tests cover:
 - Finding games with missing metadata
 - Restoring metadata modifications
 """
+
 import pytest
 from unittest.mock import Mock
 
@@ -34,26 +35,14 @@ def mock_game_manager():
     manager = Mock(spec=GameManager)
 
     # Create sample games
-    game1 = Game(
-        app_id="1",
-        name="Test Game 1",
-        developer="Dev 1",
-        publisher="Pub 1",
-        release_year="2020"
-    )
-    game2 = Game(
-        app_id="2",
-        name="Test Game 2",
-        developer="Dev 2",
-        publisher="Pub 2",
-        release_year="2021"
-    )
+    game1 = Game(app_id="1", name="Test Game 1", developer="Dev 1", publisher="Pub 1", release_year="2020")
+    game2 = Game(app_id="2", name="Test Game 2", developer="Dev 2", publisher="Pub 2", release_year="2021")
     game3 = Game(
         app_id="3",
         name="Test Game 3",
         developer="",  # Missing developer
         publisher="Pub 3",
-        release_year=""  # Missing release year
+        release_year="",  # Missing release year
     )
 
     manager.get_real_games = Mock(return_value=[game1, game2, game3])
@@ -74,39 +63,33 @@ class TestMetadataService:
     def test_get_game_metadata_with_defaults(self, metadata_service, mock_appinfo_manager):
         """Test getting metadata with defaults from game object."""
         # Setup
-        mock_appinfo_manager.get_app_metadata.return_value = {'name': 'Original Name'}
-        game = Game(
-            app_id="1",
-            name="Test Game",
-            developer="Test Dev",
-            publisher="Test Pub",
-            release_year="2020"
-        )
+        mock_appinfo_manager.get_app_metadata.return_value = {"name": "Original Name"}
+        game = Game(app_id="1", name="Test Game", developer="Test Dev", publisher="Test Pub", release_year="2020")
 
         # Execute
         result = metadata_service.get_game_metadata("1", game)
 
         # Assert
-        assert result['name'] == 'Original Name'  # From appinfo
-        assert result['developer'] == 'Test Dev'  # From game (default)
-        assert result['publisher'] == 'Test Pub'  # From game (default)
-        assert result['release_date'] == '2020'  # From game (default)
+        assert result["name"] == "Original Name"  # From appinfo
+        assert result["developer"] == "Test Dev"  # From game (default)
+        assert result["publisher"] == "Test Pub"  # From game (default)
+        assert result["release_date"] == "2020"  # From game (default)
 
     def test_get_game_metadata_no_defaults(self, metadata_service, mock_appinfo_manager):
         """Test getting metadata without game object."""
         # Setup
-        mock_appinfo_manager.get_app_metadata.return_value = {'name': 'Test', 'developer': 'Dev'}
+        mock_appinfo_manager.get_app_metadata.return_value = {"name": "Test", "developer": "Dev"}
 
         # Execute
         result = metadata_service.get_game_metadata("1")
 
         # Assert
-        assert result == {'name': 'Test', 'developer': 'Dev'}
+        assert result == {"name": "Test", "developer": "Dev"}
 
     def test_set_game_metadata(self, metadata_service, mock_appinfo_manager):
         """Test setting metadata for a single game."""
         # Setup
-        metadata = {'name': 'New Name', 'developer': 'New Dev'}
+        metadata = {"name": "New Name", "developer": "New Dev"}
 
         # Execute
         metadata_service.set_game_metadata("1", metadata)
@@ -118,11 +101,7 @@ class TestMetadataService:
     def test_get_original_metadata(self, metadata_service, mock_appinfo_manager):
         """Test getting original unmodified metadata."""
         # Setup
-        mock_appinfo_manager.modifications = {
-            "1": {
-                "original": {"name": "Original", "developer": "Original Dev"}
-            }
-        }
+        mock_appinfo_manager.modifications = {"1": {"original": {"name": "Original", "developer": "Original Dev"}}}
 
         # Execute
         result = metadata_service.get_original_metadata("1")
@@ -147,12 +126,8 @@ class TestMetadataService:
     def test_apply_bulk_metadata_simple(self, metadata_service, mock_appinfo_manager):
         """Test applying metadata to multiple games without name modifications."""
         # Setup
-        games = [
-            Game(app_id="1", name="Game 1"),
-            Game(app_id="2", name="Game 2"),
-            Game(app_id="3", name="Game 3")
-        ]
-        metadata = {'developer': 'Bulk Dev', 'publisher': 'Bulk Pub'}
+        games = [Game(app_id="1", name="Game 1"), Game(app_id="2", name="Game 2"), Game(app_id="3", name="Game 3")]
+        metadata = {"developer": "Bulk Dev", "publisher": "Bulk Pub"}
 
         # Execute
         count = metadata_service.apply_bulk_metadata(games, metadata)
@@ -166,8 +141,8 @@ class TestMetadataService:
         """Test applying metadata with name modifications."""
         # Setup
         games = [Game(app_id="1", name="Game")]
-        metadata = {'developer': 'Dev'}
-        name_mods = {'prefix': '[TEST] ', 'suffix': ' (2024)', 'remove': 'Game'}
+        metadata = {"developer": "Dev"}
+        name_mods = {"prefix": "[TEST] ", "suffix": " (2024)", "remove": "Game"}
 
         # Execute
         count = metadata_service.apply_bulk_metadata(games, metadata, name_mods)
@@ -177,13 +152,13 @@ class TestMetadataService:
         # Check that set_app_metadata was called with modified name
         call_args = mock_appinfo_manager.set_app_metadata.call_args[0]
         assert call_args[0] == "1"
-        assert call_args[1]['name'] == '[TEST]  (2024)'  # "Game" removed, prefix/suffix added
-        assert call_args[1]['developer'] == 'Dev'
+        assert call_args[1]["name"] == "[TEST]  (2024)"  # "Game" removed, prefix/suffix added
+        assert call_args[1]["developer"] == "Dev"
 
     def test_apply_bulk_metadata_empty_list(self, metadata_service):
         """Test applying metadata to empty game list."""
         # Execute
-        count = metadata_service.apply_bulk_metadata([], {'developer': 'Dev'})
+        count = metadata_service.apply_bulk_metadata([], {"developer": "Dev"})
 
         # Assert
         assert count == 0
@@ -193,37 +168,36 @@ class TestMetadataService:
     def test_apply_name_modifications_prefix(self, metadata_service):
         """Test applying prefix modification."""
         # Execute
-        result = metadata_service._apply_name_modifications("Game", {'prefix': '[TEST] '})
+        result = metadata_service._apply_name_modifications("Game", {"prefix": "[TEST] "})
 
         # Assert
-        assert result == '[TEST] Game'
+        assert result == "[TEST] Game"
 
     def test_apply_name_modifications_suffix(self, metadata_service):
         """Test applying suffix modification."""
         # Execute
-        result = metadata_service._apply_name_modifications("Game", {'suffix': ' (2024)'})
+        result = metadata_service._apply_name_modifications("Game", {"suffix": " (2024)"})
 
         # Assert
-        assert result == 'Game (2024)'
+        assert result == "Game (2024)"
 
     def test_apply_name_modifications_remove(self, metadata_service):
         """Test applying remove modification."""
         # Execute
-        result = metadata_service._apply_name_modifications("Test Game Demo", {'remove': ' Demo'})
+        result = metadata_service._apply_name_modifications("Test Game Demo", {"remove": " Demo"})
 
         # Assert
-        assert result == 'Test Game'
+        assert result == "Test Game"
 
     def test_apply_name_modifications_all(self, metadata_service):
         """Test applying all modifications combined."""
         # Execute
         result = metadata_service._apply_name_modifications(
-            "Game Demo",
-            {'prefix': '[TEST] ', 'suffix': ' (2024)', 'remove': ' Demo'}
+            "Game Demo", {"prefix": "[TEST] ", "suffix": " (2024)", "remove": " Demo"}
         )
 
         # Assert
-        assert result == '[TEST] Game (2024)'
+        assert result == "[TEST] Game (2024)"
 
     # === MISSING METADATA ===
 

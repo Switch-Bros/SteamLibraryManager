@@ -19,6 +19,7 @@ from src.utils.i18n import t
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
+
 class StatusbarBuilder:
     """Constructs the application status bar with its permanent widgets.
 
@@ -31,13 +32,13 @@ class StatusbarBuilder:
         reload_btn: Permanent right-side button; hidden until an error occurs.
     """
 
-    def __init__(self, main_window: 'MainWindow') -> None:
+    def __init__(self, main_window: "MainWindow") -> None:
         """Initializes the StatusbarBuilder.
 
         Args:
             main_window: The MainWindow instance that owns the status bar.
         """
-        self.main_window: 'MainWindow' = main_window
+        self.main_window: "MainWindow" = main_window
 
         # These are created in build() but declared here for type-checkers
         self.stats_label: QLabel = QLabel("")
@@ -66,11 +67,11 @@ class StatusbarBuilder:
         statusbar.addPermanentWidget(self.stats_label, 1)
 
         # --- Reload button (right, permanent, hidden until needed) ---
-        self.reload_btn = QPushButton(t('ui.menu.file.refresh'))
+        self.reload_btn = QPushButton(t("ui.menu.file.refresh"))
         self.reload_btn.clicked.connect(mw.file_actions.refresh_data)
         self.reload_btn.setMaximumWidth(150)
         self.reload_btn.hide()  # Only shown on load failure
         statusbar.addPermanentWidget(self.reload_btn)
 
         # Set initial status message
-        statusbar.showMessage(t('ui.main_window.status_ready'))
+        statusbar.showMessage(t("ui.main_window.status_ready"))

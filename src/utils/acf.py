@@ -11,10 +11,11 @@ from __future__ import annotations
 
 from typing import Any
 
-__all__ = ('load', 'loads', 'dump', 'dumps')
+__all__ = ("load", "loads", "dump", "dumps")
 
-SECTION_START = '{'
-SECTION_END = '}'
+SECTION_START = "{"
+SECTION_END = "}"
+
 
 def loads(data: str, wrapper=dict) -> dict[str, Any]:
     """
@@ -31,7 +32,7 @@ def loads(data: str, wrapper=dict) -> dict[str, Any]:
         TypeError: If data is not a string.
     """
     if not isinstance(data, str):
-        raise TypeError(f'Can only load str, got {type(data).__name__}')
+        raise TypeError(f"Can only load str, got {type(data).__name__}")
 
     parsed = wrapper()
     current_section = parsed
@@ -43,7 +44,8 @@ def loads(data: str, wrapper=dict) -> dict[str, Any]:
             current_section = _prepare_subsection(parsed, sections, wrapper)
             continue
         if line == SECTION_END:
-            if sections: sections.pop()
+            if sections:
+                sections.pop()
             continue
 
         try:
@@ -60,6 +62,7 @@ def loads(data: str, wrapper=dict) -> dict[str, Any]:
             continue
     return parsed
 
+
 def load(fp, wrapper=dict) -> dict[str, Any]:
     """
     Parses an ACF file into a dictionary.
@@ -73,6 +76,7 @@ def load(fp, wrapper=dict) -> dict[str, Any]:
     """
     return loads(fp.read(), wrapper=wrapper)
 
+
 def dumps(obj: dict, level: int = 0) -> str:
     """
     Serializes a dictionary into an ACF-formatted string.
@@ -85,15 +89,16 @@ def dumps(obj: dict, level: int = 0) -> str:
         str: The ACF-formatted string.
     """
     lines = []
-    indent = '\t' * level
+    indent = "\t" * level
     for key, value in obj.items():
         if isinstance(value, dict):
             lines.append(f'{indent}"{key}"\n{indent}{{')
             lines.append(dumps(value, level + 1).rstrip())
-            lines.append(f'{indent}}}')
+            lines.append(f"{indent}}}")
         else:
             lines.append(f'{indent}"{key}"\t\t"{value}"')
-    return '\n'.join(lines) + '\n'
+    return "\n".join(lines) + "\n"
+
 
 def dump(obj: dict, fp):
     """
@@ -104,6 +109,7 @@ def dump(obj: dict, fp):
         fp: A file-like object opened in text mode for writing.
     """
     fp.write(dumps(obj))
+
 
 def _prepare_subsection(data, sections, wrapper) -> dict[str, Any]:
     """

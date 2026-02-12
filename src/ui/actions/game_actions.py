@@ -23,6 +23,7 @@ from src.utils.i18n import t
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
+
 class GameActions:
     """Handles all game-specific actions from the context menu.
 
@@ -34,13 +35,13 @@ class GameActions:
         mw: Back-reference to the owning MainWindow instance.
     """
 
-    def __init__(self, main_window: 'MainWindow') -> None:
+    def __init__(self, main_window: "MainWindow") -> None:
         """Initializes the GameActions handler.
 
         Args:
             main_window: The MainWindow instance that owns these actions.
         """
-        self.mw: 'MainWindow' = main_window
+        self.mw: "MainWindow" = main_window
 
     # ------------------------------------------------------------------
     # Public API - Game Actions
@@ -52,7 +53,7 @@ class GameActions:
         Adds or removes the game from the special 'favorites' collection.
         Favorites are stored in cloud-storage-namespace-1.json as:
         "user-collections.favorite" (like Depressurizer does it!)
-        
+
         Changes are immediately saved and the UI is refreshed.
 
         Args:
@@ -62,7 +63,7 @@ class GameActions:
         if not self.mw.cloud_storage_parser:
             return
 
-        favorites_key = t('ui.categories.favorites')
+        favorites_key = t("ui.categories.favorites")
 
         if game.is_favorite():
             # Remove from favorites
@@ -88,7 +89,7 @@ class GameActions:
 
         Hidden games are stored in cloud-storage-namespace-1.json as:
         "user-collections.hidden" (like Depressurizer does it!)
-        
+
         Hidden games are excluded from normal category listings and shown
         only in the "Hidden" category.
 
@@ -98,9 +99,9 @@ class GameActions:
         """
         if not self.mw.cloud_storage_parser:
             return
-        
-        hidden_key = t('ui.categories.hidden')
-        
+
+        hidden_key = t("ui.categories.hidden")
+
         if hide:
             # Add to hidden collection
             if hidden_key not in game.categories:
@@ -122,11 +123,11 @@ class GameActions:
             # noinspection PyProtectedMember
             self.mw._populate_categories()
 
-            status_word = t('ui.visibility.hidden') if hide else t('ui.visibility.visible')
+            status_word = t("ui.visibility.hidden") if hide else t("ui.visibility.visible")
             self.mw.set_status(f"{status_word}: {game.name}")
 
-            msg = t('ui.visibility.message', game=game.name, status=status_word)
-            UIHelper.show_success(self.mw, msg, t('ui.visibility.title'))
+            msg = t("ui.visibility.message", game=game.name, status=status_word)
+            UIHelper.show_success(self.mw, msg, t("ui.visibility.title"))
 
     @staticmethod
     def open_in_store(game: Game) -> None:
@@ -138,6 +139,7 @@ class GameActions:
             game: The game to view in the store.
         """
         import webbrowser
+
         webbrowser.open(f"https://store.steampowered.com/app/{game.app_id}")
 
     def remove_from_local_config(self, game: Game) -> None:
@@ -151,9 +153,7 @@ class GameActions:
             game: The game to remove from the local configuration.
         """
         if not UIHelper.confirm(
-                self.mw,
-                t('ui.dialogs.remove_local_warning', game=game.name),
-                t('ui.dialogs.remove_local_title')
+            self.mw, t("ui.dialogs.remove_local_warning", game=game.name), t("ui.dialogs.remove_local_title")
         ):
             return
 
@@ -172,12 +172,10 @@ class GameActions:
                 self.mw._populate_categories()
 
                 UIHelper.show_success(
-                    self.mw,
-                    t('ui.dialogs.remove_local_success', game=game.name),
-                    t('common.success')
+                    self.mw, t("ui.dialogs.remove_local_success", game=game.name), t("common.success")
                 )
             else:
-                UIHelper.show_error(self.mw, t('ui.dialogs.remove_local_error'))
+                UIHelper.show_error(self.mw, t("ui.dialogs.remove_local_error"))
 
     def remove_game_from_account(self, game: Game) -> None:
         """Redirects the user to Steam Support to remove a game from their account.
@@ -189,11 +187,12 @@ class GameActions:
             game: The game to remove from the account.
         """
         if UIHelper.confirm(
-                self.mw,
-                f"{t('emoji.warning')} {t('ui.dialogs.remove_account_warning')}",
-                t('ui.dialogs.remove_account_title')
+            self.mw,
+            f"{t('emoji.warning')} {t('ui.dialogs.remove_account_warning')}",
+            t("ui.dialogs.remove_account_title"),
         ):
             import webbrowser
+
             # Steam Support URL for removing a game (issueid 123 is "remove from account")
             url = f"https://help.steampowered.com/en/wizard/HelpWithGameIssue/?appid={game.app_id}&issueid=123"
             webbrowser.open(url)

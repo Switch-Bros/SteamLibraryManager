@@ -10,6 +10,7 @@ This service handles all metadata-related operations including:
 The service acts as a bridge between the UI and AppInfoManager,
 providing a clean API for metadata operations.
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -17,7 +18,8 @@ from typing import Any
 from src.core.game_manager import Game, GameManager
 from src.core.appinfo_manager import AppInfoManager
 
-__all__ = ['MetadataService']
+__all__ = ["MetadataService"]
+
 
 class MetadataService:
     """Service for managing game metadata operations."""
@@ -51,10 +53,10 @@ class MetadataService:
         # Fill defaults from game object if provided
         if game:
             defaults = {
-                'name': game.name,
-                'developer': game.developer,
-                'publisher': game.publisher,
-                'release_date': game.release_year
+                "name": game.name,
+                "developer": game.developer,
+                "publisher": game.publisher,
+                "release_date": game.release_year,
             }
             for key, val in defaults.items():
                 if not meta.get(key):
@@ -85,7 +87,7 @@ class MetadataService:
             Original metadata or fallback if not modified.
         """
         modifications = self.appinfo_manager.modifications.get(app_id, {})
-        original = modifications.get('original', {})
+        original = modifications.get("original", {})
 
         if not original and fallback:
             return fallback.copy()
@@ -95,10 +97,7 @@ class MetadataService:
     # === BULK METADATA ===
 
     def apply_bulk_metadata(
-            self,
-            games: list[Game],
-            metadata: dict[str, Any],
-            name_modifications: dict[str, str] | None = None
+        self, games: list[Game], metadata: dict[str, Any], name_modifications: dict[str, str] | None = None
     ) -> int:
         """
         Apply metadata changes to multiple games.
@@ -125,7 +124,7 @@ class MetadataService:
             # Create metadata dict for this game
             meta = metadata.copy()
             if new_name != game.name:
-                meta['name'] = new_name
+                meta["name"] = new_name
 
             # Set metadata
             self.appinfo_manager.set_app_metadata(game.app_id, meta)
@@ -151,16 +150,16 @@ class MetadataService:
         result = name
 
         # Apply prefix
-        if mods.get('prefix'):
-            result = mods['prefix'] + result
+        if mods.get("prefix"):
+            result = mods["prefix"] + result
 
         # Apply suffix
-        if mods.get('suffix'):
-            result = result + mods['suffix']
+        if mods.get("suffix"):
+            result = result + mods["suffix"]
 
         # Apply remove
-        if mods.get('remove'):
-            result = result.replace(mods['remove'], '')
+        if mods.get("remove"):
+            result = result.replace(mods["remove"], "")
 
         return result
 

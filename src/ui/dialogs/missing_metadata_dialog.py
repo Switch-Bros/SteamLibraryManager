@@ -10,8 +10,16 @@ the list to a CSV file.
 from __future__ import annotations
 
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
-    QPushButton, QLabel, QFileDialog, QMessageBox, QHeaderView
+    QDialog,
+    QVBoxLayout,
+    QHBoxLayout,
+    QTableWidget,
+    QTableWidgetItem,
+    QPushButton,
+    QLabel,
+    QFileDialog,
+    QMessageBox,
+    QHeaderView,
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
@@ -20,6 +28,7 @@ import csv
 from src.utils.date_utils import format_timestamp_to_date
 from src.core.game_manager import Game
 from src.utils.i18n import t
+
 
 class MissingMetadataDialog(QDialog):
     """
@@ -46,7 +55,7 @@ class MissingMetadataDialog(QDialog):
         super().__init__(parent)
         self.games = games
 
-        self.setWindowTitle(t('ui.tools.missing_metadata.title'))
+        self.setWindowTitle(t("ui.tools.missing_metadata.title"))
         self.setMinimumSize(900, 600)
         self.setModal(True)
 
@@ -78,12 +87,12 @@ class MissingMetadataDialog(QDialog):
         layout = QVBoxLayout(self)
 
         # Header
-        header = QLabel(t('ui.tools.missing_metadata.header', count=len(self.games)))
+        header = QLabel(t("ui.tools.missing_metadata.header", count=len(self.games)))
         header.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         layout.addWidget(header)
 
         # Info Text
-        info = QLabel(t('ui.tools.missing_metadata.info'))
+        info = QLabel(t("ui.tools.missing_metadata.info"))
         info.setWordWrap(True)
         info.setStyleSheet("color: #888; padding: 10px 0;")
         layout.addWidget(info)
@@ -91,13 +100,15 @@ class MissingMetadataDialog(QDialog):
         # Table
         self.table = QTableWidget()
         self.table.setColumnCount(5)
-        self.table.setHorizontalHeaderLabels([
-            t('ui.tools.missing_metadata.col_appid'),
-            t('ui.tools.missing_metadata.col_name'),
-            t('ui.tools.missing_metadata.col_developer'),
-            t('ui.tools.missing_metadata.col_publisher'),
-            t('ui.tools.missing_metadata.col_release')
-        ])
+        self.table.setHorizontalHeaderLabels(
+            [
+                t("ui.tools.missing_metadata.col_appid"),
+                t("ui.tools.missing_metadata.col_name"),
+                t("ui.tools.missing_metadata.col_developer"),
+                t("ui.tools.missing_metadata.col_publisher"),
+                t("ui.tools.missing_metadata.col_release"),
+            ]
+        )
 
         # --- Column Behavior: Fixed widths with stretch for name column ---
         header = self.table.horizontalHeader()
@@ -108,7 +119,7 @@ class MissingMetadataDialog(QDialog):
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Release
 
         # Set fixed column widths
-        self.table.setColumnWidth(0, 70)   # App ID
+        self.table.setColumnWidth(0, 70)  # App ID
         self.table.setColumnWidth(2, 180)  # Developer
         self.table.setColumnWidth(3, 130)  # Publisher
         self.table.setColumnWidth(4, 110)  # Release
@@ -132,11 +143,11 @@ class MissingMetadataDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        export_btn = QPushButton(t('ui.tools.missing_metadata.export_csv'))
+        export_btn = QPushButton(t("ui.tools.missing_metadata.export_csv"))
         export_btn.clicked.connect(self._export_csv)
         btn_layout.addWidget(export_btn)
 
-        close_btn = QPushButton(t('common.close'))
+        close_btn = QPushButton(t("common.close"))
         close_btn.setDefault(True)
         close_btn.clicked.connect(self.accept)
         btn_layout.addWidget(close_btn)
@@ -214,7 +225,7 @@ class MissingMetadataDialog(QDialog):
             self.table.setItem(row, 4, self._create_item(display_rel))
 
         # Update Statistics
-        stats = t('ui.tools.missing_metadata.stats', count=len(self.games))
+        stats = t("ui.tools.missing_metadata.stats", count=len(self.games))
         self.stats_label.setText(stats)
 
     def _export_csv(self):
@@ -227,28 +238,27 @@ class MissingMetadataDialog(QDialog):
         default_name = f"missing_metadata_{len(self.games)}_games.csv"
 
         file_path, _ = QFileDialog.getSaveFileName(
-            self,
-            t('ui.tools.missing_metadata.save_csv'),
-            str(Path.home() / default_name),
-            "CSV Files (*.csv)"
+            self, t("ui.tools.missing_metadata.save_csv"), str(Path.home() / default_name), "CSV Files (*.csv)"
         )
 
         if not file_path:
             return
 
         try:
-            with open(file_path, 'w', newline='', encoding='utf-8') as f:
+            with open(file_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
 
                 # Header (Localized)
-                writer.writerow([
-                    t('ui.tools.missing_metadata.col_appid'),
-                    t('ui.tools.missing_metadata.col_name'),
-                    t('ui.tools.missing_metadata.col_developer'),
-                    t('ui.tools.missing_metadata.col_publisher'),
-                    t('ui.tools.missing_metadata.col_release'),
-                    t('ui.tools.missing_metadata.col_missing_fields')
-                ])
+                writer.writerow(
+                    [
+                        t("ui.tools.missing_metadata.col_appid"),
+                        t("ui.tools.missing_metadata.col_name"),
+                        t("ui.tools.missing_metadata.col_developer"),
+                        t("ui.tools.missing_metadata.col_publisher"),
+                        t("ui.tools.missing_metadata.col_release"),
+                        t("ui.tools.missing_metadata.col_missing_fields"),
+                    ]
+                )
 
                 # Data
                 for game in self.games:
@@ -257,42 +267,32 @@ class MissingMetadataDialog(QDialog):
                     # Developer
                     dev_val = game.developer if game.developer else ""
                     if self._is_missing(dev_val):
-                        dev_val = t('ui.tools.missing_metadata.missing')
-                        missing_fields.append(t('ui.game_details.developer'))
+                        dev_val = t("ui.tools.missing_metadata.missing")
+                        missing_fields.append(t("ui.game_details.developer"))
 
                     # Publisher
                     pub_val = game.publisher if game.publisher else ""
                     if self._is_missing(pub_val):
-                        pub_val = t('ui.tools.missing_metadata.missing')
-                        missing_fields.append(t('ui.game_details.publisher'))
+                        pub_val = t("ui.tools.missing_metadata.missing")
+                        missing_fields.append(t("ui.game_details.publisher"))
 
                     # Release
                     raw_rel = game.release_year if game.release_year else ""
                     if self._is_missing(raw_rel):
-                        rel_val = t('ui.tools.missing_metadata.missing')
-                        missing_fields.append(t('ui.game_details.release_year'))
+                        rel_val = t("ui.tools.missing_metadata.missing")
+                        missing_fields.append(t("ui.game_details.release_year"))
                     else:
                         rel_val = format_timestamp_to_date(raw_rel)
 
-                    writer.writerow([
-                        game.app_id,
-                        game.name,
-                        str(dev_val),
-                        str(pub_val),
-                        str(rel_val),
-                        ", ".join(missing_fields)
-                    ])
+                    writer.writerow(
+                        [game.app_id, game.name, str(dev_val), str(pub_val), str(rel_val), ", ".join(missing_fields)]
+                    )
 
             QMessageBox.information(
                 self,
-                t('common.success'),
-                t('ui.tools.missing_metadata.export_success',
-                  count=len(self.games), path=file_path)
+                t("common.success"),
+                t("ui.tools.missing_metadata.export_success", count=len(self.games), path=file_path),
             )
 
         except OSError as e:
-            QMessageBox.critical(
-                self,
-                t('common.error'),
-                t('ui.tools.missing_metadata.export_error', error=str(e))
-            )
+            QMessageBox.critical(self, t("common.error"), t("ui.tools.missing_metadata.export_error", error=str(e)))

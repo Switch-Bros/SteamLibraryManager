@@ -8,14 +8,14 @@ from src.services.asset_service import AssetService
 @pytest.fixture
 def mock_steam_assets():
     """Mocks SteamAssets static methods."""
-    with patch('src.services.asset_service.SteamAssets') as mock_sa:
+    with patch("src.services.asset_service.SteamAssets") as mock_sa:
         yield mock_sa
 
 
 @pytest.fixture
 def mock_steamgrid():
     """Mocks SteamGridDB."""
-    with patch('src.services.asset_service.SteamGridDB') as mock_sg:
+    with patch("src.services.asset_service.SteamGridDB") as mock_sg:
         yield mock_sg
 
 
@@ -72,6 +72,7 @@ class TestAssetService:
     def test_get_steam_grid_path(self, mock_steam_assets):
         """Test getting Steam grid path."""
         from pathlib import Path
+
         fake_path = Path("/fake/steam/userdata/12345678/config/grid")
         mock_steam_assets.get_steam_grid_path.return_value = fake_path
 
@@ -95,7 +96,7 @@ class TestAssetService:
         mock_instance = Mock()
         mock_instance.get_images_by_type.return_value = [
             {"url": "https://example.com/1.png"},
-            {"url": "https://example.com/2.png"}
+            {"url": "https://example.com/2.png"},
         ]
         mock_steamgrid.return_value = mock_instance
 
@@ -121,7 +122,7 @@ class TestAssetService:
             "grids": "https://example.com/grid.png",
             "heroes": "https://example.com/hero.png",
             "logos": "https://example.com/logo.png",
-            "icons": "https://example.com/icon.png"
+            "icons": "https://example.com/icon.png",
         }
         mock_steamgrid.return_value = mock_instance
 

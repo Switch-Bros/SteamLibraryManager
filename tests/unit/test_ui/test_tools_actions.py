@@ -24,7 +24,7 @@ def test_find_missing_metadata_none_found(mock_main_window):
     actions = ToolsActions(mock_main_window)
     mock_main_window.metadata_service.find_missing_metadata.return_value = []
 
-    with patch('src.ui.actions.tools_actions.UIHelper') as mock_helper:
+    with patch("src.ui.actions.tools_actions.UIHelper") as mock_helper:
         actions.find_missing_metadata()
         mock_helper.show_success.assert_called_once()
 
@@ -34,7 +34,7 @@ def test_find_missing_metadata_found(mock_main_window):
     actions = ToolsActions(mock_main_window)
     mock_main_window.metadata_service.find_missing_metadata.return_value = ["Game 1"]
 
-    with patch('src.ui.actions.tools_actions.MissingMetadataDialog') as mock_dialog_cls:
+    with patch("src.ui.actions.tools_actions.MissingMetadataDialog") as mock_dialog_cls:
         mock_dialog = Mock()
         mock_dialog_cls.return_value = mock_dialog
 
@@ -52,8 +52,10 @@ def test_check_store_availability_starts_thread(mock_main_window):
     game.name = "Test Game"
 
     # Mock QProgressDialog and requests to prevent GUI/Network interaction
-    with patch('src.ui.actions.tools_actions.QProgressDialog') as mock_progress, \
-            patch('src.ui.actions.tools_actions.StoreCheckThread') as mock_thread_cls:
+    with (
+        patch("src.ui.actions.tools_actions.QProgressDialog") as mock_progress,
+        patch("src.ui.actions.tools_actions.StoreCheckThread") as mock_thread_cls,
+    ):
         mock_thread = Mock()
         mock_thread_cls.return_value = mock_thread
 

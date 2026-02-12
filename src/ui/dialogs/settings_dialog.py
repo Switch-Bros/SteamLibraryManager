@@ -10,16 +10,28 @@ limits, and API keys.
 from __future__ import annotations
 
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel,
-    QComboBox, QPushButton, QFileDialog, QLineEdit,
-    QTabWidget, QWidget, QSpinBox, QCheckBox,
-    QFormLayout, QGroupBox, QListWidget
+    QDialog,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QComboBox,
+    QPushButton,
+    QFileDialog,
+    QLineEdit,
+    QTabWidget,
+    QWidget,
+    QSpinBox,
+    QCheckBox,
+    QFormLayout,
+    QGroupBox,
+    QListWidget,
 )
 from PyQt6.QtCore import pyqtSignal
 
 from src.config import config
 from src.utils.i18n import t
 from src.ui.widgets.ui_helper import UIHelper
+
 
 class SettingsDialog(QDialog):
     """
@@ -54,7 +66,7 @@ class SettingsDialog(QDialog):
             parent: Parent widget. Defaults to None.
         """
         super().__init__(parent)
-        self.setWindowTitle(t('ui.settings.title'))
+        self.setWindowTitle(t("ui.settings.title"))
         # Slightly taller for the backup section
         self.resize(600, 700)
         self.setModal(True)
@@ -71,20 +83,20 @@ class SettingsDialog(QDialog):
         # --- TAB 1: GENERAL ---
         tab_general = QWidget()
         self._init_general_tab(tab_general)
-        self.tabs.addTab(tab_general, t('ui.settings.tabs.general'))
+        self.tabs.addTab(tab_general, t("ui.settings.tabs.general"))
 
         # --- TAB 2: OTHER ---
         tab_other = QWidget()
         self._init_other_tab(tab_other)
-        self.tabs.addTab(tab_other, t('ui.settings.tabs.other'))
+        self.tabs.addTab(tab_other, t("ui.settings.tabs.other"))
 
         # Buttons (Save / Cancel)
         btn_layout = QHBoxLayout()
-        self.btn_save = QPushButton(t('common.save'))
+        self.btn_save = QPushButton(t("common.save"))
         # noinspection PyUnresolvedReferences
         self.btn_save.clicked.connect(self.accept)
 
-        self.btn_cancel = QPushButton(t('common.cancel'))
+        self.btn_cancel = QPushButton(t("common.cancel"))
         # noinspection PyUnresolvedReferences
         self.btn_cancel.clicked.connect(self.reject)
 
@@ -103,48 +115,48 @@ class SettingsDialog(QDialog):
         layout = QVBoxLayout(parent)
 
         # 1. LANGUAGE GROUP
-        group_lang = QGroupBox(t('ui.settings.general.language'))
+        group_lang = QGroupBox(t("ui.settings.general.language"))
         form_lang = QFormLayout(group_lang)
 
         # UI Language
         self.combo_ui_lang = QComboBox()
         self.lang_map = {
-            'en': '🇬🇧 English',
-            'de': '🇩🇪 Deutsch',
-            'es': '🇪🇸 Español',
-            'fr': '🇫🇷 Français',
-            'it': '🇮🇹 Italiano',
-            'pt': '🇵🇹 Português',
-            'zh': '🇨🇳 中文',
-            'ja': '🇯🇵 日本語',
-            'ko': '🇰🇷 한국어'
+            "en": "🇬🇧 English",
+            "de": "🇩🇪 Deutsch",
+            "es": "🇪🇸 Español",
+            "fr": "🇫🇷 Français",
+            "it": "🇮🇹 Italiano",
+            "pt": "🇵🇹 Português",
+            "zh": "🇨🇳 中文",
+            "ja": "🇯🇵 日本語",
+            "ko": "🇰🇷 한국어",
         }
         for code, name in self.lang_map.items():
             self.combo_ui_lang.addItem(name, code)
 
         # noinspection PyUnresolvedReferences
         self.combo_ui_lang.currentIndexChanged.connect(self._on_language_changed)
-        form_lang.addRow(t('ui.settings.general.ui_language'), self.combo_ui_lang)
+        form_lang.addRow(t("ui.settings.general.ui_language"), self.combo_ui_lang)
 
         # Tags Language
         self.combo_tags_lang = QComboBox()
         for code, name in self.lang_map.items():
             self.combo_tags_lang.addItem(name, code)
-        form_lang.addRow(t('ui.settings.general.tag_language'), self.combo_tags_lang)
+        form_lang.addRow(t("ui.settings.general.tag_language"), self.combo_tags_lang)
 
         # Restart Hint
-        hint = QLabel(t('ui.settings.general.restart_required'))
+        hint = QLabel(t("ui.settings.general.restart_required"))
         hint.setStyleSheet("color: gray; font-style: italic; font-size: 10px;")
         form_lang.addRow("", hint)
 
         layout.addWidget(group_lang)
 
         # 2. STEAM PATH GROUP
-        group_path = QGroupBox(t('ui.settings.general.steam_path'))
+        group_path = QGroupBox(t("ui.settings.general.steam_path"))
         path_layout = QHBoxLayout(group_path)
 
         self.path_edit = QLineEdit()
-        self.btn_browse_path = QPushButton(t('ui.settings.general.browse'))
+        self.btn_browse_path = QPushButton(t("ui.settings.general.browse"))
         # noinspection PyUnresolvedReferences
         self.btn_browse_path.clicked.connect(self._browse_steam_path)
 
@@ -153,18 +165,18 @@ class SettingsDialog(QDialog):
         layout.addWidget(group_path)
 
         # 3. STEAM LIBRARIES GROUP
-        group_libs = QGroupBox(t('ui.settings.libraries.title'))
+        group_libs = QGroupBox(t("ui.settings.libraries.title"))
         lib_main_layout = QVBoxLayout(group_libs)
 
         self.lib_list = QListWidget()
         lib_main_layout.addWidget(self.lib_list)
 
         lib_btn_layout = QHBoxLayout()
-        self.btn_add_lib = QPushButton(t('ui.settings.libraries.add'))
+        self.btn_add_lib = QPushButton(t("ui.settings.libraries.add"))
         # noinspection PyUnresolvedReferences
         self.btn_add_lib.clicked.connect(self._add_library)
 
-        self.btn_remove_lib = QPushButton(t('ui.settings.libraries.remove'))
+        self.btn_remove_lib = QPushButton(t("ui.settings.libraries.remove"))
         # noinspection PyUnresolvedReferences
         self.btn_remove_lib.clicked.connect(self._remove_library)
 
@@ -185,28 +197,28 @@ class SettingsDialog(QDialog):
         layout = QVBoxLayout(parent)
 
         # 1. TAGS GROUP
-        group_tags = QGroupBox(t('ui.settings.tags.title_group'))
+        group_tags = QGroupBox(t("ui.settings.tags.title_group"))
         form_tags = QFormLayout(group_tags)
 
         self.spin_tags = QSpinBox()
         self.spin_tags.setRange(1, 50)
-        form_tags.addRow(t('ui.settings.tags.count'), self.spin_tags)
+        form_tags.addRow(t("ui.settings.tags.count"), self.spin_tags)
 
-        self.check_common = QCheckBox(t('ui.settings.tags.ignore_common'))
+        self.check_common = QCheckBox(t("ui.settings.tags.ignore_common"))
         form_tags.addRow("", self.check_common)
         layout.addWidget(group_tags)
 
         # 2. BACKUP GROUP
-        group_backup = QGroupBox(t('ui.settings.backup.title_group'))
+        group_backup = QGroupBox(t("ui.settings.backup.title_group"))
         form_backup = QFormLayout(group_backup)
 
         self.spin_backup = QSpinBox()
         self.spin_backup.setRange(1, 100)
         self.spin_backup.setSuffix(f" {t('ui.settings.backup.files')}")
-        form_backup.addRow(t('ui.settings.backup.limit'), self.spin_backup)
+        form_backup.addRow(t("ui.settings.backup.limit"), self.spin_backup)
 
         # Explanation text
-        lbl_backup_help = QLabel(t('ui.settings.backup.explanation'))
+        lbl_backup_help = QLabel(t("ui.settings.backup.explanation"))
         lbl_backup_help.setStyleSheet("color: gray; font-size: 10px; font-style: italic;")
         lbl_backup_help.setWordWrap(True)
         form_backup.addRow(lbl_backup_help)
@@ -214,20 +226,20 @@ class SettingsDialog(QDialog):
         layout.addWidget(group_backup)
 
         # 3. API GROUP
-        group_api = QGroupBox(t('ui.settings.api.title_group'))
+        group_api = QGroupBox(t("ui.settings.api.title_group"))
         form_api = QFormLayout(group_api)
 
         # Steam Web API
         self.steam_api_edit = QLineEdit()
-        self.steam_api_edit.setPlaceholderText(t('ui.settings.api.placeholder'))
+        self.steam_api_edit.setPlaceholderText(t("ui.settings.api.placeholder"))
         self.steam_api_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        form_api.addRow(t('ui.settings.api.steam_label'), self.steam_api_edit)
+        form_api.addRow(t("ui.settings.api.steam_label"), self.steam_api_edit)
 
         # SteamGridDB API
         self.sgdb_key_edit = QLineEdit()
-        self.sgdb_key_edit.setPlaceholderText(t('ui.settings.api.placeholder'))
+        self.sgdb_key_edit.setPlaceholderText(t("ui.settings.api.placeholder"))
         self.sgdb_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        form_api.addRow(t('ui.settings.api.sgdb_label'), self.sgdb_key_edit)
+        form_api.addRow(t("ui.settings.api.sgdb_label"), self.sgdb_key_edit)
 
         layout.addWidget(group_api)
         layout.addStretch()
@@ -236,10 +248,12 @@ class SettingsDialog(QDialog):
         """Load current configuration values into the settings form fields."""
         # General
         idx_ui = self.combo_ui_lang.findData(config.UI_LANGUAGE)
-        if idx_ui >= 0: self.combo_ui_lang.setCurrentIndex(idx_ui)
+        if idx_ui >= 0:
+            self.combo_ui_lang.setCurrentIndex(idx_ui)
 
         idx_tags = self.combo_tags_lang.findData(config.TAGS_LANGUAGE)
-        if idx_tags >= 0: self.combo_tags_lang.setCurrentIndex(idx_tags)
+        if idx_tags >= 0:
+            self.combo_tags_lang.setCurrentIndex(idx_tags)
 
         self.path_edit.setText(str(config.STEAM_PATH) if config.STEAM_PATH else "")
 
@@ -258,13 +272,13 @@ class SettingsDialog(QDialog):
 
     def _browse_steam_path(self):
         """Open a file dialog to select the Steam installation directory."""
-        path = QFileDialog.getExistingDirectory(self, t('ui.settings.general.browse'), self.path_edit.text())
+        path = QFileDialog.getExistingDirectory(self, t("ui.settings.general.browse"), self.path_edit.text())
         if path:
             self.path_edit.setText(path)
 
     def _add_library(self):
         """Open a file dialog to add a new Steam library folder path."""
-        title = t('ui.settings.libraries.add')
+        title = t("ui.settings.libraries.add")
         path = QFileDialog.getExistingDirectory(self, title)
         if path:
             # Avoid duplicates
@@ -276,8 +290,9 @@ class SettingsDialog(QDialog):
         """Remove the currently selected library folder from the list."""
         row = self.lib_list.currentRow()
         if row >= 0:
-            if UIHelper.confirm(self, t('ui.settings.libraries.confirm_msg'),
-                                t('ui.settings.libraries.confirm_remove')):
+            if UIHelper.confirm(
+                self, t("ui.settings.libraries.confirm_msg"), t("ui.settings.libraries.confirm_remove")
+            ):
                 self.lib_list.takeItem(row)
 
     def _on_language_changed(self, index: int):
@@ -302,13 +317,13 @@ class SettingsDialog(QDialog):
             libraries.append(self.lib_list.item(i).text())
 
         return {
-            'ui_language': self.combo_ui_lang.currentData(),
-            'tags_language': self.combo_tags_lang.currentData(),
-            'steam_path': self.path_edit.text(),
-            'tags_per_game': self.spin_tags.value(),
-            'ignore_common_tags': self.check_common.isChecked(),
-            'steam_api_key': self.steam_api_edit.text().strip(),
-            'steamgriddb_api_key': self.sgdb_key_edit.text().strip(),
-            'max_backups': self.spin_backup.value(),
-            'steam_libraries': libraries
+            "ui_language": self.combo_ui_lang.currentData(),
+            "tags_language": self.combo_tags_lang.currentData(),
+            "steam_path": self.path_edit.text(),
+            "tags_per_game": self.spin_tags.value(),
+            "ignore_common_tags": self.check_common.isChecked(),
+            "steam_api_key": self.steam_api_edit.text().strip(),
+            "steamgriddb_api_key": self.sgdb_key_edit.text().strip(),
+            "max_backups": self.spin_backup.value(),
+            "steam_libraries": libraries,
         }

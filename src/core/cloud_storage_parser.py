@@ -34,8 +34,8 @@ from src.utils.i18n import t
 logger = logging.getLogger("steamlibmgr.cloud_parser")
 
 
+__all__ = ["CloudStorageParser"]
 
-__all__ = ['CloudStorageParser']
 
 class CloudStorageParser:
     """Parser for Steam's cloud-storage-namespace-1.json collections format."""
@@ -48,8 +48,8 @@ class CloudStorageParser:
         any translation of 'Uncategorized' or 'All Games' is recognised.
         """
         return {
-            t('ui.categories.uncategorized'),
-            t('ui.categories.all_games'),
+            t("ui.categories.uncategorized"),
+            t("ui.categories.all_games"),
         }
 
     @staticmethod
@@ -61,8 +61,8 @@ class CloudStorageParser:
         name and map it to the correct Steam-internal ID.
         """
         return {
-            t('ui.categories.favorites'): 'favorite',
-            t('ui.categories.hidden'): 'hidden',
+            t("ui.categories.favorites"): "favorite",
+            t("ui.categories.hidden"): "hidden",
         }
 
     def __init__(self, steam_path: str, user_id: str):
@@ -76,8 +76,7 @@ class CloudStorageParser:
         self.steam_path = steam_path
         self.user_id = user_id
         self.cloud_storage_path = os.path.join(
-            steam_path, 'userdata', user_id, 'config', 'cloudstorage',
-            'cloud-storage-namespace-1.json'
+            steam_path, "userdata", user_id, "config", "cloudstorage", "cloud-storage-namespace-1.json"
         )
         self.data: list = []
         self.collections: list[dict] = []
@@ -94,35 +93,35 @@ class CloudStorageParser:
             if not os.path.exists(self.cloud_storage_path):
                 return False
 
-            with open(self.cloud_storage_path, 'r', encoding='utf-8') as f:
+            with open(self.cloud_storage_path, "r", encoding="utf-8") as f:
                 self.data = json.load(f)
 
             if not isinstance(self.data, list):
-                logger.error(t('logs.parser.not_a_list'))
+                logger.error(t("logs.parser.not_a_list"))
                 return False
 
             # Extract collections
             self.collections = []
             for item in self.data:
                 if len(item) == 2 and isinstance(item[1], dict):
-                    key = item[1].get('key', '')
-                    if key.startswith('user-collections.'):
+                    key = item[1].get("key", "")
+                    if key.startswith("user-collections."):
                         # Parse the value JSON
-                        value_str = item[1].get('value', '{}')
-                        if value_str and value_str != '{}':
+                        value_str = item[1].get("value", "{}")
+                        if value_str and value_str != "{}":
                             try:
                                 collection_data = json.loads(value_str)
                                 self.collections.append(collection_data)
                             except json.JSONDecodeError:
-                                logger.warning(t('logs.parser.parse_failed', key=key))
+                                logger.warning(t("logs.parser.parse_failed", key=key))
 
             return True
 
         except FileNotFoundError:
-            logger.error(t('logs.parser.cloud_file_not_found', path=self.cloud_storage_path))
+            logger.error(t("logs.parser.cloud_file_not_found", path=self.cloud_storage_path))
             return False
         except Exception as e:
-            logger.error(t('logs.parser.load_error', error=e))
+            logger.error(t("logs.parser.load_error", error=e))
             return False
 
     def save(self) -> bool:
@@ -134,23 +133,29 @@ class CloudStorageParser:
         """
         try:
             # Remove all existing collection items
-            self.data = [item for item in self.data
-                         if not (len(item) == 2 and isinstance(item[1], dict) and
-                                 item[1].get('key', '').startswith('user-collections.'))]
+            self.data = [
+                item
+                for item in self.data
+                if not (
+                    len(item) == 2
+                    and isinstance(item[1], dict)
+                    and item[1].get("key", "").startswith("user-collections.")
+                )
+            ]
 
             # Sanitize: 'added' must always be a list of ints.
             # Migrated collections sometimes have 'added': 0 (a bare timestamp).
             for collection in self.collections:
-                added = collection.get('added', collection.get('apps', []))
+                added = collection.get("added", collection.get("apps", []))
                 if not isinstance(added, list):
-                    collection['added'] = []
-                    collection.setdefault('apps', [])
+                    collection["added"] = []
+                    collection.setdefault("apps", [])
 
             # Add our collections
             timestamp = int(time.time())
             for collection in self.collections:
-                collection_id = collection.get('id', '')
-                collection_name = collection.get('name', '')
+                collection_id = collection.get("id", "")
+                collection_name = collection.get("name", "")
 
                 # CRITICAL FIX 1: Skip VIRTUAL categories!
                 # These should never be written to cloud storage
@@ -160,7 +165,7 @@ class CloudStorageParser:
 
                 # CRITICAL FIX 2: Skip EMPTY special collections (favorites/hidden)!
                 # Steam only shows these if they contain games
-                added_apps = collection.get('added', collection.get('apps', []))
+                added_apps = collection.get("added", collection.get("apps", []))
                 special_ids = self._get_special_collection_ids()
                 if collection_name in special_ids and not added_apps:
                     continue  # Don't save empty favorites/hidden
@@ -170,12 +175,12 @@ class CloudStorageParser:
                 if collection_name in special_ids:
                     special_id = special_ids[collection_name]
                     collection_id = special_id
-                    collection['id'] = special_id
+                    collection["id"] = special_id
                     key = f"user-collections.{special_id}"
-                elif not collection_id.startswith('from-tag-') and not collection_id.startswith('uc-'):
+                elif not collection_id.startswith("from-tag-") and not collection_id.startswith("uc-"):
                     # Regular user collection - ensure from-tag- prefix
                     collection_id = f"from-tag-{collection_name}"
-                    collection['id'] = collection_id
+                    collection["id"] = collection_id
                     key = f"user-collections.{collection_id}"
                 else:
                     # Already has correct ID
@@ -184,27 +189,22 @@ class CloudStorageParser:
                 # CRITICAL FIX 4: Build value JSON with filterSpec preservation!
                 # This keeps dynamic collections dynamic across saves
                 value_data = {
-                    'id': collection_id,
-                    'name': collection_name,
-                    'added': added_apps,
-                    'removed': collection.get('removed', [])
+                    "id": collection_id,
+                    "name": collection_name,
+                    "added": added_apps,
+                    "removed": collection.get("removed", []),
                 }
 
                 # Preserve filterSpec for dynamic collections!
-                if 'filterSpec' in collection:
-                    value_data['filterSpec'] = collection['filterSpec']
+                if "filterSpec" in collection:
+                    value_data["filterSpec"] = collection["filterSpec"]
 
-                value_str = json.dumps(value_data, separators=(',', ':'))
+                value_str = json.dumps(value_data, separators=(",", ":"))
 
                 # Create item
                 item = [
                     key,
-                    {
-                        'key': key,
-                        'timestamp': timestamp,
-                        'value': value_str,
-                        'version': str(int(time.time() % 10000))
-                    }
+                    {"key": key, "timestamp": timestamp, "value": value_str, "version": str(int(time.time() % 10000))},
                 ]
 
                 self.data.append(item)
@@ -216,16 +216,15 @@ class CloudStorageParser:
                 backup_manager.create_backup(cloud_path)
 
             # Write to file
-            with open(self.cloud_storage_path, 'w', encoding='utf-8') as f:
+            with open(self.cloud_storage_path, "w", encoding="utf-8") as f:
                 json.dump(self.data, f, indent=2, ensure_ascii=False)
 
             self.modified = False
             return True
 
-
         except OSError as e:
-            logger.error(t('logs.parser.save_cloud_error'))
-            logger.debug(t('logs.parser.error_details', error=e))
+            logger.error(t("logs.parser.save_cloud_error"))
+            logger.debug(t("logs.parser.error_details", error=e))
             return False
 
     def get_all_categories(self) -> list[str]:
@@ -235,7 +234,7 @@ class CloudStorageParser:
         Returns:
             List of category names
         """
-        return [c.get('name', '') for c in self.collections if c.get('name')]
+        return [c.get("name", "") for c in self.collections if c.get("name")]
 
     @staticmethod
     def _to_app_id_int(app_id) -> int | None:
@@ -272,12 +271,12 @@ class CloudStorageParser:
 
         categories: list[str] = []
         for collection in self.collections:
-            apps = collection.get('added', collection.get('apps', []))
+            apps = collection.get("added", collection.get("apps", []))
             # Guard: 'added' can be a bare timestamp int (0) in migrated data
             if not isinstance(apps, list):
                 continue
             if app_id_int in apps:
-                categories.append(collection.get('name', ''))
+                categories.append(collection.get("name", ""))
 
         return categories
 
@@ -295,7 +294,7 @@ class CloudStorageParser:
 
         # Remove app from all collections
         for collection in self.collections:
-            apps = collection.get('added', collection.get('apps', []))
+            apps = collection.get("added", collection.get("apps", []))
             if not isinstance(apps, list):
                 continue
             if app_id_int in apps:
@@ -306,29 +305,24 @@ class CloudStorageParser:
             # Find or create collection
             collection = None
             for c in self.collections:
-                if c.get('name') == category_name:
+                if c.get("name") == category_name:
                     collection = c
                     break
 
             if not collection:
                 # Create new collection
                 collection_id = f"from-tag-{category_name}"
-                collection = {
-                    'id': collection_id,
-                    'name': category_name,
-                    'added': [],
-                    'removed': []
-                }
+                collection = {"id": collection_id, "name": category_name, "added": [], "removed": []}
                 self.collections.append(collection)
 
             # Add app
-            apps = collection.get('added', collection.get('apps', []))
+            apps = collection.get("added", collection.get("apps", []))
             if app_id_int not in apps:
                 apps.append(app_id_int)
 
             # Ensure 'added' key exists
-            if 'added' not in collection:
-                collection['added'] = apps
+            if "added" not in collection:
+                collection["added"] = apps
 
         self.modified = True
 
@@ -365,7 +359,7 @@ class CloudStorageParser:
         Args:
             category: Category name
         """
-        self.collections = [c for c in self.collections if c.get('name') != category]
+        self.collections = [c for c in self.collections if c.get("name") != category]
         self.modified = True
 
     def create_empty_collection(self, name: str) -> None:
@@ -379,12 +373,7 @@ class CloudStorageParser:
             name: The display name for the new collection.
         """
         collection_id: str = f"from-tag-{name}"
-        self.collections.append({
-            'id': collection_id,
-            'name': name,
-            'added': [],
-            'removed': []
-        })
+        self.collections.append({"id": collection_id, "name": name, "added": [], "removed": []})
         self.modified = True
 
     def rename_category(self, old_name: str, new_name: str):
@@ -396,9 +385,9 @@ class CloudStorageParser:
             new_name: New category name
         """
         for collection in self.collections:
-            if collection.get('name') == old_name:
-                collection['name'] = new_name
-                collection['id'] = f"from-tag-{new_name}"
+            if collection.get("name") == old_name:
+                collection["name"] = new_name
+                collection["id"] = f"from-tag-{new_name}"
                 self.modified = True
                 break
 
@@ -411,7 +400,7 @@ class CloudStorageParser:
         """
         app_ids = set()
         for collection in self.collections:
-            apps = collection.get('added', collection.get('apps', []))
+            apps = collection.get("added", collection.get("apps", []))
             app_ids.update(str(app_id) for app_id in apps)
         return list(app_ids)
 
@@ -456,7 +445,7 @@ class CloudStorageParser:
 
         removed = False
         for collection in self.collections:
-            apps = collection.get('added', collection.get('apps', []))
+            apps = collection.get("added", collection.get("apps", []))
             if not isinstance(apps, list):
                 continue
             if app_id_int in apps:
@@ -480,7 +469,7 @@ class CloudStorageParser:
         duplicates = []
 
         for collection in self.collections:
-            name = collection.get('name', '')
+            name = collection.get("name", "")
             if name in seen:
                 duplicates.append(collection)
             else:

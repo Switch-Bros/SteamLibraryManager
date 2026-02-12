@@ -11,7 +11,8 @@ from pathlib import Path
 from src.core.steam_assets import SteamAssets
 from src.integrations.steamgrid_api import SteamGridDB
 
-__all__ = ['AssetService']
+__all__ = ["AssetService"]
+
 
 class AssetService:
     """Service for managing game assets.

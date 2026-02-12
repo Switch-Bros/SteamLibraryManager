@@ -19,6 +19,7 @@ from src.utils.i18n import t
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
+
 class MenuBuilder:
     """Constructs the entire QMenuBar for the application.
 
@@ -31,15 +32,15 @@ class MenuBuilder:
         user_label: The corner-widget label that displays the logged-in user.
     """
 
-    def __init__(self, main_window: 'MainWindow') -> None:
+    def __init__(self, main_window: "MainWindow") -> None:
         """Initializes the MenuBuilder.
 
         Args:
             main_window: The MainWindow instance that owns this menu bar.
         """
-        self.main_window: 'MainWindow' = main_window
+        self.main_window: "MainWindow" = main_window
         # Kept as attribute so MainWindow can update it after login
-        self.user_label: QLabel = QLabel(t('common.unknown'))
+        self.user_label: QLabel = QLabel(t("common.unknown"))
 
     # ------------------------------------------------------------------
     # Public API
@@ -72,27 +73,27 @@ class MenuBuilder:
             menubar: The parent menu bar to add the menu to.
         """
         mw = self.main_window
-        file_menu = menubar.addMenu(t('ui.menu.file.root'))
+        file_menu = menubar.addMenu(t("ui.menu.file.root"))
 
         # Refresh
-        refresh_action = QAction(t('ui.menu.file.refresh'), mw)
+        refresh_action = QAction(t("ui.menu.file.refresh"), mw)
         refresh_action.triggered.connect(mw.file_actions.refresh_data)
         file_menu.addAction(refresh_action)
 
         # Save
-        save_action = QAction(t('ui.menu.file.save'), mw)
+        save_action = QAction(t("ui.menu.file.save"), mw)
         save_action.triggered.connect(mw.file_actions.force_save)
         file_menu.addAction(save_action)
 
         # Remove duplicate collections
-        remove_dupes_action = QAction(t('ui.menu.file.remove_duplicates'), mw)
+        remove_dupes_action = QAction(t("ui.menu.file.remove_duplicates"), mw)
         remove_dupes_action.triggered.connect(mw.file_actions.remove_duplicate_collections)
         file_menu.addAction(remove_dupes_action)
 
         file_menu.addSeparator()
 
         # Exit
-        exit_action = QAction(t('common.exit'), mw)
+        exit_action = QAction(t("common.exit"), mw)
         exit_action.triggered.connect(mw.file_actions.exit_application)
         file_menu.addAction(exit_action)
 
@@ -103,15 +104,15 @@ class MenuBuilder:
             menubar: The parent menu bar to add the menu to.
         """
         mw = self.main_window
-        edit_menu = menubar.addMenu(t('ui.menu.edit.root'))
+        edit_menu = menubar.addMenu(t("ui.menu.edit.root"))
 
         # Bulk Edit
-        bulk_edit_action = QAction(t('ui.menu.edit.bulk_edit'), mw)
+        bulk_edit_action = QAction(t("ui.menu.edit.bulk_edit"), mw)
         bulk_edit_action.triggered.connect(mw.edit_actions.bulk_edit_metadata)
         edit_menu.addAction(bulk_edit_action)
 
         # Auto-Categorize
-        auto_cat_action = QAction(t('ui.menu.edit.auto_categorize'), mw)
+        auto_cat_action = QAction(t("ui.menu.edit.auto_categorize"), mw)
         auto_cat_action.triggered.connect(mw.edit_actions.auto_categorize)
         edit_menu.addAction(auto_cat_action)
 
@@ -126,17 +127,17 @@ class MenuBuilder:
             menubar: The parent menu bar to add the menu to.
         """
         mw = self.main_window
-        settings_menu = menubar.addMenu(t('ui.settings.title'))
+        settings_menu = menubar.addMenu(t("ui.settings.title"))
 
         # Settings dialog
-        settings_action = QAction(t('ui.settings.title'), mw)
+        settings_action = QAction(t("ui.settings.title"), mw)
         settings_action.triggered.connect(mw.settings_actions.show_settings)
         settings_menu.addAction(settings_action)
 
         settings_menu.addSeparator()
 
         # Restore Metadata – uses import_json key as placeholder (see note above)
-        restore_action = QAction(t('ui.menu.file.import_json'), mw)
+        restore_action = QAction(t("ui.menu.file.import_json"), mw)
         restore_action.triggered.connect(mw.edit_actions.restore_metadata_changes)
         settings_menu.addAction(restore_action)
 
@@ -147,10 +148,10 @@ class MenuBuilder:
             menubar: The parent menu bar to add the menu to.
         """
         mw = self.main_window
-        tools_menu = menubar.addMenu(t('ui.menu.tools.root'))
+        tools_menu = menubar.addMenu(t("ui.menu.tools.root"))
 
         # Find missing metadata
-        find_missing_action = QAction(t('ui.menu.tools.missing_meta'), mw)
+        find_missing_action = QAction(t("ui.menu.tools.missing_meta"), mw)
         find_missing_action.triggered.connect(mw.find_missing_metadata)
         tools_menu.addAction(find_missing_action)
 
@@ -161,26 +162,24 @@ class MenuBuilder:
             menubar: The parent menu bar to add the menu to.
         """
         mw = self.main_window
-        help_menu = menubar.addMenu(t('ui.menu.help.root'))
+        help_menu = menubar.addMenu(t("ui.menu.help.root"))
 
         # GitHub
-        github_action = QAction(t('ui.menu.help.github'), mw)
+        github_action = QAction(t("ui.menu.help.github"), mw)
         github_action.triggered.connect(
             lambda: QDesktopServices.openUrl(QUrl("https://github.com/Switch-Bros/SteamLibraryManager"))
         )
         help_menu.addAction(github_action)
 
         # Donate
-        donate_action = QAction(t('ui.menu.help.donate'), mw)
-        donate_action.triggered.connect(
-            lambda: QDesktopServices.openUrl(QUrl("https://paypal.me/"))
-        )
+        donate_action = QAction(t("ui.menu.help.donate"), mw)
+        donate_action.triggered.connect(lambda: QDesktopServices.openUrl(QUrl("https://paypal.me/")))
         help_menu.addAction(donate_action)
 
         help_menu.addSeparator()
 
         # About - Use SteamActions instead of MainWindow method
-        about_action = QAction(t('ui.menu.help.about'), mw)
+        about_action = QAction(t("ui.menu.help.about"), mw)
         about_action.triggered.connect(mw.steam_actions.show_about)
         help_menu.addAction(about_action)
 

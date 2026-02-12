@@ -5,6 +5,7 @@ This module contains the DataLoadHandler that manages the initial data
 loading sequence including Steam path detection, parser initialization,
 and game loading with progress tracking.
 """
+
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
@@ -24,6 +25,7 @@ logger = logging.getLogger("steamlibmgr.data_load_handler")
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
+
 class DataLoadHandler:
     """Handler for all data loading operations.
 
@@ -40,7 +42,7 @@ class DataLoadHandler:
         load_worker: Worker thread for async game loading.
     """
 
-    def __init__(self, main_window: 'MainWindow'):
+    def __init__(self, main_window: "MainWindow"):
         """Initialize the data load handler.
 
         Args:
@@ -56,10 +58,10 @@ class DataLoadHandler:
         Detects Steam path and user, initializes parsers and managers,
         and starts the game loading process.
         """
-        self.mw.set_status(t('common.loading'))
+        self.mw.set_status(t("common.loading"))
 
         if not config.STEAM_PATH:
-            UIHelper.show_warning(self.mw, t('logs.main.steam_not_found'))
+            UIHelper.show_warning(self.mw, t("logs.main.steam_not_found"))
             self.mw.reload_btn.show()
             return
 
@@ -67,7 +69,7 @@ class DataLoadHandler:
         target_id = config.STEAM_USER_ID if config.STEAM_USER_ID else long_id
 
         if not short_id and not target_id:
-            UIHelper.show_warning(self.mw, t('ui.errors.no_users_found'))
+            UIHelper.show_warning(self.mw, t("ui.errors.no_users_found"))
             self.mw.reload_btn.show()
             return
 
@@ -77,27 +79,24 @@ class DataLoadHandler:
             self.mw.refresh_toolbar()
 
         display_id = self.mw.steam_username if self.mw.steam_username else (target_id if target_id else short_id)
-        self.mw.user_label.setText(t('ui.main_window.user_label', user_id=display_id))
+        self.mw.user_label.setText(t("ui.main_window.user_label", user_id=display_id))
 
         # Initialize GameService
         from src.services.game_service import GameService
-        self.mw.game_service = GameService(
-            str(config.STEAM_PATH),
-            config.STEAM_API_KEY,
-            str(config.CACHE_DIR)
-        )
+
+        self.mw.game_service = GameService(str(config.STEAM_PATH), config.STEAM_API_KEY, str(config.CACHE_DIR))
 
         # Initialize parsers through GameService
         config_path = config.get_localconfig_path(short_id)
         if not config_path:
-            UIHelper.show_error(self.mw, t('ui.errors.localconfig_load_error'))
+            UIHelper.show_error(self.mw, t("ui.errors.localconfig_load_error"))
             self.mw.reload_btn.show()
             return
 
         vdf_success, cloud_success = self.mw.game_service.initialize_parsers(str(config_path), short_id)
 
         if not vdf_success and not cloud_success:
-            UIHelper.show_error(self.mw, t('ui.errors.localconfig_load_error'))
+            UIHelper.show_error(self.mw, t("ui.errors.localconfig_load_error"))
             self.mw.reload_btn.show()
             return
 
@@ -114,13 +113,8 @@ class DataLoadHandler:
         Args:
             user_id: The Steam user ID to load games for, or None for local only.
         """
-        self.progress_dialog = QProgressDialog(
-            t('common.loading'),
-            t('common.cancel'),
-            0, 100,
-            self.mw
-        )
-        self.progress_dialog.setWindowTitle(t('ui.main_window.status_ready'))
+        self.progress_dialog = QProgressDialog(t("common.loading"), t("common.cancel"), 0, 100, self.mw)
+        self.progress_dialog.setWindowTitle(t("ui.main_window.status_ready"))
         self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
         self.progress_dialog.setMinimumDuration(0)
         self.progress_dialog.setValue(0)
@@ -134,22 +128,22 @@ class DataLoadHandler:
 
     def load_games_with_steam_login(self, steam_id: str, session_or_token) -> None:
         """Load games after Steam login with access token or session.
-        
+
         This method is called after successful Steam authentication to reload
         the game library with Steam Web API access.
-        
+
         Args:
             steam_id: The Steam ID64 of the authenticated user
             session_or_token: Either a requests.Session or access_token string
         """
         logger.info(t("logs.auth.loading_games_after_login"))
-        
+
         # Store session/token for API access
         if isinstance(session_or_token, str):
             logger.info(t("logs.auth.auth_mode_token"))
         else:
             logger.info(t("logs.auth.auth_mode_session"))
-        
+
         # Simply reload games with the user_id
         # The GameLoadWorker will use the session/token if available
         self.load_games_with_progress(steam_id)
@@ -182,9 +176,9 @@ class DataLoadHandler:
         self.mw.game_manager = self.mw.game_service.game_manager if self.mw.game_service else None
 
         if not success or not self.mw.game_manager or not self.mw.game_manager.games:
-            UIHelper.show_warning(self.mw, t('ui.errors.no_games_found'))
+            UIHelper.show_warning(self.mw, t("ui.errors.no_games_found"))
             self.mw.reload_btn.show()
-            self.mw.set_status(t('common.error'))
+            self.mw.set_status(t("common.error"))
             return
 
         # Merge collections using GameService
@@ -199,25 +193,27 @@ class DataLoadHandler:
 
         # Initialize CategoryService after parsers and game_manager are ready
         from src.services.category_service import CategoryService
+
         self.mw.category_service = CategoryService(
             localconfig_helper=self.mw.localconfig_helper,
             cloud_parser=self.mw.cloud_storage_parser,
-            game_manager=self.mw.game_manager
+            game_manager=self.mw.game_manager,
         )
 
         # Initialize MetadataService after appinfo_manager is ready
         from src.services.metadata_service import MetadataService
+
         self.mw.metadata_service = MetadataService(
-            appinfo_manager=self.mw.appinfo_manager,
-            game_manager=self.mw.game_manager
+            appinfo_manager=self.mw.appinfo_manager, game_manager=self.mw.game_manager
         )
 
         # Initialize AutoCategorizeService after category_service is ready
         from src.services.autocategorize_service import AutoCategorizeService
+
         self.mw.autocategorize_service = AutoCategorizeService(
             game_manager=self.mw.game_manager,
             category_service=self.mw.category_service,
-            steam_scraper=self.mw.steam_scraper
+            steam_scraper=self.mw.steam_scraper,
         )
 
         self.mw.populate_categories()
@@ -240,6 +236,7 @@ class DataLoadHandler:
             The persona name if found, otherwise the original steam_id.
         """
         import requests
+
         # noinspection PyPep8Naming
         import xml.etree.ElementTree as ET
 
@@ -248,11 +245,11 @@ class DataLoadHandler:
             response = requests.get(url, timeout=5)
             if response.status_code == 200:
                 tree = ET.fromstring(response.content)
-                steam_id_element = tree.find('steamID')
+                steam_id_element = tree.find("steamID")
                 if steam_id_element is not None and steam_id_element.text:
                     return steam_id_element.text
         except (requests.RequestException, ET.ParseError) as e:
-            logger.error(t('logs.auth.profile_error', error=str(e)))
+            logger.error(t("logs.auth.profile_error", error=str(e)))
         except Exception as e:
             logger.error(t("logs.auth.unexpected_profile_error", error=str(e)))
 

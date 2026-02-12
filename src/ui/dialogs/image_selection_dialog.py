@@ -11,8 +11,17 @@ from __future__ import annotations
 
 import logging
 import json
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QScrollArea, QWidget, QGridLayout, QLabel,
-                             QPushButton, QLineEdit, QHBoxLayout)
+from PyQt6.QtWidgets import (
+    QDialog,
+    QVBoxLayout,
+    QScrollArea,
+    QWidget,
+    QGridLayout,
+    QLabel,
+    QPushButton,
+    QLineEdit,
+    QHBoxLayout,
+)
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QUrl
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtGui import QDesktopServices, QFont
@@ -22,6 +31,7 @@ from src.integrations.steamgrid_api import SteamGridDB
 from src.ui.widgets.clickable_image import ClickableImage
 
 logger = logging.getLogger("steamlibmgr.image_dialog")
+
 
 class SearchThread(QThread):
     """
@@ -65,6 +75,7 @@ class SearchThread(QThread):
         urls = self.api.get_images_by_type(self.app_id, self.img_type)
         self.results_found.emit(urls)
 
+
 class ImageSelectionDialog(QDialog):
     """
     Dialog for browsing and selecting game images from SteamGridDB.
@@ -99,7 +110,8 @@ class ImageSelectionDialog(QDialog):
         """
         super().__init__(parent)
         self.setWindowTitle(
-            t('ui.dialogs.image_picker_title', type=t(f'ui.game_details.gallery.{img_type}'), game=game_name))
+            t("ui.dialogs.image_picker_title", type=t(f"ui.game_details.gallery.{img_type}"), game=game_name)
+        )
         self.resize(1100, 800)
 
         self.app_id = app_id
@@ -115,7 +127,7 @@ class ImageSelectionDialog(QDialog):
         self.main_layout = QVBoxLayout(self)
 
         # Status / Loading Label
-        self.status_label = QLabel(t('ui.dialogs.image_picker_loading'))
+        self.status_label = QLabel(t("ui.dialogs.image_picker_loading"))
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.main_layout.addWidget(self.status_label)
 
@@ -139,31 +151,37 @@ class ImageSelectionDialog(QDialog):
         setup_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         setup_layout.setSpacing(20)
 
-        title_lbl = QLabel(t('ui.steamgrid_setup.title'))
+        title_lbl = QLabel(t("ui.steamgrid_setup.title"))
         title_lbl.setFont(QFont("Arial", 16, QFont.Weight.Bold))
         title_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         setup_layout.addWidget(title_lbl)
 
-        info_lbl = QLabel(t('ui.steamgrid_setup.info') + "\n\n" +
-                          t('ui.steamgrid_setup.step_1') + "\n" +
-                          t('ui.steamgrid_setup.step_2') + "\n" +
-                          t('ui.steamgrid_setup.step_3'))
+        info_lbl = QLabel(
+            t("ui.steamgrid_setup.info")
+            + "\n\n"
+            + t("ui.steamgrid_setup.step_1")
+            + "\n"
+            + t("ui.steamgrid_setup.step_2")
+            + "\n"
+            + t("ui.steamgrid_setup.step_3")
+        )
         info_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         setup_layout.addWidget(info_lbl)
 
-        get_key_btn = QPushButton(t('ui.steamgrid_setup.get_key_btn'))
+        get_key_btn = QPushButton(t("ui.steamgrid_setup.get_key_btn"))
         get_key_btn.setMinimumHeight(40)
         get_key_btn.clicked.connect(
-            lambda: QDesktopServices.openUrl(QUrl("https://www.steamgriddb.com/profile/preferences/api")))
+            lambda: QDesktopServices.openUrl(QUrl("https://www.steamgriddb.com/profile/preferences/api"))
+        )
         setup_layout.addWidget(get_key_btn)
 
         input_layout = QHBoxLayout()
         self.key_input = QLineEdit()
-        self.key_input.setPlaceholderText(t('ui.steamgrid_setup.key_placeholder'))
+        self.key_input.setPlaceholderText(t("ui.steamgrid_setup.key_placeholder"))
         self.key_input.setMinimumHeight(35)
         input_layout.addWidget(self.key_input)
 
-        save_btn = QPushButton(t('ui.steamgrid_setup.save_btn'))
+        save_btn = QPushButton(t("ui.steamgrid_setup.save_btn"))
         save_btn.setMinimumHeight(35)
         save_btn.clicked.connect(self._save_key_and_reload)
         input_layout.addWidget(save_btn)
@@ -176,7 +194,7 @@ class ImageSelectionDialog(QDialog):
         # Cancel Button at the bottom
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-        cancel_btn = QPushButton(t('common.cancel'))
+        cancel_btn = QPushButton(t("common.cancel"))
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
         self.main_layout.addLayout(btn_layout)
@@ -208,18 +226,18 @@ class ImageSelectionDialog(QDialog):
         if key:
             config.STEAMGRIDDB_API_KEY = key
             try:
-                settings_file = config.DATA_DIR / 'settings.json'
+                settings_file = config.DATA_DIR / "settings.json"
                 current_settings = {}
                 if settings_file.exists():
-                    with open(settings_file, 'r', encoding='utf-8') as f:
+                    with open(settings_file, "r", encoding="utf-8") as f:
                         current_settings = json.load(f)
 
-                current_settings['steamgriddb_api_key'] = key
+                current_settings["steamgriddb_api_key"] = key
 
-                with open(settings_file, 'w', encoding='utf-8') as f:
+                with open(settings_file, "w", encoding="utf-8") as f:
                     json.dump(current_settings, f, indent=2)
             except (OSError, json.JSONDecodeError) as e:
-                logger.error(t('logs.config.save_error', error=e))
+                logger.error(t("logs.config.save_error", error=e))
 
             self._check_api_and_start()
 
@@ -250,16 +268,11 @@ class ImageSelectionDialog(QDialog):
         self.scroll.show()
 
         if not items:
-            self.status_label.setText(t('ui.status.no_results'))
+            self.status_label.setText(t("ui.status.no_results"))
             self.status_label.show()
             return
 
-        config_map = {
-            'grids': (4, 220, 330),
-            'heroes': (2, 460, 215),
-            'logos': (3, 300, 150),
-            'icons': (6, 162, 162)
-        }
+        config_map = {"grids": (4, 220, 330), "heroes": (2, 460, 215), "logos": (3, 300, 150), "icons": (6, 162, 162)}
         cols, w, h = config_map.get(self.img_type, (3, 250, 250))
 
         # Clear Grid
@@ -275,32 +288,32 @@ class ImageSelectionDialog(QDialog):
             container.setFixedSize(w, h + 45)
 
             # FIX: Use 'tag' instead of 't' to avoid shadowing the global translation function
-            tags = [tag.lower() for tag in item.get('tags', [])]
-            mime = item.get('mime', '').lower()
+            tags = [tag.lower() for tag in item.get("tags", [])]
+            mime = item.get("mime", "").lower()
 
             # Check for APNG: often labeled as 'image/png' but has 'animated' tag
             # We treat it as animated if it has the tag, so we load the FULL URL later.
             # Check if animated (including WEBM detection via URL)
-            url_lower = item['url'].lower()
-            thumb_lower = item.get('thumb', '').lower()
+            url_lower = item["url"].lower()
+            thumb_lower = item.get("thumb", "").lower()
             is_animated = (
-                    'webp' in mime or
-                    'gif' in mime or
-                    ('png' in mime and 'animated' in tags) or
-                    'animated' in tags or
-                    url_lower.endswith('.webm') or  # WEBM is always animated!
-                    thumb_lower.endswith('.webm')  # Thumbnail can also be WEBM!
+                "webp" in mime
+                or "gif" in mime
+                or ("png" in mime and "animated" in tags)
+                or "animated" in tags
+                or url_lower.endswith(".webm")  # WEBM is always animated!
+                or thumb_lower.endswith(".webm")  # Thumbnail can also be WEBM!
             )
 
             badge_info = []
-            if item.get('nsfw') or 'nsfw' in tags:
-                badge_info.append(('nsfw', '#d9534f'))
-            if item.get('humor') or 'humor' in tags:
-                badge_info.append(('humor', '#f0ad4e'))
-            if item.get('epilepsy') or 'epilepsy' in tags:
-                badge_info.append(('epilepsy', '#0275d8'))
+            if item.get("nsfw") or "nsfw" in tags:
+                badge_info.append(("nsfw", "#d9534f"))
+            if item.get("humor") or "humor" in tags:
+                badge_info.append(("humor", "#f0ad4e"))
+            if item.get("epilepsy") or "epilepsy" in tags:
+                badge_info.append(("epilepsy", "#0275d8"))
             if is_animated:
-                badge_info.append(('animated', '#5cb85c'))
+                badge_info.append(("animated", "#5cb85c"))
 
             # IMAGE IMMER BEI y=5! (auch ohne Badges)
             img_widget = ClickableImage(container, w, h, metadata=item, external_badges=True)
@@ -348,19 +361,25 @@ class ImageSelectionDialog(QDialog):
                         lbl.setPixmap(pix)
                         lbl.setFixedSize(28, 28)
                         lbl.setStyleSheet(
-                            "QLabel { border: 1px solid rgba(0,0,0,0.5); border-radius: 0 0 3px 3px; background: rgba(0,0,0,0.35); padding: 2px; }")
+                            "QLabel { border: 1px solid rgba(0,0,0,0.5); "
+                            "border-radius: 0 0 3px 3px; "
+                            "background: rgba(0,0,0,0.35); padding: 2px; }"
+                        )
                     else:
                         texts = {
-                            'nsfw': f"{t('emoji.nsfw')} {t('ui.badges.nsfw')}",
-                            'humor': f"{t('emoji.humor')} {t('ui.badges.humor')}",
-                            'epilepsy': f"{t('emoji.blitz')} {t('ui.badges.epilepsy')}",
-                            'animated': f"{t('emoji.animated')} {t('ui.badges.animated')}"
+                            "nsfw": f"{t('emoji.nsfw')} {t('ui.badges.nsfw')}",
+                            "humor": f"{t('emoji.humor')} {t('ui.badges.humor')}",
+                            "epilepsy": f"{t('emoji.blitz')} {t('ui.badges.epilepsy')}",
+                            "animated": f"{t('emoji.animated')} {t('ui.badges.animated')}",
                         }
-                        lbl.setText(texts.get(badge_type, ''))
+                        lbl.setText(texts.get(badge_type, ""))
                         lbl.setFixedSize(28, 28)
                         lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
                         lbl.setStyleSheet(
-                            f"background: {color}; color: white; border-radius: 0 0 4px 4px; font-weight: bold; font-size: 9px; border: 1px solid rgba(255,255,255,0.3);")
+                            f"background: {color}; color: white; "
+                            f"border-radius: 0 0 4px 4px; font-weight: bold; "
+                            f"font-size: 9px; border: 1px solid rgba(255,255,255,0.3);"
+                        )
 
                     icons_layout.addWidget(lbl)
 
@@ -381,18 +400,18 @@ class ImageSelectionDialog(QDialog):
             # Smart loading: FULL for animated (WEBM, WEBP, GIF), thumbnail for static
             # Animated images load progressively, static images load instantly
             if is_animated:
-                img_widget.load_image(item['url'])  # FULL URL for animation
+                img_widget.load_image(item["url"])  # FULL URL for animation
             else:
-                img_widget.load_image(item['thumb'])  # Thumbnail for speed
+                img_widget.load_image(item["thumb"])  # Thumbnail for speed
 
             # When user clicks, select the full URL and convert WEBM to PNG if needed
             def make_click_handler(url, mime_type, tag_list):
                 return lambda e: self._on_select(url, mime_type, tag_list)
 
-            img_widget.mousePressEvent = make_click_handler(item['url'], mime, tags)
+            img_widget.mousePressEvent = make_click_handler(item["url"], mime, tags)
 
             # Author
-            author_name = item.get('author', {}).get('name') or t('ui.game_details.value_unknown')
+            author_name = item.get("author", {}).get("name") or t("ui.game_details.value_unknown")
             lbl_author = QLabel(container)
             lbl_author.setText(f"👤 {author_name}")
             lbl_author.setGeometry(0, h + 7, w, 30)
@@ -404,7 +423,7 @@ class ImageSelectionDialog(QDialog):
                 col = 0
                 row += 1
 
-    def _on_select(self, url, mime='', tags=None):
+    def _on_select(self, url, mime="", tags=None):
         """
         Handles image selection.
 
@@ -422,11 +441,11 @@ class ImageSelectionDialog(QDialog):
 
         # Convert WEBM to PNG for APNG downloads
         # SteamGridDB serves APNG as .webm preview but .png download
-        if url.endswith('.webm'):
+        if url.endswith(".webm"):
             # Check if this is an APNG (PNG + animated tag)
             tags_lower = [tag.lower() for tag in tags]
-            if 'png' in mime.lower() or 'animated' in tags_lower:
-                url = url.replace('.webm', '.png')
+            if "png" in mime.lower() or "animated" in tags_lower:
+                url = url.replace(".webm", ".png")
 
         self.selected_url = url
         self.accept()

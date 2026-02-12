@@ -6,14 +6,13 @@ Provides options to:
 - Cancel the save operation
 - Close Steam and save (kills Steam process)
 """
+
 from __future__ import annotations
 
-from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
-    QLabel, QMessageBox
-)
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QMessageBox
 
 from src.utils.i18n import t
+
 
 class SteamRunningDialog(QDialog):
     """Warning dialog shown when Steam is running during save operation.
@@ -42,7 +41,7 @@ class SteamRunningDialog(QDialog):
 
     def _setup_ui(self):
         """Setup the UI layout."""
-        self.setWindowTitle(t('ui.steam_running.title'))
+        self.setWindowTitle(t("ui.steam_running.title"))
         self.setMinimumWidth(450)
 
         layout = QVBoxLayout(self)
@@ -52,7 +51,7 @@ class SteamRunningDialog(QDialog):
         header_layout = QHBoxLayout()
 
         # Warning icon
-        icon_label = QLabel(t('emoji.warning'))
+        icon_label = QLabel(t("emoji.warning"))
         icon_label.setStyleSheet("font-size: 48px;")
         header_layout.addWidget(icon_label)
 
@@ -60,11 +59,11 @@ class SteamRunningDialog(QDialog):
         message_layout = QVBoxLayout()
         message_layout.setSpacing(10)
 
-        title = QLabel(t('ui.steam_running.warning_title'))
+        title = QLabel(t("ui.steam_running.warning_title"))
         title.setStyleSheet("font-size: 16px; font-weight: bold;")
         message_layout.addWidget(title)
 
-        explanation = QLabel(t('ui.steam_running.explanation'))
+        explanation = QLabel(t("ui.steam_running.explanation"))
         explanation.setWordWrap(True)
         explanation.setStyleSheet("color: #888;")
         message_layout.addWidget(explanation)
@@ -73,16 +72,18 @@ class SteamRunningDialog(QDialog):
         layout.addLayout(header_layout)
 
         # Info box
-        info_box = QLabel(t('ui.steam_running.info'))
+        info_box = QLabel(t("ui.steam_running.info"))
         info_box.setWordWrap(True)
-        info_box.setStyleSheet("""
+        info_box.setStyleSheet(
+            """
             QLabel {
                 background-color: #2a475e;
                 padding: 15px;
                 border-radius: 5px;
                 color: #c7d5e0;
             }
-        """)
+        """
+        )
         layout.addWidget(info_box)
 
         # Buttons
@@ -90,13 +91,14 @@ class SteamRunningDialog(QDialog):
         button_layout = QHBoxLayout()
         button_layout.addStretch()
 
-        self.btn_cancel = QPushButton(t('common.cancel'))
+        self.btn_cancel = QPushButton(t("common.cancel"))
         self.btn_cancel.clicked.connect(self._on_cancel)
         button_layout.addWidget(self.btn_cancel)
 
-        self.btn_close_steam = QPushButton(t('ui.steam_running.close_and_save'))
+        self.btn_close_steam = QPushButton(t("ui.steam_running.close_and_save"))
         self.btn_close_steam.setDefault(True)
-        self.btn_close_steam.setStyleSheet("""
+        self.btn_close_steam.setStyleSheet(
+            """
             QPushButton {
                 background-color: #c75450;
                 color: white;
@@ -106,7 +108,8 @@ class SteamRunningDialog(QDialog):
             QPushButton:hover {
                 background-color: #d66460;
             }
-        """)
+        """
+        )
         self.btn_close_steam.clicked.connect(self._on_close_steam)
         button_layout.addWidget(self.btn_close_steam)
 
@@ -123,10 +126,10 @@ class SteamRunningDialog(QDialog):
         # Confirm action
         reply = QMessageBox.question(
             self,
-            t('ui.steam_running.confirm_title'),
-            t('ui.steam_running.confirm_message'),
+            t("ui.steam_running.confirm_title"),
+            t("ui.steam_running.confirm_message"),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.No,
         )
 
         if reply == QMessageBox.StandardButton.Yes:
@@ -135,16 +138,8 @@ class SteamRunningDialog(QDialog):
 
             if success:
                 # Steam closed successfully
-                QMessageBox.information(
-                    self,
-                    t('common.success'),
-                    t('ui.steam_running.steam_closed')
-                )
+                QMessageBox.information(self, t("common.success"), t("ui.steam_running.steam_closed"))
                 self.done(self.CLOSE_AND_SAVE)
             else:
                 # Failed to close Steam
-                QMessageBox.critical(
-                    self,
-                    t('common.error'),
-                    t('ui.steam_running.close_failed')
-                )
+                QMessageBox.critical(self, t("common.error"), t("ui.steam_running.close_failed"))

@@ -10,10 +10,20 @@ It allows users to edit metadata, change images, and toggle categories.
 from __future__ import annotations
 
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
-    QLabel, QFrame, QPushButton, QCheckBox,
-    QLineEdit, QListWidget, QListWidgetItem,
-    QAbstractItemView, QMenu, QDialog
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QGridLayout,
+    QLabel,
+    QFrame,
+    QPushButton,
+    QCheckBox,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QAbstractItemView,
+    QMenu,
+    QDialog,
 )
 
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
@@ -25,6 +35,7 @@ from src.utils.date_utils import format_timestamp_to_date
 from src.ui.widgets.clickable_image import ClickableImage
 from src.core.steam_assets import SteamAssets
 from src.ui.dialogs.image_selection_dialog import ImageSelectionDialog
+
 
 class InfoLabel(QLabel):
     """
@@ -46,6 +57,7 @@ class InfoLabel(QLabel):
         self.setText(f"<span style='color:#888;'>{title}:</span> <b>{value}</b>")
         self.setTextFormat(Qt.TextFormat.RichText)
         self.setStyleSheet("padding: 1px 0;")
+
 
 class HorizontalCategoryList(QListWidget):
     """
@@ -99,12 +111,12 @@ class HorizontalCategoryList(QListWidget):
         if not all_categories:
             return
         for category in sorted(all_categories):
-            if category == 'favorite':
+            if category == "favorite":
                 continue
             item = QListWidgetItem(self)
             item.setSizeHint(QSize(200, 24))
             # Escape & to && for Qt (otherwise & becomes keyboard shortcut)
-            display_name = category.replace('&', '&&')
+            display_name = category.replace("&", "&&")
             cb = QCheckBox(display_name)
             cb.setChecked(category in game_categories)
             cb.setFocusPolicy(Qt.FocusPolicy.NoFocus)  # Prevent focus stealing
@@ -136,7 +148,7 @@ class HorizontalCategoryList(QListWidget):
         total_games = len(games_categories)
 
         for category in sorted(all_categories):
-            if category == 'favorite':
+            if category == "favorite":
                 continue
 
             # Count how many games have this category
@@ -145,7 +157,7 @@ class HorizontalCategoryList(QListWidget):
             item = QListWidgetItem(self)
             item.setSizeHint(QSize(200, 24))
             # Escape & to && for Qt (otherwise & becomes keyboard shortcut)
-            display_name = category.replace('&', '&&')
+            display_name = category.replace("&", "&&")
             cb = QCheckBox(display_name)
             cb.setTristate(True)  # Enable tri-state
             cb.setFocusPolicy(Qt.FocusPolicy.NoFocus)  # Prevent focus stealing
@@ -162,8 +174,8 @@ class HorizontalCategoryList(QListWidget):
                 cb.setStyleSheet("QCheckBox { font-size: 11px; margin-left: 2px; color: #888888; }")
 
             # Store the current state in the checkbox for reference
-            cb.setProperty('category', category)
-            cb.setProperty('previous_state', cb.checkState())
+            cb.setProperty("category", category)
+            cb.setProperty("previous_state", cb.checkState())
 
             # Use clicked signal instead of stateChanged to have more control
             cb.clicked.connect(lambda checked=None, checkbox=cb: self._handle_tristate_click(checkbox))
@@ -181,8 +193,8 @@ class HorizontalCategoryList(QListWidget):
         Args:
             checkbox: The checkbox that was clicked.
         """
-        category = checkbox.property('category')
-        previous_state = checkbox.property('previous_state')
+        category = checkbox.property("category")
+        previous_state = checkbox.property("previous_state")
 
         # Determine the desired action based on previous state
         if previous_state == Qt.CheckState.Checked:
@@ -195,15 +207,17 @@ class HorizontalCategoryList(QListWidget):
             # Was unchecked or partial → Make checked (gold)
             checkbox.setCheckState(Qt.CheckState.Checked)
             checkbox.setStyleSheet(
-                "QCheckBox { font-size: 11px; margin-left: 2px; color: #FFD700; font-weight: bold; }")
+                "QCheckBox { font-size: 11px; margin-left: 2px; color: #FFD700; font-weight: bold; }"
+            )
             new_state = Qt.CheckState.Checked
             checked = True
 
         # Update the stored previous state
-        checkbox.setProperty('previous_state', new_state)
-        
+        checkbox.setProperty("previous_state", new_state)
+
         # Emit signal (will be handled by _on_category_toggle in GameDetailsWidget)
         self.category_toggled.emit(category, checked)
+
 
 class GameDetailsWidget(QWidget):
     """
@@ -267,7 +281,7 @@ class GameDetailsWidget(QWidget):
         header_layout = QHBoxLayout()
 
         left_container = QVBoxLayout()
-        self.name_label = QLabel(t('ui.game_details.select_placeholder'))
+        self.name_label = QLabel(t("ui.game_details.select_placeholder"))
         self.name_label.setFont(QFont("Arial", 22, QFont.Weight.Bold))
         self.name_label.setWordWrap(True)
         self.name_label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
@@ -279,10 +293,7 @@ class GameDetailsWidget(QWidget):
         self.pegi_image.set_default_image("resources/images/default_icons.png")
         self.pegi_image.clicked.connect(self._on_pegi_clicked)
         self.pegi_image.right_clicked.connect(self._on_pegi_right_click)  # Connect right click
-        self.pegi_image.setStyleSheet(
-            "border: 1px solid #FDE100; "
-            "background-color: #1b2838;"
-        )
+        self.pegi_image.setStyleSheet("border: 1px solid #FDE100; " "background-color: #1b2838;")
 
         # PEGI layout - centered
         pegi_layout = QHBoxLayout()
@@ -294,11 +305,11 @@ class GameDetailsWidget(QWidget):
         button_layout.setSpacing(8)
         button_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
-        self.btn_edit = QPushButton(t('ui.game_details.btn_edit'))
+        self.btn_edit = QPushButton(t("ui.game_details.btn_edit"))
         self.btn_edit.clicked.connect(self._on_edit)
         self.btn_edit.setMinimumWidth(120)
 
-        self.btn_store = QPushButton(t('ui.game_details.btn_store'))
+        self.btn_store = QPushButton(t("ui.game_details.btn_store"))
         self.btn_store.clicked.connect(self._open_current_store)
         self.btn_store.setMinimumWidth(120)
 
@@ -328,8 +339,8 @@ class GameDetailsWidget(QWidget):
         # 1. LEFT: Grid (Cover)
         self.img_grid = ClickableImage(self, 232, 348)
         self.img_grid.set_default_image("resources/images/default_grids.png")
-        self.img_grid.clicked.connect(lambda: self._on_image_click('grids'))
-        self.img_grid.right_clicked.connect(lambda: self._on_image_right_click('grids'))
+        self.img_grid.clicked.connect(lambda: self._on_image_click("grids"))
+        self.img_grid.right_clicked.connect(lambda: self._on_image_right_click("grids"))
         gallery_layout.addWidget(self.img_grid)
 
         # 2. RIGHT: Stack
@@ -344,15 +355,15 @@ class GameDetailsWidget(QWidget):
 
         self.img_logo = ClickableImage(self, 264, 184)
         self.img_logo.set_default_image("resources/images/default_logos.png")
-        self.img_logo.clicked.connect(lambda: self._on_image_click('logos'))
-        self.img_logo.right_clicked.connect(lambda: self._on_image_right_click('logos'))
+        self.img_logo.clicked.connect(lambda: self._on_image_click("logos"))
+        self.img_logo.right_clicked.connect(lambda: self._on_image_right_click("logos"))
         self.img_logo.setStyleSheet("background: transparent;")
         top_row.addWidget(self.img_logo)
 
         self.img_icon = ClickableImage(self, 80, 80)
         self.img_icon.set_default_image("resources/images/default_icons.png")
-        self.img_icon.clicked.connect(lambda: self._on_image_click('icons'))
-        self.img_icon.right_clicked.connect(lambda: self._on_image_right_click('icons'))
+        self.img_icon.clicked.connect(lambda: self._on_image_click("icons"))
+        self.img_icon.right_clicked.connect(lambda: self._on_image_right_click("icons"))
         self.img_icon.setStyleSheet("background: transparent;")
 
         icon_container = QVBoxLayout()
@@ -366,8 +377,8 @@ class GameDetailsWidget(QWidget):
         # 2b. Bottom Right: Hero
         self.img_hero = ClickableImage(self, 348, 160)
         self.img_hero.set_default_image("resources/images/default_heroes.png")
-        self.img_hero.clicked.connect(lambda: self._on_image_click('heroes'))
-        self.img_hero.right_clicked.connect(lambda: self._on_image_right_click('heroes'))
+        self.img_hero.clicked.connect(lambda: self._on_image_click("heroes"))
+        self.img_hero.right_clicked.connect(lambda: self._on_image_right_click("heroes"))
         right_stack.addWidget(self.img_hero)
 
         gallery_layout.addLayout(right_stack)
@@ -395,11 +406,11 @@ class GameDetailsWidget(QWidget):
         meta_grid.setColumnStretch(3, 1)
 
         meta_grid.addWidget(QLabel(f"<b>{t('ui.game_details.section_basic')}</b>"), 0, 0)
-        self.lbl_appid = InfoLabel('ui.game_details.app_id')
+        self.lbl_appid = InfoLabel("ui.game_details.app_id")
         meta_grid.addWidget(self.lbl_appid, 1, 0)
-        self.lbl_playtime = InfoLabel('ui.game_details.playtime')
+        self.lbl_playtime = InfoLabel("ui.game_details.playtime")
         meta_grid.addWidget(self.lbl_playtime, 2, 0)
-        self.lbl_updated = InfoLabel('ui.game_details.last_update', t('emoji.dash'))
+        self.lbl_updated = InfoLabel("ui.game_details.last_update", t("emoji.dash"))
         meta_grid.addWidget(self.lbl_updated, 3, 0)
 
         meta_grid.addWidget(QLabel(f"<b>{t('ui.game_details.section_ratings')}</b>"), 0, 1)
@@ -413,7 +424,7 @@ class GameDetailsWidget(QWidget):
         self.lbl_steam_deck.setStyleSheet("padding: 1px 0;")
         self._update_steam_deck_label("unknown")
         meta_grid.addWidget(self.lbl_steam_deck, 2, 1)
-        self.lbl_reviews = InfoLabel('ui.game_details.reviews', t('emoji.dash'))
+        self.lbl_reviews = InfoLabel("ui.game_details.reviews", t("emoji.dash"))
         meta_grid.addWidget(self.lbl_reviews, 3, 1)
 
         meta_grid.addWidget(QLabel(f"<b>{t('ui.game_details.section_metadata')}</b>"), 0, 2)
@@ -432,9 +443,9 @@ class GameDetailsWidget(QWidget):
             grid.addLayout(l_layout, row, 2)
             return edit
 
-        self.edit_dev = add_meta_field(meta_grid, 'ui.game_details.developer', 1)
-        self.edit_pub = add_meta_field(meta_grid, 'ui.game_details.publisher', 2)
-        self.edit_rel = add_meta_field(meta_grid, 'ui.game_details.release_year', 3)
+        self.edit_dev = add_meta_field(meta_grid, "ui.game_details.developer", 1)
+        self.edit_pub = add_meta_field(meta_grid, "ui.game_details.publisher", 2)
+        self.edit_rel = add_meta_field(meta_grid, "ui.game_details.release_year", 3)
 
         main_layout.addWidget(meta_widget)
 
@@ -445,7 +456,7 @@ class GameDetailsWidget(QWidget):
         main_layout.addWidget(line2)
 
         # === CATEGORIES ===
-        cat_header = QLabel(t('ui.game_details.categories_label'))
+        cat_header = QLabel(t("ui.game_details.categories_label"))
         cat_header.setFont(QFont("Arial", 10, QFont.Weight.Bold))
         cat_header.setStyleSheet("padding-top: 5px; padding-bottom: 5px;")
         main_layout.addWidget(cat_header)
@@ -471,17 +482,25 @@ class GameDetailsWidget(QWidget):
             tier_lower = "unknown"
 
         colors = {
-            "platinum": "#B4C7D9", "gold": "#FDE100", "silver": "#C0C0C0",
-            "bronze": "#CD7F32", "native": "#5CB85C", "borked": "#D9534F",
-            "pending": "#1C39BB", "unknown": "#FE28A2"
+            "platinum": "#B4C7D9",
+            "gold": "#FDE100",
+            "silver": "#C0C0C0",
+            "bronze": "#CD7F32",
+            "native": "#5CB85C",
+            "borked": "#D9534F",
+            "pending": "#1C39BB",
+            "unknown": "#FE28A2",
         }
         color = colors.get(tier_lower, "#FE28A2")
-        display_text = t(f'ui.game_details.proton_tiers.{tier_lower}')
+        display_text = t(f"ui.game_details.proton_tiers.{tier_lower}")
         if display_text.startswith("["):
             display_text = tier_lower.title()
-        title = t('ui.game_details.proton_db')
+        title = t("ui.game_details.proton_db")
         self.lbl_proton.setText(
-            f"<span style='color:#888;'>{title}:</span> <span style='color:{color}; font-weight:bold;'>{display_text}</span>")
+            f"<span style='color:#888;'>{title}:</span> "
+            f"<span style='color:{color}; font-weight:bold;'>"
+            f"{display_text}</span>"
+        )
 
     def _update_steam_deck_label(self, status: str):
         """
@@ -503,15 +522,18 @@ class GameDetailsWidget(QWidget):
             "verified": "#59BF40",  # Green - Verified
             "playable": "#FDE100",  # Yellow - Playable
             "unsupported": "#D9534F",  # Red - Unsupported
-            "unknown": "#808080"  # Gray - Unknown
+            "unknown": "#808080",  # Gray - Unknown
         }
         color = colors.get(status_lower, "#808080")
-        display_text = t(f'ui.game_details.steam_deck_status.{status_lower}')
+        display_text = t(f"ui.game_details.steam_deck_status.{status_lower}")
         if display_text.startswith("["):
             display_text = status_lower.title()
-        title = t('ui.game_details.steam_deck')
+        title = t("ui.game_details.steam_deck")
         self.lbl_steam_deck.setText(
-            f"<span style='color:#888;'>{title}:</span> <span style='color:{color}; font-weight:bold;'>{display_text}</span>")
+            f"<span style='color:#888;'>{title}:</span> "
+            f"<span style='color:{color}; font-weight:bold;'>"
+            f"{display_text}</span>"
+        )
 
     def set_games(self, games: list[Game], _all_categories: list[str]):
         """
@@ -530,23 +552,24 @@ class GameDetailsWidget(QWidget):
         self.current_games = games  # Store for multi-select operations
 
         # Show multi-select summary
-        self.name_label.setText(t('ui.game_details.multi_select_title', count=len(games)))
+        self.name_label.setText(t("ui.game_details.multi_select_title", count=len(games)))
         self.lbl_appid.setText(f"<span style='color:#888;'>{t('ui.game_details.selected')}:</span> <b>{len(games)}</b>")
 
         # Calculate total playtime
         total_hours = sum(g.playtime_hours for g in games)
-        playtime_val = t('ui.game_details.hours', hours=total_hours)
+        playtime_val = t("ui.game_details.hours", hours=total_hours)
         self.lbl_playtime.setText(
-            f"<span style='color:#888;'>{t('ui.game_details.total_playtime')}:</span> <b>{playtime_val}</b>")
+            f"<span style='color:#888;'>{t('ui.game_details.total_playtime')}:</span> <b>{playtime_val}</b>"
+        )
 
         # Clear other fields
         self.lbl_updated.setText(f"<span style='color:#888;'>{t('ui.game_details.last_update')}:</span> <b>-</b>")
-        self.lbl_proton.setText(t('ui.game_details.protondb') + ": -")
-        self.lbl_steam_deck.setText(t('ui.game_details.steam_deck') + ": -")
+        self.lbl_proton.setText(t("ui.game_details.protondb") + ": -")
+        self.lbl_steam_deck.setText(t("ui.game_details.steam_deck") + ": -")
         self.lbl_reviews.setText(f"<span style='color:#888;'>{t('ui.game_details.reviews')}:</span> <b>-</b>")
-        self.edit_dev.setText(t('emoji.dash'))
-        self.edit_pub.setText(t('emoji.dash'))
-        self.edit_rel.setText(t('emoji.dash'))
+        self.edit_dev.setText(t("emoji.dash"))
+        self.edit_pub.setText(t("emoji.dash"))
+        self.edit_rel.setText(t("emoji.dash"))
 
         # Show tri-state checkboxes
         games_categories = [game.categories for game in games]
@@ -576,13 +599,18 @@ class GameDetailsWidget(QWidget):
         self.current_games = []  # Clear multi-select mode
         self.name_label.setText(game.name)
         self.lbl_appid.setText(f"<span style='color:#888;'>{t('ui.game_details.app_id')}:</span> <b>{game.app_id}</b>")
-        playtime_val = t('ui.game_details.hours', hours=game.playtime_hours) if game.playtime_hours > 0 else t(
-            'ui.game_details.never_played')
+        playtime_val = (
+            t("ui.game_details.hours", hours=game.playtime_hours)
+            if game.playtime_hours > 0
+            else t("ui.game_details.never_played")
+        )
         self.lbl_playtime.setText(
-            f"<span style='color:#888;'>{t('ui.game_details.playtime')}:</span> <b>{playtime_val}</b>")
-        update_val = format_timestamp_to_date(game.last_updated) if game.last_updated else t('emoji.dash')
+            f"<span style='color:#888;'>{t('ui.game_details.playtime')}:</span> <b>{playtime_val}</b>"
+        )
+        update_val = format_timestamp_to_date(game.last_updated) if game.last_updated else t("emoji.dash")
         self.lbl_updated.setText(
-            f"<span style='color:#888;'>{t('ui.game_details.last_update')}:</span> <b>{update_val}</b>")
+            f"<span style='color:#888;'>{t('ui.game_details.last_update')}:</span> <b>{update_val}</b>"
+        )
         self._update_proton_label(game.proton_db_rating)
         self._update_steam_deck_label(game.steam_deck_status)
 
@@ -595,11 +623,12 @@ class GameDetailsWidget(QWidget):
                 # Show: "Overwhelmingly Positive (12,345)"
                 review_val = f"{game.review_score} ({game.review_count})"
         else:
-            review_val = t('emoji.dash')
+            review_val = t("emoji.dash")
 
         self.lbl_reviews.setText(
-            f"<span style='color:#888;'>{t('ui.game_details.reviews')}:</span> <b>{review_val}</b>")
-        unknown = t('ui.game_details.value_unknown')
+            f"<span style='color:#888;'>{t('ui.game_details.reviews')}:</span> <b>{review_val}</b>"
+        )
+        unknown = t("ui.game_details.value_unknown")
 
         # Helper for safe text conversion
         def safe_text(value, formatter=None):
@@ -620,29 +649,29 @@ class GameDetailsWidget(QWidget):
         pegi_to_display = ""
 
         # Check for PEGI first
-        if hasattr(game, 'pegi_rating') and game.pegi_rating:
+        if hasattr(game, "pegi_rating") and game.pegi_rating:
             pegi_to_display = str(game.pegi_rating).strip()
         # Fallback to ESRB if PEGI not available
-        elif hasattr(game, 'esrb_rating') and game.esrb_rating:
+        elif hasattr(game, "esrb_rating") and game.esrb_rating:
             esrb = game.esrb_rating
             # ESRB → PEGI mapping
             esrb_to_pegi = {
-                'Everyone': '3',
-                'Everyone 10+': '7',
-                'Teen': '12',
-                'Mature': '18',
-                'Mature 17+': '18',
-                'Adults Only': '18',
-                'Adults Only 18+': '18'
+                "Everyone": "3",
+                "Everyone 10+": "7",
+                "Teen": "12",
+                "Mature": "18",
+                "Mature 17+": "18",
+                "Adults Only": "18",
+                "Adults Only 18+": "18",
             }
-            pegi_to_display = esrb_to_pegi.get(esrb, '')
+            pegi_to_display = esrb_to_pegi.get(esrb, "")
 
         # If no rating found, fetch from Steam Store
         if not pegi_to_display:
             from src.integrations.steam_store import SteamStoreScraper
 
             # Use default language 'en' (English) as standard
-            scraper = SteamStoreScraper(Path.home() / '.steam_library_manager' / 'cache', 'en')
+            scraper = SteamStoreScraper(Path.home() / ".steam_library_manager" / "cache", "en")
             fetched_pegi = scraper.fetch_age_rating(game.app_id)
 
             if fetched_pegi:
@@ -672,12 +701,7 @@ class GameDetailsWidget(QWidget):
         Args:
             app_id (str): The Steam app ID of the game.
         """
-        asset_map = {
-            'grids': self.img_grid,
-            'heroes': self.img_hero,
-            'logos': self.img_logo,
-            'icons': self.img_icon
-        }
+        asset_map = {"grids": self.img_grid, "heroes": self.img_hero, "logos": self.img_logo, "icons": self.img_icon}
         for asset_type, img_widget in asset_map.items():
             img_widget.load_image(SteamAssets.get_asset_path(app_id, asset_type))
 
@@ -685,7 +709,7 @@ class GameDetailsWidget(QWidget):
         """Reset all displayed game details to their default empty state."""
         self.current_game = None
         self.current_games = []
-        self.name_label.setText(t('ui.game_details.select_placeholder'))
+        self.name_label.setText(t("ui.game_details.select_placeholder"))
         self._update_proton_label("unknown")
 
         self.img_grid.load_image(None)
@@ -706,7 +730,7 @@ class GameDetailsWidget(QWidget):
         from src.ui.dialogs.pegi_selector_dialog import PEGISelectorDialog
 
         # Get current PEGI rating (including override)
-        current_rating = getattr(self.current_game, 'pegi_rating', '')
+        current_rating = getattr(self.current_game, "pegi_rating", "")
 
         # Open dialog
         dialog = PEGISelectorDialog(current_rating, self)
@@ -723,7 +747,7 @@ class GameDetailsWidget(QWidget):
 
         menu = QMenu(self)
         # Use existing key or fallback
-        reset_text = t('ui.pegi_selector.remove')
+        reset_text = t("ui.pegi_selector.remove")
         if reset_text.startswith("["):
             reset_text = "Reset Rating"
 
@@ -763,6 +787,7 @@ class GameDetailsWidget(QWidget):
         """Open the Steam Store page for the currently displayed game in the default browser."""
         if self.current_game:
             import webbrowser
+
             webbrowser.open(f"https://store.steampowered.com/app/{self.current_game.app_id}")
 
     def _on_image_click(self, img_type: str):
@@ -791,7 +816,7 @@ class GameDetailsWidget(QWidget):
             return
 
         menu = QMenu(self)
-        reset_action = menu.addAction(t('ui.game_details.gallery.reset'))
+        reset_action = menu.addAction(t("ui.game_details.gallery.reset"))
         action = menu.exec(QCursor.pos())
 
         if action == reset_action and SteamAssets.delete_custom_image(self.current_game.app_id, img_type):
@@ -804,12 +829,7 @@ class GameDetailsWidget(QWidget):
         Args:
             img_type (str): The type of image to reload ('grids', 'heroes', 'logos', 'icons').
         """
-        asset_map = {
-            'grids': self.img_grid,
-            'heroes': self.img_hero,
-            'logos': self.img_logo,
-            'icons': self.img_icon
-        }
+        asset_map = {"grids": self.img_grid, "heroes": self.img_hero, "logos": self.img_logo, "icons": self.img_icon}
         if img_type in asset_map:
             path = SteamAssets.get_asset_path(self.current_game.app_id, img_type)
             asset_map[img_type].load_image(path)
