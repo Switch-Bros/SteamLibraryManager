@@ -7,17 +7,22 @@ This module provides the Game dataclass and GameManager class, which handle
 loading games from multiple sources (Steam API, local files), merging metadata,
 and fetching additional details from external APIs.
 """
+from __future__ import annotations
+
+import json
+import logging
+import platform
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Callable, Optional
 
 import requests
-import json
-import platform
-from datetime import datetime, timedelta
-from src.utils.date_utils import format_timestamp_to_date
-from typing import Dict, List, Optional, Callable
-from dataclasses import dataclass
-from pathlib import Path
 
+from src.utils.date_utils import format_timestamp_to_date
 from src.utils.i18n import t
+
+logger = logging.getLogger("steamlibmgr.game_manager")
 
 
 @dataclass
@@ -66,6 +71,10 @@ class Game:
     steam_review_score: int = 0
     steam_review_desc: str = ""
     steam_review_total: str = ""
+
+    # Age Ratings
+    pegi_rating: str = ""
+    esrb_rating: str = ""
 
     # Images
     icon_url: str = ""
@@ -204,14 +213,14 @@ class GameManager:
             if progress_callback:
                 progress_callback(t('logs.manager.api_trying'), 0, 3)
 
-            print(t('logs.manager.api_trying'))
+            logger.info(t('logs.manager.api_trying'))
             api_success = self.load_from_steam_api(steam_user_id)
 
         # STEP 2: Local Files
         if progress_callback:
             progress_callback(t('logs.manager.local_loading'), 1, 3)
 
-        print(t('logs.manager.local_loading'))
+        logger.info(t('logs.manager.local_loading'))
         local_success = self.load_from_local_files(progress_callback)
 
         # STEP 3: Finalize Status
@@ -256,7 +265,7 @@ class GameManager:
             games_data = loader.get_all_games()
 
             if not games_data:
-                print(t('logs.manager.error_local', error="No local games found"))
+                logger.warning(t('logs.manager.error_local', error="No local games found"))
                 return False
 
             # Load Playtime from localconfig
@@ -288,11 +297,11 @@ class GameManager:
                 )
                 self.games[app_id] = game
 
-            print(t('logs.manager.loaded_local', count=len(games_data)))
+            logger.info(t('logs.manager.loaded_local', count=len(games_data)))
             return True
 
         except (OSError, ValueError, KeyError, RecursionError) as e:
-            print(t('logs.manager.error_local', error=e))
+            logger.error(t('logs.manager.error_local', error=e))
             return False
 
     def load_from_steam_api(self, steam_user_id: str) -> bool:
@@ -316,7 +325,7 @@ class GameManager:
         access_token = getattr(config, 'STEAM_ACCESS_TOKEN', None)
         
         if not self.api_key and not access_token:
-            print("Info: No API Key or Access Token configured.")
+            logger.info(t('logs.manager.no_api_key'))
             return False
 
         try:
@@ -324,7 +333,7 @@ class GameManager:
             
             # Use access token if available (takes priority over API key)
             if access_token:
-                print("🔑 Using OAuth2 Access Token for Steam API")
+                logger.info(t('logs.manager.using_oauth'))
                 headers = {'Authorization': f'Bearer {access_token}'}
                 params = {
                     'steamid': steam_user_id,
@@ -335,7 +344,7 @@ class GameManager:
                 response = requests.get(url, params=params, headers=headers, timeout=10)
             else:
                 # Traditional API key method
-                print("🔑 Using API Key for Steam API")
+                logger.info(t('logs.manager.using_api_key'))
                 params = {
                     'key': self.api_key,
                     'steamid': steam_user_id,
@@ -350,11 +359,11 @@ class GameManager:
             data = response.json()
 
             if 'response' not in data or 'games' not in data['response']:
-                print(t('logs.manager.error_api', error="No games in response"))
+                logger.warning(t('logs.manager.error_api', error="No games in response"))
                 return False
 
             games_data = data['response']['games']
-            print(t('logs.manager.loaded_api', count=len(games_data)))
+            logger.info(t('logs.manager.loaded_api', count=len(games_data)))
 
             for game_data in games_data:
                 app_id = str(game_data['appid'])
@@ -372,7 +381,7 @@ class GameManager:
             return True
 
         except (requests.RequestException, ValueError, KeyError) as e:
-            print(t('logs.manager.error_api', error=e))
+            logger.error(t('logs.manager.error_api', error=e))
             return False
 
     def merge_with_localconfig(self, parser) -> None:
@@ -385,7 +394,7 @@ class GameManager:
         Args:
             parser: An instance of CloudStorageParser or LocalConfigHelper
         """
-        print(t('logs.manager.merging'))
+        logger.info(t('logs.manager.merging'))
         
         # Get favorites and hidden from collections (Depressurizer way!)
         favorites_key = t('ui.categories.favorites')
@@ -402,11 +411,11 @@ class GameManager:
                 added = collection.get('added', [])
                 
                 # Check if this is favorites collection
-                if col_id == 'favorite' or col_name in ['Favoriten', 'Favorites']:
+                if col_id == 'favorite' or col_name == favorites_key:
                     favorites_apps.update(str(app_id) for app_id in added)
-                
+
                 # Check if this is hidden collection
-                if col_id == 'hidden' or col_name in ['Versteckt', 'Hidden']:
+                if col_id == 'hidden' or col_name == hidden_key:
                     hidden_apps.update(str(app_id) for app_id in added)
         
         # Also check old hidden flag from localconfig (backwards compatibility)
@@ -587,7 +596,7 @@ class GameManager:
                 count += 1
 
         if count > 0:
-            print(t('logs.manager.applied_overrides', count=count))
+            logger.info(t('logs.manager.applied_overrides', count=count))
 
     def get_game(self, app_id: str) -> Optional[Game]:
         """

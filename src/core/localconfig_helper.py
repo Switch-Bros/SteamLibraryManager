@@ -9,11 +9,19 @@ Only handles:
 
 Collections/Categories are managed by cloud_storage_parser!
 """
+from __future__ import annotations
 
+
+import logging
 import vdf
 from pathlib import Path
 from typing import List, Dict
 
+from src.utils.i18n import t
+
+
+
+logger = logging.getLogger("steamlibmgr.localconfig")
 
 class LocalConfigHelper:
     """Minimal helper for localconfig.vdf operations."""
@@ -49,10 +57,10 @@ class LocalConfigHelper:
             return True
 
         except FileNotFoundError:
-            print(f"[ERROR] LocalConfig file not found: {self.config_path}")
+            logger.error(t('logs.localconfig.not_found', path=self.config_path))
             return False
         except Exception as e:
-            print(f"[ERROR] Failed to load localconfig.vdf: {e}")
+            logger.error(t('logs.localconfig.load_error', error=e))
             return False
 
     def save(self) -> bool:
@@ -71,7 +79,7 @@ class LocalConfigHelper:
             return True
 
         except OSError as e:
-            print(f"[ERROR] Failed to save localconfig.vdf: {e}")
+            logger.error(t('logs.localconfig.save_error', error=e))
             return False
 
     # ===== HIDDEN STATUS =====

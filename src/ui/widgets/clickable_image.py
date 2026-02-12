@@ -7,16 +7,21 @@ This widget can load images from local paths or URLs in a separate thread,
 supports animated GIFs (if Pillow is installed), and can display
 superimposed badges based on metadata.
 """
+from __future__ import annotations
+
 from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout
 from PyQt6.QtCore import Qt, pyqtSignal, QThread, QByteArray, QTimer, QPropertyAnimation, QEasingCurve, QRect
 from PyQt6.QtGui import QPixmap, QCursor, QImage
 from typing import cast
+import logging
 import requests
 import os
 os.environ['OPENCV_LOG_LEVEL'] = 'SILENT'
 import io
 from src.config import config
 from src.utils.i18n import t
+
+logger = logging.getLogger("steamlibmgr.clickable_image")
 
 try:
     from PIL import Image, ImageSequence
@@ -26,7 +31,7 @@ except ImportError:
     Image = None
     ImageSequence = None
     HAS_PILLOW = False
-    print(t('logs.image.pillow_missing'))
+    logger.info(t('logs.image.pillow_missing'))
 
 try:
     import cv2
@@ -362,7 +367,7 @@ class ClickableImage(QWidget):
 
             # Fix: Catch specific exceptions (Fixes 'Too broad exception clause')
             except (IOError, ValueError, TypeError, EOFError) as e:
-                print(f"[ClickableImage] Pillow load failed (fallback to Qt): {e}")
+                logger.error(t('logs.image.pillow_fallback', error=e))
 
         # 2. Fallback: Standard Qt Loading
         pixmap = QPixmap()
@@ -427,7 +432,7 @@ class ClickableImage(QWidget):
             self._create_badges(is_animated=True)
 
         except Exception as e:
-            print(f"[ClickableImage] Failed to load WEBM: {e}")
+            logger.error(t('logs.image.webm_load_failed', error=e))
             self.image_label.setText(t('emoji.error'))
             if self.video_cap:
                 self.video_cap.release()

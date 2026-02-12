@@ -16,10 +16,13 @@ Author: HeikesFootSlave
 License: GPL-3.0
 """
 
-import struct
+from __future__ import annotations
+
 import hashlib
-from typing import Dict, Optional, List, BinaryIO
+import logging
+import struct
 from enum import IntEnum
+from typing import BinaryIO
 
 # Import i18n if available (optional for standalone use)
 try:
@@ -29,12 +32,13 @@ try:
 except ImportError:
     HAS_I18N = False
 
-
-    def t(key: str, **_kwargs) -> str:
+    def t(key: str, **_kwargs: object) -> str:
         """Fallback translation function for standalone use."""
         return key.split('.')[-1]
 
 __all__ = ('AppInfo', 'AppInfoVersion', 'IncompatibleVersionError', 'load', 'loads')
+
+logger = logging.getLogger("steamlibmgr.appinfo")
 
 
 # ===== VERSION DEFINITIONS =====
@@ -249,10 +253,7 @@ class AppInfo:
                 current_app_data = self._parse_app_entry()
                 self.apps[current_app_id] = current_app_data
             except Exception as e:
-                if HAS_I18N:
-                    print(t('logs.appinfo.parse_error', app_id=current_app_id, error=str(e)))
-                else:
-                    print(f"Warning: Failed to parse app {current_app_id}: {e}")
+                logger.warning(t('logs.appinfo.parse_warning', app_id=current_app_id, error=e))
                 continue
 
     def _parse_app_entry(self) -> Dict:
@@ -343,10 +344,7 @@ class AppInfo:
 
             else:
                 # Unknown type - skip
-                if HAS_I18N:
-                    print(t('logs.appinfo.unknown_type', type=f"0x{value_type:02x}"))
-                else:
-                    print(f"Warning: Unknown VDF type 0x{value_type:02x}, skipping")
+                logger.warning(t('logs.appinfo.unknown_vdf_type', type=f"0x{value_type:02x}"))
                 break
 
         return result
@@ -425,11 +423,8 @@ class AppInfo:
 
             # Bounds check
             if index >= len(self.string_table):
-                if HAS_I18N:
-                    print(t('logs.appinfo.string_index_out_of_range',
-                            index=index, size=len(self.string_table)))
-                else:
-                    print(f"Warning: String index {index} out of range (table size: {len(self.string_table)})")
+                logger.warning(t('logs.appinfo.string_index_warning',
+                                 index=index, size=len(self.string_table)))
                 return f"__unknown_{index}__"
 
             return self.string_table[index]
@@ -483,12 +478,8 @@ class AppInfo:
             return True
 
         except Exception as e:
-            if HAS_I18N:
-                print(t('logs.appinfo.write_error', error=str(e)))
-            else:
-                print(f"Error writing appinfo.vdf: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error(t('logs.appinfo.write_error', error=str(e)))
+            logger.debug(t('logs.appinfo.write_error_detail', error=e), exc_info=True)
             return False
 
     def _write_header(self, output: bytearray):

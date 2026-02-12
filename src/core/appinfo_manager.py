@@ -7,12 +7,17 @@ This module provides functionality to read, modify, and write Steam's appinfo.vd
 file, which contains metadata for all Steam applications. It tracks user modifications
 separately and supports restoring them after Steam updates the file.
 """
+from __future__ import annotations
 
+
+import logging
 import json
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from src.utils.i18n import t
 from src.utils.appinfo import AppInfo, IncompatibleVersionError
+
+logger = logging.getLogger("steamlibmgr.appinfo_manager")
 
 
 class AppInfoManager:
@@ -79,12 +84,12 @@ class AppInfoManager:
                 self.steam_apps = self.appinfo.apps
 
                 count = len(self.appinfo.apps)
-                print(t('logs.appinfo.loaded_binary', count=count))
+                logger.info(t('logs.appinfo.loaded_binary', count=count))
 
             except IncompatibleVersionError as e:
-                print(t('logs.appinfo.incompatible_version', version=hex(e.version)))
+                logger.info(t('logs.appinfo.incompatible_version', version=hex(e.version)))
             except Exception as e:
-                print(t('logs.appinfo.binary_error', error=str(e)))
+                logger.error(t('logs.appinfo.binary_error', error=str(e)))
                 import traceback
                 traceback.print_exc()
 
@@ -123,10 +128,10 @@ class AppInfoManager:
 
                     self.modified_apps.append(app_id_str)
 
-            print(t('logs.appinfo.loaded', count=len(self.modifications)))
+            logger.info(t('logs.appinfo.loaded', count=len(self.modifications)))
 
         except (OSError, json.JSONDecodeError) as e:
-            print(t('logs.appinfo.error', error=str(e)))
+            logger.error(t('logs.appinfo.error', error=str(e)))
             self.modifications = {}
             self.modified_apps = []
 
@@ -298,7 +303,7 @@ class AppInfoManager:
             return True
 
         except Exception as e:
-            print(t('logs.appinfo.set_error', app_id=app_id, error=str(e)))
+            logger.error(t('logs.appinfo.set_error', app_id=app_id, error=str(e)))
             return False
 
     def save_appinfo(self) -> bool:
@@ -312,10 +317,10 @@ class AppInfoManager:
             self.data_dir.mkdir(exist_ok=True, parents=True)
             with open(self.metadata_file, 'w', encoding='utf-8') as f:
                 json.dump(self.modifications, f, indent=2)
-            print(t('logs.appinfo.saved_mods', count=len(self.modifications)))
+            logger.info(t('logs.appinfo.saved_mods', count=len(self.modifications)))
             return True
         except OSError as e:
-            print(t('logs.appinfo.error', error=str(e)))
+            logger.error(t('logs.appinfo.error', error=str(e)))
             return False
 
     def write_to_vdf(self, backup: bool = True) -> bool:
@@ -332,7 +337,7 @@ class AppInfoManager:
             bool: True if the write operation succeeded, False otherwise.
         """
         if not self.appinfo:
-            print(t('logs.appinfo.not_loaded'))
+            logger.info(t('logs.appinfo.not_loaded'))
             return False
 
         try:
@@ -342,20 +347,19 @@ class AppInfoManager:
                 backup_manager = BackupManager()
                 backup_path = backup_manager.create_rolling_backup(self.appinfo_path)
                 if backup_path:
-                    print(t('logs.appinfo.backup_created', path=backup_path))
+                    logger.info(t('logs.appinfo.backup_created', path=backup_path))
                 else:
-                    print(t('logs.appinfo.backup_failed', error=t('common.unknown')))
+                    logger.error(t('logs.appinfo.backup_failed', error=t('common.unknown')))
 
             # Write using appinfo_v2's method
             success = self.appinfo.write()
             if success:
-                print(t('logs.appinfo.saved_vdf'))
+                logger.info(t('logs.appinfo.saved_vdf'))
             return success
 
         except Exception as e:
-            print(t('logs.appinfo.write_error', error=str(e)))
-            import traceback
-            traceback.print_exc()
+            logger.error(t('logs.appinfo.write_error', error=str(e)))
+            logger.error(t('logs.appinfo.write_error_detail', error=e), exc_info=True)
             return False
 
     def restore_modifications(self, app_ids: Optional[List[str]] = None) -> int:
@@ -390,7 +394,7 @@ class AppInfoManager:
 
         if restored > 0:
             self.write_to_vdf()
-            print(t('logs.appinfo.restored', count=restored))
+            logger.info(t('logs.appinfo.restored', count=restored))
 
         return restored
 

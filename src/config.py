@@ -3,13 +3,15 @@ Configuration - Windows & Linux Auto-Detection
 Includes logic to parse Steam libraryfolders.vdf automatically.
 Includes UI persistence for categories.
 """
-import os
+from __future__ import annotations
+
 import json
+import logging
+import os
 import platform
 import re
-from pathlib import Path
 from dataclasses import dataclass
-from typing import Optional, Tuple, List
+from pathlib import Path
 
 # Load environment variables silently
 try:
@@ -17,6 +19,8 @@ try:
     from dotenv import load_dotenv
 except ImportError:
     load_dotenv = lambda *args, **kwargs: None
+
+logger = logging.getLogger("steamlibmgr.config")
 
 
 @dataclass
@@ -115,7 +119,7 @@ class Config:
                 self.EXPANDED_CATEGORIES = data.get('expanded_categories', [])
 
         except (OSError, json.JSONDecodeError) as e:
-            print(t('logs.config.load_error', error=e))
+            logger.error(t('logs.config.load_error', error=e))
 
     def save(self) -> None:
         """Save current configuration to JSON file."""
@@ -140,7 +144,7 @@ class Config:
             with open(self.SETTINGS_FILE, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2)
         except OSError as e:
-            print(t('logs.config.save_error', error=e))
+            logger.error(t('logs.config.save_error', error=e))
 
     def update_paths(self, **kwargs) -> None:
         """Update paths and save configuration."""
@@ -182,8 +186,10 @@ class Config:
 
         return None
 
-    def _detect_library_folders(self) -> List[str]:
+    def _detect_library_folders(self) -> list[str]:
         """Parses libraryfolders.vdf to find all steam library paths."""
+        from src.utils.i18n import t
+
         if not self.STEAM_PATH: return []
 
         vdf_path = self.STEAM_PATH / 'steamapps' / 'libraryfolders.vdf'
@@ -200,7 +206,7 @@ class Config:
                     path = path.replace('\\\\', '\\')
                     libraries.add(path)
         except Exception as e:
-            print(f"Error reading libraries: {e}")
+            logger.error(t('logs.config.library_read_error', error=e))
 
         return list(libraries)
 

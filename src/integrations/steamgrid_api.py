@@ -6,11 +6,17 @@ SteamGridDB API client with full pagination support.
 This module provides a client for the SteamGridDB API to fetch game images
 (grids, heroes, logos, icons) with support for paginated results and NSFW content.
 """
+from __future__ import annotations
+
+import logging
 import requests
 from typing import Dict, List, Optional, Any
 from src.config import config
 from src.utils.i18n import t
 
+
+
+logger = logging.getLogger("steamlibmgr.steamgrid")
 
 class SteamGridDB:
     """
@@ -111,14 +117,14 @@ class SteamGridDB:
                     else:
                         break
                 else:
-                    print(t('logs.steamgrid.api_error', code=response.status_code, page=page))
+                    logger.error(t('logs.steamgrid.api_error', code=response.status_code, page=page))
                     break
 
             except (requests.RequestException, ValueError, KeyError) as e:
-                print(t('logs.steamgrid.exception', error=str(e)))
+                logger.error(t('logs.steamgrid.exception', error=str(e)))
                 break
 
-        print(t('logs.steamgrid.found', count=len(all_images)))
+        logger.info(t('logs.steamgrid.found', count=len(all_images)))
         return all_images
 
     def _get_game_id(self, steam_app_id: str | int) -> Optional[int]:

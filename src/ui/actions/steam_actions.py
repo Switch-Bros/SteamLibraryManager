@@ -8,6 +8,8 @@ NO MORE OpenID! Full 2FA support with session cookies and access tokens.
 """
 
 from __future__ import annotations
+
+import logging
 from typing import TYPE_CHECKING, Dict
 
 from PyQt6.QtWidgets import QMessageBox
@@ -18,6 +20,9 @@ if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
     from src.ui.widgets.ui_helper import UIHelper
     from src.config import config
+
+
+logger = logging.getLogger("steamlibmgr.steam_actions")
 
 
 class SteamActions:
@@ -76,13 +81,13 @@ class SteamActions:
         from src.ui.handlers.data_load_handler import DataLoadHandler
         from src.ui.widgets.ui_helper import UIHelper
         from src.config import config
-        
+
         steam_id_64 = result['steam_id']
         
         # Store session/token for API access
         if result['method'] == 'qr':
             # Avoid logging token material in plaintext
-            print(t("logs.auth.qr_login_success"))
+            logger.info(t("logs.auth.qr_login_success"))
             self.mw.access_token = result.get('access_token')
             self.mw.refresh_token = result.get('refresh_token')
             self.mw.session = None
@@ -91,13 +96,13 @@ class SteamActions:
             config.STEAM_ACCESS_TOKEN = result.get('access_token')
         else:  # password login
             # Log password login success
-            print(t("logs.auth.password_login_success"))
+            logger.info(t("logs.auth.password_login_success"))
             self.mw.session = result.get('session')
             self.mw.access_token = None
             self.mw.refresh_token = None
             config.STEAM_ACCESS_TOKEN = None
 
-        print(t('logs.auth.login_success', id=steam_id_64))
+        logger.info(t('logs.auth.login_success', id=steam_id_64))
         self.mw.set_status(t('ui.login.status_success'))
         UIHelper.show_success(self.mw, t('ui.login.status_success'), t('ui.login.title'))
 
@@ -124,7 +129,7 @@ class SteamActions:
                 )
             except Exception as e:
                 # Log error (console only, not user-facing)
-                print(t("logs.auth.load_games_error", error=str(e)))
+                logger.error(t("logs.auth.load_games_error", error=str(e)))
                 # Show user-facing error with existing key
                 UIHelper.show_error(
                     self.mw, 
@@ -132,7 +137,7 @@ class SteamActions:
                 )
         else:
             # Defensive fallback
-            print(t("logs.auth.data_load_handler_missing"))
+            logger.info(t("logs.auth.data_load_handler_missing"))
 
     def on_login_error(self, error: str) -> None:
         """Handles Steam authentication errors.

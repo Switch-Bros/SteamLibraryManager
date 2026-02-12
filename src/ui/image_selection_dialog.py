@@ -7,7 +7,10 @@ This module provides a dialog that allows users to browse and select images
 (grids, heroes, logos, icons) from SteamGridDB for their games. It includes
 API key setup functionality and threaded image loading.
 """
+from __future__ import annotations
 
+
+import logging
 import json
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QScrollArea, QWidget, QGridLayout, QLabel,
                              QPushButton, QLineEdit, QHBoxLayout)
@@ -19,6 +22,9 @@ from src.config import config
 from src.integrations.steamgrid_api import SteamGridDB
 from src.ui.widgets.clickable_image import ClickableImage
 
+
+
+logger = logging.getLogger("steamlibmgr.image_dialog")
 
 class SearchThread(QThread):
     """
@@ -217,7 +223,7 @@ class ImageSelectionDialog(QDialog):
                 with open(settings_file, 'w', encoding='utf-8') as f:
                     json.dump(current_settings, f, indent=2)
             except (OSError, json.JSONDecodeError) as e:
-                print(t('logs.config.save_error', error=e))
+                logger.error(t('logs.config.save_error', error=e))
 
             self._check_api_and_start()
 
