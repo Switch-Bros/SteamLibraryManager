@@ -30,7 +30,6 @@ qrcode>=8.0
 
 # ===== Steam Integration =====
 steam>=1.4.4
-pysteamauth>=1.1.2
 
 # ===== Protobuf (for Steam Manifests) =====
 # CRITICAL: manifest_pb2.py was generated with protobuf 3.x.
