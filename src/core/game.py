@@ -157,9 +157,7 @@ NON_GAME_NAME_PATTERNS: tuple[str, ...] = (
 )
 
 
-NON_GAME_APP_TYPES: frozenset[str] = frozenset(
-    {"music", "tool", "application", "video", "dlc", "demo", "config"}
-)
+NON_GAME_APP_TYPES: frozenset[str] = frozenset({"music", "tool", "application", "video", "dlc", "demo", "config"})
 
 
 def is_real_game(game: Game) -> bool:

@@ -163,9 +163,7 @@ class MetadataEnrichmentService:
         return None
 
     # Types that represent real content worth showing in the library
-    _DISCOVERABLE_TYPES: frozenset[str] = frozenset(
-        {"game", "music", "tool", "application", "video"}
-    )
+    _DISCOVERABLE_TYPES: frozenset[str] = frozenset({"game", "music", "tool", "application", "video"})
 
     def discover_missing_games(
         self,
@@ -211,9 +209,7 @@ class MetadataEnrichmentService:
             if app_type not in self._DISCOVERABLE_TYPES:
                 continue
 
-            name = meta.get("name") or self._get_cached_name(app_id) or t(
-                "ui.game_details.game_fallback", id=app_id
-            )
+            name = meta.get("name") or self._get_cached_name(app_id) or t("ui.game_details.game_fallback", id=app_id)
 
             game = Game(app_id=app_id, name=name, app_type=app_type)
             self._games[app_id] = game

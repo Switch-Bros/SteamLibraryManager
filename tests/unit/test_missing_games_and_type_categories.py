@@ -241,9 +241,7 @@ class TestDiscoverFromPackageinfo:
         }
 
         # No localconfig, but packageinfo has the game
-        count = service.discover_missing_games(
-            None, appinfo, packageinfo_ids={"332950"}
-        )
+        count = service.discover_missing_games(None, appinfo, packageinfo_ids={"332950"})
 
         assert count == 1
         assert "332950" in games
@@ -263,9 +261,7 @@ class TestDiscoverFromPackageinfo:
             "200": {"name": "Game B", "type": "game"},
         }.get(app_id, {})
 
-        count = service.discover_missing_games(
-            localconfig, appinfo, packageinfo_ids={"200"}
-        )
+        count = service.discover_missing_games(localconfig, appinfo, packageinfo_ids={"200"})
 
         assert count == 2
         assert "100" in games
@@ -282,9 +278,7 @@ class TestDiscoverFromPackageinfo:
             "type": "dlc",
         }
 
-        count = service.discover_missing_games(
-            None, appinfo, packageinfo_ids={"999"}
-        )
+        count = service.discover_missing_games(None, appinfo, packageinfo_ids={"999"})
 
         assert count == 0
 
@@ -407,8 +401,7 @@ class TestUncategorizedOnlyGames:
 
         from src.core.game_manager import GameManager
 
-        with patch("src.core.game_manager.MetadataEnrichmentService"), \
-             patch("src.core.game_manager.GameDetailService"):
+        with patch("src.core.game_manager.MetadataEnrichmentService"), patch("src.core.game_manager.GameDetailService"):
             manager = GameManager(
                 steam_api_key=None,
                 cache_dir=tmp_path,
@@ -427,8 +420,7 @@ class TestUncategorizedOnlyGames:
 
         from src.core.game_manager import GameManager
 
-        with patch("src.core.game_manager.MetadataEnrichmentService"), \
-             patch("src.core.game_manager.GameDetailService"):
+        with patch("src.core.game_manager.MetadataEnrichmentService"), patch("src.core.game_manager.GameDetailService"):
             manager = GameManager(
                 steam_api_key=None,
                 cache_dir=tmp_path,
@@ -449,8 +441,7 @@ class TestUncategorizedOnlyGames:
 
         from src.core.game_manager import GameManager
 
-        with patch("src.core.game_manager.MetadataEnrichmentService"), \
-             patch("src.core.game_manager.GameDetailService"):
+        with patch("src.core.game_manager.MetadataEnrichmentService"), patch("src.core.game_manager.GameDetailService"):
             manager = GameManager(
                 steam_api_key=None,
                 cache_dir=tmp_path,
@@ -468,8 +459,7 @@ class TestUncategorizedOnlyGames:
 
         from src.core.game_manager import GameManager
 
-        with patch("src.core.game_manager.MetadataEnrichmentService"), \
-             patch("src.core.game_manager.GameDetailService"):
+        with patch("src.core.game_manager.MetadataEnrichmentService"), patch("src.core.game_manager.GameDetailService"):
             manager = GameManager(
                 steam_api_key=None,
                 cache_dir=tmp_path,

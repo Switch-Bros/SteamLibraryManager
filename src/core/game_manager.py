@@ -319,9 +319,7 @@ class GameManager:
         Returns:
             Number of newly discovered games.
         """
-        return self.enrichment_service.discover_missing_games(
-            localconfig_helper, appinfo_manager, packageinfo_ids
-        )
+        return self.enrichment_service.discover_missing_games(localconfig_helper, appinfo_manager, packageinfo_ids)
 
     def get_game(self, app_id: str) -> Game | None:
         """Gets a single game by its app ID.
@@ -347,9 +345,7 @@ class GameManager:
         return sorted(games, key=lambda g: g.sort_name.lower())
 
     # App types visible in the library (type categories + games)
-    _VISIBLE_APP_TYPES: frozenset[str] = frozenset(
-        {"game", "music", "tool", "application", "video"}
-    )
+    _VISIBLE_APP_TYPES: frozenset[str] = frozenset({"game", "music", "tool", "application", "video"})
 
     def get_uncategorized_games(self) -> list[Game]:
         """Gets games that have no user collections (system categories don't count).
