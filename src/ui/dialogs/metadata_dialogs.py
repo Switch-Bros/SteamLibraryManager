@@ -3,7 +3,7 @@ Metadata editing dialogs for Steam Library Manager.
 
 This module provides dialogs for editing game metadata, including single-game
 editing, bulk editing for multiple games, and restoration of original values.
-All dialogs feature visual indicators for modified fields and VDF write options.
+All dialogs feature visual indicators for modified fields.
 """
 
 from __future__ import annotations
@@ -112,25 +112,6 @@ class MetadataEditDialog(QDialog):
 
         layout.addLayout(form)
 
-        # VDF Write Option
-        vdf_group = QGroupBox(t("ui.metadata_editor.vdf_section"))
-        vdf_layout = QVBoxLayout()
-
-        self.write_to_vdf_cb = QCheckBox(t("ui.metadata_editor.write_to_vdf"))
-        self.write_to_vdf_cb.setToolTip(t("ui.metadata_editor.write_to_vdf_tooltip"))
-        self.write_to_vdf_cb.setChecked(True)
-
-        vdf_layout.addWidget(self.write_to_vdf_cb)
-
-        # Info Text
-        vdf_info = QLabel(t("ui.metadata_editor.vdf_info"))
-        vdf_info.setWordWrap(True)
-        vdf_info.setStyleSheet("color: #888; font-size: 9px; padding: 5px;")
-        vdf_layout.addWidget(vdf_info)
-
-        vdf_group.setLayout(vdf_layout)
-        layout.addWidget(vdf_group)
-
         # Original Values Group
         original_group = QGroupBox(t("ui.metadata_editor.original_values_group"))
         original_layout = QVBoxLayout()
@@ -151,7 +132,7 @@ class MetadataEditDialog(QDialog):
         revert_btn.clicked.connect(self._revert_to_original)
         btn_layout.addWidget(revert_btn)
 
-        cancel_btn = QPushButton(t("ui.dialogs.cancel"))
+        cancel_btn = QPushButton(t("common.cancel"))
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
 
@@ -285,42 +266,20 @@ class MetadataEditDialog(QDialog):
     def _save(self):
         """Validates and saves the edited metadata.
 
-        Validates that the name field is not empty, shows a VDF write warning
-        dialog on first use, and stores the result metadata if validation passes.
+        Validates that the name field is not empty and stores the result
+        metadata.  VDF writing happens on app exit, not per-edit.
         """
         name = self.name_edit.text().strip()
         if not name:
             QMessageBox.warning(self, t("common.error"), t("ui.metadata_editor.error_empty_name"))
             return
 
-        # Warning dialog if VDF-Write enabled
-        if self.write_to_vdf_cb.isChecked():
-            # Show warning only once per session
-            if not hasattr(self.parent(), "_vdf_warning_shown"):
-                msg = QMessageBox(self)
-                msg.setIcon(QMessageBox.Icon.Information)
-                msg.setWindowTitle(t("ui.metadata_editor.vdf_warning_title"))
-                msg.setText(t("ui.metadata_editor.vdf_warning_text"))
-                msg.setInformativeText(t("ui.metadata_editor.vdf_warning_details"))
-
-                # Manual buttons — bypasses broken Qt StandardButton translation on Linux
-                yes_btn = msg.addButton(t("common.yes"), QMessageBox.ButtonRole.YesRole)
-                msg.addButton(t("common.no"), QMessageBox.ButtonRole.NoRole)
-                msg.setDefaultButton(yes_btn)
-
-                msg.exec()
-                if msg.clickedButton() != yes_btn:
-                    return  # User clicked "No" → abort save
-
-                self.parent()._vdf_warning_shown = True
-
         self.result_metadata = {
             "name": name,
             "sort_as": self.sort_as_edit.text().strip() or name,
             "developer": self.developer_edit.text().strip(),
             "publisher": self.publisher_edit.text().strip(),
-            "release_date": parse_date_to_timestamp(self.release_date_edit.text().strip()),  # ← FIX!
-            "write_to_vdf": self.write_to_vdf_cb.isChecked(),
+            "release_date": parse_date_to_timestamp(self.release_date_edit.text().strip()),
         }
         self.accept()
 

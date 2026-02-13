@@ -530,6 +530,18 @@ class Database:
 
         return games
 
+    def get_app_type_lookup(self) -> dict[str, tuple[str, str]]:
+        """Returns a fast lookup of app_id to (app_type, name) for all games.
+
+        Used during startup to replace thousands of individual
+        appinfo_manager.get_app_metadata() calls with a single DB query.
+
+        Returns:
+            Dict mapping app_id (str) to (app_type, name) tuples.
+        """
+        cursor = self.conn.execute("SELECT app_id, app_type, name FROM games")
+        return {str(row[0]): (row[1], row[2]) for row in cursor.fetchall()}
+
     def get_game_count(self) -> int:
         """Get total number of games in the database.
 

@@ -155,6 +155,72 @@ class TestGameService:
         assert service.appinfo_manager is not None
         assert service.game_manager.apply_metadata_overrides.call_count == 1  # type: ignore[attr-defined]
 
+    def test_load_and_prepare_success(self, mock_dependencies):
+        """Test full pipeline: load + merge + discover + apply metadata."""
+        service = GameService("/fake/steam", "fake_api_key", "/fake/cache")
+        service.cloud_storage_parser = Mock()
+
+        mock_gm = mock_dependencies["GameManager"].return_value
+        mock_gm.load_games.return_value = True
+        mock_gm.games = {"123": Mock()}
+        mock_gm.discover_missing_games.return_value = 0
+
+        result = service.load_and_prepare("76561197960287930")
+
+        assert result is True
+        mock_gm.merge_with_localconfig.assert_called_once_with(service.cloud_storage_parser)
+        mock_gm.discover_missing_games.assert_called_once()
+        mock_gm.apply_metadata_overrides.assert_called_once()
+
+    def test_load_and_prepare_load_fails_skips_rest(self, mock_dependencies):
+        """Test that merge/metadata are skipped when load_games fails."""
+        service = GameService("/fake/steam", "fake_api_key", "/fake/cache")
+        service.cloud_storage_parser = Mock()
+
+        mock_gm = mock_dependencies["GameManager"].return_value
+        mock_gm.load_games.return_value = False
+        mock_gm.games = {}
+
+        result = service.load_and_prepare("76561197960287930")
+
+        assert result is False
+        mock_gm.merge_with_localconfig.assert_not_called()
+        mock_gm.apply_metadata_overrides.assert_not_called()
+
+    def test_load_and_prepare_discovers_and_remerges(self, mock_dependencies):
+        """Test that discovered games trigger a second merge."""
+        service = GameService("/fake/steam", "fake_api_key", "/fake/cache")
+        service.cloud_storage_parser = Mock()
+
+        mock_gm = mock_dependencies["GameManager"].return_value
+        mock_gm.load_games.return_value = True
+        mock_gm.games = {"123": Mock()}
+        mock_gm.discover_missing_games.return_value = 5  # 5 new games discovered
+
+        result = service.load_and_prepare("76561197960287930")
+
+        assert result is True
+        # merge_with_localconfig called twice: initial + re-merge for discovered
+        assert mock_gm.merge_with_localconfig.call_count == 2
+
+    def test_load_and_prepare_progress_callbacks(self, mock_dependencies):
+        """Test that progress callback is called for each pipeline step."""
+        service = GameService("/fake/steam", "fake_api_key", "/fake/cache")
+        service.cloud_storage_parser = Mock()
+
+        mock_gm = mock_dependencies["GameManager"].return_value
+        mock_gm.load_games.return_value = True
+        mock_gm.games = {"123": Mock()}
+        mock_gm.discover_missing_games.return_value = 0
+
+        callback = Mock()
+        service.load_and_prepare("76561197960287930", callback)
+
+        # Callback is called for: merge, metadata, packages, discover, overrides
+        # (load_games also calls it internally, but that's forwarded)
+        step_names = [call.args[0] for call in callback.call_args_list]
+        assert len(step_names) >= 4  # At least our 4 explicit steps
+
     def test_get_active_parser_cloud_available(self, mock_dependencies):
         """Test getting active parser when cloud storage is available."""
         service = GameService("/fake/steam", "fake_api_key", "/fake/cache")
@@ -173,3 +239,54 @@ class TestGameService:
         parser = service.get_active_parser()
 
         assert parser is None
+
+    def test_load_and_prepare_uses_db_for_discovery(self, mock_dependencies):
+        """Test that load_and_prepare uses DB lookup instead of binary VDF."""
+        service = GameService("/fake/steam", "fake_api_key", "/fake/cache")
+        service.cloud_storage_parser = Mock()
+
+        mock_gm = mock_dependencies["GameManager"].return_value
+        mock_gm.load_games.return_value = True
+        mock_gm.games = {"123": Mock()}
+        mock_gm.discover_missing_games.return_value = 0
+
+        # Mock _init_database to return a mock DB (avoids filesystem access)
+        mock_db = Mock()
+        mock_db.get_game_count.return_value = 100
+        mock_db.get_app_type_lookup.return_value = {"456": ("game", "Test")}
+
+        with patch.object(service, "_init_database", return_value=mock_db):
+            result = service.load_and_prepare("76561197960287930")
+
+        assert result is True
+        # DB lookup should be used
+        mock_db.get_app_type_lookup.assert_called_once()
+        # discover_missing_games should receive db_type_lookup kwarg
+        call_kwargs = mock_gm.discover_missing_games.call_args
+        assert call_kwargs.kwargs.get("db_type_lookup") is not None
+        # AppInfoManager should NOT have load_appinfo called (binary skip)
+        mock_aim_instance = mock_dependencies["AppInfoManager"].return_value
+        mock_aim_instance.load_appinfo.assert_not_called()
+
+    def test_load_and_prepare_applies_custom_overrides_only(self, mock_dependencies):
+        """Test that load_and_prepare uses apply_custom_overrides (not full binary)."""
+        service = GameService("/fake/steam", "fake_api_key", "/fake/cache")
+        service.cloud_storage_parser = Mock()
+
+        mock_gm = mock_dependencies["GameManager"].return_value
+        mock_gm.load_games.return_value = True
+        mock_gm.games = {"123": Mock()}
+        mock_gm.discover_missing_games.return_value = 0
+
+        # Mock _init_database to return a mock DB
+        mock_db = Mock()
+        mock_db.get_game_count.return_value = 100
+        mock_db.get_app_type_lookup.return_value = {}
+
+        with patch.object(service, "_init_database", return_value=mock_db):
+            result = service.load_and_prepare("76561197960287930")
+
+        assert result is True
+        # apply_custom_overrides should be called (not apply_metadata_overrides)
+        mock_gm.apply_custom_overrides.assert_called_once()
+        mock_gm.apply_metadata_overrides.assert_not_called()

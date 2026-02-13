@@ -24,7 +24,11 @@
     "na": "N/A",
     "exit": "Exit",
     "confirm_exit": "Do you really want to exit the application?",
-    "continue": "Continue"
+    "continue": "Continue",
+    "save_and_exit": "Save & Exit",
+    "discard_and_exit": "Discard & Exit",
+    "unsaved_changes_title": "Unsaved Changes",
+    "unsaved_changes_msg": "Changes were made to {filenames}.\n\nDo you really want to exit?\n\nUnsaved changes will be lost!"
   },
   "ui": {
     "main_window": {

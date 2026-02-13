@@ -297,23 +297,107 @@ class MainWindow(QMainWindow):
         self.stats_label.setText(stats_text)
 
     def closeEvent(self, event) -> None:
-        """Handle window close event and check for unsaved changes.
+        """Handle window close event with unified save dialog.
+
+        Checks for both collection changes and metadata (VDF) changes.
+        If changes exist, offers Save & Exit / Discard & Exit / Cancel.
+        If no changes exist, asks for simple exit confirmation.
 
         Args:
             event: The close event from Qt.
         """
-        from src.ui.utils import ask_save_changes
-
         parser = self._get_active_parser()
-        if not parser or not parser.modified:
-            event.accept()  # No changes - close immediately
-            return
+        has_collection_changes = parser is not None and parser.modified
+        has_metadata_changes = (
+            self.appinfo_manager is not None and self.appinfo_manager.vdf_dirty
+        )
 
-        # Ask user via helper
-        if ask_save_changes(self, self._save_collections):
-            event.accept()
+        if has_collection_changes or has_metadata_changes:
+            result = self._ask_save_on_exit(has_collection_changes, has_metadata_changes)
+            if result == "save":
+                self._save_all_on_exit()
+                event.accept()
+            elif result == "discard":
+                event.accept()
+            else:
+                event.ignore()
         else:
-            event.ignore()
+            if UIHelper.confirm(self, t("common.confirm_exit"), t("ui.main_window.title")):
+                event.accept()
+            else:
+                event.ignore()
+
+    def _ask_save_on_exit(
+        self, has_collection_changes: bool, has_metadata_changes: bool
+    ) -> str:
+        """Shows a 3-button dialog when unsaved changes exist on exit.
+
+        Args:
+            has_collection_changes: Whether cloud storage collections were modified.
+            has_metadata_changes: Whether appinfo.vdf metadata was modified.
+
+        Returns:
+            ``"save"``, ``"discard"``, or ``"cancel"``.
+        """
+        from PyQt6.QtWidgets import QMessageBox
+
+        filenames: list[str] = []
+        if has_collection_changes:
+            filenames.append("cloud-storage-namespace-1.json")
+        if has_metadata_changes:
+            filenames.append("appinfo.vdf")
+
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setWindowTitle(t("common.unsaved_changes_title"))
+        msg.setText(t("common.unsaved_changes_msg", filenames=", ".join(filenames)))
+
+        save_btn = msg.addButton(t("common.save_and_exit"), QMessageBox.ButtonRole.AcceptRole)
+        discard_btn = msg.addButton(t("common.discard_and_exit"), QMessageBox.ButtonRole.DestructiveRole)
+        msg.addButton(t("common.cancel"), QMessageBox.ButtonRole.RejectRole)
+        msg.setDefaultButton(save_btn)
+
+        msg.exec()
+
+        clicked = msg.clickedButton()
+        if clicked == save_btn:
+            return "save"
+        elif clicked == discard_btn:
+            return "discard"
+        return "cancel"
+
+    def _save_all_on_exit(self) -> None:
+        """Saves all pending changes before exiting.
+
+        1. Saves collections if the parser has modifications.
+        2. If VDF metadata is dirty: lazy-loads the binary (if not loaded),
+           applies all modifications, writes to VDF with backup, and saves
+           the JSON as well.
+        """
+        # 1. Save collections
+        parser = self._get_active_parser()
+        if parser and parser.modified:
+            self._save_collections()
+
+        # 2. Save VDF metadata
+        if self.appinfo_manager and self.appinfo_manager.vdf_dirty:
+            # Lazy-load binary if not yet loaded
+            if not self.appinfo_manager.appinfo:
+                self.appinfo_manager.load_appinfo()
+
+            # Apply all tracked modifications to the binary
+            for app_id, meta_data in self.appinfo_manager.modifications.items():
+                modified = meta_data.get("modified", {})
+                if modified and self.appinfo_manager.appinfo:
+                    int_id = int(app_id)
+                    if int_id in self.appinfo_manager.appinfo.apps:
+                        self.appinfo_manager.appinfo.update_app_metadata(int_id, modified)
+
+            # Write to VDF with backup
+            self.appinfo_manager.write_to_vdf(backup=True)
+
+            # Save JSON as well
+            self.appinfo_manager.save_appinfo()
 
     # ========== Parser Wrapper Methods ==========
 

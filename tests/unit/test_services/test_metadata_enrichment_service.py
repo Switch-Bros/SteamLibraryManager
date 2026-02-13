@@ -140,3 +140,89 @@ class TestGetCachedName:
         cache_file.write_text("not valid json{{{")
 
         assert service._get_cached_name("440") is None
+
+
+class TestDiscoverFromDbLookup:
+    """Tests for discover_missing_games with db_type_lookup."""
+
+    def test_discover_from_db_lookup(self, tmp_path):
+        """DB-based discovery adds games with matching discoverable types."""
+        games: dict[str, Game] = {"440": Game(app_id="440", name="TF2")}
+        service = MetadataEnrichmentService(games, tmp_path)
+
+        localconfig = MagicMock()
+        localconfig.get_all_app_ids.return_value = ["440", "570", "730"]
+
+        appinfo = MagicMock()
+
+        db_lookup = {
+            "570": ("game", "Dota 2"),
+            "730": ("game", "Counter-Strike 2"),
+        }
+
+        count = service.discover_missing_games(
+            localconfig, appinfo, db_type_lookup=db_lookup,
+        )
+
+        assert count == 2
+        assert "570" in games
+        assert games["570"].name == "Dota 2"
+        assert "730" in games
+        # Should NOT call appinfo_manager.get_app_metadata
+        appinfo.get_app_metadata.assert_not_called()
+
+    def test_discover_from_db_filters_non_discoverable(self, tmp_path):
+        """DB-based discovery skips DLC, config, and other non-discoverable types."""
+        games: dict[str, Game] = {}
+        service = MetadataEnrichmentService(games, tmp_path)
+
+        localconfig = MagicMock()
+        localconfig.get_all_app_ids.return_value = ["100", "200", "300"]
+
+        appinfo = MagicMock()
+
+        db_lookup = {
+            "100": ("dlc", "Some DLC"),
+            "200": ("config", "Some Config"),
+            "300": ("game", "Real Game"),
+        }
+
+        count = service.discover_missing_games(
+            localconfig, appinfo, db_type_lookup=db_lookup,
+        )
+
+        assert count == 1
+        assert "300" in games
+        assert "100" not in games
+        assert "200" not in games
+
+
+class TestApplyCustomOverrides:
+    """Tests for apply_custom_overrides."""
+
+    def test_apply_custom_overrides_name(self, tmp_path):
+        """Name override is applied and name_overridden flag is set."""
+        game = Game(app_id="440", name="TF2")
+        games = {"440": game}
+        service = MetadataEnrichmentService(games, tmp_path)
+
+        modifications = {
+            "440": {"modified": {"name": "Team Fortress 2 Custom"}}
+        }
+        service.apply_custom_overrides(modifications)
+
+        assert game.name == "Team Fortress 2 Custom"
+        assert game.name_overridden is True
+
+    def test_apply_custom_overrides_skips_unknown(self, tmp_path):
+        """Overrides for unknown games are silently skipped."""
+        games: dict[str, Game] = {"440": Game(app_id="440", name="TF2")}
+        service = MetadataEnrichmentService(games, tmp_path)
+
+        modifications = {
+            "999": {"modified": {"name": "Ghost Game"}}
+        }
+        service.apply_custom_overrides(modifications)
+
+        # Should not raise, and existing games unaffected
+        assert games["440"].name == "TF2"

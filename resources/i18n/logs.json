@@ -182,7 +182,11 @@
     "service": {
       "localconfig_init_error": "Failed to init localconfig helper: {error}",
       "cloud_parser_init_error": "Failed to init Cloud Storage parser: {error}",
-      "no_games_loaded": "No games loaded"
+      "no_games_loaded": "No games loaded",
+      "applying_metadata": "Loading metadata...",
+      "parsing_packages": "Parsing package data...",
+      "discovering_games": "Discovering additional games...",
+      "applying_overrides": "Applying metadata overrides..."
     },
     "image": {
       "pillow_missing": "Warning: Pillow not installed",
