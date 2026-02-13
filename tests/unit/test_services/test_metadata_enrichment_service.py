@@ -64,7 +64,8 @@ class TestApplyMetadataOverrides:
         service = MetadataEnrichmentService(games, tmp_path)
 
         appinfo_manager = MagicMock()
-        appinfo_manager.load_appinfo.return_value = {}
+        appinfo_manager.steam_apps = {440: {}}
+        appinfo_manager.modifications = {}
         appinfo_manager.get_app_metadata.return_value = {
             "name": "Team Fortress 2",
             "developer": "Valve",
@@ -83,7 +84,8 @@ class TestApplyMetadataOverrides:
         service = MetadataEnrichmentService(games, tmp_path)
 
         appinfo_manager = MagicMock()
-        appinfo_manager.load_appinfo.return_value = {
+        appinfo_manager.steam_apps = {440: {}}
+        appinfo_manager.modifications = {
             "440": {"modified": {"name": "TF2 Custom", "developer": "Custom Dev"}}
         }
         appinfo_manager.get_app_metadata.return_value = {}
@@ -100,7 +102,8 @@ class TestApplyMetadataOverrides:
         service = MetadataEnrichmentService(games, tmp_path)
 
         appinfo_manager = MagicMock()
-        appinfo_manager.load_appinfo.return_value = {"999": {"modified": {"name": "Ghost Game"}}}
+        appinfo_manager.steam_apps = {}
+        appinfo_manager.modifications = {"999": {"modified": {"name": "Ghost Game"}}}
         appinfo_manager.get_app_metadata.return_value = {}
 
         # Should not raise

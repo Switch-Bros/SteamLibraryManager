@@ -248,7 +248,10 @@ class MetadataEnrichmentService:
         Returns:
             The appinfo_manager instance (for caller to store if needed).
         """
-        modifications = appinfo_manager.load_appinfo()
+        # Use already-loaded data; only load if not yet initialized
+        if not appinfo_manager.steam_apps:
+            appinfo_manager.load_appinfo()
+        modifications = appinfo_manager.modifications
 
         count = 0
 

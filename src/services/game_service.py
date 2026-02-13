@@ -16,6 +16,8 @@ from src.core.game_manager import GameManager
 from src.core.localconfig_helper import LocalConfigHelper
 from src.core.cloud_storage_parser import CloudStorageParser
 from src.core.appinfo_manager import AppInfoManager
+from src.core.database import Database
+from src.core.database_importer import DatabaseImporter
 from src.core.packageinfo_parser import PackageInfoParser
 
 logger = logging.getLogger("steamlibmgr.game_service")
@@ -55,6 +57,7 @@ class GameService:
         self.cloud_storage_parser: CloudStorageParser | None = None
         self.game_manager: GameManager | None = None
         self.appinfo_manager: AppInfoManager | None = None
+        self.database: Database | None = None
 
     def initialize_parsers(self, localconfig_path: str, user_id: str) -> tuple[bool, bool]:
         """Initializes VDF and Cloud Storage parsers.
@@ -94,8 +97,65 @@ class GameService:
 
         return vdf_success, cloud_success
 
+    def _init_database(self) -> Database | None:
+        """Initialize the metadata database.
+
+        Opens (or creates) the SQLite database under the app's data directory.
+        On first run the database will be empty and needs an import.
+
+        Returns:
+            Database instance, or None on failure.
+        """
+        db_dir = Path(self.cache_dir).parent  # data/ directory
+        db_path = db_dir / "metadata.db"
+
+        try:
+            db = Database(db_path)
+            logger.info(t("logs.db.initializing"))
+            return db
+        except Exception as e:
+            logger.error(t("logs.db.schema_error", error=str(e)))
+            return None
+
+    def _run_initial_import(
+        self,
+        db: Database,
+        progress_callback: Callable[[str, int, int], None] | None = None,
+    ) -> None:
+        """Run the one-time database import from appinfo.vdf.
+
+        Args:
+            db: Database instance.
+            progress_callback: Optional progress callback.
+        """
+        # Quick check BEFORE loading appinfo.vdf (avoids ~30s parse on every start)
+        if db.get_game_count() > 0:
+            logger.info(t("logs.db.already_initialized"))
+            return
+
+        # DB is empty — load appinfo.vdf for one-time import
+        if not self.appinfo_manager:
+            self.appinfo_manager = AppInfoManager(Path(self.steam_path))
+            self.appinfo_manager.load_appinfo()
+
+        importer = DatabaseImporter(db, self.appinfo_manager)
+
+        def _bridge(current: int, total: int, msg: str) -> None:
+            """Bridge 3-arg importer callback to GameService callback."""
+            if progress_callback:
+                progress_callback(msg, current, total)
+
+        logger.info(t("logs.db.import_one_time"))
+        importer.import_from_appinfo(_bridge)
+
     def load_games(self, user_id: str, progress_callback: Callable[[str, int, int], None] | None = None) -> bool:
-        """Loads all games from Steam API and local files.
+        """Loads all games from API/local, then enriches with DB metadata.
+
+        Flow:
+            1. Initialize database (create/open)
+            2. If DB empty: import from appinfo.vdf (one-time, ~30s)
+            3. Load games from API + local files (authoritative names/playtime)
+            4. Enrich loaded games with DB metadata (developer, publisher, genres)
 
         Args:
             user_id: Steam user ID (long format, e.g., "76561197960287930") to load games for.
@@ -107,14 +167,25 @@ class GameService:
         Raises:
             RuntimeError: If parsers are not initialized.
         """
-        if not self.cloud_storage_parser:  # localconfig is not a category parser!
+        if not self.cloud_storage_parser:
             raise RuntimeError("Parsers not initialized. Call initialize_parsers() first.")
 
         # Initialize GameManager with Path objects
         self.game_manager = GameManager(self.api_key, Path(self.cache_dir), Path(self.steam_path))
 
-        # Load games
+        # Initialize database (but don't load from it yet)
+        self.database = self._init_database()
+
+        if self.database:
+            # Run initial import if DB is empty
+            self._run_initial_import(self.database, progress_callback)
+
+        # Load games from API/local FIRST (these have authoritative names)
         success = self.game_manager.load_games(user_id, progress_callback)
+
+        # THEN enrich with cached metadata from DB (developer, publisher, genres etc.)
+        if self.database and self.game_manager.games:
+            self.game_manager.enrich_from_database(self.database)
 
         return success and bool(self.game_manager.games)
 

@@ -492,7 +492,10 @@
       "image_picker_title": "Select {type} for {game}",
       "image_picker_loading": "Loading images...",
       "empty_collection_title": "Empty Collection",
-      "empty_collection_message": "Collection '{name}' is empty!\\nShould the collection be deleted?"
+      "empty_collection_message": "Collection '{name}' is empty!\\nShould the collection be deleted?",
+      "db_import_title": "First Run Setup",
+      "db_import_message": "Setting up database...",
+      "db_import_progress": "Importing games..."
     },
     "profile_setup": {
       "title": "Profile Setup",
