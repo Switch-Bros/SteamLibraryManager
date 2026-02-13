@@ -243,14 +243,21 @@ class EditActions:
     # ------------------------------------------------------------------
 
     def edit_game_metadata(self, game: Game) -> None:
-        """
-        Opens the metadata edit dialog for a single game.
+        """Opens the metadata edit dialog for a single game.
+
+        Lazy-loads the binary appinfo.vdf on first access if not yet loaded.
+        VDF is NOT written per-edit; instead it is written on exit via
+        closeEvent / _save_all_on_exit().
 
         Args:
             game: The game to edit.
         """
         if not self.mw.metadata_service:
             return
+
+        # Lazy-load binary VDF on first metadata edit
+        if self.mw.appinfo_manager and not self.mw.appinfo_manager.appinfo:
+            self.mw.appinfo_manager.load_appinfo()
 
         meta = self.mw.metadata_service.get_game_metadata(game.app_id, game)
         original_meta = self.mw.metadata_service.get_original_metadata(game.app_id, meta.copy())
@@ -260,12 +267,7 @@ class EditActions:
         if dialog.exec():
             new_meta = dialog.get_metadata()
             if new_meta:
-                write_vdf = new_meta.pop("write_to_vdf", False)
                 self.mw.metadata_service.set_game_metadata(game.app_id, new_meta)
-
-                if write_vdf and self.mw.appinfo_manager:
-                    self.mw.appinfo_manager.load_appinfo()
-                    self.mw.appinfo_manager.write_to_vdf(backup=True)
 
                 if new_meta.get("name"):
                     game.name = new_meta["name"]
