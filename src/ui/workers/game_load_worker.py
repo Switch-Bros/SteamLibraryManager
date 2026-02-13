@@ -54,5 +54,5 @@ class GameLoadWorker(QThread):
         def progress_callback(step: str, current: int, total: int):
             self.progress_update.emit(step, current, total)
 
-        success = self.game_service.load_games(self.user_id, progress_callback)
+        success = self.game_service.load_and_prepare(self.user_id, progress_callback)
         self.finished.emit(success)

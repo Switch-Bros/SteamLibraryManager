@@ -433,3 +433,30 @@ class TestDatabaseImporter:
         assert stats.games_imported == 2
         assert stats.games_failed == 0
         assert database.get_game_count() == 2
+
+
+# ========================================================================
+# get_app_type_lookup tests
+# ========================================================================
+
+
+class TestGetAppTypeLookup:
+    """Tests for Database.get_app_type_lookup."""
+
+    def test_get_app_type_lookup(self, database: Database, sample_database_entries) -> None:
+        """get_app_type_lookup returns correct app_type and name tuples."""
+        database.batch_insert_games(sample_database_entries)
+
+        lookup = database.get_app_type_lookup()
+
+        assert "440" in lookup
+        assert lookup["440"] == ("game", "Team Fortress 2")
+        assert "570" in lookup
+        assert lookup["570"] == ("game", "Dota 2")
+        assert "730" in lookup
+        assert lookup["730"] == ("game", "Counter-Strike 2")
+
+    def test_get_app_type_lookup_empty(self, database: Database) -> None:
+        """get_app_type_lookup on empty DB returns empty dict."""
+        lookup = database.get_app_type_lookup()
+        assert lookup == {}

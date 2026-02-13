@@ -170,17 +170,21 @@ class MetadataEnrichmentService:
         localconfig_helper,
         appinfo_manager,
         packageinfo_ids: set[str] | None = None,
+        *,
+        db_type_lookup: dict[str, tuple[str, str]] | None = None,
     ) -> int:
         """Discovers owned games missing from the API response.
 
         Collects candidate app IDs from multiple local sources (localconfig,
-        packageinfo) and cross-references them with appinfo.vdf metadata.
-        Only adds apps whose type is in ``_DISCOVERABLE_TYPES``.
+        packageinfo) and cross-references them with metadata.  When
+        ``db_type_lookup`` is provided the fast DB-based path is used,
+        otherwise falls back to per-app appinfo_manager lookups.
 
         Args:
             localconfig_helper: A loaded LocalConfigHelper instance.
             appinfo_manager: A loaded AppInfoManager instance.
             packageinfo_ids: Optional set of app IDs from packageinfo.vdf.
+            db_type_lookup: Optional {app_id_str: (app_type, name)} from DB.
 
         Returns:
             Number of newly discovered games added.
@@ -203,13 +207,23 @@ class MetadataEnrichmentService:
 
         count = 0
         for app_id in candidates:
-            meta = appinfo_manager.get_app_metadata(app_id)
-            app_type = meta.get("type", "").lower()
+            if db_type_lookup is not None:
+                # Fast path: use pre-fetched DB data
+                lookup = db_type_lookup.get(app_id)
+                if not lookup:
+                    continue
+                app_type = (lookup[0] or "").lower()
+                db_name = lookup[1] or ""
+            else:
+                # Legacy path: per-app binary lookup
+                meta = appinfo_manager.get_app_metadata(app_id)
+                app_type = meta.get("type", "").lower()
+                db_name = meta.get("name", "")
 
             if app_type not in self._DISCOVERABLE_TYPES:
                 continue
 
-            name = meta.get("name") or self._get_cached_name(app_id) or t("ui.game_details.game_fallback", id=app_id)
+            name = db_name or self._get_cached_name(app_id) or t("ui.game_details.game_fallback", id=app_id)
 
             game = Game(app_id=app_id, name=name, app_type=app_type)
             self._games[app_id] = game
@@ -288,6 +302,43 @@ class MetadataEnrichmentService:
                 game.metacritic_score = int(steam_meta["metacritic_score"])
 
         # 2. CUSTOM OVERRIDES
+        for app_id, meta_data in modifications.items():
+            if app_id in self._games:
+                game = self._games[app_id]
+                modified = meta_data.get("modified", {})
+
+                if modified.get("name"):
+                    game.name = modified["name"]
+                    game.name_overridden = True
+                if modified.get("sort_as"):
+                    game.sort_name = modified["sort_as"]
+                elif game.name_overridden:
+                    game.sort_name = game.name
+                if modified.get("developer"):
+                    game.developer = modified["developer"]
+                if modified.get("publisher"):
+                    game.publisher = modified["publisher"]
+                if modified.get("release_date"):
+                    game.release_year = modified["release_date"]
+                if modified.get("pegi_rating"):
+                    game.pegi_rating = modified["pegi_rating"]
+
+                count += 1
+
+        if count > 0:
+            logger.info(t("logs.manager.applied_overrides", count=count))
+
+    def apply_custom_overrides(self, modifications: dict[str, dict]) -> None:
+        """Applies ONLY custom JSON overrides, skipping the binary appinfo phase.
+
+        Identical to the second half of ``apply_metadata_overrides()`` but
+        without needing a loaded binary.  Used during lazy-load startup
+        where the DB already provides base metadata.
+
+        Args:
+            modifications: Dict of {app_id: {"original": ..., "modified": {...}}}.
+        """
+        count = 0
         for app_id, meta_data in modifications.items():
             if app_id in self._games:
                 game = self._games[app_id]

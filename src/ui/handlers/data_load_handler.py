@@ -184,14 +184,10 @@ class DataLoadHandler:
             self.mw.set_status(t("common.error"))
             return
 
-        # Merge collections using GameService
-        self.mw.game_service.merge_with_localconfig()
-
-        # Apply metadata using GameService
+        # Initialize SteamStoreScraper (lightweight, no I/O)
         self.mw.steam_scraper = SteamStoreScraper(config.CACHE_DIR, config.TAGS_LANGUAGE)
-        self.mw.game_service.apply_metadata()
 
-        # Set appinfo_manager reference for backward compatibility
+        # Set appinfo_manager reference for backward compatibility (already loaded by worker)
         self.mw.appinfo_manager = self.mw.game_service.appinfo_manager
 
         # Initialize CategoryService after parsers and game_manager are ready
