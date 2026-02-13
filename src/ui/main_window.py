@@ -134,10 +134,12 @@ class MainWindow(QMainWindow):
         self.category_populator = CategoryPopulator(self)
 
         self._create_ui()
-        self._load_data()
 
-        # Attempt to restore previous session after event loop starts
-        QTimer.singleShot(0, self.steam_actions.restore_session)
+        # Restore session BEFORE loading data so the access token
+        # is available for the Steam Web API call
+        self.steam_actions.restore_session()
+
+        self._load_data()
 
     def _create_ui(self) -> None:
         """Initializes all UI components, menus, and layouts.

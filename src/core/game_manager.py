@@ -90,8 +90,11 @@ class GameManager:
         self.steam_user_id = steam_user_id
         api_success = False
 
-        # STEP 1: Steam Web API
-        if self.api_key:
+        # STEP 1: Steam Web API (via API key OR OAuth access token)
+        from src.config import config as _cfg
+
+        has_credentials = self.api_key or getattr(_cfg, "STEAM_ACCESS_TOKEN", None)
+        if has_credentials:
             if progress_callback:
                 progress_callback(t("logs.manager.api_trying"), 0, 3)
 
@@ -212,14 +215,14 @@ class GameManager:
             # Use access token if available (takes priority over API key)
             if access_token:
                 logger.info(t("logs.manager.using_oauth"))
-                headers = {"Authorization": f"Bearer {access_token}"}
                 params = {
+                    "access_token": access_token,
                     "steamid": steam_user_id,
                     "include_appinfo": 1,
                     "include_played_free_games": 1,
                     "format": "json",
                 }
-                response = requests.get(url, params=params, headers=headers, timeout=10)
+                response = requests.get(url, params=params, timeout=10)
             else:
                 # Traditional API key method
                 logger.info(t("logs.manager.using_api_key"))
@@ -255,7 +258,12 @@ class GameManager:
             return True
 
         except (requests.RequestException, ValueError, KeyError) as e:
-            logger.error(t("logs.manager.error_api", error=e))
+            # Sanitize error message to avoid leaking API key in logs
+            if isinstance(e, requests.HTTPError) and e.response is not None:
+                safe_msg = f"HTTP {e.response.status_code}"
+            else:
+                safe_msg = type(e).__name__
+            logger.error(t("logs.manager.error_api", error=safe_msg))
             return False
 
     def merge_with_localconfig(self, parser) -> None:
@@ -313,24 +321,33 @@ class GameManager:
         return sorted(games, key=lambda g: g.sort_name.lower())
 
     def get_uncategorized_games(self) -> list[Game]:
-        """Gets games that have no category (Depressurizer-compatible logic).
+        """Gets games that have no user collections (system categories don't count).
 
-        A game is uncategorized if:
-        1. It has NO categories at all, OR
-        2. It has ONLY the Favorites category (favorites is not a "real" category)
+        A game is uncategorized if it has NO user-defined collections.
+        System categories (Favorites, Hidden) do NOT count as real categories.
+
+        This matches Depressurizer's behavior: A game can be both a Favorite AND Uncategorized,
+        or Hidden AND Uncategorized. Only user-created collections remove a game from Uncategorized.
 
         Returns:
             A sorted list of uncategorized games.
         """
-        favorites_key = t("ui.categories.favorites")
+        # System categories that should NOT count as "categorized"
+        system_categories = {
+            t("ui.categories.favorites"),
+            t("ui.categories.hidden")
+        }
 
-        games = [
-            g
-            for g in self.get_real_games()
-            if not g.categories or (len(g.categories) == 1 and favorites_key in g.categories)
-        ]
+        uncategorized = []
+        for game in self.get_real_games():
+            # Filter out system categories
+            user_categories = [cat for cat in game.categories if cat not in system_categories]
 
-        return sorted(games, key=lambda g: g.sort_name.lower())
+            # If NO user categories remain → uncategorized!
+            if not user_categories:
+                uncategorized.append(game)
+
+        return sorted(uncategorized, key=lambda g: g.sort_name.lower())
 
     def get_favorites(self) -> list[Game]:
         """Gets all favorite games.
@@ -381,7 +398,8 @@ class GameManager:
         else:
             return t("ui.main_window.status_ready")
 
-    def is_real_game(self, game: Game) -> bool:
+    @staticmethod
+    def is_real_game(game: Game) -> bool:
         """Checks if a game is a real game (not Proton/Steam runtime).
 
         Delegates to the module-level is_real_game() function in src.core.game.

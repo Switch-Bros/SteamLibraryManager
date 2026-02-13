@@ -73,11 +73,11 @@ class TokenStore:
     def _check_keyring() -> bool:
         """Check if keyring backend is available and functional."""
         try:
-            import keyring
+            import keyring  # noqa: F811 — optional dependency
 
             keyring.get_keyring()
             return True
-        except Exception:
+        except (ImportError, RuntimeError, OSError):
             return False
 
     # ------------------------------------------------------------------
@@ -151,25 +151,50 @@ class TokenStore:
     def refresh_access_token(refresh_token: str, steam_id: str = "") -> str | None:
         """Obtain a new access token using a refresh token.
 
+        Steam's IAuthenticationService uses protobuf-over-HTTP: the request
+        body is sent as a base64-encoded protobuf in the
+        ``input_protobuf_encoded`` form parameter.  The response body is raw
+        protobuf (field 1 = access_token string).
+
         Args:
-            refresh_token: The Steam refresh token.
-            steam_id: SteamID64 of the user (may be required by Steam API).
+            refresh_token: The Steam refresh token (JWT).
+            steam_id: SteamID64 of the user.  Required by Steam API.
 
         Returns:
             New access token, or None on failure.
         """
+        if not steam_id:
+            logger.warning("Cannot refresh token without steam_id")
+            return None
+
         url = "https://api.steampowered.com/IAuthenticationService/GenerateAccessTokenForApp/v1/"
-        post_data: dict[str, str] = {"refresh_token": refresh_token}
-        if steam_id:
-            post_data["steamid"] = steam_id
+
         try:
+            # Encode request as protobuf, then base64 for the Web API gateway
+            proto_body = TokenStore._encode_refresh_proto(refresh_token, steam_id)
+            post_data = {
+                "input_protobuf_encoded": base64.b64encode(proto_body).decode("ascii"),
+            }
+
             response = requests.post(url, data=post_data, timeout=10)
             response.raise_for_status()
-            result = response.json().get("response", {})
-            new_token = result.get("access_token")
+
+            # Response is typically protobuf; fall back to JSON if Steam returns that
+            new_token: str | None = None
+            content_type = response.headers.get("Content-Type", "")
+
+            if "json" in content_type or (response.text and response.text.startswith("{")):
+                result = response.json().get("response", {})
+                new_token = result.get("access_token")
+            elif response.content:
+                # Decode protobuf response: field 1 = access_token (string)
+                new_token = TokenStore._decode_string_field(response.content, field_number=1)
+
             if new_token:
                 logger.info(t("logs.auth.token_refresh_success"))
                 return new_token
+
+            logger.info("Token refresh: Steam returned no new token, stored token still valid")
         except (requests.RequestException, ValueError, KeyError) as e:
             logger.error(t("logs.auth.token_refresh_failed", error=str(e)))
         return None
@@ -190,10 +215,9 @@ class TokenStore:
         # Method 1: Try GetOwnedGames API
         try:
             url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
-            headers = {"Authorization": f"Bearer {access_token}"}
-            params = {"include_appinfo": 0, "format": "json"}
+            params = {"access_token": access_token, "include_appinfo": 0, "format": "json"}
 
-            response = requests.get(url, params=params, headers=headers, timeout=10)
+            response = requests.get(url, params=params, timeout=10)
 
             if response.status_code == 200:
                 data = response.json()
@@ -230,12 +254,117 @@ class TokenStore:
         return None
 
     # ------------------------------------------------------------------
+    # Protobuf helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _encode_refresh_proto(refresh_token: str, steam_id: str = "") -> bytes:
+        """Manually encode GenerateAccessTokenForApp request as protobuf.
+
+        Protobuf wire format for CAuthentication_AccessToken_GenerateForApp_Request:
+            field 1 (refresh_token, string): tag 0x0A + varint length + UTF-8
+            field 2 (steamid, fixed64):      tag 0x11 + 8 bytes LE
+
+        Args:
+            refresh_token: The refresh JWT token.
+            steam_id: Optional SteamID64.
+
+        Returns:
+            Raw protobuf bytes.
+        """
+        buf = bytearray()
+
+        # Field 1: refresh_token (string, field number 1, wire type 2)
+        token_bytes = refresh_token.encode("utf-8")
+        buf.append(0x0A)  # tag: (1 << 3) | 2
+        TokenStore._write_varint(buf, len(token_bytes))
+        buf.extend(token_bytes)
+
+        # Field 2: steamid (fixed64, field number 2, wire type 1)
+        if steam_id:
+            buf.append(0x11)  # tag: (2 << 3) | 1
+            buf.extend(int(steam_id).to_bytes(8, byteorder="little"))
+
+        return bytes(buf)
+
+    @staticmethod
+    def _decode_string_field(data: bytes, field_number: int) -> str | None:
+        """Extract a string field from raw protobuf bytes.
+
+        Args:
+            data: Raw protobuf response bytes.
+            field_number: The protobuf field number to extract.
+
+        Returns:
+            Decoded string value, or None if not found.
+        """
+        pos = 0
+        while pos < len(data):
+            if pos >= len(data):
+                break
+            tag_byte = data[pos]
+            wire_type = tag_byte & 0x07
+            field_num = tag_byte >> 3
+            pos += 1
+
+            if wire_type == 2:  # length-delimited (string, bytes)
+                length, pos = TokenStore._read_varint(data, pos)
+                value = data[pos:pos + length]
+                pos += length
+                if field_num == field_number:
+                    return value.decode("utf-8")
+            elif wire_type == 0:  # varint
+                _, pos = TokenStore._read_varint(data, pos)
+            elif wire_type == 1:  # 64-bit
+                pos += 8
+            elif wire_type == 5:  # 32-bit
+                pos += 4
+            else:
+                break
+        return None
+
+    @staticmethod
+    def _read_varint(data: bytes, pos: int) -> tuple[int, int]:
+        """Read a varint from bytes at the given position.
+
+        Args:
+            data: The byte buffer.
+            pos: Starting position.
+
+        Returns:
+            Tuple of (decoded value, new position).
+        """
+        result = 0
+        shift = 0
+        while pos < len(data):
+            byte = data[pos]
+            pos += 1
+            result |= (byte & 0x7F) << shift
+            if not (byte & 0x80):
+                break
+            shift += 7
+        return result, pos
+
+    @staticmethod
+    def _write_varint(buf: bytearray, value: int) -> None:
+        """Write a varint-encoded integer to a byte buffer.
+
+        Args:
+            buf: Target buffer to append to.
+            value: Non-negative integer to encode.
+        """
+        while value > 0x7F:
+            buf.append((value & 0x7F) | 0x80)
+            value >>= 7
+        buf.append(value & 0x7F)
+
+    # ------------------------------------------------------------------
     # Keyring backend
     # ------------------------------------------------------------------
 
     def _save_to_keyring(self, data: dict[str, Any]) -> bool:
         """Store token data in the system keyring."""
-        import keyring
+        import keyring  # noqa: F811 — optional dependency
 
         keyring.set_password(self._KEYRING_SERVICE, self._KEYRING_USERNAME, json.dumps(data))
         logger.info(t("logs.auth.token_saved"))
@@ -243,7 +372,7 @@ class TokenStore:
 
     def _load_from_keyring(self) -> dict[str, Any] | None:
         """Load token data from the system keyring."""
-        import keyring
+        import keyring  # noqa: F811 — optional dependency
 
         raw = keyring.get_password(self._KEYRING_SERVICE, self._KEYRING_USERNAME)
         if raw is None:
@@ -253,11 +382,11 @@ class TokenStore:
     def _clear_keyring(self) -> None:
         """Remove tokens from the system keyring."""
         try:
-            import keyring
+            import keyring  # noqa: F811 — optional dependency
 
             keyring.delete_password(self._KEYRING_SERVICE, self._KEYRING_USERNAME)
-        except Exception:
-            pass  # Key may not exist
+        except (ImportError, RuntimeError, OSError):
+            pass  # Key may not exist or keyring unavailable
 
     # ------------------------------------------------------------------
     # File-based encrypted backend

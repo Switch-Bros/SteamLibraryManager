@@ -482,9 +482,9 @@ class SteamLoginManager(QObject):
 
         try:
             if isinstance(session_or_token, str):
-                # Access token
-                headers = {"Authorization": f"Bearer {session_or_token}"}
-                response = requests.get(url, params=params, headers=headers, timeout=10)
+                # Access token — pass as query parameter, not Bearer header
+                params["access_token"] = session_or_token
+                response = requests.get(url, params=params, timeout=10)
             else:
                 # Session
                 response = session_or_token.get(url, params=params, timeout=10)

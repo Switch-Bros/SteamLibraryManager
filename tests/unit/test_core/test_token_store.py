@@ -132,20 +132,46 @@ class TestTokenStoreRefresh:
     """Tests for TokenStore.refresh_access_token()."""
 
     @patch("src.core.token_store.requests.post")
-    def test_refresh_success(self, mock_post: MagicMock):
-        """Successful refresh should return new access token."""
+    def test_refresh_success_json_response(self, mock_post: MagicMock):
+        """Successful refresh with JSON response should return new access token."""
         from src.core.token_store import TokenStore
 
         mock_response = MagicMock()
         mock_response.status_code = 200
+        mock_response.headers = {"Content-Type": "application/json"}
+        mock_response.text = '{"response":{"access_token":"new_token"}}'
         mock_response.json.return_value = {"response": {"access_token": "new_token"}}
         mock_response.raise_for_status = MagicMock()
         mock_post.return_value = mock_response
 
-        result = TokenStore.refresh_access_token("old_refresh")
+        result = TokenStore.refresh_access_token("old_refresh", "76561198000000000")
 
         assert result == "new_token"
         mock_post.assert_called_once()
+        # Verify input_protobuf_encoded is used
+        call_kwargs = mock_post.call_args
+        assert "input_protobuf_encoded" in call_kwargs.kwargs.get("data", call_kwargs[1].get("data", {}))
+
+    @patch("src.core.token_store.requests.post")
+    def test_refresh_success_protobuf_response(self, mock_post: MagicMock):
+        """Successful refresh with protobuf response should decode access token."""
+        from src.core.token_store import TokenStore
+
+        # Build a minimal protobuf response: field 1 (string) = "fresh_token"
+        token_bytes = b"fresh_token"
+        proto_response = bytes([0x0A, len(token_bytes)]) + token_bytes
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {"Content-Type": "application/x-protobuf"}
+        mock_response.text = ""
+        mock_response.content = proto_response
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        result = TokenStore.refresh_access_token("old_refresh", "76561198000000000")
+
+        assert result == "fresh_token"
 
     @patch("src.core.token_store.requests.post")
     def test_refresh_failure_returns_none(self, mock_post: MagicMock):
@@ -156,8 +182,67 @@ class TestTokenStoreRefresh:
 
         mock_post.side_effect = req.RequestException("Network error")
 
-        result = TokenStore.refresh_access_token("bad_refresh")
+        result = TokenStore.refresh_access_token("bad_refresh", "76561198000000000")
 
+        assert result is None
+
+    def test_refresh_without_steam_id_returns_none(self):
+        """Refresh without steam_id should return None immediately."""
+        from src.core.token_store import TokenStore
+
+        result = TokenStore.refresh_access_token("some_refresh", "")
+
+        assert result is None
+
+
+class TestProtobufHelpers:
+    """Tests for manual protobuf encoding/decoding helpers."""
+
+    def test_encode_refresh_proto_with_steamid(self):
+        """Encoding should produce valid protobuf with refresh_token and steamid."""
+        from src.core.token_store import TokenStore
+
+        result = TokenStore._encode_refresh_proto("mytoken", "76561198000000000")
+
+        # Field 1: tag 0x0A, varint 7, "mytoken"
+        assert result[0] == 0x0A
+        assert b"mytoken" in result
+        # Field 2: tag 0x11, followed by 8 bytes LE
+        assert 0x11 in result
+
+    def test_encode_refresh_proto_without_steamid(self):
+        """Encoding without steamid should only include refresh_token field."""
+        from src.core.token_store import TokenStore
+
+        result = TokenStore._encode_refresh_proto("mytoken", "")
+
+        assert result[0] == 0x0A
+        assert b"mytoken" in result
+        assert 0x11 not in result
+
+    def test_decode_string_field_roundtrip(self):
+        """Decoding should extract the string encoded by our encoder."""
+        from src.core.token_store import TokenStore
+
+        # Encode a simple protobuf with field 1 = "hello"
+        buf = bytearray()
+        buf.append(0x0A)  # field 1, wire type 2
+        buf.append(5)  # length
+        buf.extend(b"hello")
+
+        result = TokenStore._decode_string_field(bytes(buf), field_number=1)
+        assert result == "hello"
+
+    def test_decode_string_field_not_found(self):
+        """Decoding a non-existent field should return None."""
+        from src.core.token_store import TokenStore
+
+        buf = bytearray()
+        buf.append(0x0A)  # field 1, wire type 2
+        buf.append(3)
+        buf.extend(b"abc")
+
+        result = TokenStore._decode_string_field(bytes(buf), field_number=99)
         assert result is None
 
 

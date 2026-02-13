@@ -127,7 +127,9 @@ class ToolbarBuilder:
         toolbar.addSeparator()
 
         # --- Auth-dependent section ---
-        if mw.steam_username:
+        # Show username only if actually authenticated (has access token)
+        is_authenticated = mw.steam_username and config.STEAM_ACCESS_TOKEN
+        if is_authenticated:
             self._add_logged_in_action(toolbar)
         else:
             self._add_login_action(toolbar)
@@ -235,6 +237,9 @@ class ToolbarBuilder:
         config.STEAM_USER_ID = None
         config.STEAM_ACCESS_TOKEN = None
         config.save()
+
+        # Clear the user label in the menu bar
+        mw.user_label.setText("")
 
         # Rebuild toolbar to show login button again
         mw.refresh_toolbar()

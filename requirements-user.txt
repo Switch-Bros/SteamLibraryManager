@@ -25,9 +25,8 @@ qrcode>=8.0
 steam>=1.4.4
 
 # ===== Protobuf (for Steam Manifests) =====
-# CRITICAL: manifest_pb2.py was generated with protobuf 3.x.
-# Version 4+ uses a different API and WILL break our code.
-protobuf>=3.20.3,<4
+# manifest_pb2.py regenerated for modern protobuf (AddSerializedFile API).
+protobuf>=4.21.0
 
 # ===== Web UI (for OAuth login) =====
 pywebview>=5.3.2
