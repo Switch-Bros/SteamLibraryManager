@@ -48,6 +48,9 @@ class AppInfoManager:
         self.modifications: dict[str, dict] = {}
         self.modified_apps: list[str] = []
 
+        # Dirty flag: True when modifications exist that have not been written to VDF
+        self.vdf_dirty: bool = False
+
         # Steam appinfo.vdf object
         self.appinfo: AppInfo | None = None
         self.appinfo_path: Path | None = None
@@ -135,6 +138,19 @@ class AppInfoManager:
             logger.error(t("logs.appinfo.error", error=str(e)))
             self.modifications = {}
             self.modified_apps = []
+
+    def load_modifications_only(self) -> dict[str, dict]:
+        """Loads ONLY custom_metadata.json, skips binary VDF parsing.
+
+        Used during startup to avoid the expensive ~2s binary parse when
+        the SQLite DB already contains all metadata.
+
+        Returns:
+            Dictionary of tracked modifications keyed by app_id.
+        """
+        self.data_dir.mkdir(exist_ok=True)
+        self._load_modifications_from_json()
+        return self.modifications
 
     @staticmethod
     def _find_common_section(data: dict) -> dict:
@@ -298,6 +314,7 @@ class AppInfoManager:
             if self.appinfo and int(app_id) in self.appinfo.apps:
                 self.appinfo.update_app_metadata(int(app_id), metadata)
 
+            self.vdf_dirty = True
             return True
 
         except Exception as e:
@@ -353,6 +370,7 @@ class AppInfoManager:
             # Write using appinfo_v2's method
             success = self.appinfo.write()
             if success:
+                self.vdf_dirty = False
                 logger.info(t("logs.appinfo.saved_vdf"))
             return success
 

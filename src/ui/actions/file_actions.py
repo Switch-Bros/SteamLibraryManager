@@ -117,10 +117,9 @@ class FileActions:
             UIHelper.show_success(self.mw, t("ui.menu.file.no_duplicates_found"))
 
     def exit_application(self) -> None:
-        """Closes the main window after user confirmation.
+        """Closes the main window.
 
-        Always asks for confirmation before closing, then triggers closeEvent
-        which handles unsaved changes if present.
+        Delegates to ``MainWindow.close()`` which triggers ``closeEvent()``
+        for unsaved-changes handling and exit confirmation.
         """
-        if UIHelper.confirm(self.mw, t("common.confirm_exit"), t("ui.main_window.title")):
-            self.mw.close()
+        self.mw.close()

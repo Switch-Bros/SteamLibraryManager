@@ -309,6 +309,8 @@ class GameManager:
         localconfig_helper,
         appinfo_manager,
         packageinfo_ids: set[str] | None = None,
+        *,
+        db_type_lookup: dict[str, tuple[str, str]] | None = None,
     ) -> int:
         """Discovers owned games that the API did not return.
 
@@ -318,11 +320,27 @@ class GameManager:
             localconfig_helper: A loaded LocalConfigHelper instance.
             appinfo_manager: A loaded AppInfoManager instance.
             packageinfo_ids: Optional set of app IDs from packageinfo.vdf.
+            db_type_lookup: Optional DB-based type/name lookup for fast path.
 
         Returns:
             Number of newly discovered games.
         """
-        return self.enrichment_service.discover_missing_games(localconfig_helper, appinfo_manager, packageinfo_ids)
+        return self.enrichment_service.discover_missing_games(
+            localconfig_helper,
+            appinfo_manager,
+            packageinfo_ids,
+            db_type_lookup=db_type_lookup,
+        )
+
+    def apply_custom_overrides(self, modifications: dict[str, dict]) -> None:
+        """Applies only custom JSON overrides to loaded games.
+
+        Delegates to MetadataEnrichmentService.
+
+        Args:
+            modifications: Dict of modifications from AppInfoManager.
+        """
+        self.enrichment_service.apply_custom_overrides(modifications)
 
     def enrich_from_database(self, database: Database) -> int:
         """Enrich already-loaded games with cached metadata from the database.

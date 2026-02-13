@@ -189,6 +189,100 @@ class GameService:
 
         return success and bool(self.game_manager.games)
 
+    def load_and_prepare(self, user_id: str, progress_callback: Callable[[str, int, int], None] | None = None) -> bool:
+        """Loads games and runs the full preparation pipeline in one call.
+
+        Designed to run entirely in a worker thread so the UI stays responsive.
+        Uses lazy-load: the expensive binary appinfo.vdf is NOT parsed at
+        startup.  Instead the SQLite DB provides type/name data for discovery,
+        and only the lightweight custom_metadata.json is loaded for overrides.
+
+        Pipeline:
+            1. load_games() — API + local + DB enrichment
+            2. merge_with_localconfig() — assign collections
+            3. appinfo_manager.load_modifications_only() — JSON only (~5ms)
+            4. PackageInfoParser.get_all_app_ids() — package IDs
+            5. database.get_app_type_lookup() -> discover_missing_games(db_type_lookup=...)
+            6. apply_custom_overrides(modifications) — JSON overrides only
+
+        Fallback: if no DB exists (should not happen after Phase 1.2) the
+        legacy binary path is used.
+
+        Args:
+            user_id: Steam user ID (long format) to load games for.
+            progress_callback: Optional callback for progress updates (step, current, total).
+
+        Returns:
+            True if games were loaded successfully and at least one game was found.
+
+        Raises:
+            RuntimeError: If parsers are not initialized.
+        """
+        # Step 1: Load games (API + local + DB enrichment)
+        success = self.load_games(user_id, progress_callback)
+        if not success or not self.game_manager or not self.game_manager.games:
+            return False
+
+        # Step 2: Merge collections from cloud storage
+        if progress_callback:
+            progress_callback(t("logs.manager.merging"), 0, 0)
+        if self.cloud_storage_parser:
+            self.game_manager.merge_with_localconfig(self.cloud_storage_parser)
+
+        # Step 3: Load ONLY custom_metadata.json (skip binary VDF)
+        if progress_callback:
+            progress_callback(t("logs.service.applying_metadata"), 0, 0)
+        if not self.appinfo_manager:
+            self.appinfo_manager = AppInfoManager(Path(self.steam_path))
+        modifications = self.appinfo_manager.load_modifications_only()
+
+        # Step 4: Parse packageinfo.vdf for ownership data
+        if progress_callback:
+            progress_callback(t("logs.service.parsing_packages"), 0, 0)
+        pkg_parser = PackageInfoParser(Path(self.steam_path))
+        packageinfo_ids = pkg_parser.get_all_app_ids()
+
+        # Step 5: Discover missing games — DB fast path or binary fallback
+        if progress_callback:
+            progress_callback(t("logs.service.discovering_games"), 0, 0)
+
+        db_type_lookup: dict[str, tuple[str, str]] | None = None
+        if self.database and self.database.get_game_count() > 0:
+            db_type_lookup = self.database.get_app_type_lookup()
+
+        if db_type_lookup is not None:
+            # Fast path: use DB for type/name resolution
+            discovered = self.game_manager.discover_missing_games(
+                self.localconfig_helper,
+                self.appinfo_manager,
+                packageinfo_ids,
+                db_type_lookup=db_type_lookup,
+            )
+        else:
+            # Fallback: load binary (first run or missing DB)
+            self.appinfo_manager.load_appinfo()
+            discovered = self.game_manager.discover_missing_games(
+                self.localconfig_helper,
+                self.appinfo_manager,
+                packageinfo_ids,
+            )
+
+        # Re-merge categories for newly discovered games
+        if discovered > 0 and self.cloud_storage_parser:
+            self.game_manager.merge_with_localconfig(self.cloud_storage_parser)
+
+        # Step 6: Apply ONLY custom JSON overrides (not full binary metadata)
+        if progress_callback:
+            progress_callback(t("logs.service.applying_overrides"), 0, 0)
+        if db_type_lookup is not None:
+            # Lazy path: only custom overrides from JSON
+            self.game_manager.apply_custom_overrides(modifications)
+        else:
+            # Fallback: full binary metadata overrides
+            self.game_manager.apply_metadata_overrides(self.appinfo_manager)
+
+        return True
+
     def merge_with_localconfig(self) -> None:
         """Merges collections from active parser into game_manager.
 

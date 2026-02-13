@@ -24,7 +24,11 @@
     "na": "N/A",
     "exit": "Beenden",
     "confirm_exit": "Möchten Sie die Anwendung wirklich beenden?",
-    "continue": "Weiter"
+    "continue": "Weiter",
+    "save_and_exit": "Speichern & Beenden",
+    "discard_and_exit": "Verwerfen & Beenden",
+    "unsaved_changes_title": "Nicht gespeicherte Änderungen",
+    "unsaved_changes_msg": "Es wurden Änderungen an {filenames} vorgenommen.\n\nWollen Sie wirklich die App beenden?\n\nNicht gespeicherte Änderungen gehen verloren!"
   },
   "ui": {
     "main_window": {

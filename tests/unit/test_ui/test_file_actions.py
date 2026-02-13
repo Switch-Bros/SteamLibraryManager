@@ -188,47 +188,16 @@ class TestRemoveDuplicates:
 
 
 class TestExitApplication:
-    """Tests for exit_application() method."""
+    """Tests for exit_application() method.
 
-    @patch("src.ui.actions.file_actions.UIHelper")
-    def test_exit_application_with_confirmation(self, mock_helper, file_actions, mock_main_window):
-        """Should ask for confirmation before closing."""
-        # Setup - user confirms
-        mock_helper.confirm.return_value = True
+    exit_application() now simply delegates to mw.close(), which triggers
+    closeEvent() for unsaved-changes handling and exit confirmation.
+    """
 
-        # Execute
+    def test_exit_application_calls_close(self, file_actions, mock_main_window):
+        """Should call mw.close() to trigger closeEvent."""
         file_actions.exit_application()
-
-        # Assert
-        mock_helper.confirm.assert_called_once()
         mock_main_window.close.assert_called_once()
-
-    @patch("src.ui.actions.file_actions.UIHelper")
-    def test_exit_application_cancelled(self, mock_helper, file_actions, mock_main_window):
-        """Should not close if user cancels."""
-        # Setup - user cancels
-        mock_helper.confirm.return_value = False
-
-        # Execute
-        file_actions.exit_application()
-
-        # Assert
-        mock_helper.confirm.assert_called_once()
-        mock_main_window.close.assert_not_called()
-
-    @patch("src.ui.actions.file_actions.UIHelper")
-    @patch("src.ui.actions.file_actions.t")
-    def test_exit_application_uses_i18n(self, mock_t, mock_helper, file_actions, mock_main_window):
-        """Should use t() for confirmation dialog."""
-        # Setup
-        mock_t.return_value = "TRANSLATED"
-        mock_helper.confirm.return_value = True
-
-        # Execute
-        file_actions.exit_application()
-
-        # Assert - both title and message should be translated
-        assert mock_t.call_count >= 2
 
 
 # ==================================================================
