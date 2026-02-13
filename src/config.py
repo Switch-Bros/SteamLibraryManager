@@ -4,7 +4,7 @@ Supports: Native Linux, Flatpak Linux, SteamOS, Windows
 
 ENHANCEMENTS (2026-02-13):
 ✅ Flatpak Steam detection
-✅ SteamOS/Steam Deck detection  
+✅ SteamOS/Steam Deck detection
 ✅ Grid folder property
 ✅ Installation type detection
 ✅ Better logging
@@ -38,7 +38,7 @@ class Config:
     """
     Central configuration handling for the application.
     Manages paths, settings, API keys, and UI state.
-    
+
     ENHANCEMENTS:
     - Auto-detects Flatpak Steam
     - Provides grid_folder property
@@ -110,15 +110,15 @@ class Config:
     def installation_type(self) -> str:
         """
         Get Steam installation type.
-        
+
         Returns:
             'flatpak', 'native', 'custom', or 'unknown'
         """
         if not self.STEAM_PATH:
             return "unknown"
-        
+
         path_str = str(self.STEAM_PATH).lower()
-        
+
         if "flatpak" in path_str or ".var/app/com.valvesoftware.steam" in path_str:
             return "flatpak"
         elif ".steam" in path_str or ".local/share/steam" in path_str:
@@ -127,27 +127,27 @@ class Config:
             return "native"
         else:
             return "custom"
-    
+
     @property
     def grid_folder(self) -> Path | None:
         """
         Get Steam grid folder path.
-        
+
         Returns:
             Path to userdata/{user_id}/config/grid/ or None if not available.
         """
         if not self.STEAM_PATH:
             return None
-        
+
         short_id, _ = self.get_detected_user()
         if not short_id:
             return None
-        
+
         grid_path = self.STEAM_PATH / "userdata" / short_id / "config" / "grid"
-        
+
         # Create if doesn't exist
         grid_path.mkdir(parents=True, exist_ok=True)
-        
+
         return grid_path
 
     def _load_settings(self) -> None:
@@ -218,18 +218,18 @@ class Config:
     def _find_steam_path() -> Path | None:
         """
         Auto-detect Steam path on Linux and Windows.
-        
+
         ENHANCED: Now detects Flatpak Steam!
-        
+
         Detection order (Linux):
         1. Flatpak Steam
         2. Native Steam (.local/share/Steam)
         3. Legacy paths (.steam/steam)
-        
+
         Detection order (Windows):
         1. Registry (HKCU)
         2. Common install paths
-        
+
         Returns:
             Path to Steam installation or None if not found.
         """
@@ -247,7 +247,7 @@ class Config:
                     return path
             except OSError:
                 pass
-            
+
             # Fallback to standard paths
             common_paths = [
                 Path(r"C:\Program Files (x86)\Steam"),
@@ -263,20 +263,20 @@ class Config:
         else:
             # Linux/SteamOS detection
             home = Path.home()
-            
+
             # Check Flatpak FIRST (most common on Deck/modern Linux)
             flatpak_path = home / ".var/app/com.valvesoftware.Steam/.local/share/Steam"
             if flatpak_path.exists():
                 logger.info(f"Found Flatpak Steam: {flatpak_path}")
                 return flatpak_path
-            
+
             # Check Native Steam
             native_paths = [
                 home / ".local/share/Steam",  # Standard location
                 home / ".steam/steam",  # Symlink/legacy
                 home / "Steam",  # Custom
             ]
-            
+
             for p in native_paths:
                 if p.exists():
                     # Resolve symlinks
@@ -308,9 +308,9 @@ class Config:
                 for path in matches:
                     path = path.replace("\\\\", "\\")
                     libraries.add(path)
-            
+
             logger.info(f"Detected {len(libraries)} library folders")
-            
+
         except Exception as e:
             logger.error(t("logs.config.library_read_error", error=e))
 
@@ -319,13 +319,13 @@ class Config:
     def get_detected_user(self) -> tuple[str | None, str | None]:
         """
         Auto-detect Steam user from userdata folder.
-        
+
         Returns:
             Tuple of (account_id, steam_id_64) or (None, None) if not found.
         """
         if not self.STEAM_PATH:
             return None, None
-        
+
         userdata = self.STEAM_PATH / "userdata"
         if not userdata.exists():
             return None, None
@@ -338,7 +338,7 @@ class Config:
                     steam_id_64 = str(account_id + 76561197960265728)
                     logger.info(f"Detected Steam user: {account_id}")
                     return str(account_id), steam_id_64
-        
+
         return None, None
 
     def get_localconfig_path(self, account_id: str) -> Path | None:
