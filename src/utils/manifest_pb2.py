@@ -14,13 +14,14 @@ To regenerate from the .proto source::
 
     protoc --python_out=. manifest.proto
 """
+
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf.internal import builder as _builder
 
 # The serialized FileDescriptorProto (unchanged from the original).
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b"\n\x0emanifest.proto\"\xae\x02\n\x07Payload\x12&\n\x08mappings"
+    b'\n\x0emanifest.proto"\xae\x02\n\x07Payload\x12&\n\x08mappings'
     b"\x18\x01 \x03(\x0b\x32\x14.Payload.FileMapping\x1a\xfa\x01\n"
     b"\x0b\x46ileMapping\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t"
     b"\x12\x0c\n\x04size\x18\x02 \x01(\x04\x12\r\n\x05\x66lags\x18"
@@ -30,14 +31,14 @@ DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
     b"\x61\n\tChunkData\x12\x0b\n\x03sha\x18\x01 \x01(\x0c\x12\x0b"
     b"\n\x03\x63rc\x18\x02 \x01(\x07\x12\x0e\n\x06offset\x18\x03 "
     b"\x01(\x04\x12\x13\n\x0b\x63\x62_original\x18\x04 \x01(\r\x12"
-    b"\x15\n\rcb_compressed\x18\x05 \x01(\r\"\xdd\x01\n\x08Metadata"
+    b'\x15\n\rcb_compressed\x18\x05 \x01(\r"\xdd\x01\n\x08Metadata'
     b"\x12\x10\n\x08\x64\x65pot_id\x18\x01 \x01(\r\x12\x14\n\x0c"
     b"gid_manifest\x18\x02 \x01(\x04\x12\x15\n\rcreation_time\x18"
     b"\x03 \x01(\r\x12\x1b\n\x13\x66ilenames_encrypted\x18\x04 \x01"
     b"(\x08\x12\x18\n\x10\x63\x62_disk_original\x18\x05 \x01(\x04"
     b"\x12\x1a\n\x12\x63\x62_disk_compressed\x18\x06 \x01(\x04\x12"
     b"\x15\n\runique_chunks\x18\x07 \x01(\r\x12\x15\n\rcrc_encrypted"
-    b"\x18\x08 \x01(\r\x12\x11\n\tcrc_clear\x18\t \x01(\r\"\x1e\n"
+    b'\x18\x08 \x01(\r\x12\x11\n\tcrc_clear\x18\t \x01(\r"\x1e\n'
     b"\tSignature\x12\x11\n\tsignature\x18\x01 \x01(\x0c"
 )
 

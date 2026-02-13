@@ -333,10 +333,7 @@ class GameManager:
             A sorted list of uncategorized games.
         """
         # System categories that should NOT count as "categorized"
-        system_categories = {
-            t("ui.categories.favorites"),
-            t("ui.categories.hidden")
-        }
+        system_categories = {t("ui.categories.favorites"), t("ui.categories.hidden")}
 
         uncategorized = []
         for game in self.get_real_games():
