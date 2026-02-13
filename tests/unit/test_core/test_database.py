@@ -21,10 +21,10 @@ import pytest
 from src.core.database import Database, DatabaseEntry, ImportStats, database_entry_to_game
 from src.core.database_importer import DatabaseImporter
 
-
 # ========================================================================
 # Database class tests
 # ========================================================================
+
 
 class TestDatabaseSchema:
     """Tests for schema creation and versioning."""
@@ -116,15 +116,11 @@ class TestDatabaseCRUD:
         database.commit()
 
         # Fetch created_at
-        row = database.conn.execute(
-            "SELECT created_at FROM games WHERE app_id = 440"
-        ).fetchone()
+        row = database.conn.execute("SELECT created_at FROM games WHERE app_id = 440").fetchone()
         original_created = row[0]
 
         # Update
-        updated_entry = DatabaseEntry(
-            app_id=440, name="Team Fortress 2", developer="Valve Corporation"
-        )
+        updated_entry = DatabaseEntry(app_id=440, name="Team Fortress 2", developer="Valve Corporation")
         database.update_game(updated_entry)
         database.commit()
 
@@ -135,16 +131,12 @@ class TestDatabaseCRUD:
         assert result.developer == "Valve Corporation"
 
         # Verify created_at was preserved
-        row = database.conn.execute(
-            "SELECT created_at FROM games WHERE app_id = 440"
-        ).fetchone()
+        row = database.conn.execute("SELECT created_at FROM games WHERE app_id = 440").fetchone()
         assert row[0] == original_created
 
     def test_delete_game(self, database: Database) -> None:
         """delete_game should remove the game and its related data."""
-        entry = DatabaseEntry(
-            app_id=440, name="TF2", genres=["Action"], tags=["FPS"]
-        )
+        entry = DatabaseEntry(app_id=440, name="TF2", genres=["Action"], tags=["FPS"])
         database.insert_game(entry)
         database.commit()
 
@@ -173,9 +165,7 @@ class TestDatabaseCRUD:
 class TestDatabaseBatch:
     """Tests for batch operations."""
 
-    def test_batch_insert_games(
-        self, database: Database, sample_database_entries: list[DatabaseEntry]
-    ) -> None:
+    def test_batch_insert_games(self, database: Database, sample_database_entries: list[DatabaseEntry]) -> None:
         """batch_insert_games should insert multiple games in one transaction."""
         count = database.batch_insert_games(sample_database_entries)
 
@@ -187,9 +177,7 @@ class TestDatabaseBatch:
         count = database.batch_insert_games([])
         assert count == 0
 
-    def test_get_all_games_returns_all(
-        self, database: Database, sample_database_entries: list[DatabaseEntry]
-    ) -> None:
+    def test_get_all_games_returns_all(self, database: Database, sample_database_entries: list[DatabaseEntry]) -> None:
         """get_all_games should return all inserted games with related data."""
         database.batch_insert_games(sample_database_entries)
 
@@ -210,9 +198,7 @@ class TestDatabaseBatch:
     ) -> None:
         """get_all_games with type filter should only return matching types."""
         # Add a non-game entry
-        entries = list(sample_database_entries) + [
-            DatabaseEntry(app_id=999, name="Soundtrack", app_type="music")
-        ]
+        entries = list(sample_database_entries) + [DatabaseEntry(app_id=999, name="Soundtrack", app_type="music")]
         database.batch_insert_games(entries)
 
         games = database.get_all_games(game_types={"game"})
@@ -244,6 +230,7 @@ class TestImportStats:
 # ========================================================================
 # DatabaseEntry -> Game conversion tests
 # ========================================================================
+
 
 class TestDatabaseEntryToGame:
     """Tests for the database_entry_to_game conversion function."""
@@ -326,6 +313,7 @@ class TestDatabaseEntryToGame:
 # DatabaseImporter tests
 # ========================================================================
 
+
 class TestDatabaseImporter:
     """Tests for the DatabaseImporter class."""
 
@@ -335,9 +323,7 @@ class TestDatabaseImporter:
         importer = DatabaseImporter(database, mock_appinfo)
         assert importer.needs_initial_import() is True
 
-    def test_needs_initial_import_false_after_insert(
-        self, database: Database
-    ) -> None:
+    def test_needs_initial_import_false_after_insert(self, database: Database) -> None:
         """needs_initial_import should return False after inserting games."""
         entry = DatabaseEntry(app_id=1, name="Test")
         database.insert_game(entry)

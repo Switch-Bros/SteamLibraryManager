@@ -89,16 +89,13 @@ class DatabaseImporter:
         batch_size = 100
 
         for i in range(0, total_apps, batch_size):
-            batch = app_items[i:i + batch_size]
+            batch = app_items[i : i + batch_size]
             batch_num = i // batch_size + 1
             total_batches = (total_apps + batch_size - 1) // batch_size
 
             logger.debug(t("logs.db.importing_batch", current=batch_num, total=total_batches))
             if progress_callback:
-                progress_callback(
-                    i, total_apps,
-                    t("logs.db.importing_batch", current=batch_num, total=total_batches)
-                )
+                progress_callback(i, total_apps, t("logs.db.importing_batch", current=batch_num, total=total_batches))
 
             entries: list[DatabaseEntry] = []
             for app_id, app_data in batch:
@@ -120,21 +117,24 @@ class DatabaseImporter:
             games_updated=updated,
             games_failed=failed,
             duration_seconds=duration,
-            source="appinfo.vdf"
+            source="appinfo.vdf",
         )
 
         self.db.record_import(stats)
 
-        logger.info(t(
-            "logs.db.import_complete",
-            imported=imported, updated=updated, failed=failed,
-        ))
+        logger.info(
+            t(
+                "logs.db.import_complete",
+                imported=imported,
+                updated=updated,
+                failed=failed,
+            )
+        )
         logger.info(t("logs.db.import_duration", duration=f"{duration:.2f}"))
 
         if progress_callback:
             progress_callback(
-                total_apps, total_apps,
-                t("logs.db.import_complete", imported=imported, updated=updated, failed=failed)
+                total_apps, total_apps, t("logs.db.import_complete", imported=imported, updated=updated, failed=failed)
             )
 
         return stats
@@ -164,10 +164,7 @@ class DatabaseImporter:
 
         for i, app_id in enumerate(changed_app_ids):
             if progress_callback and i % 10 == 0:
-                progress_callback(
-                    i, total,
-                    t("logs.db.importing_batch", current=i, total=total)
-                )
+                progress_callback(i, total, t("logs.db.importing_batch", current=i, total=total))
 
             try:
                 app_data = self.appinfo_manager.steam_apps.get(app_id)
@@ -197,7 +194,7 @@ class DatabaseImporter:
             games_updated=updated,
             games_failed=failed,
             duration_seconds=duration,
-            source="incremental_update"
+            source="incremental_update",
         )
 
         self.db.record_import(stats)

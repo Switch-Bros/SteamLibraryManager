@@ -158,9 +158,7 @@ class Database:
     def _get_schema_version(self) -> int:
         """Get current database schema version."""
         try:
-            cursor = self.conn.execute(
-                "SELECT MAX(version) FROM schema_version"
-            )
+            cursor = self.conn.execute("SELECT MAX(version) FROM schema_version")
             result = cursor.fetchone()
             return result[0] if result[0] is not None else 0
         except sqlite3.OperationalError:
@@ -173,7 +171,7 @@ class Database:
             INSERT OR REPLACE INTO schema_version (version, applied_at, description)
             VALUES (?, ?, ?)
             """,
-            (version, int(time.time()), t("logs.db.schema_created"))
+            (version, int(time.time()), t("logs.db.schema_created")),
         )
         self.conn.commit()
 
@@ -205,7 +203,8 @@ class Database:
         # Future migrations go here
         logger.info(
             "Migrating database from version %d to %d",
-            from_version, to_version,
+            from_version,
+            to_version,
         )
 
     # ========================================================================
@@ -239,59 +238,77 @@ class Database:
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                entry.app_id, entry.name, entry.sort_as, entry.app_type,
-                entry.developer, entry.publisher,
-                entry.original_release_date, entry.steam_release_date, entry.release_date,
-                entry.review_score, entry.review_count,
-                entry.is_free, entry.is_early_access,
-                entry.vr_support, entry.controller_support,
-                entry.cloud_saves, entry.workshop, entry.trading_cards, entry.achievements_total,
+                entry.app_id,
+                entry.name,
+                entry.sort_as,
+                entry.app_type,
+                entry.developer,
+                entry.publisher,
+                entry.original_release_date,
+                entry.steam_release_date,
+                entry.release_date,
+                entry.review_score,
+                entry.review_count,
+                entry.is_free,
+                entry.is_early_access,
+                entry.vr_support,
+                entry.controller_support,
+                entry.cloud_saves,
+                entry.workshop,
+                entry.trading_cards,
+                entry.achievements_total,
                 json.dumps(entry.platforms),
-                entry.is_modified, entry.last_synced, entry.last_updated,
-                now, now
-            )
+                entry.is_modified,
+                entry.last_synced,
+                entry.last_updated,
+                now,
+                now,
+            ),
         )
 
         if entry.genres:
             self.conn.executemany(
                 "INSERT OR REPLACE INTO game_genres (app_id, genre) VALUES (?, ?)",
-                [(entry.app_id, genre) for genre in entry.genres]
+                [(entry.app_id, genre) for genre in entry.genres],
             )
 
         if entry.tags:
             self.conn.executemany(
                 "INSERT OR REPLACE INTO game_tags (app_id, tag) VALUES (?, ?)",
-                [(entry.app_id, tag) for tag in entry.tags]
+                [(entry.app_id, tag) for tag in entry.tags],
             )
 
         if entry.franchises:
             self.conn.executemany(
                 "INSERT OR REPLACE INTO game_franchises (app_id, franchise) VALUES (?, ?)",
-                [(entry.app_id, franchise) for franchise in entry.franchises]
+                [(entry.app_id, franchise) for franchise in entry.franchises],
             )
 
         if entry.languages:
             language_rows = []
             for lang, support in entry.languages.items():
-                language_rows.append((
-                    entry.app_id, lang,
-                    support.get("interface", False),
-                    support.get("audio", False),
-                    support.get("subtitles", False)
-                ))
+                language_rows.append(
+                    (
+                        entry.app_id,
+                        lang,
+                        support.get("interface", False),
+                        support.get("audio", False),
+                        support.get("subtitles", False),
+                    )
+                )
             self.conn.executemany(
                 """
                 INSERT OR REPLACE INTO game_languages
                 (app_id, language, interface, audio, subtitles)
                 VALUES (?, ?, ?, ?, ?)
                 """,
-                language_rows
+                language_rows,
             )
 
         if entry.custom_meta:
             self.conn.executemany(
                 "INSERT OR REPLACE INTO game_custom_meta (app_id, key, value) VALUES (?, ?, ?)",
-                [(entry.app_id, key, value) for key, value in entry.custom_meta.items()]
+                [(entry.app_id, key, value) for key, value in entry.custom_meta.items()],
             )
 
     def batch_insert_games(self, entries: list[DatabaseEntry]) -> int:
@@ -309,9 +326,7 @@ class Database:
                 self.insert_game(entry)
                 inserted += 1
             except sqlite3.Error as e:
-                logger.warning(
-                    t("logs.db.import_failed_app", app_id=entry.app_id, error=str(e))
-                )
+                logger.warning(t("logs.db.import_failed_app", app_id=entry.app_id, error=str(e)))
         self.conn.commit()
         return inserted
 
@@ -324,10 +339,7 @@ class Database:
         now = int(time.time())
 
         # Check if game exists to preserve created_at
-        existing = self.conn.execute(
-            "SELECT created_at FROM games WHERE app_id = ?",
-            (entry.app_id,)
-        ).fetchone()
+        existing = self.conn.execute("SELECT created_at FROM games WHERE app_id = ?", (entry.app_id,)).fetchone()
 
         if existing:
             # True UPDATE preserving created_at
@@ -347,23 +359,35 @@ class Database:
                 WHERE app_id = ?
                 """,
                 (
-                    entry.name, entry.sort_as, entry.app_type,
-                    entry.developer, entry.publisher,
-                    entry.original_release_date, entry.steam_release_date, entry.release_date,
-                    entry.review_score, entry.review_count,
-                    entry.is_free, entry.is_early_access,
-                    entry.vr_support, entry.controller_support,
-                    entry.cloud_saves, entry.workshop, entry.trading_cards, entry.achievements_total,
+                    entry.name,
+                    entry.sort_as,
+                    entry.app_type,
+                    entry.developer,
+                    entry.publisher,
+                    entry.original_release_date,
+                    entry.steam_release_date,
+                    entry.release_date,
+                    entry.review_score,
+                    entry.review_count,
+                    entry.is_free,
+                    entry.is_early_access,
+                    entry.vr_support,
+                    entry.controller_support,
+                    entry.cloud_saves,
+                    entry.workshop,
+                    entry.trading_cards,
+                    entry.achievements_total,
                     json.dumps(entry.platforms),
-                    entry.is_modified, entry.last_synced, entry.last_updated,
+                    entry.is_modified,
+                    entry.last_synced,
+                    entry.last_updated,
                     now,
-                    entry.app_id
-                )
+                    entry.app_id,
+                ),
             )
 
             # Re-insert related data (delete old first)
-            for table in ("game_genres", "game_tags", "game_franchises",
-                          "game_languages", "game_custom_meta"):
+            for table in ("game_genres", "game_tags", "game_franchises", "game_languages", "game_custom_meta"):
                 self.conn.execute(f"DELETE FROM {table} WHERE app_id = ?", (entry.app_id,))
 
             # Re-insert related data via shared logic
@@ -381,39 +405,42 @@ class Database:
         if entry.genres:
             self.conn.executemany(
                 "INSERT OR REPLACE INTO game_genres (app_id, genre) VALUES (?, ?)",
-                [(entry.app_id, genre) for genre in entry.genres]
+                [(entry.app_id, genre) for genre in entry.genres],
             )
         if entry.tags:
             self.conn.executemany(
                 "INSERT OR REPLACE INTO game_tags (app_id, tag) VALUES (?, ?)",
-                [(entry.app_id, tag) for tag in entry.tags]
+                [(entry.app_id, tag) for tag in entry.tags],
             )
         if entry.franchises:
             self.conn.executemany(
                 "INSERT OR REPLACE INTO game_franchises (app_id, franchise) VALUES (?, ?)",
-                [(entry.app_id, franchise) for franchise in entry.franchises]
+                [(entry.app_id, franchise) for franchise in entry.franchises],
             )
         if entry.languages:
             language_rows = []
             for lang, support in entry.languages.items():
-                language_rows.append((
-                    entry.app_id, lang,
-                    support.get("interface", False),
-                    support.get("audio", False),
-                    support.get("subtitles", False)
-                ))
+                language_rows.append(
+                    (
+                        entry.app_id,
+                        lang,
+                        support.get("interface", False),
+                        support.get("audio", False),
+                        support.get("subtitles", False),
+                    )
+                )
             self.conn.executemany(
                 """
                 INSERT OR REPLACE INTO game_languages
                 (app_id, language, interface, audio, subtitles)
                 VALUES (?, ?, ?, ?, ?)
                 """,
-                language_rows
+                language_rows,
             )
         if entry.custom_meta:
             self.conn.executemany(
                 "INSERT OR REPLACE INTO game_custom_meta (app_id, key, value) VALUES (?, ?, ?)",
-                [(entry.app_id, key, value) for key, value in entry.custom_meta.items()]
+                [(entry.app_id, key, value) for key, value in entry.custom_meta.items()],
             )
 
     def get_game(self, app_id: int) -> DatabaseEntry | None:
@@ -425,10 +452,7 @@ class Database:
         Returns:
             Game data or None if not found.
         """
-        cursor = self.conn.execute(
-            "SELECT * FROM games WHERE app_id = ?",
-            (app_id,)
-        )
+        cursor = self.conn.execute("SELECT * FROM games WHERE app_id = ?", (app_id,))
         row = cursor.fetchone()
 
         if not row:
@@ -527,9 +551,7 @@ class Database:
     # BATCH HELPER METHODS FOR RELATED DATA
     # ========================================================================
 
-    def _batch_get_related(
-        self, table: str, column: str, app_ids: list[int]
-    ) -> dict[int, list[str]]:
+    def _batch_get_related(self, table: str, column: str, app_ids: list[int]) -> dict[int, list[str]]:
         """Batch load a single-column related table for multiple app_ids.
 
         Args:
@@ -544,10 +566,7 @@ class Database:
             return {}
 
         placeholders = ",".join("?" * len(app_ids))
-        cursor = self.conn.execute(
-            f"SELECT app_id, {column} FROM {table} WHERE app_id IN ({placeholders})",
-            app_ids
-        )
+        cursor = self.conn.execute(f"SELECT app_id, {column} FROM {table} WHERE app_id IN ({placeholders})", app_ids)
         result: dict[int, list[str]] = {}
         for row in cursor.fetchall():
             result.setdefault(row[0], []).append(row[1])
@@ -569,14 +588,14 @@ class Database:
         cursor = self.conn.execute(
             f"SELECT app_id, language, interface, audio, subtitles "
             f"FROM game_languages WHERE app_id IN ({placeholders})",
-            app_ids
+            app_ids,
         )
         result: dict[int, dict[str, dict[str, bool]]] = {}
         for row in cursor.fetchall():
             result.setdefault(row[0], {})[row[1]] = {
                 "interface": bool(row[2]),
                 "audio": bool(row[3]),
-                "subtitles": bool(row[4])
+                "subtitles": bool(row[4]),
             }
         return result
 
@@ -594,8 +613,7 @@ class Database:
 
         placeholders = ",".join("?" * len(app_ids))
         cursor = self.conn.execute(
-            f"SELECT app_id, key, value FROM game_custom_meta WHERE app_id IN ({placeholders})",
-            app_ids
+            f"SELECT app_id, key, value FROM game_custom_meta WHERE app_id IN ({placeholders})", app_ids
         )
         result: dict[int, dict[str, str]] = {}
         for row in cursor.fetchall():
@@ -605,57 +623,39 @@ class Database:
     # Single-game helpers (used by get_game)
     def _get_genres(self, app_id: int) -> list[str]:
         """Get genres for a game."""
-        cursor = self.conn.execute(
-            "SELECT genre FROM game_genres WHERE app_id = ?", (app_id,)
-        )
+        cursor = self.conn.execute("SELECT genre FROM game_genres WHERE app_id = ?", (app_id,))
         return [row[0] for row in cursor.fetchall()]
 
     def _get_tags(self, app_id: int) -> list[str]:
         """Get tags for a game."""
-        cursor = self.conn.execute(
-            "SELECT tag FROM game_tags WHERE app_id = ?", (app_id,)
-        )
+        cursor = self.conn.execute("SELECT tag FROM game_tags WHERE app_id = ?", (app_id,))
         return [row[0] for row in cursor.fetchall()]
 
     def _get_franchises(self, app_id: int) -> list[str]:
         """Get franchises for a game."""
-        cursor = self.conn.execute(
-            "SELECT franchise FROM game_franchises WHERE app_id = ?", (app_id,)
-        )
+        cursor = self.conn.execute("SELECT franchise FROM game_franchises WHERE app_id = ?", (app_id,))
         return [row[0] for row in cursor.fetchall()]
 
     def _get_languages(self, app_id: int) -> dict[str, dict[str, bool]]:
         """Get language support for a game."""
         cursor = self.conn.execute(
-            "SELECT language, interface, audio, subtitles FROM game_languages WHERE app_id = ?",
-            (app_id,)
+            "SELECT language, interface, audio, subtitles FROM game_languages WHERE app_id = ?", (app_id,)
         )
         languages: dict[str, dict[str, bool]] = {}
         for row in cursor.fetchall():
-            languages[row[0]] = {
-                "interface": bool(row[1]),
-                "audio": bool(row[2]),
-                "subtitles": bool(row[3])
-            }
+            languages[row[0]] = {"interface": bool(row[1]), "audio": bool(row[2]), "subtitles": bool(row[3])}
         return languages
 
     def _get_custom_meta(self, app_id: int) -> dict[str, str]:
         """Get custom metadata for a game."""
-        cursor = self.conn.execute(
-            "SELECT key, value FROM game_custom_meta WHERE app_id = ?", (app_id,)
-        )
+        cursor = self.conn.execute("SELECT key, value FROM game_custom_meta WHERE app_id = ?", (app_id,))
         return {row[0]: row[1] for row in cursor.fetchall()}
 
     # ========================================================================
     # MODIFICATION TRACKING
     # ========================================================================
 
-    def track_modification(
-        self,
-        app_id: int,
-        original_data: dict[str, Any],
-        modified_data: dict[str, Any]
-    ) -> None:
+    def track_modification(self, app_id: int, original_data: dict[str, Any], modified_data: dict[str, Any]) -> None:
         """Track a metadata modification.
 
         Args:
@@ -669,12 +669,7 @@ class Database:
             (app_id, original_data, modified_data, modification_time, synced_to_appinfo)
             VALUES (?, ?, ?, ?, 0)
             """,
-            (
-                app_id,
-                json.dumps(original_data),
-                json.dumps(modified_data),
-                int(time.time())
-            )
+            (app_id, json.dumps(original_data), json.dumps(modified_data), int(time.time())),
         )
         self.conn.commit()
 
@@ -700,7 +695,7 @@ class Database:
                 "modified": json.loads(row["modified_data"]),
                 "modification_time": row["modification_time"],
                 "synced": bool(row["synced_to_appinfo"]),
-                "sync_time": row["sync_time"]
+                "sync_time": row["sync_time"],
             }
 
         return modifications
@@ -717,12 +712,9 @@ class Database:
             SET synced_to_appinfo = 1, sync_time = ?
             WHERE app_id = ?
             """,
-            (int(time.time()), app_id)
+            (int(time.time()), app_id),
         )
-        self.conn.execute(
-            "UPDATE games SET last_synced = ? WHERE app_id = ?",
-            (int(time.time()), app_id)
-        )
+        self.conn.execute("UPDATE games SET last_synced = ? WHERE app_id = ?", (int(time.time()), app_id))
         self.conn.commit()
 
     def revert_modification(self, app_id: int) -> DatabaseEntry | None:
@@ -734,10 +726,7 @@ class Database:
         Returns:
             Original game data or None if not found.
         """
-        cursor = self.conn.execute(
-            "SELECT original_data FROM metadata_modifications WHERE app_id = ?",
-            (app_id,)
-        )
+        cursor = self.conn.execute("SELECT original_data FROM metadata_modifications WHERE app_id = ?", (app_id,))
         row = cursor.fetchone()
 
         if not row:
@@ -748,10 +737,7 @@ class Database:
         entry = DatabaseEntry(app_id=app_id, **original_data)
         self.update_game(entry)
 
-        self.conn.execute(
-            "DELETE FROM metadata_modifications WHERE app_id = ?",
-            (app_id,)
-        )
+        self.conn.execute("DELETE FROM metadata_modifications WHERE app_id = ?", (app_id,))
         self.conn.commit()
 
         return entry
@@ -778,8 +764,8 @@ class Database:
                 stats.games_imported,
                 stats.games_updated,
                 stats.games_failed,
-                t("logs.db.import_duration", duration=f"{stats.duration_seconds:.2f}")
-            )
+                t("logs.db.import_duration", duration=f"{stats.duration_seconds:.2f}"),
+            ),
         )
         self.conn.commit()
 
