@@ -220,6 +220,8 @@ class GameManager:
                     "steamid": steam_user_id,
                     "include_appinfo": 1,
                     "include_played_free_games": 1,
+                    "include_free_sub": 1,
+                    "skip_unvetted_apps": 0,
                     "format": "json",
                 }
                 response = requests.get(url, params=params, timeout=10)
@@ -231,6 +233,8 @@ class GameManager:
                     "steamid": steam_user_id,
                     "include_appinfo": 1,
                     "include_played_free_games": 1,
+                    "include_free_sub": 1,
+                    "skip_unvetted_apps": 0,
                     "format": "json",
                 }
                 response = requests.get(url, params=params, timeout=10)
@@ -297,6 +301,28 @@ class GameManager:
         self.appinfo_manager = appinfo_manager
         self.enrichment_service.apply_metadata_overrides(appinfo_manager)
 
+    def discover_missing_games(
+        self,
+        localconfig_helper,
+        appinfo_manager,
+        packageinfo_ids: set[str] | None = None,
+    ) -> int:
+        """Discovers owned games that the API did not return.
+
+        Delegates to MetadataEnrichmentService.
+
+        Args:
+            localconfig_helper: A loaded LocalConfigHelper instance.
+            appinfo_manager: A loaded AppInfoManager instance.
+            packageinfo_ids: Optional set of app IDs from packageinfo.vdf.
+
+        Returns:
+            Number of newly discovered games.
+        """
+        return self.enrichment_service.discover_missing_games(
+            localconfig_helper, appinfo_manager, packageinfo_ids
+        )
+
     def get_game(self, app_id: str) -> Game | None:
         """Gets a single game by its app ID.
 
@@ -320,23 +346,38 @@ class GameManager:
         games = [g for g in self.get_real_games() if g.has_category(category)]
         return sorted(games, key=lambda g: g.sort_name.lower())
 
+    # App types visible in the library (type categories + games)
+    _VISIBLE_APP_TYPES: frozenset[str] = frozenset(
+        {"game", "music", "tool", "application", "video"}
+    )
+
     def get_uncategorized_games(self) -> list[Game]:
         """Gets games that have no user collections (system categories don't count).
 
-        A game is uncategorized if it has NO user-defined collections.
-        System categories (Favorites, Hidden) do NOT count as real categories.
-
-        This matches Depressurizer's behavior: A game can be both a Favorite AND Uncategorized,
-        or Hidden AND Uncategorized. Only user-created collections remove a game from Uncategorized.
+        Only actual games (``app_type == "game"`` or unknown) are considered.
+        Non-game visible types (music, tool, application, video) are already
+        served by their own type categories (Soundtracks, Werkzeuge, Software,
+        Videos) and are therefore NOT uncategorized.
 
         Returns:
             A sorted list of uncategorized games.
         """
         # System categories that should NOT count as "categorized"
-        system_categories = {t("ui.categories.favorites"), t("ui.categories.hidden")}
+        system_categories = {
+            t("ui.categories.favorites"),
+            t("ui.categories.hidden"),
+        }
 
         uncategorized = []
-        for game in self.get_real_games():
+        for game in self.games.values():
+            # Non-game types have their own type categories → never uncategorized
+            if game.app_type and game.app_type.lower() != "game":
+                continue
+
+            # Unknown type: use heuristic (filters Proton, Steam Runtime, etc.)
+            if not game.app_type and not is_real_game(game):
+                continue
+
             # Filter out system categories
             user_categories = [cat for cat in game.categories if cat not in system_categories]
 

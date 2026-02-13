@@ -377,7 +377,11 @@
       "game_tooltip": "{name}\nEntwickler: {developer}",
       "merge_title": "Kollektionen zusammenführen",
       "merge_instruction": "Wählen die Ziel-Kollektion aus, in die alle {count} Kollektionen zusammengeführt werden sollen:",
-      "merge_success": "{count} Kollektionen wurden erfolgreich in '{target}' zusammengeführt"
+      "merge_success": "{count} Kollektionen wurden erfolgreich in '{target}' zusammengeführt",
+      "soundtracks": "Soundtracks",
+      "tools": "Werkzeuge",
+      "software": "Software",
+      "videos": "Videos"
     },
     "auto_categorize": {
       "title": "Auto-Kategorisierung",

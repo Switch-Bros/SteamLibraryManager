@@ -16,6 +16,7 @@ from src.core.game_manager import GameManager
 from src.core.localconfig_helper import LocalConfigHelper
 from src.core.cloud_storage_parser import CloudStorageParser
 from src.core.appinfo_manager import AppInfoManager
+from src.core.packageinfo_parser import PackageInfoParser
 
 logger = logging.getLogger("steamlibmgr.game_service")
 
@@ -148,6 +149,19 @@ class GameService:
         if not self.appinfo_manager:
             self.appinfo_manager = AppInfoManager(Path(self.steam_path))
             self.appinfo_manager.load_appinfo()
+
+        # Parse packageinfo.vdf for definitive ownership data
+        pkg_parser = PackageInfoParser(Path(self.steam_path))
+        packageinfo_ids = pkg_parser.get_all_app_ids()
+
+        # Discover games missing from API using multiple local sources
+        if self.appinfo_manager:
+            discovered = self.game_manager.discover_missing_games(
+                self.localconfig_helper, self.appinfo_manager, packageinfo_ids
+            )
+            # Re-merge categories for newly discovered games
+            if discovered > 0 and self.cloud_storage_parser:
+                self.game_manager.merge_with_localconfig(self.cloud_storage_parser)
 
         self.game_manager.apply_metadata_overrides(self.appinfo_manager)
 

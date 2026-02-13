@@ -51,6 +51,10 @@ class CloudStorageParser:
         return {
             t("ui.categories.uncategorized"),
             t("ui.categories.all_games"),
+            t("ui.categories.soundtracks"),
+            t("ui.categories.tools"),
+            t("ui.categories.software"),
+            t("ui.categories.videos"),
         }
 
     @staticmethod

@@ -17,6 +17,7 @@ from src.utils.i18n import t
 __all__ = [
     "Game",
     "NON_GAME_APP_IDS",
+    "NON_GAME_APP_TYPES",
     "NON_GAME_NAME_PATTERNS",
     "is_real_game",
 ]
@@ -68,6 +69,9 @@ class Game:
     steam_review_score: int = 0
     steam_review_desc: str = ""
     steam_review_total: str = ""
+
+    # App type (game, music, tool, application, video, dlc, demo, config)
+    app_type: str = ""
 
     # Age Ratings
     pegi_rating: str = ""
@@ -153,15 +157,32 @@ NON_GAME_NAME_PATTERNS: tuple[str, ...] = (
 )
 
 
+NON_GAME_APP_TYPES: frozenset[str] = frozenset(
+    {"music", "tool", "application", "video", "dlc", "demo", "config"}
+)
+
+
 def is_real_game(game: Game) -> bool:
-    """Checks if a game is a real game (not Proton/Steam runtime).
+    """Checks if a game is a real game (not Proton/Steam runtime/tool/soundtrack).
+
+    When ``app_type`` is set, it is used as the primary filter:
+    - ``"game"`` or ``""`` (unknown) → falls through to heuristic checks.
+    - Any type in ``NON_GAME_APP_TYPES`` → immediately returns False.
 
     Args:
         game: The game to check.
 
     Returns:
-        True if real game, False if tool/runtime.
+        True if real game, False if tool/runtime/soundtrack/etc.
     """
+    # Primary filter: app_type from appinfo.vdf
+    if game.app_type:
+        if game.app_type.lower() in NON_GAME_APP_TYPES:
+            return False
+        if game.app_type.lower() == "game":
+            return True
+
+    # Heuristic fallback for unknown app_type
     # App ID Check
     if game.app_id in NON_GAME_APP_IDS:
         return False

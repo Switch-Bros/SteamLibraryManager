@@ -19,6 +19,14 @@ if TYPE_CHECKING:
 
 __all__ = ["CategoryPopulator"]
 
+# Maps app_type values from appinfo.vdf to i18n category keys
+_TYPE_TO_CATEGORY_KEY: dict[str, str] = {
+    "music": "ui.categories.soundtracks",
+    "tool": "ui.categories.tools",
+    "application": "ui.categories.software",
+    "video": "ui.categories.videos",
+}
+
 
 class CategoryPopulator:
     """Builds and populates the sidebar category tree.
@@ -62,6 +70,34 @@ class CategoryPopulator:
         result = text.lower()
         for old, new in replacements.items():
             result = result.replace(old, new)
+        return result
+
+    @staticmethod
+    def _get_type_categories(all_apps: list[Game]) -> dict[str, list[Game]]:
+        """Groups non-game apps by their app_type into virtual type categories.
+
+        Only includes visible (non-hidden) apps. Empty categories are omitted.
+
+        Args:
+            all_apps: All apps including non-games.
+
+        Returns:
+            Ordered dict mapping localised category name to sorted game list.
+        """
+        buckets: dict[str, list[Game]] = {}
+        for app in all_apps:
+            if app.hidden:
+                continue
+            type_lower = app.app_type.lower() if app.app_type else ""
+            cat_key = _TYPE_TO_CATEGORY_KEY.get(type_lower)
+            if cat_key:
+                cat_name = t(cat_key)
+                buckets.setdefault(cat_name, []).append(app)
+
+        # Sort games inside each bucket and return only non-empty ones
+        result: dict[str, list[Game]] = {}
+        for cat_name in sorted(buckets.keys()):
+            result[cat_name] = sorted(buckets[cat_name], key=lambda g: g.sort_name.lower())
         return result
 
     def populate(self) -> None:
@@ -123,12 +159,16 @@ class CategoryPopulator:
                     cats[parser_cat] = 0  # empty collection — count is zero
 
         # Sort with German umlaut support
-        # Skip special categories (Favorites, Uncategorized, Hidden, All Games)
+        # Skip special categories (Favorites, Uncategorized, Hidden, All Games, Type categories)
         special_categories = {
             t("ui.categories.favorites"),
             t("ui.categories.uncategorized"),
             t("ui.categories.hidden"),
             t("ui.categories.all_games"),
+            t("ui.categories.soundtracks"),
+            t("ui.categories.tools"),
+            t("ui.categories.software"),
+            t("ui.categories.videos"),
         }
 
         for cat_name in sorted(cats.keys(), key=self.german_sort_key):
@@ -140,7 +180,13 @@ class CategoryPopulator:
                 # Always add — empty collections must stay visible as "Name (0)"
                 categories_data[cat_name] = cat_games
 
-        # 4. Uncategorized (only if non-empty)
+        # 4. Type categories (Soundtracks, Tools, Software, Videos)
+        type_cats = self._get_type_categories(list(mw.game_manager.games.values()))
+        for cat_name, cat_games in type_cats.items():
+            if cat_games:
+                categories_data[cat_name] = cat_games
+
+        # 5. Uncategorized (only if non-empty)
         if uncategorized:
             categories_data[t("ui.categories.uncategorized")] = uncategorized
 
