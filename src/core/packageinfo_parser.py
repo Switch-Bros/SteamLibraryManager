@@ -109,9 +109,7 @@ class PackageInfoParser:
 
             if vdf_type == 0x00:  # sub-object
                 if depth < max_depth:
-                    result[key_str] = PackageInfoParser._read_binary_vdf(
-                        f, depth + 1, max_depth
-                    )
+                    result[key_str] = PackageInfoParser._read_binary_vdf(f, depth + 1, max_depth)
                 else:
                     result[key_str] = {}
             elif vdf_type == 0x01:  # string
@@ -121,9 +119,7 @@ class PackageInfoParser:
                     if not c or c == b"\x00":
                         break
                     val_parts.append(c)
-                result[key_str] = b"".join(val_parts).decode(
-                    "utf-8", errors="replace"
-                )
+                result[key_str] = b"".join(val_parts).decode("utf-8", errors="replace")
             elif vdf_type == 0x02:  # uint32
                 result[key_str] = struct.unpack("<I", f.read(4))[0]
             elif vdf_type == 0x07:  # uint64
