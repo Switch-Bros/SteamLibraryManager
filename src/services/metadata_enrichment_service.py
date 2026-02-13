@@ -162,6 +162,68 @@ class MetadataEnrichmentService:
                 pass
         return None
 
+    # Types that represent real content worth showing in the library
+    _DISCOVERABLE_TYPES: frozenset[str] = frozenset(
+        {"game", "music", "tool", "application", "video"}
+    )
+
+    def discover_missing_games(
+        self,
+        localconfig_helper,
+        appinfo_manager,
+        packageinfo_ids: set[str] | None = None,
+    ) -> int:
+        """Discovers owned games missing from the API response.
+
+        Collects candidate app IDs from multiple local sources (localconfig,
+        packageinfo) and cross-references them with appinfo.vdf metadata.
+        Only adds apps whose type is in ``_DISCOVERABLE_TYPES``.
+
+        Args:
+            localconfig_helper: A loaded LocalConfigHelper instance.
+            appinfo_manager: A loaded AppInfoManager instance.
+            packageinfo_ids: Optional set of app IDs from packageinfo.vdf.
+
+        Returns:
+            Number of newly discovered games added.
+        """
+        # Collect candidate IDs from all available sources
+        candidate_ids: set[str] = set()
+
+        if localconfig_helper:
+            candidate_ids.update(localconfig_helper.get_all_app_ids())
+
+        if packageinfo_ids:
+            candidate_ids.update(packageinfo_ids)
+
+        # Remove already-known games
+        known_ids = set(self._games.keys())
+        candidates = candidate_ids - known_ids
+
+        if not candidates:
+            return 0
+
+        count = 0
+        for app_id in candidates:
+            meta = appinfo_manager.get_app_metadata(app_id)
+            app_type = meta.get("type", "").lower()
+
+            if app_type not in self._DISCOVERABLE_TYPES:
+                continue
+
+            name = meta.get("name") or self._get_cached_name(app_id) or t(
+                "ui.game_details.game_fallback", id=app_id
+            )
+
+            game = Game(app_id=app_id, name=name, app_type=app_type)
+            self._games[app_id] = game
+            count += 1
+
+        if count > 0:
+            logger.info(t("logs.manager.discovered_missing", count=count))
+
+        return count
+
     def apply_appinfo_data(self, appinfo_data: dict) -> None:
         """Applies last_updated timestamp from appinfo.vdf data.
 
@@ -197,6 +259,10 @@ class MetadataEnrichmentService:
         # 1. BINARY APPINFO METADATA
         for app_id, game in self._games.items():
             steam_meta = appinfo_manager.get_app_metadata(app_id)
+
+            # Set app_type from appinfo.vdf for all games
+            if not game.app_type and steam_meta.get("type"):
+                game.app_type = steam_meta["type"]
 
             # Check for fallback name usage
             fallback_name = t("ui.game_details.game_fallback", id=app_id)

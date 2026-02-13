@@ -13,12 +13,16 @@ def mock_dependencies():
         patch("src.services.game_service.LocalConfigHelper") as mock_lcp,
         patch("src.services.game_service.CloudStorageParser") as mock_csp,
         patch("src.services.game_service.AppInfoManager") as mock_aim,
+        patch("src.services.game_service.PackageInfoParser") as mock_pip,
     ):
+        # PackageInfoParser().get_all_app_ids() returns empty set by default
+        mock_pip.return_value.get_all_app_ids.return_value = set()
         yield {
             "GameManager": mock_gm,
             "LocalConfigHelper": mock_lcp,
             "CloudStorageParser": mock_csp,
             "AppInfoManager": mock_aim,
+            "PackageInfoParser": mock_pip,
         }
 
 
@@ -144,6 +148,7 @@ class TestGameService:
         """Test applying metadata."""
         service = GameService("/fake/steam", "fake_api_key", "/fake/cache")
         service.game_manager = Mock()
+        service.game_manager.discover_missing_games.return_value = 0
 
         service.apply_metadata()
 

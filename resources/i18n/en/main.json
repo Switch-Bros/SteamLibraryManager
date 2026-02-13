@@ -377,7 +377,11 @@
       "game_tooltip": "{name}\nDeveloper: {developer}",
       "merge_title": "Merge Collections",
       "merge_instruction": "Select the target Collection to merge all {count} Collections into:",
-      "merge_success": "{count} Collections successfully merged into '{target}'"
+      "merge_success": "{count} Collections successfully merged into '{target}'",
+      "soundtracks": "Soundtracks",
+      "tools": "Tools",
+      "software": "Software",
+      "videos": "Videos"
     },
     "auto_categorize": {
       "title": "Auto-Categorize",

@@ -159,6 +159,16 @@ class LocalConfigHelper:
                 states[app_id] = expanded == "1"
         return states
 
+    # ===== ALL APP IDS =====
+
+    def get_all_app_ids(self) -> list[str]:
+        """Returns all app IDs present in the localconfig Apps section.
+
+        Returns:
+            List of app ID strings.
+        """
+        return list(self.apps.keys())
+
     # ===== CLEANUP =====
 
     def remove_app(self, app_id: str) -> bool:

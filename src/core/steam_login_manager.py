@@ -478,7 +478,14 @@ class SteamLoginManager(QObject):
     def get_owned_games(session_or_token, steam_id: str) -> dict | None:
         """Get owned games using token."""
         url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
-        params = {"steamid": steam_id, "include_appinfo": 1, "include_played_free_games": 1, "format": "json"}
+        params = {
+            "steamid": steam_id,
+            "include_appinfo": 1,
+            "include_played_free_games": 1,
+            "include_free_sub": 1,
+            "skip_unvetted_apps": 0,
+            "format": "json",
+        }
 
         try:
             if isinstance(session_or_token, str):

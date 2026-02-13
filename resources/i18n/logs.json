@@ -30,7 +30,9 @@
       "error_local": "Error loading local files: {error}",
       "no_api_key": "No API Key or Access Token configured",
       "using_oauth": "Using OAuth2 Access Token for Steam API",
-      "using_api_key": "Using API Key for Steam API"
+      "using_api_key": "Using API Key for Steam API",
+      "discovered_missing": "Discovered {count} additional games from local data",
+      "packageinfo_not_found": "packageinfo.vdf not found, skipping package-based discovery"
     },
     "auth": {
       "starting": "Starting Steam OAuth process...",
