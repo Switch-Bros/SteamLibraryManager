@@ -15,9 +15,12 @@ from __future__ import annotations
 import logging
 import platform
 from pathlib import Path
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
 import requests
+
+if TYPE_CHECKING:
+    from src.core.database import Database, DatabaseEntry
 
 from src.core.game import (
     Game,
@@ -320,6 +323,60 @@ class GameManager:
             Number of newly discovered games.
         """
         return self.enrichment_service.discover_missing_games(localconfig_helper, appinfo_manager, packageinfo_ids)
+
+    def enrich_from_database(self, database: Database) -> int:
+        """Enrich already-loaded games with cached metadata from the database.
+
+        This does NOT add new games — it only fills in missing metadata fields
+        (developer, publisher, genres, tags, release_year, app_type) for games
+        that were already loaded by the API or local files.
+
+        Args:
+            database: An initialized Database instance.
+
+        Returns:
+            Number of games enriched.
+        """
+        entries = database.get_all_games()
+        if not entries:
+            return 0
+
+        # Build a lookup by app_id (str)
+        db_lookup: dict[str, "DatabaseEntry"] = {
+            str(e.app_id): e for e in entries
+        }
+
+        enriched = 0
+        for app_id, game in self.games.items():
+            entry = db_lookup.get(app_id)
+            if not entry:
+                continue
+
+            # Only fill in fields that are empty/missing on the game
+            if not game.developer and entry.developer:
+                game.developer = entry.developer
+            if not game.publisher and entry.publisher:
+                game.publisher = entry.publisher
+            if not game.release_year:
+                from datetime import datetime, timezone
+                release_ts = entry.release_date or entry.steam_release_date or entry.original_release_date
+                if release_ts and isinstance(release_ts, int) and release_ts > 0:
+                    game.release_year = str(datetime.fromtimestamp(release_ts, tz=timezone.utc).year)
+            if not game.genres and entry.genres:
+                game.genres = list(entry.genres)
+            if not game.tags and entry.tags:
+                game.tags = list(entry.tags)
+            if not game.app_type and entry.app_type:
+                game.app_type = entry.app_type
+            if not game.review_score and entry.review_score is not None:
+                game.review_score = str(entry.review_score)
+            if not game.review_count and entry.review_count:
+                game.review_count = entry.review_count
+
+            enriched += 1
+
+        logger.info(t("logs.db.loaded_from_cache", count=enriched, duration="<1"))
+        return enriched
 
     def get_game(self, app_id: str) -> Game | None:
         """Gets a single game by its app ID.

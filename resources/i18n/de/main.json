@@ -492,7 +492,10 @@
       "image_picker_title": "{type} für {game} auswählen",
       "image_picker_loading": "Lade Bilder...",
       "empty_collection_title": "Leere Kollektion",
-      "empty_collection_message": "Kollektion '{name}' ist leer!\\nSoll die Kollektion gelöscht werden?"
+      "empty_collection_message": "Kollektion '{name}' ist leer!\\nSoll die Kollektion gelöscht werden?",
+      "db_import_title": "Ersteinrichtung",
+      "db_import_message": "Datenbank wird eingerichtet...",
+      "db_import_progress": "Spiele werden importiert..."
     },
     "profile_setup": {
       "title": "Profil Einrichtung",

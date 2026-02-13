@@ -113,6 +113,62 @@ def mock_cloud_storage_file(tmp_path):
 
 
 @pytest.fixture
+def database(tmp_path):
+    """In-memory-style Database using a temp file (schema loaded from SQL)."""
+    from src.core.database import Database
+
+    db_path = tmp_path / "test_metadata.db"
+    db = Database(db_path)
+    yield db
+    db.close()
+
+
+@pytest.fixture
+def sample_database_entries():
+    """Sample DatabaseEntry objects for testing."""
+    from src.core.database import DatabaseEntry
+
+    return [
+        DatabaseEntry(
+            app_id=440,
+            name="Team Fortress 2",
+            app_type="game",
+            developer="Valve",
+            publisher="Valve",
+            genres=["Action", "Free to Play"],
+            platforms=["windows", "linux", "mac"],
+            is_free=True,
+            last_updated=1700000000,
+        ),
+        DatabaseEntry(
+            app_id=570,
+            name="Dota 2",
+            app_type="game",
+            developer="Valve",
+            publisher="Valve",
+            genres=["Strategy", "Free to Play"],
+            platforms=["windows", "linux", "mac"],
+            is_free=True,
+            release_date=1373328000,
+            last_updated=1700000000,
+        ),
+        DatabaseEntry(
+            app_id=730,
+            name="Counter-Strike 2",
+            app_type="game",
+            developer="Valve",
+            publisher="Valve",
+            genres=["Action", "FPS"],
+            tags=["Competitive", "Shooter"],
+            platforms=["windows", "linux"],
+            review_score=83,
+            review_count=7000000,
+            last_updated=1700000000,
+        ),
+    ]
+
+
+@pytest.fixture
 def mock_config():
     """Mock the global config object from src.config.
 
