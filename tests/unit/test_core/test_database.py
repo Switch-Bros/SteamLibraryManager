@@ -13,10 +13,7 @@ Tests cover:
 
 from __future__ import annotations
 
-import time
 from unittest.mock import MagicMock
-
-import pytest
 
 from src.core.database import Database, DatabaseEntry, ImportStats, database_entry_to_game
 from src.core.database_importer import DatabaseImporter
