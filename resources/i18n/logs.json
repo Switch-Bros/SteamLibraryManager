@@ -188,6 +188,26 @@
       "pillow_missing": "Warning: Pillow not installed",
       "pillow_fallback": "Pillow load failed, falling back to Qt: {error}",
       "webm_load_failed": "Failed to load WEBM: {error}"
+    },
+    "db": {
+      "initializing": "Initializing database...",
+      "schema_created": "Database schema created",
+      "import_started": "Starting initial import from appinfo.vdf...",
+      "import_one_time": "This is a one-time operation (~30 seconds)",
+      "parsing": "Parsing appinfo.vdf...",
+      "found_apps": "Found {count} apps in appinfo.vdf",
+      "importing_batch": "Importing batch {current}/{total}...",
+      "import_failed_app": "Failed to import app {app_id}: {error}",
+      "import_complete": "Import complete: {imported} imported, {updated} updated, {failed} failed",
+      "import_duration": "Import duration: {duration}s",
+      "loaded_from_cache": "Loaded {count} games from database in {duration}s",
+      "update_started": "Updating {count} changed games...",
+      "update_complete": "Update complete in {duration}s",
+      "unknown_app": "App {app_id}",
+      "already_initialized": "Database already initialized",
+      "ready": "Database ready ({count} games, {duration}s)",
+      "schema_error": "Failed to create database schema: {error}",
+      "schema_not_found": "Database schema file not found: {path}"
     }
   }
 }

@@ -308,14 +308,26 @@ class CategoryActionHandler:
             target_category: str = selected_item.text()
             source_categories: list[str] = [cat for cat in categories if cat != target_category]
 
-            mw.category_service.merge_categories(source_categories, target_category)
-            self._flush()
+            if not source_categories:
+                # All categories have the same name → deduplicate instead of merge
+                removed = mw.category_service.remove_duplicate_collections()
+                self._flush()
+                if removed > 0:
+                    UIHelper.show_success(
+                        mw,
+                        t("ui.categories.duplicates_removed", count=removed),
+                        t("ui.categories.merge_title"),
+                    )
+                return
 
-            UIHelper.show_success(
-                mw,
-                t("ui.categories.merge_success", target=target_category, count=len(source_categories)),
-                t("ui.categories.merge_title"),
-            )
+            success = mw.category_service.merge_categories(categories, target_category)
+            if success:
+                self._flush()
+                UIHelper.show_success(
+                    mw,
+                    t("ui.categories.merge_success", target=target_category, count=len(source_categories)),
+                    t("ui.categories.merge_title"),
+                )
 
         # ------------------------------------------------------------------
         # Internal helpers
