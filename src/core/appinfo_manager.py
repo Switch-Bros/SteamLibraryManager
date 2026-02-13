@@ -397,6 +397,14 @@ class AppInfoManager:
 
         return restored
 
+    def get_all_apps(self) -> dict[int, dict]:
+        """Returns all parsed apps from appinfo.vdf.
+
+        Returns:
+            Dictionary mapping app_id to app data.
+        """
+        return self.steam_apps
+
     def get_modification_count(self) -> int:
         """
         Returns the number of apps with tracked modifications.
