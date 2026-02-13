@@ -342,9 +342,7 @@ class GameManager:
             return 0
 
         # Build a lookup by app_id (str)
-        db_lookup: dict[str, "DatabaseEntry"] = {
-            str(e.app_id): e for e in entries
-        }
+        db_lookup: dict[str, "DatabaseEntry"] = {str(e.app_id): e for e in entries}
 
         enriched = 0
         for app_id, game in self.games.items():
@@ -359,6 +357,7 @@ class GameManager:
                 game.publisher = entry.publisher
             if not game.release_year:
                 from datetime import datetime, timezone
+
                 release_ts = entry.release_date or entry.steam_release_date or entry.original_release_date
                 if release_ts and isinstance(release_ts, int) and release_ts > 0:
                     game.release_year = str(datetime.fromtimestamp(release_ts, tz=timezone.utc).year)

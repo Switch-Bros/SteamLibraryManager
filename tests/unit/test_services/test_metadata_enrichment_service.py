@@ -85,9 +85,7 @@ class TestApplyMetadataOverrides:
 
         appinfo_manager = MagicMock()
         appinfo_manager.steam_apps = {440: {}}
-        appinfo_manager.modifications = {
-            "440": {"modified": {"name": "TF2 Custom", "developer": "Custom Dev"}}
-        }
+        appinfo_manager.modifications = {"440": {"modified": {"name": "TF2 Custom", "developer": "Custom Dev"}}}
         appinfo_manager.get_app_metadata.return_value = {}
 
         service.apply_metadata_overrides(appinfo_manager)
