@@ -309,7 +309,7 @@ class TokenStore:
 
             if wire_type == 2:  # length-delimited (string, bytes)
                 length, pos = TokenStore._read_varint(data, pos)
-                value = data[pos:pos + length]
+                value = data[pos : pos + length]
                 pos += length
                 if field_num == field_number:
                     return value.decode("utf-8")
