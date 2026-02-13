@@ -220,9 +220,38 @@ class ProfileSetupDialog(QDialog):
             if dialog.steam_id_64 is not None:
                 self.selected_steam_id_64 = dialog.steam_id_64
                 self.selected_display_name = dialog.display_name
+
+                # Persist tokens so restore_session() finds them on next startup
+                self._save_login_tokens(dialog.login_result, str(dialog.steam_id_64))
+
                 self.accept()
             else:
                 QMessageBox.warning(self, t("common.error"), t("ui.login.error_no_steam_id"))
+
+    @staticmethod
+    def _save_login_tokens(login_result: dict | None, steam_id: str) -> None:
+        """Persist access/refresh tokens from a successful login.
+
+        Args:
+            login_result: The full result dict from ModernSteamLoginDialog.
+            steam_id: The SteamID64 as string.
+        """
+        if not login_result:
+            return
+
+        from src.core.token_store import TokenStore
+        from src.config import config
+
+        access_token = login_result.get("access_token")
+        refresh_token = login_result.get("refresh_token")
+
+        if access_token:
+            # Make token available immediately for the current session
+            config.STEAM_ACCESS_TOKEN = access_token
+
+        if access_token and refresh_token:
+            token_store = TokenStore()
+            token_store.save_tokens(access_token, refresh_token, steam_id)
 
     def _on_continue(self):
         """Handle Continue button click."""

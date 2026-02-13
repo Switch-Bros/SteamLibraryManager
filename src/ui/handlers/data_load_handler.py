@@ -73,12 +73,15 @@ class DataLoadHandler:
             self.mw.reload_btn.show()
             return
 
-        # Restore login state if STEAM_USER_ID was saved
-        if config.STEAM_USER_ID and not self.mw.steam_username:
-            self.mw.steam_username = DataLoadHandler.fetch_steam_persona_name(config.STEAM_USER_ID)
-            self.mw.refresh_toolbar()
+        # Show whose library is loaded (independent of auth state)
+        if not self.mw.steam_username:
+            # Only fetch display name for the label — do NOT set steam_username
+            # steam_username is set exclusively by login/restore_session
+            display_name = DataLoadHandler.fetch_steam_persona_name(target_id) if target_id else None
+            display_id = display_name or target_id or short_id
+        else:
+            display_id = self.mw.steam_username
 
-        display_id = self.mw.steam_username if self.mw.steam_username else (target_id if target_id else short_id)
         self.mw.user_label.setText(t("ui.main_window.user_label", user_id=display_id))
 
         # Initialize GameService

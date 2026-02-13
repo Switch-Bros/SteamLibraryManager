@@ -163,20 +163,21 @@ class SteamActions:
         # Try to refresh the access token
         new_access_token = token_store.refresh_access_token(stored.refresh_token, stored.steam_id)
 
-        if new_access_token is None:
-            # Token expired beyond refresh, clear stored tokens
-            token_store.clear_tokens()
-            return False
+        if new_access_token:
+            # Refresh succeeded — use the fresh token
+            active_token = new_access_token
+            token_store.save_tokens(new_access_token, stored.refresh_token, stored.steam_id)
+        else:
+            # Refresh failed — use the stored token as-is (may still be valid)
+            logger.warning(t("logs.auth.token_refresh_failed", error="using stored token"))
+            active_token = stored.access_token
 
         # Restore authenticated state
-        self.mw.access_token = new_access_token
+        self.mw.access_token = active_token
         self.mw.refresh_token = stored.refresh_token
         self.mw.session = None
-        config.STEAM_ACCESS_TOKEN = new_access_token
+        config.STEAM_ACCESS_TOKEN = active_token
         config.STEAM_USER_ID = stored.steam_id
-
-        # Save updated access token
-        token_store.save_tokens(new_access_token, stored.refresh_token, stored.steam_id)
 
         # Fetch persona name
         self.mw.steam_username = DataLoadHandler.fetch_steam_persona_name(stored.steam_id)

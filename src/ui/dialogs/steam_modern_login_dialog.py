@@ -64,6 +64,7 @@ class ModernSteamLoginDialog(QDialog):
         # Store login result for profile_setup_dialog
         self.steam_id_64: int | None = None
         self.display_name: str | None = None
+        self.login_result: dict | None = None
 
         self._setup_ui()
         self._connect_signals()
@@ -353,6 +354,7 @@ class ModernSteamLoginDialog(QDialog):
             self.steam_id_64 = None
             self.display_name = None
 
+        self.login_result = result
         self.on_status_update(t("ui.login.status_success"))
         self.login_success.emit(result)
         self.accept()

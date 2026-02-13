@@ -82,6 +82,7 @@ class CloudStorageParser:
         self.data: list = []
         self.collections: list[dict] = []
         self.modified = False
+        self.had_conflict: bool = False
         self._file_mtime: float = 0.0
 
     def load(self) -> bool:
@@ -155,7 +156,7 @@ class CloudStorageParser:
         """
         try:
             # Check for external modifications and expose to callers
-            self.had_conflict: bool = self.has_external_changes()
+            self.had_conflict = self.has_external_changes()
             if self.had_conflict:
                 logger.warning(t("logs.parser.external_change_detected"))
 
