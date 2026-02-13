@@ -10,7 +10,7 @@ Tests the fix for UNCATEGORIZED games logic:
 
 import pytest
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from src.core.game_manager import GameManager, Game
 
