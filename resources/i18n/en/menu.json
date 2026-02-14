@@ -1,0 +1,143 @@
+{
+  "menu": {
+    "file": {
+      "root": "File",
+      "refresh": "Refresh Library",
+      "export": {
+        "root": "Export",
+        "collections_vdf": "Collections as VDF",
+        "games_csv_simple": "Game List as CSV (Simple)",
+        "games_csv_full": "Game List as CSV (Full)",
+        "games_json": "Game List as JSON",
+        "artwork_package": "Export Artwork Package",
+        "db_backup": "Database Backup"
+      },
+      "import": {
+        "root": "Import",
+        "collections": "Collections (VDF)",
+        "db_backup": "Database Backup",
+        "artwork_package": "Import Artwork Package"
+      },
+      "exit": "Exit"
+    },
+    "edit": {
+      "root": "Edit",
+      "metadata": {
+        "root": "Edit Metadata",
+        "single": "Single Game",
+        "bulk": "Multiple Games (Bulk Edit)"
+      },
+      "auto_categorize": "Auto-Categorize",
+      "collections": {
+        "root": "Collections",
+        "rename": "Rename Collection",
+        "merge": "Merge Collections",
+        "delete_empty": "Delete Empty Collections",
+        "expand_all": "Expand All",
+        "collapse_all": "Collapse All"
+      },
+      "find_missing_metadata": "Games with Missing Metadata",
+      "reset_metadata": "Reset Metadata",
+      "remove_duplicates": "Remove Duplicates"
+    },
+    "view": {
+      "root": "View",
+      "mode": {
+        "root": "View Mode",
+        "list": "List (Compact)",
+        "details": "Details (Normal)",
+        "grid": "Grid"
+      },
+      "type": {
+        "root": "Show Type",
+        "games": "Games",
+        "soundtracks": "Soundtracks",
+        "software": "Software",
+        "videos": "Videos",
+        "dlcs": "DLCs",
+        "tools": "Tools"
+      },
+      "platform": {
+        "root": "Platform",
+        "linux": "Linux",
+        "windows": "Windows",
+        "steamos": "SteamOS (Handheld)"
+      },
+      "status": {
+        "root": "Status",
+        "installed": "Installed",
+        "not_installed": "Not Installed",
+        "hidden": "Hidden",
+        "with_playtime": "With Playtime",
+        "favorites": "Favorites"
+      },
+      "statistics": {
+        "root": "Show Statistics",
+        "overview": "Overview",
+        "by_genre": "By Genre",
+        "by_platform": "By Platform",
+        "top10": "Top 10 Most Played"
+      }
+    },
+    "tools": {
+      "root": "Tools",
+      "artwork": {
+        "root": "Artwork",
+        "download_missing": "Download Missing Artworks",
+        "edit": "Edit Artwork"
+      },
+      "search": {
+        "root": "Advanced Search",
+        "by_publisher": "By Publisher",
+        "by_developer": "By Developer",
+        "by_genre": "By Genre",
+        "by_tags": "By Tags",
+        "by_year": "By Release Year"
+      },
+      "batch": {
+        "root": "Batch Operations",
+        "update_metadata": "Update Metadata (All)",
+        "update_hltb": "Update HLTB Data",
+        "update_protondb": "Update ProtonDB Ratings",
+        "check_store": "Check Store Pages",
+        "update_achievements": "Update Achievements"
+      },
+      "database": {
+        "root": "Database",
+        "optimize": "Optimize Database",
+        "recreate": "Recreate Database",
+        "import_appinfo": "Fetch Data from appinfo",
+        "backup": "Create Backup"
+      },
+      "settings": "Settings"
+    },
+    "help": {
+      "root": "Help",
+      "docs": {
+        "root": "Documentation",
+        "manual": "User Manual",
+        "tips": "Tips & Tricks",
+        "shortcuts": "Keyboard Shortcuts"
+      },
+      "online": {
+        "root": "Online",
+        "github": "GitHub Repository",
+        "issues": "Report Issues",
+        "discussions": "Discussions",
+        "wiki": "Wiki"
+      },
+      "updates": {
+        "root": "Updates",
+        "check": "Check for Updates",
+        "changelog": "View Changelog"
+      },
+      "support": {
+        "root": "Support",
+        "paypal": "PayPal",
+        "github": "GitHub Sponsors",
+        "kofi": "Ko-fi"
+      },
+      "about": "About SLM"
+    }
+  }
+}

@@ -1,0 +1,143 @@
+{
+  "menu": {
+    "file": {
+      "root": "Datei",
+      "refresh": "Bibliothek aktualisieren",
+      "export": {
+        "root": "Exportieren",
+        "collections_vdf": "Kollektionen als VDF",
+        "games_csv_simple": "Spieleliste als CSV (Simple)",
+        "games_csv_full": "Spieleliste als CSV (Full)",
+        "games_json": "Spieleliste als JSON",
+        "artwork_package": "Artwork-Pack exportieren",
+        "db_backup": "Datenbank-Backup"
+      },
+      "import": {
+        "root": "Importieren",
+        "collections": "Kollektionen (VDF)",
+        "db_backup": "Datenbank-Backup",
+        "artwork_package": "Artwork-Pack importieren"
+      },
+      "exit": "Beenden"
+    },
+    "edit": {
+      "root": "Bearbeiten",
+      "metadata": {
+        "root": "Metadaten bearbeiten",
+        "single": "Einzelnes Spiel",
+        "bulk": "Mehrere Spiele (Bulk Edit)"
+      },
+      "auto_categorize": "Auto-Kategorisierung",
+      "collections": {
+        "root": "Kollektionen",
+        "rename": "Kollektion umbenennen",
+        "merge": "Kollektionen zusammenführen",
+        "delete_empty": "Leere Kollektionen löschen",
+        "expand_all": "Alle aufklappen",
+        "collapse_all": "Alle zuklappen"
+      },
+      "find_missing_metadata": "Spiele mit fehlenden Metadaten",
+      "reset_metadata": "Metadaten zurücksetzen",
+      "remove_duplicates": "Duplikate entfernen"
+    },
+    "view": {
+      "root": "Ansicht",
+      "mode": {
+        "root": "Ansichtsmodus",
+        "list": "Liste (Kompakt)",
+        "details": "Details (Normal)",
+        "grid": "Raster (Grid)"
+      },
+      "type": {
+        "root": "Typ anzeigen",
+        "games": "Spiele",
+        "soundtracks": "Soundtracks",
+        "software": "Software",
+        "videos": "Videos",
+        "dlcs": "DLCs",
+        "tools": "Tools"
+      },
+      "platform": {
+        "root": "Plattform",
+        "linux": "Linux",
+        "windows": "Windows",
+        "steamos": "SteamOS (Handheld)"
+      },
+      "status": {
+        "root": "Status",
+        "installed": "Installiert",
+        "not_installed": "Nicht installiert",
+        "hidden": "Versteckt",
+        "with_playtime": "Mit Spielzeit",
+        "favorites": "Favoriten"
+      },
+      "statistics": {
+        "root": "Statistiken anzeigen",
+        "overview": "Gesamtübersicht",
+        "by_genre": "Nach Genre",
+        "by_platform": "Nach Plattform",
+        "top10": "Top 10 meist gespielt"
+      }
+    },
+    "tools": {
+      "root": "Werkzeuge",
+      "artwork": {
+        "root": "Artwork",
+        "download_missing": "Fehlende Artworks laden",
+        "edit": "Artwork bearbeiten"
+      },
+      "search": {
+        "root": "Erweiterte Suche",
+        "by_publisher": "Nach Publisher",
+        "by_developer": "Nach Developer",
+        "by_genre": "Nach Genre",
+        "by_tags": "Nach Tags",
+        "by_year": "Nach Release-Jahr"
+      },
+      "batch": {
+        "root": "Batch-Operationen",
+        "update_metadata": "Metadaten aktualisieren (Alle)",
+        "update_hltb": "HLTB Daten aktualisieren",
+        "update_protondb": "ProtonDB Ratings aktualisieren",
+        "check_store": "Store-Seiten prüfen",
+        "update_achievements": "Achievements aktualisieren"
+      },
+      "database": {
+        "root": "Datenbank",
+        "optimize": "Datenbank optimieren",
+        "recreate": "Datenbank neu erstellen",
+        "import_appinfo": "Daten aus appinfo holen",
+        "backup": "Backup erstellen"
+      },
+      "settings": "Einstellungen"
+    },
+    "help": {
+      "root": "Hilfe",
+      "docs": {
+        "root": "Dokumentation",
+        "manual": "Benutzerhandbuch",
+        "tips": "Tipps & Tricks",
+        "shortcuts": "Keyboard Shortcuts"
+      },
+      "online": {
+        "root": "Online",
+        "github": "GitHub Repository",
+        "issues": "Issues melden",
+        "discussions": "Discussions",
+        "wiki": "Wiki"
+      },
+      "updates": {
+        "root": "Updates",
+        "check": "Auf Updates prüfen",
+        "changelog": "Changelog anzeigen"
+      },
+      "support": {
+        "root": "Unterstützen",
+        "paypal": "PayPal",
+        "github": "GitHub Sponsors",
+        "kofi": "Ko-fi"
+      },
+      "about": "Über SLM"
+    }
+  }
+}

@@ -70,16 +70,16 @@ class ToolbarBuilder:
         # --- Always-visible actions ---
 
         # Refresh: [Emoji] [Text]
-        refresh_text = f"{t('emoji.refresh')} {t('ui.menu.file.refresh')}"
+        refresh_text = f"{t('emoji.refresh')} {t('menu.file.refresh')}"
         refresh_action = QAction(refresh_text, mw)
-        refresh_action.setToolTip(t("ui.menu.file.refresh"))
+        refresh_action.setToolTip(t("menu.file.refresh"))
         refresh_action.triggered.connect(mw.file_actions.refresh_data)
         toolbar.addAction(refresh_action)
 
         # Save: [Emoji] [Text]
-        save_text = f"{t('emoji.save')} {t('ui.menu.file.save')}"
+        save_text = f"{t('emoji.save')} {t('common.save')}"
         save_action = QAction(save_text, mw)
-        save_action.setToolTip(t("ui.menu.file.save"))
+        save_action.setToolTip(t("common.save"))
         save_action.triggered.connect(mw.file_actions.force_save)
         toolbar.addAction(save_action)
 
@@ -88,16 +88,16 @@ class ToolbarBuilder:
         # --- Edit Actions ---
 
         # Auto Categorize: [Emoji] [Text]
-        auto_text = f"{t('emoji.blitz')} {t('ui.menu.edit.auto_categorize')}"
+        auto_text = f"{t('emoji.blitz')} {t('menu.edit.auto_categorize')}"
         auto_cat_action = QAction(auto_text, mw)
-        auto_cat_action.setToolTip(t("ui.menu.edit.auto_categorize"))
+        auto_cat_action.setToolTip(t("menu.edit.auto_categorize"))
         auto_cat_action.triggered.connect(mw.edit_actions.auto_categorize)
         toolbar.addAction(auto_cat_action)
 
         # Bulk Edit: [Emoji] [Text]
-        edit_text = f"{t('emoji.edit')} {t('ui.menu.edit.bulk_edit')}"
+        edit_text = f"{t('emoji.edit')} {t('menu.edit.metadata.bulk')}"
         bulk_edit_action = QAction(edit_text, mw)
-        bulk_edit_action.setToolTip(t("ui.menu.edit.bulk_edit"))
+        bulk_edit_action.setToolTip(t("menu.edit.metadata.bulk"))
         bulk_edit_action.triggered.connect(mw.edit_actions.bulk_edit_metadata)
         toolbar.addAction(bulk_edit_action)
 
@@ -106,9 +106,9 @@ class ToolbarBuilder:
         # --- Tools ---
 
         # Missing Metadata: [Emoji] [Text] (Using 'search' emoji as placeholder)
-        search_text = f"{t('emoji.search')} {t('ui.menu.tools.missing_meta')}"
+        search_text = f"{t('emoji.search')} {t('menu.edit.find_missing_metadata')}"
         missing_meta_action = QAction(search_text, mw)
-        missing_meta_action.setToolTip(t("ui.menu.tools.missing_meta"))
+        missing_meta_action.setToolTip(t("menu.edit.find_missing_metadata"))
         missing_meta_action.triggered.connect(mw.find_missing_metadata)
         toolbar.addAction(missing_meta_action)
 

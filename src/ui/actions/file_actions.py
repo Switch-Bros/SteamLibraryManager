@@ -83,12 +83,12 @@ class FileActions:
             if result == SteamRunningDialog.CLOSE_AND_SAVE:
                 # Steam was closed, proceed with save
                 self.mw.save_collections()
-                UIHelper.show_success(self.mw, t("ui.menu.file.save_success"))
+                UIHelper.show_success(self.mw, t("common.save_success"))
             # else: User cancelled, do nothing
         else:
             # Steam not running, safe to save
             self.mw.save_collections()
-            UIHelper.show_success(self.mw, t("ui.menu.file.save_success"))
+            UIHelper.show_success(self.mw, t("common.save_success"))
 
     def remove_duplicate_collections(self) -> None:
         """Opens the merge-duplicates dialog for cloud storage collections.
