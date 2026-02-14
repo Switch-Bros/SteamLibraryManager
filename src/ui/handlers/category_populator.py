@@ -194,11 +194,7 @@ class CategoryPopulator:
                     # Build game list from this specific collection's app IDs
                     app_id_set = set(apps)
                     coll_games: list[Game] = sorted(
-                        [
-                            g
-                            for g in mw.game_manager.games.values()
-                            if not g.hidden and int(g.app_id) in app_id_set
-                        ],
+                        [g for g in mw.game_manager.games.values() if not g.hidden and int(g.app_id) in app_id_set],
                         key=lambda g: g.sort_name.lower(),
                     )
                     dup_key = f"__dup__{cat_name}__{idx}"

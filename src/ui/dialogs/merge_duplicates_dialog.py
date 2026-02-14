@@ -91,9 +91,7 @@ class MergeDuplicatesDialog(QDialog):
         scroll_layout = QVBoxLayout(scroll_widget)
 
         for name, collections in sorted(self._groups.items()):
-            group_box = QGroupBox(
-                t("ui.categories.merge_duplicates_group", name=name, count=len(collections))
-            )
+            group_box = QGroupBox(t("ui.categories.merge_duplicates_group", name=name, count=len(collections)))
             group_layout = QVBoxLayout()
 
             button_group = QButtonGroup(self)
@@ -105,9 +103,7 @@ class MergeDuplicatesDialog(QDialog):
                     apps = []
                 game_count = len(apps)
 
-                radio = QRadioButton(
-                    t("ui.categories.merge_duplicates_entry", index=idx + 1, game_count=game_count)
-                )
+                radio = QRadioButton(t("ui.categories.merge_duplicates_entry", index=idx + 1, game_count=game_count))
                 if idx == 0:
                     radio.setChecked(True)
 
