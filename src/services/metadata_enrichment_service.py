@@ -13,6 +13,7 @@ import json
 import logging
 from pathlib import Path
 
+from src.core.database import is_placeholder_name
 from src.core.game import Game
 from src.utils.date_utils import format_timestamp_to_date
 from src.utils.i18n import t
@@ -223,7 +224,9 @@ class MetadataEnrichmentService:
             if app_type not in self._DISCOVERABLE_TYPES:
                 continue
 
-            name = db_name or self._get_cached_name(app_id) or t("ui.game_details.game_fallback", id=app_id)
+            # Use DB name only if it's a real name, otherwise try cache or fallback
+            effective_name = db_name if not is_placeholder_name(db_name) else ""
+            name = effective_name or self._get_cached_name(app_id) or t("ui.game_details.game_fallback", id=app_id)
 
             game = Game(app_id=app_id, name=name, app_type=app_type)
             self._games[app_id] = game
@@ -277,10 +280,8 @@ class MetadataEnrichmentService:
             if not game.app_type and steam_meta.get("type"):
                 game.app_type = steam_meta["type"]
 
-            # Check for fallback name usage
-            fallback_name = t("ui.game_details.game_fallback", id=app_id)
-
-            if (game.name == fallback_name or game.name.startswith("App ")) and steam_meta.get("name"):
+            # Fix placeholder names with real data from appinfo.vdf
+            if is_placeholder_name(game.name) and steam_meta.get("name"):
                 game.name = steam_meta["name"]
                 if not game.name_overridden:
                     game.sort_name = game.name

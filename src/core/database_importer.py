@@ -222,8 +222,8 @@ class DatabaseImporter:
         # Find common section using AppInfoManager's logic
         common = self.appinfo_manager._find_common_section(vdf_data)
 
-        # Basic info
-        name = common.get("name", t("logs.db.unknown_app", app_id=app_id))
+        # Basic info — use empty string if no name in VDF (never store placeholders)
+        name = common.get("name", "") or ""
         app_type = common.get("type", "game")
         if isinstance(app_type, str):
             app_type = app_type.lower()
