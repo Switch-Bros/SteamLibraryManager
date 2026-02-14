@@ -23,48 +23,76 @@ class StoreCheckThread(QThread):
         super().__init__()
         self.app_id = app_id
 
-    def run(self):
-        """Performs the store check via HTTP request."""
+    # Keywords that indicate geo-blocking / region restriction on the store page
+    _GEO_KEYWORDS = (
+        "not available in your country",
+        "not available in your region",
+        "unavailable in your region",
+        "nicht in ihrem land",
+        "dieses produkt steht in ihrem land",
+        "currently unavailable",
+        "error processing your request",
+    )
+
+    def run(self) -> None:
+        """Performs the store check via HTTP request.
+
+        Follows redirects to distinguish geo-blocked, age-gated,
+        available, and truly delisted/removed games.
+        """
         try:
             url = f"https://store.steampowered.com/app/{self.app_id}/"
-            # User-Agent is important to avoid immediate blocking
-            response = requests.get(url, timeout=10, allow_redirects=False, headers={"User-Agent": "SLM/1.0"})
+            response = requests.get(
+                url,
+                timeout=10,
+                allow_redirects=True,
+                headers={
+                    "User-Agent": (
+                        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+                        " (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+                    ),
+                },
+            )
 
-            if response.status_code == 200:
-                text_lower = response.text.lower()
+            if response.status_code in (404, 403):
+                self.finished.emit("removed", f"{t('emoji.error')} {t('ui.store_check.removed')}")
+                return
 
-                # Check for geo-blocking keywords
-                if (
-                    "not available in your country" in text_lower
-                    or "nicht in ihrem land" in text_lower
-                    or "not available in your region" in text_lower
-                    or "currently not" in text_lower
-                    or "not available" in text_lower
-                ):
-                    self.finished.emit("geo_locked", f"{t('emoji.blocked')} {t('ui.store_check.geo_locked')}")
-                # Check for age gate
-                elif "agecheck" in text_lower:
-                    self.finished.emit("age_gate", t("ui.store_check.age_gate"))
-                # Check for valid store page indicators
-                elif "app_header" in text_lower or "game_area_purchase" in text_lower:
-                    self.finished.emit("available", f"{t('emoji.success')} {t('ui.store_check.available')}")
-                else:
-                    self.finished.emit("delisted", f"{t('emoji.error')} {t('ui.store_check.delisted')}")
-
-            elif response.status_code == 302:
-                # Handle redirects (often implies age gate or delisted)
-                redirect_url = response.headers.get("Location", "")
-                if "agecheck" in redirect_url:
-                    self.finished.emit("age_gate", t("ui.store_check.age_gate"))
-                else:
-                    self.finished.emit("delisted", f"{t('emoji.error')} {t('ui.store_check.delisted')}")
-
-            elif response.status_code in [404, 403]:
-                self.finished.emit("delisted", f"{t('emoji.error')} {t('ui.store_check.removed')}")
-            else:
+            if response.status_code != 200:
                 self.finished.emit(
-                    "unknown", f"{t('emoji.unknown')} {t('ui.store_check.unknown', code=response.status_code)}"
+                    "unknown",
+                    f"{t('emoji.unknown')} {t('ui.store_check.unknown', code=response.status_code)}",
                 )
+                return
+
+            final_url = response.url
+            text_lower = response.text.lower()
+
+            # Age gate: redirect to /agecheck/ or agecheck form on page
+            if "agecheck" in final_url or ("agecheck" in text_lower and f"/app/{self.app_id}" in final_url):
+                self.finished.emit("age_gate", f"{t('emoji.success')} {t('ui.store_check.age_gate')}")
+                return
+
+            # Geo-blocking: error page with region-restriction message
+            if any(kw in text_lower for kw in self._GEO_KEYWORDS):
+                self.finished.emit("geo_locked", f"{t('emoji.blocked')} {t('ui.store_check.geo_locked')}")
+                return
+
+            # Valid store page with purchase area or header image
+            if "game_area_purchase" in text_lower or "app_header" in text_lower:
+                self.finished.emit("available", f"{t('emoji.success')} {t('ui.store_check.available')}")
+                return
+
+            # Redirected away from the app page (e.g. to store homepage)
+            if f"/app/{self.app_id}" not in final_url:
+                self.finished.emit("delisted", f"{t('emoji.error')} {t('ui.store_check.delisted')}")
+                return
+
+            # Page loaded but no recognizable content
+            self.finished.emit(
+                "unknown",
+                f"{t('emoji.unknown')} {t('ui.store_check.unknown', code=response.status_code)}",
+            )
 
         except Exception as ex:
             self.finished.emit("unknown", str(ex))

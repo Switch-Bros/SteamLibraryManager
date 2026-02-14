@@ -38,21 +38,18 @@ from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
 # Builders
-from src.ui.builders import MenuBuilder, ToolbarBuilder, StatusbarBuilder, CentralWidgetBuilder
+from src.ui.builders import (
+    MenuBuilder, ToolbarBuilder, StatusbarBuilder, CentralWidgetBuilder
+)
 
 # Handlers
-from src.ui.handlers import CategoryActionHandler, DataLoadHandler, SelectionHandler, CategoryChangeHandler
-from src.ui.handlers.category_populator import CategoryPopulator
+from src.ui.handlers import (
+    CategoryActionHandler, DataLoadHandler, SelectionHandler, CategoryChangeHandler, CategoryPopulator
+)
 
 # Actions
 from src.ui.actions import (
-    FileActions,
-    EditActions,
-    ViewActions,
-    ToolsActions,
-    SteamActions,
-    GameActions,
-    SettingsActions,
+    FileActions, EditActions, ViewActions, ToolsActions, SteamActions, GameActions, SettingsActions,
 )
 
 
