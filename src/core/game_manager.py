@@ -368,6 +368,14 @@ class GameManager:
             if not entry:
                 continue
 
+            # Fix fallback names ("Unbekannte App 123" / "Unknown App 123")
+            if entry.name and (
+                game.name == t("ui.game_details.game_fallback", id=app_id) or game.name.startswith("App ")
+            ):
+                game.name = entry.name
+                if not game.name_overridden:
+                    game.sort_name = entry.name
+
             # Only fill in fields that are empty/missing on the game
             if not game.developer and entry.developer:
                 game.developer = entry.developer
