@@ -144,12 +144,15 @@ class SteamActions:
     def restore_session(self) -> bool:
         """Attempt to restore a previous session from securely stored tokens.
 
-        Called at application startup. Loads stored tokens, refreshes the
-        access token, and restores the authenticated state.
+        Called at application startup.  Loads stored tokens, refreshes the
+        access token (with retry), and validates the token before use.
+        If both refresh and validation fail, the user is warned.
 
         Returns:
-            True if session was restored successfully.
+            True if session was restored with a valid token.
         """
+        import time as _time
+
         from src.core.token_store import TokenStore
         from src.ui.handlers.data_load_handler import DataLoadHandler
         from src.config import config
@@ -160,17 +163,34 @@ class SteamActions:
         if stored is None:
             return False
 
-        # Try to refresh the access token
+        # Log token age for diagnostics
+        token_age_hours = (_time.time() - stored.timestamp) / 3600
+        logger.info(
+            t(
+                "logs.auth.token_age_info",
+                hours=f"{token_age_hours:.1f}",
+                timestamp=_time.strftime("%Y-%m-%d %H:%M", _time.localtime(stored.timestamp)),
+            )
+        )
+
+        # Try to refresh the access token (with retry)
         new_access_token = token_store.refresh_access_token(stored.refresh_token, stored.steam_id)
 
         if new_access_token:
-            # Refresh succeeded — use the fresh token
             active_token = new_access_token
             token_store.save_tokens(new_access_token, stored.refresh_token, stored.steam_id)
         else:
-            # Refresh failed — use the stored token as-is (may still be valid)
+            # Refresh failed — validate the stored token before using it
             logger.warning(t("logs.auth.token_refresh_failed", error="using stored token"))
-            active_token = stored.access_token
+
+            if TokenStore.validate_access_token(stored.access_token):
+                logger.info(t("logs.auth.token_validation_ok"))
+                active_token = stored.access_token
+            else:
+                # Both refresh and validation failed — token is expired
+                logger.error(t("logs.auth.token_validation_failed"))
+                self.mw.set_status(t("ui.login.token_expired"))
+                return False
 
         # Restore authenticated state
         self.mw.access_token = active_token

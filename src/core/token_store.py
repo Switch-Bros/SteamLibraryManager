@@ -148,7 +148,9 @@ class TokenStore:
             logger.error(t("logs.auth.token_clear_failed", error=str(e)))
 
     @staticmethod
-    def refresh_access_token(refresh_token: str, steam_id: str = "") -> str | None:
+    def refresh_access_token(
+        refresh_token: str, steam_id: str = "", max_retries: int = 3
+    ) -> str | None:
         """Obtain a new access token using a refresh token.
 
         Steam's IAuthenticationService uses protobuf-over-HTTP: the request
@@ -156,9 +158,13 @@ class TokenStore:
         ``input_protobuf_encoded`` form parameter.  The response body is raw
         protobuf (field 1 = access_token string).
 
+        Retries up to ``max_retries`` times with exponential backoff to
+        handle transient network issues.
+
         Args:
             refresh_token: The Steam refresh token (JWT).
             steam_id: SteamID64 of the user.  Required by Steam API.
+            max_retries: Maximum number of attempts (default 3).
 
         Returns:
             New access token, or None on failure.
@@ -168,36 +174,68 @@ class TokenStore:
             return None
 
         url = "https://api.steampowered.com/IAuthenticationService/GenerateAccessTokenForApp/v1/"
+        proto_body = TokenStore._encode_refresh_proto(refresh_token, steam_id)
+        post_data = {
+            "input_protobuf_encoded": base64.b64encode(proto_body).decode("ascii"),
+        }
 
-        try:
-            # Encode request as protobuf, then base64 for the Web API gateway
-            proto_body = TokenStore._encode_refresh_proto(refresh_token, steam_id)
-            post_data = {
-                "input_protobuf_encoded": base64.b64encode(proto_body).decode("ascii"),
-            }
+        for attempt in range(1, max_retries + 1):
+            try:
+                response = requests.post(url, data=post_data, timeout=10)
+                response.raise_for_status()
 
-            response = requests.post(url, data=post_data, timeout=10)
-            response.raise_for_status()
+                new_token: str | None = None
+                content_type = response.headers.get("Content-Type", "")
 
-            # Response is typically protobuf; fall back to JSON if Steam returns that
-            new_token: str | None = None
-            content_type = response.headers.get("Content-Type", "")
+                if "json" in content_type or (response.text and response.text.startswith("{")):
+                    result = response.json().get("response", {})
+                    new_token = result.get("access_token")
+                elif response.content:
+                    new_token = TokenStore._decode_string_field(response.content, field_number=1)
 
-            if "json" in content_type or (response.text and response.text.startswith("{")):
-                result = response.json().get("response", {})
-                new_token = result.get("access_token")
-            elif response.content:
-                # Decode protobuf response: field 1 = access_token (string)
-                new_token = TokenStore._decode_string_field(response.content, field_number=1)
+                if new_token:
+                    logger.info(t("logs.auth.token_refresh_success"))
+                    return new_token
 
-            if new_token:
-                logger.info(t("logs.auth.token_refresh_success"))
-                return new_token
+                # Steam returned OK but no token — not transient, don't retry
+                logger.info("Token refresh: Steam returned no new token, stored token still valid")
+                return None
 
-            logger.info("Token refresh: Steam returned no new token, stored token still valid")
-        except (requests.RequestException, ValueError, KeyError) as e:
-            logger.error(t("logs.auth.token_refresh_failed", error=str(e)))
+            except (requests.RequestException, ValueError, KeyError) as e:
+                if attempt < max_retries:
+                    logger.warning(
+                        t(
+                            "logs.auth.token_refresh_retry",
+                            attempt=attempt,
+                            max_attempts=max_retries,
+                        )
+                    )
+                    time.sleep(attempt * 2)  # Backoff: 2s, 4s
+                else:
+                    logger.error(t("logs.auth.token_refresh_failed", error=str(e)))
+
         return None
+
+    @staticmethod
+    def validate_access_token(access_token: str) -> bool:
+        """Check whether an access token is still accepted by Steam.
+
+        Makes a lightweight API call (GetOwnedGames with minimal data)
+        to verify the token has not expired.
+
+        Args:
+            access_token: The Steam access token to validate.
+
+        Returns:
+            True if the token is still valid.
+        """
+        try:
+            url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
+            params = {"access_token": access_token, "include_appinfo": 0, "format": "json"}
+            response = requests.get(url, params=params, timeout=8)
+            return response.status_code == 200
+        except requests.RequestException:
+            return False
 
     @staticmethod
     def get_steamid_from_token(access_token: str) -> str | None:
