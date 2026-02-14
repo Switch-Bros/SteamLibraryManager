@@ -174,8 +174,25 @@ class TestTokenStoreRefresh:
         assert result == "fresh_token"
 
     @patch("src.core.token_store.requests.post")
+    def test_refresh_no_new_token_returns_sentinel(self, mock_post: MagicMock):
+        """When Steam returns 200 but no new token, return sentinel (not None)."""
+        from src.core.token_store import TokenStore, _REFRESH_NOT_NEEDED
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.headers = {"Content-Type": "application/json"}
+        mock_response.text = '{"response":{}}'
+        mock_response.json.return_value = {"response": {}}
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        result = TokenStore.refresh_access_token("refresh_tok", "76561198000000000")
+
+        assert result == _REFRESH_NOT_NEEDED
+
+    @patch("src.core.token_store.requests.post")
     def test_refresh_failure_returns_none(self, mock_post: MagicMock):
-        """Failed refresh should return None."""
+        """Failed refresh (network error) should return None."""
         import requests as req
 
         from src.core.token_store import TokenStore

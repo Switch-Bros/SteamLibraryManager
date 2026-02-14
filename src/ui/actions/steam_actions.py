@@ -174,16 +174,23 @@ class SteamActions:
         )
 
         # Try to refresh the access token (with retry)
-        new_access_token = token_store.refresh_access_token(stored.refresh_token, stored.steam_id)
+        from src.core.token_store import _REFRESH_NOT_NEEDED
 
-        if new_access_token:
-            active_token = new_access_token
-            token_store.save_tokens(new_access_token, stored.refresh_token, stored.steam_id)
+        refresh_result = token_store.refresh_access_token(stored.refresh_token, stored.steam_id)
+
+        if refresh_result and refresh_result != _REFRESH_NOT_NEEDED:
+            # Got a fresh token from Steam
+            active_token = refresh_result
+            token_store.save_tokens(refresh_result, stored.refresh_token, stored.steam_id)
+        elif refresh_result == _REFRESH_NOT_NEEDED:
+            # Steam returned 200 but no new token — stored token is still valid
+            logger.info(t("logs.auth.token_validation_ok"))
+            active_token = stored.access_token
         else:
-            # Refresh failed — validate the stored token before using it
+            # Refresh truly failed (network errors etc.) — validate stored token
             logger.warning(t("logs.auth.token_refresh_failed", error="using stored token"))
 
-            if TokenStore.validate_access_token(stored.access_token):
+            if TokenStore.validate_access_token(stored.access_token, stored.steam_id):
                 logger.info(t("logs.auth.token_validation_ok"))
                 active_token = stored.access_token
             else:

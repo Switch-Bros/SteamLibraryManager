@@ -27,6 +27,10 @@ logger = logging.getLogger("steamlibmgr.token_store")
 
 __all__ = ["StoredTokens", "TokenStore"]
 
+# Sentinel returned by refresh_access_token() when Steam responds with HTTP 200
+# but does not issue a new token — meaning the stored access token is still valid.
+_REFRESH_NOT_NEEDED = "__refresh_not_needed__"
+
 
 @dataclass(frozen=True)
 class StoredTokens:
@@ -195,9 +199,9 @@ class TokenStore:
                     logger.info(t("logs.auth.token_refresh_success"))
                     return new_token
 
-                # Steam returned OK but no token — not transient, don't retry
+                # Steam returned HTTP 200 but no new token — stored token still valid
                 logger.info("Token refresh: Steam returned no new token, stored token still valid")
-                return None
+                return _REFRESH_NOT_NEEDED
 
             except (requests.RequestException, ValueError, KeyError) as e:
                 if attempt < max_retries:
@@ -215,7 +219,7 @@ class TokenStore:
         return None
 
     @staticmethod
-    def validate_access_token(access_token: str) -> bool:
+    def validate_access_token(access_token: str, steam_id: str = "") -> bool:
         """Check whether an access token is still accepted by Steam.
 
         Makes a lightweight API call (GetOwnedGames with minimal data)
@@ -223,13 +227,20 @@ class TokenStore:
 
         Args:
             access_token: The Steam access token to validate.
+            steam_id: SteamID64 of the user (required by the Steam API).
 
         Returns:
             True if the token is still valid.
         """
         try:
             url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
-            params = {"access_token": access_token, "include_appinfo": 0, "format": "json"}
+            params: dict[str, str | int] = {
+                "access_token": access_token,
+                "include_appinfo": 0,
+                "format": "json",
+            }
+            if steam_id:
+                params["steamid"] = steam_id
             response = requests.get(url, params=params, timeout=8)
             return response.status_code == 200
         except requests.RequestException:
