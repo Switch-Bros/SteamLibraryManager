@@ -148,9 +148,7 @@ class TokenStore:
             logger.error(t("logs.auth.token_clear_failed", error=str(e)))
 
     @staticmethod
-    def refresh_access_token(
-        refresh_token: str, steam_id: str = "", max_retries: int = 3
-    ) -> str | None:
+    def refresh_access_token(refresh_token: str, steam_id: str = "", max_retries: int = 3) -> str | None:
         """Obtain a new access token using a refresh token.
 
         Steam's IAuthenticationService uses protobuf-over-HTTP: the request
