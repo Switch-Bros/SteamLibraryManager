@@ -71,7 +71,7 @@
         "import_vdf": "Kollektionen importieren (.vdf)",
         "import_json": "JSON Backup wiederherstellen",
         "steam_vdf_merge": "Steam *.vdf-Dateien zusammenführen",
-        "remove_duplicates": "Doppelte Kollektionen entfernen",
+        "remove_duplicates": "Doppelte Kollektionen zusammenführen...",
         "detect_steam": "Steam-Pfad neu erkennen",
         "switch_user": "Benutzer wechseln",
         "save_success": "Kollektionen erfolgreich gespeichert!",
@@ -301,6 +301,7 @@
       "rename": "Umbenennen",
       "delete": "Löschen",
       "merge_categories": "Kollektionen zusammenführen",
+      "merge_duplicate_collection": "Doppelte '{name}' Kollektionen zusammenführen...",
       "create_collection": "Kollektion erstellen"
     },
     "metadata_editor": {
@@ -385,7 +386,14 @@
       "soundtracks": "Soundtracks",
       "tools": "Werkzeuge",
       "software": "Software",
-      "videos": "Videos"
+      "videos": "Videos",
+      "duplicate_indicator": "{name} ({index}/{total})",
+      "merge_duplicates_title": "Doppelte Kollektionen zusammenf\u00fchren",
+      "merge_duplicates_info": "W\u00e4hle pro Gruppe, welche Kollektion behalten werden soll. Spiele aus allen anderen Duplikaten werden in die ausgew\u00e4hlte \u00fcbernommen.",
+      "merge_duplicates_group": "{name} ({count} Duplikate)",
+      "merge_duplicates_entry": "Kollektion #{index}: {game_count} Spiele",
+      "merge_duplicates_success": "{count} Duplikat-Gruppen erfolgreich zusammengef\u00fchrt.",
+      "no_duplicates_found": "Keine doppelten Kollektionen gefunden."
     },
     "auto_categorize": {
       "title": "Auto-Kategorisierung",

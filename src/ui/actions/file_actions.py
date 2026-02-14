@@ -91,30 +91,13 @@ class FileActions:
             UIHelper.show_success(self.mw, t("ui.menu.file.save_success"))
 
     def remove_duplicate_collections(self) -> None:
-        """Removes duplicate collections from cloud storage.
+        """Opens the merge-duplicates dialog for cloud storage collections.
 
-        Duplicates are identified by identical names. The first occurrence
-        is kept, subsequent ones are removed. After cleanup, the full
-        save/populate/update cycle runs to sync the UI.
-
-        Shows a message indicating how many duplicates were removed.
+        Delegates to CategoryActionHandler.show_merge_duplicates_dialog()
+        which detects duplicates, shows the selection UI, and performs
+        the safe merge with game preservation.
         """
-        if not self.mw.cloud_storage_parser:
-            UIHelper.show_error(self.mw, t("ui.errors.service_unavailable"))
-            return
-
-        # Remove duplicates using the cloud_storage_parser method
-        removed = self.mw.cloud_storage_parser.remove_duplicate_collections()
-
-        if removed > 0:
-            # Persist & update UI
-            self.mw.save_collections()
-            self.mw.populate_categories()
-            self.mw.update_statistics()
-
-            UIHelper.show_success(self.mw, t("ui.menu.file.duplicates_removed", count=removed))
-        else:
-            UIHelper.show_success(self.mw, t("ui.menu.file.no_duplicates_found"))
+        self.mw.category_handler.show_merge_duplicates_dialog()
 
     def exit_application(self) -> None:
         """Closes the main window.

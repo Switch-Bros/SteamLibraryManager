@@ -149,6 +149,17 @@ class CategoryActionHandler:
             menu.addSeparator()
             menu.addAction(t("ui.context_menu.rename"), lambda: self.rename_category(category))
             menu.addAction(t("ui.context_menu.delete"), lambda: self.delete_category(category))
+
+            # Check if this category has duplicates
+            if mw.cloud_storage_parser:
+                dup_groups = mw.cloud_storage_parser.get_duplicate_groups()
+                if category in dup_groups:
+                    menu.addSeparator()
+                    menu.addAction(
+                        t("ui.context_menu.merge_duplicate_collection", name=category),
+                        lambda: self.show_merge_duplicates_dialog(filter_name=category),
+                    )
+
             menu.addSeparator()
             menu.addAction(
                 t("ui.menu.edit.auto_categorize"), lambda: mw.edit_actions.auto_categorize_category(category)
@@ -329,9 +340,51 @@ class CategoryActionHandler:
                     t("ui.categories.merge_title"),
                 )
 
-        # ------------------------------------------------------------------
-        # Internal helpers
-        # ------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # Duplicate merging
+    # ------------------------------------------------------------------
+
+    def show_merge_duplicates_dialog(self, filter_name: str | None = None) -> None:
+        """Shows the merge-duplicates dialog and executes the merge.
+
+        Detects duplicate collection groups from the cloud parser, opens
+        the selection dialog, and merges based on the user's choices.
+
+        Args:
+            filter_name: If set, only show the group with this name
+                (used from the context menu).
+        """
+        mw = self.mw
+        if not mw.cloud_storage_parser or not mw.category_service:
+            UIHelper.show_error(mw, t("ui.main_window.cloud_storage_only"))
+            return
+
+        dup_groups = mw.cloud_storage_parser.get_duplicate_groups()
+        if not dup_groups:
+            UIHelper.show_info(mw, t("ui.categories.no_duplicates_found"))
+            return
+
+        # If filtering by name and that name has no duplicates
+        if filter_name and filter_name not in dup_groups:
+            UIHelper.show_info(mw, t("ui.categories.no_duplicates_found"))
+            return
+
+        from src.ui.dialogs.merge_duplicates_dialog import MergeDuplicatesDialog
+
+        dialog = MergeDuplicatesDialog(mw, dup_groups, filter_name=filter_name)
+        if dialog.exec() == MergeDuplicatesDialog.DialogCode.Accepted:
+            merge_plan = dialog.get_merge_plan()
+            if merge_plan:
+                merged = mw.category_service.merge_duplicate_collections(merge_plan)
+                if merged > 0:
+                    self._flush(stats=True)
+                    UIHelper.show_success(
+                        mw, t("ui.categories.merge_duplicates_success", count=merged)
+                    )
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
 
     def _flush(self, *, stats: bool = False) -> None:
         """Persists collections and refreshes the UI.

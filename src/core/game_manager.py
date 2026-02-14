@@ -444,8 +444,8 @@ class GameManager:
             if game.app_type and game.app_type.lower() != "game":
                 continue
 
-            # Unknown type: use heuristic (filters Proton, Steam Runtime, etc.)
-            if not game.app_type and not is_real_game(game):
+            # Filter ghost entries ("App 12345") and non-games (Proton, etc.)
+            if not is_real_game(game):
                 continue
 
             # Filter out system categories
