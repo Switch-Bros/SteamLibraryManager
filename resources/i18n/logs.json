@@ -67,6 +67,10 @@
       "token_clear_failed": "Failed to clear authentication tokens: {error}",
       "token_refresh_success": "Access token refreshed successfully",
       "token_refresh_failed": "Failed to refresh access token: {error}",
+      "token_refresh_retry": "Token refresh attempt {attempt}/{max_attempts} failed, retrying...",
+      "token_validation_ok": "Stored access token is still valid",
+      "token_validation_failed": "Stored access token is expired or invalid",
+      "token_age_info": "Token age: {hours}h (stored {timestamp})",
       "rsa_key_fetched": "RSA public key fetched for password encryption",
       "rsa_key_error": "Failed to fetch RSA public key: {error}"
     },

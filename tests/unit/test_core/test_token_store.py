@@ -194,6 +194,79 @@ class TestTokenStoreRefresh:
 
         assert result is None
 
+    @patch("src.core.token_store.time.sleep")
+    @patch("src.core.token_store.requests.post")
+    def test_refresh_retries_on_network_error(self, mock_post: MagicMock, mock_sleep: MagicMock):
+        """Refresh should retry on transient network errors."""
+        import requests as req
+
+        from src.core.token_store import TokenStore
+
+        # First two calls fail, third succeeds
+        mock_success = MagicMock()
+        mock_success.status_code = 200
+        mock_success.headers = {"Content-Type": "application/json"}
+        mock_success.text = '{"response":{"access_token":"recovered_token"}}'
+        mock_success.json.return_value = {"response": {"access_token": "recovered_token"}}
+        mock_success.raise_for_status = MagicMock()
+
+        mock_post.side_effect = [
+            req.RequestException("timeout"),
+            req.RequestException("connection reset"),
+            mock_success,
+        ]
+
+        result = TokenStore.refresh_access_token("refresh_tok", "76561198000000000", max_retries=3)
+
+        assert result == "recovered_token"
+        assert mock_post.call_count == 3
+        assert mock_sleep.call_count == 2  # 2 retries with sleep
+
+    @patch("src.core.token_store.time.sleep")
+    @patch("src.core.token_store.requests.post")
+    def test_refresh_exhausts_retries(self, mock_post: MagicMock, mock_sleep: MagicMock):
+        """Refresh should return None after exhausting all retries."""
+        import requests as req
+
+        from src.core.token_store import TokenStore
+
+        mock_post.side_effect = req.RequestException("persistent failure")
+
+        result = TokenStore.refresh_access_token("refresh_tok", "76561198000000000", max_retries=2)
+
+        assert result is None
+        assert mock_post.call_count == 2
+        assert mock_sleep.call_count == 1  # Only between attempts
+
+    @patch("src.core.token_store.requests.get")
+    def test_validate_access_token_valid(self, mock_get: MagicMock):
+        """Valid token should return True."""
+        from src.core.token_store import TokenStore
+
+        mock_get.return_value = MagicMock(status_code=200)
+
+        assert TokenStore.validate_access_token("valid_token") is True
+
+    @patch("src.core.token_store.requests.get")
+    def test_validate_access_token_expired(self, mock_get: MagicMock):
+        """Expired token should return False (HTTP 401)."""
+        from src.core.token_store import TokenStore
+
+        mock_get.return_value = MagicMock(status_code=401)
+
+        assert TokenStore.validate_access_token("expired_token") is False
+
+    @patch("src.core.token_store.requests.get")
+    def test_validate_access_token_network_error(self, mock_get: MagicMock):
+        """Network error during validation should return False."""
+        import requests as req
+
+        from src.core.token_store import TokenStore
+
+        mock_get.side_effect = req.RequestException("offline")
+
+        assert TokenStore.validate_access_token("any_token") is False
+
 
 class TestProtobufHelpers:
     """Tests for manual protobuf encoding/decoding helpers."""
