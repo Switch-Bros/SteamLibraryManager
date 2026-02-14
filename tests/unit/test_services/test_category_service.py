@@ -202,9 +202,7 @@ class TestMergeDuplicateCollections:
             game_manager=game_manager_for_merge,
         )
 
-    def test_merge_duplicate_keeps_selected(
-        self, merge_service, cloud_parser_with_duplicates, game_manager_for_merge
-    ):
+    def test_merge_duplicate_keeps_selected(self, merge_service, cloud_parser_with_duplicates, game_manager_for_merge):
         """Test that merging keeps selected collection and merges games."""
         # Keep the first RPG collection (index 0)
         result = merge_service.merge_duplicate_collections([("RPG", 0)])

@@ -378,9 +378,7 @@ class CategoryActionHandler:
                 merged = mw.category_service.merge_duplicate_collections(merge_plan)
                 if merged > 0:
                     self._flush(stats=True)
-                    UIHelper.show_success(
-                        mw, t("ui.categories.merge_duplicates_success", count=merged)
-                    )
+                    UIHelper.show_success(mw, t("ui.categories.merge_duplicates_success", count=merged))
 
     # ------------------------------------------------------------------
     # Internal helpers
