@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Steam Bibliotheks-Manager",
+    "name": "Steam Library Manager",
     "version": "1.0.0",
     "description": "Moderner Bibliotheks-Manager für Steam auf Linux",
     "info": "Information"
@@ -588,6 +588,11 @@
       "confirm_message": "Die Zieldatei wird geändert. Möchtest du wirklich fortfahren?",
       "changes_header": "Änderungen",
       "more_changes": "...und {count} weitere Änderungen"
+    },
+    "bootstrap": {
+      "loading_games": "Lade Spiele...",
+      "restoring_session": "Sitzung wird wiederhergestellt...",
+      "initializing": "Initialisierung..."
     },
     "errors": {
       "no_users_found": "Keine Steam-Benutzer gefunden.",

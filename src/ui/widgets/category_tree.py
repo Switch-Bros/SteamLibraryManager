@@ -63,6 +63,20 @@ class GameTreeWidget(QTreeWidget):
             QTreeWidget::item:selected { background-color: #2d5a88; }
         """)
 
+    def set_loading_state(self, loading: bool) -> None:
+        """Toggle the tree between a loading placeholder and normal state.
+
+        Args:
+            loading: If True, clears the tree and shows a disabled
+                "Loading..." placeholder item. If False, just clears
+                the tree so populate_categories() can refill it.
+        """
+        self.clear()
+        if loading:
+            placeholder = QTreeWidgetItem(self)
+            placeholder.setText(0, t("common.loading"))
+            placeholder.setFlags(Qt.ItemFlag.NoItemFlags)
+
     def populate_categories(
         self,
         categories: dict[str, list[Game]],

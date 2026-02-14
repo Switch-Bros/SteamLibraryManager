@@ -8,7 +8,7 @@ application layout with splitter, game tree, and details panel.
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, QSplitter
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, QSplitter, QProgressBar
 from PyQt6.QtCore import Qt
 
 from src.ui.widgets.game_details_widget import GameDetailsWidget
@@ -97,6 +97,17 @@ class CentralWidgetBuilder:
         btn_layout.addWidget(collapse_btn)
         left_layout.addLayout(btn_layout)
 
+        # Inline Progress Area (hidden by default)
+        loading_label = QLabel()
+        loading_label.setVisible(False)
+        left_layout.addWidget(loading_label)
+
+        progress_bar = QProgressBar()
+        progress_bar.setMaximumHeight(8)
+        progress_bar.setTextVisible(False)
+        progress_bar.setVisible(False)
+        left_layout.addWidget(progress_bar)
+
         # Tree Widget
         tree = GameTreeWidget()
         # noinspection PyUnresolvedReferences,DuplicatedCode
@@ -126,4 +137,10 @@ class CentralWidgetBuilder:
         splitter.setSizes([350, 1050])
         layout.addWidget(splitter)
 
-        return {"tree": tree, "details_widget": details_widget, "search_entry": search_entry}
+        return {
+            "tree": tree,
+            "details_widget": details_widget,
+            "search_entry": search_entry,
+            "loading_label": loading_label,
+            "progress_bar": progress_bar,
+        }

@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 from src.services.asset_service import AssetService
 
 if TYPE_CHECKING:
+    from src.services.bootstrap_service import BootstrapService
     from src.services.category_service import CategoryService
     from src.services.metadata_service import MetadataService
     from src.services.autocategorize_service import AutoCategorizeService
@@ -91,7 +92,7 @@ class MainWindow(QMainWindow):
         self.category_service: CategoryService | None = None  # Initialized after parsers
         self.metadata_service: MetadataService | None = None  # Initialized after appinfo_manager
         self.autocategorize_service: AutoCategorizeService | None = None  # Initialized after category_service
-        self.game_service: GameService | None = None  # Initialized in _load_data
+        self.game_service: GameService | None = None  # Initialized by BootstrapService
         self.asset_service = AssetService()  # Initialize immediately
 
         # NEW: Initialize SearchService
@@ -134,12 +135,10 @@ class MainWindow(QMainWindow):
         self.category_populator = CategoryPopulator(self)
 
         self._create_ui()
+        self.show()
 
-        # Restore session BEFORE loading data so the access token
-        # is available for the Steam Web API call
-        self.steam_actions.restore_session()
-
-        self._load_data()
+        # Non-blocking startup via BootstrapService
+        self._init_bootstrap_service()
 
     def _create_ui(self) -> None:
         """Initializes all UI components, menus, and layouts.
@@ -163,6 +162,8 @@ class MainWindow(QMainWindow):
         self.tree = widgets["tree"]
         self.details_widget = widgets["details_widget"]
         self.search_entry = widgets["search_entry"]
+        self.loading_label = widgets["loading_label"]
+        self.progress_bar = widgets["progress_bar"]
 
         # --- Status bar (delegated to StatusbarBuilder) ---
         self.statusbar = self.statusBar()
@@ -178,14 +179,63 @@ class MainWindow(QMainWindow):
         """
         self.toolbar_builder.build(self.toolbar)
 
-    # --- Main Logic ---
+    # --- Bootstrap & Loading ---
 
-    def _load_data(self) -> None:
-        """Performs the initial data loading sequence.
+    def _init_bootstrap_service(self) -> None:
+        """Create the BootstrapService, connect signals, and start it."""
+        from src.services.bootstrap_service import BootstrapService
 
-        Delegates to DataLoadHandler for all loading operations.
+        self.bootstrap_service: BootstrapService = BootstrapService(self)
+        self.bootstrap_service.loading_started.connect(self._on_loading_started)
+        self.bootstrap_service.load_progress.connect(self._on_load_progress)
+        self.bootstrap_service.persona_resolved.connect(self._on_persona_resolved)
+        self.bootstrap_service.session_restored.connect(self._on_session_restored)
+        self.bootstrap_service.bootstrap_complete.connect(self._on_bootstrap_complete)
+        self.bootstrap_service.start()
+
+    def _on_loading_started(self) -> None:
+        """Show tree loading placeholder and progress bar."""
+        self.tree.set_loading_state(True)
+        self.loading_label.setText(t("ui.bootstrap.loading_games"))
+        self.loading_label.setVisible(True)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setVisible(True)
+        self.set_status(t("common.loading"))
+
+    def _on_load_progress(self, step: str, current: int, total: int) -> None:
+        """Update inline progress bar and label.
+
+        Args:
+            step: Description of the current loading step.
+            current: Current progress count.
+            total: Total items to process.
         """
-        self.data_load_handler.load_data()
+        self.loading_label.setText(step)
+        if total > 0:
+            percent = int((current / total) * 100)
+            self.progress_bar.setValue(percent)
+
+    def _on_persona_resolved(self, display_name: str) -> None:
+        """Update the user label when persona name is fetched.
+
+        Args:
+            display_name: The resolved persona name or Steam ID.
+        """
+        self.user_label.setText(t("ui.main_window.user_label", user_id=display_name))
+
+    def _on_session_restored(self, success: bool) -> None:
+        """Rebuild toolbar if session was restored.
+
+        Args:
+            success: Whether the session was restored successfully.
+        """
+        if success:
+            self.refresh_toolbar()
+
+    def _on_bootstrap_complete(self) -> None:
+        """Hide loading indicators when bootstrap is finished."""
+        self.loading_label.setVisible(False)
+        self.progress_bar.setVisible(False)
 
     def _populate_categories(self) -> None:
         """Refreshes the sidebar tree with current game data.
