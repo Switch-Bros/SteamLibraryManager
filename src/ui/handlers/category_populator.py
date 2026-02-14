@@ -158,6 +158,11 @@ class CategoryPopulator:
                 if parser_cat not in cats:
                     cats[parser_cat] = 0  # empty collection — count is zero
 
+        # Detect duplicate collection names from the parser
+        duplicate_groups: dict[str, list[dict]] = {}
+        if mw.cloud_storage_parser:
+            duplicate_groups = mw.cloud_storage_parser.get_duplicate_groups()
+
         # Sort with German umlaut support
         # Skip special categories (Favorites, Uncategorized, Hidden, All Games, Type categories)
         special_categories = {
@@ -171,8 +176,35 @@ class CategoryPopulator:
             t("ui.categories.videos"),
         }
 
+        # duplicate_display_info maps internal key -> (real_name, index, total)
+        duplicate_display_info: dict[str, tuple[str, int, int]] = {}
+
         for cat_name in sorted(cats.keys(), key=self.german_sort_key):
-            if cat_name not in special_categories:
+            if cat_name in special_categories:
+                continue
+
+            if cat_name in duplicate_groups:
+                # Show each duplicate collection individually
+                colls = duplicate_groups[cat_name]
+                total = len(colls)
+                for idx, coll in enumerate(colls):
+                    apps = coll.get("added", coll.get("apps", []))
+                    if not isinstance(apps, list):
+                        apps = []
+                    # Build game list from this specific collection's app IDs
+                    app_id_set = set(apps)
+                    coll_games: list[Game] = sorted(
+                        [
+                            g
+                            for g in mw.game_manager.games.values()
+                            if not g.hidden and int(g.app_id) in app_id_set
+                        ],
+                        key=lambda g: g.sort_name.lower(),
+                    )
+                    dup_key = f"__dup__{cat_name}__{idx}"
+                    categories_data[dup_key] = coll_games
+                    duplicate_display_info[dup_key] = (cat_name, idx + 1, total)
+            else:
                 cat_games: list[Game] = sorted(
                     [g for g in mw.game_manager.get_games_by_category(cat_name) if not g.hidden],
                     key=lambda g: g.sort_name.lower(),
@@ -201,5 +233,5 @@ class CategoryPopulator:
                 if "filterSpec" in collection:
                     dynamic_collections.add(collection["name"])
 
-        # Pass dynamic collections to tree
-        mw.tree.populate_categories(categories_data, dynamic_collections)
+        # Pass dynamic collections and duplicate info to tree
+        mw.tree.populate_categories(categories_data, dynamic_collections, duplicate_display_info)

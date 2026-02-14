@@ -44,3 +44,43 @@ class TestCloudStorageParser:
         categories = parser.get_app_categories("570")
         assert "RPG" in categories
         assert parser.modified == True
+
+    def test_get_duplicate_groups_no_duplicates(self, mock_cloud_storage_file):
+        """Test that no duplicates returns empty dict."""
+        from src.core.cloud_storage_parser import CloudStorageParser
+
+        steam_path, user_id = mock_cloud_storage_file
+        parser = CloudStorageParser(str(steam_path), user_id)
+        parser.load()
+
+        result = parser.get_duplicate_groups()
+
+        assert result == {}
+
+    def test_get_duplicate_groups_with_duplicates(self):
+        """Test detection of duplicate collection names."""
+        from src.core.cloud_storage_parser import CloudStorageParser
+
+        parser = CloudStorageParser("/tmp/fake", "999")
+        parser.collections = [
+            {"id": "from-tag-RPG", "name": "RPG", "added": [100, 200]},
+            {"id": "from-tag-RPG-2", "name": "RPG", "added": [300]},
+            {"id": "from-tag-Action", "name": "Action", "added": [100]},
+        ]
+
+        result = parser.get_duplicate_groups()
+
+        assert "RPG" in result
+        assert len(result["RPG"]) == 2
+        assert "Action" not in result
+
+    def test_get_duplicate_groups_empty_collections(self):
+        """Test with empty collections list."""
+        from src.core.cloud_storage_parser import CloudStorageParser
+
+        parser = CloudStorageParser("/tmp/fake", "999")
+        parser.collections = []
+
+        result = parser.get_duplicate_groups()
+
+        assert result == {}

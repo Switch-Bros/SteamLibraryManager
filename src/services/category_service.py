@@ -233,24 +233,118 @@ class CategoryService:
         return True
 
     def remove_duplicate_collections(self) -> int:
-        """
-        Remove duplicate collections (Cloud Storage only).
+        """Remove duplicate collections (Cloud Storage only).
 
         Identifies collections with identical names, keeping only the first occurrence.
 
         Returns:
-            int: Number of duplicates removed
+            Number of duplicates removed.
 
         Raises:
-            RuntimeError: If cloud storage is not available
+            RuntimeError: If cloud storage is not available.
         """
         if not self.cloud_parser:
             raise RuntimeError(t("ui.main_window.cloud_storage_only"))
 
-        # Remove duplicates using cloud_parser's method
         removed = self.cloud_parser.remove_duplicate_collections()
-
         return removed
+
+    def merge_duplicate_collections(self, merge_plan: list[tuple[str, int]]) -> int:
+        """Merges duplicate collections based on a user-selected plan.
+
+        For each group in the plan, keeps the selected collection and merges
+        all games from the other duplicates into it, then removes the others.
+        After merging, re-syncs in-memory ``game.categories`` from the parser.
+
+        Args:
+            merge_plan: List of ``(collection_name, keep_index)`` tuples.
+
+        Returns:
+            Number of groups successfully merged.
+
+        Raises:
+            RuntimeError: If cloud storage is not available.
+        """
+        if not self.cloud_parser:
+            raise RuntimeError(t("ui.main_window.cloud_storage_only"))
+
+        dup_groups = self.cloud_parser.get_duplicate_groups()
+        merged_count = 0
+
+        for name, keep_idx in merge_plan:
+            if name not in dup_groups:
+                continue
+
+            colls = dup_groups[name]
+            if keep_idx < 0 or keep_idx >= len(colls):
+                continue
+
+            keep_coll = colls[keep_idx]
+            keep_apps = keep_coll.get("added", keep_coll.get("apps", []))
+            if not isinstance(keep_apps, list):
+                keep_apps = []
+
+            # Merge all app IDs from non-selected collections into the kept one
+            merged_app_ids: set[int] = set(keep_apps)
+            for idx, coll in enumerate(colls):
+                if idx == keep_idx:
+                    continue
+                apps = coll.get("added", coll.get("apps", []))
+                if isinstance(apps, list):
+                    merged_app_ids.update(apps)
+
+            # Update the kept collection with merged app IDs
+            keep_coll["added"] = sorted(merged_app_ids)
+
+            # Remove the non-selected collections from the parser
+            for idx, coll in enumerate(colls):
+                if idx != keep_idx and coll in self.cloud_parser.collections:
+                    self.cloud_parser.collections.remove(coll)
+
+            self.cloud_parser.modified = True
+            merged_count += 1
+
+        # Re-sync in-memory game.categories from parser state
+        if merged_count > 0:
+            self._resync_game_categories()
+
+        return merged_count
+
+    def _resync_game_categories(self) -> None:
+        """Rebuilds in-memory ``game.categories`` from parser collections.
+
+        Clears all user categories from each game (preserving special ones
+        like Favorites / Hidden which are handled separately) and rebuilds
+        them from the current parser state.
+        """
+        if not self.cloud_parser:
+            return
+
+        # Build a mapping: app_id (int) -> set of category names
+        app_categories: dict[int, list[str]] = {}
+        for coll in self.cloud_parser.collections:
+            coll_name = coll.get("name", "")
+            if not coll_name:
+                continue
+            apps = coll.get("added", coll.get("apps", []))
+            if not isinstance(apps, list):
+                continue
+            for app_id in apps:
+                try:
+                    aid = int(app_id)
+                except (ValueError, TypeError):
+                    continue
+                app_categories.setdefault(aid, [])
+                if coll_name not in app_categories[aid]:
+                    app_categories[aid].append(coll_name)
+
+        # Update each game's categories
+        for game in self.game_manager.games.values():
+            try:
+                aid = int(game.app_id)
+            except (ValueError, TypeError):
+                continue
+            game.categories = app_categories.get(aid, [])
 
     def get_all_categories(self) -> dict[str, int]:
         """

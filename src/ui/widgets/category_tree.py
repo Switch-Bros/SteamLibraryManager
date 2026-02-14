@@ -63,39 +63,63 @@ class GameTreeWidget(QTreeWidget):
             QTreeWidget::item:selected { background-color: #2d5a88; }
         """)
 
-    def populate_categories(self, categories: dict[str, list[Game]], dynamic_collections: set | None = None) -> None:
-        """
-        Rebuilds the entire tree with the provided category-to-game mapping.
+    def populate_categories(
+        self,
+        categories: dict[str, list[Game]],
+        dynamic_collections: set | None = None,
+        duplicate_info: dict[str, tuple[str, int, int]] | None = None,
+    ) -> None:
+        """Rebuilds the entire tree with the provided category-to-game mapping.
 
         This method clears the existing tree and repopulates it, restoring the
         expansion state of each category from the application's config.
 
         Args:
-            categories (dict[str, list[Game]]): A dictionary mapping category names
-                                                to lists of Game objects.
-            dynamic_collections (set | None): Set of collection names that are dynamic
-                                                (have filterSpec). These will get a ⚡ emoji.
+            categories: A dictionary mapping category names to lists of Game objects.
+                For duplicate collections, keys use ``__dup__<name>__<idx>`` format.
+            dynamic_collections: Set of collection names that are dynamic
+                (have filterSpec). These will get a blitz emoji.
+            duplicate_info: Maps internal dup keys to (real_name, index, total).
+                Used to display duplicate collections individually.
         """
         self.clear()
 
         if dynamic_collections is None:
             dynamic_collections = set()
+        if duplicate_info is None:
+            duplicate_info = {}
 
         for cat_name, games in categories.items():
             cat_item = QTreeWidgetItem(self)
 
-            # Add ⚡ emoji for dynamic collections
-            display_name = cat_name
-            if cat_name in dynamic_collections:
-                display_name = f"{cat_name} {t('emoji.blitz')}"
+            # Determine the real category name (for CRUD operations)
+            real_name = cat_name
+            is_duplicate = cat_name in duplicate_info
+
+            if is_duplicate:
+                real_name, idx, total = duplicate_info[cat_name]
+                display_name = t(
+                    "ui.categories.duplicate_indicator",
+                    name=real_name,
+                    index=idx,
+                    total=total,
+                )
+            else:
+                display_name = cat_name
+                if cat_name in dynamic_collections:
+                    display_name = f"{cat_name} {t('emoji.blitz')}"
 
             # Use i18n key for category count display
             cat_item.setText(0, t("ui.categories.category_count", name=display_name, count=len(games)))
 
             cat_item.setData(0, Qt.ItemDataRole.UserRole, "category")
-            cat_item.setData(0, Qt.ItemDataRole.UserRole + 1, cat_name)
+            cat_item.setData(0, Qt.ItemDataRole.UserRole + 1, real_name)
+            # Store the internal dup key so context menu can detect duplicates
+            if is_duplicate:
+                cat_item.setData(0, Qt.ItemDataRole.UserRole + 2, cat_name)
 
-            cat_item.setExpanded(cat_name in config.EXPANDED_CATEGORIES)
+            # Use real_name for expansion state persistence
+            cat_item.setExpanded(real_name in config.EXPANDED_CATEGORIES)
 
             for game in games:
                 game_item = QTreeWidgetItem(cat_item)

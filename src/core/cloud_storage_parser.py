@@ -491,6 +491,26 @@ class CloudStorageParser:
 
         return removed
 
+    def get_duplicate_groups(self) -> dict[str, list[dict]]:
+        """Returns collection names that appear more than once.
+
+        Groups collections by name and returns only those with 2+ occurrences.
+        This allows the UI to display each duplicate individually and lets
+        the user choose which one to keep during merging.
+
+        Returns:
+            Dict mapping collection name to list of collection dicts
+            for names with 2+ occurrences.
+        """
+        from collections import defaultdict
+
+        groups: defaultdict[str, list[dict]] = defaultdict(list)
+        for collection in self.collections:
+            name = collection.get("name", "")
+            if name:
+                groups[name].append(collection)
+        return {name: colls for name, colls in groups.items() if len(colls) >= 2}
+
     def remove_duplicate_collections(self) -> int:
         """Remove duplicate collections with same name.
 

@@ -9,6 +9,7 @@ Steam apps (Proton, Steam Runtime, etc.).
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -159,6 +160,9 @@ NON_GAME_NAME_PATTERNS: tuple[str, ...] = (
 
 NON_GAME_APP_TYPES: frozenset[str] = frozenset({"music", "tool", "application", "video", "dlc", "demo", "config"})
 
+# Ghost entries from appinfo.vdf that have no real name — just "App 12345"
+_GHOST_NAME_RE: re.Pattern[str] = re.compile(r"^App \d+$")
+
 
 def is_real_game(game: Game) -> bool:
     """Checks if a game is a real game (not Proton/Steam runtime/tool/soundtrack).
@@ -167,12 +171,20 @@ def is_real_game(game: Game) -> bool:
     - ``"game"`` or ``""`` (unknown) → falls through to heuristic checks.
     - Any type in ``NON_GAME_APP_TYPES`` → immediately returns False.
 
+    Ghost entries (name matches ``"App <digits>"``) are always excluded,
+    regardless of app_type.  These are orphan IDs in cloud storage or
+    appinfo.vdf that no longer correspond to a real product.
+
     Args:
         game: The game to check.
 
     Returns:
         True if real game, False if tool/runtime/soundtrack/etc.
     """
+    # Ghost entries: "App 1002140" etc. — always exclude
+    if _GHOST_NAME_RE.match(game.name):
+        return False
+
     # Primary filter: app_type from appinfo.vdf
     if game.app_type:
         if game.app_type.lower() in NON_GAME_APP_TYPES:
