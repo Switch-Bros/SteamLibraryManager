@@ -14,42 +14,33 @@ class TestGameManagerProtonFilter:
         expected_proton = {"1887720", "1493710", "1420170"}
         assert expected_proton.issubset(GameManager.NON_GAME_APP_IDS)
 
-    def test_is_real_game_with_real_game(self, mock_config):
+    def test_is_real_game_with_real_game(self):
         """Test that real games are recognized."""
-        from src.core.game_manager import GameManager, Game
-        from pathlib import Path
-
-        manager = GameManager(steam_api_key=None, cache_dir=Path("/tmp"), steam_path=Path("/tmp"))
+        from src.core.game import Game, is_real_game
 
         # Team Fortress 2
         tf2 = Game(app_id="440", name="Team Fortress 2")
-        assert manager.is_real_game(tf2) == True
+        assert is_real_game(tf2) is True
 
         # Counter-Strike 2
         cs2 = Game(app_id="730", name="Counter-Strike: Global Offensive")
-        assert manager.is_real_game(cs2) == True
+        assert is_real_game(cs2) is True
 
-    def test_is_real_game_with_proton_id(self, mock_config):
+    def test_is_real_game_with_proton_id(self):
         """Test that Proton versions are filtered by ID."""
-        from src.core.game_manager import GameManager, Game
-        from pathlib import Path
-
-        manager = GameManager(steam_api_key=None, cache_dir=Path("/tmp"), steam_path=Path("/tmp"))
+        from src.core.game import Game, is_real_game
 
         # Proton Experimental
         proton = Game(app_id="1493710", name="Proton Experimental")
-        assert manager.is_real_game(proton) == False
+        assert is_real_game(proton) is False
 
-    def test_is_real_game_with_proton_name(self, mock_config):
+    def test_is_real_game_with_proton_name(self):
         """Test that Proton versions are filtered by name pattern."""
-        from src.core.game_manager import GameManager, Game
-        from pathlib import Path
-
-        manager = GameManager(steam_api_key=None, cache_dir=Path("/tmp"), steam_path=Path("/tmp"))
+        from src.core.game import Game, is_real_game
 
         # Game with "Proton" in name (even if ID is unknown)
         proton = Game(app_id="999999", name="Proton 99.0")
-        assert manager.is_real_game(proton) == False
+        assert is_real_game(proton) is False
 
     def test_get_real_games_filters_proton(self, mock_config):
         """Test that get_real_games() filters out Proton on Linux."""
