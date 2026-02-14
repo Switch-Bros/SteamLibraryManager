@@ -348,6 +348,7 @@
       "title": "Check Store Availability",
       "checking": "Checking store availability...",
       "available": "Available on Steam Store",
+      "age_gate": "Available (age verification required)",
       "geo_locked": "Not available in your country (Geo-blocking/Censorship)",
       "delisted": "No longer available on Store",
       "removed": "Removed from Store",
