@@ -48,12 +48,12 @@ class TestRefreshData:
     """Tests for refresh_data() method."""
 
     def test_refresh_data_calls_load_data(self, file_actions, mock_main_window):
-        """Should trigger full data reload via _load_data()."""
+        """Should trigger full data reload via BootstrapService."""
         # Execute
         file_actions.refresh_data()
 
         # Assert
-        mock_main_window._load_data.assert_called_once()
+        mock_main_window.bootstrap_service.start.assert_called_once()
 
     def test_refresh_data_is_public_method(self, file_actions):
         """Should be accessible as public API."""
