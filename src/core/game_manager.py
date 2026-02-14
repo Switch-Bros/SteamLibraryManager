@@ -22,6 +22,8 @@ import requests
 if TYPE_CHECKING:
     from src.core.database import Database, DatabaseEntry
 
+from src.core.database import is_placeholder_name
+
 from src.core.game import (
     Game,
     NON_GAME_APP_IDS,
@@ -368,10 +370,8 @@ class GameManager:
             if not entry:
                 continue
 
-            # Fix fallback names ("Unbekannte App 123" / "Unknown App 123")
-            if entry.name and (
-                game.name == t("ui.game_details.game_fallback", id=app_id) or game.name.startswith("App ")
-            ):
+            # Fix fallback names — only if DB has a REAL name (not a placeholder)
+            if not is_placeholder_name(entry.name) and is_placeholder_name(game.name):
                 game.name = entry.name
                 if not game.name_overridden:
                     game.sort_name = entry.name

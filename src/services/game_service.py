@@ -179,6 +179,8 @@ class GameService:
         if self.database:
             # Run initial import if DB is empty
             self._run_initial_import(self.database, progress_callback)
+            # Clean up any leftover placeholder names from previous imports
+            self.database.repair_placeholder_names()
 
         # Load games from API/local FIRST (these have authoritative names)
         success = self.game_manager.load_games(user_id, progress_callback)
@@ -270,6 +272,11 @@ class GameService:
         # Re-merge categories for newly discovered games
         if discovered > 0 and self.cloud_storage_parser:
             self.game_manager.merge_with_localconfig(self.cloud_storage_parser)
+
+        # Re-enrich ALL games with DB metadata (fixes fallback names from
+        # both discover_missing_games and merge_with_localconfig)
+        if self.database:
+            self.game_manager.enrich_from_database(self.database)
 
         # Step 6: Apply ONLY custom JSON overrides (not full binary metadata)
         if progress_callback:

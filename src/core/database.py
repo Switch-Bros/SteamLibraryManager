@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import sqlite3
 import time
 from dataclasses import dataclass, field
@@ -25,7 +26,32 @@ from src.utils.i18n import t
 
 logger = logging.getLogger("steamlibmgr.database")
 
-__all__ = ["Database", "DatabaseEntry", "ImportStats", "database_entry_to_game"]
+__all__ = [
+    "Database",
+    "DatabaseEntry",
+    "ImportStats",
+    "database_entry_to_game",
+    "is_placeholder_name",
+]
+
+_PLACEHOLDER_PATTERN = re.compile(r"^(App \d+|Unknown App \d+|Unbekannte App \d+)$")
+
+
+def is_placeholder_name(name: str | None) -> bool:
+    """Check if a game name is a placeholder/fallback.
+
+    Detects names like "App 123", "Unknown App 123", "Unbekannte App 123"
+    which are generated when appinfo.vdf has no real name for an app.
+
+    Args:
+        name: The game name to check.
+
+    Returns:
+        True if the name is empty, None, or matches a known placeholder pattern.
+    """
+    if not name or not name.strip():
+        return True
+    return bool(_PLACEHOLDER_PATTERN.match(name.strip()))
 
 
 @dataclass(frozen=True)
@@ -333,15 +359,26 @@ class Database:
     def update_game(self, entry: DatabaseEntry) -> None:
         """Update an existing game, preserving created_at.
 
+        Protects good names: if the existing game has a real name and the
+        incoming entry has a placeholder or empty name, the existing name
+        is preserved.
+
         Args:
             entry: Updated game data.
         """
         now = int(time.time())
 
-        # Check if game exists to preserve created_at
-        existing = self.conn.execute("SELECT created_at FROM games WHERE app_id = ?", (entry.app_id,)).fetchone()
+        # Check if game exists to preserve created_at and name
+        existing = self.conn.execute("SELECT created_at, name FROM games WHERE app_id = ?", (entry.app_id,)).fetchone()
 
         if existing:
+            # Protect good names from being overwritten by placeholders
+            existing_name = existing["name"] if existing["name"] else ""
+            if not is_placeholder_name(existing_name) and is_placeholder_name(entry.name):
+                entry_name = existing_name
+            else:
+                entry_name = entry.name
+
             # True UPDATE preserving created_at
             self.conn.execute(
                 """
@@ -359,7 +396,7 @@ class Database:
                 WHERE app_id = ?
                 """,
                 (
-                    entry.name,
+                    entry_name,
                     entry.sort_as,
                     entry.app_type,
                     entry.developer,
@@ -780,6 +817,43 @@ class Database:
             ),
         )
         self.conn.commit()
+
+    # ========================================================================
+    # DATA QUALITY
+    # ========================================================================
+
+    def repair_placeholder_names(self) -> int:
+        """Replace placeholder names with empty strings in the database.
+
+        Finds entries with names like "App 123", "Unknown App 123", or
+        "Unbekannte App 123" and clears them so that enrichment can
+        fill in real names from other sources.
+
+        Returns:
+            Number of names cleaned.
+        """
+        cursor = self.conn.execute("""
+            SELECT COUNT(*) FROM games
+            WHERE name GLOB 'App [0-9]*'
+               OR name GLOB 'Unknown App [0-9]*'
+               OR name GLOB 'Unbekannte App [0-9]*'
+            """)
+        count = cursor.fetchone()[0]
+
+        if count > 0:
+            self.conn.execute(
+                """
+                UPDATE games SET name = '', updated_at = ?
+                WHERE name GLOB 'App [0-9]*'
+                   OR name GLOB 'Unknown App [0-9]*'
+                   OR name GLOB 'Unbekannte App [0-9]*'
+                """,
+                (int(time.time()),),
+            )
+            self.conn.commit()
+            logger.info(t("logs.db.repaired_placeholders", count=count))
+
+        return count
 
     # ========================================================================
     # UTILITY METHODS

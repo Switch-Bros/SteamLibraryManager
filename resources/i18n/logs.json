@@ -213,6 +213,7 @@
       "update_complete": "Update complete in {duration}s",
       "unknown_app": "App {app_id}",
       "already_initialized": "Database already initialized",
+      "repaired_placeholders": "Cleaned {count} placeholder names from database",
       "ready": "Database ready ({count} games, {duration}s)",
       "schema_error": "Failed to create database schema: {error}",
       "schema_not_found": "Database schema file not found: {path}"
