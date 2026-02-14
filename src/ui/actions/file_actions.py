@@ -99,6 +99,43 @@ class FileActions:
         """
         self.mw.category_handler.show_merge_duplicates_dialog()
 
+    def ask_save_on_exit(self, has_collection_changes: bool, has_metadata_changes: bool) -> str:
+        """Shows a 3-button dialog when unsaved changes exist on exit.
+
+        Args:
+            has_collection_changes: Whether cloud storage collections were modified.
+            has_metadata_changes: Whether appinfo.vdf metadata was modified.
+
+        Returns:
+            ``"save"``, ``"discard"``, or ``"cancel"``.
+        """
+        from PyQt6.QtWidgets import QMessageBox
+
+        filenames: list[str] = []
+        if has_collection_changes:
+            filenames.append("cloud-storage-namespace-1.json")
+        if has_metadata_changes:
+            filenames.append("appinfo.vdf")
+
+        msg = QMessageBox(self.mw)
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setWindowTitle(t("common.unsaved_changes_title"))
+        msg.setText(t("common.unsaved_changes_msg", filenames=", ".join(filenames)))
+
+        save_btn = msg.addButton(t("common.save_and_exit"), QMessageBox.ButtonRole.AcceptRole)
+        discard_btn = msg.addButton(t("common.discard_and_exit"), QMessageBox.ButtonRole.DestructiveRole)
+        msg.addButton(t("common.cancel"), QMessageBox.ButtonRole.RejectRole)
+        msg.setDefaultButton(save_btn)
+
+        msg.exec()
+
+        clicked = msg.clickedButton()
+        if clicked == save_btn:
+            return "save"
+        elif clicked == discard_btn:
+            return "discard"
+        return "cancel"
+
     def exit_application(self) -> None:
         """Closes the main window.
 

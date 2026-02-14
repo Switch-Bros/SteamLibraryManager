@@ -69,20 +69,18 @@ class GameActions:
             # Remove from favorites
             if favorites_key in game.categories:
                 game.categories.remove(favorites_key)
-            # noinspection PyProtectedMember
-            self.mw._remove_app_category(game.app_id, favorites_key)
+            if self.mw.category_service:
+                self.mw.category_service.remove_app_from_category(game.app_id, favorites_key)
         else:
             # Add to favorites
             if favorites_key not in game.categories:
                 game.categories.append(favorites_key)
-            # noinspection PyProtectedMember
-            self.mw._add_app_category(game.app_id, favorites_key)
+            if self.mw.category_service:
+                self.mw.category_service.add_app_to_category(game.app_id, favorites_key)
 
         # Save and refresh UI
-        # noinspection PyProtectedMember
-        self.mw._save_collections()
-        # noinspection PyProtectedMember
-        self.mw._populate_categories()
+        self.mw.save_collections()
+        self.mw.populate_categories()
 
     def toggle_hide_game(self, game: Game, hide: bool) -> None:
         """Toggles the hidden status of a game.
@@ -106,22 +104,20 @@ class GameActions:
             # Add to hidden collection
             if hidden_key not in game.categories:
                 game.categories.append(hidden_key)
-            # noinspection PyProtectedMember
-            self.mw._add_app_category(game.app_id, hidden_key)
+            if self.mw.category_service:
+                self.mw.category_service.add_app_to_category(game.app_id, hidden_key)
         else:
             # Remove from hidden collection
             if hidden_key in game.categories:
                 game.categories.remove(hidden_key)
-            # noinspection PyProtectedMember
-            self.mw._remove_app_category(game.app_id, hidden_key)
+            if self.mw.category_service:
+                self.mw.category_service.remove_app_from_category(game.app_id, hidden_key)
 
-        # noinspection PyProtectedMember
-        if self.mw._save_collections():
+        if self.mw.save_collections():
             game.hidden = hide
 
             # Refresh UI
-            # noinspection PyProtectedMember
-            self.mw._populate_categories()
+            self.mw.populate_categories()
 
             status_word = t("ui.visibility.hidden") if hide else t("ui.visibility.visible")
             self.mw.set_status(f"{status_word}: {game.name}")
@@ -160,16 +156,14 @@ class GameActions:
         if self.mw.localconfig_helper:
             success = self.mw.localconfig_helper.remove_app(str(game.app_id))
             if success:
-                # noinspection PyProtectedMember
-                self.mw._save_collections()
+                self.mw.save_collections()
 
                 # Remove from game manager
                 if self.mw.game_manager and str(game.app_id) in self.mw.game_manager.games:
                     del self.mw.game_manager.games[str(game.app_id)]
 
                 # Refresh tree
-                # noinspection PyProtectedMember
-                self.mw._populate_categories()
+                self.mw.populate_categories()
 
                 UIHelper.show_success(
                     self.mw, t("ui.dialogs.remove_local_success", game=game.name), t("common.success")

@@ -109,7 +109,7 @@ class ToolbarBuilder:
         search_text = f"{t('emoji.search')} {t('menu.edit.find_missing_metadata')}"
         missing_meta_action = QAction(search_text, mw)
         missing_meta_action.setToolTip(t("menu.edit.find_missing_metadata"))
-        missing_meta_action.triggered.connect(mw.find_missing_metadata)
+        missing_meta_action.triggered.connect(mw.tools_actions.find_missing_metadata)
         toolbar.addAction(missing_meta_action)
 
         # --- Spacer & Settings ---

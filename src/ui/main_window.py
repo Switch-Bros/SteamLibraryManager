@@ -22,7 +22,6 @@ if TYPE_CHECKING:
 from PyQt6.QtWidgets import QMainWindow, QToolBar
 from PyQt6.QtCore import Qt, QThread, QTimer
 
-from src.config import config
 from src.core.game_manager import GameManager, Game
 from src.core.localconfig_helper import LocalConfigHelper
 from src.core.cloud_storage_parser import CloudStorageParser
@@ -303,28 +302,6 @@ class MainWindow(QMainWindow):
         """
         self.category_handler.on_category_right_click(category, pos)
 
-    @staticmethod
-    def _save_settings(settings: dict) -> None:
-        """Saves settings to the settings JSON file.
-
-        Args:
-            settings: Dictionary containing all settings values.
-        """
-        import json
-
-        settings_file = config.DATA_DIR / "settings.json"
-        data = {
-            "ui_language": settings["ui_language"],
-            "tags_language": settings["tags_language"],
-            "tags_per_game": settings["tags_per_game"],
-            "ignore_common_tags": settings["ignore_common_tags"],
-            "steamgriddb_api_key": settings["steamgriddb_api_key"],
-            "steam_api_key": settings.get("steam_api_key", ""),
-            "max_backups": settings["max_backups"],
-        }
-        with open(settings_file, "w") as f:
-            json.dump(data, f, indent=2)
-
     def set_status(self, text: str) -> None:
         """Updates the status bar message.
 
@@ -370,7 +347,7 @@ class MainWindow(QMainWindow):
         has_metadata_changes = self.appinfo_manager is not None and self.appinfo_manager.vdf_dirty
 
         if has_collection_changes or has_metadata_changes:
-            result = self._ask_save_on_exit(has_collection_changes, has_metadata_changes)
+            result = self.file_actions.ask_save_on_exit(has_collection_changes, has_metadata_changes)
             if result == "save":
                 self._save_all_on_exit()
                 event.accept()
@@ -383,43 +360,6 @@ class MainWindow(QMainWindow):
                 event.accept()
             else:
                 event.ignore()
-
-    def _ask_save_on_exit(self, has_collection_changes: bool, has_metadata_changes: bool) -> str:
-        """Shows a 3-button dialog when unsaved changes exist on exit.
-
-        Args:
-            has_collection_changes: Whether cloud storage collections were modified.
-            has_metadata_changes: Whether appinfo.vdf metadata was modified.
-
-        Returns:
-            ``"save"``, ``"discard"``, or ``"cancel"``.
-        """
-        from PyQt6.QtWidgets import QMessageBox
-
-        filenames: list[str] = []
-        if has_collection_changes:
-            filenames.append("cloud-storage-namespace-1.json")
-        if has_metadata_changes:
-            filenames.append("appinfo.vdf")
-
-        msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Icon.Warning)
-        msg.setWindowTitle(t("common.unsaved_changes_title"))
-        msg.setText(t("common.unsaved_changes_msg", filenames=", ".join(filenames)))
-
-        save_btn = msg.addButton(t("common.save_and_exit"), QMessageBox.ButtonRole.AcceptRole)
-        discard_btn = msg.addButton(t("common.discard_and_exit"), QMessageBox.ButtonRole.DestructiveRole)
-        msg.addButton(t("common.cancel"), QMessageBox.ButtonRole.RejectRole)
-        msg.setDefaultButton(save_btn)
-
-        msg.exec()
-
-        clicked = msg.clickedButton()
-        if clicked == save_btn:
-            return "save"
-        elif clicked == discard_btn:
-            return "discard"
-        return "cancel"
 
     def _save_all_on_exit(self) -> None:
         """Saves all pending changes before exiting.
@@ -525,37 +465,6 @@ class MainWindow(QMainWindow):
         elif self.localconfig_helper:
             return self.localconfig_helper.save()
         return False
-
-    def _add_app_category(self, app_id: str, category: str) -> None:
-        """Add category to app using CategoryService."""
-        if self.category_service:
-            self.category_service.add_app_to_category(app_id, category)
-
-    def _remove_app_category(self, app_id: str, category: str) -> None:
-        """Remove category from app using CategoryService."""
-        if self.category_service:
-            self.category_service.remove_app_from_category(app_id, category)
-
-    def _rename_category(self, old_name: str, new_name: str) -> None:
-        """Rename category using CategoryService."""
-        if self.category_service:
-            try:
-                self.category_service.rename_category(old_name, new_name)
-            except ValueError as e:
-                UIHelper.show_error(self, str(e))
-
-    def _delete_category(self, category: str) -> None:
-        """Delete category using CategoryService."""
-        if self.category_service:
-            self.category_service.delete_category(category)
-
-    def find_missing_metadata(self) -> None:
-        """Delegates to ToolsActions (required by MenuBuilder)."""
-        self.tools_actions.find_missing_metadata()
-
-    def check_store_availability(self, game: Game) -> None:
-        """Delegates to ToolsActions (required by Context Menus)."""
-        self.tools_actions.check_store_availability(game)
 
     def keyPressEvent(self, event) -> None:
         """Handle key press events.

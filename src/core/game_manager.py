@@ -28,9 +28,9 @@ from src.core.game import (
     Game,
     NON_GAME_APP_IDS,
     NON_GAME_NAME_PATTERNS,
-    is_real_game,
 )
 from src.services.game_detail_service import GameDetailService
+from src.services.game_query_service import GameQueryService
 from src.services.metadata_enrichment_service import MetadataEnrichmentService
 from src.utils.i18n import t
 
@@ -76,6 +76,7 @@ class GameManager:
         # Delegated services (share self.games by reference)
         self.detail_service = GameDetailService(self.games, self.cache_dir)
         self.enrichment_service = MetadataEnrichmentService(self.games, self.cache_dir)
+        self.query_service = GameQueryService(self.games, self.filter_non_games)
 
     def load_games(self, steam_user_id: str, progress_callback: Callable[[str, int, int], None] | None = None) -> bool:
         """Main entry point to load games from API and local files.
@@ -415,76 +416,20 @@ class GameManager:
         return self.games.get(app_id)
 
     def get_games_by_category(self, category: str) -> list[Game]:
-        """Gets all games belonging to a specific category.
-
-        Args:
-            category: The category name.
-
-        Returns:
-            A sorted list of games in this category.
-        """
-        games = [g for g in self.get_real_games() if g.has_category(category)]
-        return sorted(games, key=lambda g: g.sort_name.lower())
-
-    # App types visible in the library (type categories + games)
-    _VISIBLE_APP_TYPES: frozenset[str] = frozenset({"game", "music", "tool", "application", "video"})
+        """Gets all games belonging to a specific category."""
+        return self.query_service.get_games_by_category(category)
 
     def get_uncategorized_games(self) -> list[Game]:
-        """Gets games that have no user collections (system categories don't count).
-
-        Only actual games (``app_type == "game"`` or unknown) are considered.
-        Non-game visible types (music, tool, application, video) are already
-        served by their own type categories (Soundtracks, Werkzeuge, Software,
-        Videos) and are therefore NOT uncategorized.
-
-        Returns:
-            A sorted list of uncategorized games.
-        """
-        # System categories that should NOT count as "categorized"
-        system_categories = {
-            t("ui.categories.favorites"),
-            t("ui.categories.hidden"),
-        }
-
-        uncategorized = []
-        for game in self.games.values():
-            # Non-game types have their own type categories → never uncategorized
-            if game.app_type and game.app_type.lower() != "game":
-                continue
-
-            # Filter ghost entries ("App 12345") and non-games (Proton, etc.)
-            if not is_real_game(game):
-                continue
-
-            # Filter out system categories
-            user_categories = [cat for cat in game.categories if cat not in system_categories]
-
-            # If NO user categories remain → uncategorized!
-            if not user_categories:
-                uncategorized.append(game)
-
-        return sorted(uncategorized, key=lambda g: g.sort_name.lower())
+        """Gets games that have no user collections."""
+        return self.query_service.get_uncategorized_games()
 
     def get_favorites(self) -> list[Game]:
-        """Gets all favorite games.
-
-        Returns:
-            A sorted list of favorite games.
-        """
-        games = [g for g in self.get_real_games() if g.is_favorite()]
-        return sorted(games, key=lambda g: g.sort_name.lower())
+        """Gets all favorite games."""
+        return self.query_service.get_favorites()
 
     def get_all_categories(self) -> dict[str, int]:
-        """Gets all categories and their game counts.
-
-        Returns:
-            A dictionary mapping category names to game counts.
-        """
-        categories = {}
-        for game in self.get_real_games():
-            for category in game.categories:
-                categories[category] = categories.get(category, 0) + 1
-        return categories
+        """Gets all categories and their game counts."""
+        return self.query_service.get_all_categories()
 
     def fetch_game_details(self, app_id: str) -> bool:
         """Fetches additional details for a game from external APIs.
@@ -514,74 +459,14 @@ class GameManager:
         else:
             return t("ui.main_window.status_ready")
 
-    @staticmethod
-    def is_real_game(game: Game) -> bool:
-        """Checks if a game is a real game (not Proton/Steam runtime).
-
-        Delegates to the module-level is_real_game() function in src.core.game.
-
-        Args:
-            game: The game to check.
-
-        Returns:
-            True if real game, False if tool/runtime.
-        """
-        return is_real_game(game)
-
     def get_real_games(self) -> list[Game]:
-        """Returns only real games (excludes Proton/Steam runtime tools).
-
-        On Linux, Proton and Steam Runtime are automatically filtered.
-        On Windows, all games are returned.
-
-        Returns:
-            List of real games.
-        """
-        if self.filter_non_games:
-            return [g for g in self.games.values() if is_real_game(g)]
-        else:
-            return list(self.games.values())
+        """Returns only real games (excludes Proton/Steam runtime tools)."""
+        return self.query_service.get_real_games()
 
     def get_all_games(self) -> list[Game]:
-        """Returns ALL games (including tools).
-
-        This method always returns all games, regardless of the filter.
-        For most purposes, use get_real_games() instead!
-
-        Returns:
-            List of all games.
-        """
-        return list(self.games.values())
+        """Returns ALL games (including tools)."""
+        return self.query_service.get_all_games()
 
     def get_game_statistics(self) -> dict[str, int]:
-        """Returns game statistics (for development/debugging).
-
-        Returns:
-            dict containing:
-            - total_games: Number of real games (excluding Proton/tools)
-            - games_in_categories: Number of unique games in categories
-            - category_count: Number of categories (excluding "All Games")
-            - uncategorized_games: Number of games without categories
-        """
-        # Real games (without Proton on Linux)
-        real_games = self.get_real_games()
-
-        # Unique games in collections (each game only 1x)
-        games_in_categories = set()
-        for game in real_games:
-            if game.categories:
-                games_in_categories.add(game.app_id)
-
-        # Number of collections (excluding "All Games")
-        all_categories = self.get_all_categories()
-        category_count = len(all_categories)
-
-        # Uncategorized Games
-        uncategorized = len(real_games) - len(games_in_categories)
-
-        return {
-            "total_games": len(real_games),
-            "games_in_categories": len(games_in_categories),
-            "category_count": category_count,
-            "uncategorized_games": uncategorized,
-        }
+        """Returns game statistics for the status bar."""
+        return self.query_service.get_game_statistics()

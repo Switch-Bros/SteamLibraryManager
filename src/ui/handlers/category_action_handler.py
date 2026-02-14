@@ -83,7 +83,7 @@ class CategoryActionHandler:
         from src.ui.actions.game_actions import GameActions
 
         menu.addAction(t("ui.context_menu.open_store"), lambda: GameActions.open_in_store(game))
-        menu.addAction(t("ui.context_menu.check_store"), lambda: mw.check_store_availability(game))
+        menu.addAction(t("ui.context_menu.check_store"), lambda: mw.tools_actions.check_store_availability(game))
 
         menu.addSeparator()
 
