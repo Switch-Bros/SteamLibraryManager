@@ -589,6 +589,11 @@
       "changes_header": "Changes",
       "more_changes": "...and {count} more changes"
     },
+    "bootstrap": {
+      "loading_games": "Loading games...",
+      "restoring_session": "Restoring session...",
+      "initializing": "Initializing..."
+    },
     "errors": {
       "no_users_found": "No Steam users found.",
       "localconfig_load_error": "Error loading localconfig.vdf",

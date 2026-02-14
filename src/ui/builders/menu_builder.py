@@ -190,4 +190,6 @@ class MenuBuilder:
             menubar: The menu bar to attach the corner widget to.
         """
         self.user_label.setStyleSheet("padding: 5px 10px;")
+        self.user_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self.user_label.setMinimumWidth(250)
         menubar.setCornerWidget(self.user_label, Qt.Corner.TopRightCorner)

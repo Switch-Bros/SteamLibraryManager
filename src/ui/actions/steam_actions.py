@@ -77,7 +77,7 @@ class SteamActions:
                 - account_name: (optional)
         """
         from src.core.token_store import TokenStore
-        from src.ui.handlers.data_load_handler import DataLoadHandler
+        from src.ui.workers.session_restore_worker import SessionRestoreWorker
         from src.ui.widgets.ui_helper import UIHelper
         from src.config import config
 
@@ -85,16 +85,12 @@ class SteamActions:
 
         # Store session/token for API access
         if result["method"] == "qr":
-            # Avoid logging token material in plaintext
             logger.info(t("logs.auth.qr_login_success"))
             self.mw.access_token = result.get("access_token")
             self.mw.refresh_token = result.get("refresh_token")
             self.mw.session = None
-
-            # IMPORTANT: Store in config so GameManager can access it!
             config.STEAM_ACCESS_TOKEN = result.get("access_token")
         else:  # password login
-            # Log password login success
             logger.info(t("logs.auth.password_login_success"))
             self.mw.session = result.get("session")
             self.mw.access_token = result.get("access_token")
@@ -113,11 +109,11 @@ class SteamActions:
         UIHelper.show_success(self.mw, t("ui.login.status_success"), t("ui.login.title"))
 
         config.STEAM_USER_ID = steam_id_64
-        # Save immediately so login persists after restart
         config.save()
 
         # Fetch persona name
-        self.mw.steam_username = DataLoadHandler.fetch_steam_persona_name(steam_id_64)
+        persona = SessionRestoreWorker.fetch_steam_persona_name(steam_id_64)
+        self.mw.steam_username = persona or steam_id_64
 
         # Update user label
         display_text = self.mw.steam_username if self.mw.steam_username else steam_id_64
@@ -126,35 +122,32 @@ class SteamActions:
         # Rebuild toolbar to show name instead of login button
         self.mw.refresh_toolbar()
 
-        # Load games using new session/token method
-        if self.mw.data_load_handler:
+        # Reload games via BootstrapService (non-blocking)
+        if hasattr(self.mw, "bootstrap_service") and self.mw.bootstrap_service:
+            self.mw.bootstrap_service.start()
+        elif self.mw.data_load_handler:
             try:
                 self.mw.data_load_handler.load_games_with_steam_login(
                     steam_id_64, self.mw.session or self.mw.access_token
                 )
             except Exception as e:
-                # Log error (console only, not user-facing)
                 logger.error(t("logs.auth.load_games_error", error=str(e)))
-                # Show user-facing error with existing key
                 UIHelper.show_error(self.mw, t("logs.auth.error", error=str(e)))
-        else:
-            # Defensive fallback
-            logger.info(t("logs.auth.data_load_handler_missing"))
 
     def restore_session(self) -> bool:
         """Attempt to restore a previous session from securely stored tokens.
 
-        Called at application startup.  Loads stored tokens, refreshes the
-        access token (with retry), and validates the token before use.
-        If both refresh and validation fail, the user is warned.
+        NOTE: At startup, BootstrapService handles session restore in the
+        background via SessionRestoreWorker. This method is kept for manual
+        session restore actions (e.g. from a menu action).
 
         Returns:
             True if session was restored with a valid token.
         """
         import time as _time
 
-        from src.core.token_store import TokenStore
-        from src.ui.handlers.data_load_handler import DataLoadHandler
+        from src.core.token_store import TokenStore, _REFRESH_NOT_NEEDED
+        from src.ui.workers.session_restore_worker import SessionRestoreWorker
         from src.config import config
 
         token_store = TokenStore()
@@ -174,27 +167,20 @@ class SteamActions:
         )
 
         # Try to refresh the access token (with retry)
-        from src.core.token_store import _REFRESH_NOT_NEEDED
-
         refresh_result = token_store.refresh_access_token(stored.refresh_token, stored.steam_id)
 
         if refresh_result and refresh_result != _REFRESH_NOT_NEEDED:
-            # Got a fresh token from Steam
             active_token = refresh_result
             token_store.save_tokens(refresh_result, stored.refresh_token, stored.steam_id)
         elif refresh_result == _REFRESH_NOT_NEEDED:
-            # Steam returned 200 but no new token — stored token is still valid
             logger.info(t("logs.auth.token_validation_ok"))
             active_token = stored.access_token
         else:
-            # Refresh truly failed (network errors etc.) — validate stored token
             logger.warning(t("logs.auth.token_refresh_failed", error="using stored token"))
-
             if TokenStore.validate_access_token(stored.access_token, stored.steam_id):
                 logger.info(t("logs.auth.token_validation_ok"))
                 active_token = stored.access_token
             else:
-                # Both refresh and validation failed — token is expired
                 logger.error(t("logs.auth.token_validation_failed"))
                 self.mw.set_status(t("ui.login.token_expired"))
                 return False
@@ -207,7 +193,8 @@ class SteamActions:
         config.STEAM_USER_ID = stored.steam_id
 
         # Fetch persona name
-        self.mw.steam_username = DataLoadHandler.fetch_steam_persona_name(stored.steam_id)
+        persona = SessionRestoreWorker.fetch_steam_persona_name(stored.steam_id)
+        self.mw.steam_username = persona or stored.steam_id
 
         display_text = self.mw.steam_username or stored.steam_id
         self.mw.user_label.setText(t("ui.main_window.user_label", user_id=display_text))

@@ -48,15 +48,15 @@ class FileActions:
     def refresh_data(self) -> None:
         """Reloads all game data from scratch.
 
-        Triggers the full game loading pipeline via MainWindow._load_data().
+        Triggers the full non-blocking loading pipeline via BootstrapService.
         This includes:
-          - Steam API fetch
-          - Local file parsing (manifests, VDF, appinfo)
+          - Steam path validation and parser init
+          - Background session restore (token refresh)
+          - Background game loading (manifests, VDF, appinfo)
           - Service initialization
           - UI population (tree, details, stats)
         """
-        # noinspection PyProtectedMember
-        self.mw._load_data()  # This is the only place we call the protected method
+        self.mw.bootstrap_service.start()
 
     def force_save(self) -> None:
         """Forces an immediate save of all collections and metadata.
