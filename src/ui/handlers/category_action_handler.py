@@ -89,9 +89,9 @@ class CategoryActionHandler:
 
         # Auto-categorize: single game or current multi-selection
         if len(mw.selected_games) > 1:
-            menu.addAction(t("ui.menu.edit.auto_categorize"), mw.edit_actions.auto_categorize_selected)
+            menu.addAction(t("menu.edit.auto_categorize"), mw.edit_actions.auto_categorize_selected)
         else:
-            menu.addAction(t("ui.menu.edit.auto_categorize"), lambda: mw.edit_actions.auto_categorize_single(game))
+            menu.addAction(t("menu.edit.auto_categorize"), lambda: mw.edit_actions.auto_categorize_single(game))
 
         menu.addSeparator()
         menu.addAction(t("ui.context_menu.edit_metadata"), lambda: mw.edit_actions.edit_game_metadata(game))
@@ -137,9 +137,7 @@ class CategoryActionHandler:
 
         if category in steam_standard_collections:
             # ONLY allow Auto-Categorize, NOTHING else!
-            menu.addAction(
-                t("ui.menu.edit.auto_categorize"), lambda: mw.edit_actions.auto_categorize_category(category)
-            )
+            menu.addAction(t("menu.edit.auto_categorize"), lambda: mw.edit_actions.auto_categorize_category(category))
             menu.exec(pos)
             return
 
@@ -161,9 +159,7 @@ class CategoryActionHandler:
                     )
 
             menu.addSeparator()
-            menu.addAction(
-                t("ui.menu.edit.auto_categorize"), lambda: mw.edit_actions.auto_categorize_category(category)
-            )
+            menu.addAction(t("menu.edit.auto_categorize"), lambda: mw.edit_actions.auto_categorize_category(category))
 
         menu.exec(pos)
 

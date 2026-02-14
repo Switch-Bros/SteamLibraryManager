@@ -487,7 +487,7 @@ class MetadataRestoreDialog(QDialog):
         super().__init__(parent)
         self.modified_count = modified_count
         self.do_restore = False
-        self.setWindowTitle(t("ui.menu.edit.restore_metadata"))
+        self.setWindowTitle(t("menu.edit.reset_metadata"))
         self.setMinimumWidth(500)
         self.setModal(True)
         self._create_ui()
@@ -499,7 +499,7 @@ class MetadataRestoreDialog(QDialog):
         and action buttons.
         """
         layout = QVBoxLayout(self)
-        title = QLabel(t("ui.menu.edit.restore_metadata"))
+        title = QLabel(t("menu.edit.reset_metadata"))
         title.setFont(QFont("Arial", 16, QFont.Weight.Bold))
         layout.addWidget(title)
 

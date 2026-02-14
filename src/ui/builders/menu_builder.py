@@ -73,20 +73,20 @@ class MenuBuilder:
             menubar: The parent menu bar to add the menu to.
         """
         mw = self.main_window
-        file_menu = menubar.addMenu(t("ui.menu.file.root"))
+        file_menu = menubar.addMenu(t("menu.file.root"))
 
         # Refresh
-        refresh_action = QAction(t("ui.menu.file.refresh"), mw)
+        refresh_action = QAction(t("menu.file.refresh"), mw)
         refresh_action.triggered.connect(mw.file_actions.refresh_data)
         file_menu.addAction(refresh_action)
 
         # Save
-        save_action = QAction(t("ui.menu.file.save"), mw)
+        save_action = QAction(t("common.save"), mw)
         save_action.triggered.connect(mw.file_actions.force_save)
         file_menu.addAction(save_action)
 
         # Remove duplicate collections
-        remove_dupes_action = QAction(t("ui.menu.file.remove_duplicates"), mw)
+        remove_dupes_action = QAction(t("menu.edit.remove_duplicates"), mw)
         remove_dupes_action.triggered.connect(mw.file_actions.remove_duplicate_collections)
         file_menu.addAction(remove_dupes_action)
 
@@ -104,24 +104,23 @@ class MenuBuilder:
             menubar: The parent menu bar to add the menu to.
         """
         mw = self.main_window
-        edit_menu = menubar.addMenu(t("ui.menu.edit.root"))
+        edit_menu = menubar.addMenu(t("menu.edit.root"))
 
         # Bulk Edit
-        bulk_edit_action = QAction(t("ui.menu.edit.bulk_edit"), mw)
+        bulk_edit_action = QAction(t("menu.edit.metadata.bulk"), mw)
         bulk_edit_action.triggered.connect(mw.edit_actions.bulk_edit_metadata)
         edit_menu.addAction(bulk_edit_action)
 
         # Auto-Categorize
-        auto_cat_action = QAction(t("ui.menu.edit.auto_categorize"), mw)
+        auto_cat_action = QAction(t("menu.edit.auto_categorize"), mw)
         auto_cat_action.triggered.connect(mw.edit_actions.auto_categorize)
         edit_menu.addAction(auto_cat_action)
 
     def _build_settings_menu(self, menubar: QMenuBar) -> None:
         """Builds the Settings menu with settings dialog and metadata restore.
 
-        NOTE: The restore action intentionally uses the 'ui.menu.file.import_json'
-        key – this is an existing placeholder in the locale files that the other
-        AI kept.  A dedicated key should be added in a future i18n pass.
+        The restore action uses the 'menu.edit.reset_metadata' key from the
+        new menu.json locale file.
 
         Args:
             menubar: The parent menu bar to add the menu to.
@@ -136,8 +135,8 @@ class MenuBuilder:
 
         settings_menu.addSeparator()
 
-        # Restore Metadata – uses import_json key as placeholder (see note above)
-        restore_action = QAction(t("ui.menu.file.import_json"), mw)
+        # Restore Metadata
+        restore_action = QAction(t("menu.edit.reset_metadata"), mw)
         restore_action.triggered.connect(mw.edit_actions.restore_metadata_changes)
         settings_menu.addAction(restore_action)
 
@@ -148,10 +147,10 @@ class MenuBuilder:
             menubar: The parent menu bar to add the menu to.
         """
         mw = self.main_window
-        tools_menu = menubar.addMenu(t("ui.menu.tools.root"))
+        tools_menu = menubar.addMenu(t("menu.tools.root"))
 
         # Find missing metadata
-        find_missing_action = QAction(t("ui.menu.tools.missing_meta"), mw)
+        find_missing_action = QAction(t("menu.edit.find_missing_metadata"), mw)
         find_missing_action.triggered.connect(mw.find_missing_metadata)
         tools_menu.addAction(find_missing_action)
 
@@ -162,24 +161,24 @@ class MenuBuilder:
             menubar: The parent menu bar to add the menu to.
         """
         mw = self.main_window
-        help_menu = menubar.addMenu(t("ui.menu.help.root"))
+        help_menu = menubar.addMenu(t("menu.help.root"))
 
         # GitHub
-        github_action = QAction(t("ui.menu.help.github"), mw)
+        github_action = QAction(t("menu.help.online.github"), mw)
         github_action.triggered.connect(
             lambda: QDesktopServices.openUrl(QUrl("https://github.com/Switch-Bros/SteamLibraryManager"))
         )
         help_menu.addAction(github_action)
 
         # Donate
-        donate_action = QAction(t("ui.menu.help.donate"), mw)
+        donate_action = QAction(t("menu.help.support.root"), mw)
         donate_action.triggered.connect(lambda: QDesktopServices.openUrl(QUrl("https://paypal.me/")))
         help_menu.addAction(donate_action)
 
         help_menu.addSeparator()
 
         # About - Use SteamActions instead of MainWindow method
-        about_action = QAction(t("ui.menu.help.about"), mw)
+        about_action = QAction(t("menu.help.about"), mw)
         about_action.triggered.connect(mw.steam_actions.show_about)
         help_menu.addAction(about_action)
 

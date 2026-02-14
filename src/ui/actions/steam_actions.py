@@ -62,7 +62,7 @@ class SteamActions:
         Displays a modal dialog containing the application name and description
         using Qt's standard About box.
         """
-        QMessageBox.about(self.mw, t("ui.menu.help.about"), t("app.description"))
+        QMessageBox.about(self.mw, t("menu.help.about"), t("app.description"))
 
     def on_login_success(self, result: dict) -> None:
         """Handles successful Steam authentication.

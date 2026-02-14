@@ -91,7 +91,7 @@ class TestForceSave:
         file_actions.force_save()
 
         # Assert
-        mock_t.assert_called_with("ui.menu.file.save_success")
+        mock_t.assert_called_with("common.save_success")
         mock_helper.show_success.assert_called_once()
 
 

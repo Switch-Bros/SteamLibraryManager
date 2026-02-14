@@ -130,7 +130,7 @@ class I18n:
         """Retrieve a translated string by dot-notation key.
 
         Args:
-            key: Dot-separated key path (e.g. 'ui.menu.file.root').
+            key: Dot-separated key path (e.g. 'menu.file.root').
             **kwargs: Format arguments for string interpolation.
 
         Returns:

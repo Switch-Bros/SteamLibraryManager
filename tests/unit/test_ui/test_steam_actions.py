@@ -89,13 +89,13 @@ class TestShowAbout:
         steam_actions.show_about()
 
         # Assert - t() was called for title and description
-        mock_t.assert_any_call("ui.menu.help.about")
+        mock_t.assert_any_call("menu.help.about")
         mock_t.assert_any_call("app.description")
 
         # Verify QMessageBox.about was called with translated strings
         _mock_qmessagebox.about.assert_called_once()
         call_args = _mock_qmessagebox.about.call_args[0]
-        assert call_args[1] == "TRANSLATED_ui.menu.help.about"
+        assert call_args[1] == "TRANSLATED_menu.help.about"
         assert call_args[2] == "TRANSLATED_app.description"
 
 
