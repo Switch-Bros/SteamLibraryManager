@@ -14,7 +14,6 @@ from typing import TYPE_CHECKING
 from src.services.asset_service import AssetService
 
 if TYPE_CHECKING:
-    from src.services.bootstrap_service import BootstrapService
     from src.services.category_service import CategoryService
     from src.services.metadata_service import MetadataService
     from src.services.autocategorize_service import AutoCategorizeService
@@ -39,17 +38,30 @@ from src.utils.i18n import t
 
 # Builders
 from src.ui.builders import (
-    MenuBuilder, ToolbarBuilder, StatusbarBuilder, CentralWidgetBuilder
+    MenuBuilder,
+    ToolbarBuilder,
+    StatusbarBuilder,
+    CentralWidgetBuilder,
 )
 
 # Handlers
 from src.ui.handlers import (
-    CategoryActionHandler, DataLoadHandler, SelectionHandler, CategoryChangeHandler, CategoryPopulator
+    CategoryActionHandler,
+    DataLoadHandler,
+    SelectionHandler,
+    CategoryChangeHandler,
+    CategoryPopulator,
 )
 
 # Actions
 from src.ui.actions import (
-    FileActions, EditActions, ViewActions, ToolsActions, SteamActions, GameActions, SettingsActions,
+    FileActions,
+    EditActions,
+    ViewActions,
+    ToolsActions,
+    SteamActions,
+    GameActions,
+    SettingsActions,
 )
 
 
