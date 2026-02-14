@@ -1,23 +1,28 @@
 # src/ui/builders/menu_builder.py
 
-"""
-Builder for the main application menu bar.
+"""Builder for the main application menu bar.
 
-Extracts all QMenuBar construction logic from MainWindow._create_ui(),
-keeping the same menu structure, t() keys, and signal connections.
+Constructs a rich, Steam-inspired menu bar with submenus, filters,
+and stub entries for future features. Each top-level menu is built
+by a dedicated private method for maintainability.
 """
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import Qt, QUrl
-from PyQt6.QtGui import QAction, QDesktopServices
+from PyQt6.QtGui import QAction, QActionGroup, QDesktopServices
 from PyQt6.QtWidgets import QMenuBar, QLabel
 
 from src.utils.i18n import t
 
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
+
+__all__ = ["MenuBuilder"]
+
+_GITHUB_URL = "https://github.com/Switch-Bros/SteamLibraryManager"
 
 
 class MenuBuilder:
@@ -32,14 +37,13 @@ class MenuBuilder:
         user_label: The corner-widget label that displays the logged-in user.
     """
 
-    def __init__(self, main_window: "MainWindow") -> None:
+    def __init__(self, main_window: MainWindow) -> None:
         """Initializes the MenuBuilder.
 
         Args:
             main_window: The MainWindow instance that owns this menu bar.
         """
-        self.main_window: "MainWindow" = main_window
-        # Kept as attribute so MainWindow can update it after login
+        self.main_window: MainWindow = main_window
         self.user_label: QLabel = QLabel(t("common.unknown"))
 
     # ------------------------------------------------------------------
@@ -53,21 +57,82 @@ class MenuBuilder:
         that Qt's native menu integration is preserved.
 
         Args:
-            menubar: The QMenuBar instance to populate (typically self.menuBar()).
+            menubar: The QMenuBar instance to populate.
         """
         self._build_file_menu(menubar)
         self._build_edit_menu(menubar)
-        self._build_settings_menu(menubar)
+        self._build_view_menu(menubar)
         self._build_tools_menu(menubar)
         self._build_help_menu(menubar)
         self._attach_corner_widget(menubar)
+
+    # ------------------------------------------------------------------
+    # Private – Helper methods
+    # ------------------------------------------------------------------
+
+    def _not_implemented(self, feature_key: str) -> None:
+        """Shows a placeholder message in the status bar for unfinished features.
+
+        Args:
+            feature_key: The i18n key whose translated value is used as
+                the feature name in the placeholder message.
+        """
+        feature = t(feature_key)
+        msg = t("common.placeholder_message").format(feature=feature)
+        self.main_window.set_status(msg)
+
+    def _open_url(self, url: str) -> None:
+        """Opens a URL in the default system browser.
+
+        Args:
+            url: The URL to open.
+        """
+        QDesktopServices.openUrl(QUrl(url))
+
+    def _edit_single_game(self) -> None:
+        """Selection guard for single game metadata editing.
+
+        Checks whether a game is selected; if not, shows a status bar
+        message. Otherwise delegates to EditActions.
+        """
+        mw = self.main_window
+        if mw.selected_game is None:
+            mw.set_status(t("ui.errors.no_selection"))
+            return
+        mw.edit_actions.edit_game_metadata(mw.selected_game)
+
+    def _rename_selected_collection(self) -> None:
+        """Selection guard for collection renaming.
+
+        Checks whether a category is selected; if not, shows a status
+        bar message. Currently a stub after the guard passes.
+        """
+        mw = self.main_window
+        selected = mw.tree.get_selected_categories()
+        if not selected:
+            mw.set_status(t("ui.errors.no_selection"))
+            return
+        self._not_implemented("menu.edit.collections.rename")
+
+    def _merge_selected_collections(self) -> None:
+        """Selection guard for merging multiple collections.
+
+        Checks whether at least two categories are selected; if not,
+        shows a status bar message. Currently a stub after the guard passes.
+        """
+        mw = self.main_window
+        selected = mw.tree.get_selected_categories()
+        if len(selected) < 2:
+            mw.set_status(t("ui.errors.no_selection"))
+            return
+        self._not_implemented("menu.edit.collections.merge")
 
     # ------------------------------------------------------------------
     # Private – one method per top-level menu
     # ------------------------------------------------------------------
 
     def _build_file_menu(self, menubar: QMenuBar) -> None:
-        """Builds the File menu with refresh, save, VDF-merge, and exit actions.
+        """Builds the File menu: Refresh, Save, Export, Import, Exit.
 
         Args:
             menubar: The parent menu bar to add the menu to.
@@ -85,20 +150,38 @@ class MenuBuilder:
         save_action.triggered.connect(mw.file_actions.force_save)
         file_menu.addAction(save_action)
 
-        # Remove duplicate collections
-        remove_dupes_action = QAction(t("menu.edit.remove_duplicates"), mw)
-        remove_dupes_action.triggered.connect(mw.file_actions.remove_duplicate_collections)
-        file_menu.addAction(remove_dupes_action)
+        file_menu.addSeparator()
+
+        # Export submenu
+        export_menu = file_menu.addMenu(t("menu.file.export.root"))
+        for key in (
+            "collections_vdf",
+            "games_csv_simple",
+            "games_csv_full",
+            "games_json",
+            "artwork_package",
+            "db_backup",
+        ):
+            action = QAction(t(f"menu.file.export.{key}"), mw)
+            action.triggered.connect(lambda checked, k=f"menu.file.export.{key}": self._not_implemented(k))
+            export_menu.addAction(action)
+
+        # Import submenu
+        import_menu = file_menu.addMenu(t("menu.file.import.root"))
+        for key in ("collections", "db_backup", "artwork_package"):
+            action = QAction(t(f"menu.file.import.{key}"), mw)
+            action.triggered.connect(lambda checked, k=f"menu.file.import.{key}": self._not_implemented(k))
+            import_menu.addAction(action)
 
         file_menu.addSeparator()
 
         # Exit
-        exit_action = QAction(t("common.exit"), mw)
+        exit_action = QAction(t("menu.file.exit"), mw)
         exit_action.triggered.connect(mw.file_actions.exit_application)
         file_menu.addAction(exit_action)
 
     def _build_edit_menu(self, menubar: QMenuBar) -> None:
-        """Builds the Edit menu with bulk-edit and auto-categorize actions.
+        """Builds the Edit menu: Metadata, Auto-Cat, Collections, etc.
 
         Args:
             menubar: The parent menu bar to add the menu to.
@@ -106,42 +189,141 @@ class MenuBuilder:
         mw = self.main_window
         edit_menu = menubar.addMenu(t("menu.edit.root"))
 
-        # Bulk Edit
-        bulk_edit_action = QAction(t("menu.edit.metadata.bulk"), mw)
-        bulk_edit_action.triggered.connect(mw.edit_actions.bulk_edit_metadata)
-        edit_menu.addAction(bulk_edit_action)
+        # --- Metadata submenu ---
+        metadata_menu = edit_menu.addMenu(t("menu.edit.metadata.root"))
+
+        single_action = QAction(t("menu.edit.metadata.single"), mw)
+        single_action.triggered.connect(self._edit_single_game)
+        metadata_menu.addAction(single_action)
+
+        bulk_action = QAction(t("menu.edit.metadata.bulk"), mw)
+        bulk_action.triggered.connect(mw.edit_actions.bulk_edit_metadata)
+        metadata_menu.addAction(bulk_action)
 
         # Auto-Categorize
         auto_cat_action = QAction(t("menu.edit.auto_categorize"), mw)
         auto_cat_action.triggered.connect(mw.edit_actions.auto_categorize)
         edit_menu.addAction(auto_cat_action)
 
-    def _build_settings_menu(self, menubar: QMenuBar) -> None:
-        """Builds the Settings menu with settings dialog and metadata restore.
+        edit_menu.addSeparator()
 
-        The restore action uses the 'menu.edit.reset_metadata' key from the
-        new menu.json locale file.
+        # --- Collections submenu ---
+        collections_menu = edit_menu.addMenu(t("menu.edit.collections.root"))
+
+        rename_action = QAction(t("menu.edit.collections.rename"), mw)
+        rename_action.triggered.connect(self._rename_selected_collection)
+        collections_menu.addAction(rename_action)
+
+        merge_action = QAction(t("menu.edit.collections.merge"), mw)
+        merge_action.triggered.connect(self._merge_selected_collections)
+        collections_menu.addAction(merge_action)
+
+        delete_empty_action = QAction(t("menu.edit.collections.delete_empty"), mw)
+        delete_empty_action.triggered.connect(lambda: self._not_implemented("menu.edit.collections.delete_empty"))
+        collections_menu.addAction(delete_empty_action)
+
+        collections_menu.addSeparator()
+
+        expand_action = QAction(t("menu.edit.collections.expand_all"), mw)
+        expand_action.triggered.connect(mw.view_actions.expand_all)
+        collections_menu.addAction(expand_action)
+
+        collapse_action = QAction(t("menu.edit.collections.collapse_all"), mw)
+        collapse_action.triggered.connect(mw.view_actions.collapse_all)
+        collections_menu.addAction(collapse_action)
+
+        edit_menu.addSeparator()
+
+        # Find Missing Metadata
+        find_missing_action = QAction(t("menu.edit.find_missing_metadata"), mw)
+        find_missing_action.triggered.connect(mw.tools_actions.find_missing_metadata)
+        edit_menu.addAction(find_missing_action)
+
+        # Reset Metadata
+        reset_action = QAction(t("menu.edit.reset_metadata"), mw)
+        reset_action.triggered.connect(mw.edit_actions.restore_metadata_changes)
+        edit_menu.addAction(reset_action)
+
+        # Remove Duplicates
+        remove_dupes_action = QAction(t("menu.edit.remove_duplicates"), mw)
+        remove_dupes_action.triggered.connect(mw.file_actions.remove_duplicate_collections)
+        edit_menu.addAction(remove_dupes_action)
+
+    def _build_view_menu(self, menubar: QMenuBar) -> None:
+        """Builds the View menu: View Mode, Type/Platform/Status filters, Statistics.
+
+        View Mode uses an exclusive QActionGroup (radio-button style).
+        Type and Platform filters default to all checked.
+        Status filters default to all unchecked.
+        All filter actions are currently UI-only stubs.
 
         Args:
             menubar: The parent menu bar to add the menu to.
         """
         mw = self.main_window
-        settings_menu = menubar.addMenu(t("ui.settings.title"))
+        view_menu = menubar.addMenu(t("menu.view.root"))
 
-        # Settings dialog
-        settings_action = QAction(t("ui.settings.title"), mw)
-        settings_action.triggered.connect(mw.settings_actions.show_settings)
-        settings_menu.addAction(settings_action)
+        # --- View Mode submenu (exclusive radio-button group) ---
+        mode_menu = view_menu.addMenu(t("menu.view.mode.root"))
+        mode_group = QActionGroup(mw)
+        mode_group.setExclusive(True)
 
-        settings_menu.addSeparator()
+        for key in ("list", "details", "grid"):
+            action = QAction(t(f"menu.view.mode.{key}"), mw)
+            action.setCheckable(True)
+            if key == "details":
+                action.setChecked(True)
+            action.triggered.connect(lambda checked, k=f"menu.view.mode.{key}": self._not_implemented(k))
+            mode_group.addAction(action)
+            mode_menu.addAction(action)
 
-        # Restore Metadata
-        restore_action = QAction(t("menu.edit.reset_metadata"), mw)
-        restore_action.triggered.connect(mw.edit_actions.restore_metadata_changes)
-        settings_menu.addAction(restore_action)
+        view_menu.addSeparator()
+
+        # --- Type filter submenu (all checked by default) ---
+        type_menu = view_menu.addMenu(t("menu.view.type.root"))
+        for key in ("games", "soundtracks", "software", "videos", "dlcs", "tools"):
+            action = QAction(t(f"menu.view.type.{key}"), mw)
+            action.setCheckable(True)
+            action.setChecked(True)
+            action.triggered.connect(lambda checked, k=f"menu.view.type.{key}": self._not_implemented(k))
+            type_menu.addAction(action)
+
+        # --- Platform filter submenu (all checked by default) ---
+        platform_menu = view_menu.addMenu(t("menu.view.platform.root"))
+        for key in ("linux", "windows", "steamos"):
+            action = QAction(t(f"menu.view.platform.{key}"), mw)
+            action.setCheckable(True)
+            action.setChecked(True)
+            action.triggered.connect(lambda checked, k=f"menu.view.platform.{key}": self._not_implemented(k))
+            platform_menu.addAction(action)
+
+        # --- Status filter submenu (all unchecked by default) ---
+        status_menu = view_menu.addMenu(t("menu.view.status.root"))
+        for key in (
+            "installed",
+            "not_installed",
+            "hidden",
+            "with_playtime",
+            "favorites",
+        ):
+            action = QAction(t(f"menu.view.status.{key}"), mw)
+            action.setCheckable(True)
+            action.triggered.connect(lambda checked, k=f"menu.view.status.{key}": self._not_implemented(k))
+            status_menu.addAction(action)
+
+        view_menu.addSeparator()
+
+        # --- Statistics submenu ---
+        stats_menu = view_menu.addMenu(t("menu.view.statistics.root"))
+        for key in ("overview", "by_genre", "by_platform", "top10"):
+            action = QAction(t(f"menu.view.statistics.{key}"), mw)
+            action.triggered.connect(lambda checked, k=f"menu.view.statistics.{key}": self._not_implemented(k))
+            stats_menu.addAction(action)
 
     def _build_tools_menu(self, menubar: QMenuBar) -> None:
-        """Builds the Tools menu with missing-metadata finder.
+        """Builds the Tools menu: Artwork, Search, Batch, Database, Settings.
+
+        Settings is the only wired action; all others are stubs.
 
         Args:
             menubar: The parent menu bar to add the menu to.
@@ -149,13 +331,52 @@ class MenuBuilder:
         mw = self.main_window
         tools_menu = menubar.addMenu(t("menu.tools.root"))
 
-        # Find missing metadata
-        find_missing_action = QAction(t("menu.edit.find_missing_metadata"), mw)
-        find_missing_action.triggered.connect(mw.find_missing_metadata)
-        tools_menu.addAction(find_missing_action)
+        # --- Artwork submenu ---
+        artwork_menu = tools_menu.addMenu(t("menu.tools.artwork.root"))
+        for key in ("download_missing", "edit"):
+            action = QAction(t(f"menu.tools.artwork.{key}"), mw)
+            action.triggered.connect(lambda checked, k=f"menu.tools.artwork.{key}": self._not_implemented(k))
+            artwork_menu.addAction(action)
+
+        # --- Advanced Search submenu ---
+        search_menu = tools_menu.addMenu(t("menu.tools.search.root"))
+        for key in ("by_publisher", "by_developer", "by_genre", "by_tags", "by_year"):
+            action = QAction(t(f"menu.tools.search.{key}"), mw)
+            action.triggered.connect(lambda checked, k=f"menu.tools.search.{key}": self._not_implemented(k))
+            search_menu.addAction(action)
+
+        # --- Batch Operations submenu ---
+        batch_menu = tools_menu.addMenu(t("menu.tools.batch.root"))
+        for key in (
+            "update_metadata",
+            "update_hltb",
+            "update_protondb",
+            "check_store",
+            "update_achievements",
+        ):
+            action = QAction(t(f"menu.tools.batch.{key}"), mw)
+            action.triggered.connect(lambda checked, k=f"menu.tools.batch.{key}": self._not_implemented(k))
+            batch_menu.addAction(action)
+
+        # --- Database submenu ---
+        db_menu = tools_menu.addMenu(t("menu.tools.database.root"))
+        for key in ("optimize", "recreate", "import_appinfo", "backup"):
+            action = QAction(t(f"menu.tools.database.{key}"), mw)
+            action.triggered.connect(lambda checked, k=f"menu.tools.database.{key}": self._not_implemented(k))
+            db_menu.addAction(action)
+
+        tools_menu.addSeparator()
+
+        # Settings (wired action)
+        settings_action = QAction(t("menu.tools.settings"), mw)
+        settings_action.triggered.connect(mw.settings_actions.show_settings)
+        tools_menu.addAction(settings_action)
 
     def _build_help_menu(self, menubar: QMenuBar) -> None:
-        """Builds the Help menu with GitHub, donate, and about actions.
+        """Builds the Help menu: Docs, Online, Updates, Support, About.
+
+        Online and Support items open URLs in the browser.
+        About is wired to SteamActions. Everything else is a stub.
 
         Args:
             menubar: The parent menu bar to add the menu to.
@@ -163,21 +384,48 @@ class MenuBuilder:
         mw = self.main_window
         help_menu = menubar.addMenu(t("menu.help.root"))
 
-        # GitHub
-        github_action = QAction(t("menu.help.online.github"), mw)
-        github_action.triggered.connect(
-            lambda: QDesktopServices.openUrl(QUrl("https://github.com/Switch-Bros/SteamLibraryManager"))
-        )
-        help_menu.addAction(github_action)
+        # --- Documentation submenu ---
+        docs_menu = help_menu.addMenu(t("menu.help.docs.root"))
+        for key in ("manual", "tips", "shortcuts"):
+            action = QAction(t(f"menu.help.docs.{key}"), mw)
+            action.triggered.connect(lambda checked, k=f"menu.help.docs.{key}": self._not_implemented(k))
+            docs_menu.addAction(action)
 
-        # Donate
-        donate_action = QAction(t("menu.help.support.root"), mw)
-        donate_action.triggered.connect(lambda: QDesktopServices.openUrl(QUrl("https://paypal.me/")))
-        help_menu.addAction(donate_action)
+        # --- Online submenu ---
+        online_menu = help_menu.addMenu(t("menu.help.online.root"))
+        online_urls = {
+            "github": _GITHUB_URL,
+            "issues": f"{_GITHUB_URL}/issues",
+            "discussions": f"{_GITHUB_URL}/discussions",
+            "wiki": f"{_GITHUB_URL}/wiki",
+        }
+        for key, url in online_urls.items():
+            action = QAction(t(f"menu.help.online.{key}"), mw)
+            action.triggered.connect(lambda checked, u=url: self._open_url(u))
+            online_menu.addAction(action)
+
+        # --- Updates submenu ---
+        updates_menu = help_menu.addMenu(t("menu.help.updates.root"))
+        for key in ("check", "changelog"):
+            action = QAction(t(f"menu.help.updates.{key}"), mw)
+            action.triggered.connect(lambda checked, k=f"menu.help.updates.{key}": self._not_implemented(k))
+            updates_menu.addAction(action)
+
+        # --- Support submenu ---
+        support_menu = help_menu.addMenu(t("menu.help.support.root"))
+        support_urls = {
+            "paypal": "https://paypal.me/",
+            "github": "https://github.com/sponsors/Switch-Bros",
+            "kofi": "https://ko-fi.com/",
+        }
+        for key, url in support_urls.items():
+            action = QAction(t(f"menu.help.support.{key}"), mw)
+            action.triggered.connect(lambda checked, u=url: self._open_url(u))
+            support_menu.addAction(action)
 
         help_menu.addSeparator()
 
-        # About - Use SteamActions instead of MainWindow method
+        # About (wired action)
         about_action = QAction(t("menu.help.about"), mw)
         about_action.triggered.connect(mw.steam_actions.show_about)
         help_menu.addAction(about_action)
