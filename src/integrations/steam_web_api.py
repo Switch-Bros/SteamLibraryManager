@@ -1,6 +1,6 @@
 """Steam Web API client for batched metadata retrieval.
 
-Uses the IStoreService/GetItems/v1 endpoint to fetch game metadata
+Uses the IStoreBrowseService/GetItems/v1 endpoint to fetch game metadata
 in chunks of 50, with rate limiting and exponential backoff on 429s.
 """
 
@@ -21,7 +21,7 @@ __all__ = ["SteamAppDetails", "SteamWebAPI"]
 _BATCH_SIZE = 50
 _BASE_DELAY = 1.0
 _MAX_RETRIES = 3
-_API_URL = "https://api.steampowered.com/IStoreService/GetItems/v1"
+_API_URL = "https://api.steampowered.com/IStoreBrowseService/GetItems/v1"
 
 
 @dataclass(frozen=True)
@@ -33,7 +33,8 @@ class SteamAppDetails:
         name: Display name of the application.
         developers: Tuple of developer names.
         publishers: Tuple of publisher names.
-        release_date: Human-readable release date string.
+        steam_release_date: Steam release date as Unix timestamp.
+        original_release_date: Original release date as Unix timestamp.
         genres: Tuple of genre names.
         tags: Tuple of user-defined tag names.
         platforms: Tuple of supported platform names.
@@ -47,7 +48,8 @@ class SteamAppDetails:
     name: str
     developers: tuple[str, ...] = ()
     publishers: tuple[str, ...] = ()
-    release_date: str = ""
+    steam_release_date: int = 0
+    original_release_date: int = 0
     genres: tuple[str, ...] = ()
     tags: tuple[str, ...] = ()
     platforms: tuple[str, ...] = ()
@@ -60,7 +62,7 @@ class SteamAppDetails:
 class SteamWebAPI:
     """Batched Steam Web API client for metadata retrieval.
 
-    Fetches game metadata via IStoreService/GetItems/v1 in configurable
+    Fetches game metadata via IStoreBrowseService/GetItems/v1 in configurable
     batch sizes with rate limiting and retry logic.
 
     Attributes:
@@ -134,19 +136,20 @@ class SteamWebAPI:
         input_json = json.dumps(
             {
                 "ids": [{"appid": aid} for aid in app_ids],
+                "context": {"language": "english", "country_code": "US"},
                 "data_request": {
                     "include_basic_info": True,
                     "include_tag_count": 20,
                     "include_reviews": True,
                     "include_platforms": True,
+                    "include_assets": True,
                 },
             }
         )
 
-        params = {
-            "key": self.api_key,
-            "input_json": input_json,
-        }
+        params: dict[str, str] = {"input_json": input_json}
+        if self.api_key:
+            params["key"] = self.api_key
 
         for attempt in range(_MAX_RETRIES):
             response = requests.get(_API_URL, params=params, timeout=30)
@@ -184,9 +187,14 @@ class SteamWebAPI:
         publishers_list = [p.get("name", "") for p in basic.get("publishers", []) if p.get("name")]
         is_free = basic.get("is_free", False)
 
-        # Release date
+        # Release dates (Unix timestamps from IStoreBrowseService)
         release_info = basic.get("release_date", {})
-        release_date = release_info.get("date", "") if isinstance(release_info, dict) else ""
+        if isinstance(release_info, dict):
+            steam_release_date = release_info.get("steam_release_date", 0) or 0
+            original_release_date = release_info.get("original_release_date", 0) or 0
+        else:
+            steam_release_date = 0
+            original_release_date = 0
 
         # Genres
         genres_list = [g.get("description", "") for g in basic.get("genres", []) if g.get("description")]
@@ -224,7 +232,8 @@ class SteamWebAPI:
             name=name,
             developers=tuple(developers_list),
             publishers=tuple(publishers_list),
-            release_date=release_date,
+            steam_release_date=steam_release_date,
+            original_release_date=original_release_date,
             genres=tuple(genres_list),
             tags=tuple(tags_list),
             platforms=tuple(platforms_list),

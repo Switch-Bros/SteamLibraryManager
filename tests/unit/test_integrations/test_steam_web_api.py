@@ -24,7 +24,8 @@ class TestSteamAppDetails:
         details = SteamAppDetails(app_id=1, name="Test")
         assert details.developers == ()
         assert details.publishers == ()
-        assert details.release_date == ""
+        assert details.steam_release_date == 0
+        assert details.original_release_date == 0
         assert details.genres == ()
         assert details.tags == ()
         assert details.platforms == ()
@@ -105,7 +106,7 @@ class TestParseItem:
                 "developers": [{"name": "Valve"}],
                 "publishers": [{"name": "Valve"}],
                 "is_free": True,
-                "release_date": {"date": "Oct 10, 2007"},
+                "release_date": {"steam_release_date": 1191970800, "original_release_date": 1191884400},
                 "genres": [{"description": "Action"}, {"description": "Free to Play"}],
                 "supported_languages": "English, German, French",
             },
@@ -126,7 +127,8 @@ class TestParseItem:
         assert result.developers == ("Valve",)
         assert result.publishers == ("Valve",)
         assert result.is_free is True
-        assert result.release_date == "Oct 10, 2007"
+        assert result.steam_release_date == 1191970800
+        assert result.original_release_date == 1191884400
         assert result.genres == ("Action", "Free to Play")
         assert result.tags == ("FPS", "Multiplayer")
         assert "linux" in result.platforms
