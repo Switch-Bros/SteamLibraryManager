@@ -132,6 +132,20 @@ class AutoCategorizeDialog(QDialog):
         self.cb_vr = QCheckBox(t("ui.auto_categorize.by_vr"))
         methods_layout.addWidget(self.cb_vr)
 
+        self.cb_year = QCheckBox(t("ui.auto_categorize.by_year"))
+        methods_layout.addWidget(self.cb_year)
+
+        self.cb_hltb = QCheckBox(t("ui.auto_categorize.by_hltb"))
+        methods_layout.addWidget(self.cb_hltb)
+
+        self.cb_language = QCheckBox(t("ui.auto_categorize.by_language"))
+        methods_layout.addWidget(self.cb_language)
+
+        self.cb_curator = QCheckBox(t("ui.auto_categorize.by_curator"))
+        self.cb_curator.setEnabled(False)
+        self.cb_curator.setToolTip(t("ui.auto_categorize.curator_coming_soon"))
+        methods_layout.addWidget(self.cb_curator)
+
         methods_group.setLayout(methods_layout)
         layout.addWidget(methods_group)
 
@@ -231,6 +245,9 @@ class AutoCategorizeDialog(QDialog):
         self.cb_hours_played.toggled.connect(self._update_estimate)
         self.cb_flags.toggled.connect(self._update_estimate)
         self.cb_vr.toggled.connect(self._update_estimate)
+        self.cb_year.toggled.connect(self._update_estimate)
+        self.cb_hltb.toggled.connect(self._update_estimate)
+        self.cb_language.toggled.connect(self._update_estimate)
         self.tags_count_spin.valueChanged.connect(self._update_estimate)
         self.rb_selected.toggled.connect(self._update_estimate)
         self.rb_all.toggled.connect(self._update_estimate)
@@ -263,6 +280,12 @@ class AutoCategorizeDialog(QDialog):
             methods.append("flags")
         if self.cb_vr.isChecked():
             methods.append("vr")
+        if self.cb_year.isChecked():
+            methods.append("year")
+        if self.cb_hltb.isChecked():
+            methods.append("hltb")
+        if self.cb_language.isChecked():
+            methods.append("language")
         return methods
 
     def _update_estimate(self):

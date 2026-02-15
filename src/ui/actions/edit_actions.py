@@ -211,6 +211,9 @@ class EditActions:
             "hours_played": self.mw.autocategorize_service.categorize_by_hours_played,
             "flags": self.mw.autocategorize_service.categorize_by_flags,
             "vr": self.mw.autocategorize_service.categorize_by_vr,
+            "year": self.mw.autocategorize_service.categorize_by_year,
+            "hltb": self.mw.autocategorize_service.categorize_by_hltb,
+            "language": self.mw.autocategorize_service.categorize_by_language,
         }
 
         for method in methods:

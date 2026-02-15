@@ -512,6 +512,146 @@ class AutoCategorizeService:
 
         return categories_added
 
+    # === YEAR CATEGORIZATION ===
+
+    def categorize_by_year(self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None) -> int:
+        """
+        Categorize games by release year.
+
+        Creates categories in format "Year: <year>" for each game with a release_year.
+        Games without a release_year are skipped.
+
+        Args:
+            games: List of games to categorize.
+            progress_callback: Optional callback(current_index, game_name).
+
+        Returns:
+            Number of categories added.
+        """
+        categories_added = 0
+
+        for i, game in enumerate(games):
+            if progress_callback:
+                progress_callback(i, game.name)
+
+            if not game.release_year:
+                continue
+
+            category = t("ui.auto_categorize.cat_year", year=game.release_year)
+
+            try:
+                self.category_service.add_app_to_category(game.app_id, category)
+                if category not in game.categories:
+                    game.categories.append(category)
+                categories_added += 1
+            except (ValueError, RuntimeError):
+                pass
+
+        return categories_added
+
+    # === HLTB CATEGORIZATION ===
+
+    _HLTB_RANGES: list[tuple[float, float, str]] = [
+        (0.1, 5, "ui.auto_categorize.hltb_under_5"),
+        (5, 15, "ui.auto_categorize.hltb_5_15"),
+        (15, 30, "ui.auto_categorize.hltb_15_30"),
+        (30, 50, "ui.auto_categorize.hltb_30_50"),
+        (50, 999999, "ui.auto_categorize.hltb_50_plus"),
+    ]
+
+    def categorize_by_hltb(self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None) -> int:
+        """
+        Categorize games by HowLongToBeat main story duration.
+
+        Buckets hltb_main_story hours into ranges like "Under 5h", "5-15h", etc.
+        Games without HLTB data (hltb_main_story <= 0) are skipped.
+
+        Args:
+            games: List of games to categorize.
+            progress_callback: Optional callback(current_index, game_name).
+
+        Returns:
+            Number of categories added.
+        """
+        categories_added = 0
+
+        for i, game in enumerate(games):
+            if progress_callback:
+                progress_callback(i, game.name)
+
+            hours = getattr(game, "hltb_main_story", 0.0)
+            if not hours or hours <= 0:
+                continue
+
+            range_label = self._get_hltb_label(hours)
+            category = t("ui.auto_categorize.cat_hltb", range=range_label)
+
+            try:
+                self.category_service.add_app_to_category(game.app_id, category)
+                if category not in game.categories:
+                    game.categories.append(category)
+                categories_added += 1
+            except (ValueError, RuntimeError):
+                pass
+
+        return categories_added
+
+    def _get_hltb_label(self, hours: float) -> str:
+        """
+        Map HLTB hours to a range label.
+
+        Args:
+            hours: Main story duration in hours.
+
+        Returns:
+            Translated HLTB range label.
+        """
+        for low, high, key in self._HLTB_RANGES:
+            if low <= hours < high:
+                return t(key)
+        return t("ui.auto_categorize.hltb_50_plus")
+
+    # === LANGUAGE CATEGORIZATION ===
+
+    def categorize_by_language(
+        self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
+    ) -> int:
+        """
+        Categorize games by supported interface languages.
+
+        Creates categories in format "Language: <name>" for each interface language.
+        Games without language data are skipped.
+
+        Args:
+            games: List of games to categorize.
+            progress_callback: Optional callback(current_index, game_name).
+
+        Returns:
+            Number of categories added.
+        """
+        categories_added = 0
+
+        for i, game in enumerate(games):
+            if progress_callback:
+                progress_callback(i, game.name)
+
+            languages: list[str] = getattr(game, "languages", None) or []
+            if not languages:
+                continue
+
+            for language in languages:
+                category = t("ui.auto_categorize.cat_language", name=language)
+
+                try:
+                    self.category_service.add_app_to_category(game.app_id, category)
+                    if category not in game.categories:
+                        game.categories.append(category)
+                    categories_added += 1
+                except (ValueError, RuntimeError):
+                    pass
+
+        return categories_added
+
     # === CACHE COVERAGE ===
 
     def get_cache_coverage(self, games: list[Game]) -> dict[str, Any]:

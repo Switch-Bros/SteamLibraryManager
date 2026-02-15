@@ -130,6 +130,9 @@ def database_entry_to_game(entry: DatabaseEntry) -> Game:
     if release_ts and isinstance(release_ts, int) and release_ts > 0:
         release_year = str(datetime.fromtimestamp(release_ts, tz=timezone.utc).year)
 
+    # Extract interface languages from language support data
+    interface_languages = [lang for lang, support in entry.languages.items() if support.get("interface", False)]
+
     return Game(
         app_id=str(entry.app_id),
         name=entry.name,
@@ -140,6 +143,8 @@ def database_entry_to_game(entry: DatabaseEntry) -> Game:
         release_year=release_year,
         genres=list(entry.genres),
         tags=list(entry.tags),
+        platforms=list(entry.platforms),
+        languages=interface_languages,
         review_score=str(entry.review_score) if entry.review_score is not None else "",
         review_count=entry.review_count or 0,
         last_updated=str(entry.last_updated) if entry.last_updated else "",
@@ -668,6 +673,25 @@ class Database:
         for row in cursor.fetchall():
             result.setdefault(row[0], {})[row[1]] = row[2]
         return result
+
+    def _batch_get_hltb(self, app_ids: list[int]) -> dict[int, float]:
+        """Batch load HLTB main_story hours for multiple app_ids.
+
+        Args:
+            app_ids: List of app IDs.
+
+        Returns:
+            Dict mapping app_id to main_story hours.
+        """
+        if not app_ids:
+            return {}
+
+        placeholders = ",".join("?" * len(app_ids))
+        cursor = self.conn.execute(
+            f"SELECT app_id, main_story FROM hltb_data WHERE app_id IN ({placeholders}) AND main_story IS NOT NULL",
+            app_ids,
+        )
+        return {row[0]: float(row[1]) for row in cursor.fetchall()}
 
     # Single-game helpers (used by get_game)
     def _get_genres(self, app_id: int) -> list[str]:
