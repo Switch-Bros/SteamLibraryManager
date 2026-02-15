@@ -74,6 +74,12 @@ class Game:
     # App type (game, music, tool, application, video, dlc, demo, config)
     app_type: str = ""
 
+    # Platform support (e.g. ["windows", "linux", "mac"])
+    platforms: list[str] = None
+
+    # True when loaded from a local Steam manifest (installed on disk)
+    installed: bool = False
+
     # Age Ratings
     pegi_rating: str = ""
     esrb_rating: str = ""
@@ -90,6 +96,8 @@ class Game:
             self.genres = []
         if self.tags is None:
             self.tags = []
+        if self.platforms is None:
+            self.platforms = []
 
         if not self.sort_name:
             self.sort_name = self.name

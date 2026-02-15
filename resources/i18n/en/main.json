@@ -58,7 +58,8 @@
       "create_collection_title": "Create New Collection",
       "create_collection_prompt": "Enter the name of the new collection:",
       "collection_exists": "A collection with the name '{name}' already exists!",
-      "collection_created": "Collection '{name}' was created!"
+      "collection_created": "Collection '{name}' was created!",
+      "filter_active": "Filters active: {count} of {total} games"
     },
     "settings": {
       "title": "Settings",

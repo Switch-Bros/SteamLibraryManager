@@ -285,7 +285,7 @@ class MenuBuilder:
             action = QAction(t(f"menu.view.type.{key}"), mw)
             action.setCheckable(True)
             action.setChecked(True)
-            action.triggered.connect(lambda checked, k=f"menu.view.type.{key}": self._not_implemented(k))
+            action.triggered.connect(lambda checked, k=key: mw.view_actions.on_filter_toggled("type", k, checked))
             type_menu.addAction(action)
 
         # --- Platform filter submenu (all checked by default) ---
@@ -294,7 +294,7 @@ class MenuBuilder:
             action = QAction(t(f"menu.view.platform.{key}"), mw)
             action.setCheckable(True)
             action.setChecked(True)
-            action.triggered.connect(lambda checked, k=f"menu.view.platform.{key}": self._not_implemented(k))
+            action.triggered.connect(lambda checked, k=key: mw.view_actions.on_filter_toggled("platform", k, checked))
             platform_menu.addAction(action)
 
         # --- Status filter submenu (all unchecked by default) ---
@@ -308,7 +308,7 @@ class MenuBuilder:
         ):
             action = QAction(t(f"menu.view.status.{key}"), mw)
             action.setCheckable(True)
-            action.triggered.connect(lambda checked, k=f"menu.view.status.{key}": self._not_implemented(k))
+            action.triggered.connect(lambda checked, k=key: mw.view_actions.on_filter_toggled("status", k, checked))
             status_menu.addAction(action)
 
         view_menu.addSeparator()

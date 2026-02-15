@@ -58,7 +58,8 @@
       "create_collection_title": "Neue Kollektion erstellen",
       "create_collection_prompt": "Geben Sie den Namen der neuen Kollektion ein:",
       "collection_exists": "Eine Kollektion mit dem Namen '{name}' existiert bereits!",
-      "collection_created": "Kollektion '{name}' wurde erstellt!"
+      "collection_created": "Kollektion '{name}' wurde erstellt!",
+      "filter_active": "Filter aktiv: {count} von {total} Spielen"
     },
     "settings": {
       "title": "Einstellungen",
