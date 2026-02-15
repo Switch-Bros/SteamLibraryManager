@@ -52,6 +52,29 @@
     "bug": "🐛",
     "note": "📝",
     "lock": "🔐",
-    "rocket": "🚀"
+    "rocket": "🚀",
+    "hidden": "🙈",
+    "clock": "⏱️",
+    "vr": "🥽",
+    "linux": "🐧",
+    "calendar": "📅",
+    "merge": "🔀",
+    "trophy": "🏆",
+    "dice": "🎲",
+    "hourglass": "⏳",
+    "filter": "🧹"
+  },
+  "settings": {
+    "languages": {
+      "de": "🇩🇪 Deutsch",
+      "en": "🇬🇧 English",
+      "es": "🇪🇸 Español",
+      "pt": "🇵🇹 Português",
+      "fr": "🇫🇷 Français",
+      "it": "🇮🇹 Italiano",
+      "zh": "🇨🇳 中文",
+      "ja": "🇯🇵 日本語",
+      "ko": "🇰🇷 한국어"
+    }
   }
 }

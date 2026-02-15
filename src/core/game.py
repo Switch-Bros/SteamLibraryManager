@@ -176,8 +176,9 @@ NON_GAME_NAME_PATTERNS: tuple[str, ...] = (
 
 NON_GAME_APP_TYPES: frozenset[str] = frozenset({"music", "tool", "application", "video", "dlc", "demo", "config"})
 
-# Ghost entries from appinfo.vdf that have no real name — just "App 12345"
-_GHOST_NAME_RE: re.Pattern[str] = re.compile(r"^App \d+$")
+# Ghost entries from appinfo.vdf or cloud storage that have no real name
+# Catches: "App 12345", "Unknown App 12345", "Unbekannte App 12345", etc.
+_GHOST_NAME_RE: re.Pattern[str] = re.compile(r"^(?:App|Unknown App|Unbekannte App) \d+$")
 
 
 def is_real_game(game: Game) -> bool:

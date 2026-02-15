@@ -32,17 +32,6 @@
       "tag_language": "Tag Sprache",
       "restart_required": "Änderung wird sofort wirksam. Ein Neustart wird für vollständige Konsistenz empfohlen."
     },
-    "languages": {
-      "de": "\ud83c\udde9\ud83c\uddea Deutsch",
-      "en": "\ud83c\uddec\ud83c\udde7 English",
-      "es": "\ud83c\uddea\ud83c\uddf8 Español",
-      "pt": "\ud83c\uddf5\ud83c\uddf9 Português",
-      "fr": "\ud83c\uddeb\ud83c\uddf7 Français",
-      "it": "\ud83c\uddee\ud83c\uddf9 Italiano",
-      "zh": "\ud83c\udde8\ud83c\uddf3 中文",
-      "ja": "\ud83c\uddef\ud83c\uddf5 日本語",
-      "ko": "\ud83c\uddf0\ud83c\uddf7 한국어"
-    },
     "backup": {
       "title_group": "Backup",
       "limit": "Max. Backups:",
