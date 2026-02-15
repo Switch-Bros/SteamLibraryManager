@@ -11,7 +11,6 @@ import pytest
 from src.core.game import Game
 from src.services.filter_service import (
     ALL_PLATFORM_KEYS,
-    ALL_STATUS_KEYS,
     ALL_TYPE_KEYS,
     FilterService,
     FilterState,
