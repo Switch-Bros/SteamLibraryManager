@@ -30,6 +30,110 @@ from src.utils.i18n import t
 
 __all__ = ["AutoCategorizeService"]
 
+# Well-known gaming franchises for auto-categorization.
+# Only these (or franchises with 2+ games detected) create categories.
+_KNOWN_FRANCHISES: frozenset[str] = frozenset({
+    "Age of Empires",
+    "Anno",
+    "Arma",
+    "Assassin's Creed",
+    "Baldur's Gate",
+    "Batman",
+    "Battlefield",
+    "BioShock",
+    "Borderlands",
+    "Call of Duty",
+    "Castlevania",
+    "Civilization",
+    "Command & Conquer",
+    "Counter-Strike",
+    "Crusader Kings",
+    "Crysis",
+    "Dark Souls",
+    "Darksiders",
+    "Dead Space",
+    "Deus Ex",
+    "Devil May Cry",
+    "Diablo",
+    "Dishonored",
+    "Divinity",
+    "DOOM",
+    "Dragon Age",
+    "Dragon Quest",
+    "Dying Light",
+    "Europa Universalis",
+    "Fallout",
+    "Far Cry",
+    "Final Fantasy",
+    "Gears of War",
+    "Grand Theft Auto",
+    "Half-Life",
+    "Halo",
+    "Hearts of Iron",
+    "Hitman",
+    "Hollow Knight",
+    "Just Cause",
+    "King's Bounty",
+    "LEGO",
+    "Left 4 Dead",
+    "Mafia",
+    "Mass Effect",
+    "Max Payne",
+    "Mega Man",
+    "Metal Gear",
+    "Metro",
+    "Middle-earth",
+    "Monster Hunter",
+    "Mortal Kombat",
+    "Need for Speed",
+    "Ori",
+    "Pathfinder",
+    "Payday",
+    "Persona",
+    "Pillars of Eternity",
+    "Portal",
+    "Prince of Persia",
+    "Quake",
+    "Rainbow Six",
+    "Red Dead",
+    "Resident Evil",
+    "Saints Row",
+    "Sid Meier's Civilization",
+    "Silent Hill",
+    "Sniper Elite",
+    "Sonic",
+    "South Park",
+    "Splinter Cell",
+    "S.T.A.L.K.E.R.",
+    "StarCraft",
+    "Star Wars",
+    "SteamWorld",
+    "Street Fighter",
+    "System Shock",
+    "Tekken",
+    "The Elder Scrolls",
+    "The Witcher",
+    "Thief",
+    "Titanfall",
+    "Tomb Raider",
+    "Tom Clancy",
+    "Total War",
+    "Trine",
+    "Tropico",
+    "Uncharted",
+    "Unreal",
+    "Warhammer",
+    "Wasteland",
+    "Watch Dogs",
+    "Wolfenstein",
+    "Worms",
+    "XCOM",
+    "Yakuza",
+})
+
+# Ghost name patterns to skip during franchise detection
+_GHOST_PREFIXES: tuple[str, ...] = ("App ", "Unknown App ", "Unbekannte App ")
+
 
 class AutoCategorizeService:
     """Service for managing auto-categorization operations."""
@@ -138,14 +242,58 @@ class AutoCategorizeService:
 
     # === FRANCHISE CATEGORIZATION ===
 
+    @staticmethod
+    def _detect_franchise(game_name: str) -> str | None:
+        """Detects franchise from a game name using the curated list + pattern fallback.
+
+        Priority:
+            1. Match against ``_KNOWN_FRANCHISES`` (prefix match).
+            2. Fall back to delimiter-based detection (colon / dash).
+
+        Ghost entries (``"Unbekannte App 123"``, etc.) are always skipped.
+
+        Args:
+            game_name: The full game name.
+
+        Returns:
+            The detected franchise name, or None.
+        """
+        if not game_name:
+            return None
+
+        # Skip ghost entries
+        for prefix in _GHOST_PREFIXES:
+            if game_name.startswith(prefix):
+                return None
+
+        # 1. Check curated list (case-insensitive prefix match)
+        name_lower = game_name.lower()
+        for franchise in _KNOWN_FRANCHISES:
+            fl = franchise.lower()
+            if name_lower.startswith(fl):
+                # Ensure it's a real prefix, not a partial word match
+                rest = game_name[len(franchise):]
+                if not rest or rest[0] in (" ", ":", "-", "™", "®", "\u2122"):
+                    return franchise
+
+        # 2. Fallback: delimiter-based detection (returns None for curated-list pass)
+        clean = game_name.replace("\u2122", "").replace("\u00ae", "").strip()
+        for delim in (":", " - ", " \u2013 "):
+            if delim in clean:
+                potential = clean.split(delim)[0].strip()
+                if len(potential) > 3 and not potential.isdigit():
+                    return potential
+
+        return None
+
     def categorize_by_franchise(
         self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
     ) -> int:
-        """
-        Categorize games by detected franchise.
+        """Categorize games by detected franchise (two-pass approach).
 
-        Uses SteamStoreScraper.detect_franchise() to detect franchise from game name.
-        Creates categories in format "Franchise: <name>".
+        Pass 1: Detect potential franchise for every game and count occurrences.
+        Pass 2: Only create categories for franchises that are either in the
+        curated ``_KNOWN_FRANCHISES`` list **or** have 2+ games detected.
 
         Args:
             games: List of games to categorize.
@@ -154,29 +302,36 @@ class AutoCategorizeService:
         Returns:
             Number of categories added.
         """
-        categories_added = 0
+        # --- Pass 1: detect and count ---
+        game_franchise_map: dict[str, list[Game]] = {}
 
         for i, game in enumerate(games):
             if progress_callback:
                 progress_callback(i, game.name)
 
-            # Detect franchise from game name
-            franchise = SteamStoreScraper.detect_franchise(game.name)
+            franchise = self._detect_franchise(game.name)
+            if franchise:
+                game_franchise_map.setdefault(franchise, []).append(game)
 
-            if not franchise:
+        # --- Pass 2: only assign valid franchises ---
+        categories_added = 0
+        known_lower = {f.lower() for f in _KNOWN_FRANCHISES}
+
+        for franchise, matched_games in game_franchise_map.items():
+            # Must be a known franchise OR have 2+ games
+            if franchise.lower() not in known_lower and len(matched_games) < 3:
                 continue
 
-            # Create franchise category
             category = t("auto_categorize.cat_franchise", name=franchise)
 
-            try:
-                self.category_service.add_app_to_category(game.app_id, category)
-                if category not in game.categories:
-                    game.categories.append(category)
-                categories_added += 1
-            except (ValueError, RuntimeError):
-                # Category already exists or parser not available
-                pass
+            for game in matched_games:
+                try:
+                    self.category_service.add_app_to_category(game.app_id, category)
+                    if category not in game.categories:
+                        game.categories.append(category)
+                    categories_added += 1
+                except (ValueError, RuntimeError):
+                    pass
 
         return categories_added
 
