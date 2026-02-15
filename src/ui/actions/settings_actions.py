@@ -30,15 +30,11 @@ class SettingsActions:
         self.mw: "MainWindow" = main_window
 
     def show_settings(self) -> None:
-        """Opens the settings dialog and applies changes."""
+        """Opens the settings dialog and applies changes on save."""
         dialog = SettingsDialog(self.mw)
-        # noinspection PyUnresolvedReferences
         dialog.language_changed.connect(self.on_language_changed_live)
-
-        if dialog.exec():
-            settings = dialog.get_settings()
-            if settings:
-                self.apply_settings(settings)
+        dialog.settings_saved.connect(self.apply_settings)
+        dialog.exec()
 
     def on_language_changed_live(self, new_language: str) -> None:
         """Handles live language change from settings dialog.
@@ -60,10 +56,6 @@ class SettingsActions:
         if "steam_path" in settings and settings["steam_path"]:
             config.STEAM_PATH = settings["steam_path"]
 
-        # User ID
-        if "user_id" in settings and settings["user_id"]:
-            config.USER_ID = settings["user_id"]
-
         # UI Language
         if "ui_language" in settings and settings["ui_language"]:
             new_lang = settings["ui_language"]
@@ -76,9 +68,25 @@ class SettingsActions:
         if "tags_language" in settings and settings["tags_language"]:
             config.TAGS_LANGUAGE = settings["tags_language"]
 
-        # SteamGridDB API Key
+        # Tags settings
+        if "tags_per_game" in settings:
+            config.TAGS_PER_GAME = settings["tags_per_game"]
+        if "ignore_common_tags" in settings:
+            config.IGNORE_COMMON_TAGS = settings["ignore_common_tags"]
+
+        # Backup
+        if "max_backups" in settings:
+            config.MAX_BACKUPS = settings["max_backups"]
+
+        # Libraries
+        if "steam_libraries" in settings:
+            config.STEAM_LIBRARIES = settings["steam_libraries"]
+
+        # API keys
+        if "steam_api_key" in settings:
+            config.STEAM_API_KEY = settings["steam_api_key"] or None
         if "steamgriddb_api_key" in settings:
-            config.STEAMGRIDDB_API_KEY = settings["steamgriddb_api_key"]
+            config.STEAMGRIDDB_API_KEY = settings["steamgriddb_api_key"] or None
 
         # Save config
         config.save()

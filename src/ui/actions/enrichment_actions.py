@@ -126,8 +126,8 @@ class EnrichmentActions:
 
         dialog = SettingsDialog(self.mw)
         dialog.tabs.setCurrentIndex(1)  # "Other" tab with API keys
-        if dialog.exec():
-            self.mw.settings_actions.apply_settings(dialog.get_settings())
+        dialog.settings_saved.connect(self.mw.settings_actions.apply_settings)
+        dialog.exec()
 
     def _get_database(self):
         """Returns the active database instance or shows an error.
