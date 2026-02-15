@@ -33,6 +33,9 @@ jobs:
     - name: Type check with mypy
       run: mypy src
 
+    - name: Validate i18n locale files
+      run: python scripts/validate_i18n.py
+
   test:
     runs-on: ubuntu-latest
     needs: lint
