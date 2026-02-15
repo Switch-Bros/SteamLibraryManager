@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("steamlibmgr.filter_service")
 
-__all__ = ["FilterService", "FilterState"]
+__all__ = ["ALL_LANGUAGE_KEYS", "FilterService", "FilterState"]
 
 # All known type keys with their matching app_type values
 ALL_TYPE_KEYS: frozenset[str] = frozenset({"games", "soundtracks", "software", "videos", "dlcs", "tools"})
@@ -28,6 +28,27 @@ ALL_PLATFORM_KEYS: frozenset[str] = frozenset({"linux", "windows", "steamos"})
 
 # All known status keys
 ALL_STATUS_KEYS: frozenset[str] = frozenset({"installed", "not_installed", "hidden", "with_playtime", "favorites"})
+
+# All known language filter keys
+ALL_LANGUAGE_KEYS: frozenset[str] = frozenset(
+    {
+        "english",
+        "german",
+        "french",
+        "spanish",
+        "italian",
+        "portuguese",
+        "russian",
+        "polish",
+        "japanese",
+        "chinese_simplified",
+        "chinese_traditional",
+        "korean",
+        "dutch",
+        "swedish",
+        "turkish",
+    }
+)
 
 # Maps menu type keys to the app_type values they accept
 _TYPE_APP_TYPE_MAP: dict[str, frozenset[str]] = {
@@ -48,11 +69,13 @@ class FilterState:
         enabled_types: Type filter keys that are enabled (default: all).
         enabled_platforms: Platform filter keys that are enabled (default: all).
         active_statuses: Status filter keys that are active (default: none).
+        active_languages: Language filter keys that are active (default: none = all visible).
     """
 
     enabled_types: frozenset[str] = ALL_TYPE_KEYS
     enabled_platforms: frozenset[str] = ALL_PLATFORM_KEYS
     active_statuses: frozenset[str] = frozenset()
+    active_languages: frozenset[str] = frozenset()
 
 
 class FilterService:
@@ -64,10 +87,11 @@ class FilterService:
     """
 
     def __init__(self) -> None:
-        """Initializes the FilterService with default state (all types/platforms on, no status)."""
+        """Initializes the FilterService with default state (all types/platforms on, no status/language)."""
         self._enabled_types: set[str] = set(ALL_TYPE_KEYS)
         self._enabled_platforms: set[str] = set(ALL_PLATFORM_KEYS)
         self._active_statuses: set[str] = set()
+        self._active_languages: set[str] = set()
 
     @property
     def state(self) -> FilterState:
@@ -76,6 +100,7 @@ class FilterService:
             enabled_types=frozenset(self._enabled_types),
             enabled_platforms=frozenset(self._enabled_platforms),
             active_statuses=frozenset(self._active_statuses),
+            active_languages=frozenset(self._active_languages),
         )
 
     def restore_state(self, state: FilterState) -> None:
@@ -87,6 +112,7 @@ class FilterService:
         self._enabled_types = set(state.enabled_types)
         self._enabled_platforms = set(state.enabled_platforms)
         self._active_statuses = set(state.active_statuses)
+        self._active_languages = set(state.active_languages)
 
     def toggle_type(self, key: str, enabled: bool) -> None:
         """Enables or disables a type filter.
@@ -136,6 +162,25 @@ class FilterService:
         else:
             self._active_statuses.discard(key)
 
+    def toggle_language(self, key: str, active: bool) -> None:
+        """Activates or deactivates a language filter.
+
+        When at least one language filter is active, only games supporting
+        any active language are shown (OR logic). When none are active,
+        all games pass (no language filtering).
+
+        Args:
+            key: The language key (e.g. "english", "german").
+            active: True to activate, False to deactivate.
+        """
+        if key not in ALL_LANGUAGE_KEYS:
+            logger.warning("Unknown language filter key: %s", key)
+            return
+        if active:
+            self._active_languages.add(key)
+        else:
+            self._active_languages.discard(key)
+
     def is_type_category_visible(self, type_key: str) -> bool:
         """Checks whether a type category should be shown in the sidebar.
 
@@ -151,13 +196,15 @@ class FilterService:
         """Checks whether any filter deviates from the default state.
 
         Returns:
-            True if any type/platform is disabled or any status is active.
+            True if any type/platform is disabled or any status/language is active.
         """
         if self._enabled_types != ALL_TYPE_KEYS:
             return True
         if self._enabled_platforms != ALL_PLATFORM_KEYS:
             return True
         if self._active_statuses:
+            return True
+        if self._active_languages:
             return True
         return False
 
@@ -187,6 +234,8 @@ class FilterService:
             if not self._passes_platform_filter(game):
                 continue
             if not self._passes_status_filter(game):
+                continue
+            if not self._passes_language_filter(game):
                 continue
             result.append(game)
         return result
@@ -259,3 +308,25 @@ class FilterService:
             if status_key == "favorites" and game.is_favorite():
                 return True
         return False
+
+    def _passes_language_filter(self, game: Game) -> bool:
+        """Checks if a game passes the language filter (OR logic).
+
+        If no language filters are active, all games pass. Games without
+        language data always pass (safe default).
+
+        Args:
+            game: The game to check.
+
+        Returns:
+            True if no language is active, game has no language data,
+            or game supports at least one active language.
+        """
+        if not self._active_languages:
+            return True
+
+        if not game.languages:
+            return True
+
+        game_langs_lower = {lang.lower().replace(" ", "_") for lang in game.languages}
+        return bool(game_langs_lower & self._active_languages)

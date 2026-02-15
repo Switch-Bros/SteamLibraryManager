@@ -64,6 +64,7 @@ from src.ui.actions import (
     SettingsActions,
     ProfileActions,
 )
+from src.ui.actions.enrichment_actions import EnrichmentActions
 
 
 class MainWindow(QMainWindow):
@@ -138,6 +139,7 @@ class MainWindow(QMainWindow):
         self.game_actions = GameActions(self)
         self.settings_actions = SettingsActions(self)
         self.profile_actions = ProfileActions(self)
+        self.enrichment_actions = EnrichmentActions(self)
 
         # UI Action Handlers (extracted category / context-menu logic)
         self.category_handler: CategoryActionHandler = CategoryActionHandler(self)

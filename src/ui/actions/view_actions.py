@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+
 from src.utils.i18n import t
 
 if TYPE_CHECKING:
@@ -31,6 +32,8 @@ class ViewActions:
             fs.toggle_platform(key, checked)
         elif group == "status":
             fs.toggle_status(key, checked)
+        elif group == "language":
+            fs.toggle_language(key, checked)
 
         # Re-run search if active, otherwise repopulate full tree
         if self.main_window.current_search_query:

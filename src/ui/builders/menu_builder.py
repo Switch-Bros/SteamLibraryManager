@@ -154,8 +154,15 @@ class MenuBuilder:
 
         # Export submenu
         export_menu = file_menu.addMenu(t("menu.file.export.root"))
+
+        # Collections as VDF (wired to file_actions)
+        export_vdf_action = QAction(t("menu.file.export.collections_vdf"), mw)
+        export_vdf_action.triggered.connect(mw.file_actions.export_collections_text)
+        export_menu.addAction(export_vdf_action)
+
+        # Remaining export stubs
         for key in (
-            "collections_vdf",
+            "collections_text",
             "games_csv_simple",
             "games_csv_full",
             "games_json",
@@ -322,6 +329,30 @@ class MenuBuilder:
             action.triggered.connect(lambda checked, k=key: mw.view_actions.on_filter_toggled("status", k, checked))
             status_menu.addAction(action)
 
+        # --- Language filter submenu (all unchecked by default = no filtering) ---
+        language_menu = view_menu.addMenu(t("menu.view.language.root"))
+        for key in (
+            "english",
+            "german",
+            "french",
+            "spanish",
+            "italian",
+            "portuguese",
+            "russian",
+            "polish",
+            "japanese",
+            "chinese_simplified",
+            "chinese_traditional",
+            "korean",
+            "dutch",
+            "swedish",
+            "turkish",
+        ):
+            action = QAction(t(f"menu.view.language.{key}"), mw)
+            action.setCheckable(True)
+            action.triggered.connect(lambda checked, k=key: mw.view_actions.on_filter_toggled("language", k, checked))
+            language_menu.addAction(action)
+
         view_menu.addSeparator()
 
         # --- Statistics submenu ---
@@ -358,9 +389,19 @@ class MenuBuilder:
 
         # --- Batch Operations submenu ---
         batch_menu = tools_menu.addMenu(t("menu.tools.batch.root"))
+
+        # Update Metadata (wired to enrichment)
+        update_meta_action = QAction(t("menu.tools.batch.update_metadata"), mw)
+        update_meta_action.triggered.connect(mw.enrichment_actions.start_steam_api_enrichment)
+        batch_menu.addAction(update_meta_action)
+
+        # Update HLTB (wired to enrichment)
+        update_hltb_action = QAction(t("menu.tools.batch.update_hltb"), mw)
+        update_hltb_action.triggered.connect(mw.enrichment_actions.start_hltb_enrichment)
+        batch_menu.addAction(update_hltb_action)
+
+        # Remaining batch stubs
         for key in (
-            "update_metadata",
-            "update_hltb",
             "update_protondb",
             "check_store",
             "update_achievements",

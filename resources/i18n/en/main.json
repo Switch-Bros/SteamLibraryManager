@@ -285,5 +285,19 @@
       "epilepsy": "Epilepsy",
       "animated": "GIF"
     }
+  },
+  "enrichment": {
+    "dialog_title": "Metadata Enrichment",
+    "hltb_title": "Fetching HowLongToBeat Data",
+    "steam_title": "Updating Steam Metadata",
+    "progress": "Processing: {name} ({current}/{total})",
+    "complete_title": "Enrichment Complete",
+    "complete": "{success} games updated, {failed} failed.",
+    "no_api_key": "Steam API key required. Configure it in Settings.",
+    "no_games_hltb": "All games already have HLTB data.",
+    "no_games_steam": "All games already have complete metadata.",
+    "cancel_confirm": "Cancel enrichment? Progress so far will be saved.",
+    "hltb_not_available": "HLTB library not installed. Install 'howlongtobeatpy'.",
+    "btn_cancel": "Cancel"
   }
 }

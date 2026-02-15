@@ -13,6 +13,7 @@ All actions connect back to MainWindow for state access and UI updates.
 """
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from src.ui.widgets.ui_helper import UIHelper
@@ -98,6 +99,44 @@ class FileActions:
         the safe merge with game preservation.
         """
         self.mw.category_handler.show_merge_duplicates_dialog()
+
+    def export_collections_text(self) -> None:
+        """Exports current collections as a human-readable VDF text file.
+
+        Opens a file dialog, then writes all cloud storage collections
+        to the selected path using VDFTextExporter.
+        """
+        from PyQt6.QtWidgets import QFileDialog
+
+        from src.utils.vdf_exporter import VDFTextExporter
+
+        parser = self.mw.cloud_storage_parser
+        if not parser:
+            UIHelper.show_warning(self.mw, t("ui.main_window.cloud_storage_only"))
+            return
+
+        collections = parser.collections
+        if not collections:
+            UIHelper.show_info(self.mw, t("ui.main_window.no_duplicates"))
+            return
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self.mw,
+            t("menu.file.export.collections_text"),
+            "collections_export.vdf",
+            "VDF Files (*.vdf);;All Files (*)",
+        )
+
+        if not file_path:
+            return
+
+        from pathlib import Path
+
+        try:
+            VDFTextExporter.export_collections(collections, Path(file_path))
+            UIHelper.show_success(self.mw, t("common.save_success"))
+        except OSError as exc:
+            UIHelper.show_warning(self.mw, str(exc))
 
     def ask_save_on_exit(self, has_collection_changes: bool, has_metadata_changes: bool) -> str:
         """Shows a 3-button dialog when unsaved changes exist on exit.
