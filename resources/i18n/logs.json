@@ -217,6 +217,12 @@
       "ready": "Database ready ({count} games, {duration}s)",
       "schema_error": "Failed to create database schema: {error}",
       "schema_not_found": "Database schema file not found: {path}"
+    },
+    "font": {
+      "loaded": "Loaded embedded font: {family}",
+      "file_not_found": "Font file not found: {path}",
+      "load_failed": "Failed to load font from {path}",
+      "app_font_set": "Set application-wide font: {name} {size}pt"
     }
   }
 }

@@ -18,6 +18,7 @@ from src.utils import acf, appinfo
 from src.config import config
 from src.core.logging import logger, setup_logging
 from src.utils.i18n import init_i18n, t
+from src.ui.utils.font_helper import FontHelper
 from src.ui.main_window import MainWindow
 
 # PyQt6 imports
@@ -92,7 +93,10 @@ def main() -> None:
     app = QApplication(sys.argv)
     app.setApplicationName("Steam Library Manager")
 
-    # 4. CRITICAL: Check if Steam is running!
+    # 4. Load and set Inter font
+    FontHelper.set_app_font(app, size=10)  # ← NEU!
+
+    # 5. CRITICAL: Check if Steam is running!
     if check_steam_running():
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Icon.Warning)
@@ -107,7 +111,7 @@ def main() -> None:
         logger.info(t("logs.main.steam_running_exit"))
         sys.exit(0)
 
-    # 5. Check if user profile is configured
+    # 6. Check if user profile is configured
     if not config.STEAM_USER_ID:
         from src.ui.dialogs.profile_setup_dialog import ProfileSetupDialog
 
@@ -127,7 +131,7 @@ def main() -> None:
             logger.info(t("logs.main.setup_cancelled"))
             sys.exit(0)
 
-    # 6. Startup logs
+    # 7. Startup logs
     logger.info("=" * 60)
     logger.info(t("app.name"))
     logger.info("=" * 60)
