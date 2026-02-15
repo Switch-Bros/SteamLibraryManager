@@ -173,6 +173,17 @@ class MenuBuilder:
             action.triggered.connect(lambda checked, k=f"menu.file.import.{key}": self._not_implemented(k))
             import_menu.addAction(action)
 
+        # --- Profiles submenu ---
+        profiles_menu = file_menu.addMenu(t("menu.file.profiles.root"))
+
+        save_profile = QAction(t("menu.file.profiles.save_current"), mw)
+        save_profile.triggered.connect(mw.profile_actions.save_current_as_profile)
+        profiles_menu.addAction(save_profile)
+
+        manage_profiles = QAction(t("menu.file.profiles.manage"), mw)
+        manage_profiles.triggered.connect(mw.profile_actions.show_profile_manager)
+        profiles_menu.addAction(manage_profiles)
+
         file_menu.addSeparator()
 
         # Exit

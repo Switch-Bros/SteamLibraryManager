@@ -18,6 +18,11 @@
         "db_backup": "Database Backup",
         "artwork_package": "Import Artwork Package"
       },
+      "profiles": {
+        "root": "Profiles",
+        "save_current": "Save Current as Profile...",
+        "manage": "Manage Profiles..."
+      },
       "exit": "Exit"
     },
     "edit": {

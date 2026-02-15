@@ -177,6 +177,35 @@ class TestFilterQueries:
 # ---------------------------------------------------------------------------
 
 
+class TestRestoreState:
+    """Tests for FilterService.restore_state()."""
+
+    def test_restore_state_replaces_current_state(self, service: FilterService) -> None:
+        """restore_state should replace all internal sets with the snapshot values."""
+        custom = FilterState(
+            enabled_types=frozenset({"games"}),
+            enabled_platforms=frozenset({"linux"}),
+            active_statuses=frozenset({"installed"}),
+        )
+        service.restore_state(custom)
+        result = service.state
+
+        assert result.enabled_types == frozenset({"games"})
+        assert result.enabled_platforms == frozenset({"linux"})
+        assert result.active_statuses == frozenset({"installed"})
+
+    def test_restore_state_partial_types_only_those_enabled(self, service: FilterService) -> None:
+        """After restoring a state with only 2 types, only those should be enabled."""
+        partial = FilterState(
+            enabled_types=frozenset({"games", "dlcs"}),
+        )
+        service.restore_state(partial)
+        assert service.state.enabled_types == frozenset({"games", "dlcs"})
+        # Platforms and statuses should use the values from the given FilterState
+        assert service.state.enabled_platforms == ALL_PLATFORM_KEYS
+        assert service.state.active_statuses == frozenset()
+
+
 class TestApplyTypeFilter:
     """Tests for apply() with type filters."""
 
