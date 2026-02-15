@@ -10,6 +10,7 @@ limits, and API keys.
 
 from __future__ import annotations
 
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -27,11 +28,10 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QListWidget,
 )
-from PyQt6.QtCore import pyqtSignal
 
 from src.config import config
-from src.utils.i18n import t
 from src.ui.widgets.ui_helper import UIHelper
+from src.utils.i18n import t
 
 
 class SettingsDialog(QDialog):
@@ -67,7 +67,7 @@ class SettingsDialog(QDialog):
             parent: Parent widget. Defaults to None.
         """
         super().__init__(parent)
-        self.setWindowTitle(t("ui.settings.title"))
+        self.setWindowTitle(t("settings.title"))
         # Slightly taller for the backup section
         self.resize(600, 700)
         self.setModal(True)
@@ -84,12 +84,12 @@ class SettingsDialog(QDialog):
         # --- TAB 1: GENERAL ---
         tab_general = QWidget()
         self._init_general_tab(tab_general)
-        self.tabs.addTab(tab_general, t("ui.settings.tabs.general"))
+        self.tabs.addTab(tab_general, t("settings.tabs.general"))
 
         # --- TAB 2: OTHER ---
         tab_other = QWidget()
         self._init_other_tab(tab_other)
-        self.tabs.addTab(tab_other, t("ui.settings.tabs.other"))
+        self.tabs.addTab(tab_other, t("settings.tabs.other"))
 
         # Buttons (Save / Cancel)
         btn_layout = QHBoxLayout()
@@ -116,7 +116,7 @@ class SettingsDialog(QDialog):
         layout = QVBoxLayout(parent)
 
         # 1. LANGUAGE GROUP
-        group_lang = QGroupBox(t("ui.settings.general.language"))
+        group_lang = QGroupBox(t("settings.general.language"))
         form_lang = QFormLayout(group_lang)
 
         # UI Language
@@ -137,27 +137,27 @@ class SettingsDialog(QDialog):
 
         # noinspection PyUnresolvedReferences
         self.combo_ui_lang.currentIndexChanged.connect(self._on_language_changed)
-        form_lang.addRow(t("ui.settings.general.ui_language"), self.combo_ui_lang)
+        form_lang.addRow(t("settings.general.ui_language"), self.combo_ui_lang)
 
         # Tags Language
         self.combo_tags_lang = QComboBox()
         for code, name in self.lang_map.items():
             self.combo_tags_lang.addItem(name, code)
-        form_lang.addRow(t("ui.settings.general.tag_language"), self.combo_tags_lang)
+        form_lang.addRow(t("settings.general.tag_language"), self.combo_tags_lang)
 
         # Restart Hint
-        hint = QLabel(t("ui.settings.general.restart_required"))
+        hint = QLabel(t("settings.general.restart_required"))
         hint.setStyleSheet("color: gray; font-style: italic; font-size: 10px;")
         form_lang.addRow("", hint)
 
         layout.addWidget(group_lang)
 
         # 2. STEAM PATH GROUP
-        group_path = QGroupBox(t("ui.settings.general.steam_path"))
+        group_path = QGroupBox(t("settings.general.steam_path"))
         path_layout = QHBoxLayout(group_path)
 
         self.path_edit = QLineEdit()
-        self.btn_browse_path = QPushButton(t("ui.settings.general.browse"))
+        self.btn_browse_path = QPushButton(t("settings.general.browse"))
         # noinspection PyUnresolvedReferences
         self.btn_browse_path.clicked.connect(self._browse_steam_path)
 
@@ -166,18 +166,18 @@ class SettingsDialog(QDialog):
         layout.addWidget(group_path)
 
         # 3. STEAM LIBRARIES GROUP
-        group_libs = QGroupBox(t("ui.settings.libraries.title"))
+        group_libs = QGroupBox(t("settings.libraries.title"))
         lib_main_layout = QVBoxLayout(group_libs)
 
         self.lib_list = QListWidget()
         lib_main_layout.addWidget(self.lib_list)
 
         lib_btn_layout = QHBoxLayout()
-        self.btn_add_lib = QPushButton(t("ui.settings.libraries.add"))
+        self.btn_add_lib = QPushButton(t("settings.libraries.add"))
         # noinspection PyUnresolvedReferences
         self.btn_add_lib.clicked.connect(self._add_library)
 
-        self.btn_remove_lib = QPushButton(t("ui.settings.libraries.remove"))
+        self.btn_remove_lib = QPushButton(t("settings.libraries.remove"))
         # noinspection PyUnresolvedReferences
         self.btn_remove_lib.clicked.connect(self._remove_library)
 
@@ -198,28 +198,28 @@ class SettingsDialog(QDialog):
         layout = QVBoxLayout(parent)
 
         # 1. TAGS GROUP
-        group_tags = QGroupBox(t("ui.settings.tags.title_group"))
+        group_tags = QGroupBox(t("settings.tags.title_group"))
         form_tags = QFormLayout(group_tags)
 
         self.spin_tags = QSpinBox()
         self.spin_tags.setRange(1, 50)
-        form_tags.addRow(t("ui.settings.tags.count"), self.spin_tags)
+        form_tags.addRow(t("settings.tags.count"), self.spin_tags)
 
-        self.check_common = QCheckBox(t("ui.settings.tags.ignore_common"))
+        self.check_common = QCheckBox(t("settings.tags.ignore_common"))
         form_tags.addRow("", self.check_common)
         layout.addWidget(group_tags)
 
         # 2. BACKUP GROUP
-        group_backup = QGroupBox(t("ui.settings.backup.title_group"))
+        group_backup = QGroupBox(t("settings.backup.title_group"))
         form_backup = QFormLayout(group_backup)
 
         self.spin_backup = QSpinBox()
         self.spin_backup.setRange(1, 100)
-        self.spin_backup.setSuffix(f" {t('ui.settings.backup.files')}")
-        form_backup.addRow(t("ui.settings.backup.limit"), self.spin_backup)
+        self.spin_backup.setSuffix(f" {t('settings.backup.files')}")
+        form_backup.addRow(t("settings.backup.limit"), self.spin_backup)
 
         # Explanation text
-        lbl_backup_help = QLabel(t("ui.settings.backup.explanation"))
+        lbl_backup_help = QLabel(t("settings.backup.explanation"))
         lbl_backup_help.setStyleSheet("color: gray; font-size: 10px; font-style: italic;")
         lbl_backup_help.setWordWrap(True)
         form_backup.addRow(lbl_backup_help)
@@ -227,20 +227,20 @@ class SettingsDialog(QDialog):
         layout.addWidget(group_backup)
 
         # 3. API GROUP
-        group_api = QGroupBox(t("ui.settings.api.title_group"))
+        group_api = QGroupBox(t("settings.api.title_group"))
         form_api = QFormLayout(group_api)
 
         # Steam Web API
         self.steam_api_edit = QLineEdit()
-        self.steam_api_edit.setPlaceholderText(t("ui.settings.api.placeholder"))
+        self.steam_api_edit.setPlaceholderText(t("settings.api.placeholder"))
         self.steam_api_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        form_api.addRow(t("ui.settings.api.steam_label"), self.steam_api_edit)
+        form_api.addRow(t("settings.api.steam_label"), self.steam_api_edit)
 
         # SteamGridDB API
         self.sgdb_key_edit = QLineEdit()
-        self.sgdb_key_edit.setPlaceholderText(t("ui.settings.api.placeholder"))
+        self.sgdb_key_edit.setPlaceholderText(t("settings.api.placeholder"))
         self.sgdb_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        form_api.addRow(t("ui.settings.api.sgdb_label"), self.sgdb_key_edit)
+        form_api.addRow(t("settings.api.sgdb_label"), self.sgdb_key_edit)
 
         layout.addWidget(group_api)
         layout.addStretch()
@@ -273,13 +273,13 @@ class SettingsDialog(QDialog):
 
     def _browse_steam_path(self):
         """Open a file dialog to select the Steam installation directory."""
-        path = QFileDialog.getExistingDirectory(self, t("ui.settings.general.browse"), self.path_edit.text())
+        path = QFileDialog.getExistingDirectory(self, t("settings.general.browse"), self.path_edit.text())
         if path:
             self.path_edit.setText(path)
 
     def _add_library(self):
         """Open a file dialog to add a new Steam library folder path."""
-        title = t("ui.settings.libraries.add")
+        title = t("settings.libraries.add")
         path = QFileDialog.getExistingDirectory(self, title)
         if path:
             # Avoid duplicates
@@ -291,9 +291,7 @@ class SettingsDialog(QDialog):
         """Remove the currently selected library folder from the list."""
         row = self.lib_list.currentRow()
         if row >= 0:
-            if UIHelper.confirm(
-                self, t("ui.settings.libraries.confirm_msg"), t("ui.settings.libraries.confirm_remove")
-            ):
+            if UIHelper.confirm(self, t("settings.libraries.confirm_msg"), t("settings.libraries.confirm_remove")):
                 self.lib_list.takeItem(row)
 
     def _on_language_changed(self, index: int):

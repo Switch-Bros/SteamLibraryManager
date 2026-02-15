@@ -343,10 +343,10 @@ class TestTypeCategoriesGrouping:
         # Verify each type is mapped correctly
         from src.utils.i18n import t
 
-        assert t("ui.categories.soundtracks") in result
-        assert t("ui.categories.tools") in result
-        assert t("ui.categories.software") in result
-        assert t("ui.categories.videos") in result
+        assert t("categories.soundtracks") in result
+        assert t("categories.tools") in result
+        assert t("categories.software") in result
+        assert t("categories.videos") in result
 
     def test_excludes_hidden_apps(self):
         """Test that hidden apps are excluded from type categories."""
@@ -360,7 +360,7 @@ class TestTypeCategoriesGrouping:
         result = CategoryPopulator._get_type_categories(apps)
         from src.utils.i18n import t
 
-        soundtracks = result.get(t("ui.categories.soundtracks"), [])
+        soundtracks = result.get(t("categories.soundtracks"), [])
         assert len(soundtracks) == 1
         assert soundtracks[0].app_id == "1"
 
@@ -484,10 +484,10 @@ class TestVirtualCategoriesNotSaved:
 
         virtual = CloudStorageParser._get_virtual_categories()
 
-        assert t("ui.categories.soundtracks") in virtual
-        assert t("ui.categories.tools") in virtual
-        assert t("ui.categories.software") in virtual
-        assert t("ui.categories.videos") in virtual
+        assert t("categories.soundtracks") in virtual
+        assert t("categories.tools") in virtual
+        assert t("categories.software") in virtual
+        assert t("categories.videos") in virtual
 
     def test_uncategorized_still_virtual(self, mock_cloud_storage_file):
         """Test that the original virtual categories are still present."""
@@ -496,5 +496,5 @@ class TestVirtualCategoriesNotSaved:
 
         virtual = CloudStorageParser._get_virtual_categories()
 
-        assert t("ui.categories.uncategorized") in virtual
-        assert t("ui.categories.all_games") in virtual
+        assert t("categories.uncategorized") in virtual
+        assert t("categories.all_games") in virtual

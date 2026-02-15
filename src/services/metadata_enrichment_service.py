@@ -50,8 +50,8 @@ class MetadataEnrichmentService:
         logger.info(t("logs.manager.merging"))
 
         # Get favorites and hidden from collections (Depressurizer way!)
-        favorites_key = t("ui.categories.favorites")
-        hidden_key = t("ui.categories.hidden")
+        favorites_key = t("categories.favorites")
+        hidden_key = t("categories.hidden")
 
         favorites_apps: set[str] = set()
         hidden_apps: set[str] = set()

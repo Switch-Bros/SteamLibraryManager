@@ -8,6 +8,7 @@ All dialogs feature visual indicators for modified fields.
 
 from __future__ import annotations
 
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -21,10 +22,10 @@ from PyQt6.QtWidgets import (
     QCheckBox,
     QMessageBox,
 )
-from PyQt6.QtGui import QFont
+
 from src.ui.widgets.ui_helper import UIHelper
-from src.utils.i18n import t
 from src.utils.date_utils import parse_date_to_timestamp, format_timestamp_to_date
+from src.utils.i18n import t
 
 
 class MetadataEditDialog(QDialog):
@@ -400,7 +401,7 @@ class BulkMetadataEditDialog(QDialog):
         fields_group.setLayout(f_layout)
         layout.addWidget(fields_group)
 
-        warn_lbl = QLabel(f"{t('emoji.warning')} {t('ui.auto_categorize.warning_backup')}")
+        warn_lbl = QLabel(f"{t('emoji.warning')} {t('auto_categorize.warning_backup')}")
         warn_lbl.setStyleSheet("color: orange;")
         layout.addWidget(warn_lbl)
 
@@ -507,7 +508,7 @@ class MetadataRestoreDialog(QDialog):
         info_lbl.setWordWrap(True)
         layout.addWidget(info_lbl)
 
-        warn_lbl = QLabel(f"{t('emoji.warning')} {t('ui.auto_categorize.warning_backup')}")
+        warn_lbl = QLabel(f"{t('emoji.warning')} {t('auto_categorize.warning_backup')}")
         warn_lbl.setStyleSheet("color: orange;")
         layout.addWidget(warn_lbl)
 

@@ -138,7 +138,7 @@ class Game:
         Returns:
             True if the localized 'favorites' category is in the game's categories.
         """
-        favorites_key = t("ui.categories.favorites")
+        favorites_key = t("categories.favorites")
         return favorites_key in self.categories
 
 

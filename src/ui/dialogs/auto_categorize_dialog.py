@@ -66,7 +66,7 @@ class AutoCategorizeDialog(QDialog):
         self.result: dict[str, Any] | None = None
 
         # Window setup
-        self.setWindowTitle(t("ui.auto_categorize.title"))
+        self.setWindowTitle(t("auto_categorize.title"))
         self.setMinimumWidth(550)
         self.setModal(True)
 
@@ -90,7 +90,7 @@ class AutoCategorizeDialog(QDialog):
         layout.setContentsMargins(20, 20, 20, 20)
 
         # Title
-        title = QLabel(t("ui.auto_categorize.header"))
+        title = QLabel(t("auto_categorize.header"))
         title_font = QFont()
         title_font.setPointSize(16)
         title_font.setBold(True)
@@ -98,64 +98,64 @@ class AutoCategorizeDialog(QDialog):
         layout.addWidget(title)
 
         # === METHODS GROUP ===
-        methods_group = QGroupBox(t("ui.auto_categorize.method_group"))
+        methods_group = QGroupBox(t("auto_categorize.method_group"))
         methods_layout = QVBoxLayout()
 
-        self.cb_tags = QCheckBox(t("ui.auto_categorize.option_tags"))
+        self.cb_tags = QCheckBox(t("auto_categorize.option_tags"))
         self.cb_tags.setChecked(True)
         methods_layout.addWidget(self.cb_tags)
 
-        self.cb_publisher = QCheckBox(t("ui.auto_categorize.by_publisher"))
+        self.cb_publisher = QCheckBox(t("auto_categorize.by_publisher"))
         methods_layout.addWidget(self.cb_publisher)
 
-        self.cb_franchise = QCheckBox(t("ui.auto_categorize.option_franchise"))
+        self.cb_franchise = QCheckBox(t("auto_categorize.option_franchise"))
         methods_layout.addWidget(self.cb_franchise)
 
-        self.cb_genre = QCheckBox(t("ui.auto_categorize.by_genre"))
+        self.cb_genre = QCheckBox(t("auto_categorize.by_genre"))
         methods_layout.addWidget(self.cb_genre)
 
-        self.cb_developer = QCheckBox(t("ui.auto_categorize.by_developer"))
+        self.cb_developer = QCheckBox(t("auto_categorize.by_developer"))
         methods_layout.addWidget(self.cb_developer)
 
-        self.cb_platform = QCheckBox(t("ui.auto_categorize.by_platform"))
+        self.cb_platform = QCheckBox(t("auto_categorize.by_platform"))
         methods_layout.addWidget(self.cb_platform)
 
-        self.cb_user_score = QCheckBox(t("ui.auto_categorize.by_user_score"))
+        self.cb_user_score = QCheckBox(t("auto_categorize.by_user_score"))
         methods_layout.addWidget(self.cb_user_score)
 
-        self.cb_hours_played = QCheckBox(t("ui.auto_categorize.by_hours_played"))
+        self.cb_hours_played = QCheckBox(t("auto_categorize.by_hours_played"))
         methods_layout.addWidget(self.cb_hours_played)
 
-        self.cb_flags = QCheckBox(t("ui.auto_categorize.by_flags"))
+        self.cb_flags = QCheckBox(t("auto_categorize.by_flags"))
         methods_layout.addWidget(self.cb_flags)
 
-        self.cb_vr = QCheckBox(t("ui.auto_categorize.by_vr"))
+        self.cb_vr = QCheckBox(t("auto_categorize.by_vr"))
         methods_layout.addWidget(self.cb_vr)
 
-        self.cb_year = QCheckBox(t("ui.auto_categorize.by_year"))
+        self.cb_year = QCheckBox(t("auto_categorize.by_year"))
         methods_layout.addWidget(self.cb_year)
 
-        self.cb_hltb = QCheckBox(t("ui.auto_categorize.by_hltb"))
+        self.cb_hltb = QCheckBox(t("auto_categorize.by_hltb"))
         methods_layout.addWidget(self.cb_hltb)
 
-        self.cb_language = QCheckBox(t("ui.auto_categorize.by_language"))
+        self.cb_language = QCheckBox(t("auto_categorize.by_language"))
         methods_layout.addWidget(self.cb_language)
 
-        self.cb_curator = QCheckBox(t("ui.auto_categorize.by_curator"))
+        self.cb_curator = QCheckBox(t("auto_categorize.by_curator"))
         self.cb_curator.setEnabled(False)
-        self.cb_curator.setToolTip(t("ui.auto_categorize.curator_coming_soon"))
+        self.cb_curator.setToolTip(t("auto_categorize.curator_coming_soon"))
         methods_layout.addWidget(self.cb_curator)
 
         methods_group.setLayout(methods_layout)
         layout.addWidget(methods_group)
 
         # === TAGS SETTINGS GROUP ===
-        self.tags_group = QGroupBox(t("ui.auto_categorize.settings"))
+        self.tags_group = QGroupBox(t("auto_categorize.settings"))
         tags_layout = QVBoxLayout()
 
         # Tags per game
         tags_per_game_layout = QHBoxLayout()
-        tags_per_game_layout.addWidget(QLabel(t("ui.auto_categorize.tags_per_game") + ":"))
+        tags_per_game_layout.addWidget(QLabel(t("auto_categorize.tags_per_game") + ":"))
         self.tags_count_spin = QSpinBox()
         self.tags_count_spin.setMinimum(1)
         self.tags_count_spin.setMaximum(50)  # Increased limit
@@ -165,7 +165,7 @@ class AutoCategorizeDialog(QDialog):
         tags_layout.addLayout(tags_per_game_layout)
 
         # Ignore common tags
-        self.cb_ignore_common = QCheckBox(t("ui.auto_categorize.option_ignore_common"))
+        self.cb_ignore_common = QCheckBox(t("auto_categorize.option_ignore_common"))
         self.cb_ignore_common.setChecked(True)
         tags_layout.addWidget(self.cb_ignore_common)
 
@@ -173,24 +173,24 @@ class AutoCategorizeDialog(QDialog):
         layout.addWidget(self.tags_group)
 
         # === APPLY TO GROUP ===
-        apply_group = QGroupBox(t("ui.auto_categorize.apply_group"))
+        apply_group = QGroupBox(t("auto_categorize.apply_group"))
         apply_layout = QVBoxLayout()
 
         self.scope_group = QButtonGroup(self)
 
         # Determine label for "Selected" option
         if self.category_name:
-            scope_text = t("ui.auto_categorize.scope_category", name=self.category_name, count=len(self.games))
+            scope_text = t("auto_categorize.scope_category", name=self.category_name, count=len(self.games))
         else:
             # Use generic "Selected Games" label if no category name is provided
-            scope_text = t("ui.auto_categorize.scope_selected", count=len(self.games))
+            scope_text = t("auto_categorize.scope_selected", count=len(self.games))
 
         self.rb_selected = QRadioButton(scope_text)
         self.rb_selected.setChecked(True)
         self.scope_group.addButton(self.rb_selected)
         apply_layout.addWidget(self.rb_selected)
 
-        self.rb_all = QRadioButton(t("ui.auto_categorize.scope_all", count=self.all_games_count))
+        self.rb_all = QRadioButton(t("auto_categorize.scope_all", count=self.all_games_count))
         self.scope_group.addButton(self.rb_all)
         apply_layout.addWidget(self.rb_all)
 
@@ -214,7 +214,7 @@ class AutoCategorizeDialog(QDialog):
         layout.addWidget(self.estimate_label)
 
         # === WARNING ===
-        warning = QLabel(t("ui.auto_categorize.warning_backup"))
+        warning = QLabel(t("auto_categorize.warning_backup"))
         warning.setStyleSheet("color: orange;")
         layout.addWidget(warning)
 
@@ -226,7 +226,7 @@ class AutoCategorizeDialog(QDialog):
         cancel_btn.clicked.connect(self.reject)
         button_layout.addWidget(cancel_btn)
 
-        start_btn = QPushButton(t("ui.auto_categorize.start"))
+        start_btn = QPushButton(t("auto_categorize.start"))
         start_btn.setDefault(True)
         start_btn.clicked.connect(self._start)
         button_layout.addWidget(start_btn)
@@ -308,14 +308,14 @@ class AutoCategorizeDialog(QDialog):
             seconds = int(game_count * 1.5)
             minutes = seconds // 60
             if minutes > 0:
-                time_str = t("ui.auto_categorize.estimate_minutes", count=minutes)
+                time_str = t("auto_categorize.estimate_minutes", count=minutes)
             else:
-                time_str = t("ui.auto_categorize.estimate_seconds", count=seconds)
+                time_str = t("auto_categorize.estimate_seconds", count=seconds)
         else:
-            time_str = t("ui.auto_categorize.estimate_instant")
+            time_str = t("auto_categorize.estimate_instant")
 
         self.estimate_label.setText(
-            t("ui.auto_categorize.estimate_label", time=time_str, games=game_count, methods=len(selected_methods))
+            t("auto_categorize.estimate_label", time=time_str, games=game_count, methods=len(selected_methods))
         )
 
     def _start(self):
@@ -328,7 +328,7 @@ class AutoCategorizeDialog(QDialog):
         selected_methods = self._get_selected_methods()
 
         if not selected_methods:
-            QMessageBox.warning(self, t("ui.auto_categorize.no_method_title"), t("ui.auto_categorize.error_no_method"))
+            QMessageBox.warning(self, t("auto_categorize.no_method_title"), t("auto_categorize.error_no_method"))
             return
 
         self.result = {

@@ -123,7 +123,7 @@ class AutoCategorizeService:
                 continue
 
             # Create publisher category
-            category = t("ui.auto_categorize.cat_publisher", name=game.publisher)
+            category = t("auto_categorize.cat_publisher", name=game.publisher)
 
             try:
                 self.category_service.add_app_to_category(game.app_id, category)
@@ -167,7 +167,7 @@ class AutoCategorizeService:
                 continue
 
             # Create franchise category
-            category = t("ui.auto_categorize.cat_franchise", name=franchise)
+            category = t("auto_categorize.cat_franchise", name=franchise)
 
             try:
                 self.category_service.add_app_to_category(game.app_id, category)
@@ -245,7 +245,7 @@ class AutoCategorizeService:
             if not game.developer:
                 continue
 
-            category = t("ui.auto_categorize.cat_developer", name=game.developer)
+            category = t("auto_categorize.cat_developer", name=game.developer)
 
             try:
                 self.category_service.add_app_to_category(game.app_id, category)
@@ -284,7 +284,7 @@ class AutoCategorizeService:
                 continue
 
             for platform in game.platforms:
-                category = t("ui.auto_categorize.cat_platform", name=platform.capitalize())
+                category = t("auto_categorize.cat_platform", name=platform.capitalize())
 
                 try:
                     self.category_service.add_app_to_category(game.app_id, category)
@@ -332,7 +332,7 @@ class AutoCategorizeService:
                 continue
 
             label = self._get_score_label(game.review_percentage)
-            category = t("ui.auto_categorize.cat_user_score", name=label)
+            category = t("auto_categorize.cat_user_score", name=label)
 
             try:
                 self.category_service.add_app_to_category(game.app_id, category)
@@ -362,12 +362,12 @@ class AutoCategorizeService:
     # === HOURS PLAYED CATEGORIZATION ===
 
     _PLAYTIME_RANGES: list[tuple[int, int, str]] = [
-        (0, 0, "ui.auto_categorize.hours_never"),
-        (1, 120, "ui.auto_categorize.hours_0_2"),
-        (121, 600, "ui.auto_categorize.hours_2_10"),
-        (601, 3000, "ui.auto_categorize.hours_10_50"),
-        (3001, 6000, "ui.auto_categorize.hours_50_100"),
-        (6001, 999999, "ui.auto_categorize.hours_100_plus"),
+        (0, 0, "auto_categorize.hours_never"),
+        (1, 120, "auto_categorize.hours_0_2"),
+        (121, 600, "auto_categorize.hours_2_10"),
+        (601, 3000, "auto_categorize.hours_10_50"),
+        (3001, 6000, "auto_categorize.hours_50_100"),
+        (6001, 999999, "auto_categorize.hours_100_plus"),
     ]
 
     def categorize_by_hours_played(
@@ -392,7 +392,7 @@ class AutoCategorizeService:
                 progress_callback(i, game.name)
 
             range_label = self._get_playtime_label(game.playtime_minutes)
-            category = t("ui.auto_categorize.cat_hours_played", range=range_label)
+            category = t("auto_categorize.cat_hours_played", range=range_label)
 
             try:
                 self.category_service.add_app_to_category(game.app_id, category)
@@ -417,7 +417,7 @@ class AutoCategorizeService:
         for low, high, key in self._PLAYTIME_RANGES:
             if low <= minutes <= high:
                 return t(key)
-        return t("ui.auto_categorize.hours_100_plus")
+        return t("auto_categorize.hours_100_plus")
 
     # === FLAGS CATEGORIZATION ===
 
@@ -446,7 +446,7 @@ class AutoCategorizeService:
             flags = self._detect_flags(game)
 
             for flag_name in flags:
-                category = t("ui.auto_categorize.cat_flags", name=flag_name)
+                category = t("auto_categorize.cat_flags", name=flag_name)
 
                 try:
                     self.category_service.add_app_to_category(game.app_id, category)
@@ -500,7 +500,7 @@ class AutoCategorizeService:
             if not vr_support:
                 continue
 
-            category = t("ui.auto_categorize.cat_vr", name=vr_support.capitalize())
+            category = t("auto_categorize.cat_vr", name=vr_support.capitalize())
 
             try:
                 self.category_service.add_app_to_category(game.app_id, category)
@@ -537,7 +537,7 @@ class AutoCategorizeService:
             if not game.release_year:
                 continue
 
-            category = t("ui.auto_categorize.cat_year", year=game.release_year)
+            category = t("auto_categorize.cat_year", year=game.release_year)
 
             try:
                 self.category_service.add_app_to_category(game.app_id, category)
@@ -552,11 +552,11 @@ class AutoCategorizeService:
     # === HLTB CATEGORIZATION ===
 
     _HLTB_RANGES: list[tuple[float, float, str]] = [
-        (0.1, 5, "ui.auto_categorize.hltb_under_5"),
-        (5, 15, "ui.auto_categorize.hltb_5_15"),
-        (15, 30, "ui.auto_categorize.hltb_15_30"),
-        (30, 50, "ui.auto_categorize.hltb_30_50"),
-        (50, 999999, "ui.auto_categorize.hltb_50_plus"),
+        (0.1, 5, "auto_categorize.hltb_under_5"),
+        (5, 15, "auto_categorize.hltb_5_15"),
+        (15, 30, "auto_categorize.hltb_15_30"),
+        (30, 50, "auto_categorize.hltb_30_50"),
+        (50, 999999, "auto_categorize.hltb_50_plus"),
     ]
 
     def categorize_by_hltb(self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None) -> int:
@@ -584,7 +584,7 @@ class AutoCategorizeService:
                 continue
 
             range_label = self._get_hltb_label(hours)
-            category = t("ui.auto_categorize.cat_hltb", range=range_label)
+            category = t("auto_categorize.cat_hltb", range=range_label)
 
             try:
                 self.category_service.add_app_to_category(game.app_id, category)
@@ -609,7 +609,7 @@ class AutoCategorizeService:
         for low, high, key in self._HLTB_RANGES:
             if low <= hours < high:
                 return t(key)
-        return t("ui.auto_categorize.hltb_50_plus")
+        return t("auto_categorize.hltb_50_plus")
 
     # === LANGUAGE CATEGORIZATION ===
 
@@ -640,7 +640,7 @@ class AutoCategorizeService:
                 continue
 
             for language in languages:
-                category = t("ui.auto_categorize.cat_language", name=language)
+                category = t("auto_categorize.cat_language", name=language)
 
                 try:
                     self.category_service.add_app_to_category(game.app_id, category)

@@ -74,7 +74,7 @@ class ModernSteamLoginDialog(QDialog):
 
     def _setup_ui(self):
         """Setup the complete UI."""
-        self.setWindowTitle(f"{t('emoji.lock')} {t('ui.login.steam_login_title')}")
+        self.setWindowTitle(f"{t('emoji.lock')} {t('steam.login.steam_login_title')}")
         self.setMinimumSize(800, 700)
         self.resize(800, 700)
 
@@ -92,7 +92,7 @@ class ModernSteamLoginDialog(QDialog):
         main_layout.addWidget(content, stretch=1)
 
         # Status bar
-        self.status_bar = QLabel(t("ui.login.status_ready"))
+        self.status_bar = QLabel(t("steam.login.status_ready"))
         self.status_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.status_bar.setStyleSheet("""
             QLabel {
@@ -173,11 +173,11 @@ class ModernSteamLoginDialog(QDialog):
         layout = QVBoxLayout(header)
         layout.setContentsMargins(20, 20, 20, 20)
 
-        title = QLabel(t("ui.login.sign_in_steam"))
+        title = QLabel(t("steam.login.sign_in_steam"))
         title.setStyleSheet("color: white; font-size: 24px; font-weight: bold;")
         layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        subtitle = QLabel(t("ui.login.choose_method"))
+        subtitle = QLabel(t("steam.login.choose_method"))
         subtitle.setStyleSheet("color: #c7d5e0; font-size: 14px;")
         layout.addWidget(subtitle, alignment=Qt.AlignmentFlag.AlignCenter)
 
@@ -215,7 +215,7 @@ class ModernSteamLoginDialog(QDialog):
         layout.setSpacing(20)
 
         # Title
-        title = QLabel(t("ui.login.password_method"))
+        title = QLabel(t("steam.login.password_method"))
         title.setStyleSheet("color: white; font-size: 18px; font-weight: bold;")
         layout.addWidget(title)
 
@@ -224,22 +224,22 @@ class ModernSteamLoginDialog(QDialog):
         login_layout.setSpacing(15)
 
         self.username_input = QLineEdit()
-        self.username_input.setPlaceholderText(t("ui.login.username"))
+        self.username_input.setPlaceholderText(t("steam.login.username"))
         login_layout.addWidget(self.username_input)
 
         self.password_input = QLineEdit()
-        self.password_input.setPlaceholderText(t("ui.login.password"))
+        self.password_input.setPlaceholderText(t("steam.login.password"))
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.password_input.returnPressed.connect(self.on_password_login)
         login_layout.addWidget(self.password_input)
 
-        self.pwd_login_btn = QPushButton(t("ui.login.sign_in"))
+        self.pwd_login_btn = QPushButton(t("steam.login.sign_in"))
         self.pwd_login_btn.setMinimumHeight(40)
         self.pwd_login_btn.clicked.connect(self.on_password_login)
         login_layout.addWidget(self.pwd_login_btn)
 
         # Info label for push notification
-        info_label = QLabel(t("ui.login.password_info"))
+        info_label = QLabel(t("steam.login.password_info"))
         info_label.setStyleSheet("color: #8f98a0; font-size: 11px;")
         info_label.setWordWrap(True)
         login_layout.addWidget(info_label)
@@ -258,12 +258,12 @@ class ModernSteamLoginDialog(QDialog):
         layout.setSpacing(20)
 
         # Title
-        title = QLabel(t("ui.login.qr_method"))
+        title = QLabel(t("steam.login.qr_method"))
         title.setStyleSheet("color: white; font-size: 18px; font-weight: bold;")
         layout.addWidget(title)
 
         # Instructions
-        instructions = QLabel(t("ui.login.qr_instructions"))
+        instructions = QLabel(t("steam.login.qr_instructions"))
         instructions.setStyleSheet("color: #c7d5e0;")
         instructions.setWordWrap(True)
         layout.addWidget(instructions)
@@ -280,11 +280,11 @@ class ModernSteamLoginDialog(QDialog):
             }
         """)
         self.qr_label.setMinimumSize(300, 300)
-        self.qr_label.setText(t("ui.login.generating_qr"))
+        self.qr_label.setText(t("steam.login.generating_qr"))
         layout.addWidget(self.qr_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Hint
-        hint = QLabel(t("ui.login.qr_hint"))
+        hint = QLabel(t("steam.login.qr_hint"))
         hint.setStyleSheet("color: #8f98a0; font-size: 12px;")
         hint.setWordWrap(True)
         hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -315,7 +315,7 @@ class ModernSteamLoginDialog(QDialog):
         password = self.password_input.text()
 
         if not username or not password:
-            self.on_status_update(t("ui.login.enter_credentials"))
+            self.on_status_update(t("steam.login.enter_credentials"))
             return
 
         self.show_progress()
@@ -355,7 +355,7 @@ class ModernSteamLoginDialog(QDialog):
             self.display_name = None
 
         self.login_result = result
-        self.on_status_update(t("ui.login.status_success"))
+        self.on_status_update(t("steam.login.status_success"))
         self.login_success.emit(result)
         self.accept()
 
@@ -374,7 +374,7 @@ class ModernSteamLoginDialog(QDialog):
         self.hide_progress()
         self.on_status_update(message)
         # Show message in password section
-        QMessageBox.information(self, t("ui.login.waiting_approval_title"), message)
+        QMessageBox.information(self, t("steam.login.waiting_approval_title"), message)
 
     def load_qr_image(self, challenge_url: str):
         """Generate and display QR code from Steam challenge URL with optional logo."""

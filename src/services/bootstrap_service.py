@@ -217,10 +217,10 @@ class BootstrapService(QObject):
             elif result.steam_id:
                 self.persona_resolved.emit(result.steam_id)
 
-            self.mw.set_status(t("ui.login.session_restored"))
+            self.mw.set_status(t("steam.login.session_restored"))
             self.session_restored.emit(True)
         else:
-            self.mw.set_status(t("ui.login.token_expired"))
+            self.mw.set_status(t("steam.login.token_expired"))
             self.session_restored.emit(False)
 
         self._check_complete()
