@@ -62,6 +62,7 @@ from src.ui.actions import (
     SteamActions,
     GameActions,
     SettingsActions,
+    ProfileActions,
 )
 
 
@@ -136,6 +137,7 @@ class MainWindow(QMainWindow):
         self.steam_actions = SteamActions(self)
         self.game_actions = GameActions(self)
         self.settings_actions = SettingsActions(self)
+        self.profile_actions = ProfileActions(self)
 
         # UI Action Handlers (extracted category / context-menu logic)
         self.category_handler: CategoryActionHandler = CategoryActionHandler(self)

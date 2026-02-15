@@ -9,13 +9,14 @@ and are designed to extract action logic from the monolithic main_window.py.
 
 from __future__ import annotations
 
-from src.ui.actions.file_actions import FileActions
 from src.ui.actions.edit_actions import EditActions
-from src.ui.actions.view_actions import ViewActions
-from src.ui.actions.tools_actions import ToolsActions
-from src.ui.actions.steam_actions import SteamActions
+from src.ui.actions.file_actions import FileActions
 from src.ui.actions.game_actions import GameActions
+from src.ui.actions.profile_actions import ProfileActions
 from src.ui.actions.settings_actions import SettingsActions
+from src.ui.actions.steam_actions import SteamActions
+from src.ui.actions.tools_actions import ToolsActions
+from src.ui.actions.view_actions import ViewActions
 
 # Export public classes
 __all__ = [
@@ -26,4 +27,5 @@ __all__ = [
     "SteamActions",
     "GameActions",
     "SettingsActions",
+    "ProfileActions",
 ]

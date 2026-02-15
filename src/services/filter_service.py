@@ -78,6 +78,16 @@ class FilterService:
             active_statuses=frozenset(self._active_statuses),
         )
 
+    def restore_state(self, state: FilterState) -> None:
+        """Replaces the current filter state with the given snapshot.
+
+        Args:
+            state: A frozen FilterState to restore from.
+        """
+        self._enabled_types = set(state.enabled_types)
+        self._enabled_platforms = set(state.enabled_platforms)
+        self._active_statuses = set(state.active_statuses)
+
     def toggle_type(self, key: str, enabled: bool) -> None:
         """Enables or disables a type filter.
 

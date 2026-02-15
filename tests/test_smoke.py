@@ -34,6 +34,7 @@ CORE_MODULES: list[str] = [
     "src.core.steam_assets",
     "src.core.steam_login_manager",
     "src.core.token_store",
+    "src.core.profile_manager",
 ]
 
 SERVICE_MODULES: list[str] = [
@@ -79,6 +80,7 @@ UI_MODULES: list[str] = [
     "src.ui.actions.settings_actions",
     "src.ui.actions.steam_actions",
     "src.ui.actions.tools_actions",
+    "src.ui.actions.profile_actions",
     "src.ui.actions.view_actions",
     "src.ui.builders.central_widget_builder",
     "src.ui.builders.menu_builder",
@@ -90,6 +92,7 @@ UI_MODULES: list[str] = [
     "src.ui.dialogs.metadata_dialogs",
     "src.ui.dialogs.missing_metadata_dialog",
     "src.ui.dialogs.pegi_selector_dialog",
+    "src.ui.dialogs.profile_dialog",
     "src.ui.dialogs.profile_setup_dialog",
     "src.ui.dialogs.settings_dialog",
     "src.ui.dialogs.steam_modern_login_dialog",
