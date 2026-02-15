@@ -14,7 +14,7 @@ import json
 import logging
 
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QUrl
-from PyQt6.QtGui import QDesktopServices, QFont
+from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
     QDialog,
@@ -30,6 +30,7 @@ from PyQt6.QtWidgets import (
 
 from src.config import config
 from src.integrations.steamgrid_api import SteamGridDB
+from src.ui.utils.font_helper import FontHelper
 from src.ui.widgets.clickable_image import ClickableImage
 from src.utils.i18n import t
 
@@ -155,7 +156,7 @@ class ImageSelectionDialog(QDialog):
         setup_layout.setSpacing(20)
 
         title_lbl = QLabel(t("steam.grid_setup.title"))
-        title_lbl.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        title_lbl.setFont(FontHelper.get_font(16, FontHelper.BOLD))
         title_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         setup_layout.addWidget(title_lbl)
 

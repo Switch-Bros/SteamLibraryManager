@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -28,6 +27,7 @@ from PyQt6.QtWidgets import (
 )
 
 from src.config import config
+from src.ui.utils.font_helper import FontHelper
 from src.utils.i18n import t
 
 
@@ -91,10 +91,7 @@ class AutoCategorizeDialog(QDialog):
 
         # Title
         title = QLabel(t("auto_categorize.header"))
-        title_font = QFont()
-        title_font.setPointSize(16)
-        title_font.setBold(True)
-        title.setFont(title_font)
+        title.setFont(FontHelper.get_font(16, FontHelper.BOLD))
         layout.addWidget(title)
 
         # === METHODS GROUP ===

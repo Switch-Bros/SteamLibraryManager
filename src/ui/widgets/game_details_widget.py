@@ -10,6 +10,10 @@ It allows users to edit metadata, change images, and toggle categories.
 
 from __future__ import annotations
 
+from pathlib import Path
+
+from PyQt6.QtCore import Qt, pyqtSignal, QSize
+from PyQt6.QtGui import QCursor
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -27,15 +31,13 @@ from PyQt6.QtWidgets import (
     QDialog,
 )
 
-from PyQt6.QtCore import Qt, pyqtSignal, QSize
-from PyQt6.QtGui import QFont, QCursor
-from pathlib import Path
 from src.core.game_manager import Game
-from src.utils.i18n import t
-from src.utils.date_utils import format_timestamp_to_date
-from src.ui.widgets.clickable_image import ClickableImage
 from src.core.steam_assets import SteamAssets
 from src.ui.dialogs.image_selection_dialog import ImageSelectionDialog
+from src.ui.utils.font_helper import FontHelper
+from src.ui.widgets.clickable_image import ClickableImage
+from src.utils.date_utils import format_timestamp_to_date
+from src.utils.i18n import t
 
 
 class InfoLabel(QLabel):
@@ -283,7 +285,7 @@ class GameDetailsWidget(QWidget):
 
         left_container = QVBoxLayout()
         self.name_label = QLabel(t("ui.game_details.select_placeholder"))
-        self.name_label.setFont(QFont("Arial", 22, QFont.Weight.Bold))
+        self.name_label.setFont(FontHelper.get_font(22, FontHelper.BOLD))
         self.name_label.setWordWrap(True)
         self.name_label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         left_container.addWidget(self.name_label)
@@ -458,7 +460,7 @@ class GameDetailsWidget(QWidget):
 
         # === CATEGORIES ===
         cat_header = QLabel(t("ui.game_details.categories_label"))
-        cat_header.setFont(QFont("Arial", 10, QFont.Weight.Bold))
+        cat_header.setFont(FontHelper.get_font(10, FontHelper.BOLD))
         cat_header.setStyleSheet("padding-top: 5px; padding-bottom: 5px;")
         main_layout.addWidget(cat_header)
 
