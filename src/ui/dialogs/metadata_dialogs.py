@@ -8,7 +8,6 @@ All dialogs feature visual indicators for modified fields.
 
 from __future__ import annotations
 
-from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -23,6 +22,7 @@ from PyQt6.QtWidgets import (
     QMessageBox,
 )
 
+from src.ui.utils.font_helper import FontHelper
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.date_utils import parse_date_to_timestamp, format_timestamp_to_date
 from src.utils.i18n import t
@@ -75,7 +75,7 @@ class MetadataEditDialog(QDialog):
 
         # Title
         title = QLabel(t("ui.metadata_editor.editing_title", game=self.game_name))
-        title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        title.setFont(FontHelper.get_font(14, FontHelper.BOLD))
         layout.addWidget(title)
 
         # Info
@@ -357,7 +357,7 @@ class BulkMetadataEditDialog(QDialog):
         """
         layout = QVBoxLayout(self)
         title = QLabel(t("ui.metadata_editor.bulk_title", count=self.games_count))
-        title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        title.setFont(FontHelper.get_font(14, FontHelper.BOLD))
         layout.addWidget(title)
 
         # Emoji prefix assembled in code — keeps locale strings clean
@@ -501,7 +501,7 @@ class MetadataRestoreDialog(QDialog):
         """
         layout = QVBoxLayout(self)
         title = QLabel(t("menu.edit.reset_metadata"))
-        title.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        title.setFont(FontHelper.get_font(16, FontHelper.BOLD))
         layout.addWidget(title)
 
         info_lbl = QLabel(t("ui.metadata_editor.restore_info", count=self.modified_count))

@@ -9,7 +9,6 @@ duplicates are merged into the chosen one.
 
 from __future__ import annotations
 
-from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -23,6 +22,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from src.ui.utils.font_helper import FontHelper
 from src.utils.i18n import t
 
 __all__ = ["MergeDuplicatesDialog"]
@@ -75,7 +75,7 @@ class MergeDuplicatesDialog(QDialog):
 
         # Title
         title = QLabel(t("categories.merge_duplicates_title"))
-        title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        title.setFont(FontHelper.get_font(14, FontHelper.BOLD))
         layout.addWidget(title)
 
         # Info text

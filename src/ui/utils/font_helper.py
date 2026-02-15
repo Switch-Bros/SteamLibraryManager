@@ -33,6 +33,7 @@ class FontHelper:
     _font_loaded: bool = False
     FONT_NAME: str = "Inter"
     FONT_FILE: str = "InterVariable.ttf"
+    BOLD: QFont.Weight = QFont.Weight.Bold
 
     @classmethod
     def load_font(cls) -> None:

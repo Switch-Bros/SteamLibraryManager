@@ -10,6 +10,10 @@ the list to a CSV file.
 
 from __future__ import annotations
 
+import csv
+from pathlib import Path
+
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -22,12 +26,10 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QHeaderView,
 )
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont
-from pathlib import Path
-import csv
-from src.utils.date_utils import format_timestamp_to_date
+
 from src.core.game_manager import Game
+from src.ui.utils.font_helper import FontHelper
+from src.utils.date_utils import format_timestamp_to_date
 from src.utils.i18n import t
 
 
@@ -89,7 +91,7 @@ class MissingMetadataDialog(QDialog):
 
         # Header
         header = QLabel(t("ui.tools.missing_metadata.header", count=len(self.games)))
-        header.setFont(QFont("Arial", 14, QFont.Weight.Bold))
+        header.setFont(FontHelper.get_font(14, FontHelper.BOLD))
         layout.addWidget(header)
 
         # Info Text
