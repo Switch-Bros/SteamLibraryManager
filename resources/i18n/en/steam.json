@@ -68,14 +68,6 @@
       "close_failed": "Failed to close Steam. Please close it manually and try again.",
       "startup_title": "Steam is Running!",
       "startup_msg": "Steam Library Manager detected that Steam is running.\n\nPlease close Steam."
-    },
-    "grid_setup": {
-      "title": "Setup SteamGridDB",
-      "info": "To download covers, you need a free API Key.",
-      "step_1": "1. Login to SteamGridDB",
-      "step_2": "2. Generate/Copy API Key",
-      "step_3": "3. Paste Key below",
-      "get_key_btn": "Get API Key (Open Browser)"
     }
   }
 }

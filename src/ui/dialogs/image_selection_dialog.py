@@ -155,24 +155,24 @@ class ImageSelectionDialog(QDialog):
         setup_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         setup_layout.setSpacing(20)
 
-        title_lbl = QLabel(t("steam.grid_setup.title"))
+        title_lbl = QLabel(t("settings.grid_setup.title"))
         title_lbl.setFont(FontHelper.get_font(16, FontHelper.BOLD))
         title_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         setup_layout.addWidget(title_lbl)
 
         info_lbl = QLabel(
-            t("steam.grid_setup.info")
+            t("settings.grid_setup.info")
             + "\n\n"
-            + t("steam.grid_setup.step_1")
+            + t("settings.grid_setup.step_1")
             + "\n"
-            + t("steam.grid_setup.step_2")
+            + t("settings.grid_setup.step_2")
             + "\n"
-            + t("steam.grid_setup.step_3")
+            + t("settings.grid_setup.step_3")
         )
         info_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         setup_layout.addWidget(info_lbl)
 
-        get_key_btn = QPushButton(t("steam.grid_setup.get_key_btn"))
+        get_key_btn = QPushButton(t("settings.grid_setup.get_key_btn"))
         get_key_btn.setMinimumHeight(40)
         get_key_btn.clicked.connect(
             lambda: QDesktopServices.openUrl(QUrl("https://www.steamgriddb.com/profile/preferences/api"))
@@ -181,11 +181,11 @@ class ImageSelectionDialog(QDialog):
 
         input_layout = QHBoxLayout()
         self.key_input = QLineEdit()
-        self.key_input.setPlaceholderText(t("steam.grid_setup.key_placeholder"))
+        self.key_input.setPlaceholderText(t("settings.grid_setup.key_placeholder"))
         self.key_input.setMinimumHeight(35)
         input_layout.addWidget(self.key_input)
 
-        save_btn = QPushButton(t("steam.grid_setup.save_btn"))
+        save_btn = QPushButton(t("settings.grid_setup.save_btn"))
         save_btn.setMinimumHeight(35)
         save_btn.clicked.connect(self._save_key_and_reload)
         input_layout.addWidget(save_btn)

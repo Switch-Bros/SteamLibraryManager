@@ -53,7 +53,7 @@ class EnrichmentActions:
 
         # Check library availability
         if not HLTBClient.is_available():
-            UIHelper.show_warning(self.mw, t("enrichment.hltb_not_available"))
+            UIHelper.show_warning(self.mw, t("ui.enrichment.hltb_not_available"))
             return
 
         # Check database
@@ -63,7 +63,7 @@ class EnrichmentActions:
 
         games = db.get_apps_without_hltb()
         if not games:
-            UIHelper.show_info(self.mw, t("enrichment.no_games_hltb"))
+            UIHelper.show_info(self.mw, t("ui.enrichment.no_games_hltb"))
             return
 
         # Create worker and thread
@@ -77,7 +77,7 @@ class EnrichmentActions:
         thread.started.connect(lambda: worker.run_hltb_enrichment(games, db, hltb_client))
 
         # Create and show dialog
-        dialog = EnrichmentDialog(t("enrichment.hltb_title"), self.mw)
+        dialog = EnrichmentDialog(t("ui.enrichment.hltb_title"), self.mw)
         dialog.start_worker(worker, thread)
         dialog.exec()
 
@@ -94,7 +94,8 @@ class EnrichmentActions:
         # Check API key
         api_key = config.STEAM_API_KEY
         if not api_key:
-            UIHelper.show_warning(self.mw, t("enrichment.no_api_key"))
+            UIHelper.show_warning(self.mw, t("ui.enrichment.no_api_key"))
+            self._open_settings_api_tab()
             return
 
         # Check database
@@ -104,7 +105,7 @@ class EnrichmentActions:
 
         games = db.get_apps_missing_metadata()
         if not games:
-            UIHelper.show_info(self.mw, t("enrichment.no_games_steam"))
+            UIHelper.show_info(self.mw, t("ui.enrichment.no_games_steam"))
             return
 
         # Create worker and thread
@@ -115,9 +116,18 @@ class EnrichmentActions:
         thread.started.connect(lambda: worker.run_steam_api_enrichment(games, db, api_key))
 
         # Create and show dialog
-        dialog = EnrichmentDialog(t("enrichment.steam_title"), self.mw)
+        dialog = EnrichmentDialog(t("ui.enrichment.steam_title"), self.mw)
         dialog.start_worker(worker, thread)
         dialog.exec()
+
+    def _open_settings_api_tab(self) -> None:
+        """Opens the Settings dialog on the API keys tab."""
+        from src.ui.dialogs.settings_dialog import SettingsDialog
+
+        dialog = SettingsDialog(self.mw)
+        dialog.tabs.setCurrentIndex(1)  # "Other" tab with API keys
+        if dialog.exec():
+            self.mw.settings_actions.apply_settings(dialog.get_settings())
 
     def _get_database(self):
         """Returns the active database instance or shows an error.

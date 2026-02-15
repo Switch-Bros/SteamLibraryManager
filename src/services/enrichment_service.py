@@ -74,7 +74,7 @@ class EnrichmentWorker(QObject):
                 break
 
             self.progress.emit(
-                t("enrichment.progress", name=name, current=idx + 1, total=total),
+                t("ui.enrichment.progress", name=name, current=idx + 1, total=total),
                 idx + 1,
                 total,
             )
@@ -131,7 +131,7 @@ class EnrichmentWorker(QObject):
         total = len(games)
 
         if not api_key:
-            self.error.emit(t("enrichment.no_api_key"))
+            self.error.emit(t("ui.enrichment.no_api_key"))
             return
 
         try:
@@ -153,8 +153,9 @@ class EnrichmentWorker(QObject):
             batch = app_ids[batch_start : batch_start + batch_size]
             current = min(batch_start + batch_size, total)
 
+            batch_name = f"Batch {batch_start // batch_size + 1}"
             self.progress.emit(
-                t("enrichment.progress", name=f"Batch {batch_start // batch_size + 1}", current=current, total=total),
+                t("ui.enrichment.progress", name=batch_name, current=current, total=total),
                 current,
                 total,
             )
