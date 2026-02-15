@@ -18,6 +18,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMessageBox, QProgressDialog, QApplication
 
 from src.core.game_manager import Game
+
 # Dialogs
 from src.ui.dialogs.auto_categorize_dialog import AutoCategorizeDialog
 from src.ui.dialogs.metadata_dialogs import MetadataEditDialog, BulkMetadataEditDialog, MetadataRestoreDialog
