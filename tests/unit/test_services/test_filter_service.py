@@ -30,6 +30,7 @@ def _make_game(
     hidden: bool = False,
     playtime_minutes: int = 0,
     categories: list[str] | None = None,
+    languages: list[str] | None = None,
 ) -> Game:
     """Helper to create a Game with sensible defaults."""
     return Game(
@@ -41,6 +42,7 @@ def _make_game(
         hidden=hidden,
         playtime_minutes=playtime_minutes,
         categories=categories,
+        languages=languages,
     )
 
 
@@ -358,3 +360,88 @@ class TestApplyCombinedFilters:
         service.toggle_type("games", False)
         result = service.apply([])
         assert result == []
+
+
+# ===========================================================================
+# Language Filter Tests
+# ===========================================================================
+
+
+class TestLanguageFilter:
+    """Tests for the language filter extension."""
+
+    def test_toggle_language_adds_to_active(self, service: FilterService) -> None:
+        """Toggling a language on adds it to active set."""
+        service.toggle_language("english", True)
+        state = service.state
+        assert "english" in state.active_languages
+
+    def test_toggle_language_removes_from_active(self, service: FilterService) -> None:
+        """Toggling a language off removes it from active set."""
+        service.toggle_language("english", True)
+        service.toggle_language("english", False)
+        state = service.state
+        assert "english" not in state.active_languages
+
+    def test_language_filter_single_language_filters(self, service: FilterService) -> None:
+        """Single active language filters out games without that language."""
+        game_en = _make_game("1", "English Game", languages=["english"])
+        game_de = _make_game("2", "German Game", languages=["german"])
+        game_both = _make_game("3", "Both Game", languages=["english", "german"])
+
+        service.toggle_language("english", True)
+        result = service.apply([game_en, game_de, game_both])
+
+        assert len(result) == 2
+        result_ids = {g.app_id for g in result}
+        assert "1" in result_ids
+        assert "3" in result_ids
+        assert "2" not in result_ids
+
+    def test_language_filter_multi_or_logic(self, service: FilterService) -> None:
+        """Multiple active languages use OR logic (any match passes)."""
+        game_en = _make_game("1", "English Game", languages=["english"])
+        game_de = _make_game("2", "German Game", languages=["german"])
+        game_fr = _make_game("3", "French Game", languages=["french"])
+
+        service.toggle_language("english", True)
+        service.toggle_language("german", True)
+        result = service.apply([game_en, game_de, game_fr])
+
+        assert len(result) == 2
+        result_ids = {g.app_id for g in result}
+        assert "1" in result_ids
+        assert "2" in result_ids
+        assert "3" not in result_ids
+
+    def test_game_without_languages_passes_filter(self, service: FilterService) -> None:
+        """Games without language data pass the filter (safe default)."""
+        game_no_lang = _make_game("1", "No Language Data")
+        service.toggle_language("english", True)
+
+        result = service.apply([game_no_lang])
+        assert len(result) == 1
+
+    def test_no_active_languages_all_pass(self, service: FilterService) -> None:
+        """When no language filter is active, all games pass."""
+        game_en = _make_game("1", "English Game", languages=["english"])
+        game_de = _make_game("2", "German Game", languages=["german"])
+
+        result = service.apply([game_en, game_de])
+        assert len(result) == 2
+
+    def test_language_filter_in_has_active_filters(self, service: FilterService) -> None:
+        """Active language filter makes has_active_filters() return True."""
+        assert not service.has_active_filters()
+        service.toggle_language("english", True)
+        assert service.has_active_filters()
+
+    def test_language_filter_state_restore(self, service: FilterService) -> None:
+        """Language filter state is preserved through save/restore cycle."""
+        service.toggle_language("german", True)
+        service.toggle_language("japanese", True)
+        state = service.state
+
+        new_service = FilterService()
+        new_service.restore_state(state)
+        assert new_service.state.active_languages == frozenset({"german", "japanese"})

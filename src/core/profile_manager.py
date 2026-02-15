@@ -51,6 +51,7 @@ class Profile:
     filter_enabled_types: frozenset[str] = ALL_TYPE_KEYS
     filter_enabled_platforms: frozenset[str] = ALL_PLATFORM_KEYS
     filter_active_statuses: frozenset[str] = frozenset()
+    filter_active_languages: frozenset[str] = frozenset()
     view_mode: str = "details"
     created_at: float = 0.0
 
@@ -77,6 +78,7 @@ def _serialize_profile(profile: Profile) -> dict[str, Any]:
             "enabled_types": sorted(profile.filter_enabled_types),
             "enabled_platforms": sorted(profile.filter_enabled_platforms),
             "active_statuses": sorted(profile.filter_active_statuses),
+            "active_languages": sorted(profile.filter_active_languages),
         },
         "view_mode": profile.view_mode,
     }
@@ -112,6 +114,7 @@ def _deserialize_profile(data: dict[str, Any]) -> Profile:
         filter_enabled_types=frozenset(filters.get("enabled_types", ALL_TYPE_KEYS)),
         filter_enabled_platforms=frozenset(filters.get("enabled_platforms", ALL_PLATFORM_KEYS)),
         filter_active_statuses=frozenset(filters.get("active_statuses", ())),
+        filter_active_languages=frozenset(filters.get("active_languages", ())),
         view_mode=data.get("view_mode", "details"),
     )
 
@@ -280,6 +283,7 @@ class ProfileManager:
             filter_enabled_types=old_profile.filter_enabled_types,
             filter_enabled_platforms=old_profile.filter_enabled_platforms,
             filter_active_statuses=old_profile.filter_active_statuses,
+            filter_active_languages=old_profile.filter_active_languages,
             view_mode=old_profile.view_mode,
             created_at=old_profile.created_at,
         )
@@ -348,6 +352,7 @@ class ProfileManager:
                 filter_enabled_types=profile.filter_enabled_types,
                 filter_enabled_platforms=profile.filter_enabled_platforms,
                 filter_active_statuses=profile.filter_active_statuses,
+                filter_active_languages=profile.filter_active_languages,
                 view_mode=profile.view_mode,
                 created_at=time.time(),
             )

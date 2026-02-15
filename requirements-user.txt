@@ -30,3 +30,6 @@ protobuf>=4.21.0
 
 # ===== Web UI (for OAuth login) =====
 pywebview>=5.3.2
+
+# ===== HowLongToBeat (optional enrichment) =====
+howlongtobeatpy>=1.0.1

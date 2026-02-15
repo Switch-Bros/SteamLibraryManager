@@ -6,6 +6,7 @@
       "export": {
         "root": "Export",
         "collections_vdf": "Collections as VDF",
+        "collections_text": "Categories (Human-Readable)",
         "games_csv_simple": "Game List as CSV (Simple)",
         "games_csv_full": "Game List as CSV (Full)",
         "games_json": "Game List as JSON",
@@ -75,6 +76,24 @@
         "hidden": "Hidden",
         "with_playtime": "With Playtime",
         "favorites": "Favorites"
+      },
+      "language": {
+        "root": "Languages",
+        "english": "English",
+        "german": "German",
+        "french": "French",
+        "spanish": "Spanish",
+        "italian": "Italian",
+        "portuguese": "Portuguese",
+        "russian": "Russian",
+        "polish": "Polish",
+        "japanese": "Japanese",
+        "chinese_simplified": "Chinese (Simplified)",
+        "chinese_traditional": "Chinese (Traditional)",
+        "korean": "Korean",
+        "dutch": "Dutch",
+        "swedish": "Swedish",
+        "turkish": "Turkish"
       },
       "statistics": {
         "root": "Show Statistics",

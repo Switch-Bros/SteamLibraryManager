@@ -880,6 +880,112 @@ class Database:
         return count
 
     # ========================================================================
+    # ENRICHMENT QUERIES (Phase 5)
+    # ========================================================================
+
+    def upsert_game_metadata(self, app_id: int, **fields: Any) -> None:
+        """Updates specific metadata fields for an existing game.
+
+        Only updates the provided fields; other columns remain unchanged.
+        Silently does nothing if the game does not exist.
+
+        Args:
+            app_id: Steam app ID.
+            **fields: Column name/value pairs to update (e.g. developer="Valve").
+        """
+        if not fields:
+            return
+
+        # Filter to valid column names to prevent SQL injection
+        valid_columns = {
+            "name",
+            "sort_as",
+            "app_type",
+            "developer",
+            "publisher",
+            "original_release_date",
+            "steam_release_date",
+            "release_date",
+            "review_score",
+            "review_count",
+            "is_free",
+            "is_early_access",
+            "vr_support",
+            "controller_support",
+            "cloud_saves",
+            "workshop",
+            "trading_cards",
+            "achievements_total",
+            "platforms",
+        }
+        safe_fields = {k: v for k, v in fields.items() if k in valid_columns}
+        if not safe_fields:
+            return
+
+        set_clause = ", ".join(f"{col} = ?" for col in safe_fields)
+        values = list(safe_fields.values()) + [int(time.time()), app_id]
+
+        self.conn.execute(
+            f"UPDATE games SET {set_clause}, updated_at = ? WHERE app_id = ?",
+            values,
+        )
+
+    def upsert_languages(self, app_id: int, languages: dict[str, dict[str, bool]]) -> None:
+        """Replaces language support data for a game.
+
+        Deletes existing language rows and inserts the new ones.
+
+        Args:
+            app_id: Steam app ID.
+            languages: Dict mapping language name to support flags
+                (interface, audio, subtitles).
+        """
+        if not languages:
+            return
+
+        self.conn.execute("DELETE FROM game_languages WHERE app_id = ?", (app_id,))
+
+        rows = [
+            (
+                app_id,
+                lang,
+                support.get("interface", False),
+                support.get("audio", False),
+                support.get("subtitles", False),
+            )
+            for lang, support in languages.items()
+        ]
+        self.conn.executemany(
+            "INSERT OR REPLACE INTO game_languages"
+            " (app_id, language, interface, audio, subtitles)"
+            " VALUES (?, ?, ?, ?, ?)",
+            rows,
+        )
+
+    def get_apps_missing_metadata(self) -> list[tuple[int, str]]:
+        """Returns apps with missing developer metadata.
+
+        Returns:
+            List of (app_id, name) tuples for games where developer
+            is NULL or empty string.
+        """
+        cursor = self.conn.execute("SELECT app_id, name FROM games WHERE developer IS NULL OR developer = ''")
+        return [(row[0], row[1]) for row in cursor.fetchall()]
+
+    def get_apps_without_hltb(self) -> list[tuple[int, str]]:
+        """Returns game-type apps that have no HLTB data.
+
+        Returns:
+            List of (app_id, name) tuples for games without HLTB records.
+        """
+        cursor = self.conn.execute("""
+            SELECT g.app_id, g.name FROM games g
+            LEFT JOIN hltb_data h ON g.app_id = h.app_id
+            WHERE h.app_id IS NULL AND g.app_type IN ('game', '')
+            """)
+        return [(row[0], row[1]) for row in cursor.fetchall()]
+
+    # ========================================================================
     # UTILITY METHODS
     # ========================================================================
 
