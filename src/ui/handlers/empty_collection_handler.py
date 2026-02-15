@@ -8,6 +8,7 @@ after removing games.
 """
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -36,10 +37,10 @@ class EmptyCollectionHandler:
             from src.utils.i18n import t
 
             self._protected_collections = {
-                t("ui.categories.all_games"),
-                t("ui.categories.favorites"),
-                t("ui.categories.uncategorized"),
-                t("ui.categories.hidden"),
+                t("categories.all_games"),
+                t("categories.favorites"),
+                t("categories.uncategorized"),
+                t("categories.hidden"),
             }
         return self._protected_collections
 

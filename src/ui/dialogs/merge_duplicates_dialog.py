@@ -9,6 +9,7 @@ duplicates are merged into the chosen one.
 
 from __future__ import annotations
 
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -21,7 +22,6 @@ from PyQt6.QtWidgets import (
     QButtonGroup,
     QWidget,
 )
-from PyQt6.QtGui import QFont
 
 from src.utils.i18n import t
 
@@ -62,7 +62,7 @@ class MergeDuplicatesDialog(QDialog):
 
         self._button_groups: dict[str, QButtonGroup] = {}
 
-        self.setWindowTitle(t("ui.categories.merge_duplicates_title"))
+        self.setWindowTitle(t("categories.merge_duplicates_title"))
         self.setMinimumWidth(550)
         self.setMinimumHeight(300)
         self.setModal(True)
@@ -74,12 +74,12 @@ class MergeDuplicatesDialog(QDialog):
         layout = QVBoxLayout(self)
 
         # Title
-        title = QLabel(t("ui.categories.merge_duplicates_title"))
+        title = QLabel(t("categories.merge_duplicates_title"))
         title.setFont(QFont("Arial", 14, QFont.Weight.Bold))
         layout.addWidget(title)
 
         # Info text
-        info = QLabel(t("ui.categories.merge_duplicates_info"))
+        info = QLabel(t("categories.merge_duplicates_info"))
         info.setWordWrap(True)
         info.setStyleSheet("color: gray; margin-bottom: 8px;")
         layout.addWidget(info)
@@ -91,7 +91,7 @@ class MergeDuplicatesDialog(QDialog):
         scroll_layout = QVBoxLayout(scroll_widget)
 
         for name, collections in sorted(self._groups.items()):
-            group_box = QGroupBox(t("ui.categories.merge_duplicates_group", name=name, count=len(collections)))
+            group_box = QGroupBox(t("categories.merge_duplicates_group", name=name, count=len(collections)))
             group_layout = QVBoxLayout()
 
             button_group = QButtonGroup(self)
@@ -103,7 +103,7 @@ class MergeDuplicatesDialog(QDialog):
                     apps = []
                 game_count = len(apps)
 
-                radio = QRadioButton(t("ui.categories.merge_duplicates_entry", index=idx + 1, game_count=game_count))
+                radio = QRadioButton(t("categories.merge_duplicates_entry", index=idx + 1, game_count=game_count))
                 if idx == 0:
                     radio.setChecked(True)
 
@@ -125,7 +125,7 @@ class MergeDuplicatesDialog(QDialog):
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
 
-        merge_btn = QPushButton(t("ui.categories.merge_duplicates_title"))
+        merge_btn = QPushButton(t("categories.merge_duplicates_title"))
         merge_btn.setDefault(True)
         merge_btn.clicked.connect(self.accept)
         btn_layout.addWidget(merge_btn)

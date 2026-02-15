@@ -9,11 +9,12 @@ Handles strict I18N compliance by pulling both text and icons/emojis from locale
 """
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtWidgets import QToolBar, QWidget, QSizePolicy
-from PyQt6.QtCore import Qt
 
 from src.config import config
 from src.ui.widgets.ui_helper import UIHelper
@@ -118,9 +119,9 @@ class ToolbarBuilder:
         toolbar.addWidget(spacer)
 
         # Settings: [Emoji] [Text]
-        settings_text = f"{t('emoji.settings')} {t('ui.settings.title')}"
+        settings_text = f"{t('emoji.settings')} {t('settings.title')}"
         settings_action = QAction(settings_text, mw)
-        settings_action.setToolTip(t("ui.settings.title"))
+        settings_action.setToolTip(t("settings.title"))
         settings_action.triggered.connect(mw.settings_actions.show_settings)
         toolbar.addAction(settings_action)
 
@@ -152,7 +153,7 @@ class ToolbarBuilder:
         user_action = QAction(action_text, mw)
 
         # Localized tooltip using t()
-        tooltip_text = t("ui.login.logged_in_as", user=mw.steam_username)
+        tooltip_text = t("steam.login.logged_in_as", user=mw.steam_username)
         user_action.setToolTip(tooltip_text)
 
         # Show info on click with logout option
@@ -175,9 +176,9 @@ class ToolbarBuilder:
         mw = self.main_window
 
         # Display: [Login Emoji] [Login Text]
-        action_text = f"{t('emoji.login')} {t('ui.login.button')}"
+        action_text = f"{t('emoji.login')} {t('steam.login.button')}"
         login_action = QAction(action_text, mw)
-        login_action.setToolTip(t("ui.login.button"))
+        login_action.setToolTip(t("steam.login.button"))
 
         icon_path = config.ICONS_DIR / "steam_login.png"
         if icon_path.exists():
@@ -199,12 +200,12 @@ class ToolbarBuilder:
         # Create custom message box
         msg_box = QMessageBox(mw)
         msg_box.setWindowTitle("Steam")
-        msg_box.setText(t("ui.login.logged_in_as", user=mw.steam_username))
+        msg_box.setText(t("steam.login.logged_in_as", user=mw.steam_username))
         msg_box.setIcon(QMessageBox.Icon.Information)
 
         # Add buttons
         msg_box.addButton(t("common.ok"), QMessageBox.ButtonRole.AcceptRole)
-        logout_btn = msg_box.addButton(t("ui.login.logout"), QMessageBox.ButtonRole.DestructiveRole)
+        logout_btn = msg_box.addButton(t("steam.login.logout"), QMessageBox.ButtonRole.DestructiveRole)
 
         # Show dialog
         msg_box.exec()
@@ -245,6 +246,6 @@ class ToolbarBuilder:
         mw.refresh_toolbar()
 
         # Update status
-        mw.set_status(t("ui.login.logged_out"))
+        mw.set_status(t("steam.login.logged_out"))
 
-        UIHelper.show_success(mw, t("ui.login.logged_out"), "Steam")
+        UIHelper.show_success(mw, t("steam.login.logged_out"), "Steam")

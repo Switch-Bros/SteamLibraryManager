@@ -92,8 +92,8 @@ class GameQueryService:
             A sorted list of uncategorized games.
         """
         system_categories = {
-            t("ui.categories.favorites"),
-            t("ui.categories.hidden"),
+            t("categories.favorites"),
+            t("categories.hidden"),
         }
 
         uncategorized = []

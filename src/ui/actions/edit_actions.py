@@ -83,9 +83,9 @@ class EditActions:
         if not self.mw.game_manager:
             return
 
-        if category == t("ui.categories.all_games"):
+        if category == t("categories.all_games"):
             self._show_auto_categorize_dialog(self.mw.game_manager.get_real_games(), category)
-        elif category == t("ui.categories.uncategorized"):
+        elif category == t("categories.uncategorized"):
             self._show_auto_categorize_dialog(self.mw.game_manager.get_uncategorized_games(), category)
         else:
             self._show_auto_categorize_dialog(self.mw.game_manager.get_games_by_category(category), category)
@@ -151,10 +151,10 @@ class EditActions:
 
         msg_box = QMessageBox(self.mw)
         msg_box.setIcon(QMessageBox.Icon.Warning)
-        msg_box.setWindowTitle(t("ui.auto_categorize.cache_warning_title"))
+        msg_box.setWindowTitle(t("auto_categorize.cache_warning_title"))
         msg_box.setText(
             t(
-                "ui.auto_categorize.cache_warning_message",
+                "auto_categorize.cache_warning_message",
                 cached=coverage["cached"],
                 total=coverage["total"],
                 time=time_str,
@@ -189,7 +189,7 @@ class EditActions:
         methods = settings["methods"]
 
         progress = QProgressDialog(
-            t("ui.auto_categorize.processing", current=0, total=len(games)),
+            t("auto_categorize.processing", current=0, total=len(games)),
             t("common.cancel"),
             0,
             len(methods) * len(games),
@@ -227,7 +227,7 @@ class EditActions:
                         return
                     progress.setValue(step + index)
                     if index % 10 == 0:
-                        progress.setLabelText(t("ui.auto_categorize.status_tags", game=name[:30]))
+                        progress.setLabelText(t("auto_categorize.status_tags", game=name[:30]))
                     QApplication.processEvents()
 
                 self.mw.autocategorize_service.categorize_by_tags(

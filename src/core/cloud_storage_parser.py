@@ -22,9 +22,8 @@ Format:
 
 from __future__ import annotations
 
-
-import logging
 import json
+import logging
 import os
 import time
 from pathlib import Path
@@ -49,12 +48,12 @@ class CloudStorageParser:
         any translation of 'Uncategorized' or 'All Games' is recognised.
         """
         return {
-            t("ui.categories.uncategorized"),
-            t("ui.categories.all_games"),
-            t("ui.categories.soundtracks"),
-            t("ui.categories.tools"),
-            t("ui.categories.software"),
-            t("ui.categories.videos"),
+            t("categories.uncategorized"),
+            t("categories.all_games"),
+            t("categories.soundtracks"),
+            t("categories.tools"),
+            t("categories.software"),
+            t("categories.videos"),
         }
 
     @staticmethod
@@ -66,8 +65,8 @@ class CloudStorageParser:
         name and map it to the correct Steam-internal ID.
         """
         return {
-            t("ui.categories.favorites"): "favorite",
-            t("ui.categories.hidden"): "hidden",
+            t("categories.favorites"): "favorite",
+            t("categories.hidden"): "hidden",
         }
 
     def __init__(self, steam_path: str, user_id: str):

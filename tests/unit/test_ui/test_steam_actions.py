@@ -6,8 +6,10 @@ Tests the Steam menu action handler that manages:
 - About dialog display
 """
 
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
+
 from src.ui.actions.steam_actions import SteamActions
 
 
@@ -90,13 +92,13 @@ class TestShowAbout:
 
         # Assert - t() was called for title and description
         mock_t.assert_any_call("menu.help.about")
-        mock_t.assert_any_call("app.description")
+        mock_t.assert_any_call("common.description")
 
         # Verify QMessageBox.about was called with translated strings
         _mock_qmessagebox.about.assert_called_once()
         call_args = _mock_qmessagebox.about.call_args[0]
         assert call_args[1] == "TRANSLATED_menu.help.about"
-        assert call_args[2] == "TRANSLATED_app.description"
+        assert call_args[2] == "TRANSLATED_common.description"
 
 
 # ==================================================================

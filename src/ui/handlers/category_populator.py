@@ -21,10 +21,10 @@ __all__ = ["CategoryPopulator"]
 
 # Maps app_type values from appinfo.vdf to i18n category keys
 _TYPE_TO_CATEGORY_KEY: dict[str, str] = {
-    "music": "ui.categories.soundtracks",
-    "tool": "ui.categories.tools",
-    "application": "ui.categories.software",
-    "video": "ui.categories.videos",
+    "music": "categories.soundtracks",
+    "tool": "categories.tools",
+    "application": "categories.software",
+    "video": "categories.videos",
 }
 
 
@@ -145,11 +145,11 @@ class CategoryPopulator:
         categories_data: OrderedDict[str, list[Game]] = OrderedDict()
 
         # 1. All Games (always shown)
-        categories_data[t("ui.categories.all_games")] = visible_games
+        categories_data[t("categories.all_games")] = visible_games
 
         # 2. Favorites (only if non-empty)
         if favorites:
-            categories_data[t("ui.categories.favorites")] = favorites
+            categories_data[t("categories.favorites")] = favorites
 
         # 3. User categories (alphabetically sorted)
         cats: dict[str, int] = mw.game_manager.get_all_categories()
@@ -172,14 +172,14 @@ class CategoryPopulator:
         # Sort with German umlaut support
         # Skip special categories (Favorites, Uncategorized, Hidden, All Games, Type categories)
         special_categories = {
-            t("ui.categories.favorites"),
-            t("ui.categories.uncategorized"),
-            t("ui.categories.hidden"),
-            t("ui.categories.all_games"),
-            t("ui.categories.soundtracks"),
-            t("ui.categories.tools"),
-            t("ui.categories.software"),
-            t("ui.categories.videos"),
+            t("categories.favorites"),
+            t("categories.uncategorized"),
+            t("categories.hidden"),
+            t("categories.all_games"),
+            t("categories.soundtracks"),
+            t("categories.tools"),
+            t("categories.software"),
+            t("categories.videos"),
         }
 
         # duplicate_display_info maps internal key -> (real_name, index, total)
@@ -247,11 +247,11 @@ class CategoryPopulator:
 
         # 5. Uncategorized (only if non-empty)
         if uncategorized:
-            categories_data[t("ui.categories.uncategorized")] = uncategorized
+            categories_data[t("categories.uncategorized")] = uncategorized
 
         # 5. Hidden (only if non-empty)
         if hidden_games:
-            categories_data[t("ui.categories.hidden")] = hidden_games
+            categories_data[t("categories.hidden")] = hidden_games
 
         # Identify dynamic collections (have filterSpec)
         dynamic_collections: set[str] = set()

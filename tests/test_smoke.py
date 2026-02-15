@@ -193,10 +193,10 @@ def test_i18n_loads() -> None:
     from src.utils.i18n import init_i18n, t
 
     init_i18n("en")
-    result = t("app.name")
+    result = t("common.ok")
     assert isinstance(result, str)
     assert result != ""
-    assert result != "[app.name]"
+    assert result != "[common.ok]"
 
 
 def test_i18n_fallback() -> None:

@@ -18,6 +18,7 @@ from src.utils import acf, appinfo
 from src.config import config
 from src.core.logging import logger, setup_logging
 from src.utils.i18n import init_i18n, t
+from src.version import __app_name__
 from src.ui.utils.font_helper import FontHelper
 from src.ui.main_window import MainWindow
 
@@ -100,8 +101,8 @@ def main() -> None:
     if check_steam_running():
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Icon.Warning)
-        msg.setWindowTitle(t("ui.dialogs.steam_running_title"))
-        msg.setText(t("ui.dialogs.steam_running_msg"))
+        msg.setWindowTitle(t("steam.running.startup_title"))
+        msg.setText(t("steam.running.startup_msg"))
 
         exit_btn = msg.addButton(t("common.exit"), QMessageBox.ButtonRole.AcceptRole)
         exit_btn.setDefault(True)
@@ -133,7 +134,7 @@ def main() -> None:
 
     # 7. Startup logs
     logger.info("=" * 60)
-    logger.info(t("app.name"))
+    logger.info(__app_name__)
     logger.info("=" * 60)
 
     logger.info(t("logs.main.initializing"))

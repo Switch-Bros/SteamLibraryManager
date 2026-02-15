@@ -133,10 +133,10 @@ class CategoryActionHandler:
 
         # --- Steam-Standard-Collektions are not editable ---
         steam_standard_collections: list[str] = [
-            t("ui.categories.all_games"),
-            t("ui.categories.favorites"),
-            t("ui.categories.uncategorized"),
-            t("ui.categories.hidden"),
+            t("categories.all_games"),
+            t("categories.favorites"),
+            t("categories.uncategorized"),
+            t("categories.hidden"),
         ]
 
         if category in steam_standard_collections:
@@ -225,9 +225,7 @@ class CategoryActionHandler:
         if not mw.category_service:
             return
 
-        new_name, ok = UIHelper.ask_text(
-            mw, t("ui.categories.rename_title"), t("ui.categories.rename_msg", old=old_name)
-        )
+        new_name, ok = UIHelper.ask_text(mw, t("categories.rename_title"), t("categories.rename_msg", old=old_name))
 
         if ok and new_name and new_name != old_name:
             try:
@@ -246,7 +244,7 @@ class CategoryActionHandler:
         if not mw.category_service:
             return
 
-        if UIHelper.confirm(mw, t("ui.categories.delete_msg", category=category), t("ui.categories.delete_title")):
+        if UIHelper.confirm(mw, t("categories.delete_msg", category=category), t("categories.delete_title")):
             mw.category_service.delete_category(category)
             self._flush(stats=True)
 
@@ -262,9 +260,9 @@ class CategoryActionHandler:
 
         # Build bullet-point list for the confirmation dialog
         category_list: str = "\n• ".join(categories)
-        message: str = t("ui.categories.delete_multiple_msg", count=len(categories), category_list=f"• {category_list}")
+        message: str = t("categories.delete_multiple_msg", count=len(categories), category_list=f"• {category_list}")
 
-        if UIHelper.confirm(mw, message, t("ui.categories.delete_title")):
+        if UIHelper.confirm(mw, message, t("categories.delete_title")):
             mw.category_service.delete_multiple_categories(categories)
             self._flush(stats=True)
 
@@ -283,13 +281,13 @@ class CategoryActionHandler:
 
         # --- Build the selection dialog inline (small, one-off UI) ---
         dialog = QDialog(mw)
-        dialog.setWindowTitle(t("ui.categories.merge_title"))
+        dialog.setWindowTitle(t("categories.merge_title"))
         dialog.setMinimumWidth(400)
 
         layout = QVBoxLayout()
 
         # Instruction text
-        label = QLabel(t("ui.categories.merge_instruction", count=len(categories)))
+        label = QLabel(t("categories.merge_instruction", count=len(categories)))
         label.setWordWrap(True)
         layout.addWidget(label)
 
@@ -326,8 +324,8 @@ class CategoryActionHandler:
                 if removed > 0:
                     UIHelper.show_success(
                         mw,
-                        t("ui.categories.duplicates_removed", count=removed),
-                        t("ui.categories.merge_title"),
+                        t("categories.duplicates_removed", count=removed),
+                        t("categories.merge_title"),
                     )
                 return
 
@@ -336,8 +334,8 @@ class CategoryActionHandler:
                 self._flush()
                 UIHelper.show_success(
                     mw,
-                    t("ui.categories.merge_success", target=target_category, count=len(source_categories)),
-                    t("ui.categories.merge_title"),
+                    t("categories.merge_success", target=target_category, count=len(source_categories)),
+                    t("categories.merge_title"),
                 )
 
     # ------------------------------------------------------------------
@@ -361,12 +359,12 @@ class CategoryActionHandler:
 
         dup_groups = mw.cloud_storage_parser.get_duplicate_groups()
         if not dup_groups:
-            UIHelper.show_info(mw, t("ui.categories.no_duplicates_found"))
+            UIHelper.show_info(mw, t("categories.no_duplicates_found"))
             return
 
         # If filtering by name and that name has no duplicates
         if filter_name and filter_name not in dup_groups:
-            UIHelper.show_info(mw, t("ui.categories.no_duplicates_found"))
+            UIHelper.show_info(mw, t("categories.no_duplicates_found"))
             return
 
         from src.ui.dialogs.merge_duplicates_dialog import MergeDuplicatesDialog
@@ -378,7 +376,7 @@ class CategoryActionHandler:
                 merged = mw.category_service.merge_duplicate_collections(merge_plan)
                 if merged > 0:
                     self._flush(stats=True)
-                    UIHelper.show_success(mw, t("ui.categories.merge_duplicates_success", count=merged))
+                    UIHelper.show_success(mw, t("categories.merge_duplicates_success", count=merged))
 
     # ------------------------------------------------------------------
     # Internal helpers

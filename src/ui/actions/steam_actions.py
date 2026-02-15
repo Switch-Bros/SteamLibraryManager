@@ -62,7 +62,7 @@ class SteamActions:
         Displays a modal dialog containing the application name and description
         using Qt's standard About box.
         """
-        QMessageBox.about(self.mw, t("menu.help.about"), t("app.description"))
+        QMessageBox.about(self.mw, t("menu.help.about"), t("common.description"))
 
     def on_login_success(self, result: dict) -> None:
         """Handles successful Steam authentication.
@@ -105,8 +105,8 @@ class SteamActions:
             token_store.save_tokens(access_token, refresh_token, steam_id_64)
 
         logger.info(t("logs.auth.login_success", id=steam_id_64))
-        self.mw.set_status(t("ui.login.status_success"))
-        UIHelper.show_success(self.mw, t("ui.login.status_success"), t("ui.login.title"))
+        self.mw.set_status(t("steam.login.status_success"))
+        UIHelper.show_success(self.mw, t("steam.login.status_success"), t("steam.login.title"))
 
         config.STEAM_USER_ID = steam_id_64
         config.save()
@@ -182,7 +182,7 @@ class SteamActions:
                 active_token = stored.access_token
             else:
                 logger.error(t("logs.auth.token_validation_failed"))
-                self.mw.set_status(t("ui.login.token_expired"))
+                self.mw.set_status(t("steam.login.token_expired"))
                 return False
 
         # Restore authenticated state
@@ -201,7 +201,7 @@ class SteamActions:
         self.mw.refresh_toolbar()
 
         logger.info(t("logs.auth.token_loaded"))
-        self.mw.set_status(t("ui.login.session_restored"))
+        self.mw.set_status(t("steam.login.session_restored"))
 
         return True
 
@@ -211,6 +211,6 @@ class SteamActions:
         Args:
             error: The error message from authentication.
         """
-        self.mw.set_status(t("ui.login.status_failed"))
+        self.mw.set_status(t("steam.login.status_failed"))
         self.mw.reload_btn.show()
         UIHelper.show_error(self.mw, error)

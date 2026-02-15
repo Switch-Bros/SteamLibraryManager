@@ -14,6 +14,7 @@ All actions connect back to MainWindow for state access and UI updates.
 """
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from src.core.game_manager import Game
@@ -63,7 +64,7 @@ class GameActions:
         if not self.mw.cloud_storage_parser:
             return
 
-        favorites_key = t("ui.categories.favorites")
+        favorites_key = t("categories.favorites")
 
         if game.is_favorite():
             # Remove from favorites
@@ -98,7 +99,7 @@ class GameActions:
         if not self.mw.cloud_storage_parser:
             return
 
-        hidden_key = t("ui.categories.hidden")
+        hidden_key = t("categories.hidden")
 
         if hide:
             # Add to hidden collection

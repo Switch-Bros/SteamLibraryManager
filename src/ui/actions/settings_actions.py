@@ -7,10 +7,11 @@ Extracts settings dialog and language change logic from MainWindow.
 """
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any
 
-from src.ui.dialogs.settings_dialog import SettingsDialog
 from src.config import config
+from src.ui.dialogs.settings_dialog import SettingsDialog
 from src.utils.i18n import t, init_i18n
 
 if TYPE_CHECKING:
@@ -81,7 +82,7 @@ class SettingsActions:
 
         # Save config
         config.save()
-        self.mw.set_status(t("ui.settings.applied"))
+        self.mw.set_status(t("settings.applied"))
 
     def _refresh_ui(self) -> None:
         """Refreshes UI after language change."""
