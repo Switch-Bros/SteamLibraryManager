@@ -28,7 +28,8 @@ from src.core.cloud_storage_parser import CloudStorageParser
 from src.core.appinfo_manager import AppInfoManager
 
 from src.integrations.steam_store import SteamStoreScraper
-from src.services.search_service import SearchService  # <--- NEW
+from src.services.filter_service import FilterService
+from src.services.search_service import SearchService
 
 # Components
 from src.ui.widgets.ui_helper import UIHelper
@@ -103,8 +104,9 @@ class MainWindow(QMainWindow):
         self.game_service: GameService | None = None  # Initialized by BootstrapService
         self.asset_service = AssetService()  # Initialize immediately
 
-        # NEW: Initialize SearchService
+        # Services
         self.search_service = SearchService()
+        self.filter_service = FilterService()
 
         # NEW: Session/Token storage for modern Steam login
         self.session = None  # For password login (requests.Session)

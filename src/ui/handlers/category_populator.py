@@ -120,19 +120,25 @@ class CategoryPopulator:
         if not mw.game_manager:
             return
 
-        # Separate hidden and visible games
+        # Apply view-menu filters (type, platform, status)
         all_games_raw = mw.game_manager.get_real_games()
-        visible_games = sorted([g for g in all_games_raw if not g.hidden], key=lambda g: g.sort_name.lower())
-        hidden_games = sorted([g for g in all_games_raw if g.hidden], key=lambda g: g.sort_name.lower())
+        filtered_games = mw.filter_service.apply(all_games_raw)
+        filtered_ids: set[str] = {g.app_id for g in filtered_games}
 
-        # Favorites (sorted, non-hidden only)
+        # Separate hidden and visible games (within filtered set)
+        visible_games = sorted([g for g in filtered_games if not g.hidden], key=lambda g: g.sort_name.lower())
+        hidden_games = sorted([g for g in filtered_games if g.hidden], key=lambda g: g.sort_name.lower())
+
+        # Favorites (sorted, non-hidden, within filtered set)
         favorites = sorted(
-            [g for g in mw.game_manager.get_favorites() if not g.hidden], key=lambda g: g.sort_name.lower()
+            [g for g in mw.game_manager.get_favorites() if not g.hidden and g.app_id in filtered_ids],
+            key=lambda g: g.sort_name.lower(),
         )
 
-        # Uncategorized games
+        # Uncategorized games (within filtered set)
         uncategorized = sorted(
-            [g for g in mw.game_manager.get_uncategorized_games() if not g.hidden], key=lambda g: g.sort_name.lower()
+            [g for g in mw.game_manager.get_uncategorized_games() if not g.hidden and g.app_id in filtered_ids],
+            key=lambda g: g.sort_name.lower(),
         )
 
         # Build categories_data in correct Steam order
@@ -194,7 +200,11 @@ class CategoryPopulator:
                     # Build game list from this specific collection's app IDs
                     app_id_set = set(apps)
                     coll_games: list[Game] = sorted(
-                        [g for g in mw.game_manager.games.values() if not g.hidden and int(g.app_id) in app_id_set],
+                        [
+                            g
+                            for g in mw.game_manager.games.values()
+                            if not g.hidden and int(g.app_id) in app_id_set and g.app_id in filtered_ids
+                        ],
                         key=lambda g: g.sort_name.lower(),
                     )
                     dup_key = f"__dup__{cat_name}__{idx}"
@@ -202,17 +212,38 @@ class CategoryPopulator:
                     duplicate_display_info[dup_key] = (cat_name, idx + 1, total)
             else:
                 cat_games: list[Game] = sorted(
-                    [g for g in mw.game_manager.get_games_by_category(cat_name) if not g.hidden],
+                    [
+                        g
+                        for g in mw.game_manager.get_games_by_category(cat_name)
+                        if not g.hidden and g.app_id in filtered_ids
+                    ],
                     key=lambda g: g.sort_name.lower(),
                 )
                 # Always add — empty collections must stay visible as "Name (0)"
                 categories_data[cat_name] = cat_games
 
         # 4. Type categories (Soundtracks, Tools, Software, Videos)
+        # Respect type filter: only show type categories whose filter is enabled
+        _type_to_filter_key: dict[str, str] = {
+            "music": "soundtracks",
+            "tool": "tools",
+            "application": "software",
+            "video": "videos",
+        }
         type_cats = self._get_type_categories(list(mw.game_manager.games.values()))
-        for cat_name, cat_games in type_cats.items():
-            if cat_games:
-                categories_data[cat_name] = cat_games
+        for cat_name, cat_games_list in type_cats.items():
+            # Find the filter key for this type category
+            filter_key = None
+            for app_type_val, fk in _type_to_filter_key.items():
+                if t(_TYPE_TO_CATEGORY_KEY[app_type_val]) == cat_name:
+                    filter_key = fk
+                    break
+            if filter_key and not mw.filter_service.is_type_category_visible(filter_key):
+                continue
+            # Also apply filtered_ids to type category games
+            filtered_type_games = [g for g in cat_games_list if g.app_id in filtered_ids]
+            if filtered_type_games:
+                categories_data[cat_name] = filtered_type_games
 
         # 5. Uncategorized (only if non-empty)
         if uncategorized:

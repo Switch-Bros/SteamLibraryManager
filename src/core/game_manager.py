@@ -181,7 +181,7 @@ class GameManager:
 
                 playtime = playtimes.get(app_id, 0)
 
-                game = Game(app_id=app_id, name=game_data["name"], playtime_minutes=playtime)
+                game = Game(app_id=app_id, name=game_data["name"], playtime_minutes=playtime, installed=True)
                 self.games[app_id] = game
 
             logger.info(t("logs.manager.loaded_local", count=len(games_data)))
@@ -394,6 +394,8 @@ class GameManager:
                 game.tags = list(entry.tags)
             if not game.app_type and entry.app_type:
                 game.app_type = entry.app_type
+            if not game.platforms and entry.platforms:
+                game.platforms = list(entry.platforms)
             if not game.review_score and entry.review_score is not None:
                 game.review_score = str(entry.review_score)
             if not game.review_count and entry.review_count:

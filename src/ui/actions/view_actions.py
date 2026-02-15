@@ -8,10 +8,35 @@ if TYPE_CHECKING:
 
 
 class ViewActions:
-    """Handles actions related to the view, like searching and tree expansion."""
+    """Handles actions related to the view, like searching, tree expansion, and filters."""
 
     def __init__(self, main_window: "MainWindow"):
         self.main_window = main_window
+
+    def on_filter_toggled(self, group: str, key: str, checked: bool) -> None:
+        """Handles View menu filter checkbox toggle.
+
+        Dispatches to the appropriate FilterService toggle method
+        based on the filter group, then refreshes the view.
+
+        Args:
+            group: The filter group ("type", "platform", or "status").
+            key: The specific filter key within the group.
+            checked: Whether the checkbox is now checked.
+        """
+        fs = self.main_window.filter_service
+        if group == "type":
+            fs.toggle_type(key, checked)
+        elif group == "platform":
+            fs.toggle_platform(key, checked)
+        elif group == "status":
+            fs.toggle_status(key, checked)
+
+        # Re-run search if active, otherwise repopulate full tree
+        if self.main_window.current_search_query:
+            self.on_search(self.main_window.current_search_query)
+        else:
+            self.main_window.populate_categories()
 
     def expand_all(self):
         """Expands all categories in the game tree."""
@@ -38,9 +63,10 @@ class ViewActions:
         if not self.main_window.game_manager or not self.main_window.search_service:
             return
 
-        # Use the Service for logic
+        # Apply view filters first, then search within the filtered set
         all_games = self.main_window.game_manager.get_real_games()
-        results = self.main_window.search_service.filter_games(all_games, query)
+        filtered_games = self.main_window.filter_service.apply(all_games)
+        results = self.main_window.search_service.filter_games(filtered_games, query)
 
         if results:
             cat_name = t("ui.search.results_category", count=len(results))
