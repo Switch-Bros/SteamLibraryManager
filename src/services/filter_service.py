@@ -21,17 +21,13 @@ logger = logging.getLogger("steamlibmgr.filter_service")
 __all__ = ["FilterService", "FilterState"]
 
 # All known type keys with their matching app_type values
-ALL_TYPE_KEYS: frozenset[str] = frozenset(
-    {"games", "soundtracks", "software", "videos", "dlcs", "tools"}
-)
+ALL_TYPE_KEYS: frozenset[str] = frozenset({"games", "soundtracks", "software", "videos", "dlcs", "tools"})
 
 # All known platform keys
 ALL_PLATFORM_KEYS: frozenset[str] = frozenset({"linux", "windows", "steamos"})
 
 # All known status keys
-ALL_STATUS_KEYS: frozenset[str] = frozenset(
-    {"installed", "not_installed", "hidden", "with_playtime", "favorites"}
-)
+ALL_STATUS_KEYS: frozenset[str] = frozenset({"installed", "not_installed", "hidden", "with_playtime", "favorites"})
 
 # Maps menu type keys to the app_type values they accept
 _TYPE_APP_TYPE_MAP: dict[str, frozenset[str]] = {
@@ -42,6 +38,7 @@ _TYPE_APP_TYPE_MAP: dict[str, frozenset[str]] = {
     "dlcs": frozenset({"dlc"}),
     "tools": frozenset({"tool"}),
 }
+
 
 @dataclass(frozen=True)
 class FilterState:
