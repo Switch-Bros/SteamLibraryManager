@@ -338,6 +338,20 @@
       "hours_10_50": "10-50h",
       "hours_50_100": "50-100h",
       "hours_100_plus": "100h+",
+      "by_year": "By Release Year",
+      "cat_year": "Year: {year}",
+      "by_hltb": "By Playtime (HLTB)",
+      "cat_hltb": "HLTB: {range}",
+      "hltb_no_data": "No HLTB Data",
+      "hltb_under_5": "Under 5h",
+      "hltb_5_15": "5-15h",
+      "hltb_15_30": "15-30h",
+      "hltb_30_50": "30-50h",
+      "hltb_50_plus": "50h+",
+      "by_language": "By Language",
+      "cat_language": "Language: {name}",
+      "by_curator": "By Curator",
+      "curator_coming_soon": "Curator categorization will be available in a future update.",
       "no_method_title": "No Method Selected",
       "error_no_method": "Please select at least one categorization method.",
       "estimate_minutes": "~{count} minutes",
@@ -395,7 +409,8 @@
     "search": {
       "results_category": "Search Results ({count})",
       "status_found": "Found {count} games",
-      "status_none": "No results found"
+      "status_none": "No results found",
+      "clear": "Clear search"
     },
     "stats": {
       "title": "Library Statistics",

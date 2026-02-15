@@ -394,6 +394,114 @@ class TestAutoCategorizeService:
         assert count == 0
         assert service.category_service.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
 
+    # === YEAR CATEGORIZATION TESTS ===
+
+    def test_categorize_by_year_success(self, service):
+        """Test categorizing games with a release year."""
+        from src.core.game_manager import Game
+
+        game = Game(app_id="440", name="Team Fortress 2")
+        game.release_year = "2007"
+        game.categories = []
+        games = [game]
+
+        count = service.categorize_by_year(games)
+
+        assert count == 1
+        assert service.category_service.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
+        assert len(game.categories) == 1
+
+    def test_categorize_by_year_no_year(self, service):
+        """Test categorizing games without release year."""
+        from src.core.game_manager import Game
+
+        game = Game(app_id="440", name="Test Game")
+        game.release_year = ""
+        game.categories = []
+        games = [game]
+
+        count = service.categorize_by_year(games)
+
+        assert count == 0
+        assert service.category_service.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
+
+    # === HLTB CATEGORIZATION TESTS ===
+
+    def test_categorize_by_hltb_success(self, service):
+        """Test categorizing games with HLTB data."""
+        from src.core.game_manager import Game
+
+        game = Game(app_id="440", name="Team Fortress 2")
+        game.hltb_main_story = 12.5
+        game.categories = []
+        games = [game]
+
+        count = service.categorize_by_hltb(games)
+
+        assert count == 1
+        assert service.category_service.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
+        assert len(game.categories) == 1
+
+    def test_categorize_by_hltb_no_data(self, service):
+        """Test categorizing games without HLTB data."""
+        from src.core.game_manager import Game
+
+        game = Game(app_id="440", name="Test Game")
+        game.hltb_main_story = 0.0
+        game.categories = []
+        games = [game]
+
+        count = service.categorize_by_hltb(games)
+
+        assert count == 0
+        assert service.category_service.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
+
+    def test_categorize_by_hltb_edge_boundary(self, service):
+        """Test HLTB categorization at range boundary (exactly 5h)."""
+        from src.core.game_manager import Game
+
+        game = Game(app_id="440", name="Short Game")
+        game.hltb_main_story = 5.0
+        game.categories = []
+        games = [game]
+
+        count = service.categorize_by_hltb(games)
+
+        assert count == 1
+        # 5.0 falls into 5-15h range
+        assert len(game.categories) == 1
+
+    # === LANGUAGE CATEGORIZATION TESTS ===
+
+    def test_categorize_by_language_success(self, service):
+        """Test categorizing games with language data."""
+        from src.core.game_manager import Game
+
+        game = Game(app_id="440", name="Team Fortress 2")
+        game.languages = ["English", "German"]
+        game.categories = []
+        games = [game]
+
+        count = service.categorize_by_language(games)
+
+        assert count == 2
+        assert service.category_service.add_app_to_category.call_count == 2  # type: ignore[attr-defined]
+        assert len(game.categories) == 2
+
+    def test_categorize_by_language_no_languages(self, service):
+        """Test categorizing games without language data."""
+        from src.core.game_manager import Game
+
+        game = Game(app_id="440", name="Test Game")
+        game.languages = []
+        game.categories = []
+        games = [game]
+
+        count = service.categorize_by_language(games)
+
+        assert count == 0
+        assert service.category_service.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
+
     # === TIME ESTIMATION TEST ===
 
     def test_estimate_time(self):

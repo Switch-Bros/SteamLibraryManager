@@ -84,6 +84,12 @@ class Game:
     pegi_rating: str = ""
     esrb_rating: str = ""
 
+    # HLTB data
+    hltb_main_story: float = 0.0
+
+    # Language support (interface languages)
+    languages: list[str] = None
+
     # Images
     icon_url: str = ""
     cover_url: str = ""
@@ -98,6 +104,8 @@ class Game:
             self.tags = []
         if self.platforms is None:
             self.platforms = []
+        if self.languages is None:
+            self.languages = []
 
         if not self.sort_name:
             self.sort_name = self.name

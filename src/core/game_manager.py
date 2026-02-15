@@ -401,7 +401,18 @@ class GameManager:
             if not game.review_count and entry.review_count:
                 game.review_count = entry.review_count
 
+            # Languages (interface only)
+            if not game.languages and entry.languages:
+                game.languages = [lang for lang, support in entry.languages.items() if support.get("interface", False)]
+
             enriched += 1
+
+        # Batch load HLTB data from separate table
+        hltb_lookup = database._batch_get_hltb([int(aid) for aid in self.games.keys() if aid.isdigit()])
+        for aid_int, hours in hltb_lookup.items():
+            game = self.games.get(str(aid_int))
+            if game and game.hltb_main_story <= 0:
+                game.hltb_main_story = hours
 
         logger.info(t("logs.db.loaded_from_cache", count=enriched, duration="<1"))
         return enriched
