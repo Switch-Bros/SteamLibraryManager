@@ -10,7 +10,9 @@ limits, and API keys.
 
 from __future__ import annotations
 
+from PyQt6.QtCore import QUrl
 from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -228,19 +230,39 @@ class SettingsDialog(QDialog):
 
         # 3. API GROUP
         group_api = QGroupBox(t("settings.api.title_group"))
-        form_api = QFormLayout(group_api)
+        api_layout = QVBoxLayout(group_api)
 
-        # Steam Web API
+        # Steam Web API row
+        api_layout.addWidget(QLabel(t("settings.api.steam_label")))
+        steam_row = QHBoxLayout()
         self.steam_api_edit = QLineEdit()
         self.steam_api_edit.setPlaceholderText(t("settings.api.placeholder"))
         self.steam_api_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        form_api.addRow(t("settings.api.steam_label"), self.steam_api_edit)
+        steam_row.addWidget(self.steam_api_edit)
+        btn_steam_key = QPushButton(t("settings.api.steam_get_key"))
+        btn_steam_key.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://steamcommunity.com/dev/apikey")))
+        steam_row.addWidget(btn_steam_key)
+        api_layout.addLayout(steam_row)
 
-        # SteamGridDB API
+        # SteamGridDB API row
+        api_layout.addWidget(QLabel(t("settings.api.sgdb_label")))
+        sgdb_row = QHBoxLayout()
         self.sgdb_key_edit = QLineEdit()
         self.sgdb_key_edit.setPlaceholderText(t("settings.api.placeholder"))
         self.sgdb_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
-        form_api.addRow(t("settings.api.sgdb_label"), self.sgdb_key_edit)
+        sgdb_row.addWidget(self.sgdb_key_edit)
+        btn_sgdb_key = QPushButton(t("settings.api.sgdb_get_key"))
+        btn_sgdb_key.clicked.connect(
+            lambda: QDesktopServices.openUrl(QUrl("https://www.steamgriddb.com/profile/preferences/api"))
+        )
+        sgdb_row.addWidget(btn_sgdb_key)
+        api_layout.addLayout(sgdb_row)
+
+        # Help text
+        lbl_help = QLabel(t("settings.api.help_text"))
+        lbl_help.setStyleSheet("color: gray; font-size: 10px; font-style: italic;")
+        lbl_help.setWordWrap(True)
+        api_layout.addWidget(lbl_help)
 
         layout.addWidget(group_api)
         layout.addStretch()

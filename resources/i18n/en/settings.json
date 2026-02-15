@@ -18,11 +18,22 @@
       "title_group": "API && Integrations",
       "steam_label": "Steam Web API Key (Optional)",
       "sgdb_label": "SteamGridDB API Key (Covers/Icons)",
-      "get_key": "Get API Key",
+      "steam_get_key": "Get Steam API Key",
+      "sgdb_get_key": "Get SteamGridDB API Key",
       "placeholder": "Paste key here...",
-      "help_text": "These keys enable features like playtime sync and cover downloads.",
+      "help_text": "These keys enable features like metadata enrichment and cover downloads.",
       "warning": "Never share your API keys!",
-      "info_optional": "Optional: Enables playtime sync for non-installed games."
+      "info_optional": "Optional: Enables batch metadata enrichment (developer, genres, etc.)."
+    },
+    "grid_setup": {
+      "title": "Setup SteamGridDB",
+      "info": "To download covers, you need a free API Key.",
+      "step_1": "1. Login to SteamGridDB",
+      "step_2": "2. Generate/Copy API Key",
+      "step_3": "3. Paste Key below",
+      "get_key_btn": "Get API Key (Open Browser)",
+      "key_placeholder": "Paste API Key here...",
+      "save_btn": "Save"
     },
     "general": {
       "steam_path": "Steam Installation Path",

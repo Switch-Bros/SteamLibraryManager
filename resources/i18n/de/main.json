@@ -284,20 +284,20 @@
       "humor": "Humor",
       "epilepsy": "Epilepsie",
       "animated": "GIF"
+    },
+    "enrichment": {
+      "dialog_title": "Metadaten-Anreicherung",
+      "hltb_title": "HowLongToBeat-Daten abrufen",
+      "steam_title": "Steam-Metadaten aktualisieren",
+      "progress": "Verarbeite: {name} ({current}/{total})",
+      "complete_title": "Anreicherung abgeschlossen",
+      "complete": "{success} Spiele aktualisiert, {failed} fehlgeschlagen.",
+      "no_api_key": "Steam API-Schlüssel benötigt. In den Einstellungen konfigurieren.",
+      "no_games_hltb": "Alle Spiele haben bereits HLTB-Daten.",
+      "no_games_steam": "Alle Spiele haben bereits vollständige Metadaten.",
+      "cancel_confirm": "Anreicherung abbrechen? Bisheriger Fortschritt wird gespeichert.",
+      "hltb_not_available": "HLTB-Bibliothek nicht installiert. Installiere 'howlongtobeatpy'.",
+      "btn_cancel": "Abbrechen"
     }
-  },
-  "enrichment": {
-    "dialog_title": "Metadaten-Anreicherung",
-    "hltb_title": "HowLongToBeat-Daten abrufen",
-    "steam_title": "Steam-Metadaten aktualisieren",
-    "progress": "Verarbeite: {name} ({current}/{total})",
-    "complete_title": "Anreicherung abgeschlossen",
-    "complete": "{success} Spiele aktualisiert, {failed} fehlgeschlagen.",
-    "no_api_key": "Steam API-Schlüssel benötigt. In den Einstellungen konfigurieren.",
-    "no_games_hltb": "Alle Spiele haben bereits HLTB-Daten.",
-    "no_games_steam": "Alle Spiele haben bereits vollständige Metadaten.",
-    "cancel_confirm": "Anreicherung abbrechen? Bisheriger Fortschritt wird gespeichert.",
-    "hltb_not_available": "HLTB-Bibliothek nicht installiert. Installiere 'howlongtobeatpy'.",
-    "btn_cancel": "Abbrechen"
   }
 }

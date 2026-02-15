@@ -68,14 +68,6 @@
       "close_failed": "Konnte Steam nicht schließen. Bitte schließe es manuell und versuche es erneut.",
       "startup_title": "Steam läuft!",
       "startup_msg": "Steam Library Manager hat erkannt, dass Steam läuft.\n\nBitte Steam beenden."
-    },
-    "grid_setup": {
-      "title": "SteamGridDB Einrichtung",
-      "info": "Für Cover-Bilder benötigst du einen kostenlosen API Key.",
-      "step_1": "1. Bei SteamGridDB anmelden",
-      "step_2": "2. API Key generieren/kopieren",
-      "step_3": "3. Key hier einfügen",
-      "get_key_btn": "Key holen (Browser öffnen)"
     }
   }
 }

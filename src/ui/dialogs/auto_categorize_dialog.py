@@ -162,8 +162,8 @@ class AutoCategorizeDialog(QDialog):
         tags_layout.addLayout(tags_per_game_layout)
 
         # Ignore common tags
-        self.cb_ignore_common = QCheckBox(t("auto_categorize.option_ignore_common"))
-        self.cb_ignore_common.setChecked(True)
+        self.cb_ignore_common = QCheckBox(t("settings.tags.ignore_common"))
+        self.cb_ignore_common.setChecked(config.IGNORE_COMMON_TAGS)
         tags_layout.addWidget(self.cb_ignore_common)
 
         self.tags_group.setLayout(tags_layout)

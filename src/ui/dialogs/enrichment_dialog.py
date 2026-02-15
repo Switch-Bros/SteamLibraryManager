@@ -48,7 +48,7 @@ class EnrichmentDialog(QDialog):
             parent: Parent widget.
         """
         super().__init__(parent)
-        self.setWindowTitle(t("enrichment.dialog_title"))
+        self.setWindowTitle(t("ui.enrichment.dialog_title"))
         self.setMinimumWidth(450)
         self.setModal(True)
 
@@ -75,7 +75,7 @@ class EnrichmentDialog(QDialog):
         # Cancel button
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-        self._cancel_btn = QPushButton(t("enrichment.btn_cancel"))
+        self._cancel_btn = QPushButton(t("ui.enrichment.btn_cancel"))
         self._cancel_btn.clicked.connect(self._on_cancel)
         btn_layout.addWidget(self._cancel_btn)
         layout.addLayout(btn_layout)
@@ -119,8 +119,8 @@ class EnrichmentDialog(QDialog):
         self._cleanup_thread()
         UIHelper.show_info(
             self,
-            t("enrichment.complete", success=success, failed=failed),
-            t("enrichment.complete_title"),
+            t("ui.enrichment.complete", success=success, failed=failed),
+            t("ui.enrichment.complete_title"),
         )
         self.accept()
 
