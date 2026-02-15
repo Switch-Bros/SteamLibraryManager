@@ -60,6 +60,7 @@ class SettingsDialog(QDialog):
     """
 
     language_changed = pyqtSignal(str)
+    settings_saved = pyqtSignal(dict)
 
     def __init__(self, parent=None):
         """
@@ -93,19 +94,17 @@ class SettingsDialog(QDialog):
         self._init_other_tab(tab_other)
         self.tabs.addTab(tab_other, t("settings.tabs.other"))
 
-        # Buttons (Save / Cancel)
+        # Buttons (Save / Close)
         btn_layout = QHBoxLayout()
         self.btn_save = QPushButton(t("common.save"))
-        # noinspection PyUnresolvedReferences
-        self.btn_save.clicked.connect(self.accept)
+        self.btn_save.clicked.connect(self._on_save)
 
-        self.btn_cancel = QPushButton(t("common.cancel"))
-        # noinspection PyUnresolvedReferences
-        self.btn_cancel.clicked.connect(self.reject)
+        self.btn_close = QPushButton(t("common.close"))
+        self.btn_close.clicked.connect(self.reject)
 
         btn_layout.addStretch()
         btn_layout.addWidget(self.btn_save)
-        btn_layout.addWidget(self.btn_cancel)
+        btn_layout.addWidget(self.btn_close)
         layout.addLayout(btn_layout)
 
     def _init_general_tab(self, parent: QWidget):
@@ -325,6 +324,10 @@ class SettingsDialog(QDialog):
         """
         code = self.combo_ui_lang.itemData(index)
         self.language_changed.emit(code)
+
+    def _on_save(self) -> None:
+        """Saves settings without closing the dialog."""
+        self.settings_saved.emit(self.get_settings())
 
     def get_settings(self) -> dict:
         """

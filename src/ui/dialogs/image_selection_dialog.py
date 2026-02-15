@@ -10,7 +10,6 @@ API key setup functionality and threaded image loading.
 
 from __future__ import annotations
 
-import json
 import logging
 
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QUrl
@@ -220,29 +219,14 @@ class ImageSelectionDialog(QDialog):
             self._start_search()
 
     def _save_key_and_reload(self):
-        """
-        Saves the entered API key to the config and restarts the search.
+        """Saves the entered API key to the config and restarts the search.
 
-        This method is called when the user enters an API key in the setup widget.
-        It saves the key to the settings file and re-checks the API status.
+        Sets the key on the config singleton and persists via config.save().
         """
         key = self.key_input.text().strip()
         if key:
             config.STEAMGRIDDB_API_KEY = key
-            try:
-                settings_file = config.DATA_DIR / "settings.json"
-                current_settings = {}
-                if settings_file.exists():
-                    with open(settings_file, "r", encoding="utf-8") as f:
-                        current_settings = json.load(f)
-
-                current_settings["steamgriddb_api_key"] = key
-
-                with open(settings_file, "w", encoding="utf-8") as f:
-                    json.dump(current_settings, f, indent=2)
-            except (OSError, json.JSONDecodeError) as e:
-                logger.error(t("logs.config.save_error", error=e))
-
+            config.save()
             self._check_api_and_start()
 
     def _start_search(self):
