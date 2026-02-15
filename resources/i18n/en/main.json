@@ -25,8 +25,8 @@
     "exit": "Exit",
     "confirm_exit": "Do you really want to exit the application?",
     "continue": "Continue",
-    "save_and_exit": "Save & Exit",
-    "discard_and_exit": "Discard & Exit",
+    "save_and_exit": "Save && Exit",
+    "discard_and_exit": "Discard && Exit",
     "unsaved_changes_title": "Unsaved Changes",
     "unsaved_changes_msg": "Changes were made to {filenames}.\n\nDo you really want to exit?\n\nUnsaved changes will be lost!",
     "unsaved_changes_save_prompt": "You have unsaved changes. Would you like to save them?",
@@ -34,7 +34,7 @@
     "save_failed_title": "Save Failed",
     "save_failed_msg": "Saving failed. Close anyway?",
     "placeholder_title": "Coming Soon",
-    "placeholder_message": "{feature} will be implemented soon! \ud83d\ude80"
+    "placeholder_message": "{feature} will be implemented soon!"
   },
   "ui": {
     "main_window": {
@@ -46,7 +46,6 @@
       "filtered_count": "Showing {filtered} of {total} games",
       "user_label": "User: {user_id}",
       "user_auto": "User: {user_id} (Auto-Detected)",
-      "search_icon": "🔍",
       "expand_all": "Expand All",
       "collapse_all": "Collapse All",
       "statistics": "Collections: {category_count} | Games in Collections: {games_in_categories} | Real Games: {total_games}",
@@ -109,7 +108,7 @@
         "limit": "Max. Backups:",
         "files": "files",
         "tooltip": "Number of backups per file",
-        "explanation": "Number of backups for localconfig.vdf, sharedconfig.vdf & appinfo.vdf kept before the oldest is overwritten."
+        "explanation": "Number of backups for localconfig.vdf, sharedconfig.vdf && appinfo.vdf kept before the oldest is overwritten."
       },
       "tags": {
         "title_group": "Tags && Collections",
@@ -120,7 +119,7 @@
     "game_details": {
       "section_basic": "Basic Info",
       "section_metadata": "Metadata",
-      "section_ratings": "Ratings & Proton",
+      "section_ratings": "Ratings && Proton",
       "multi_select_title": "{count} Games Selected",
       "selected": "Selected",
       "total_playtime": "Total Playtime",
@@ -191,7 +190,7 @@
       "unhide_game": "Unhide Game",
       "remove_from_local": "Remove from Local Config",
       "remove_from_account": "Remove from Account",
-      "check_store": "🔍 Check Store Availability",
+      "check_store": "Check Store Availability",
       "auto_categorize": "Auto-Categorize",
       "rename": "Rename",
       "delete": "Delete",
@@ -320,7 +319,30 @@
       "apply_group": "Apply to",
       "estimate_label": "Estimated Collections",
       "cache_warning_title": "Low Cache Coverage",
-      "cache_warning_message": "Only {cached} of {total} games have cached tag data.\n\nFetching tags from Steam Store will take approximately {time}.\n\nRECOMMENDATION:\nUse 'Edit → Fetch Missing Metadata' first to populate the cache, then run Auto-Categorize.\n\nContinue anyway?"
+      "cache_warning_message": "Only {cached} of {total} games have cached tag data.\n\nFetching tags from Steam Store will take approximately {time}.\n\nRECOMMENDATION:\nUse 'Edit → Fetch Missing Metadata' first to populate the cache, then run Auto-Categorize.\n\nContinue anyway?",
+      "by_developer": "By Developer",
+      "by_platform": "By Platform",
+      "by_user_score": "By User Score",
+      "by_hours_played": "By Playtime",
+      "by_flags": "By Features",
+      "by_vr": "By VR Support",
+      "cat_developer": "Developer: {name}",
+      "cat_platform": "Platform: {name}",
+      "cat_user_score": "Score: {name}",
+      "cat_hours_played": "Playtime: {range}",
+      "cat_flags": "Feature: {name}",
+      "cat_vr": "VR: {name}",
+      "hours_never": "Never Played",
+      "hours_0_2": "0-2h",
+      "hours_2_10": "2-10h",
+      "hours_10_50": "10-50h",
+      "hours_50_100": "50-100h",
+      "hours_100_plus": "100h+",
+      "no_method_title": "No Method Selected",
+      "error_no_method": "Please select at least one categorization method.",
+      "estimate_minutes": "~{count} minutes",
+      "estimate_seconds": "~{count} seconds",
+      "estimate_instant": "Instant"
     },
     "steamgrid_setup": {
       "title": "Setup SteamGridDB",
@@ -331,7 +353,7 @@
       "get_key_btn": "Get API Key (Open Browser)"
     },
     "login": {
-      "steam_login_title": "🔐 Steam Login",
+      "steam_login_title": "Steam Login",
       "sign_in_steam": "Sign in with Steam",
       "choose_method": "Choose login method",
       "password_method": "Password",
@@ -429,7 +451,7 @@
       "warning_title": "Steam must be closed to save changes",
       "explanation": "Steam overwrites collection files when it exits, which would lose your changes.",
       "info": "To save your categories safely:\n1. Close Steam completely\n2. Save your changes\n3. Restart Steam to see the updated categories",
-      "close_and_save": "Close Steam & Save",
+      "close_and_save": "Close Steam && Save",
       "confirm_title": "Confirm Close Steam",
       "confirm_message": "This will forcefully close Steam. Any unsaved game progress may be lost.\n\nContinue?",
       "steam_closed": "Steam has been closed. Your changes will now be saved.",

@@ -78,7 +78,7 @@ class MenuBuilder:
                 the feature name in the placeholder message.
         """
         feature = t(feature_key)
-        msg = t("common.placeholder_message").format(feature=feature)
+        msg = f"{t('common.placeholder_message', feature=feature)} {t('emoji.rocket')}"
         self.main_window.set_status(msg)
 
     def _open_url(self, url: str) -> None:

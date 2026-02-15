@@ -11,18 +11,19 @@ Connects back to MainWindow to access services and update UI.
 """
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
-from PyQt6.QtWidgets import QMessageBox, QProgressDialog, QApplication
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QMessageBox, QProgressDialog, QApplication
 
 from src.core.game_manager import Game
-from src.ui.widgets.ui_helper import UIHelper
-from src.utils.i18n import t
 
 # Dialogs
 from src.ui.dialogs.auto_categorize_dialog import AutoCategorizeDialog
 from src.ui.dialogs.metadata_dialogs import MetadataEditDialog, BulkMetadataEditDialog, MetadataRestoreDialog
+from src.ui.widgets.ui_helper import UIHelper
+from src.utils.i18n import t
 
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
@@ -204,6 +205,12 @@ class EditActions:
             "publisher": self.mw.autocategorize_service.categorize_by_publisher,
             "franchise": self.mw.autocategorize_service.categorize_by_franchise,
             "genre": self.mw.autocategorize_service.categorize_by_genre,
+            "developer": self.mw.autocategorize_service.categorize_by_developer,
+            "platform": self.mw.autocategorize_service.categorize_by_platform,
+            "user_score": self.mw.autocategorize_service.categorize_by_user_score,
+            "hours_played": self.mw.autocategorize_service.categorize_by_hours_played,
+            "flags": self.mw.autocategorize_service.categorize_by_flags,
+            "vr": self.mw.autocategorize_service.categorize_by_vr,
         }
 
         for method in methods:
