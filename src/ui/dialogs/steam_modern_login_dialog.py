@@ -14,6 +14,10 @@ Features:
 
 from __future__ import annotations
 
+import logging
+
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -26,13 +30,9 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QProgressBar,
 )
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QPixmap
 
 from src.core.steam_login_manager import SteamLoginManager
 from src.utils.i18n import t
-
-import logging
 
 logger = logging.getLogger("steamlibmgr.login_dialog")
 
@@ -74,7 +74,7 @@ class ModernSteamLoginDialog(QDialog):
 
     def _setup_ui(self):
         """Setup the complete UI."""
-        self.setWindowTitle(t("ui.login.steam_login_title"))
+        self.setWindowTitle(f"{t('emoji.lock')} {t('ui.login.steam_login_title')}")
         self.setMinimumSize(800, 700)
         self.resize(800, 700)
 

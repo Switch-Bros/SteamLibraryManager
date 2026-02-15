@@ -116,7 +116,7 @@
       "docs": {
         "root": "Documentation",
         "manual": "User Manual",
-        "tips": "Tips & Tricks",
+        "tips": "Tips && Tricks",
         "shortcuts": "Keyboard Shortcuts"
       },
       "online": {

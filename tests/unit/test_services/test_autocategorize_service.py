@@ -2,8 +2,9 @@
 
 """Unit tests for AutoCategorizeService."""
 
-import pytest
 from unittest.mock import Mock
+
+import pytest
 
 from src.services.autocategorize_service import AutoCategorizeService
 
@@ -209,6 +210,189 @@ class TestAutoCategorizeService:
         assert coverage["cached"] == 0
         assert coverage["missing"] == 1
         assert coverage["percentage"] == 0.0
+
+    # === DEVELOPER CATEGORIZATION TESTS ===
+
+    def test_categorize_by_developer_success(self, service):
+        """Test categorizing games by developer."""
+        from src.core.game_manager import Game
+
+        game = Game(app_id="440", name="Team Fortress 2")
+        game.developer = "Valve"
+        game.categories = []
+        games = [game]
+
+        count = service.categorize_by_developer(games)
+
+        assert count == 1
+        assert service.category_service.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
+        assert len(game.categories) == 1
+
+    def test_categorize_by_developer_no_developer(self, service):
+        """Test categorizing games without developer."""
+        from src.core.game_manager import Game
+
+        game = Game(app_id="440", name="Test Game")
+        game.developer = ""
+        game.categories = []
+        games = [game]
+
+        count = service.categorize_by_developer(games)
+
+        assert count == 0
+        assert service.category_service.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
+
+    # === PLATFORM CATEGORIZATION TESTS ===
+
+    def test_categorize_by_platform_success(self, service):
+        """Test categorizing games by platform."""
+        from src.core.game_manager import Game
+
+        game = Game(app_id="440", name="Team Fortress 2")
+        game.platforms = ["windows", "linux"]
+        game.categories = []
+        games = [game]
+
+        count = service.categorize_by_platform(games)
+
+        assert count == 2
+        assert service.category_service.add_app_to_category.call_count == 2  # type: ignore[attr-defined]
+        assert len(game.categories) == 2
+
+    def test_categorize_by_platform_no_platforms(self, service):
+        """Test categorizing games without platforms."""
+        from src.core.game_manager import Game
+
+        game = Game(app_id="440", name="Test Game")
+        game.platforms = []
+        game.categories = []
+        games = [game]
+
+        count = service.categorize_by_platform(games)
+
+        assert count == 0
+        assert service.category_service.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
+
+    # === USER SCORE CATEGORIZATION TESTS ===
+
+    def test_categorize_by_user_score_success(self, service):
+        """Test categorizing games with a review score."""
+        from src.core.game_manager import Game
+
+        game = Game(app_id="440", name="Team Fortress 2")
+        game.review_percentage = 92
+        game.categories = []
+        games = [game]
+
+        count = service.categorize_by_user_score(games)
+
+        assert count == 1
+        assert service.category_service.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
+        assert len(game.categories) == 1
+
+    def test_categorize_by_user_score_no_score(self, service):
+        """Test categorizing games without review score."""
+        from src.core.game_manager import Game
+
+        game = Game(app_id="440", name="Test Game")
+        game.review_percentage = 0
+        game.categories = []
+        games = [game]
+
+        count = service.categorize_by_user_score(games)
+
+        assert count == 0
+        assert service.category_service.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
+
+    # === HOURS PLAYED CATEGORIZATION TESTS ===
+
+    def test_categorize_by_hours_played_success(self, service):
+        """Test categorizing games with playtime."""
+        from src.core.game_manager import Game
+
+        game = Game(app_id="440", name="Team Fortress 2")
+        game.playtime_minutes = 500
+        game.categories = []
+        games = [game]
+
+        count = service.categorize_by_hours_played(games)
+
+        assert count == 1
+        assert service.category_service.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
+        assert len(game.categories) == 1
+
+    def test_categorize_by_hours_played_never_played(self, service):
+        """Test categorizing games with zero playtime."""
+        from src.core.game_manager import Game
+
+        game = Game(app_id="440", name="Test Game")
+        game.playtime_minutes = 0
+        game.categories = []
+        games = [game]
+
+        count = service.categorize_by_hours_played(games)
+
+        # Zero playtime still creates "Never Played" category
+        assert count == 1
+        assert service.category_service.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
+
+    # === FLAGS CATEGORIZATION TESTS ===
+
+    def test_categorize_by_flags_free_game(self, service):
+        """Test categorizing a free-to-play game by flags."""
+        from src.core.game_manager import Game
+
+        game = Game(app_id="440", name="Team Fortress 2")
+        game.is_free = True  # type: ignore[attr-defined]
+        game.categories = []
+        games = [game]
+
+        count = service.categorize_by_flags(games)
+
+        assert count == 1
+        assert service.category_service.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
+
+    def test_categorize_by_flags_no_flags(self, service):
+        """Test categorizing games with no detectable flags."""
+        from src.core.game_manager import Game
+
+        game = Game(app_id="440", name="Test Game")
+        game.categories = []
+        games = [game]
+
+        count = service.categorize_by_flags(games)
+
+        assert count == 0
+        assert service.category_service.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
+
+    # === VR CATEGORIZATION TESTS ===
+
+    def test_categorize_by_vr_required(self, service):
+        """Test categorizing a VR-required game."""
+        from src.core.game_manager import Game
+
+        game = Game(app_id="440", name="Half-Life: Alyx")
+        game.vr_support = "required"  # type: ignore[attr-defined]
+        game.categories = []
+        games = [game]
+
+        count = service.categorize_by_vr(games)
+
+        assert count == 1
+        assert service.category_service.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
+
+    def test_categorize_by_vr_no_vr(self, service):
+        """Test categorizing games without VR support."""
+        from src.core.game_manager import Game
+
+        game = Game(app_id="440", name="Test Game")
+        game.categories = []
+        games = [game]
+
+        count = service.categorize_by_vr(games)
+
+        assert count == 0
+        assert service.category_service.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
 
     # === TIME ESTIMATION TEST ===
 

@@ -25,8 +25,8 @@
     "exit": "Beenden",
     "confirm_exit": "Möchten Sie die Anwendung wirklich beenden?",
     "continue": "Weiter",
-    "save_and_exit": "Speichern & Beenden",
-    "discard_and_exit": "Verwerfen & Beenden",
+    "save_and_exit": "Speichern && Beenden",
+    "discard_and_exit": "Verwerfen && Beenden",
     "unsaved_changes_title": "Nicht gespeicherte Änderungen",
     "unsaved_changes_msg": "Es wurden Änderungen an {filenames} vorgenommen.\n\nWollen Sie wirklich die App beenden?\n\nNicht gespeicherte Änderungen gehen verloren!",
     "unsaved_changes_save_prompt": "Sie haben ungespeicherte Änderungen. Möchten Sie diese speichern?",
@@ -34,7 +34,7 @@
     "save_failed_title": "Speichern fehlgeschlagen",
     "save_failed_msg": "Das Speichern ist fehlgeschlagen. Trotzdem schließen?",
     "placeholder_title": "Bald verfügbar",
-    "placeholder_message": "{feature} wird bald implementiert! \ud83d\ude80"
+    "placeholder_message": "{feature} wird bald implementiert!"
   },
   "ui": {
     "main_window": {
@@ -46,7 +46,6 @@
       "filtered_count": "{filtered} von {total} Spielen angezeigt",
       "user_label": "Benutzer: {user_id}",
       "user_auto": "Benutzer: {user_id} (Automatisch)",
-      "search_icon": "🔍",
       "expand_all": "Alle ausklappen",
       "collapse_all": "Alle einklappen",
       "statistics": "Kollektionen: {category_count} | Spiele in Kollektionen: {games_in_categories} | Echte Spiele: {total_games}",
@@ -109,7 +108,7 @@
         "limit": "Max. Backups:",
         "files": "Dateien",
         "tooltip": "Anzahl der Backups pro Datei",
-        "explanation": "Anzahl der Sicherungen von localconfig.vdf, sharedconfig.vdf & appinfo.vdf, bevor die älteste überschrieben wird."
+        "explanation": "Anzahl der Sicherungen von cloudstoreage-namepsace-1.json, local- und sharedconfig.vdf && appinfo.vdf, bevor die älteste überschrieben wird."
       },
       "tags": {
         "title_group": "Tags && Kollektionen",
@@ -120,7 +119,7 @@
     "game_details": {
       "section_basic": "Basis-Infos",
       "section_metadata": "Metadaten",
-      "section_ratings": "Bewertungen & Proton",
+      "section_ratings": "Bewertungen && Proton",
       "multi_select_title": "{count} Spiele ausgewählt",
       "selected": "Ausgewählt",
       "total_playtime": "Gesamte Spielzeit",
@@ -191,7 +190,7 @@
       "unhide_game": "Spiel sichtbar machen",
       "remove_from_local": "Aus lokaler Konfig entfernen",
       "remove_from_account": "Vom Account entfernen",
-      "check_store": "🔍 Store-Verfügbarkeit prüfen",
+      "check_store": "Store-Verfügbarkeit prüfen",
       "auto_categorize": "Auto-Kategorisieren",
       "rename": "Umbenennen",
       "delete": "Löschen",
@@ -284,11 +283,11 @@
       "software": "Software",
       "videos": "Videos",
       "duplicate_indicator": "{name} ({index}/{total})",
-      "merge_duplicates_title": "Doppelte Kollektionen zusammenf\u00fchren",
-      "merge_duplicates_info": "W\u00e4hle pro Gruppe, welche Kollektion behalten werden soll. Spiele aus allen anderen Duplikaten werden in die ausgew\u00e4hlte \u00fcbernommen.",
+      "merge_duplicates_title": "Doppelte Kollektionen zusammenführen",
+      "merge_duplicates_info": "Wähle pro Gruppe, welche Kollektion behalten werden soll. Spiele aus allen anderen Duplikaten werden in die ausgewählte übernommen.",
       "merge_duplicates_group": "{name} ({count} Duplikate)",
       "merge_duplicates_entry": "Kollektion #{index}: {game_count} Spiele",
-      "merge_duplicates_success": "{count} Duplikat-Gruppen erfolgreich zusammengef\u00fchrt.",
+      "merge_duplicates_success": "{count} Duplikat-Gruppen erfolgreich zusammengeführt.",
       "no_duplicates_found": "Keine doppelten Kollektionen gefunden."
     },
     "auto_categorize": {
@@ -320,7 +319,30 @@
       "apply_group": "Anwenden auf",
       "estimate_label": "Geschätzte Kollektionen",
       "cache_warning_title": "Wenig Cache-Daten",
-      "cache_warning_message": "Nur {cached} von {total} Spielen haben gecachte Tag-Daten.\n\nDas Abrufen der Tags vom Steam Store dauert ca. {time}.\n\nEMPFEHLUNG:\nVerwende zuerst 'Bearbeiten → Fehlende Metadaten abrufen' um den Cache zu füllen, dann führe Auto-Kategorisierung aus.\n\nTrotzdem fortfahren?"
+      "cache_warning_message": "Nur {cached} von {total} Spielen haben gecachte Tag-Daten.\n\nDas Abrufen der Tags vom Steam Store dauert ca. {time}.\n\nEMPFEHLUNG:\nVerwende zuerst 'Bearbeiten → Fehlende Metadaten abrufen' um den Cache zu füllen, dann führe Auto-Kategorisierung aus.\n\nTrotzdem fortfahren?",
+      "by_developer": "Nach Entwickler",
+      "by_platform": "Nach Plattform",
+      "by_user_score": "Nach Bewertung",
+      "by_hours_played": "Nach Spielzeit",
+      "by_flags": "Nach Features",
+      "by_vr": "Nach VR-Unterstützung",
+      "cat_developer": "Entwickler: {name}",
+      "cat_platform": "Plattform: {name}",
+      "cat_user_score": "Bewertung: {name}",
+      "cat_hours_played": "Spielzeit: {range}",
+      "cat_flags": "Feature: {name}",
+      "cat_vr": "VR: {name}",
+      "hours_never": "Nie gespielt",
+      "hours_0_2": "0-2h",
+      "hours_2_10": "2-10h",
+      "hours_10_50": "10-50h",
+      "hours_50_100": "50-100h",
+      "hours_100_plus": "100h+",
+      "no_method_title": "Keine Methode ausgewählt",
+      "error_no_method": "Bitte wähle mindestens eine Kategorisierungsmethode.",
+      "estimate_minutes": "~{count} Minuten",
+      "estimate_seconds": "~{count} Sekunden",
+      "estimate_instant": "Sofort"
     },
     "steamgrid_setup": {
       "title": "SteamGridDB Einrichtung",
@@ -331,7 +353,7 @@
       "get_key_btn": "Key holen (Browser öffnen)"
     },
     "login": {
-      "steam_login_title": "🔐 Steam Login",
+      "steam_login_title": "Steam Login",
       "sign_in_steam": "Bei Steam anmelden",
       "choose_method": "Wähle Anmeldemethode",
       "password_method": "Passwort",
@@ -429,7 +451,7 @@
       "warning_title": "Steam muss geschlossen sein um Änderungen zu speichern",
       "explanation": "Steam überschreibt die Kollektions-Dateien beim Beenden, wodurch deine Änderungen verloren gehen würden.",
       "info": "Um deine Kategorien sicher zu speichern:\n1. Schließe Steam komplett\n2. Speichere deine Änderungen\n3. Starte Steam neu um die aktualisierten Kategorien zu sehen",
-      "close_and_save": "Steam schließen & Speichern",
+      "close_and_save": "Steam schließen && Speichern",
       "confirm_title": "Steam schließen bestätigen",
       "confirm_message": "Dies wird Steam zwangsweise beenden. Jeglicher nicht gespeicherte Spielfortschritt kann verloren gehen.\n\nFortfahren?",
       "steam_closed": "Steam wurde geschlossen. Deine Änderungen werden jetzt gespeichert.",

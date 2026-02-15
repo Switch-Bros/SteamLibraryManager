@@ -9,6 +9,9 @@ their Steam games using various methods (tags, publisher, franchise, genre).
 
 from __future__ import annotations
 
+from typing import Any, Callable
+
+from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -23,10 +26,9 @@ from PyQt6.QtWidgets import (
     QButtonGroup,
     QMessageBox,
 )
-from PyQt6.QtGui import QFont
-from typing import Any, Callable
-from src.utils.i18n import t
+
 from src.config import config
+from src.utils.i18n import t
 
 
 class AutoCategorizeDialog(QDialog):
@@ -111,6 +113,24 @@ class AutoCategorizeDialog(QDialog):
 
         self.cb_genre = QCheckBox(t("ui.auto_categorize.by_genre"))
         methods_layout.addWidget(self.cb_genre)
+
+        self.cb_developer = QCheckBox(t("ui.auto_categorize.by_developer"))
+        methods_layout.addWidget(self.cb_developer)
+
+        self.cb_platform = QCheckBox(t("ui.auto_categorize.by_platform"))
+        methods_layout.addWidget(self.cb_platform)
+
+        self.cb_user_score = QCheckBox(t("ui.auto_categorize.by_user_score"))
+        methods_layout.addWidget(self.cb_user_score)
+
+        self.cb_hours_played = QCheckBox(t("ui.auto_categorize.by_hours_played"))
+        methods_layout.addWidget(self.cb_hours_played)
+
+        self.cb_flags = QCheckBox(t("ui.auto_categorize.by_flags"))
+        methods_layout.addWidget(self.cb_flags)
+
+        self.cb_vr = QCheckBox(t("ui.auto_categorize.by_vr"))
+        methods_layout.addWidget(self.cb_vr)
 
         methods_group.setLayout(methods_layout)
         layout.addWidget(methods_group)
@@ -205,6 +225,12 @@ class AutoCategorizeDialog(QDialog):
         self.cb_publisher.toggled.connect(self._update_estimate)
         self.cb_franchise.toggled.connect(self._update_estimate)
         self.cb_genre.toggled.connect(self._update_estimate)
+        self.cb_developer.toggled.connect(self._update_estimate)
+        self.cb_platform.toggled.connect(self._update_estimate)
+        self.cb_user_score.toggled.connect(self._update_estimate)
+        self.cb_hours_played.toggled.connect(self._update_estimate)
+        self.cb_flags.toggled.connect(self._update_estimate)
+        self.cb_vr.toggled.connect(self._update_estimate)
         self.tags_count_spin.valueChanged.connect(self._update_estimate)
         self.rb_selected.toggled.connect(self._update_estimate)
         self.rb_all.toggled.connect(self._update_estimate)
@@ -225,6 +251,18 @@ class AutoCategorizeDialog(QDialog):
             methods.append("franchise")
         if self.cb_genre.isChecked():
             methods.append("genre")
+        if self.cb_developer.isChecked():
+            methods.append("developer")
+        if self.cb_platform.isChecked():
+            methods.append("platform")
+        if self.cb_user_score.isChecked():
+            methods.append("user_score")
+        if self.cb_hours_played.isChecked():
+            methods.append("hours_played")
+        if self.cb_flags.isChecked():
+            methods.append("flags")
+        if self.cb_vr.isChecked():
+            methods.append("vr")
         return methods
 
     def _update_estimate(self):

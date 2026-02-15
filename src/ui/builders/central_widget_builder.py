@@ -6,13 +6,14 @@ application layout with splitter, game tree, and details panel.
 """
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, QSplitter, QProgressBar
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QLabel, QSplitter, QProgressBar
 
-from src.ui.widgets.game_details_widget import GameDetailsWidget
 from src.ui.widgets.category_tree import GameTreeWidget
+from src.ui.widgets.game_details_widget import GameDetailsWidget
 from src.utils.i18n import t
 
 if TYPE_CHECKING:
@@ -70,7 +71,7 @@ class CentralWidgetBuilder:
 
         # Search Bar
         search_layout = QHBoxLayout()
-        search_layout.addWidget(QLabel(t("ui.main_window.search_icon")))
+        search_layout.addWidget(QLabel(t("emoji.search")))
         search_entry = QLineEdit()
         search_entry.setPlaceholderText(t("ui.main_window.search_placeholder"))
         # noinspection PyUnresolvedReferences
