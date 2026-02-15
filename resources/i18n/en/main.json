@@ -26,7 +26,7 @@
     "game_details": {
       "section_basic": "Basic Info",
       "section_metadata": "Metadata",
-      "section_ratings": "Ratings && Proton",
+      "section_ratings": "Ratings & Proton",
       "multi_select_title": "{count} Games Selected",
       "selected": "Selected",
       "total_playtime": "Total Playtime",

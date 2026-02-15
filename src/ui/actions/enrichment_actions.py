@@ -57,16 +57,18 @@ class EnrichmentActions:
             return
 
         # Check database
-        db = self._get_database()
+        db = self._open_database()
         if db is None:
             return
 
         games = db.get_apps_without_hltb()
+        db.close()
         if not games:
             UIHelper.show_info(self.mw, t("ui.enrichment.no_games_hltb"))
             return
 
-        # Create worker and thread
+        # Create worker and thread – worker opens its own DB connection
+        db_path = self._get_db_path()
         worker = EnrichmentWorker()
         thread = QThread()
         worker.moveToThread(thread)
@@ -74,7 +76,7 @@ class EnrichmentActions:
         hltb_client = HLTBClient()
 
         # Connect thread started to worker method
-        thread.started.connect(lambda: worker.run_hltb_enrichment(games, db, hltb_client))
+        thread.started.connect(lambda: worker.run_hltb_enrichment(games, db_path, hltb_client))
 
         # Create and show dialog
         dialog = EnrichmentDialog(t("ui.enrichment.hltb_title"), self.mw)
@@ -99,21 +101,23 @@ class EnrichmentActions:
             return
 
         # Check database
-        db = self._get_database()
+        db = self._open_database()
         if db is None:
             return
 
         games = db.get_apps_missing_metadata()
+        db.close()
         if not games:
             UIHelper.show_info(self.mw, t("ui.enrichment.no_games_steam"))
             return
 
-        # Create worker and thread
+        # Create worker and thread – worker opens its own DB connection
+        db_path = self._get_db_path()
         worker = EnrichmentWorker()
         thread = QThread()
         worker.moveToThread(thread)
 
-        thread.started.connect(lambda: worker.run_steam_api_enrichment(games, db, api_key))
+        thread.started.connect(lambda: worker.run_steam_api_enrichment(games, db_path, api_key))
 
         # Create and show dialog
         dialog = EnrichmentDialog(t("ui.enrichment.steam_title"), self.mw)
@@ -129,20 +133,32 @@ class EnrichmentActions:
         dialog.settings_saved.connect(self.mw.settings_actions.apply_settings)
         dialog.exec()
 
-    def _get_database(self):
-        """Returns the active database instance or shows an error.
+    def _get_db_path(self):
+        """Returns the database file path from the active game service.
 
         Returns:
-            Database instance, or None if not available.
+            Path to the SQLite database, or None if not available.
         """
         if hasattr(self.mw, "game_service") and self.mw.game_service:
-            db = getattr(self.mw.game_service, "db", None)
-            if db:
-                return db
-
-        # Fallback: try to get from game_manager
-        if self.mw.game_manager and hasattr(self.mw.game_manager, "db"):
-            return self.mw.game_manager.db
+            db = getattr(self.mw.game_service, "database", None)
+            if db and hasattr(db, "db_path"):
+                return db.db_path
 
         logger.warning("No database available for enrichment")
         return None
+
+    def _open_database(self):
+        """Opens a fresh database connection for enrichment operations.
+
+        Creates a new Database instance to avoid SQLite threading issues,
+        since the main database may have been created in a different thread.
+
+        Returns:
+            New Database instance, or None if path not available.
+        """
+        from src.core.database import Database
+
+        db_path = self._get_db_path()
+        if db_path is None:
+            return None
+        return Database(db_path)

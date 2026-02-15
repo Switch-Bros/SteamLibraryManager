@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import time
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QObject, pyqtSignal
@@ -15,7 +16,6 @@ from PyQt6.QtCore import QObject, pyqtSignal
 from src.utils.i18n import t
 
 if TYPE_CHECKING:
-    from src.core.database import Database
     from src.integrations.hltb_api import HLTBClient
 
 logger = logging.getLogger("steamlibmgr.enrichment_service")
@@ -51,80 +51,84 @@ class EnrichmentWorker(QObject):
     def run_hltb_enrichment(
         self,
         games: list[tuple[int, str]],
-        db: Database,
+        db_path: Path,
         hltb_client: HLTBClient,
     ) -> None:
         """Enriches games with HowLongToBeat completion time data.
 
-        Iterates through the game list, searches HLTB for each, and
-        stores results in the database. Respects cancellation.
+        Opens its own database connection to avoid SQLite threading issues.
 
         Args:
             games: List of (app_id, name) tuples to enrich.
-            db: Database instance for storing results.
+            db_path: Path to the SQLite database file.
             hltb_client: HLTB client for searching.
         """
+        from src.core.database import Database
+
         self._cancelled = False
         total = len(games)
         success = 0
         failed = 0
 
-        for idx, (app_id, name) in enumerate(games):
-            if self._cancelled:
-                break
+        db = Database(db_path)
+        try:
+            for idx, (app_id, name) in enumerate(games):
+                if self._cancelled:
+                    break
 
-            self.progress.emit(
-                t("ui.enrichment.progress", name=name, current=idx + 1, total=total),
-                idx + 1,
-                total,
-            )
+                self.progress.emit(
+                    t("ui.enrichment.progress", name=name, current=idx + 1, total=total),
+                    idx + 1,
+                    total,
+                )
 
-            try:
-                result = hltb_client.search_game(name)
-                if result and result.main_story > 0:
-                    db.conn.execute(
-                        """
-                        INSERT OR REPLACE INTO hltb_data
-                        (app_id, main_story, main_extras, completionist, last_updated)
-                        VALUES (?, ?, ?, ?, ?)
-                        """,
-                        (
-                            app_id,
-                            result.main_story,
-                            result.main_extras,
-                            result.completionist,
-                            int(time.time()),
-                        ),
-                    )
-                    db.conn.commit()
-                    success += 1
-                else:
+                try:
+                    result = hltb_client.search_game(name)
+                    if result and result.main_story > 0:
+                        db.conn.execute(
+                            """
+                            INSERT OR REPLACE INTO hltb_data
+                            (app_id, main_story, main_extras, completionist, last_updated)
+                            VALUES (?, ?, ?, ?, ?)
+                            """,
+                            (
+                                app_id,
+                                result.main_story,
+                                result.main_extras,
+                                result.completionist,
+                                int(time.time()),
+                            ),
+                        )
+                        db.conn.commit()
+                        success += 1
+                    else:
+                        failed += 1
+                except Exception as exc:
+                    logger.warning("HLTB enrichment failed for %d (%s): %s", app_id, name, exc)
                     failed += 1
-            except Exception as exc:
-                logger.warning("HLTB enrichment failed for %d (%s): %s", app_id, name, exc)
-                failed += 1
 
-            # Small delay to avoid hammering the API
-            time.sleep(0.5)
+                time.sleep(0.5)
+        finally:
+            db.close()
 
         self.finished.emit(success, failed)
 
     def run_steam_api_enrichment(
         self,
         games: list[tuple[int, str]],
-        db: Database,
+        db_path: Path,
         api_key: str,
     ) -> None:
         """Enriches games with metadata from the Steam Web API.
 
-        Uses batched API calls to fetch metadata and updates the database.
-        Respects cancellation between batches.
+        Opens its own database connection to avoid SQLite threading issues.
 
         Args:
             games: List of (app_id, name) tuples to enrich.
-            db: Database instance for storing results.
+            db_path: Path to the SQLite database file.
             api_key: Steam Web API key.
         """
+        from src.core.database import Database
         from src.integrations.steam_web_api import SteamWebAPI
 
         self._cancelled = False
@@ -144,69 +148,77 @@ class EnrichmentWorker(QObject):
         success = 0
         failed = 0
 
-        # Process in batches of 50
-        batch_size = 50
-        for batch_start in range(0, len(app_ids), batch_size):
-            if self._cancelled:
-                break
+        db = Database(db_path)
+        try:
+            batch_size = 50
+            for batch_start in range(0, len(app_ids), batch_size):
+                if self._cancelled:
+                    break
 
-            batch = app_ids[batch_start : batch_start + batch_size]
-            current = min(batch_start + batch_size, total)
+                batch = app_ids[batch_start : batch_start + batch_size]
+                current = min(batch_start + batch_size, total)
 
-            batch_name = f"Batch {batch_start // batch_size + 1}"
-            self.progress.emit(
-                t("ui.enrichment.progress", name=batch_name, current=current, total=total),
-                current,
-                total,
-            )
+                batch_name = f"Batch {batch_start // batch_size + 1}"
+                self.progress.emit(
+                    t("ui.enrichment.progress", name=batch_name, current=current, total=total),
+                    current,
+                    total,
+                )
 
-            try:
-                details_map = api.get_app_details_batch(batch)
+                try:
+                    details_map = api.get_app_details_batch(batch)
 
-                for aid, details in details_map.items():
-                    update_fields: dict = {}
-                    if details.name:
-                        update_fields["name"] = details.name
-                    if details.developers:
-                        update_fields["developer"] = ", ".join(details.developers)
-                    if details.publishers:
-                        update_fields["publisher"] = ", ".join(details.publishers)
-                    if details.review_score:
-                        update_fields["review_score"] = details.review_score
+                    for aid, details in details_map.items():
+                        update_fields: dict = {}
+                        if details.name:
+                            update_fields["name"] = details.name
+                        if details.developers:
+                            update_fields["developer"] = ", ".join(details.developers)
+                        if details.publishers:
+                            update_fields["publisher"] = ", ".join(details.publishers)
+                        if details.review_score:
+                            update_fields["review_score"] = details.review_score
+                        if details.steam_release_date:
+                            update_fields["steam_release_date"] = details.steam_release_date
+                        if details.original_release_date:
+                            update_fields["original_release_date"] = details.original_release_date
 
-                    if update_fields:
-                        db.upsert_game_metadata(aid, **update_fields)
+                        if update_fields:
+                            db.upsert_game_metadata(aid, **update_fields)
 
-                    # Update languages if available
-                    if details.languages:
-                        lang_dict = {
-                            lang.lower().replace(" ", "_"): {"interface": True, "audio": False, "subtitles": False}
-                            for lang in details.languages
-                        }
-                        db.upsert_languages(aid, lang_dict)
+                        if details.languages:
+                            lang_dict = {
+                                lang.lower().replace(" ", "_"): {
+                                    "interface": True,
+                                    "audio": False,
+                                    "subtitles": False,
+                                }
+                                for lang in details.languages
+                            }
+                            db.upsert_languages(aid, lang_dict)
 
-                    # Update genres
-                    if details.genres:
-                        db.conn.execute("DELETE FROM game_genres WHERE app_id = ?", (aid,))
-                        db.conn.executemany(
-                            "INSERT OR REPLACE INTO game_genres (app_id, genre) VALUES (?, ?)",
-                            [(aid, g) for g in details.genres],
-                        )
+                        if details.genres:
+                            db.conn.execute("DELETE FROM game_genres WHERE app_id = ?", (aid,))
+                            db.conn.executemany(
+                                "INSERT OR REPLACE INTO game_genres (app_id, genre) VALUES (?, ?)",
+                                [(aid, g) for g in details.genres],
+                            )
 
-                    # Update tags
-                    if details.tags:
-                        db.conn.execute("DELETE FROM game_tags WHERE app_id = ?", (aid,))
-                        db.conn.executemany(
-                            "INSERT OR REPLACE INTO game_tags (app_id, tag) VALUES (?, ?)",
-                            [(aid, tg) for tg in details.tags],
-                        )
+                        if details.tags:
+                            db.conn.execute("DELETE FROM game_tags WHERE app_id = ?", (aid,))
+                            db.conn.executemany(
+                                "INSERT OR REPLACE INTO game_tags (app_id, tag) VALUES (?, ?)",
+                                [(aid, tg) for tg in details.tags],
+                            )
 
-                    success += 1
+                        success += 1
 
-                db.conn.commit()
+                    db.conn.commit()
 
-            except Exception as exc:
-                logger.warning("Steam API batch failed: %s", exc)
-                failed += len(batch)
+                except Exception as exc:
+                    logger.warning("Steam API batch failed: %s", exc)
+                    failed += len(batch)
+        finally:
+            db.close()
 
         self.finished.emit(success, failed)

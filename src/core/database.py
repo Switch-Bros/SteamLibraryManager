@@ -963,13 +963,21 @@ class Database:
         )
 
     def get_apps_missing_metadata(self) -> list[tuple[int, str]]:
-        """Returns apps with missing developer metadata.
+        """Returns apps with missing developer, publisher, or release date.
 
         Returns:
-            List of (app_id, name) tuples for games where developer
-            is NULL or empty string.
+            List of (app_id, name) tuples for games where any of
+            developer, publisher, or release date is missing.
         """
-        cursor = self.conn.execute("SELECT app_id, name FROM games WHERE developer IS NULL OR developer = ''")
+        cursor = self.conn.execute(
+            "SELECT app_id, name FROM games"
+            " WHERE (developer IS NULL OR developer = '')"
+            " OR (publisher IS NULL OR publisher = '')"
+            " OR ("
+            "   (original_release_date IS NULL OR original_release_date = 0)"
+            "   AND (steam_release_date IS NULL OR steam_release_date = 0)"
+            " )"
+        )
         return [(row[0], row[1]) for row in cursor.fetchall()]
 
     def get_apps_without_hltb(self) -> list[tuple[int, str]]:
