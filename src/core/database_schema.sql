@@ -3,7 +3,7 @@
 -- Version: 2.0
 -- Purpose: Fast metadata cache + ALL advanced features
 -- ============================================================================
--- 
+--
 -- Features:
 -- ✅ Game metadata (fast startup)
 -- ✅ Custom artwork sync (multi-device)
@@ -33,24 +33,24 @@ CREATE TABLE IF NOT EXISTS games (
     name TEXT NOT NULL,
     sort_as TEXT,  -- "The LEGO" → "LEGO"
     app_type TEXT NOT NULL,  -- game, dlc, application, video, music, demo, tool, config
-    
+
     -- Developer & Publisher
     developer TEXT,
     publisher TEXT,
-    
+
     -- Release Dates (UNIX timestamps)
     original_release_date INTEGER,
     steam_release_date INTEGER,
     release_date INTEGER,
-    
+
     -- Review Data
     review_score INTEGER,  -- 0-100
     review_count INTEGER,
-    
+
     -- Price & Status
     is_free BOOLEAN DEFAULT 0,
     is_early_access BOOLEAN DEFAULT 0,
-    
+
     -- Technical Features
     vr_support TEXT,  -- none, optional, required
     controller_support TEXT,  -- none, partial, full
@@ -58,15 +58,15 @@ CREATE TABLE IF NOT EXISTS games (
     workshop BOOLEAN DEFAULT 0,
     trading_cards BOOLEAN DEFAULT 0,
     achievements_total INTEGER DEFAULT 0,
-    
+
     -- Platform Support (JSON array)
     platforms TEXT,  -- ["windows", "linux", "mac"]
-    
+
     -- Metadata Management
     is_modified BOOLEAN DEFAULT 0,
     last_synced INTEGER,
     last_updated INTEGER,
-    
+
     -- Timestamps
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
@@ -86,8 +86,20 @@ CREATE TABLE IF NOT EXISTS game_genres (
 CREATE TABLE IF NOT EXISTS game_tags (
     app_id INTEGER NOT NULL,
     tag TEXT NOT NULL,
+    tag_id INTEGER,
     PRIMARY KEY (app_id, tag),
     FOREIGN KEY (app_id) REFERENCES games(app_id) ON DELETE CASCADE
+);
+
+-- ============================================================================
+-- TAG DEFINITIONS (Reference table for TagID → localized name)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS tag_definitions (
+    tag_id INTEGER NOT NULL,
+    language TEXT NOT NULL,
+    name TEXT NOT NULL,
+    PRIMARY KEY (tag_id, language)
 );
 
 CREATE TABLE IF NOT EXISTS game_franchises (
@@ -418,6 +430,9 @@ CREATE INDEX IF NOT EXISTS idx_games_is_modified ON games(is_modified);
 -- Multi-value
 CREATE INDEX IF NOT EXISTS idx_genres_genre ON game_genres(genre);
 CREATE INDEX IF NOT EXISTS idx_tags_tag ON game_tags(tag);
+CREATE INDEX IF NOT EXISTS idx_tags_tag_id ON game_tags(tag_id);
+CREATE INDEX IF NOT EXISTS idx_tag_definitions_name ON tag_definitions(name);
+CREATE INDEX IF NOT EXISTS idx_tag_definitions_lang ON tag_definitions(language);
 CREATE INDEX IF NOT EXISTS idx_franchises_franchise ON game_franchises(franchise);
 CREATE INDEX IF NOT EXISTS idx_languages_language ON game_languages(language);
 
@@ -467,7 +482,7 @@ WHERE mm.synced_to_appinfo = 0;
 
 -- Games with full metadata
 CREATE VIEW IF NOT EXISTS v_games_full AS
-SELECT 
+SELECT
     g.*,
     GROUP_CONCAT(DISTINCT gg.genre) as genres,
     GROUP_CONCAT(DISTINCT gt.tag) as tags,
@@ -506,10 +521,10 @@ LIMIT 50;
 -- ============================================================================
 
 -- Auto-update timestamps
-CREATE TRIGGER IF NOT EXISTS update_games_timestamp 
+CREATE TRIGGER IF NOT EXISTS update_games_timestamp
 AFTER UPDATE ON games
 BEGIN
-    UPDATE games SET updated_at = strftime('%s', 'now') 
+    UPDATE games SET updated_at = strftime('%s', 'now')
     WHERE app_id = NEW.app_id;
 END;
 
@@ -533,7 +548,7 @@ AFTER UPDATE ON achievements
 WHEN NEW.is_unlocked = 1 AND OLD.is_unlocked = 0
 BEGIN
     UPDATE achievement_stats
-    SET 
+    SET
         unlocked_achievements = unlocked_achievements + 1,
         completion_percentage = (CAST(unlocked_achievements + 1 AS REAL) / total_achievements) * 100,
         perfect_game = CASE WHEN unlocked_achievements + 1 = total_achievements THEN 1 ELSE 0 END,
@@ -546,7 +561,7 @@ END;
 -- ============================================================================
 
 INSERT OR IGNORE INTO schema_version (version, applied_at, description)
-VALUES (2, strftime('%s', 'now'), 'Complete schema with all features');
+VALUES (3, strftime('%s', 'now'), 'Tag definitions + tag_id support');
 
 -- ============================================================================
 -- END OF SCHEMA

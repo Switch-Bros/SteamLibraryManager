@@ -279,6 +279,113 @@ class EditActions:
         UIHelper.show_success(self.mw, t("common.success"))
 
     # ------------------------------------------------------------------
+    # Smart Collections
+    # ------------------------------------------------------------------
+
+    def create_smart_collection(self) -> None:
+        """Opens SmartCollectionDialog for creating a new Smart Collection."""
+        if not self.mw.game_manager or not self.mw.smart_collection_manager:
+            return
+
+        from src.ui.dialogs.smart_collection_dialog import SmartCollectionDialog
+
+        dialog = SmartCollectionDialog(
+            self.mw,
+            self.mw.game_manager,
+            self.mw.smart_collection_manager,
+        )
+        if dialog.exec():
+            collection = dialog.get_result()
+            if collection:
+                count = len(self.mw.smart_collection_manager.evaluate_collection(collection))
+                self.mw.smart_collection_manager.create(collection)
+                self.mw.save_collections()
+                self.mw.populate_categories()
+                UIHelper.show_success(
+                    self.mw,
+                    t("ui.smart_collections.created", count=count),
+                )
+
+    def edit_smart_collection(self) -> None:
+        """Opens SmartCollectionDialog for editing the selected Smart Collection."""
+        if not self.mw.game_manager or not self.mw.smart_collection_manager:
+            return
+
+        selected_cats = self.mw.tree.get_selected_categories()
+        if not selected_cats:
+            UIHelper.show_warning(self.mw, t("ui.smart_collections.select_collection"))
+            return
+
+        cat_name = selected_cats[0]
+        existing = self.mw.smart_collection_manager.get_by_name(cat_name)
+        if not existing:
+            UIHelper.show_warning(self.mw, t("ui.smart_collections.not_smart"))
+            return
+
+        from src.ui.dialogs.smart_collection_dialog import SmartCollectionDialog
+
+        dialog = SmartCollectionDialog(
+            self.mw,
+            self.mw.game_manager,
+            self.mw.smart_collection_manager,
+            collection_to_edit=existing,
+        )
+        if dialog.exec():
+            collection = dialog.get_result()
+            if collection:
+                count = self.mw.smart_collection_manager.update(collection)
+                self.mw.save_collections()
+                self.mw.populate_categories()
+                UIHelper.show_success(
+                    self.mw,
+                    t("ui.smart_collections.updated", count=count),
+                )
+
+    def delete_smart_collection(self) -> None:
+        """Deletes the selected Smart Collection after confirmation."""
+        if not self.mw.smart_collection_manager:
+            return
+
+        selected_cats = self.mw.tree.get_selected_categories()
+        if not selected_cats:
+            UIHelper.show_warning(self.mw, t("ui.smart_collections.select_collection"))
+            return
+
+        cat_name = selected_cats[0]
+        existing = self.mw.smart_collection_manager.get_by_name(cat_name)
+        if not existing:
+            UIHelper.show_warning(self.mw, t("ui.smart_collections.not_smart"))
+            return
+
+        msg_box = QMessageBox(self.mw)
+        msg_box.setIcon(QMessageBox.Icon.Question)
+        msg_box.setWindowTitle(t("categories.delete_title"))
+        msg_box.setText(t("ui.smart_collections.confirm_delete", name=cat_name))
+
+        yes_btn = msg_box.addButton(t("common.yes"), QMessageBox.ButtonRole.YesRole)
+        msg_box.addButton(t("common.no"), QMessageBox.ButtonRole.NoRole)
+        msg_box.exec()
+
+        if msg_box.clickedButton() == yes_btn:
+            self.mw.smart_collection_manager.delete(existing.collection_id)
+            self.mw.save_collections()
+            self.mw.populate_categories()
+            UIHelper.show_success(self.mw, t("ui.smart_collections.deleted"))
+
+    def refresh_smart_collections(self) -> None:
+        """Re-evaluates all Smart Collections and refreshes the tree."""
+        if not self.mw.smart_collection_manager:
+            return
+
+        result = self.mw.smart_collection_manager.refresh()
+        self.mw.save_collections()
+        self.mw.populate_categories()
+        UIHelper.show_success(
+            self.mw,
+            t("ui.smart_collections.refreshed", count=len(result)),
+        )
+
+    # ------------------------------------------------------------------
     # Metadata Editing
     # ------------------------------------------------------------------
 

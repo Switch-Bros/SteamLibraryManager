@@ -259,6 +259,99 @@ class EnrichmentActions:
         progress.canceled.connect(thread.cancel)
         thread.start()
 
+    def start_tag_import(self) -> None:
+        """Starts background import of tags from appinfo.vdf.
+
+        Parses the binary appinfo.vdf, extracts store_tags (TagIDs),
+        resolves them to localized names, and stores in the database.
+        """
+        from PyQt6.QtCore import Qt
+        from PyQt6.QtWidgets import QMessageBox, QProgressDialog
+
+        from src.config import config
+        from src.services.enrichment.tag_import_service import TagImportThread
+
+        # Check Steam path
+        steam_path = config.STEAM_PATH
+        if not steam_path:
+            UIHelper.show_warning(self.mw, t("ui.tag_import.no_steam_path"))
+            return
+
+        # Check database
+        db_path = self._get_db_path()
+        if db_path is None:
+            return
+
+        # Check if tags already exist
+        db = self._open_database()
+        if db:
+            tag_count = db.get_game_tag_count()
+            db.close()
+            if tag_count > 0:
+                reply = QMessageBox.question(
+                    self.mw,
+                    t("ui.tag_import.dialog_title"),
+                    t("ui.tag_import.already_populated", count=tag_count),
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No,
+                )
+                if reply != QMessageBox.StandardButton.Yes:
+                    return
+
+        # Determine language
+        language = "en"
+        if hasattr(self.mw, "tag_resolver") and self.mw.tag_resolver:
+            i18n = getattr(self.mw, "_i18n", None)
+            if i18n:
+                language = i18n.locale
+
+        # Create thread
+        thread = TagImportThread(self.mw)
+        thread.configure(steam_path, db_path, language)
+
+        # Create progress dialog
+        progress = QProgressDialog(
+            t("ui.tag_import.starting"),
+            t("common.cancel"),
+            0,
+            0,
+            self.mw,
+        )
+        progress.setWindowTitle(t("ui.tag_import.dialog_title"))
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setMinimumDuration(0)
+
+        # Keep references alive
+        self._tag_import_thread = thread
+        self._tag_import_progress = progress
+
+        def on_progress(text: str, current: int, total: int) -> None:
+            if progress.wasCanceled():
+                thread.cancel()
+                return
+            if total > 0:
+                progress.setMaximum(total)
+            progress.setValue(current)
+            progress.setLabelText(text)
+
+        def on_finished(games_tagged: int, total_tags: int) -> None:
+            progress.close()
+            UIHelper.show_success(
+                self.mw,
+                t("ui.tag_import.complete", games=games_tagged, tags=total_tags),
+            )
+            self.mw.populate_categories()
+
+        def on_error(msg: str) -> None:
+            progress.close()
+            UIHelper.show_warning(self.mw, msg)
+
+        thread.progress.connect(on_progress)
+        thread.finished_import.connect(on_finished)
+        thread.error.connect(on_error)
+        progress.canceled.connect(thread.cancel)
+        thread.start()
+
     def _open_settings_api_tab(self) -> None:
         """Opens the Settings dialog on the API keys tab."""
         from src.ui.dialogs.settings_dialog import SettingsDialog

@@ -10,12 +10,14 @@
         "games_csv_simple": "Spieleliste als CSV (Simple)",
         "games_csv_full": "Spieleliste als CSV (Full)",
         "games_json": "Spieleliste als JSON",
+        "smart_collections": "Smart Collections (JSON)",
         "artwork_package": "Artwork-Pack exportieren",
         "db_backup": "Datenbank-Backup"
       },
       "import": {
         "root": "Importieren",
         "collections": "Kollektionen (VDF)",
+        "smart_collections": "Smart Collections (JSON)",
         "db_backup": "Datenbank-Backup",
         "artwork_package": "Artwork-Pack importieren"
       },
@@ -40,7 +42,11 @@
         "merge": "Kollektionen zusammenführen",
         "delete_empty": "Leere Kollektionen löschen",
         "expand_all": "Alle aufklappen",
-        "collapse_all": "Alle zuklappen"
+        "collapse_all": "Alle zuklappen",
+        "create_smart": "Smart Collection erstellen...",
+        "edit_smart": "Smart Collection Regeln bearbeiten...",
+        "delete_smart": "Smart Collection löschen",
+        "refresh_smart": "Smart Collections aktualisieren"
       },
       "find_missing_metadata": "Spiele mit fehlenden Metadaten",
       "reset_metadata": "Metadaten zurücksetzen",
@@ -141,7 +147,8 @@
         "update_deck": "Fehlende Deck-Status abrufen",
         "update_protondb": "ProtonDB Ratings aktualisieren",
         "check_store": "Store-Seiten prüfen",
-        "update_achievements": "Achievements aktualisieren"
+        "update_achievements": "Achievements aktualisieren",
+        "import_tags": "Tags aus Steam importieren"
       },
       "database": {
         "root": "Datenbank",

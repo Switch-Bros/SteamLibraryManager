@@ -128,9 +128,9 @@ def main() -> None:
 
     # Suchpfade — vom spezifischen zum allgemeinen
     search: list[Path] = [
-        root / "source_icons",   # dedizierter Quell-Ordner  ← hier ablegen
-        root,                    # Projektroot
-        Path.cwd(),              # Arbeitsverzeichnis
+        root / "source_icons",  # dedizierter Quell-Ordner  ← hier ablegen
+        root,  # Projektroot
+        Path.cwd(),  # Arbeitsverzeichnis
     ]
 
     print("=" * 52)

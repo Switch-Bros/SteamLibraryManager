@@ -165,7 +165,7 @@ class Database:
     modification tracking, and fast queries for UI.
     """
 
-    SCHEMA_VERSION = 2
+    SCHEMA_VERSION = 3
 
     def __init__(self, db_path: Path):
         """Initialize database connection.
@@ -238,12 +238,38 @@ class Database:
             from_version: Current schema version.
             to_version: Target schema version.
         """
-        # Future migrations go here
         logger.info(
             "Migrating database from version %d to %d",
             from_version,
             to_version,
         )
+
+        if from_version < 3:
+            self._migrate_to_v3()
+            self._set_schema_version(3)
+
+    def _migrate_to_v3(self) -> None:
+        """Migrate to schema v3: tag_definitions table + tag_id column."""
+        # Add tag_id column to game_tags (if not exists)
+        try:
+            self.conn.execute("ALTER TABLE game_tags ADD COLUMN tag_id INTEGER")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+
+        # Create tag_definitions table
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS tag_definitions (
+                tag_id INTEGER NOT NULL,
+                language TEXT NOT NULL,
+                name TEXT NOT NULL,
+                PRIMARY KEY (tag_id, language)
+            )
+            """)
+        self.conn.execute("CREATE INDEX IF NOT EXISTS idx_tags_tag_id ON game_tags(tag_id)")
+        self.conn.execute("CREATE INDEX IF NOT EXISTS idx_tag_definitions_name ON tag_definitions(name)")
+        self.conn.execute("CREATE INDEX IF NOT EXISTS idx_tag_definitions_lang ON tag_definitions(language)")
+        self.conn.commit()
+        logger.info("Migrated to schema v3: tag_definitions + tag_id")
 
     # ========================================================================
     # GAME CRUD OPERATIONS
@@ -1119,6 +1145,263 @@ class Database:
             app_ids,
         )
         return {row[0]: (int(row[1]), int(row[2]), float(row[3]), bool(row[4])) for row in cursor.fetchall()}
+
+    # ========================================================================
+    # SMART COLLECTION OPERATIONS (Phase 5.3)
+    # ========================================================================
+
+    def create_smart_collection(self, name: str, description: str, icon: str, rules_json: str) -> int:
+        """Creates a new smart collection in the database.
+
+        Args:
+            name: Collection name (must be unique).
+            description: Optional description.
+            icon: Emoji icon.
+            rules_json: JSON string with logic and rules.
+
+        Returns:
+            The new collection_id.
+        """
+        import time
+
+        cursor = self.conn.execute(
+            """
+            INSERT INTO user_collections (name, description, icon, is_smart, rules, created_at)
+            VALUES (?, ?, ?, 1, ?, ?)
+            """,
+            (name, description, icon, rules_json, int(time.time())),
+        )
+        return cursor.lastrowid or 0
+
+    def update_smart_collection(
+        self, collection_id: int, name: str, description: str, icon: str, rules_json: str
+    ) -> None:
+        """Updates an existing smart collection.
+
+        Args:
+            collection_id: The collection to update.
+            name: New name.
+            description: New description.
+            icon: New icon.
+            rules_json: New rules JSON string.
+        """
+        self.conn.execute(
+            """
+            UPDATE user_collections
+            SET name = ?, description = ?, icon = ?, rules = ?
+            WHERE collection_id = ? AND is_smart = 1
+            """,
+            (name, description, icon, rules_json, collection_id),
+        )
+
+    def delete_smart_collection(self, collection_id: int) -> None:
+        """Deletes a smart collection and its game associations.
+
+        Args:
+            collection_id: The collection to delete.
+        """
+        self.conn.execute(
+            "DELETE FROM collection_games WHERE collection_id = ?",
+            (collection_id,),
+        )
+        self.conn.execute(
+            "DELETE FROM user_collections WHERE collection_id = ? AND is_smart = 1",
+            (collection_id,),
+        )
+
+    def get_smart_collection(self, collection_id: int) -> dict | None:
+        """Retrieves a single smart collection by ID.
+
+        Args:
+            collection_id: The collection to retrieve.
+
+        Returns:
+            Dict with collection fields, or None if not found.
+        """
+        cursor = self.conn.execute(
+            "SELECT * FROM user_collections WHERE collection_id = ? AND is_smart = 1",
+            (collection_id,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            return None
+        columns = [desc[0] for desc in cursor.description]
+        return dict(zip(columns, row))
+
+    def get_all_smart_collections(self) -> list[dict]:
+        """Retrieves all smart collections ordered by name.
+
+        Returns:
+            List of dicts with collection fields.
+        """
+        cursor = self.conn.execute("SELECT * FROM user_collections WHERE is_smart = 1 ORDER BY name")
+        columns = [desc[0] for desc in cursor.description]
+        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+    def get_smart_collection_by_name(self, name: str) -> dict | None:
+        """Retrieves a smart collection by name.
+
+        Args:
+            name: The collection name.
+
+        Returns:
+            Dict with collection fields, or None if not found.
+        """
+        cursor = self.conn.execute(
+            "SELECT * FROM user_collections WHERE name = ? AND is_smart = 1",
+            (name,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            return None
+        columns = [desc[0] for desc in cursor.description]
+        return dict(zip(columns, row))
+
+    def populate_smart_collection(self, collection_id: int, app_ids: list[int]) -> int:
+        """Replaces the game membership of a smart collection.
+
+        Deletes existing entries and inserts the new set of app_ids.
+
+        Args:
+            collection_id: The collection to populate.
+            app_ids: List of app IDs that match the collection rules.
+
+        Returns:
+            Number of games added.
+        """
+        import time
+
+        self.conn.execute(
+            "DELETE FROM collection_games WHERE collection_id = ?",
+            (collection_id,),
+        )
+        if not app_ids:
+            return 0
+
+        now = int(time.time())
+        rows = [(collection_id, app_id, now) for app_id in app_ids]
+        self.conn.executemany(
+            "INSERT OR IGNORE INTO collection_games (collection_id, app_id, added_at) VALUES (?, ?, ?)",
+            rows,
+        )
+        return len(app_ids)
+
+    def get_smart_collection_games(self, collection_id: int) -> list[int]:
+        """Retrieves all app IDs in a smart collection.
+
+        Args:
+            collection_id: The collection to query.
+
+        Returns:
+            List of app IDs.
+        """
+        cursor = self.conn.execute(
+            "SELECT app_id FROM collection_games WHERE collection_id = ?",
+            (collection_id,),
+        )
+        return [row[0] for row in cursor.fetchall()]
+
+    # ========================================================================
+    # TAG DEFINITIONS
+    # ========================================================================
+
+    def populate_tag_definitions(self, tags: list[tuple[int, str, str]]) -> int:
+        """Bulk-insert tag definitions (TagID → localized name).
+
+        Args:
+            tags: List of (tag_id, language, name) tuples.
+
+        Returns:
+            Number of tags inserted.
+        """
+        self.conn.executemany(
+            "INSERT OR REPLACE INTO tag_definitions (tag_id, language, name) VALUES (?, ?, ?)",
+            tags,
+        )
+        self.conn.commit()
+        return len(tags)
+
+    def get_tag_definitions_count(self) -> int:
+        """Get number of tag definitions in the database.
+
+        Returns:
+            Total count of tag definition rows.
+        """
+        cursor = self.conn.execute("SELECT COUNT(*) FROM tag_definitions")
+        return cursor.fetchone()[0]
+
+    def get_all_tag_names(self, language: str = "en") -> list[str]:
+        """Get all known tag names for a language, sorted alphabetically.
+
+        Args:
+            language: Language code (e.g. 'en', 'de').
+
+        Returns:
+            Sorted list of tag names.
+        """
+        cursor = self.conn.execute(
+            "SELECT name FROM tag_definitions WHERE language = ? ORDER BY name",
+            (language,),
+        )
+        return [row[0] for row in cursor.fetchall()]
+
+    def get_tag_id_by_name(self, name: str, language: str = "en") -> int | None:
+        """Look up a TagID by its localized name.
+
+        Args:
+            name: The tag name to look up.
+            language: Language code.
+
+        Returns:
+            TagID or None if not found.
+        """
+        cursor = self.conn.execute(
+            "SELECT tag_id FROM tag_definitions WHERE name = ? AND language = ? LIMIT 1",
+            (name, language),
+        )
+        row = cursor.fetchone()
+        return row[0] if row else None
+
+    def get_tag_name_by_id(self, tag_id: int, language: str = "en") -> str | None:
+        """Resolve a TagID to its localized name.
+
+        Args:
+            tag_id: The numeric tag ID.
+            language: Language code.
+
+        Returns:
+            Tag name or None if not found.
+        """
+        cursor = self.conn.execute(
+            "SELECT name FROM tag_definitions WHERE tag_id = ? AND language = ? LIMIT 1",
+            (tag_id, language),
+        )
+        row = cursor.fetchone()
+        return row[0] if row else None
+
+    def bulk_insert_game_tags_by_id(self, game_tags: list[tuple[int, int, str]]) -> int:
+        """Bulk-insert game→tag associations using TagIDs.
+
+        Args:
+            game_tags: List of (app_id, tag_id, tag_name) tuples.
+
+        Returns:
+            Number of rows inserted.
+        """
+        self.conn.executemany(
+            "INSERT OR REPLACE INTO game_tags (app_id, tag, tag_id) VALUES (?, ?, ?)",
+            [(app_id, name, tag_id) for app_id, tag_id, name in game_tags],
+        )
+        return len(game_tags)
+
+    def get_game_tag_count(self) -> int:
+        """Get total number of game→tag associations.
+
+        Returns:
+            Count of rows in game_tags.
+        """
+        cursor = self.conn.execute("SELECT COUNT(*) FROM game_tags")
+        return cursor.fetchone()[0]
 
     # ========================================================================
     # UTILITY METHODS

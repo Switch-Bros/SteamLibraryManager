@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from src.services.metadata_service import MetadataService
     from src.services.autocategorize_service import AutoCategorizeService
     from src.services.game_service import GameService
+    from src.services.smart_collections.smart_collection_manager import SmartCollectionManager
 
 from PyQt6.QtWidgets import QMainWindow, QToolBar
 from PyQt6.QtCore import Qt, QThread, QTimer
@@ -105,6 +106,7 @@ class MainWindow(QMainWindow):
         self.metadata_service: MetadataService | None = None  # Initialized after appinfo_manager
         self.autocategorize_service: AutoCategorizeService | None = None  # Initialized after category_service
         self.game_service: GameService | None = None  # Initialized by BootstrapService
+        self.smart_collection_manager: SmartCollectionManager | None = None
         self.asset_service = AssetService()  # Initialize immediately
 
         # Services

@@ -82,6 +82,7 @@ class GameTreeWidget(QTreeWidget):
         categories: dict[str, list[Game]],
         dynamic_collections: set | None = None,
         duplicate_info: dict[str, tuple[str, int, int]] | None = None,
+        smart_collections: set | None = None,
     ) -> None:
         """Rebuilds the entire tree with the provided category-to-game mapping.
 
@@ -95,6 +96,8 @@ class GameTreeWidget(QTreeWidget):
                 (have filterSpec). These will get a blitz emoji.
             duplicate_info: Maps internal dup keys to (real_name, index, total).
                 Used to display duplicate collections individually.
+            smart_collections: Set of collection names that are Smart Collections.
+                These will get a brain emoji.
         """
         self.clear()
 
@@ -102,6 +105,8 @@ class GameTreeWidget(QTreeWidget):
             dynamic_collections = set()
         if duplicate_info is None:
             duplicate_info = {}
+        if smart_collections is None:
+            smart_collections = set()
 
         for cat_name, games in categories.items():
             cat_item = QTreeWidgetItem(self)
@@ -120,7 +125,9 @@ class GameTreeWidget(QTreeWidget):
                 )
             else:
                 display_name = cat_name
-                if cat_name in dynamic_collections:
+                if cat_name in smart_collections:
+                    display_name = f"{cat_name} {t('emoji.brain')}"
+                elif cat_name in dynamic_collections:
                     display_name = f"{cat_name} {t('emoji.blitz')}"
 
             # Use i18n key for category count display
