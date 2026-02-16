@@ -1,17 +1,15 @@
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/psf/black
-    rev: 24.10.0
+    rev: 26.1.0
     hooks:
       - id: black
         language_version: python3
-        args: [--line-length=100]
 
   - repo: https://github.com/PyCQA/flake8
     rev: 7.1.1
     hooks:
       - id: flake8
-        args: [--max-line-length=100, --extend-ignore=E203,W503]
         additional_dependencies: [flake8-pyproject]  # erlaubt flake8-Konfiguration in pyproject.toml
 
   - repo: https://github.com/pre-commit/mirrors-mypy
@@ -19,7 +17,7 @@ repos:
     hooks:
       - id: mypy
         args: [--ignore-missing-imports, --no-implicit-optional]
-        additional_dependencies: [types-all]
+        additional_dependencies: []  # pyproject.toml has ignore_missing_imports = true
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0

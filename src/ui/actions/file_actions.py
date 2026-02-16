@@ -240,6 +240,42 @@ class FileActions:
         else:
             UIHelper.show_warning(self.mw, t("ui.export.error", error="Backup failed"))
 
+    def export_smart_collections(self) -> None:
+        """Exports all Smart Collections as a portable JSON file."""
+        from PyQt6.QtWidgets import QFileDialog
+
+        from src.utils.smart_collection_exporter import SmartCollectionExporter
+
+        manager = self.mw.smart_collection_manager
+        if not manager:
+            UIHelper.show_warning(self.mw, t("ui.export.no_games"))
+            return
+
+        collections = manager.get_all()
+        if not collections:
+            UIHelper.show_info(self.mw, t("ui.smart_collections.export_empty"))
+            return
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self.mw,
+            t("ui.smart_collections.export_title"),
+            "smart_collections.json",
+            t("ui.export.json_filter"),
+        )
+        if not file_path:
+            return
+
+        from pathlib import Path
+
+        try:
+            SmartCollectionExporter.export(collections, Path(file_path))
+            UIHelper.show_success(
+                self.mw,
+                t("ui.smart_collections.export_success", count=len(collections), path=file_path),
+            )
+        except OSError as exc:
+            UIHelper.show_warning(self.mw, t("ui.export.error", error=str(exc)))
+
     # ------------------------------------------------------------------
     # Import Actions
     # ------------------------------------------------------------------
@@ -286,6 +322,62 @@ class FileActions:
 
         self.mw.populate_categories()
         UIHelper.show_success(self.mw, t("ui.import_dlg.vdf_success", count=count))
+
+    def import_smart_collections(self) -> None:
+        """Imports Smart Collections from a JSON file."""
+        from PyQt6.QtWidgets import QFileDialog
+
+        from src.utils.smart_collection_importer import SmartCollectionImporter
+
+        manager = self.mw.smart_collection_manager
+        if not manager:
+            UIHelper.show_warning(self.mw, t("ui.export.no_games"))
+            return
+
+        file_path, _ = QFileDialog.getOpenFileName(
+            self.mw,
+            t("ui.smart_collections.import_title"),
+            "",
+            t("ui.export.json_filter"),
+        )
+        if not file_path:
+            return
+
+        from pathlib import Path
+
+        try:
+            collections = SmartCollectionImporter.import_collections(Path(file_path))
+        except (FileNotFoundError, ValueError) as exc:
+            UIHelper.show_warning(self.mw, t("ui.smart_collections.import_error", error=str(exc)))
+            return
+
+        if not collections:
+            UIHelper.show_info(self.mw, t("ui.smart_collections.import_empty"))
+            return
+
+        imported = 0
+        skipped = 0
+        for sc in collections:
+            # Skip if a Smart Collection with this name already exists
+            existing = manager.get_by_name(sc.name)
+            if existing:
+                skipped += 1
+                continue
+            manager.create(sc)
+            imported += 1
+
+        self.mw.populate_categories()
+
+        if skipped > 0:
+            UIHelper.show_success(
+                self.mw,
+                t("ui.smart_collections.import_success_skipped", imported=imported, skipped=skipped),
+            )
+        else:
+            UIHelper.show_success(
+                self.mw,
+                t("ui.smart_collections.import_success", count=imported),
+            )
 
     def import_db_backup(self) -> None:
         """Imports a database backup."""

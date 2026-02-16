@@ -291,6 +291,27 @@ class BootstrapService(QObject):
             steam_scraper=self.mw.steam_scraper,
         )
 
+        # Initialize SmartCollectionManager
+        if self.mw.game_manager:
+            from src.core.database import Database
+            from src.services.smart_collections.smart_collection_manager import SmartCollectionManager
+
+            db_path = config.DATA_DIR / "metadata.db"
+            if db_path.exists():
+                smart_db = Database(db_path)
+                self.mw.smart_collection_manager = SmartCollectionManager(
+                    database=smart_db,
+                    game_manager=self.mw.game_manager,
+                    category_service=self.mw.category_service,
+                )
+
+                # Ensure tag definitions are loaded (no-op if already populated)
+                from src.utils.tag_resolver import TagResolver
+
+                tag_resolver = TagResolver(smart_db)
+                tag_resolver.ensure_loaded()
+                self.mw.tag_resolver = tag_resolver
+
         # Populate tree and update status
         self.mw.populate_categories()
 

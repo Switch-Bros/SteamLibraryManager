@@ -180,6 +180,11 @@ class MenuBuilder:
         export_json_action.triggered.connect(mw.file_actions.export_json)
         export_menu.addAction(export_json_action)
 
+        # Smart Collections (wired)
+        export_smart_action = QAction(t("menu.file.export.smart_collections"), mw)
+        export_smart_action.triggered.connect(mw.file_actions.export_smart_collections)
+        export_menu.addAction(export_smart_action)
+
         # Artwork Package (stub — Phase 6/7)
         export_artwork_action = QAction(t("menu.file.export.artwork_package"), mw)
         export_artwork_action.triggered.connect(lambda: self._not_implemented("menu.file.export.artwork_package"))
@@ -197,6 +202,11 @@ class MenuBuilder:
         import_coll_action = QAction(t("menu.file.import.collections"), mw)
         import_coll_action.triggered.connect(mw.file_actions.import_collections_vdf)
         import_menu.addAction(import_coll_action)
+
+        # Smart Collections (wired)
+        import_smart_action = QAction(t("menu.file.import.smart_collections"), mw)
+        import_smart_action.triggered.connect(mw.file_actions.import_smart_collections)
+        import_menu.addAction(import_smart_action)
 
         # DB Backup (wired)
         import_db_action = QAction(t("menu.file.import.db_backup"), mw)
@@ -267,6 +277,25 @@ class MenuBuilder:
         delete_empty_action = QAction(t("menu.edit.collections.delete_empty"), mw)
         delete_empty_action.triggered.connect(lambda: self._not_implemented("menu.edit.collections.delete_empty"))
         collections_menu.addAction(delete_empty_action)
+
+        collections_menu.addSeparator()
+
+        # Smart Collections
+        create_smart_action = QAction(t("menu.edit.collections.create_smart"), mw)
+        create_smart_action.triggered.connect(mw.edit_actions.create_smart_collection)
+        collections_menu.addAction(create_smart_action)
+
+        edit_smart_action = QAction(t("menu.edit.collections.edit_smart"), mw)
+        edit_smart_action.triggered.connect(mw.edit_actions.edit_smart_collection)
+        collections_menu.addAction(edit_smart_action)
+
+        delete_smart_action = QAction(t("menu.edit.collections.delete_smart"), mw)
+        delete_smart_action.triggered.connect(mw.edit_actions.delete_smart_collection)
+        collections_menu.addAction(delete_smart_action)
+
+        refresh_smart_action = QAction(t("menu.edit.collections.refresh_smart"), mw)
+        refresh_smart_action.triggered.connect(mw.edit_actions.refresh_smart_collections)
+        collections_menu.addAction(refresh_smart_action)
 
         collections_menu.addSeparator()
 
@@ -455,6 +484,11 @@ class MenuBuilder:
         update_ach_action = QAction(t("menu.tools.batch.update_achievements"), mw)
         update_ach_action.triggered.connect(mw.enrichment_actions.start_achievement_enrichment)
         batch_menu.addAction(update_ach_action)
+
+        # Import Tags from appinfo.vdf
+        import_tags_action = QAction(t("menu.tools.batch.import_tags"), mw)
+        import_tags_action.triggered.connect(mw.enrichment_actions.start_tag_import)
+        batch_menu.addAction(import_tags_action)
 
         # Remaining batch stubs
         for key in (

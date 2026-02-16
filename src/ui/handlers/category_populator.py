@@ -259,5 +259,16 @@ class CategoryPopulator:
                 if "filterSpec" in collection:
                     dynamic_collections.add(collection["name"])
 
-        # Pass dynamic collections and duplicate info to tree
-        mw.tree.populate_categories(categories_data, dynamic_collections, duplicate_display_info)
+        # Identify Smart Collections and auto-refresh
+        smart_collections: set[str] = set()
+        if hasattr(mw, "smart_collection_manager") and mw.smart_collection_manager:
+            for sc in mw.smart_collection_manager.get_all():
+                smart_collections.add(sc.name)
+
+        # Pass dynamic collections, smart collections, and duplicate info to tree
+        mw.tree.populate_categories(
+            categories_data,
+            dynamic_collections,
+            duplicate_display_info,
+            smart_collections,
+        )
