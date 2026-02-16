@@ -381,6 +381,16 @@ class MenuBuilder:
             action.triggered.connect(lambda checked, k=key: mw.view_actions.on_filter_toggled("language", k, checked))
             language_menu.addAction(action)
 
+        # --- Steam Deck filter submenu (all unchecked by default = no filtering) ---
+        deck_menu = view_menu.addMenu(t("menu.view.deck.root"))
+        for key in ("verified", "playable", "unsupported", "unknown"):
+            action = QAction(t(f"menu.view.deck.{key}"), mw)
+            action.setCheckable(True)
+            action.triggered.connect(
+                lambda checked, k=key: mw.view_actions.on_filter_toggled("deck_status", k, checked)
+            )
+            deck_menu.addAction(action)
+
         view_menu.addSeparator()
 
         # --- Statistics (single action, opens tabbed dialog) ---
@@ -425,6 +435,11 @@ class MenuBuilder:
         update_hltb_action = QAction(t("menu.tools.batch.update_hltb"), mw)
         update_hltb_action.triggered.connect(mw.enrichment_actions.start_hltb_enrichment)
         batch_menu.addAction(update_hltb_action)
+
+        # Update Deck Status (wired to enrichment)
+        update_deck_action = QAction(t("menu.tools.batch.update_deck"), mw)
+        update_deck_action.triggered.connect(mw.enrichment_actions.start_deck_enrichment)
+        batch_menu.addAction(update_deck_action)
 
         # Remaining batch stubs
         for key in (

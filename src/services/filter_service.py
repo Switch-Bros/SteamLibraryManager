@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("steamlibmgr.filter_service")
 
-__all__ = ["ALL_LANGUAGE_KEYS", "FilterService", "FilterState", "SortKey"]
+__all__ = ["ALL_DECK_KEYS", "ALL_LANGUAGE_KEYS", "FilterService", "FilterState", "SortKey"]
 
 # Maps menu sort key strings to SortKey enum values
 ALL_SORT_KEYS: frozenset[str] = frozenset({"name", "playtime", "last_played", "release_date"})
@@ -49,6 +49,9 @@ ALL_PLATFORM_KEYS: frozenset[str] = frozenset({"linux", "windows", "steamos"})
 
 # All known status keys
 ALL_STATUS_KEYS: frozenset[str] = frozenset({"installed", "not_installed", "hidden", "with_playtime", "favorites"})
+
+# All known Steam Deck compatibility filter keys
+ALL_DECK_KEYS: frozenset[str] = frozenset({"verified", "playable", "unsupported", "unknown"})
 
 # All known language filter keys
 ALL_LANGUAGE_KEYS: frozenset[str] = frozenset(
@@ -98,6 +101,7 @@ class FilterState:
     enabled_platforms: frozenset[str] = ALL_PLATFORM_KEYS
     active_statuses: frozenset[str] = frozenset()
     active_languages: frozenset[str] = frozenset()
+    active_deck_statuses: frozenset[str] = frozenset()
     sort_key: SortKey = SortKey.NAME
 
 
@@ -115,6 +119,7 @@ class FilterService:
         self._enabled_platforms: set[str] = set(ALL_PLATFORM_KEYS)
         self._active_statuses: set[str] = set()
         self._active_languages: set[str] = set()
+        self._active_deck_statuses: set[str] = set()
         self._sort_key: SortKey = SortKey.NAME
 
     @property
@@ -130,6 +135,7 @@ class FilterService:
             enabled_platforms=frozenset(self._enabled_platforms),
             active_statuses=frozenset(self._active_statuses),
             active_languages=frozenset(self._active_languages),
+            active_deck_statuses=frozenset(self._active_deck_statuses),
             sort_key=self._sort_key,
         )
 
@@ -143,6 +149,7 @@ class FilterService:
         self._enabled_platforms = set(state.enabled_platforms)
         self._active_statuses = set(state.active_statuses)
         self._active_languages = set(state.active_languages)
+        self._active_deck_statuses = set(state.active_deck_statuses)
         self._sort_key = state.sort_key
 
     def set_sort_key(self, key: str) -> None:
@@ -252,6 +259,25 @@ class FilterService:
         else:
             self._active_languages.discard(key)
 
+    def toggle_deck_status(self, key: str, active: bool) -> None:
+        """Activates or deactivates a Steam Deck compatibility filter.
+
+        When at least one deck status filter is active, only games matching
+        any active status are shown (OR logic). When none are active,
+        all games pass (no deck filtering).
+
+        Args:
+            key: The deck status key (e.g. "verified", "playable").
+            active: True to activate, False to deactivate.
+        """
+        if key not in ALL_DECK_KEYS:
+            logger.warning("Unknown deck status filter key: %s", key)
+            return
+        if active:
+            self._active_deck_statuses.add(key)
+        else:
+            self._active_deck_statuses.discard(key)
+
     def is_type_category_visible(self, type_key: str) -> bool:
         """Checks whether a type category should be shown in the sidebar.
 
@@ -276,6 +302,8 @@ class FilterService:
         if self._active_statuses:
             return True
         if self._active_languages:
+            return True
+        if self._active_deck_statuses:
             return True
         return False
 
@@ -307,6 +335,8 @@ class FilterService:
             if not self._passes_status_filter(game):
                 continue
             if not self._passes_language_filter(game):
+                continue
+            if not self._passes_deck_filter(game):
                 continue
             result.append(game)
         return result
@@ -401,3 +431,21 @@ class FilterService:
 
         game_langs_lower = {lang.lower().replace(" ", "_") for lang in game.languages}
         return bool(game_langs_lower & self._active_languages)
+
+    def _passes_deck_filter(self, game: Game) -> bool:
+        """Checks if a game passes the Steam Deck compatibility filter (OR logic).
+
+        If no deck status filters are active, all games pass. Games without
+        deck status data are treated as "unknown".
+
+        Args:
+            game: The game to check.
+
+        Returns:
+            True if no deck filter is active or game matches at least one.
+        """
+        if not self._active_deck_statuses:
+            return True
+
+        status = game.steam_deck_status.lower() if game.steam_deck_status else "unknown"
+        return status in self._active_deck_statuses

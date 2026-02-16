@@ -321,6 +321,10 @@
       "no_api_key": "Steam API key required. Configure it in Settings.",
       "no_games_hltb": "All games already have HLTB data.",
       "no_games_steam": "All games already have complete metadata.",
+      "no_games_deck": "All games already have a Steam Deck status.",
+      "deck_title": "Fetching Steam Deck Status",
+      "deck_starting": "Fetching Steam Deck compatibility data...",
+      "deck_complete": "{success} games updated, {failed} failed.",
       "cancel_confirm": "Cancel enrichment? Progress so far will be saved.",
       "hltb_not_available": "HLTB library not installed. Install 'howlongtobeatpy'."
     }

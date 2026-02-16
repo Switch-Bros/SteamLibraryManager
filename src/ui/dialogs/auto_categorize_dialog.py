@@ -140,6 +140,7 @@ class AutoCategorizeDialog(QDialog):
         self.cb_year = QCheckBox(t("auto_categorize.by_year"))
         self.cb_hltb = QCheckBox(t("auto_categorize.by_hltb"))
         self.cb_language = QCheckBox(t("auto_categorize.by_language"))
+        self.cb_deck_status = QCheckBox(t("auto_categorize.by_deck_status"))
         self.cb_curator = QCheckBox(t("auto_categorize.by_curator"))
 
         checkboxes = [
@@ -156,6 +157,7 @@ class AutoCategorizeDialog(QDialog):
             self.cb_year,
             self.cb_hltb,
             self.cb_language,
+            self.cb_deck_status,
             self.cb_curator,
         ]
         cols = 3
@@ -266,6 +268,7 @@ class AutoCategorizeDialog(QDialog):
         self.cb_year.toggled.connect(self._update_estimate)
         self.cb_hltb.toggled.connect(self._update_estimate)
         self.cb_language.toggled.connect(self._update_estimate)
+        self.cb_deck_status.toggled.connect(self._update_estimate)
         self.cb_curator.toggled.connect(self._update_estimate)
         self.cb_curator.toggled.connect(self._on_curator_toggled)
         self.tags_count_spin.valueChanged.connect(self._update_estimate)
@@ -518,6 +521,7 @@ class AutoCategorizeDialog(QDialog):
             "year": self.cb_year,
             "hltb": self.cb_hltb,
             "language": self.cb_language,
+            "deck_status": self.cb_deck_status,
             "curator": self.cb_curator,
         }
 
@@ -636,6 +640,8 @@ class AutoCategorizeDialog(QDialog):
             methods.append("hltb")
         if self.cb_language.isChecked():
             methods.append("language")
+        if self.cb_deck_status.isChecked():
+            methods.append("deck_status")
         if self.cb_curator.isChecked():
             methods.append("curator")
         return methods

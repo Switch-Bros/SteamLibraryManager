@@ -49,6 +49,8 @@ class ViewActions:
             fs.toggle_status(key, checked)
         elif group == "language":
             fs.toggle_language(key, checked)
+        elif group == "deck_status":
+            fs.toggle_deck_status(key, checked)
 
         # Re-run search if active, otherwise repopulate full tree
         if self.main_window.current_search_query:

@@ -38,6 +38,73 @@ class EnrichmentActions:
         """
         self.mw: MainWindow = main_window
 
+    def start_deck_enrichment(self) -> None:
+        """Starts deck status enrichment for games missing deck data.
+
+        Filters games with no or 'unknown' deck status, then launches
+        the DeckEnrichmentThread with a progress dialog.
+        """
+        from PyQt6.QtCore import Qt
+        from PyQt6.QtWidgets import QProgressDialog
+
+        from src.services.enrichment.deck_enrichment_service import DeckEnrichmentThread
+
+        if not self.mw.game_manager:
+            return
+
+        # Filter games missing deck status
+        all_games = self.mw.game_manager.get_real_games()
+        games_to_enrich = [g for g in all_games if not g.steam_deck_status or g.steam_deck_status == "unknown"]
+
+        if not games_to_enrich:
+            UIHelper.show_info(self.mw, t("ui.enrichment.no_games_deck"))
+            return
+
+        # Determine cache directory
+        from src.config import config
+
+        cache_dir = config.DATA_DIR / "cache"
+
+        # Create thread
+        thread = DeckEnrichmentThread(self.mw)
+        thread.configure(games_to_enrich, cache_dir)
+
+        # Create progress dialog
+        progress = QProgressDialog(
+            t("ui.enrichment.deck_starting"),
+            t("common.cancel"),
+            0,
+            len(games_to_enrich),
+            self.mw,
+        )
+        progress.setWindowTitle(t("ui.enrichment.deck_title"))
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setMinimumDuration(0)
+
+        # Keep references alive
+        self._deck_thread = thread
+        self._deck_progress = progress
+
+        def on_progress(text: str, current: int, total: int) -> None:
+            if progress.wasCanceled():
+                thread.cancel()
+                return
+            progress.setValue(current)
+            progress.setLabelText(text)
+
+        def on_finished(success: int, failed: int) -> None:
+            progress.close()
+            UIHelper.show_success(
+                self.mw,
+                t("ui.enrichment.deck_complete", success=success, failed=failed),
+            )
+            self.mw.populate_categories()
+
+        thread.progress.connect(on_progress)
+        thread.finished_enrichment.connect(on_finished)
+        progress.canceled.connect(thread.cancel)
+        thread.start()
+
     def start_hltb_enrichment(self) -> None:
         """Starts HLTB enrichment for games missing HLTB data.
 
