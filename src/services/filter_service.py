@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from enum import Enum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -18,7 +19,27 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("steamlibmgr.filter_service")
 
-__all__ = ["ALL_LANGUAGE_KEYS", "FilterService", "FilterState"]
+__all__ = ["ALL_LANGUAGE_KEYS", "FilterService", "FilterState", "SortKey"]
+
+# Maps menu sort key strings to SortKey enum values
+ALL_SORT_KEYS: frozenset[str] = frozenset({"name", "playtime", "last_played", "release_date"})
+
+
+class SortKey(Enum):
+    """Available sort keys for the game list.
+
+    Attributes:
+        NAME: Sort alphabetically by display name (A-Z).
+        PLAYTIME: Sort by total playtime (descending).
+        LAST_PLAYED: Sort by last played date (most recent first).
+        RELEASE_DATE: Sort by release year (newest first).
+    """
+
+    NAME = "name"
+    PLAYTIME = "playtime"
+    LAST_PLAYED = "last_played"
+    RELEASE_DATE = "release_date"
+
 
 # All known type keys with their matching app_type values
 ALL_TYPE_KEYS: frozenset[str] = frozenset({"games", "soundtracks", "software", "videos", "dlcs", "tools"})
@@ -70,12 +91,14 @@ class FilterState:
         enabled_platforms: Platform filter keys that are enabled (default: all).
         active_statuses: Status filter keys that are active (default: none).
         active_languages: Language filter keys that are active (default: none = all visible).
+        sort_key: Current sort key (default: NAME).
     """
 
     enabled_types: frozenset[str] = ALL_TYPE_KEYS
     enabled_platforms: frozenset[str] = ALL_PLATFORM_KEYS
     active_statuses: frozenset[str] = frozenset()
     active_languages: frozenset[str] = frozenset()
+    sort_key: SortKey = SortKey.NAME
 
 
 class FilterService:
@@ -92,6 +115,12 @@ class FilterService:
         self._enabled_platforms: set[str] = set(ALL_PLATFORM_KEYS)
         self._active_statuses: set[str] = set()
         self._active_languages: set[str] = set()
+        self._sort_key: SortKey = SortKey.NAME
+
+    @property
+    def sort_key(self) -> SortKey:
+        """The current sort key."""
+        return self._sort_key
 
     @property
     def state(self) -> FilterState:
@@ -101,6 +130,7 @@ class FilterService:
             enabled_platforms=frozenset(self._enabled_platforms),
             active_statuses=frozenset(self._active_statuses),
             active_languages=frozenset(self._active_languages),
+            sort_key=self._sort_key,
         )
 
     def restore_state(self, state: FilterState) -> None:
@@ -113,6 +143,47 @@ class FilterService:
         self._enabled_platforms = set(state.enabled_platforms)
         self._active_statuses = set(state.active_statuses)
         self._active_languages = set(state.active_languages)
+        self._sort_key = state.sort_key
+
+    def set_sort_key(self, key: str) -> None:
+        """Sets the sort key from a string value.
+
+        Args:
+            key: One of "name", "playtime", "last_played", "release_date".
+        """
+        try:
+            self._sort_key = SortKey(key)
+        except ValueError:
+            logger.warning("Unknown sort key: %s, falling back to NAME", key)
+            self._sort_key = SortKey.NAME
+
+    def sort_games(self, games: list[Game]) -> list[Game]:
+        """Sorts a list of games according to the current sort key.
+
+        Args:
+            games: The games to sort.
+
+        Returns:
+            A new sorted list of games.
+        """
+        if self._sort_key == SortKey.PLAYTIME:
+            return sorted(games, key=lambda g: g.playtime_minutes, reverse=True)
+        if self._sort_key == SortKey.LAST_PLAYED:
+            # Games without last_played go to the end
+            return sorted(
+                games,
+                key=lambda g: (g.last_played is not None, g.last_played or ""),
+                reverse=True,
+            )
+        if self._sort_key == SortKey.RELEASE_DATE:
+            # Games without release_year go to the end
+            return sorted(
+                games,
+                key=lambda g: g.release_year if g.release_year else "",
+                reverse=True,
+            )
+        # Default: NAME (A-Z) using sort_name
+        return sorted(games, key=lambda g: g.sort_name.lower())
 
     def toggle_type(self, key: str, enabled: bool) -> None:
         """Enables or disables a type filter.

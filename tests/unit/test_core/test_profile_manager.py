@@ -36,7 +36,7 @@ class TestProfileDataclass:
         assert p.filter_enabled_types == ALL_TYPE_KEYS
         assert p.filter_enabled_platforms == ALL_PLATFORM_KEYS
         assert p.filter_active_statuses == frozenset()
-        assert p.view_mode == "details"
+        assert p.sort_key == "name"
         assert p.created_at == 0.0
 
     def test_profile_frozen_mutation_raises_error(self) -> None:
@@ -65,7 +65,7 @@ class TestSerialization:
             filter_enabled_types=frozenset({"games", "dlcs"}),
             filter_enabled_platforms=frozenset({"linux"}),
             filter_active_statuses=frozenset({"installed"}),
-            view_mode="grid",
+            sort_key="playtime",
             created_at=1700000000.0,
         )
         data = _serialize_profile(original)
@@ -79,7 +79,7 @@ class TestSerialization:
         assert restored.filter_enabled_types == original.filter_enabled_types
         assert restored.filter_enabled_platforms == original.filter_enabled_platforms
         assert restored.filter_active_statuses == original.filter_active_statuses
-        assert restored.view_mode == original.view_mode
+        assert restored.sort_key == original.sort_key
         assert restored.created_at == original.created_at
 
     def test_deserialize_missing_optional_fields_uses_defaults(self) -> None:
@@ -151,10 +151,10 @@ class TestLoadProfile:
     def test_load_profile_existing_returns_profile(self, tmp_path: Path) -> None:
         """Loading a saved profile should return the correct Profile."""
         mgr = ProfileManager(profiles_dir=tmp_path)
-        mgr.save_profile(Profile(name="Loadable", view_mode="grid"))
+        mgr.save_profile(Profile(name="Loadable", sort_key="playtime"))
         loaded = mgr.load_profile("Loadable")
         assert loaded.name == "Loadable"
-        assert loaded.view_mode == "grid"
+        assert loaded.sort_key == "playtime"
 
     def test_load_profile_nonexistent_raises_file_not_found(self, tmp_path: Path) -> None:
         """Loading a non-existent profile should raise FileNotFoundError."""
@@ -261,7 +261,7 @@ class TestExportImport:
         target = export_dir / "exported.json"
 
         mgr = ProfileManager(profiles_dir=profiles_dir)
-        mgr.save_profile(Profile(name="Exportable", view_mode="grid"))
+        mgr.save_profile(Profile(name="Exportable", sort_key="playtime"))
         success = mgr.export_profile("Exportable", target)
 
         assert success is True
@@ -270,7 +270,7 @@ class TestExportImport:
         with open(target, "r", encoding="utf-8") as fh:
             data = json.load(fh)
         assert data["name"] == "Exportable"
-        assert data["view_mode"] == "grid"
+        assert data["sort_key"] == "playtime"
 
     def test_export_nonexistent_returns_false(self, tmp_path: Path) -> None:
         """Exporting a non-existent profile should return False."""
@@ -282,7 +282,7 @@ class TestExportImport:
         profiles_dir = tmp_path / "profiles"
         source = tmp_path / "incoming.json"
 
-        data = {"name": "Imported", "view_mode": "list", "created_at": 500.0}
+        data = {"name": "Imported", "sort_key": "last_played", "created_at": 500.0}
         with open(source, "w", encoding="utf-8") as fh:
             json.dump(data, fh)
 
@@ -290,7 +290,7 @@ class TestExportImport:
         profile = mgr.import_profile(source)
 
         assert profile.name == "Imported"
-        assert profile.view_mode == "list"
+        assert profile.sort_key == "last_played"
 
         # Verify it was saved locally
         loaded = mgr.load_profile("Imported")
@@ -309,7 +309,7 @@ class TestExportImport:
         """Importing a JSON without 'name' should raise KeyError."""
         source = tmp_path / "noname.json"
         with open(source, "w", encoding="utf-8") as fh:
-            json.dump({"view_mode": "details"}, fh)
+            json.dump({"sort_key": "name"}, fh)
 
         mgr = ProfileManager(profiles_dir=tmp_path)
         with pytest.raises(KeyError, match="name"):

@@ -1,9 +1,9 @@
 # 🚀 MASTERPLAN: SteamLibraryManager - Der Beste Steam Library Manager Aller Zeiten
 
-**Status:** Post-Database Integration + Menü Redesign + Stelicas Analysis  
-**Ziel:** Depressurizer in ALLEN Bereichen übertreffen + Einzigartige Features  
-**Platform:** Linux-First, Cross-Platform-Ready  
-**Letzte Aktualisierung:** 2026-02-14
+**Status:** Phase 0-4 komplett, Phase 5+ offen
+**Ziel:** Depressurizer in ALLEN Bereichen übertreffen + Einzigartige Features
+**Platform:** Linux-First, Cross-Platform-Ready
+**Letzte Aktualisierung:** 2026-02-16
 
 - Depressurizer v9.3.0.0 (175 C# Files) ✅ Analyzed
 - Steam Metadata Editor (Python/Tkinter) ✅ Analyzed
@@ -13,7 +13,7 @@
 
 ---
 
-## 📊 AKTUELLER STATUS (2026-02-14)
+## 📊 AKTUELLER STATUS (2026-02-16)
 
 ### ✅ Was funktioniert:
 
@@ -23,36 +23,36 @@
 - [x] SteamGridDB Integration (Cover, Logos, Icons)
 - [x] PyQt6 Modern UI
 - [x] Internationalisierung (Deutsch/English via JSON)
-- [x] Auto-Kategorisierung (3 Typen: Genre, Tags, Jahr)
+- [x] Auto-Kategorisierung (13/15 Typen!)
 - [x] UNCATEGORIZED LOGIC FIXED! (Depressurizer-kompatibel!)
 - [x] appinfo.vdf WRITER! (dank Pro Chat!)
-- [x] **DATABASE SYSTEM IMPLEMENTED!** 🎉 (40+ tables, <7s startup!)
-- [x] **FLATPAK STEAM SUPPORT!** 🐧 (Auto-detection!)
-- [x] **ARTWORK METADATA TRACKING!** 🎨 (Multi-device ready!)
-
-### ⚙️ Work in Progress (by Claude Code):
-
-- [ ] **Bootstrap Service** (Phase 3.2 - UI instant, progressive loading!)
-- [ ] i18n cleanup (hardcoded strings → t() keys)
-- [ ] Integration tests (Database + Artwork + Filters)
+- [x] **DATABASE SYSTEM IMPLEMENTED!** (40+ tables, <7s startup!)
+- [x] **FLATPAK STEAM SUPPORT!** (Auto-detection!)
+- [x] **ARTWORK METADATA TRACKING!** (Multi-device ready!)
+- [x] **Bootstrap Service** (Phase 3.2 - UI instant, progressive loading!)
+- [x] **Menu Redesign** (Steam-like filters, Sort, Statistics!)
+- [x] **Batch Steam API** (IStoreBrowseService, 50er-Batches!)
+- [x] **Type/Platform/Status/Language Filters** (Full FilterService!)
+- [x] **Sortierung** (Name/Playtime/LastPlayed/ReleaseDate!)
+- [x] **Statistics Dialog** (4 Tabs: Overview, Genre, Platform, Top 10!)
+- [x] **CSV Export** (Simple + Full mit 22 Spalten!)
+- [x] **JSON Export** (Strukturiert mit allen Metadaten!)
+- [x] **VDF Import** (Collections laden!)
+- [x] **DB Backup** (Export + Import im Menu!)
+- [x] **Regex-Suche** (Prefix / im Suchfeld!)
+- [x] **Backup/Restore** (Timestamped, Auto-Rotation, Safety-Backup!)
+- [x] **Profile System** (CRUD, Import/Export, UI-Dialog!)
+- [x] **HLTB Integration** (75.4% Match-Rate, 60 Tests!)
 
 ### 🎯 Next Up (High Priority):
 
-- [ ] **Menu Redesign** (Steam-like filters + better structure!)
-- [ ] **Batch Steam API** (Stelicas-inspired, 200x faster!)
-- [ ] **Enhanced CSV Export** (17+ columns with rich metadata!)
-- [ ] **Type/Platform Filters** (Like Steam UI!)
-- [ ] **shortcuts.vdf Manager** (Non-Steam game icons!)
+- [ ] **AutoCat Curator + Group** (2 verbleibende Typen)
+- [ ] **shortcuts.vdf Manager** (Non-Steam game icons - Phase 6!)
+- [ ] **Artwork Package Export/Import** (Phase 6/7)
 
 ### ⌛ Fehlt noch (vs Depressurizer):
 
-- [ ] **12 weitere AutoCat-Typen** (nur 3 von 15 implementiert!)
-- [ ] **Sort As Field** (CRITICAL für Deutsche Spiele!)
-- [ ] **Modification Tracking** (Original vs Modified)
-- [ ] Backup/Restore System mit Auto-Rotate
-- [ ] Advanced Filter (Allow/Require/Exclude)
-- [ ] Profile System
-- [ ] HowLongToBeat Integration
+- [ ] **2 weitere AutoCat-Typen** (Curator + Group)
 - [ ] Random Game Selector
 - [ ] Automatic Mode (Hintergrund-Sync)
 

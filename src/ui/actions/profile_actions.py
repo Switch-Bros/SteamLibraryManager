@@ -192,7 +192,7 @@ class ProfileActions:
             filter_enabled_types=filter_state.enabled_types,
             filter_enabled_platforms=filter_state.enabled_platforms,
             filter_active_statuses=filter_state.active_statuses,
-            view_mode="details",
+            sort_key="name",
             created_at=time.time(),
         )
 

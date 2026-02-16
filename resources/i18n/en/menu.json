@@ -48,11 +48,12 @@
     },
     "view": {
       "root": "View",
-      "mode": {
-        "root": "View Mode",
-        "list": "List (Compact)",
-        "details": "Details (Normal)",
-        "grid": "Grid"
+      "sort": {
+        "root": "Sort By",
+        "name": "Name (A-Z)",
+        "playtime": "Playtime",
+        "last_played": "Last Played",
+        "release_date": "Release Date"
       },
       "type": {
         "root": "Show Type",

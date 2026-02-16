@@ -138,6 +138,201 @@ class FileActions:
         except OSError as exc:
             UIHelper.show_warning(self.mw, str(exc))
 
+    # ------------------------------------------------------------------
+    # Export Actions
+    # ------------------------------------------------------------------
+
+    def export_csv_simple(self) -> None:
+        """Exports the game list as a simple CSV file (Name, App ID, Playtime)."""
+        from PyQt6.QtWidgets import QFileDialog
+
+        from src.utils.csv_exporter import CSVExporter
+
+        games = self._get_exportable_games()
+        if not games:
+            return
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self.mw,
+            t("ui.export.csv_save_title"),
+            "games_simple.csv",
+            t("ui.export.csv_filter"),
+        )
+        if not file_path:
+            return
+
+        from pathlib import Path
+
+        try:
+            CSVExporter.export_simple(games, Path(file_path))
+            UIHelper.show_success(self.mw, t("ui.export.success", path=file_path))
+        except OSError as exc:
+            UIHelper.show_warning(self.mw, t("ui.export.error", error=str(exc)))
+
+    def export_csv_full(self) -> None:
+        """Exports the game list as a full CSV file with all metadata."""
+        from PyQt6.QtWidgets import QFileDialog
+
+        from src.utils.csv_exporter import CSVExporter
+
+        games = self._get_exportable_games()
+        if not games:
+            return
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self.mw,
+            t("ui.export.csv_save_title"),
+            "games_full.csv",
+            t("ui.export.csv_filter"),
+        )
+        if not file_path:
+            return
+
+        from pathlib import Path
+
+        try:
+            CSVExporter.export_full(games, Path(file_path))
+            UIHelper.show_success(self.mw, t("ui.export.success", path=file_path))
+        except OSError as exc:
+            UIHelper.show_warning(self.mw, t("ui.export.error", error=str(exc)))
+
+    def export_json(self) -> None:
+        """Exports the game list as a JSON file."""
+        from PyQt6.QtWidgets import QFileDialog
+
+        from src.utils.json_exporter import JSONExporter
+
+        games = self._get_exportable_games()
+        if not games:
+            return
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self.mw,
+            t("ui.export.json_save_title"),
+            "games_export.json",
+            t("ui.export.json_filter"),
+        )
+        if not file_path:
+            return
+
+        from pathlib import Path
+
+        try:
+            JSONExporter.export(games, Path(file_path))
+            UIHelper.show_success(self.mw, t("ui.export.success", path=file_path))
+        except OSError as exc:
+            UIHelper.show_warning(self.mw, t("ui.export.error", error=str(exc)))
+
+    def export_db_backup(self) -> None:
+        """Creates a database backup using BackupManager."""
+        from src.core.backup_manager import BackupManager
+        from src.config import config
+
+        db_path = config.DATA_DIR / "metadata.db"
+        if not db_path.exists():
+            UIHelper.show_warning(self.mw, t("ui.export.no_games"))
+            return
+
+        manager = BackupManager(config.DATA_DIR / "backups")
+        result = manager.create_backup(db_path)
+        if result:
+            UIHelper.show_success(self.mw, t("ui.export.success", path=str(result)))
+        else:
+            UIHelper.show_warning(self.mw, t("ui.export.error", error="Backup failed"))
+
+    # ------------------------------------------------------------------
+    # Import Actions
+    # ------------------------------------------------------------------
+
+    def import_collections_vdf(self) -> None:
+        """Imports collections from a VDF text file."""
+        from PyQt6.QtWidgets import QFileDialog
+
+        from src.utils.vdf_importer import VDFImporter
+
+        file_path, _ = QFileDialog.getOpenFileName(
+            self.mw,
+            t("ui.import_dlg.vdf_title"),
+            "",
+            t("ui.import_dlg.vdf_filter"),
+        )
+        if not file_path:
+            return
+
+        from pathlib import Path
+
+        try:
+            collections = VDFImporter.import_collections(Path(file_path))
+        except (FileNotFoundError, ValueError) as exc:
+            UIHelper.show_warning(self.mw, t("ui.import_dlg.vdf_error", error=str(exc)))
+            return
+
+        if not collections:
+            UIHelper.show_info(self.mw, t("ui.import_dlg.vdf_no_collections"))
+            return
+
+        parser = self.mw.cloud_storage_parser
+        if not parser:
+            UIHelper.show_warning(self.mw, t("ui.main_window.cloud_storage_only"))
+            return
+
+        count = 0
+        for coll in collections:
+            # Create collection and add each app ID
+            parser.create_empty_collection(coll.name)
+            for app_id in coll.app_ids:
+                parser.add_app_category(str(app_id), coll.name)
+            count += 1
+
+        self.mw.populate_categories()
+        UIHelper.show_success(self.mw, t("ui.import_dlg.vdf_success", count=count))
+
+    def import_db_backup(self) -> None:
+        """Imports a database backup."""
+        from PyQt6.QtWidgets import QFileDialog
+
+        from src.core.backup_manager import BackupManager
+        from src.config import config
+
+        file_path, _ = QFileDialog.getOpenFileName(
+            self.mw,
+            t("common.import"),
+            str(config.DATA_DIR / "backups"),
+            "Database Files (*.db);;All Files (*)",
+        )
+        if not file_path:
+            return
+
+        from pathlib import Path
+
+        db_path = config.DATA_DIR / "metadata.db"
+        manager = BackupManager(config.DATA_DIR / "backups")
+        success = manager.restore_backup(Path(file_path), db_path)
+        if success:
+            UIHelper.show_success(self.mw, t("common.save_success"))
+            self.refresh_data()
+        else:
+            UIHelper.show_warning(self.mw, t("ui.export.error", error="Restore failed"))
+
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    def _get_exportable_games(self) -> list:
+        """Returns the list of games for export, or shows a warning if empty.
+
+        Returns:
+            List of games, or empty list if no games available.
+        """
+        if not self.mw.game_manager:
+            UIHelper.show_warning(self.mw, t("ui.export.no_games"))
+            return []
+        games = self.mw.game_manager.get_real_games()
+        if not games:
+            UIHelper.show_warning(self.mw, t("ui.export.no_games"))
+            return []
+        return games
+
     def ask_save_on_exit(self, has_collection_changes: bool, has_metadata_changes: bool) -> str:
         """Shows a 3-button dialog when unsaved changes exist on exit.
 

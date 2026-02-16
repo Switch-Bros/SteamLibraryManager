@@ -48,11 +48,12 @@
     },
     "view": {
       "root": "Ansicht",
-      "mode": {
-        "root": "Ansichtsmodus",
-        "list": "Liste (Kompakt)",
-        "details": "Details (Normal)",
-        "grid": "Raster (Grid)"
+      "sort": {
+        "root": "Sortieren nach",
+        "name": "Name (A-Z)",
+        "playtime": "Spielzeit",
+        "last_played": "Zuletzt gespielt",
+        "release_date": "Erscheinungsdatum"
       },
       "type": {
         "root": "Typ anzeigen",

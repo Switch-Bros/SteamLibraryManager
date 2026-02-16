@@ -184,8 +184,38 @@
     "stats": {
       "title": "Bibliotheks-Statistiken",
       "total_playtime": "Gesamtspielzeit",
-      "top_games": "Top 10 Spiele",
-      "genre_dist": "Genre-Verteilung"
+      "top_games": "Top 10 meist gespielt",
+      "genre_dist": "Genre-Verteilung",
+      "tab_overview": "Übersicht",
+      "tab_genre": "Nach Genre",
+      "tab_platform": "Nach Plattform",
+      "tab_top10": "Top 10",
+      "total_games": "Spiele gesamt",
+      "installed_games": "Installiert",
+      "total_categories": "Kategorien",
+      "avg_playtime": "Durchschnittliche Spielzeit",
+      "hours_unit": "{hours} h",
+      "minutes_unit": "{minutes} min",
+      "platform_dist": "Plattform-Verteilung",
+      "no_data": "Keine Daten verfügbar",
+      "games_count": "{count} Spiele",
+      "playtime_label": "Spielzeit: {hours} h"
+    },
+    "export": {
+      "csv_save_title": "Als CSV exportieren",
+      "csv_filter": "CSV-Dateien (*.csv);;Alle Dateien (*)",
+      "json_save_title": "Als JSON exportieren",
+      "json_filter": "JSON-Dateien (*.json);;Alle Dateien (*)",
+      "success": "Export erfolgreich: {path}",
+      "error": "Export fehlgeschlagen: {error}",
+      "no_games": "Keine Spiele zum Exportieren."
+    },
+    "import_dlg": {
+      "vdf_title": "Kollektionen aus VDF importieren",
+      "vdf_filter": "VDF-Dateien (*.vdf);;Alle Dateien (*)",
+      "vdf_success": "{count} Kollektionen aus VDF importiert.",
+      "vdf_error": "VDF-Import fehlgeschlagen: {error}",
+      "vdf_no_collections": "Keine Kollektionen in Datei gefunden."
     },
     "dialogs": {
       "confirm_remove_account": "Möchtest du '{game}' wirklich PERMANENT von deinem Account löschen?",
