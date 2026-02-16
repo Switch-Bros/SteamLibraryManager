@@ -1,16 +1,13 @@
 """Action handler for metadata enrichment operations.
 
 Provides start methods for HLTB and Steam API enrichment that check
-preconditions, create the background worker/thread, and launch the
-enrichment dialog.
+preconditions, create the EnrichmentThread, and launch the progress dialog.
 """
 
 from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING
-
-from PyQt6.QtCore import QThread
 
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
@@ -27,7 +24,7 @@ class EnrichmentActions:
     """Handles enrichment-related menu actions.
 
     Checks preconditions (API keys, library availability, games to enrich)
-    and launches the enrichment dialog with a background worker.
+    and launches the enrichment dialog with a background thread.
 
     Attributes:
         mw: Back-reference to the owning MainWindow instance.
@@ -48,7 +45,7 @@ class EnrichmentActions:
         games without HLTB data. Launches the enrichment dialog.
         """
         from src.integrations.hltb_api import HLTBClient
-        from src.services.enrichment_service import EnrichmentWorker
+        from src.services.enrichment_service import EnrichmentThread
         from src.ui.dialogs.enrichment_dialog import EnrichmentDialog
 
         # Check library availability
@@ -67,20 +64,16 @@ class EnrichmentActions:
             UIHelper.show_info(self.mw, t("ui.enrichment.no_games_hltb"))
             return
 
-        # Create worker and thread – worker opens its own DB connection
+        # Create thread with HLTB configuration
         db_path = self._get_db_path()
-        worker = EnrichmentWorker()
-        thread = QThread()
-        worker.moveToThread(thread)
-
         hltb_client = HLTBClient()
 
-        # Connect thread started to worker method
-        thread.started.connect(lambda: worker.run_hltb_enrichment(games, db_path, hltb_client))
+        thread = EnrichmentThread(self.mw)
+        thread.configure_hltb(games, db_path, hltb_client)
 
-        # Create and show dialog
+        # Create dialog — thread starts in showEvent
         dialog = EnrichmentDialog(t("ui.enrichment.hltb_title"), self.mw)
-        dialog.start_worker(worker, thread)
+        dialog.start_thread(thread)
         dialog.exec()
 
     def start_steam_api_enrichment(self) -> None:
@@ -90,7 +83,7 @@ class EnrichmentActions:
         games with missing metadata. Launches the enrichment dialog.
         """
         from src.config import config
-        from src.services.enrichment_service import EnrichmentWorker
+        from src.services.enrichment_service import EnrichmentThread
         from src.ui.dialogs.enrichment_dialog import EnrichmentDialog
 
         # Check API key
@@ -111,17 +104,15 @@ class EnrichmentActions:
             UIHelper.show_info(self.mw, t("ui.enrichment.no_games_steam"))
             return
 
-        # Create worker and thread – worker opens its own DB connection
+        # Create thread with Steam API configuration
         db_path = self._get_db_path()
-        worker = EnrichmentWorker()
-        thread = QThread()
-        worker.moveToThread(thread)
 
-        thread.started.connect(lambda: worker.run_steam_api_enrichment(games, db_path, api_key))
+        thread = EnrichmentThread(self.mw)
+        thread.configure_steam(games, db_path, api_key)
 
-        # Create and show dialog
+        # Create dialog — thread starts in showEvent
         dialog = EnrichmentDialog(t("ui.enrichment.steam_title"), self.mw)
-        dialog.start_worker(worker, thread)
+        dialog.start_thread(thread)
         dialog.exec()
 
     def _open_settings_api_tab(self) -> None:

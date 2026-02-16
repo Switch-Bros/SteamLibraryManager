@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import QThread
 from PyQt6.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -18,7 +17,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
-from src.services.enrichment_service import EnrichmentWorker
+from src.services.enrichment_service import EnrichmentThread
 from src.ui.utils.font_helper import FontHelper
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
@@ -33,11 +32,10 @@ class EnrichmentDialog(QDialog):
     """Progress dialog for background enrichment operations.
 
     Shows a title, progress bar, current item label, and cancel button.
-    Runs the EnrichmentWorker in a dedicated QThread.
+    Starts the EnrichmentThread when the dialog becomes visible.
 
     Attributes:
-        worker: The enrichment worker running in the background thread.
-        thread: The QThread hosting the worker.
+        thread: The EnrichmentThread running the background work.
     """
 
     def __init__(self, title: str, parent: QWidget | None = None) -> None:
@@ -49,11 +47,11 @@ class EnrichmentDialog(QDialog):
         """
         super().__init__(parent)
         self.setWindowTitle(t("ui.enrichment.dialog_title"))
-        self.setMinimumWidth(450)
+        self.setMinimumWidth(500)
+        self.setMinimumHeight(150)
         self.setModal(True)
 
-        self.worker: EnrichmentWorker | None = None
-        self.thread: QThread | None = None
+        self._thread: EnrichmentThread | None = None
 
         layout = QVBoxLayout(self)
 
@@ -80,21 +78,30 @@ class EnrichmentDialog(QDialog):
         btn_layout.addWidget(self._cancel_btn)
         layout.addLayout(btn_layout)
 
-    def start_worker(self, worker: EnrichmentWorker, thread: QThread) -> None:
-        """Attaches a worker and thread, connects signals, and starts.
+    def start_thread(self, thread: EnrichmentThread) -> None:
+        """Attaches the enrichment thread and connects signals.
+
+        The thread starts automatically when the dialog becomes visible
+        (via showEvent), ensuring the UI is rendered first.
 
         Args:
-            worker: The EnrichmentWorker to monitor.
-            thread: The QThread the worker runs in.
+            thread: The configured EnrichmentThread.
         """
-        self.worker = worker
-        self.thread = thread
+        self._thread = thread
 
-        worker.progress.connect(self._on_progress)
-        worker.finished.connect(self._on_finished)
-        worker.error.connect(self._on_error)
+        thread.progress.connect(self._on_progress)
+        thread.finished_enrichment.connect(self._on_finished)
+        thread.error.connect(self._on_error)
 
-        thread.start()
+    def showEvent(self, event) -> None:
+        """Starts the background thread once the dialog is visible.
+
+        Args:
+            event: The show event.
+        """
+        super().showEvent(event)
+        if self._thread and not self._thread.isRunning():
+            self._thread.start()
 
     def _on_progress(self, step_text: str, current: int, total: int) -> None:
         """Updates the progress bar and status label.
@@ -136,18 +143,17 @@ class EnrichmentDialog(QDialog):
 
     def _on_cancel(self) -> None:
         """Handles the cancel button click."""
-        if self.worker:
-            self.worker.cancel()
+        if self._thread:
+            self._thread.cancel()
         self._cancel_btn.setEnabled(False)
         self._cancel_btn.setText("...")
 
     def _cleanup_thread(self) -> None:
         """Stops and cleans up the background thread."""
-        if self.thread and self.thread.isRunning():
-            self.thread.quit()
-            self.thread.wait(3000)
-        self.thread = None
-        self.worker = None
+        if self._thread and self._thread.isRunning():
+            self._thread.quit()
+            self._thread.wait(3000)
+        self._thread = None
 
     def closeEvent(self, event) -> None:
         """Prevents closing while enrichment is running.
@@ -155,7 +161,7 @@ class EnrichmentDialog(QDialog):
         Args:
             event: The close event.
         """
-        if self.thread and self.thread.isRunning():
+        if self._thread and self._thread.isRunning():
             self._on_cancel()
             event.ignore()
         else:

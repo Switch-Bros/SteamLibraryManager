@@ -10,7 +10,9 @@ consistent styling, titles, and use of internationalization across the applicati
 from __future__ import annotations
 
 from PyQt6.QtWidgets import QWidget, QMessageBox, QDialog, QVBoxLayout, QLabel, QLineEdit, QDialogButtonBox
+
 from src.utils.i18n import t
+from src.version import __app_name__
 
 
 class UIHelper:
@@ -92,7 +94,7 @@ class UIHelper:
             True if the user clicked Yes, False otherwise.
         """
         if title is None:
-            title = t("ui.main_window.title")
+            title = __app_name__
 
         msg = QMessageBox(parent)
         msg.setWindowTitle(title)

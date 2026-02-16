@@ -1,18 +1,147 @@
 """HowLongToBeat API client for game completion time data.
 
-Wraps the howlongtobeatpy library to search for games and return
-normalized completion time data as frozen dataclasses.
+Queries the HLTB search API directly with automatic endpoint
+discovery and auth-token handling. Matches results by exact name
+or fuzzy name similarity using Levenshtein distance.
+No external library dependency required.
 """
 
 from __future__ import annotations
 
 import logging
+import random
 import re
+import time
+import unicodedata
 from dataclasses import dataclass
+
+import requests
+from bs4 import BeautifulSoup
 
 logger = logging.getLogger("steamlibmgr.hltb_api")
 
 __all__ = ["HLTBClient", "HLTBResult"]
+
+_HLTB_BASE = "https://howlongtobeat.com"
+
+# Realistic browser User-Agents for rotation
+_USER_AGENTS = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+    " (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:134.0) Gecko/20100101 Firefox/134.0",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15"
+    " (KHTML, like Gecko) Version/18.2 Safari/605.1.15",
+)
+
+# Browser-like headers required to avoid 403 from HLTB's bot protection
+_BROWSER_HEADERS: dict[str, str] = {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Upgrade-Insecure-Requests": "1",
+}
+
+# Regex: fetch(`/api/<path>/init?...`)  — to identify the init+search pair
+_INIT_PATTERN = re.compile(r"""/api/(\w+)/init""")
+
+# Symbols to strip from game names (TM, (R), (C), also text forms)
+# Uses a space replacement to avoid "Velocity®Ultra" → "VelocityUltra"
+_SYMBOL_PATTERN = re.compile(r"[\u2122\u00AE\u00A9]|\(TM\)|\(R\)")
+
+# Superscript digits → normal digits
+_SUPERSCRIPT_MAP = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹", "0123456789")
+
+# Bare year at end of name without parentheses: "Game 2014" → "Game"
+_BARE_YEAR_PATTERN = re.compile(r"\s+[12][09]\d\d$")
+
+# Parenthetical noise to strip before search (year tags, Classic, etc.)
+_PAREN_NOISE_PATTERN = re.compile(
+    r"\s*\("
+    r"(?:"
+    r"[12][09]\d\d"  # Year: (2003), (1999), (2020)
+    r"|Classic"  # (Classic)
+    r"|CLASSIC"  # (CLASSIC)
+    r"|Legacy"  # (Legacy)
+    r"|\d+[Dd]\s*Remake"  # (3D Remake)
+    r")\)"
+    r"\s*",
+)
+
+# Edition/subtitle suffixes to strip for a fallback search.
+# Inspired by hltb-millennium-plugin's simplify_game_name().
+# Applied iteratively until no more changes.
+_EDITION_PATTERNS: tuple[re.Pattern[str], ...] = (
+    # Anniversary patterns (longer first)
+    re.compile(r"\s+\d+[snrt][tdh]\s+Anniversary\s+Edition$", re.IGNORECASE),
+    re.compile(r"\s+[-:\u2013\u2014]\s*Anniversary\s+Edition$", re.IGNORECASE),
+    re.compile(r"\s+Anniversary\s+Edition$", re.IGNORECASE),
+    # Edition suffixes (with optional dash/colon prefix)
+    re.compile(
+        r"\s+[-:\u2013\u2014]\s*("
+        r"Enhanced|Complete|Definitive|Ultimate|Special|Legacy|Maximum|"
+        r"Deluxe|Premium|Premium\s+Online|Gold|Platinum|Steam|"
+        r"GOTY|Game\s+of\s+the\s+Year"
+        r")\s*Edition.*$",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\s+("
+        r"Enhanced|Complete|Definitive|Ultimate|Special|Legacy|Maximum|"
+        r"Deluxe|Premium|Premium\s+Online|Gold|Platinum|Steam|"
+        r"GOTY|Game\s+of\s+the\s+Year"
+        r")\s*Edition.*$",
+        re.IGNORECASE,
+    ),
+    # Standalone GOTY / Game of the Year
+    re.compile(r"\s+[-:\u2013\u2014]\s*GOTY$", re.IGNORECASE),
+    re.compile(r"\s+GOTY$", re.IGNORECASE),
+    re.compile(r"\s+[-:\u2013\u2014]\s*Game\s+of\s+the\s+Year$", re.IGNORECASE),
+    re.compile(r"\s+Game\s+of\s+the\s+Year$", re.IGNORECASE),
+    # Remastered / Remake
+    re.compile(r"\s+[-:\u2013\u2014]\s*Remastered$", re.IGNORECASE),
+    re.compile(r"\s+Remastered$", re.IGNORECASE),
+    re.compile(r"\s+\(\d*[Dd]\s*Remake\)$"),
+    re.compile(r"\s+[-:\u2013\u2014]\s*Remake$", re.IGNORECASE),
+    re.compile(r"\s+Remake$", re.IGNORECASE),
+    # Director's Cut
+    re.compile(r"\s+[-:\u2013\u2014]\s*Director'?s?\s+Cut$", re.IGNORECASE),
+    re.compile(r"\s+Director'?s?\s+Cut$", re.IGNORECASE),
+    # Collection / Classic / HD / Enhanced standalone
+    re.compile(r"\s+Collection$", re.IGNORECASE),
+    re.compile(r"\s+\(Legacy\)$", re.IGNORECASE),
+    re.compile(r"\s+[-:\u2013\u2014]\s*Classic$", re.IGNORECASE),
+    re.compile(r"\s+Classic$", re.IGNORECASE),
+    re.compile(r"\s+\(CLASSIC\)$"),
+    re.compile(r"\s+HD$", re.IGNORECASE),
+    re.compile(r"\s+Enhanced$", re.IGNORECASE),
+    re.compile(r"\s+Redux$", re.IGNORECASE),
+    re.compile(r"\s+Reloaded$", re.IGNORECASE),
+    # Single Player / Online / Season N
+    re.compile(r"\s+[-:\u2013\u2014]\s*Single\s+Player$", re.IGNORECASE),
+    re.compile(r"\s+Single\s+Player$", re.IGNORECASE),
+    re.compile(r"\s+[-:\u2013\u2014]\s*Season\s+\d+$", re.IGNORECASE),
+    re.compile(r"\s+Season\s+\d+$", re.IGNORECASE),
+    re.compile(r"\s+Online$", re.IGNORECASE),
+    # Year tags at end: (2013), (2020), etc.
+    re.compile(r"\s+\([12][09]\d\d\)$"),
+    # Clean up trailing punctuation left after stripping
+    re.compile(r"\s*[-:\u2013\u2014]\s*$"),
+)
+
+# Retry threshold: retry with simplified name if Levenshtein distance
+# exceeds 20% of name length (minimum 5 edits)
+_RETRY_DISTANCE_RATIO = 0.2
+_RETRY_DISTANCE_MIN = 5
+
+# Cache TTL for discovered endpoint and auth token (5 minutes, like Millennium plugin)
+_CACHE_TTL = 300
 
 
 @dataclass(frozen=True)
@@ -32,78 +161,320 @@ class HLTBResult:
     completionist: float
 
 
-# Pattern to strip common name noise for better HLTB matching
-_STRIP_PATTERN = re.compile(
-    r"[\u2122\u00AE]"  # TM, (R) symbols
-    r"|[-\u2013\u2014]\s*(Deluxe|Ultimate|Gold|GOTY|Complete|Definitive|Enhanced|"
-    r"Remastered|Anniversary|Legendary|Premium|Special)\s*Edition.*$",
-    re.IGNORECASE,
-)
-
-
 class HLTBClient:
     """Client for searching HowLongToBeat game data.
 
-    Uses the howlongtobeatpy library for search. Falls back gracefully
-    if the library is not installed.
+    Automatically discovers the current API endpoint and obtains
+    auth tokens. Matches search results by exact name first,
+    then by Levenshtein distance with popularity tiebreaker.
     """
+
+    def __init__(self) -> None:
+        """Initializes the HLTBClient with empty endpoint cache."""
+        self._session = requests.Session()
+        self._session.headers.update(_BROWSER_HEADERS)
+        self._api_path: str = ""
+        self._auth_token: str = ""
+        self._cache_time: float = 0.0
 
     @staticmethod
     def is_available() -> bool:
-        """Checks whether the howlongtobeatpy library is installed.
+        """Always available — uses direct HTTP API, no external library needed.
 
         Returns:
-            True if howlongtobeatpy can be imported.
+            True always.
         """
-        try:
-            from howlongtobeatpy import HowLongToBeat  # noqa: F401
+        return True
 
-            return True
-        except ImportError:
-            return False
-
-    def search_game(self, name: str) -> HLTBResult | None:
+    def search_game(self, name: str, app_id: int = 0) -> HLTBResult | None:
         """Searches HLTB for a game and returns the best match.
 
+        Uses a two-pass strategy:
+        1. Search with the full sanitized name.
+        2. If match is poor or missing, retry with edition suffixes stripped.
+
+        Matching priority per pass:
+        1. Exact sanitized name match.
+        2. Levenshtein distance (sorted by distance, then popularity).
+
         Args:
-            name: Game name to search for. Will be normalized before search.
+            name: Game name to search for.
+            app_id: Steam AppID (reserved for future use).
 
         Returns:
-            HLTBResult with completion times, or None if not found
-            or if the library is not installed.
+            HLTBResult with completion times, or None if not found.
+        """
+        sanitized = self._normalize_name(name)
+        if not sanitized:
+            return None
+
+        if not self._ensure_api_ready():
+            return None
+
+        # Pass 1: search with full sanitized name
+        match, distance = self._search_and_find(sanitized)
+        if match is not None and distance == 0:
+            return self._to_result(match)
+
+        # Check if we should retry with simplified name
+        simplified = _simplify_name(sanitized)
+        threshold = max(_RETRY_DISTANCE_MIN, int(len(sanitized) * _RETRY_DISTANCE_RATIO))
+        should_retry = simplified != sanitized and (match is None or distance > threshold)
+
+        if should_retry:
+            logger.debug("HLTB fallback search: '%s' → '%s'", sanitized, simplified)
+            retry_match, retry_distance = self._search_and_find(simplified)
+            if retry_match is not None and (match is None or retry_distance < distance):
+                match = retry_match
+
+        if match is not None:
+            return self._to_result(match)
+        return None
+
+    def _search_and_find(self, search_name: str) -> tuple[dict | None, int]:
+        """Performs an HLTB API search and returns the best match with distance.
+
+        Args:
+            search_name: Cleaned game name to search for.
+
+        Returns:
+            Tuple of (best_match_dict, levenshtein_distance) or (None, 0).
+        """
+        payload = {
+            "searchType": "games",
+            "searchTerms": search_name.split(),
+            "searchPage": 1,
+            "size": 20,
+            "searchOptions": {
+                "games": {
+                    "userId": 0,
+                    "platform": "",
+                    "sortCategory": "popular",
+                    "rangeCategory": "main",
+                    "rangeTime": {"min": 0, "max": 0},
+                    "gameplay": {
+                        "perspective": "",
+                        "flow": "",
+                        "genre": "",
+                        "difficulty": "",
+                    },
+                    "rangeYear": {"max": "", "min": ""},
+                    "modifier": "hide_dlc",
+                },
+                "users": {"sortCategory": "postcount"},
+                "lists": {"sortCategory": "follows"},
+                "filter": "",
+                "sort": 0,
+                "randomizer": 0,
+            },
+            "useCache": True,
+        }
+
+        search_url = f"{_HLTB_BASE}/api/{self._api_path}"
+
+        try:
+            resp = self._session.post(
+                search_url,
+                json=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "Origin": _HLTB_BASE,
+                    "Referer": f"{_HLTB_BASE}/",
+                    "x-auth-token": self._auth_token,
+                },
+                timeout=15,
+            )
+            # If 404 or 403, invalidate cache and retry once
+            if resp.status_code in (403, 404):
+                logger.info("HLTB endpoint returned %d, refreshing...", resp.status_code)
+                self._cache_time = 0.0
+                if not self._ensure_api_ready():
+                    return None, 0
+                search_url = f"{_HLTB_BASE}/api/{self._api_path}"
+                resp = self._session.post(
+                    search_url,
+                    json=payload,
+                    headers={
+                        "Content-Type": "application/json",
+                        "Origin": _HLTB_BASE,
+                        "Referer": f"{_HLTB_BASE}/",
+                        "x-auth-token": self._auth_token,
+                    },
+                    timeout=15,
+                )
+
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as exc:
+            logger.warning("HLTB search failed for '%s': %s", search_name, exc)
+            return None, 0
+
+        results = data.get("data", [])
+        if not results:
+            return None, 0
+
+        return self._find_best_match(results, search_name)
+
+    def _ensure_api_ready(self) -> bool:
+        """Discovers the API endpoint and obtains an auth token if needed.
+
+        Returns:
+            True if the API endpoint and token are ready.
+        """
+        now = time.time()
+        if self._api_path and self._auth_token and (now - self._cache_time) < _CACHE_TTL:
+            return True
+
+        # Rotate User-Agent
+        self._session.headers["User-Agent"] = random.choice(_USER_AGENTS)
+
+        try:
+            api_path = self._discover_endpoint()
+            if not api_path:
+                logger.error("Failed to discover HLTB API endpoint")
+                return False
+
+            auth_token = self._get_auth_token(api_path)
+            if not auth_token:
+                logger.error("Failed to obtain HLTB auth token")
+                return False
+
+            self._api_path = api_path
+            self._auth_token = auth_token
+            self._cache_time = now
+            logger.info("HLTB API ready: /api/%s", api_path)
+            return True
+
+        except Exception as exc:
+            logger.error("HLTB API initialization failed: %s", exc)
+            return False
+
+    def _discover_endpoint(self) -> str:
+        """Discovers the current HLTB search API path from the website JS.
+
+        Fetches the HLTB homepage, scans all JS chunks for
+        fetch("/api/<path>/init") patterns to find the search endpoint.
+
+        Returns:
+            The API path suffix (e.g. 'finder'), or empty string on failure.
         """
         try:
-            from howlongtobeatpy import HowLongToBeat
-        except ImportError:
-            logger.warning("howlongtobeatpy not installed")
-            return None
+            resp = self._session.get(f"{_HLTB_BASE}/", timeout=15)
+            resp.raise_for_status()
+        except Exception as exc:
+            logger.warning("Failed to fetch HLTB homepage: %s", exc)
+            return ""
 
-        normalized = self._normalize_name(name)
-        if not normalized:
-            return None
+        soup = BeautifulSoup(resp.text, "html.parser")
+        scripts = soup.find_all("script", src=True)
+
+        # Collect all _next/static/chunks/*.js URLs
+        chunk_urls: list[str] = []
+        for tag in scripts:
+            src = str(tag.get("src", ""))
+            if "/_next/static/chunks/" in src and not src.endswith("Manifest.js"):
+                url = src if src.startswith("http") else f"{_HLTB_BASE}{src}"
+                chunk_urls.append(url)
+
+        for url in chunk_urls:
+            try:
+                js_resp = self._session.get(url, timeout=15)
+                js_resp.raise_for_status()
+                js_text = js_resp.text
+            except Exception:
+                continue
+
+            # Look for /api/<path>/init pattern — this identifies the search endpoint
+            for match in _INIT_PATTERN.finditer(js_text):
+                path = match.group(1)
+                # Skip non-search endpoints
+                if path in ("user", "logout", "error", "game", "find"):
+                    continue
+                logger.debug("Found HLTB endpoint via init pattern: /api/%s", path)
+                return path
+
+        logger.warning("Could not discover HLTB endpoint from JS bundles")
+        return ""
+
+    def _get_auth_token(self, api_path: str) -> str:
+        """Obtains an auth token from the HLTB init endpoint.
+
+        Args:
+            api_path: The discovered API path suffix.
+
+        Returns:
+            Auth token string, or empty string on failure.
+        """
+        timestamp_ms = int(time.time() * 1000)
+        init_url = f"{_HLTB_BASE}/api/{api_path}/init?t={timestamp_ms}"
 
         try:
-            results = HowLongToBeat().search(normalized)
+            resp = self._session.get(
+                init_url,
+                headers={
+                    "Referer": f"{_HLTB_BASE}/",
+                    "Origin": _HLTB_BASE,
+                },
+                timeout=15,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            token = data.get("token", "")
+            if token:
+                logger.debug("Obtained HLTB auth token")
+            return token
         except Exception as exc:
-            logger.warning("HLTB search failed for '%s': %s", normalized, exc)
-            return None
+            logger.warning("Failed to get HLTB auth token: %s", exc)
+            return ""
 
-        if not results:
-            return None
+    @staticmethod
+    def _find_best_match(
+        results: list[dict],
+        search_name: str,
+    ) -> tuple[dict | None, int]:
+        """Finds the best matching game from HLTB search results.
 
-        # Pick best match (highest similarity)
-        best = max(results, key=lambda r: r.similarity)
+        Uses a two-tier approach:
+        1. Exact sanitized name match (distance 0).
+        2. Levenshtein distance, with popularity (comp_all_count) as tiebreaker.
 
-        return HLTBResult(
-            game_name=best.game_name,
-            main_story=best.main_story or 0.0,
-            main_extras=best.main_extra or 0.0,
-            completionist=best.completionist or 0.0,
-        )
+        Args:
+            results: List of game data dicts from the HLTB API.
+            search_name: Cleaned game name for comparison.
+
+        Returns:
+            Tuple of (best_match, distance) or (None, 0) if no match.
+        """
+        sanitized_query = _normalize_for_compare(search_name)
+
+        # 1. Exact name match
+        for r in results:
+            if _normalize_for_compare(r.get("game_name", "")) == sanitized_query:
+                return r, 0
+
+        # 2. Levenshtein distance with popularity tiebreaker
+        candidates: list[tuple[int, int, dict]] = []
+        for r in results:
+            r_name = _normalize_for_compare(r.get("game_name", ""))
+            dist = _levenshtein(sanitized_query, r_name)
+            popularity = r.get("comp_all_count", 0)
+            candidates.append((dist, -popularity, r))
+
+        if not candidates:
+            return None, 0
+
+        # Sort by distance ASC, then by popularity DESC (negative = more popular first)
+        candidates.sort(key=lambda c: (c[0], c[1]))
+        best_dist, _, best_match = candidates[0]
+
+        return best_match, best_dist
 
     @staticmethod
     def _normalize_name(name: str) -> str:
-        """Strips trademark symbols and edition suffixes for better matching.
+        """Strips trademark and copyright symbols for cleaner search terms.
+
+        Does NOT strip edition suffixes — that is handled as a fallback
+        in search_game() when the first search attempt has a poor match.
 
         Args:
             name: Raw game name.
@@ -111,7 +482,112 @@ class HLTBClient:
         Returns:
             Cleaned name suitable for HLTB search.
         """
-        cleaned = _STRIP_PATTERN.sub("", name).strip()
-        # Collapse multiple spaces
+        # Replace symbols with space (keeps word boundaries: "Velocity®Ultra" → "Velocity Ultra")
+        cleaned = _SYMBOL_PATTERN.sub(" ", name).strip()
+        # Normalize superscript digits: ² → 2
+        cleaned = cleaned.translate(_SUPERSCRIPT_MAP)
+        # Normalize backtick to apostrophe
+        cleaned = cleaned.replace("`", "'")
+        # Strip special unicode chars: ∞, etc.
+        cleaned = re.sub(r"[∞]", "", cleaned)
+        # Strip parenthetical noise: (2003), (Classic), etc.
+        cleaned = _PAREN_NOISE_PATTERN.sub("", cleaned).strip()
         cleaned = re.sub(r"\s+", " ", cleaned)
         return cleaned
+
+    @staticmethod
+    def _to_result(match: dict) -> HLTBResult:
+        """Converts an HLTB API result dict to an HLTBResult.
+
+        Args:
+            match: Raw game data dict from the HLTB API.
+
+        Returns:
+            HLTBResult with hours converted from seconds.
+        """
+        return HLTBResult(
+            game_name=match.get("game_name", ""),
+            main_story=match.get("comp_main", 0) / 3600,
+            main_extras=match.get("comp_plus", 0) / 3600,
+            completionist=match.get("comp_100", 0) / 3600,
+        )
+
+
+def _simplify_name(name: str) -> str:
+    """Strips common edition/remaster/year suffixes for fallback search.
+
+    Iterates _EDITION_PATTERNS in a loop until no more changes occur,
+    handling stacked suffixes like "Enhanced Edition Director's Cut".
+
+    Args:
+        name: Sanitized game name.
+
+    Returns:
+        Simplified name with edition suffixes removed.
+    """
+    # Normalize Unicode dashes to ASCII hyphen with spaces for pattern matching
+    name = re.sub(r"[\u2013\u2014]", " - ", name)
+    name = re.sub(r"\s+", " ", name).strip()
+
+    prev = ""
+    while prev != name:
+        prev = name
+        for pattern in _EDITION_PATTERNS:
+            name = pattern.sub("", name).strip()
+        # Also strip bare year at end: "Lords Of The Fallen 2014" → "Lords Of The Fallen"
+        name = _BARE_YEAR_PATTERN.sub("", name).strip()
+    return re.sub(r"\s+", " ", name).strip()
+
+
+def _normalize_for_compare(name: str) -> str:
+    """Normalizes a name for comparison (lowercase, no accents, no special chars).
+
+    Args:
+        name: Name to normalize.
+
+    Returns:
+        Lowercased name with accents and special characters removed.
+    """
+    result = name.lower()
+    result = unicodedata.normalize("NFD", result)
+    result = re.sub(r"[\u0300-\u036f]", "", result)
+    result = re.sub(r"[^a-z0-9\s\-/]", "", result)
+    return result.strip()
+
+
+def _levenshtein(s1: str, s2: str) -> int:
+    """Calculates the Levenshtein (edit) distance between two strings.
+
+    Args:
+        s1: First string.
+        s2: Second string.
+
+    Returns:
+        Minimum number of single-character edits to transform s1 into s2.
+    """
+    if s1 == s2:
+        return 0
+    len1, len2 = len(s1), len(s2)
+    if len1 == 0:
+        return len2
+    if len2 == 0:
+        return len1
+
+    # Use two-row optimization for O(min(m,n)) space
+    if len1 > len2:
+        s1, s2 = s2, s1
+        len1, len2 = len2, len1
+
+    prev_row = list(range(len1 + 1))
+    for j in range(1, len2 + 1):
+        curr_row = [j] + [0] * len1
+        for i in range(1, len1 + 1):
+            cost = 0 if s1[i - 1] == s2[j - 1] else 1
+            curr_row[i] = min(
+                curr_row[i - 1] + 1,  # insertion
+                prev_row[i] + 1,  # deletion
+                prev_row[i - 1] + cost,  # substitution
+            )
+        prev_row = curr_row
+
+    return prev_row[len1]

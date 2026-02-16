@@ -1,4 +1,4 @@
-"""Tests for the EnrichmentWorker service."""
+"""Tests for the EnrichmentThread service."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.integrations.hltb_api import HLTBResult
-from src.services.enrichment_service import EnrichmentWorker
+from src.services.enrichment_service import EnrichmentThread
 
 
 @pytest.fixture
@@ -35,11 +35,11 @@ def enrichment_db(tmp_path: Path):
 
 
 class TestHLTBEnrichment:
-    """Tests for run_hltb_enrichment."""
+    """Tests for HLTB enrichment via EnrichmentThread."""
 
     def test_hltb_enrichment_updates_database(self, enrichment_db) -> None:
         """Successful HLTB search inserts data into hltb_data table."""
-        worker = EnrichmentWorker()
+        thread = EnrichmentThread()
 
         mock_client = MagicMock()
         mock_client.search_game.side_effect = [
@@ -48,10 +48,11 @@ class TestHLTBEnrichment:
         ]
 
         finished_spy = MagicMock()
-        worker.finished.connect(finished_spy)
+        thread.finished_enrichment.connect(finished_spy)
 
         games = [(440, "Team Fortress 2"), (570, "Dota 2")]
-        worker.run_hltb_enrichment(games, enrichment_db.db_path, mock_client)
+        thread.configure_hltb(games, enrichment_db.db_path, mock_client)
+        thread.run()
 
         # Re-read from the same DB file to verify
         from src.core.database import Database
@@ -66,7 +67,7 @@ class TestHLTBEnrichment:
 
     def test_enrichment_continues_on_single_failure(self, enrichment_db) -> None:
         """Enrichment continues processing after a single game fails."""
-        worker = EnrichmentWorker()
+        thread = EnrichmentThread()
 
         mock_client = MagicMock()
         mock_client.search_game.side_effect = [
@@ -75,35 +76,37 @@ class TestHLTBEnrichment:
         ]
 
         finished_spy = MagicMock()
-        worker.finished.connect(finished_spy)
+        thread.finished_enrichment.connect(finished_spy)
 
         games = [(440, "Team Fortress 2"), (570, "Dota 2")]
-        worker.run_hltb_enrichment(games, enrichment_db.db_path, mock_client)
+        thread.configure_hltb(games, enrichment_db.db_path, mock_client)
+        thread.run()
 
         finished_spy.assert_called_once_with(1, 1)
 
     def test_cancel_stops_processing(self, enrichment_db) -> None:
         """Cancellation stops processing remaining games."""
-        worker = EnrichmentWorker()
+        thread = EnrichmentThread()
 
         mock_client = MagicMock()
-        mock_client.search_game.side_effect = lambda name: (
-            worker.cancel(),
+        mock_client.search_game.side_effect = lambda name, app_id=0: (
+            thread.cancel(),
             HLTBResult(game_name=name, main_story=10.0, main_extras=0.0, completionist=0.0),
         )[1]
 
         finished_spy = MagicMock()
-        worker.finished.connect(finished_spy)
+        thread.finished_enrichment.connect(finished_spy)
 
         games = [(440, "TF2"), (570, "Dota 2"), (730, "CS2")]
-        worker.run_hltb_enrichment(games, enrichment_db.db_path, mock_client)
+        thread.configure_hltb(games, enrichment_db.db_path, mock_client)
+        thread.run()
 
         assert mock_client.search_game.call_count == 1
         finished_spy.assert_called_once_with(1, 0)
 
 
 class TestSteamAPIEnrichment:
-    """Tests for run_steam_api_enrichment."""
+    """Tests for Steam API enrichment via EnrichmentThread."""
 
     @patch("src.integrations.steam_web_api.requests.get")
     def test_steam_api_enrichment_batches_correctly(self, mock_get: MagicMock, enrichment_db) -> None:
@@ -129,12 +132,13 @@ class TestSteamAPIEnrichment:
         mock_response.raise_for_status = MagicMock()
         mock_get.return_value = mock_response
 
-        worker = EnrichmentWorker()
+        thread = EnrichmentThread()
         finished_spy = MagicMock()
-        worker.finished.connect(finished_spy)
+        thread.finished_enrichment.connect(finished_spy)
 
         games = [(440, "Team Fortress 2")]
-        worker.run_steam_api_enrichment(games, enrichment_db.db_path, "test_api_key")
+        thread.configure_steam(games, enrichment_db.db_path, "test_api_key")
+        thread.run()
 
         finished_spy.assert_called_once()
         success, failed = finished_spy.call_args[0]

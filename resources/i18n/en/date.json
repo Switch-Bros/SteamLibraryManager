@@ -50,6 +50,7 @@
   },
   "time": {
     "time_hours": "{hours}h {minutes}m",
+    "time_hours_short": "{hours}h",
     "time_minutes": "{minutes} minutes",
     "time_seconds": "{seconds} seconds"
   }

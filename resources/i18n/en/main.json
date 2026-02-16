@@ -1,7 +1,6 @@
 {
   "ui": {
     "main_window": {
-      "title": "Steam Library Manager",
       "search_placeholder": "Search games...",
       "status_ready": "Ready",
       "games_count": "{count} games",
@@ -56,6 +55,11 @@
       "value_unknown": "Unknown",
       "select_placeholder": "Select a game to view details",
       "categories_label": "Collections",
+      "hltb": "HLTB (HowLongToBeat)",
+      "hltb_main": "Main",
+      "hltb_main_extras": "Main + Extras",
+      "hltb_completionist": "Completionist",
+      "hltb_all_styles": "All Styles",
       "proton_tiers": {
         "platinum": "Platinum",
         "gold": "Gold",

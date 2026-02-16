@@ -400,9 +400,9 @@ class GameDetailsWidget(QWidget):
         # === METADATA ===
         meta_widget = QWidget()
         meta_grid = QGridLayout(meta_widget)
-        meta_grid.setContentsMargins(0, 10, 0, 10)
+        meta_grid.setContentsMargins(0, 5, 0, 5)
         meta_grid.setHorizontalSpacing(30)
-        meta_grid.setVerticalSpacing(5)
+        meta_grid.setVerticalSpacing(2)
         meta_grid.setColumnMinimumWidth(0, 180)
         meta_grid.setColumnMinimumWidth(1, 240)
         meta_grid.setColumnMinimumWidth(2, 420)
@@ -435,12 +435,13 @@ class GameDetailsWidget(QWidget):
         def add_meta_field(grid, label_key, row):
             """Helper function to add a metadata field to the grid."""
             l_layout = QHBoxLayout()
+            l_layout.setContentsMargins(0, 0, 0, 0)
+            l_layout.setSpacing(4)
             l_lbl = QLabel(t(label_key) + ":")
             l_lbl.setStyleSheet("padding: 1px 0;")
             l_layout.addWidget(l_lbl)
             edit = QLineEdit()
             edit.setReadOnly(True)
-            edit.setAlignment(Qt.AlignmentFlag.AlignLeft)  # Left-align text!
             edit.setStyleSheet("background: transparent; border: none; font-weight: bold; padding: 1px 0;")
             l_layout.addWidget(edit)
             grid.addLayout(l_layout, row, 2)
@@ -449,6 +450,28 @@ class GameDetailsWidget(QWidget):
         self.edit_dev = add_meta_field(meta_grid, "ui.game_details.developer", 1)
         self.edit_pub = add_meta_field(meta_grid, "ui.game_details.publisher", 2)
         self.edit_rel = add_meta_field(meta_grid, "ui.game_details.release_year", 3)
+
+        # --- HLTB Row (row 4, spanning all 3 columns) ---
+        hltb_container = QWidget()
+        hltb_layout = QHBoxLayout(hltb_container)
+        hltb_layout.setContentsMargins(0, 0, 0, 0)
+        hltb_layout.setSpacing(50)
+
+        hltb_title = QLabel(f"<b>{t('ui.game_details.hltb')}:</b>")
+        hltb_title.setStyleSheet("padding: 1px 0;")
+        hltb_layout.addWidget(hltb_title)
+
+        self.lbl_hltb_main = InfoLabel("ui.game_details.hltb_main")
+        hltb_layout.addWidget(self.lbl_hltb_main)
+        self.lbl_hltb_extras = InfoLabel("ui.game_details.hltb_main_extras")
+        hltb_layout.addWidget(self.lbl_hltb_extras)
+        self.lbl_hltb_comp = InfoLabel("ui.game_details.hltb_completionist")
+        hltb_layout.addWidget(self.lbl_hltb_comp)
+        self.lbl_hltb_all = InfoLabel("ui.game_details.hltb_all_styles")
+        hltb_layout.addWidget(self.lbl_hltb_all)
+
+        hltb_layout.addStretch()
+        meta_grid.addWidget(hltb_container, 4, 0, 1, 3)
 
         main_layout.addWidget(meta_widget)
 
@@ -538,6 +561,23 @@ class GameDetailsWidget(QWidget):
             f"{display_text}</span>"
         )
 
+    @staticmethod
+    def _update_hltb_label(label: QLabel, hours: float, dash: str) -> None:
+        """Updates an HLTB InfoLabel with formatted hours or a dash.
+
+        Args:
+            label: The InfoLabel to update.
+            hours: Hours value (0 = no data).
+            dash: Dash string for missing data.
+        """
+        parts = label.text().split(":</span>")
+        prefix = parts[0] + ":</span>" if len(parts) > 1 else ""
+        if hours > 0:
+            val = t("time.time_hours_short", hours=f"{hours:.1f}")
+        else:
+            val = dash
+        label.setText(f"{prefix} <b>{val}</b>")
+
     def set_games(self, games: list[Game], _all_categories: list[str]):
         """
         Sets multiple games for multi-selection display.
@@ -573,6 +613,11 @@ class GameDetailsWidget(QWidget):
         self.edit_dev.setText(t("emoji.dash"))
         self.edit_pub.setText(t("emoji.dash"))
         self.edit_rel.setText(t("emoji.dash"))
+        dash = t("emoji.dash")
+        self._update_hltb_label(self.lbl_hltb_main, 0, dash)
+        self._update_hltb_label(self.lbl_hltb_extras, 0, dash)
+        self._update_hltb_label(self.lbl_hltb_comp, 0, dash)
+        self._update_hltb_label(self.lbl_hltb_all, 0, dash)
 
         # Show tri-state checkboxes
         games_categories = [game.categories for game in games]
@@ -642,10 +687,24 @@ class GameDetailsWidget(QWidget):
                 return formatter(value)
             return str(value)
 
-        # Set fields
+        # Set fields — setCursorPosition(0) ensures text is visible from the start
         self.edit_dev.setText(safe_text(game.developer))
+        self.edit_dev.setCursorPosition(0)
         self.edit_pub.setText(safe_text(game.publisher))
+        self.edit_pub.setCursorPosition(0)
         self.edit_rel.setText(safe_text(game.release_year, format_timestamp_to_date))
+        self.edit_rel.setCursorPosition(0)
+
+        # HLTB data
+        dash = t("emoji.dash")
+        self._update_hltb_label(self.lbl_hltb_main, game.hltb_main_story, dash)
+        self._update_hltb_label(self.lbl_hltb_extras, game.hltb_main_extras, dash)
+        self._update_hltb_label(self.lbl_hltb_comp, game.hltb_completionist, dash)
+        # All Styles = average of the three (if data exists)
+        all_vals = [v for v in (game.hltb_main_story, game.hltb_main_extras, game.hltb_completionist) if v > 0]
+        all_avg = sum(all_vals) / len(all_vals) if all_vals else 0.0
+        self._update_hltb_label(self.lbl_hltb_all, all_avg, dash)
+
         self.category_list.set_categories(_all_categories, game.categories)
 
         # Display PEGI rating if available (with ESRB fallback)

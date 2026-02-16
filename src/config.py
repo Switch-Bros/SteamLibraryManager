@@ -336,7 +336,7 @@ class Config:
                 if (item / "config" / "localconfig.vdf").exists():
                     account_id = int(item.name)
                     steam_id_64 = str(account_id + 76561197960265728)
-                    logger.info(f"Detected Steam user: {account_id}")
+                    logger.debug("Detected Steam user: %d", account_id)
                     return str(account_id), steam_id_64
 
         return None, None
