@@ -5,7 +5,7 @@
 from unittest.mock import MagicMock
 
 from src.core.game import Game, is_real_game
-from src.services.metadata_enrichment_service import MetadataEnrichmentService
+from src.services.enrichment.metadata_enrichment_service import MetadataEnrichmentService
 
 
 class TestIsRealGameWithAppType:

@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
-from src.services.enrichment_service import EnrichmentThread
+from src.services.enrichment.enrichment_service import EnrichmentThread
 from src.ui.utils.font_helper import FontHelper
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t

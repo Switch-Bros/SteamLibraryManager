@@ -45,7 +45,7 @@ class EnrichmentActions:
         games without HLTB data. Launches the enrichment dialog.
         """
         from src.integrations.hltb_api import HLTBClient
-        from src.services.enrichment_service import EnrichmentThread
+        from src.services.enrichment.enrichment_service import EnrichmentThread
         from src.ui.dialogs.enrichment_dialog import EnrichmentDialog
 
         # Check library availability
@@ -83,7 +83,7 @@ class EnrichmentActions:
         games with missing metadata. Launches the enrichment dialog.
         """
         from src.config import config
-        from src.services.enrichment_service import EnrichmentThread
+        from src.services.enrichment.enrichment_service import EnrichmentThread
         from src.ui.dialogs.enrichment_dialog import EnrichmentDialog
 
         # Check API key
