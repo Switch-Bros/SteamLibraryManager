@@ -215,6 +215,7 @@ class EditActions:
             "year": self.mw.autocategorize_service.categorize_by_year,
             "hltb": self.mw.autocategorize_service.categorize_by_hltb,
             "language": self.mw.autocategorize_service.categorize_by_language,
+            "deck_status": self.mw.autocategorize_service.categorize_by_deck_status,
         }
 
         for method in methods:

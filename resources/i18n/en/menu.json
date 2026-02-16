@@ -96,6 +96,13 @@
         "swedish": "Swedish",
         "turkish": "Turkish"
       },
+      "deck": {
+        "root": "Steam Deck",
+        "verified": "Verified",
+        "playable": "Playable",
+        "unsupported": "Unsupported",
+        "unknown": "Unknown"
+      },
       "statistics": {
         "root": "Show Statistics",
         "overview": "Overview",
@@ -123,6 +130,7 @@
         "root": "Batch Operations",
         "update_metadata": "Update Metadata (All)",
         "update_hltb": "Update HLTB Data",
+        "update_deck": "Fetch Missing Deck Status",
         "update_protondb": "Update ProtonDB Ratings",
         "check_store": "Check Store Pages",
         "update_achievements": "Update Achievements"

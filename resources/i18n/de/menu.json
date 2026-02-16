@@ -96,6 +96,13 @@
         "swedish": "Schwedisch",
         "turkish": "Türkisch"
       },
+      "deck": {
+        "root": "Steam Deck",
+        "verified": "Verifiziert",
+        "playable": "Spielbar",
+        "unsupported": "Nicht unterstützt",
+        "unknown": "Unbekannt"
+      },
       "statistics": {
         "root": "Statistiken anzeigen",
         "overview": "Gesamtübersicht",
@@ -123,6 +130,7 @@
         "root": "Batch-Operationen",
         "update_metadata": "Metadaten aktualisieren (Alle)",
         "update_hltb": "HLTB Daten aktualisieren",
+        "update_deck": "Fehlende Deck-Status abrufen",
         "update_protondb": "ProtonDB Ratings aktualisieren",
         "check_store": "Store-Seiten prüfen",
         "update_achievements": "Achievements aktualisieren"

@@ -769,6 +769,47 @@ class AutoCategorizeService:
                 return t(key)
         return t("auto_categorize.hltb_50_plus")
 
+    # === STEAM DECK CATEGORIZATION ===
+
+    _DECK_STATUS_KEYS: frozenset[str] = frozenset({"verified", "playable", "unsupported"})
+
+    def categorize_by_deck_status(
+        self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
+    ) -> int:
+        """Categorize games by Steam Deck compatibility status.
+
+        Creates categories like "Deck Verified 🥽", "Deck Playable 🥽".
+        Games with unknown or empty deck status are skipped.
+
+        Args:
+            games: List of games to categorize.
+            progress_callback: Optional callback(current_index, game_name).
+
+        Returns:
+            Number of categories added.
+        """
+        categories_added = 0
+
+        for i, game in enumerate(games):
+            if progress_callback:
+                progress_callback(i, game.name)
+
+            status = game.steam_deck_status.lower() if game.steam_deck_status else ""
+            if not status or status not in self._DECK_STATUS_KEYS:
+                continue
+
+            category = f"{t('auto_categorize.cat_deck_' + status)} {t('emoji.vr')}"
+
+            try:
+                self.category_service.add_app_to_category(game.app_id, category)
+                if category not in game.categories:
+                    game.categories.append(category)
+                categories_added += 1
+            except (ValueError, RuntimeError):
+                pass
+
+        return categories_added
+
     # === LANGUAGE CATEGORIZATION ===
 
     def categorize_by_language(
