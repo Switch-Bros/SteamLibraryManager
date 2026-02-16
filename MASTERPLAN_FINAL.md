@@ -212,13 +212,16 @@ Datei
 ├─ 💾 Speichern                      [Strg+S]
 ├─ ────────────────────────────────
 ├─ 📤 Exportieren                    →
-│  ├─ Kollektionen als VDF
+│  ├─ Kategorien & Kollektionen      🆕 cloudstorage-namespace-1.json!
 │  ├─ Spieleliste als CSV (Simple)
 │  ├─ Spieleliste als CSV (Full)     🆕 Stelicas-inspired!
 │  ├─ Spieleliste als JSON
+│  ├─ App-Metadaten (JSON)           🆕 appinfo.vdf → JSON!
+│  ├─ Non-Steam Shortcuts            🆕 shortcuts.vdf!
 │  └─ Datenbank-Backup               🆕
 ├─ 📥 Importieren                    →
-│  ├─ Kollektionen (VDF)
+│  ├─ Kategorien & Kollektionen      🆕 Merge/Overwrite!
+│  ├─ Non-Steam Shortcuts            🆕 shortcuts.vdf!
 │  ├─ Datenbank-Backup               🆕
 │  └─ Artwork-Paket (Multi-Device!)  🆕
 ├─ ────────────────────────────────
@@ -767,6 +770,235 @@ game_id,name,categories,type,tags,release_date,review_percentage,review_count,is
 **Estimated:** 3-4 days
 **Priority:** HIGH
 **Dependencies:** Batch Steam API
+
+---
+
+### 3.6.3 Smart Import/Export Hub - 🆕 REDESIGNED!
+
+**Status:** 🔥 **REDESIGNED!** (2026-02-16)
+
+**Alter Plan:** Generischer "Text VDF Export" als Debug-Tool (~50 Zeilen).
+**Neuer Plan:** Fokussierter Import/Export der drei wichtigsten Steam-Dateien!
+
+**Erkenntnis:** Ein generischer VDF-Text-Dump ist ein nettes Debug-Tool, aber kein echtes Feature das Nutzer brauchen.
+Die WIRKLICH wichtigen Dateien sind:
+
+| Datei                           | Richtung               | Priorität | Nutzen                                                    |
+|---------------------------------|------------------------|-----------|-----------------------------------------------------------|
+| `cloudstorage-namespace-1.json` | Export + Import        | **HOCH**  | Kategorien/Kollektionen sichern, teilen, wiederherstellen |
+| `appinfo.vdf`                   | Nur Export (Read-only) | MITTEL    | Steam-Metadaten als JSON für Debugging/Analyse            |
+| `shortcuts.vdf`                 | Export + Import        | **HOCH**  | Non-Steam Games zwischen Rechnern übertragen              |
+
+---
+
+#### **1. cloudstorage-namespace-1.json (Kategorien/Kollektionen)**
+
+**Das Kernfeature!** Diese Datei ist die Source-of-Truth für alle Steam-Kategorien und Kollektionen. Export/Import
+ermöglicht:
+
+- **Backup:** Kategorien vor riskanten Operationen sichern
+- **Teilen:** Setups mit anderen Nutzern teilen (z.B. "Mein perfektes Genre-Setup")
+- **Wiederherstellen:** Nach Steam-Reset alles zurückholen
+- **Profil-Ergänzung:** Das bestehende Profil-System speichert Filter-States — der Cloud-Export sichert die Kategorien
+  selbst
+
+**Implementation:**
+
+```python
+# src/utils/collection_exporter.py
+
+class CollectionExporter:
+    """Export/Import Steam collections from cloudstorage-namespace-1.json."""
+
+    def export_collections(self, cloud_storage_path: Path, output_path: Path) -> None:
+        """Export collections as human-readable JSON.
+
+        Args:
+            cloud_storage_path: Path to cloudstorage-namespace-1.json.
+            output_path: Destination path for export file.
+        """
+        # Read + parse + export as clean, formatted JSON
+        # Include: collection names, game IDs, dynamic collection rules
+
+    def import_collections(
+        self,
+        import_path: Path,
+        cloud_storage_path: Path,
+        mode: str = "merge"  # "merge" or "overwrite"
+    ) -> ImportResult:
+        """Import collections back into cloud storage.
+
+        Args:
+            import_path: Path to exported JSON file.
+            cloud_storage_path: Path to cloudstorage-namespace-1.json.
+            mode: "merge" (add new, keep existing) or "overwrite" (replace all).
+
+        Returns:
+            ImportResult with counts of added/updated/skipped collections.
+        """
+```
+
+**Import-Modi:**
+
+```
+Merge (Default):
+├─ Neue Kollektionen → hinzufügen
+├─ Existierende → beibehalten (kein Überschreiben)
+└─ Konflikte → User fragen (Dialog)
+
+Overwrite:
+├─ Backup erstellen (automatisch!)
+├─ Alle Kollektionen ersetzen
+└─ Warnung vorher anzeigen
+```
+
+---
+
+#### **2. appinfo.vdf (Steam-Metadaten)**
+
+**Read-only Export!** Steam verwaltet diese Datei — wir lesen nur. Export als JSON für:
+
+- **Debugging:** Was weiß Steam über ein bestimmtes Spiel?
+- **Analyse:** Alle Spiel-Metadaten auf einen Blick
+- **Vergleich:** Vor/nach DB-Import prüfen
+
+**Implementation:**
+
+```python
+# In src/ui/actions/file_actions.py
+
+def export_appinfo_json(self) -> None:
+    """Export appinfo.vdf data as human-readable JSON."""
+    # QFileDialog → Ziel wählen
+    # appinfo_manager.parse() → JSON dump
+    # Alle Felder: name, type, developer, publisher, tags, genres, etc.
+```
+
+**Kein Import nötig!** Steam pflegt appinfo.vdf selbst. Wir überschreiben sie nicht.
+
+---
+
+#### **3. shortcuts.vdf (Non-Steam Games)**
+
+**Killer-Feature!** Export + Import von Non-Steam Games:
+
+- **Multi-PC:** Gleiche Non-Steam Games auf mehreren Rechnern
+- **Backup:** Vor Steam-Neuinstallation sichern
+- **Teilen:** "Mein Emulator-Setup" mit Freunden teilen
+- **Depressurizer hat das NICHT!**
+
+**Implementation:**
+
+```python
+# In src/core/shortcuts_manager.py (erweitert Phase 3.7)
+
+def export_shortcuts(self, output_path: Path) -> int:
+    """Export all Non-Steam shortcuts as JSON.
+
+    Args:
+        output_path: Destination path for export file.
+
+    Returns:
+        Number of exported shortcuts.
+    """
+    # shortcuts.vdf → parse → JSON mit:
+    # name, exe, start_dir, icon, launch_options, tags
+
+def import_shortcuts(self, import_path: Path, mode: str = "merge") -> ImportResult:
+    """Import Non-Steam shortcuts from JSON.
+
+    Args:
+        import_path: Path to exported JSON file.
+        mode: "merge" (add new) or "overwrite" (replace all).
+
+    Returns:
+        ImportResult with counts of added/skipped shortcuts.
+    """
+    # JSON → parse → shortcuts.vdf write
+    # Duplikat-Erkennung via app_name + exe
+```
+
+---
+
+#### **UI: Import/Export Dialog**
+
+```python
+# src/ui/dialogs/import_export_dialog.py
+
+class ImportExportDialog(QDialog):
+    """Smart Import/Export Hub with tabbed interface."""
+
+    # Tab 1: Kategorien (cloudstorage-namespace-1.json)
+    #   Export: [Exportieren] → QFileDialog
+    #   Import: [Importieren] → Merge/Overwrite Radio + QFileDialog
+    #   Preview: Zeige Kollektionen im Export/Import
+
+    # Tab 2: Non-Steam Shortcuts (shortcuts.vdf)
+    #   Export: [Exportieren] → QFileDialog
+    #   Import: [Importieren] → Merge/Overwrite + Preview
+
+    # Tab 3: Metadaten (appinfo.vdf)
+    #   Export only: [Als JSON exportieren] → QFileDialog
+
+    # Tab 4: Datenbank
+    #   Export: DB-Backup erstellen
+    #   Import: DB-Backup wiederherstellen
+```
+
+---
+
+#### **i18n-Keys**
+
+```json
+"import_export": {
+  "dialog_title": "Import / Export",
+  "tab_collections": "Categories & Collections",
+  "tab_shortcuts": "Non-Steam Shortcuts",
+  "tab_metadata": "App Metadata",
+  "tab_database": "Database",
+  "export_btn": "Export",
+  "import_btn": "Import",
+  "mode_merge": "Merge (keep existing)",
+  "mode_overwrite": "Overwrite (replace all)",
+  "overwrite_warning": "This will replace all existing data. A backup will be created automatically.",
+  "export_success": "{count} items exported to {path}.",
+  "import_success": "{added} added, {skipped} skipped, {updated} updated.",
+  "import_conflict": "Collection '{name}' already exists. Overwrite?",
+  "no_data": "No data found to export.",
+  "backup_created": "Automatic backup created: {path}"
+}
+```
+
+---
+
+#### **Dateien:**
+
+```
+Neue Dateien:
+├─ src/utils/collection_exporter.py          (Cloud-Storage Export/Import)
+├─ src/ui/dialogs/import_export_dialog.py    (Smart Import/Export Hub UI)
+├─ tests/unit/test_utils/test_collection_exporter.py
+
+Geänderte Dateien:
+├─ src/core/shortcuts_manager.py             (+export/import Methoden)
+├─ src/ui/actions/file_actions.py            (+export_appinfo_json)
+├─ src/ui/builders/menu_builder.py           (Menu-Connects)
+├─ resources/i18n/en/main.json               (+import_export Block)
+├─ resources/i18n/de/main.json               (+import_export Block)
+```
+
+#### **Tests:**
+
+- `test_export_collections_creates_valid_json`
+- `test_import_collections_merge_mode`
+- `test_import_collections_overwrite_creates_backup`
+- `test_export_shortcuts_round_trip`
+- `test_import_shortcuts_detects_duplicates`
+- `test_export_appinfo_as_json`
+
+**Estimated:** 3-4 days
+**Priority:** HIGH
+**Dependencies:** Phase 3.7 (shortcuts.vdf Manager), Cloud-Storage Parser (Phase 2)
 
 ---
 
@@ -1709,53 +1941,122 @@ Rules:
 
 ## 📊 PHASE 6: DATA & PERFORMANCE
 
-### 6.1 HowLongToBeat Integration
+### 6.1 HowLongToBeat Integration ⏳ IN PROGRESS!
 
-**Goal:** Show game completion time estimates
+**Status:** ✅ **CORE IMPLEMENTED!** (2026-02-16) — 75,4% Match-Rate!
 
-**Database Support:** ✅ Already implemented!
+**Ergebnis Batch-Test (2419 Spiele):**
 
-```sql
-CREATE TABLE hltb_data (
-    app_id INTEGER PRIMARY KEY,
-    main_story INTEGER,      -- Minutes
-    main_extras INTEGER,
-    completionist INTEGER,
-    last_updated INTEGER
-);
+```
+✅ 1825 Spiele aktualisiert (75,4%)
+❌  594 fehlgeschlagen (24,6%)
+   ├─ Games mit 0h Zeiten (DLCs, Online-Only, Tools) → als "checked" gespeichert
+   ├─ Leere Namen (AppIDs ohne Name in DB)
+   └─ Spiele die HLTB nicht kennt (sehr obskure/alte Titel)
 ```
 
-**Implementation:**
+**Was bereits funktioniert:**
+
+- ✅ `src/integrations/hltb_api.py` — HLTBClient mit:
+    - Reverse-Engineered HLTB API (`/api/finder` + dynamic endpoint discovery)
+    - Token-Management (`/api/finder/init`, 5 Min TTL)
+    - Levenshtein-Distance Matching mit Popularity-Tiebreaker
+    - Two-Pass Search (full name → simplified fallback)
+    - 30+ Name-Normalisierungspatterns (inspiriert vom Millennium HLTB Plugin)
+    - Unicode-Handling (Superscripts, Dashes, Symbols)
+    - Request-Caching (5 Min TTL)
+- ✅ `src/services/enrichment_service.py` — EnrichmentThread (QThread):
+    - HLTB + Steam API Batch-Enrichment
+    - Progress-Signale, Cancel-Support
+    - 0h-Matches werden als "checked" in DB gespeichert
+- ✅ `src/ui/dialogs/enrichment_dialog.py` — Progress-Dialog
+- ✅ `src/ui/actions/enrichment_actions.py` — Menu-Integration
+- ✅ AutoCat HLTB (`src/services/autocategorize/autocat_hltb.py`)
+- ✅ 60 Unit Tests für HLTB Client
+- ✅ DB-Tabelle `hltb_data` mit Batch-Load
+
+**AutoCat Integration (bereits fertig!):**
 
 ```python
-# src/integrations/hltb_api.py
-
-class HLTBApi:
-    async def fetch_game_time(self, game_name: str) -> dict:
-        """Fetch HLTB data for game."""
-        # Use HowLongToBeat API or scraping
-        
-    def update_all_games(self, progress_callback: Callable) -> None:
-        """Batch update HLTB data."""
+# Kategorien basierend auf HLTB-Daten:
+"Quick Games"  → main_story < 2h
+"Short Games"  → main_story < 6h
+"Medium Games" → main_story 6-20h
+"Long Games"   → main_story > 20h
 ```
 
-**AutoCat Integration:**
+---
+
+#### **6.1.1 ZUKÜNFTIGE VERBESSERUNG: HLTB Steam Import API**
+
+**Ziel:** Die restlichen ~25% Fehlschläge durch Bulk-AppID-Mapping eliminieren!
+
+**Hintergrund:** Das Millennium HLTB Plugin (Jan 2026) nutzt einen undokumentierten
+HLTB-Endpoint der direkt Steam-AppIDs auf HLTB-IDs mappt — ohne Namens-Matching!
+
+**Endpoint:** `https://howlongtobeat.com/api/steam/getSteamImportData`
+
+```
+Request:
+POST /api/steam/getSteamImportData
+Headers: x-auth-token: <token>
+Body: { "steam_app_ids": [440, 570, 730, ...] }
+
+Response:
+{
+  "games": [
+    { "steam_app_id": 440, "hltb_id": 12345, "game_name": "Team Fortress 2" },
+    { "steam_app_id": 570, "hltb_id": 67890, "game_name": "Dota 2" },
+    ...
+  ]
+}
+```
+
+**Vorteile:**
+
+- **Kein Namens-Matching nötig!** Direkte AppID → HLTB-ID Zuordnung
+- **Bulk-fähig:** Hunderte AppIDs pro Request
+- **Höhere Match-Rate:** Auch obskure Spiele die per Name nicht gefunden werden
+- **Schneller:** Kein Two-Pass-Search pro Spiel nötig
+
+**Implementation (geplant):**
 
 ```python
-# Create categories:
-"Quick Games" → main_story < 120 (< 2 hours)
-"Short Games" → main_story < 360 (< 6 hours)
-"Medium Games" → main_story 360-1200 (6-20 hours)
-"Long Games" → main_story > 1200 (> 20 hours)
+# In src/integrations/hltb_api.py erweitern:
+
+def bulk_resolve_steam_ids(self, app_ids: list[int]) -> dict[int, int]:
+    """Resolve Steam AppIDs to HLTB game IDs via Steam Import API.
+
+    Args:
+        app_ids: List of Steam AppIDs to resolve.
+
+    Returns:
+        Dict mapping Steam AppID → HLTB game ID.
+    """
+    # POST /api/steam/getSteamImportData
+    # Bulk-Batches von ~200 AppIDs
+    # Ergebnis cachen in DB (neue Spalte hltb_id in hltb_data)
+
+def search_game_by_id(self, hltb_id: int) -> HLTBResult | None:
+    """Fetch HLTB times directly by HLTB game ID (no name search needed)."""
 ```
 
-**Files:**
+**Strategie: Hybrid-Ansatz:**
 
-- `src/integrations/hltb_api.py`
-- `src/services/autocategorize/autocat_hltb.py`
+```
+1. Bulk-Resolve: Alle AppIDs → HLTB-IDs via Steam Import API
+2. Direkt-Fetch: Für gemappte Spiele → Zeiten per HLTB-ID holen
+3. Fallback: Für nicht-gemappte Spiele → Name-Search (aktueller Code)
+```
 
-**Estimated:** 3-4 days
-**Priority:** MEDIUM
+**Dateien:**
+
+- `src/integrations/hltb_api.py` (erweitern)
+- DB-Migration: `hltb_data` + `hltb_id` Spalte
+
+**Estimated:** 1-2 Tage
+**Priority:** MEDIUM (aktuelle 75% sind bereits gut!)
+**Dependencies:** Reverse-Engineering des Steam Import Endpoints bestätigen
 
 ---
 
@@ -2380,7 +2681,8 @@ IMPORTANT: Written down so we don't forget! ✅
 
 - 🎯 Phase 3.5: Menu Redesign (3-4 days)
 - 🎯 Phase 3.6.1: Batch Steam API (2-3 days)
-- 🎯 Phase 3.6.2: Enhanced Export (3-4 days)
+- 🎯 Phase 3.6.2: Enhanced CSV Export (3-4 days)
+- 🎯 Phase 3.6.3: Smart Import/Export Hub (3-4 days) 🆕
 - 🎯 Phase 4.1: AutoCat Types (8-10 days)
 
 ### **Medium Priority:**
@@ -2397,10 +2699,10 @@ IMPORTANT: Written down so we don't forget! ✅
 
 ### **Lower Priority:**
 
-- Phase 4.4: Profile System (3 days)
+- Phase 4.4: Profile System (3 days) ✅ **DONE!**
 - Phase 5.2: Achievement Hunter (3-4 days)
 - Phase 5.4: Hybrid AutoCat (4-5 days)
-- Phase 6.1: HLTB Integration (3-4 days)
+- Phase 6.1: HLTB Integration (3-4 days) ⏳ **IN PROGRESS!**
 - Phase 6.5: External Games (7-9 days) 🆕 **OPTIONAL!**
 
 ### **Final:**
@@ -2521,12 +2823,12 @@ IMPORTANT: Written down so we don't forget! ✅
 
 ---
 
-**Last Updated:** 2026-02-14 by Sarah (Claude Sonnet)  
-**Total Phases:** 7  
-**Current Phase:** 3 (Architecture & UX)  
-**Completion:** ~40% (Phase 1 done, Phase 3 in progress!)  
-**ETA to Beta:** ~8-10 weeks  
-**ETA to Release:** ~12-15 weeks
+**Last Updated:** 2026-02-16 by Sarah (Claude Opus)
+**Total Phases:** 7
+**Current Phase:** 5 (Performance Plus & Data Quality)
+**Completion:** ~55% (Phase 1-4 done, Phase 5 in progress!)
+**ETA to Beta:** ~6-8 weeks
+**ETA to Release:** ~10-12 weeks
 
 ---
 

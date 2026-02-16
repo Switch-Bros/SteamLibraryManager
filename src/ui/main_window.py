@@ -35,6 +35,7 @@ from src.services.search_service import SearchService
 from src.ui.widgets.ui_helper import UIHelper
 
 from src.utils.i18n import t
+from src.version import __app_name__
 
 # Builders
 from src.ui.builders import (
@@ -91,7 +92,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         """Initializes the main window and loads initial data."""
         super().__init__()
-        self.setWindowTitle(t("ui.main_window.title"))
+        self.setWindowTitle(__app_name__)
         self.resize(1400, 800)
 
         # Managers
@@ -362,7 +363,7 @@ class MainWindow(QMainWindow):
             else:
                 event.ignore()
         else:
-            if UIHelper.confirm(self, t("common.confirm_exit"), t("ui.main_window.title")):
+            if UIHelper.confirm(self, t("common.confirm_exit"), __app_name__):
                 event.accept()
             else:
                 event.ignore()

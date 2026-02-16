@@ -1,7 +1,6 @@
 {
   "ui": {
     "main_window": {
-      "title": "Steam Bibliotheks-Manager",
       "search_placeholder": "Spiele durchsuchen...",
       "status_ready": "Bereit",
       "games_count": "{count} Spiele",
@@ -56,6 +55,11 @@
       "value_unknown": "Unbekannt",
       "select_placeholder": "Wähle ein Spiel für Details",
       "categories_label": "Kollektion",
+      "hltb": "HLTB (HowLongToBeat)",
+      "hltb_main": "Hauptgeschichte",
+      "hltb_main_extras": "Haupt + Extras",
+      "hltb_completionist": "Vervollständigung",
+      "hltb_all_styles": "Alle Stile",
       "proton_tiers": {
         "platinum": "Platin",
         "gold": "Gold",

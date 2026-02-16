@@ -86,6 +86,8 @@ class Game:
 
     # HLTB data
     hltb_main_story: float = 0.0
+    hltb_main_extras: float = 0.0
+    hltb_completionist: float = 0.0
 
     # Language support (interface languages)
     languages: list[str] = None

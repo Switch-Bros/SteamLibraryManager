@@ -409,10 +409,12 @@ class GameManager:
 
         # Batch load HLTB data from separate table
         hltb_lookup = database._batch_get_hltb([int(aid) for aid in self.games.keys() if aid.isdigit()])
-        for aid_int, hours in hltb_lookup.items():
+        for aid_int, (main, extras, comp) in hltb_lookup.items():
             game = self.games.get(str(aid_int))
             if game and game.hltb_main_story <= 0:
-                game.hltb_main_story = hours
+                game.hltb_main_story = main
+                game.hltb_main_extras = extras
+                game.hltb_completionist = comp
 
         logger.info(t("logs.db.loaded_from_cache", count=enriched, duration="<1"))
         return enriched

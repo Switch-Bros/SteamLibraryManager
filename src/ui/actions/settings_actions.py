@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 from src.config import config
 from src.ui.dialogs.settings_dialog import SettingsDialog
 from src.utils.i18n import t, init_i18n
+from src.version import __app_name__
 
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
@@ -98,5 +99,5 @@ class SettingsActions:
         self.mw.menu_builder.build(self.mw.menuBar())
         self.mw.user_label = self.mw.menu_builder.user_label
         self.mw.refresh_toolbar()
-        self.mw.setWindowTitle(t("ui.main_window.title"))
+        self.mw.setWindowTitle(__app_name__)
         self.mw.set_status(t("ui.main_window.status_ready"))

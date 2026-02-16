@@ -674,24 +674,26 @@ class Database:
             result.setdefault(row[0], {})[row[1]] = row[2]
         return result
 
-    def _batch_get_hltb(self, app_ids: list[int]) -> dict[int, float]:
-        """Batch load HLTB main_story hours for multiple app_ids.
+    def _batch_get_hltb(self, app_ids: list[int]) -> dict[int, tuple[float, float, float]]:
+        """Batch load HLTB hours for multiple app_ids.
 
         Args:
             app_ids: List of app IDs.
 
         Returns:
-            Dict mapping app_id to main_story hours.
+            Dict mapping app_id to (main_story, main_extras, completionist).
         """
         if not app_ids:
             return {}
 
         placeholders = ",".join("?" * len(app_ids))
         cursor = self.conn.execute(
-            f"SELECT app_id, main_story FROM hltb_data WHERE app_id IN ({placeholders}) AND main_story IS NOT NULL",
+            f"SELECT app_id, main_story, main_extras, completionist"
+            f" FROM hltb_data WHERE app_id IN ({placeholders})"
+            f" AND main_story IS NOT NULL",
             app_ids,
         )
-        return {row[0]: float(row[1]) for row in cursor.fetchall()}
+        return {row[0]: (float(row[1]), float(row[2] or 0), float(row[3] or 0)) for row in cursor.fetchall()}
 
     # Single-game helpers (used by get_game)
     def _get_genres(self, app_id: int) -> list[str]:
