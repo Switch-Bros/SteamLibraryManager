@@ -51,6 +51,8 @@ class ViewActions:
             fs.toggle_language(key, checked)
         elif group == "deck_status":
             fs.toggle_deck_status(key, checked)
+        elif group == "achievement":
+            fs.toggle_achievement_filter(key, checked)
 
         # Re-run search if active, otherwise repopulate full tree
         if self.main_window.current_search_query:

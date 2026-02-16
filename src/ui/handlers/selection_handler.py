@@ -13,6 +13,7 @@ All UI updates are delegated back to MainWindow.
 """
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QThread, pyqtSignal, Qt
@@ -27,9 +28,13 @@ if TYPE_CHECKING:
 class SelectionHandler:
     """Handles game selection events and background details loading.
 
+    Only one fetch thread runs at a time. When a new game is clicked
+    while a fetch is still running, the old thread is marked stale
+    so its result is silently discarded.
+
     Attributes:
         mw: Back-reference to the owning MainWindow instance.
-        _fetch_threads: List of active fetch threads (for cleanup).
+        _current_fetch: The currently running FetchThread (if any).
     """
 
     def __init__(self, main_window: "MainWindow") -> None:
@@ -39,7 +44,7 @@ class SelectionHandler:
             main_window: The MainWindow instance that owns this handler.
         """
         self.mw: "MainWindow" = main_window
-        self._fetch_threads: list[QThread] = []
+        self._current_fetch: QThread | None = None
 
     def on_games_selected(self, games: list[Game]) -> None:
         """Handles multi-selection changes in the game tree.
@@ -85,7 +90,8 @@ class SelectionHandler:
         self.mw.details_widget.set_game(game, all_categories)
 
         # Fetch details asynchronously if missing (non-blocking)
-        if not game.developer or not game.proton_db_rating or not game.steam_deck_status:
+        # Checks basic metadata, HLTB, and achievements via GameDetailService
+        if self.mw.game_manager.detail_service.needs_enrichment(game.app_id):
             self.fetch_game_details_async(game.app_id, all_categories)
 
     def fetch_game_details_async(self, app_id: str, all_categories: list[str]) -> None:
@@ -108,13 +114,19 @@ class SelectionHandler:
                 super().__init__()
                 self.game_manager = game_manager
                 self.target_app_id = target_app_id
+                self.stale = False
 
             def run(self):
                 """Executes the fetch operation in background."""
                 success = self.game_manager.fetch_game_details(self.target_app_id)
-                self.finished_signal.emit(success)
+                if not self.stale:
+                    self.finished_signal.emit(success)
 
-        # Create and start background thread
+        # Mark any running fetch as stale (its UI callback will be skipped)
+        if self._current_fetch is not None and self._current_fetch.isRunning():
+            self._current_fetch.stale = True  # type: ignore[attr-defined]
+
+        # Create and start new background thread
         fetch_thread = FetchThread(self.mw.game_manager, app_id)
 
         def on_fetch_complete(success: bool):
@@ -128,11 +140,8 @@ class SelectionHandler:
         fetch_thread.finished_signal.connect(on_fetch_complete)
         fetch_thread.start()
 
-        # Store reference to prevent garbage collection
-        self._fetch_threads.append(fetch_thread)
-
-        # Clean up finished threads
-        self._fetch_threads = [thread for thread in self._fetch_threads if thread.isRunning()]
+        # Store single reference — old thread finishes silently
+        self._current_fetch = fetch_thread
 
     def restore_game_selection(self, app_ids: list[str]) -> None:
         """Restores game selection in the tree widget after refresh.

@@ -216,6 +216,7 @@ class EditActions:
             "hltb": self.mw.autocategorize_service.categorize_by_hltb,
             "language": self.mw.autocategorize_service.categorize_by_language,
             "deck_status": self.mw.autocategorize_service.categorize_by_deck_status,
+            "achievements": self.mw.autocategorize_service.categorize_by_achievements,
         }
 
         for method in methods:

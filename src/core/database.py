@@ -96,6 +96,9 @@ class DatabaseEntry:
     workshop: bool = False
     trading_cards: bool = False
     achievements_total: int = 0
+    achievement_unlocked: int = 0
+    achievement_percentage: float = 0.0
+    achievement_perfect: bool = False
 
     # Platform support (JSON array)
     platforms: list[str] = field(default_factory=list)
@@ -148,6 +151,10 @@ def database_entry_to_game(entry: DatabaseEntry) -> Game:
         review_score=str(entry.review_score) if entry.review_score is not None else "",
         review_count=entry.review_count or 0,
         last_updated=str(entry.last_updated) if entry.last_updated else "",
+        achievement_total=entry.achievements_total,
+        achievement_unlocked=entry.achievement_unlocked,
+        achievement_percentage=entry.achievement_percentage,
+        achievement_perfect=entry.achievement_perfect,
     )
 
 
@@ -512,6 +519,19 @@ class Database:
         # Parse JSON fields
         game_data["platforms"] = json.loads(game_data["platforms"]) if game_data["platforms"] else []
 
+        # Load achievement stats for this game
+        ach_cursor = self.conn.execute(
+            "SELECT total_achievements, unlocked_achievements, completion_percentage, perfect_game"
+            " FROM achievement_stats WHERE app_id = ?",
+            (app_id,),
+        )
+        ach_row = ach_cursor.fetchone()
+        if ach_row:
+            game_data["achievements_total"] = int(ach_row[0])
+            game_data["achievement_unlocked"] = int(ach_row[1])
+            game_data["achievement_percentage"] = float(ach_row[2])
+            game_data["achievement_perfect"] = bool(ach_row[3])
+
         # Remove DB-only fields not in DatabaseEntry
         for db_field in ("created_at", "updated_at"):
             game_data.pop(db_field, None)
@@ -552,6 +572,9 @@ class Database:
         all_languages = self._batch_get_languages(app_ids)
         all_custom_meta = self._batch_get_custom_meta(app_ids)
 
+        # Batch load achievement stats
+        all_achievement_stats = self._batch_get_achievement_stats(app_ids)
+
         # Build DatabaseEntry objects
         games = []
         for row in rows:
@@ -564,6 +587,15 @@ class Database:
             game_data["languages"] = all_languages.get(aid, {})
             game_data["custom_meta"] = all_custom_meta.get(aid, {})
             game_data["platforms"] = json.loads(game_data["platforms"]) if game_data["platforms"] else []
+
+            # Populate achievement stats from batch query
+            ach_stats = all_achievement_stats.get(aid)
+            if ach_stats:
+                total, unlocked, pct, perfect = ach_stats
+                game_data["achievements_total"] = total
+                game_data["achievement_unlocked"] = unlocked
+                game_data["achievement_percentage"] = pct
+                game_data["achievement_perfect"] = perfect
 
             for db_field in ("created_at", "updated_at"):
                 game_data.pop(db_field, None)
@@ -994,6 +1026,99 @@ class Database:
             WHERE h.app_id IS NULL AND g.app_type IN ('game', '')
             """)
         return [(row[0], row[1]) for row in cursor.fetchall()]
+
+    # ========================================================================
+    # ACHIEVEMENT OPERATIONS (Phase 5.2)
+    # ========================================================================
+
+    def upsert_achievement_stats(
+        self, app_id: int, total: int, unlocked: int, completion_pct: float, perfect: bool
+    ) -> None:
+        """Inserts or updates achievement statistics for a game.
+
+        Args:
+            app_id: Steam app ID.
+            total: Total number of achievements.
+            unlocked: Number of unlocked achievements.
+            completion_pct: Completion percentage (0.0-100.0).
+            perfect: Whether all achievements are unlocked.
+        """
+        self.conn.execute(
+            """
+            INSERT OR REPLACE INTO achievement_stats
+            (app_id, total_achievements, unlocked_achievements, completion_percentage, perfect_game)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (app_id, total, unlocked, round(completion_pct, 2), perfect),
+        )
+
+    def upsert_achievements(self, app_id: int, achievements: list[dict]) -> None:
+        """Batch inserts or updates individual achievements for a game.
+
+        Args:
+            app_id: Steam app ID.
+            achievements: List of achievement dicts with keys:
+                achievement_id, name, description, is_unlocked,
+                unlock_time, is_hidden, rarity_percentage.
+        """
+        if not achievements:
+            return
+
+        rows = [
+            (
+                app_id,
+                ach.get("achievement_id", ""),
+                ach.get("name", ""),
+                ach.get("description", ""),
+                ach.get("is_unlocked", False),
+                ach.get("unlock_time", 0),
+                ach.get("is_hidden", False),
+                ach.get("rarity_percentage", 0.0),
+            )
+            for ach in achievements
+        ]
+        self.conn.executemany(
+            """
+            INSERT OR REPLACE INTO achievements
+            (app_id, achievement_id, name, description,
+             is_unlocked, unlock_time, is_hidden, rarity_percentage)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            rows,
+        )
+
+    def get_apps_without_achievements(self) -> list[tuple[int, str]]:
+        """Returns game-type apps that have no achievement_stats entry.
+
+        Returns:
+            List of (app_id, name) tuples for games without achievement data.
+        """
+        cursor = self.conn.execute("""
+            SELECT g.app_id, g.name FROM games g
+            LEFT JOIN achievement_stats a ON g.app_id = a.app_id
+            WHERE a.app_id IS NULL AND g.app_type IN ('game', '')
+            """)
+        return [(row[0], row[1]) for row in cursor.fetchall()]
+
+    def _batch_get_achievement_stats(self, app_ids: list[int]) -> dict[int, tuple[int, int, float, bool]]:
+        """Batch load achievement stats for multiple app_ids.
+
+        Args:
+            app_ids: List of app IDs.
+
+        Returns:
+            Dict mapping app_id to (total, unlocked, completion_pct, perfect).
+        """
+        if not app_ids:
+            return {}
+
+        placeholders = ",".join("?" * len(app_ids))
+        cursor = self.conn.execute(
+            f"SELECT app_id, total_achievements, unlocked_achievements, completion_percentage, perfect_game"
+            f" FROM achievement_stats WHERE app_id IN ({placeholders})",
+            app_ids,
+        )
+        return {row[0]: (int(row[1]), int(row[2]), float(row[3]), bool(row[4])) for row in cursor.fetchall()}
 
     # ========================================================================
     # UTILITY METHODS

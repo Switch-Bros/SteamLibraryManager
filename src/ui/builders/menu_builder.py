@@ -391,6 +391,16 @@ class MenuBuilder:
             )
             deck_menu.addAction(action)
 
+        # --- Achievement filter submenu (all unchecked by default = no filtering) ---
+        achievement_menu = view_menu.addMenu(t("menu.view.achievement.root"))
+        for key in ("perfect", "almost", "progress", "started", "none"):
+            action = QAction(t(f"menu.view.achievement.{key}"), mw)
+            action.setCheckable(True)
+            action.triggered.connect(
+                lambda checked, k=key: mw.view_actions.on_filter_toggled("achievement", k, checked)
+            )
+            achievement_menu.addAction(action)
+
         view_menu.addSeparator()
 
         # --- Statistics (single action, opens tabbed dialog) ---
@@ -441,11 +451,15 @@ class MenuBuilder:
         update_deck_action.triggered.connect(mw.enrichment_actions.start_deck_enrichment)
         batch_menu.addAction(update_deck_action)
 
+        # Update Achievements (wired to enrichment)
+        update_ach_action = QAction(t("menu.tools.batch.update_achievements"), mw)
+        update_ach_action.triggered.connect(mw.enrichment_actions.start_achievement_enrichment)
+        batch_menu.addAction(update_ach_action)
+
         # Remaining batch stubs
         for key in (
             "update_protondb",
             "check_store",
-            "update_achievements",
         ):
             action = QAction(t(f"menu.tools.batch.{key}"), mw)
             action.triggered.connect(lambda checked, k=f"menu.tools.batch.{key}": self._not_implemented(k))

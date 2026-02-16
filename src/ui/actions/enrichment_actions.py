@@ -182,6 +182,83 @@ class EnrichmentActions:
         dialog.start_thread(thread)
         dialog.exec()
 
+    def start_achievement_enrichment(self) -> None:
+        """Starts achievement enrichment for games missing achievement data.
+
+        Checks that an API key and Steam ID are configured, then launches
+        the AchievementEnrichmentThread with a progress dialog.
+        """
+        from PyQt6.QtCore import Qt
+        from PyQt6.QtWidgets import QProgressDialog
+
+        from src.config import config
+        from src.services.enrichment.achievement_enrichment_service import AchievementEnrichmentThread
+
+        # Check API key
+        api_key = config.STEAM_API_KEY
+        if not api_key:
+            UIHelper.show_warning(self.mw, t("ui.enrichment.no_api_key"))
+            self._open_settings_api_tab()
+            return
+
+        # Check Steam user ID
+        steam_id = config.STEAM_USER_ID
+        if not steam_id:
+            UIHelper.show_warning(self.mw, t("ui.enrichment.no_steam_id"))
+            return
+
+        # Check database
+        db = self._open_database()
+        if db is None:
+            return
+
+        games = db.get_apps_without_achievements()
+        db.close()
+        if not games:
+            UIHelper.show_info(self.mw, t("ui.enrichment.no_games_achievements"))
+            return
+
+        # Create thread
+        db_path = self._get_db_path()
+        thread = AchievementEnrichmentThread(self.mw)
+        thread.configure(games, db_path, api_key, steam_id)
+
+        # Create progress dialog
+        progress = QProgressDialog(
+            t("ui.enrichment.achievement_starting"),
+            t("common.cancel"),
+            0,
+            len(games),
+            self.mw,
+        )
+        progress.setWindowTitle(t("ui.enrichment.achievement_title"))
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setMinimumDuration(0)
+
+        # Keep references alive
+        self._achievement_thread = thread
+        self._achievement_progress = progress
+
+        def on_progress(text: str, current: int, total: int) -> None:
+            if progress.wasCanceled():
+                thread.cancel()
+                return
+            progress.setValue(current)
+            progress.setLabelText(text)
+
+        def on_finished(success_count: int, failed_count: int) -> None:
+            progress.close()
+            UIHelper.show_success(
+                self.mw,
+                t("ui.enrichment.achievement_complete", success=success_count, failed=failed_count),
+            )
+            self.mw.populate_categories()
+
+        thread.progress.connect(on_progress)
+        thread.finished_enrichment.connect(on_finished)
+        progress.canceled.connect(thread.cancel)
+        thread.start()
+
     def _open_settings_api_tab(self) -> None:
         """Opens the Settings dialog on the API keys tab."""
         from src.ui.dialogs.settings_dialog import SettingsDialog

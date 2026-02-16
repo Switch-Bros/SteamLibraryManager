@@ -60,6 +60,12 @@
       "hltb_main_extras": "Main + Extras",
       "hltb_completionist": "Completionist",
       "hltb_all_styles": "All Styles",
+      "achievements": "Achievements",
+      "achievement_total_label": "Total",
+      "achievement_progress": "Progress",
+      "achievement_perfect": "Perfect Game",
+      "achievement_none": "No Achievements",
+      "achievement_format": "{unlocked}/{total} ({percentage}%)",
       "proton_tiers": {
         "platinum": "Platinum",
         "gold": "Gold",
@@ -326,7 +332,12 @@
       "deck_starting": "Fetching Steam Deck compatibility data...",
       "deck_complete": "{success} games updated, {failed} failed.",
       "cancel_confirm": "Cancel enrichment? Progress so far will be saved.",
-      "hltb_not_available": "HLTB library not installed. Install 'howlongtobeatpy'."
+      "hltb_not_available": "HLTB library not installed. Install 'howlongtobeatpy'.",
+      "no_games_achievements": "All games already have achievement data.",
+      "achievement_title": "Fetching Achievements",
+      "achievement_starting": "Starting achievement enrichment...",
+      "achievement_complete": "{success} updated, {failed} failed.",
+      "no_steam_id": "Steam ID not configured. Please log in first."
     }
   }
 }

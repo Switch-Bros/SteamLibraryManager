@@ -168,6 +168,112 @@ class SteamWebAPI:
         logger.error("Exhausted retries for batch of %d apps", len(app_ids))
         return []
 
+    # ------------------------------------------------------------------
+    # Achievement API endpoints (Phase 5.2)
+    # ------------------------------------------------------------------
+
+    def get_game_schema(self, app_id: int) -> dict | None:
+        """Fetches the achievement schema for a game.
+
+        Uses ISteamUserStats/GetSchemaForGame/v2 to get the list of
+        possible achievements including display names and hidden flags.
+
+        Args:
+            app_id: Steam app ID.
+
+        Returns:
+            Dict with 'achievements' list, or None on failure.
+        """
+        url = "https://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v2"
+        params = {"appid": app_id, "key": self.api_key}
+
+        for attempt in range(_MAX_RETRIES):
+            try:
+                response = requests.get(url, params=params, timeout=30)
+                if response.status_code == 429:
+                    delay = _BASE_DELAY * (2**attempt)
+                    logger.warning("Rate limited (429), retrying in %.1fs...", delay)
+                    time.sleep(delay)
+                    continue
+                if response.status_code == 400:
+                    # Game has no stats/achievements
+                    return None
+                response.raise_for_status()
+                data = response.json()
+                return data.get("game", {}).get("availableGameStats", {})
+            except requests.RequestException as exc:
+                logger.debug("GetSchemaForGame failed for %d: %s", app_id, exc)
+                if attempt == _MAX_RETRIES - 1:
+                    return None
+        return None
+
+    def get_player_achievements(self, app_id: int, steam_id: str) -> list[dict] | None:
+        """Fetches the player's achievement status for a game.
+
+        Uses ISteamUserStats/GetPlayerAchievements/v1 to get which
+        achievements the player has unlocked and when.
+
+        Args:
+            app_id: Steam app ID.
+            steam_id: 64-bit Steam user ID.
+
+        Returns:
+            List of achievement dicts with 'apiname', 'achieved', 'unlocktime',
+            or None on failure.
+        """
+        url = "https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v1"
+        params = {"appid": app_id, "steamid": steam_id, "key": self.api_key}
+
+        for attempt in range(_MAX_RETRIES):
+            try:
+                response = requests.get(url, params=params, timeout=30)
+                if response.status_code == 429:
+                    delay = _BASE_DELAY * (2**attempt)
+                    logger.warning("Rate limited (429), retrying in %.1fs...", delay)
+                    time.sleep(delay)
+                    continue
+                if response.status_code == 400:
+                    # Game has no achievements or profile is private
+                    return None
+                response.raise_for_status()
+                data = response.json()
+                playerstats = data.get("playerstats", {})
+                if not playerstats.get("success", False):
+                    return None
+                return playerstats.get("achievements", [])
+            except requests.RequestException as exc:
+                logger.debug("GetPlayerAchievements failed for %d: %s", app_id, exc)
+                if attempt == _MAX_RETRIES - 1:
+                    return None
+        return None
+
+    @staticmethod
+    def get_global_achievement_percentages(app_id: int) -> dict[str, float]:
+        """Fetches global achievement unlock percentages for a game.
+
+        Uses ISteamUserStats/GetGlobalAchievementPercentagesForApp/v2.
+        This endpoint does NOT require an API key.
+
+        Args:
+            app_id: Steam app ID.
+
+        Returns:
+            Dict mapping achievement API name to unlock percentage (0-100).
+        """
+        url = "https://api.steampowered.com/ISteamUserStats/GetGlobalAchievementPercentagesForApp/v2"
+        params: dict[str, int] = {"gameid": app_id}
+
+        try:
+            response = requests.get(url, params=params, timeout=30)
+            if response.status_code != 200:
+                return {}
+            data = response.json()
+            achievements = data.get("achievementpercentages", {}).get("achievements", [])
+            return {ach["name"]: float(ach["percent"]) for ach in achievements if "name" in ach}
+        except (requests.RequestException, ValueError, KeyError) as exc:
+            logger.debug("GetGlobalAchievementPercentages failed for %d: %s", app_id, exc)
+            return {}
+
     @staticmethod
     def _parse_item(raw: dict[str, Any]) -> SteamAppDetails:
         """Parses a raw API item dict into a frozen SteamAppDetails.
