@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.integrations.hltb_api import HLTBResult
-from src.services.enrichment_service import EnrichmentThread
+from src.services.enrichment.enrichment_service import EnrichmentThread
 
 
 @pytest.fixture

@@ -6,7 +6,7 @@ import json
 from unittest.mock import MagicMock
 
 from src.core.game import Game
-from src.services.metadata_enrichment_service import MetadataEnrichmentService
+from src.services.enrichment.metadata_enrichment_service import MetadataEnrichmentService
 
 
 class TestMetadataEnrichmentServiceInit:

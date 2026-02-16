@@ -31,7 +31,7 @@ from src.core.game import (
 )
 from src.services.game_detail_service import GameDetailService
 from src.services.game_query_service import GameQueryService
-from src.services.metadata_enrichment_service import MetadataEnrichmentService
+from src.services.enrichment.metadata_enrichment_service import MetadataEnrichmentService
 from src.utils.i18n import t
 
 logger = logging.getLogger("steamlibmgr.game_manager")

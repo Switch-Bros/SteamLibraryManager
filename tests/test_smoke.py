@@ -46,7 +46,9 @@ SERVICE_MODULES: list[str] = [
     "src.services.game_detail_service",
     "src.services.game_query_service",
     "src.services.game_service",
-    "src.services.metadata_enrichment_service",
+    "src.services.enrichment",
+    "src.services.enrichment.enrichment_service",
+    "src.services.enrichment.metadata_enrichment_service",
     "src.services.metadata_service",
     "src.services.search_service",
 ]
