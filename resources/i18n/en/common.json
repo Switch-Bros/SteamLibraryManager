@@ -29,6 +29,11 @@
     "save_failed_title": "Save Failed",
     "save_failed_msg": "Saving failed. Close anyway?",
     "placeholder_title": "Coming Soon",
-    "placeholder_message": "{feature} will be implemented soon!"
+    "placeholder_message": "{feature} will be implemented soon!",
+    "load": "Load",
+    "delete": "Delete",
+    "rename": "Rename",
+    "export": "Export",
+    "import": "Import"
   }
 }

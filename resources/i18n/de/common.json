@@ -29,6 +29,11 @@
     "save_failed_title": "Speichern fehlgeschlagen",
     "save_failed_msg": "Das Speichern ist fehlgeschlagen. Trotzdem schließen?",
     "placeholder_title": "Bald verfügbar",
-    "placeholder_message": "{feature} wird bald implementiert!"
+    "placeholder_message": "{feature} wird bald implementiert!",
+    "load": "Laden",
+    "delete": "Löschen",
+    "rename": "Umbenennen",
+    "export": "Exportieren",
+    "import": "Importieren"
   }
 }
