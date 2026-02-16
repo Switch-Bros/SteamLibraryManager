@@ -72,7 +72,10 @@
       "token_validation_failed": "Stored access token is expired or invalid",
       "token_age_info": "Token age: {hours}h (stored {timestamp})",
       "rsa_key_fetched": "RSA public key fetched for password encryption",
-      "rsa_key_error": "Failed to fetch RSA public key: {error}"
+      "rsa_key_error": "Failed to fetch RSA public key: {error}",
+      "token_revoke_success": "Access token revoked on Steam servers",
+      "token_revoke_failed": "Failed to revoke access token: {error}",
+      "token_revoke_skipped": "Token revoke skipped (no token available)"
     },
     "steam_store": {
       "fetch_error": "Store error for app {app_id}: {error}",

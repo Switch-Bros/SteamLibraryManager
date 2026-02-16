@@ -1,12 +1,16 @@
 # tests/conftest.py
+import os
 import tempfile
 from pathlib import Path
 from typing import Generator
 from unittest.mock import MagicMock, patch
 
+# Ensure Qt can run headless (CI runners have no display server)
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
 import pytest
-from pytestqt.qtbot import QtBot
 from PyQt6.QtWidgets import QApplication
+from pytestqt.qtbot import QtBot
 
 
 @pytest.fixture(scope="session")
@@ -23,7 +27,8 @@ def qtbot(qapp, request):
     """Provide qtbot fixture with automatic cleanup."""
     bot = QtBot(request)
     yield bot
-    bot.cleanup()
+    if hasattr(bot, "cleanup"):
+        bot.cleanup()
 
 
 @pytest.fixture
