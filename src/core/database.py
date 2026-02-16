@@ -1403,6 +1403,30 @@ class Database:
         cursor = self.conn.execute("SELECT COUNT(*) FROM game_tags")
         return cursor.fetchone()[0]
 
+    def get_all_app_ids(self) -> set[int]:
+        """Get all app_ids that exist in the games table.
+
+        Returns:
+            Set of all app_ids in the games table.
+        """
+        cursor = self.conn.execute("SELECT app_id FROM games")
+        return {row[0] for row in cursor.fetchall()}
+
+    def bulk_update_review_scores(self, scores: list[tuple[int, int]]) -> int:
+        """Batch-update review_score in the games table.
+
+        Args:
+            scores: List of (review_score, app_id) tuples.
+
+        Returns:
+            Number of rows updated.
+        """
+        self.conn.executemany(
+            "UPDATE games SET review_score = ? WHERE app_id = ?",
+            scores,
+        )
+        return len(scores)
+
     # ========================================================================
     # UTILITY METHODS
     # ========================================================================

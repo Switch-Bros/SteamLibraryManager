@@ -359,16 +359,48 @@ class MainWindow(QMainWindow):
             result = self.file_actions.ask_save_on_exit(has_collection_changes, has_metadata_changes)
             if result == "save":
                 self._save_all_on_exit()
+                self._stop_background_threads()
                 event.accept()
             elif result == "discard":
+                self._stop_background_threads()
                 event.accept()
             else:
                 event.ignore()
         else:
             if UIHelper.confirm(self, t("common.confirm_exit"), __app_name__):
+                self._stop_background_threads()
                 event.accept()
             else:
                 event.ignore()
+
+    def _stop_background_threads(self) -> None:
+        """Stops all running background threads to prevent SIGABRT on exit."""
+        threads_to_stop: list[QThread] = []
+
+        # Collect threads from main window
+        if self.store_check_thread and self.store_check_thread.isRunning():
+            threads_to_stop.append(self.store_check_thread)
+
+        # Collect threads from action handlers
+        for handler in (
+            getattr(self, "enrichment_actions", None),
+            getattr(self, "tools_actions", None),
+        ):
+            if handler:
+                for attr in ("_tag_import_thread", "_enrichment_thread", "_store_check_thread"):
+                    thread = getattr(handler, attr, None)
+                    if isinstance(thread, QThread) and thread.isRunning():
+                        threads_to_stop.append(thread)
+
+        # Request cancellation and wait
+        for thread in threads_to_stop:
+            cancel = getattr(thread, "cancel", None)
+            if callable(cancel):
+                cancel()
+
+        for thread in threads_to_stop:
+            thread.quit()
+            thread.wait(3000)  # 3 second timeout
 
     def _save_all_on_exit(self) -> None:
         """Saves all pending changes before exiting.
