@@ -851,6 +851,59 @@ class AutoCategorizeService:
 
         return categories_added
 
+    # === ACHIEVEMENT CATEGORIZATION ===
+
+    def categorize_by_achievements(
+        self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
+    ) -> int:
+        """Categorize games by achievement completion percentage.
+
+        Creates categories based on completion buckets:
+        - Perfect Games (100%)
+        - Almost Done (75-99%)
+        - In Progress (25-74%)
+        - Just Started (<25%)
+        Games without achievements (total == 0) are skipped.
+
+        Args:
+            games: List of games to categorize.
+            progress_callback: Optional callback(current_index, game_name).
+
+        Returns:
+            Number of categories added.
+        """
+        categories_added = 0
+
+        for i, game in enumerate(games):
+            if progress_callback:
+                progress_callback(i, game.name)
+
+            total = game.achievement_total
+            if total == 0:
+                continue
+
+            pct = game.achievement_percentage
+            trophy = t("emoji.trophy")
+
+            if game.achievement_perfect:
+                cat_name = f"{t('auto_categorize.cat_achievement_perfect')} {trophy}"
+            elif pct >= 75:
+                cat_name = f"{t('auto_categorize.cat_achievement_almost')} {trophy}"
+            elif pct >= 25:
+                cat_name = f"{t('auto_categorize.cat_achievement_progress')} {trophy}"
+            else:
+                cat_name = f"{t('auto_categorize.cat_achievement_started')} {trophy}"
+
+            try:
+                self.category_service.add_app_to_category(game.app_id, cat_name)
+                if cat_name not in game.categories:
+                    game.categories.append(cat_name)
+                categories_added += 1
+            except (ValueError, RuntimeError):
+                pass
+
+        return categories_added
+
     # === CURATOR CATEGORIZATION ===
 
     def categorize_by_curator(

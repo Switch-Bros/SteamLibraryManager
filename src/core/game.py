@@ -92,6 +92,12 @@ class Game:
     # Language support (interface languages)
     languages: list[str] = None
 
+    # Achievement data
+    achievement_total: int = 0
+    achievement_unlocked: int = 0
+    achievement_percentage: float = 0.0
+    achievement_perfect: bool = False
+
     # Images
     icon_url: str = ""
     cover_url: str = ""

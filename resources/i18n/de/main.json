@@ -60,6 +60,12 @@
       "hltb_main_extras": "Haupt + Extras",
       "hltb_completionist": "Vervollständigung",
       "hltb_all_styles": "Alle Stile",
+      "achievements": "Achievements",
+      "achievement_total_label": "Gesamt",
+      "achievement_progress": "Fortschritt",
+      "achievement_perfect": "Perfektes Spiel",
+      "achievement_none": "Keine Achievements",
+      "achievement_format": "{unlocked}/{total} ({percentage}%)",
       "proton_tiers": {
         "platinum": "Platin",
         "gold": "Gold",
@@ -326,7 +332,12 @@
       "deck_starting": "Lade Steam-Deck-Kompatibilitätsdaten...",
       "deck_complete": "{success} Spiele aktualisiert, {failed} fehlgeschlagen.",
       "cancel_confirm": "Anreicherung abbrechen? Bisheriger Fortschritt wird gespeichert.",
-      "hltb_not_available": "HLTB-Bibliothek nicht installiert. Installiere 'howlongtobeatpy'."
+      "hltb_not_available": "HLTB-Bibliothek nicht installiert. Installiere 'howlongtobeatpy'.",
+      "no_games_achievements": "Alle Spiele haben bereits Achievement-Daten.",
+      "achievement_title": "Achievements abrufen",
+      "achievement_starting": "Starte Achievement-Anreicherung...",
+      "achievement_complete": "{success} aktualisiert, {failed} fehlgeschlagen.",
+      "no_steam_id": "Steam-ID nicht konfiguriert. Bitte zuerst einloggen."
     }
   }
 }

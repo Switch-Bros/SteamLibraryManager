@@ -103,6 +103,14 @@
         "unsupported": "Unsupported",
         "unknown": "Unknown"
       },
+      "achievement": {
+        "root": "Achievements",
+        "perfect": "Perfect (100%)",
+        "almost": "Almost Done (75-99%)",
+        "progress": "In Progress (25-74%)",
+        "started": "Just Started (<25%)",
+        "none": "No Achievements"
+      },
       "statistics": {
         "root": "Show Statistics",
         "overview": "Overview",
