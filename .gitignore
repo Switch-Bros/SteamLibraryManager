@@ -36,8 +36,7 @@ data/
 .idea/
 .vscode/
 resources/icons/Icon_Namen.txt
-/cleanup_dependencies_dev.sh
-/RefactoringPlan.md
+cleanup_dependencies_dev.sh
 *.zip
-/SLM-Fortschritt.md
-/MASTERPLAN_FINAL.md
+SLM-Fortschritt.md
+MASTERPLAN_FINAL.md
