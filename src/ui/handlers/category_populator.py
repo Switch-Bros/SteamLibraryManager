@@ -125,20 +125,21 @@ class CategoryPopulator:
         filtered_games = mw.filter_service.apply(all_games_raw)
         filtered_ids: set[str] = {g.app_id for g in filtered_games}
 
+        # Use dynamic sorting from FilterService
+        sort_fn = mw.filter_service.sort_games
+
         # Separate hidden and visible games (within filtered set)
-        visible_games = sorted([g for g in filtered_games if not g.hidden], key=lambda g: g.sort_name.lower())
-        hidden_games = sorted([g for g in filtered_games if g.hidden], key=lambda g: g.sort_name.lower())
+        visible_games = sort_fn([g for g in filtered_games if not g.hidden])
+        hidden_games = sort_fn([g for g in filtered_games if g.hidden])
 
         # Favorites (sorted, non-hidden, within filtered set)
-        favorites = sorted(
+        favorites = sort_fn(
             [g for g in mw.game_manager.get_favorites() if not g.hidden and g.app_id in filtered_ids],
-            key=lambda g: g.sort_name.lower(),
         )
 
         # Uncategorized games (within filtered set)
-        uncategorized = sorted(
+        uncategorized = sort_fn(
             [g for g in mw.game_manager.get_uncategorized_games() if not g.hidden and g.app_id in filtered_ids],
-            key=lambda g: g.sort_name.lower(),
         )
 
         # Build categories_data in correct Steam order
@@ -199,25 +200,23 @@ class CategoryPopulator:
                         apps = []
                     # Build game list from this specific collection's app IDs
                     app_id_set = set(apps)
-                    coll_games: list[Game] = sorted(
+                    coll_games: list[Game] = sort_fn(
                         [
                             g
                             for g in mw.game_manager.games.values()
                             if not g.hidden and int(g.app_id) in app_id_set and g.app_id in filtered_ids
                         ],
-                        key=lambda g: g.sort_name.lower(),
                     )
                     dup_key = f"__dup__{cat_name}__{idx}"
                     categories_data[dup_key] = coll_games
                     duplicate_display_info[dup_key] = (cat_name, idx + 1, total)
             else:
-                cat_games: list[Game] = sorted(
+                cat_games: list[Game] = sort_fn(
                     [
                         g
                         for g in mw.game_manager.get_games_by_category(cat_name)
                         if not g.hidden and g.app_id in filtered_ids
                     ],
-                    key=lambda g: g.sort_name.lower(),
                 )
                 # Always add — empty collections must stay visible as "Name (0)"
                 categories_data[cat_name] = cat_games

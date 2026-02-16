@@ -160,25 +160,53 @@ class MenuBuilder:
         export_vdf_action.triggered.connect(mw.file_actions.export_collections_text)
         export_menu.addAction(export_vdf_action)
 
-        # Remaining export stubs
-        for key in (
-            "collections_text",
-            "games_csv_simple",
-            "games_csv_full",
-            "games_json",
-            "artwork_package",
-            "db_backup",
-        ):
-            action = QAction(t(f"menu.file.export.{key}"), mw)
-            action.triggered.connect(lambda checked, k=f"menu.file.export.{key}": self._not_implemented(k))
-            export_menu.addAction(action)
+        # Collections as human-readable text (wired)
+        export_text_action = QAction(t("menu.file.export.collections_text"), mw)
+        export_text_action.triggered.connect(mw.file_actions.export_collections_text)
+        export_menu.addAction(export_text_action)
+
+        # CSV Simple (wired)
+        export_csv_simple_action = QAction(t("menu.file.export.games_csv_simple"), mw)
+        export_csv_simple_action.triggered.connect(mw.file_actions.export_csv_simple)
+        export_menu.addAction(export_csv_simple_action)
+
+        # CSV Full (wired)
+        export_csv_full_action = QAction(t("menu.file.export.games_csv_full"), mw)
+        export_csv_full_action.triggered.connect(mw.file_actions.export_csv_full)
+        export_menu.addAction(export_csv_full_action)
+
+        # JSON (wired)
+        export_json_action = QAction(t("menu.file.export.games_json"), mw)
+        export_json_action.triggered.connect(mw.file_actions.export_json)
+        export_menu.addAction(export_json_action)
+
+        # Artwork Package (stub — Phase 6/7)
+        export_artwork_action = QAction(t("menu.file.export.artwork_package"), mw)
+        export_artwork_action.triggered.connect(lambda: self._not_implemented("menu.file.export.artwork_package"))
+        export_menu.addAction(export_artwork_action)
+
+        # DB Backup (wired)
+        export_db_action = QAction(t("menu.file.export.db_backup"), mw)
+        export_db_action.triggered.connect(mw.file_actions.export_db_backup)
+        export_menu.addAction(export_db_action)
 
         # Import submenu
         import_menu = file_menu.addMenu(t("menu.file.import.root"))
-        for key in ("collections", "db_backup", "artwork_package"):
-            action = QAction(t(f"menu.file.import.{key}"), mw)
-            action.triggered.connect(lambda checked, k=f"menu.file.import.{key}": self._not_implemented(k))
-            import_menu.addAction(action)
+
+        # Collections VDF (wired)
+        import_coll_action = QAction(t("menu.file.import.collections"), mw)
+        import_coll_action.triggered.connect(mw.file_actions.import_collections_vdf)
+        import_menu.addAction(import_coll_action)
+
+        # DB Backup (wired)
+        import_db_action = QAction(t("menu.file.import.db_backup"), mw)
+        import_db_action.triggered.connect(mw.file_actions.import_db_backup)
+        import_menu.addAction(import_db_action)
+
+        # Artwork Package (stub — Phase 6/7)
+        import_artwork_action = QAction(t("menu.file.import.artwork_package"), mw)
+        import_artwork_action.triggered.connect(lambda: self._not_implemented("menu.file.import.artwork_package"))
+        import_menu.addAction(import_artwork_action)
 
         # --- Profiles submenu ---
         profiles_menu = file_menu.addMenu(t("menu.file.profiles.root"))
@@ -281,19 +309,19 @@ class MenuBuilder:
         mw = self.main_window
         view_menu = menubar.addMenu(t("menu.view.root"))
 
-        # --- View Mode submenu (exclusive radio-button group) ---
-        mode_menu = view_menu.addMenu(t("menu.view.mode.root"))
-        mode_group = QActionGroup(mw)
-        mode_group.setExclusive(True)
+        # --- Sort submenu (exclusive radio-button group) ---
+        sort_menu = view_menu.addMenu(t("menu.view.sort.root"))
+        sort_group = QActionGroup(mw)
+        sort_group.setExclusive(True)
 
-        for key in ("list", "details", "grid"):
-            action = QAction(t(f"menu.view.mode.{key}"), mw)
+        for key in ("name", "playtime", "last_played", "release_date"):
+            action = QAction(t(f"menu.view.sort.{key}"), mw)
             action.setCheckable(True)
-            if key == "details":
+            if key == "name":
                 action.setChecked(True)
-            action.triggered.connect(lambda checked, k=f"menu.view.mode.{key}": self._not_implemented(k))
-            mode_group.addAction(action)
-            mode_menu.addAction(action)
+            action.triggered.connect(lambda checked, k=key: mw.view_actions.on_sort_changed(k))
+            sort_group.addAction(action)
+            sort_menu.addAction(action)
 
         view_menu.addSeparator()
 
@@ -355,12 +383,10 @@ class MenuBuilder:
 
         view_menu.addSeparator()
 
-        # --- Statistics submenu ---
-        stats_menu = view_menu.addMenu(t("menu.view.statistics.root"))
-        for key in ("overview", "by_genre", "by_platform", "top10"):
-            action = QAction(t(f"menu.view.statistics.{key}"), mw)
-            action.triggered.connect(lambda checked, k=f"menu.view.statistics.{key}": self._not_implemented(k))
-            stats_menu.addAction(action)
+        # --- Statistics (single action, opens tabbed dialog) ---
+        stats_action = QAction(t("menu.view.statistics.root"), mw)
+        stats_action.triggered.connect(mw.view_actions.show_statistics)
+        view_menu.addAction(stats_action)
 
     def _build_tools_menu(self, menubar: QMenuBar) -> None:
         """Builds the Tools menu: Artwork, Search, Batch, Database, Settings.

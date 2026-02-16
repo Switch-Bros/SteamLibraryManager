@@ -14,6 +14,21 @@ class ViewActions:
     def __init__(self, main_window: "MainWindow"):
         self.main_window = main_window
 
+    def on_sort_changed(self, key: str) -> None:
+        """Handles sort key change from the View menu.
+
+        Updates the FilterService sort key and refreshes the view.
+
+        Args:
+            key: The sort key string ("name", "playtime", "last_played", "release_date").
+        """
+        self.main_window.filter_service.set_sort_key(key)
+
+        if self.main_window.current_search_query:
+            self.on_search(self.main_window.current_search_query)
+        else:
+            self.main_window.populate_categories()
+
     def on_filter_toggled(self, group: str, key: str, checked: bool) -> None:
         """Handles View menu filter checkbox toggle.
 
@@ -73,8 +88,8 @@ class ViewActions:
 
         if results:
             cat_name = t("ui.search.results_category", count=len(results))
-            # Sort for display
-            sorted_results = sorted(results, key=lambda g: g.name.lower())
+            # Sort for display using current sort key
+            sorted_results = self.main_window.filter_service.sort_games(results)
 
             self.main_window.tree.populate_categories({cat_name: sorted_results})
             self.main_window.tree.expandAll()
@@ -82,6 +97,13 @@ class ViewActions:
         else:
             self.main_window.tree.clear()
             self.main_window.set_status(t("ui.search.status_none"))
+
+    def show_statistics(self) -> None:
+        """Opens the statistics dialog."""
+        from src.ui.dialogs.statistics_dialog import StatisticsDialog
+
+        dialog = StatisticsDialog(self.main_window)
+        dialog.exec()
 
     def clear_search(self):
         """Clears the search field and restores the full category view."""

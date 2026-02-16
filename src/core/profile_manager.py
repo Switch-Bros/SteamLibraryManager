@@ -39,7 +39,7 @@ class Profile:
         filter_enabled_types: Enabled type filter keys.
         filter_enabled_platforms: Enabled platform filter keys.
         filter_active_statuses: Active status filter keys.
-        view_mode: Current view mode identifier.
+        sort_key: Current sort key identifier.
         created_at: Unix timestamp of profile creation.
     """
 
@@ -52,7 +52,7 @@ class Profile:
     filter_enabled_platforms: frozenset[str] = ALL_PLATFORM_KEYS
     filter_active_statuses: frozenset[str] = frozenset()
     filter_active_languages: frozenset[str] = frozenset()
-    view_mode: str = "details"
+    sort_key: str = "name"
     created_at: float = 0.0
 
 
@@ -80,7 +80,7 @@ def _serialize_profile(profile: Profile) -> dict[str, Any]:
             "active_statuses": sorted(profile.filter_active_statuses),
             "active_languages": sorted(profile.filter_active_languages),
         },
-        "view_mode": profile.view_mode,
+        "sort_key": profile.sort_key,
     }
 
 
@@ -115,7 +115,7 @@ def _deserialize_profile(data: dict[str, Any]) -> Profile:
         filter_enabled_platforms=frozenset(filters.get("enabled_platforms", ALL_PLATFORM_KEYS)),
         filter_active_statuses=frozenset(filters.get("active_statuses", ())),
         filter_active_languages=frozenset(filters.get("active_languages", ())),
-        view_mode=data.get("view_mode", "details"),
+        sort_key=data.get("sort_key", data.get("view_mode", "name")),
     )
 
 
@@ -284,7 +284,7 @@ class ProfileManager:
             filter_enabled_platforms=old_profile.filter_enabled_platforms,
             filter_active_statuses=old_profile.filter_active_statuses,
             filter_active_languages=old_profile.filter_active_languages,
-            view_mode=old_profile.view_mode,
+            sort_key=old_profile.sort_key,
             created_at=old_profile.created_at,
         )
 
@@ -353,7 +353,7 @@ class ProfileManager:
                 filter_enabled_platforms=profile.filter_enabled_platforms,
                 filter_active_statuses=profile.filter_active_statuses,
                 filter_active_languages=profile.filter_active_languages,
-                view_mode=profile.view_mode,
+                sort_key=profile.sort_key,
                 created_at=time.time(),
             )
 
