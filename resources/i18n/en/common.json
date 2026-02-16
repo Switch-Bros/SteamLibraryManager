@@ -34,6 +34,8 @@
     "delete": "Delete",
     "rename": "Rename",
     "export": "Export",
-    "import": "Import"
+    "import": "Import",
+    "add": "Add",
+    "remove": "Remove"
   }
 }

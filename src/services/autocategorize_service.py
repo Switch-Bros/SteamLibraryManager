@@ -26,6 +26,7 @@ from typing import Callable, Any
 from src.core.game_manager import Game, GameManager
 from src.integrations.steam_store import SteamStoreScraper
 from src.services.category_service import CategoryService
+from src.services.curator_client import CuratorClient, CuratorRecommendation
 from src.utils.i18n import t
 
 __all__ = ["AutoCategorizeService"]
@@ -806,6 +807,71 @@ class AutoCategorizeService:
                     categories_added += 1
                 except (ValueError, RuntimeError):
                     pass
+
+        return categories_added
+
+    # === CURATOR CATEGORIZATION ===
+
+    def categorize_by_curator(
+        self,
+        games: list[Game],
+        curator_url: str,
+        included_types: set[CuratorRecommendation] | None = None,
+        progress_callback: Callable[[int, str], None] | None = None,
+    ) -> int:
+        """Categorize games based on a Steam Curator's recommendations.
+
+        Fetches all recommendations from the given curator, then assigns
+        categories like "Curator: Recommended" to matching games.
+
+        Args:
+            games: List of games to categorize.
+            curator_url: Steam Curator URL or numeric ID.
+            included_types: Set of recommendation types to include.
+                Defaults to all types if None.
+            progress_callback: Optional callback(current_index, game_name).
+
+        Returns:
+            Number of categories added.
+
+        Raises:
+            ValueError: If the curator URL is invalid.
+            ConnectionError: If the Steam Store API is unreachable.
+        """
+        if included_types is None:
+            included_types = set(CuratorRecommendation)
+
+        client = CuratorClient()
+        recommendations = client.fetch_recommendations(curator_url)
+
+        # Use curator name from URL slug as collection name, prefixed with emoji
+        raw_name = CuratorClient.parse_curator_name(curator_url)
+        if not raw_name:
+            curator_id = CuratorClient.parse_curator_id(curator_url)
+            raw_name = f"Curator {curator_id}" if curator_id else "Curator"
+        curator_name = f"{raw_name} {t('emoji.curator')}"
+
+        categories_added = 0
+
+        for i, game in enumerate(games):
+            if progress_callback:
+                progress_callback(i, game.name)
+
+            try:
+                numeric_id = int(game.app_id)
+            except (ValueError, TypeError):
+                continue
+            rec_type = recommendations.get(numeric_id)
+            if rec_type is None or rec_type not in included_types:
+                continue
+
+            try:
+                self.category_service.add_app_to_category(game.app_id, curator_name)
+                if curator_name not in game.categories:
+                    game.categories.append(curator_name)
+                categories_added += 1
+            except (ValueError, RuntimeError):
+                pass
 
         return categories_added
 

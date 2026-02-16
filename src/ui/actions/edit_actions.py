@@ -18,6 +18,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMessageBox, QProgressDialog, QApplication
 
 from src.core.game_manager import Game
+from src.services.curator_client import CuratorRecommendation
 
 # Dialogs
 from src.ui.dialogs.auto_categorize_dialog import AutoCategorizeDialog
@@ -222,7 +223,7 @@ class EditActions:
 
             if method == "tags":
 
-                def tags_progress(index, name):
+                def tags_progress(index: int, name: str) -> None:
                     if progress.wasCanceled():
                         return
                     progress.setValue(step + index)
@@ -233,6 +234,32 @@ class EditActions:
                 self.mw.autocategorize_service.categorize_by_tags(
                     games, tags_count=settings["tags_count"], progress_callback=tags_progress
                 )
+
+            elif method == "curator":
+                curator_url = settings.get("curator_url", "")
+                rec_strings = settings.get(
+                    "curator_recommendations", ["recommended", "not_recommended", "informational"]
+                )
+
+                rec_map = {
+                    "recommended": CuratorRecommendation.RECOMMENDED,
+                    "not_recommended": CuratorRecommendation.NOT_RECOMMENDED,
+                    "informational": CuratorRecommendation.INFORMATIONAL,
+                }
+                included_types = {rec_map[r] for r in rec_strings if r in rec_map}
+
+                progress.setValue(step)
+                progress.setLabelText(t("auto_categorize.curator_fetching"))
+                QApplication.processEvents()
+
+                try:
+                    self.mw.autocategorize_service.categorize_by_curator(
+                        games,
+                        curator_url=curator_url,
+                        included_types=included_types,
+                    )
+                except (ValueError, ConnectionError) as exc:
+                    UIHelper.show_error(self.mw, t("auto_categorize.curator_error_fetch", error=str(exc)))
 
             elif method in simple_methods:
                 # Update progress for fast batch operations
