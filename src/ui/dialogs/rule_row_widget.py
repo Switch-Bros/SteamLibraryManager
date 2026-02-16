@@ -45,6 +45,13 @@ _FIELD_I18N: dict[FilterField, str] = {f: f"ui.smart_collections.field.{f.value}
 # Maps Operator to i18n key suffix
 _OPERATOR_I18N: dict[Operator, str] = {o: f"ui.smart_collections.operator.{o.value}" for o in Operator}
 
+# Maps FilterField to hint i18n key (for placeholder text)
+_FIELD_HINT_I18N: dict[FilterField, str] = {
+    f: f"ui.smart_collections.hint.{f.value}"
+    for f in FilterField
+    if f not in (FilterField.INSTALLED, FilterField.HIDDEN, FilterField.ACHIEVEMENT_PERFECT)
+}
+
 
 class RuleRowWidget(QWidget):
     """Single rule row for the Smart Collection Builder.
@@ -99,13 +106,12 @@ class RuleRowWidget(QWidget):
 
         # Value input
         self._value_input = QLineEdit()
-        self._value_input.setPlaceholderText("Value")
         self._value_input.textChanged.connect(lambda _: self.changed.emit())
         layout.addWidget(self._value_input, stretch=1)
 
         # Value Max input (for BETWEEN only)
         self._value_max_input = QLineEdit()
-        self._value_max_input.setPlaceholderText("Max")
+        self._value_max_input.setPlaceholderText(t("ui.smart_collections.hint.between_max"))
         self._value_max_input.setFixedWidth(80)
         self._value_max_input.textChanged.connect(lambda _: self.changed.emit())
         self._value_max_input.setVisible(False)
@@ -161,6 +167,13 @@ class RuleRowWidget(QWidget):
         self._value_input.setVisible(not is_bool)
         self._value_max_input.setVisible(False)
 
+        # Set field-specific placeholder hint
+        hint_key = _FIELD_HINT_I18N.get(field)
+        if hint_key:
+            self._value_input.setPlaceholderText(t(hint_key))
+        else:
+            self._value_input.setPlaceholderText("")
+
         # Set autocomplete for Tag/Genre fields
         self._update_autocomplete(field)
 
@@ -181,7 +194,6 @@ class RuleRowWidget(QWidget):
         """
         if field not in (FilterField.TAG, FilterField.GENRE):
             self._value_input.setCompleter(None)
-            self._value_input.setPlaceholderText("Value")
             return
 
         # Get tag names from the tag_resolver on the main window
@@ -192,14 +204,8 @@ class RuleRowWidget(QWidget):
             completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
             completer.setFilterMode(Qt.MatchFlag.MatchContains)
             self._value_input.setCompleter(completer)
-            self._value_input.setPlaceholderText(
-                t("ui.smart_collections.field.tag")
-                if field == FilterField.TAG
-                else t("ui.smart_collections.field.genre")
-            )
         else:
             self._value_input.setCompleter(None)
-            self._value_input.setPlaceholderText("Value")
 
     def _get_tag_suggestions(self, field: FilterField) -> list[str]:
         """Retrieves autocomplete suggestions for tag/genre fields.

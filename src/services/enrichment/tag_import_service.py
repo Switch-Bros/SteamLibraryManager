@@ -103,8 +103,18 @@ class TagImportThread(QThread):
             resolver = TagResolver(db)
             resolver.ensure_loaded()
 
-            # Extract store_tags from each app
+            # Only import tags for games that exist in our DB
+            # (appinfo.vdf has ~5000 apps, games table may have fewer)
+            known_app_ids = db.get_all_app_ids()
+            logger.info(
+                "Filtering tags: %d apps in appinfo, %d in games table",
+                total,
+                len(known_app_ids),
+            )
+
+            # Extract store_tags + review data from each app
             batch: list[tuple[int, int, str]] = []
+            review_batch: list[tuple[int, int]] = []
             games_with_tags = 0
             processed = 0
 
@@ -120,10 +130,22 @@ class TagImportThread(QThread):
                         total,
                     )
 
+                # Skip apps not in our games table (FK constraint)
+                if app_id not in known_app_ids:
+                    continue
+
                 vdf_data = app_data.get("data", {})
                 common = AppInfoManager._find_common_section(vdf_data)
                 if not common:
                     continue
+
+                # Extract review_percentage (0-100) and store in DB
+                review_pct = common.get("review_percentage")
+                if review_pct is not None:
+                    try:
+                        review_batch.append((int(review_pct), app_id))
+                    except (ValueError, TypeError):
+                        pass
 
                 store_tags = common.get("store_tags", {})
                 if not store_tags or not isinstance(store_tags, dict):
@@ -146,10 +168,16 @@ class TagImportThread(QThread):
                     db.commit()
                     batch.clear()
 
-            # Final batch
+            # Final tag batch
             if batch:
                 db.bulk_insert_game_tags_by_id(batch)
                 db.commit()
+
+            # Persist review scores to games table
+            if review_batch:
+                db.bulk_update_review_scores(review_batch)
+                db.commit()
+                logger.info("Updated review scores for %d games", len(review_batch))
 
             total_tags = db.get_game_tag_count()
             logger.info(
