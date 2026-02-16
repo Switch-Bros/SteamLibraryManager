@@ -100,15 +100,15 @@ class ProfileDialog(QDialog):
 
         # Action buttons row 1: Save Current, Load, Delete
         row1 = QHBoxLayout()
-        self.btn_save = QPushButton(t("ui.profile.btn_save_current"))
+        self.btn_save = QPushButton(t("common.save"))
         self.btn_save.clicked.connect(self._on_save_current)
         row1.addWidget(self.btn_save)
 
-        self.btn_load = QPushButton(t("ui.profile.btn_load"))
+        self.btn_load = QPushButton(t("common.load"))
         self.btn_load.clicked.connect(self._on_load)
         row1.addWidget(self.btn_load)
 
-        self.btn_delete = QPushButton(t("ui.profile.btn_delete"))
+        self.btn_delete = QPushButton(t("common.delete"))
         self.btn_delete.clicked.connect(self._on_delete)
         row1.addWidget(self.btn_delete)
 
@@ -116,15 +116,15 @@ class ProfileDialog(QDialog):
 
         # Action buttons row 2: Rename, Export, Import
         row2 = QHBoxLayout()
-        self.btn_rename = QPushButton(t("ui.profile.btn_rename"))
+        self.btn_rename = QPushButton(t("common.rename"))
         self.btn_rename.clicked.connect(self._on_rename)
         row2.addWidget(self.btn_rename)
 
-        self.btn_export = QPushButton(t("ui.profile.btn_export"))
+        self.btn_export = QPushButton(t("common.export"))
         self.btn_export.clicked.connect(self._on_export)
         row2.addWidget(self.btn_export)
 
-        self.btn_import = QPushButton(t("ui.profile.btn_import"))
+        self.btn_import = QPushButton(t("common.import"))
         self.btn_import.clicked.connect(self._on_import)
         row2.addWidget(self.btn_import)
 

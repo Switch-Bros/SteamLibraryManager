@@ -103,8 +103,6 @@
       "remove_from_account": "Remove from Account",
       "check_store": "Check Store Availability",
       "auto_categorize": "Auto-Categorize",
-      "rename": "Rename",
-      "delete": "Delete",
       "merge_categories": "Merge Collections",
       "merge_duplicate_collection": "Merge duplicate '{name}' collections...",
       "create_collection": "Create Collection"
@@ -275,13 +273,7 @@
       "error_load_failed": "Failed to load profile: {error}",
       "error_import_failed": "Failed to import: {error}",
       "no_profiles": "No profiles yet. Use 'Save Current' to create one.",
-      "created_at": "Created: {date}",
-      "btn_save_current": "Save Current",
-      "btn_load": "Load",
-      "btn_delete": "Delete",
-      "btn_rename": "Rename",
-      "btn_export": "Export",
-      "btn_import": "Import"
+      "created_at": "Created: {date}"
     },
     "badges": {
       "nsfw": "18+",
@@ -300,8 +292,7 @@
       "no_games_hltb": "All games already have HLTB data.",
       "no_games_steam": "All games already have complete metadata.",
       "cancel_confirm": "Cancel enrichment? Progress so far will be saved.",
-      "hltb_not_available": "HLTB library not installed. Install 'howlongtobeatpy'.",
-      "btn_cancel": "Cancel"
+      "hltb_not_available": "HLTB library not installed. Install 'howlongtobeatpy'."
     }
   }
 }

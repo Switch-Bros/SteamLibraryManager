@@ -73,7 +73,7 @@ class EnrichmentDialog(QDialog):
         # Cancel button
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-        self._cancel_btn = QPushButton(t("ui.enrichment.btn_cancel"))
+        self._cancel_btn = QPushButton(t("common.cancel"))
         self._cancel_btn.clicked.connect(self._on_cancel)
         btn_layout.addWidget(self._cancel_btn)
         layout.addLayout(btn_layout)

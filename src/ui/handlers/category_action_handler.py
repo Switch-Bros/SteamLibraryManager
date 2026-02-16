@@ -125,9 +125,7 @@ class CategoryActionHandler:
                     t("ui.context_menu.merge_categories"), lambda: self.merge_categories(selected_categories)
                 )
                 menu.addSeparator()
-                menu.addAction(
-                    t("ui.context_menu.delete"), lambda: self.delete_multiple_categories(selected_categories)
-                )
+                menu.addAction(t("common.delete"), lambda: self.delete_multiple_categories(selected_categories))
             menu.exec(pos)
             return
 
@@ -149,8 +147,8 @@ class CategoryActionHandler:
             # --- Normal user category ---
             menu.addAction(t("ui.context_menu.create_collection"), self.create_new_collection)
             menu.addSeparator()
-            menu.addAction(t("ui.context_menu.rename"), lambda: self.rename_category(category))
-            menu.addAction(t("ui.context_menu.delete"), lambda: self.delete_category(category))
+            menu.addAction(t("common.rename"), lambda: self.rename_category(category))
+            menu.addAction(t("common.delete"), lambda: self.delete_category(category))
 
             # Check if this category has duplicates
             if mw.cloud_storage_parser:
