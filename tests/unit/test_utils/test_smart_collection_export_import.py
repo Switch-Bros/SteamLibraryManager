@@ -100,7 +100,7 @@ class TestSmartCollectionExporter:
         """Exported JSON must contain a version field."""
         SmartCollectionExporter.export(sample_collections, export_path)
         data = json.loads(export_path.read_text(encoding="utf-8"))
-        assert data["version"] == "1.0"
+        assert data["version"] == "1.1"
 
     def test_export_correct_count(self, sample_collections: list[SmartCollection], export_path: Path) -> None:
         """Count field must match the number of exported collections."""

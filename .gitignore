@@ -38,5 +38,6 @@ data/
 resources/icons/Icon_Namen.txt
 cleanup_dependencies_dev.sh
 *.zip
-SLM-Fortschritt.md
-MASTERPLAN_FINAL.md
+/SLM-Fortschritt.md
+/MASTERPLAN_FINAL.md
+/NEXTCHAT.md
