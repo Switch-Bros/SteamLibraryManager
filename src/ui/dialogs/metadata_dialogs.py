@@ -147,11 +147,21 @@ class MetadataEditDialog(QDialog):
     def _populate_fields(self):
         """Populates form fields with current metadata values.
 
-        Fills all input fields with values from current_metadata and applies
-        visual highlighting to fields that differ from original values.
+        Fills all input fields with values from current_metadata, stores
+        formatted original values for live comparison, connects textChanged
+        signals, and applies initial highlighting.
         Also displays original values in the read-only text area.
         """
         m = self.current_metadata
+        o = self.original_metadata
+
+        # Store formatted original values for live comparison
+        self._original_display: dict[str, str] = {
+            "name": str(o.get("name", "")),
+            "developer": str(o.get("developer", "")),
+            "publisher": str(o.get("publisher", "")),
+            "release_date": format_timestamp_to_date(o.get("release_date", "")),
+        }
 
         # Populate fields
         self.name_edit.setText(m.get("name", ""))
@@ -161,86 +171,59 @@ class MetadataEditDialog(QDialog):
         # Convert raw timestamp → DD.MM.YYYY before displaying
         self.release_date_edit.setText(format_timestamp_to_date(m.get("release_date", "")))
 
-        # Visual indicator for modified fields
-        if self.original_metadata:
-            self._highlight_modified_fields()
+        # Connect textChanged for live highlighting
+        self.name_edit.textChanged.connect(self._update_highlighting)
+        self.developer_edit.textChanged.connect(self._update_highlighting)
+        self.publisher_edit.textChanged.connect(self._update_highlighting)
+        self.release_date_edit.textChanged.connect(self._update_highlighting)
+
+        # Initial highlighting
+        self._update_highlighting()
 
         # Show original values (dates formatted for display)
         na = t("ui.game_details.value_unknown")
-        if self.original_metadata:
-            # Show REAL originals
-            lines = [
-                f"{t('ui.game_details.name')}: {self.original_metadata.get('name', na)}",
-                f"{t('ui.game_details.developer')}: {self.original_metadata.get('developer', na)}",
-                f"{t('ui.game_details.publisher')}: {self.original_metadata.get('publisher', na)}",
-                f"{t('ui.game_details.release_year')}: "
-                f"{format_timestamp_to_date(self.original_metadata.get('release_date', '')) or na}",
-            ]
-        else:
-            # Fallback: Show current values
-            lines = [
-                f"{t('ui.game_details.name')}: {m.get('name', na)}",
-                f"{t('ui.game_details.developer')}: {m.get('developer', na)}",
-                f"{t('ui.game_details.publisher')}: {m.get('publisher', na)}",
-                f"{t('ui.game_details.release_year')}: {format_timestamp_to_date(m.get('release_date', '')) or na}",
-            ]
+        rel_display = self._original_display["release_date"] or na
+        lines = [
+            f"{t('ui.game_details.name')}: {o.get('name', na)}",
+            f"{t('ui.game_details.developer')}: {o.get('developer', na)}",
+            f"{t('ui.game_details.publisher')}: {o.get('publisher', na)}",
+            f"{t('ui.game_details.release_year')}: {rel_display}",
+        ]
 
         self.original_text.setPlainText("\n".join(lines))
 
-    def _highlight_modified_fields(self):
-        """Highlights fields that differ from original values.
+    def _update_highlighting(self):
+        """Re-evaluates highlighting for all editable fields.
 
-        Applies a yellow background style and tooltip to fields where the
-        current value differs from the original value.
+        Compares each field's current text against the stored original
+        display value. Applies modified styling if different, clears it
+        if identical.
         """
         modified_style = Theme.modified_field()
+        na = t("ui.game_details.value_unknown")
 
-        m = self.current_metadata
-        o = self.original_metadata
+        fields = [
+            (self.name_edit, "name"),
+            (self.developer_edit, "developer"),
+            (self.publisher_edit, "publisher"),
+            (self.release_date_edit, "release_date"),
+        ]
 
-        # Name
-        if m.get("name", "") != o.get("name", ""):
-            self.name_edit.setStyleSheet(modified_style)
-            self.name_edit.setToolTip(
-                t("ui.metadata_editor.modified_tooltip", original=o.get("name", t("ui.game_details.value_unknown")))
-            )
-
-        # Developer
-        if m.get("developer", "") != o.get("developer", ""):
-            self.developer_edit.setStyleSheet(modified_style)
-            self.developer_edit.setToolTip(
-                t(
-                    "ui.metadata_editor.modified_tooltip",
-                    original=o.get("developer", t("ui.game_details.value_unknown")),
-                )
-            )
-
-        # Publisher
-        if m.get("publisher", "") != o.get("publisher", ""):
-            self.publisher_edit.setStyleSheet(modified_style)
-            self.publisher_edit.setToolTip(
-                t(
-                    "ui.metadata_editor.modified_tooltip",
-                    original=o.get("publisher", t("ui.game_details.value_unknown")),
-                )
-            )
-
-        # Release Date
-        if str(m.get("release_date", "")) != str(o.get("release_date", "")):
-            self.release_date_edit.setStyleSheet(modified_style)
-            self.release_date_edit.setToolTip(
-                t(
-                    "ui.metadata_editor.modified_tooltip",
-                    original=o.get("release_date", t("ui.game_details.value_unknown")),
-                )
-            )
+        for widget, key in fields:
+            original_val = self._original_display.get(key, "")
+            if widget.text().strip() != original_val.strip():
+                widget.setStyleSheet(modified_style)
+                widget.setToolTip(t("ui.metadata_editor.modified_tooltip", original=original_val or na))
+            else:
+                widget.setStyleSheet("")
+                widget.setToolTip("")
 
     def _revert_to_original(self):
         """Restores all fields to their original values.
 
         Shows an information dialog if no original values exist, or a
-        confirmation dialog before reverting. Clears all modified styling
-        after successful revert.
+        confirmation dialog before reverting. Highlighting is cleared
+        automatically via the textChanged → _update_highlighting chain.
         """
         if not self.original_metadata:
             UIHelper.show_info(
@@ -248,21 +231,14 @@ class MetadataEditDialog(QDialog):
             )
             return
 
-            # Confirm via centralised helper (localised Yes/No buttons)
         if not UIHelper.confirm(self, t("ui.metadata_editor.revert_confirm"), t("ui.metadata_editor.revert_title")):
-            return  # User clicked "No" → abort
+            return
 
-            # --- Revert all fields to their original values ---
-        self.name_edit.setText(self.original_metadata.get("name", ""))
-        self.developer_edit.setText(self.original_metadata.get("developer", ""))
-        self.publisher_edit.setText(self.original_metadata.get("publisher", ""))
-        # Format timestamp back to localised date on revert
-        self.release_date_edit.setText(format_timestamp_to_date(self.original_metadata.get("release_date", "")))
-
-        # Clear modified styles
-        for widget in (self.name_edit, self.developer_edit, self.publisher_edit, self.release_date_edit):
-            widget.setStyleSheet("")
-            widget.setToolTip("")
+        # Revert all fields — textChanged triggers _update_highlighting
+        self.name_edit.setText(self._original_display["name"])
+        self.developer_edit.setText(self._original_display["developer"])
+        self.publisher_edit.setText(self._original_display["publisher"])
+        self.release_date_edit.setText(self._original_display["release_date"])
 
     def _save(self):
         """Validates and saves the edited metadata.

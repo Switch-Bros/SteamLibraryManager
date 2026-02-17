@@ -101,7 +101,7 @@ class Theme:
     # Feature-specific (easy to change independently!)
     ACHIEVEMENT_GOLD = YELLOW
     PEGI_HOVER = YELLOW
-    MODIFIED_FIELD_BG = "#FFF3CD"
+    MODIFIED_FIELD_BG = "#3a2a00"
     MODIFIED_FIELD_BORDER = ORANGE
     LOGIN_BUTTON = STEAM_GREEN
     LOGIN_BUTTON_HOVER = STEAM_GREEN_HOVER
@@ -235,4 +235,4 @@ class Theme:
         Returns:
             CSS stylesheet string for QLineEdit.
         """
-        return f"background-color: {Theme.MODIFIED_FIELD_BG}; " f"border: 2px solid {Theme.MODIFIED_FIELD_BORDER};"
+        return f"border: 2px solid {Theme.MODIFIED_FIELD_BORDER};"
