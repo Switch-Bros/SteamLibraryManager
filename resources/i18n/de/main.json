@@ -463,13 +463,11 @@
       "no_games_deck": "Alle Spiele haben bereits einen Steam-Deck-Status.",
       "deck_title": "Steam-Deck-Status abrufen",
       "deck_starting": "Lade Steam-Deck-Kompatibilitätsdaten...",
-      "deck_complete": "{success} Spiele aktualisiert, {failed} fehlgeschlagen.",
       "cancel_confirm": "Anreicherung abbrechen? Bisheriger Fortschritt wird gespeichert.",
       "hltb_not_available": "HLTB-Bibliothek nicht installiert. Installiere 'howlongtobeatpy'.",
       "no_games_achievements": "Alle Spiele haben bereits Achievement-Daten.",
       "achievement_title": "Achievements abrufen",
       "achievement_starting": "Starte Achievement-Anreicherung...",
-      "achievement_complete": "{success} aktualisiert, {failed} fehlgeschlagen.",
       "no_steam_id": "Steam-ID nicht konfiguriert. Bitte zuerst einloggen."
     },
     "tag_import": {

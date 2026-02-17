@@ -257,7 +257,7 @@ class AppInfo:
                 current_app_data = self._parse_app_entry()
                 self.apps[current_app_id] = current_app_data
             except Exception as e:
-                logger.warning(t("logs.appinfo.parse_warning", app_id=current_app_id, error=e))
+                logger.warning(t("logs.appinfo.parse_error", app_id=current_app_id, error=e))
                 continue
 
     def _parse_app_entry(self) -> dict:

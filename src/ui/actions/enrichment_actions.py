@@ -96,7 +96,7 @@ class EnrichmentActions:
             progress.close()
             UIHelper.show_success(
                 self.mw,
-                t("ui.enrichment.deck_complete", success=success, failed=failed),
+                t("ui.enrichment.complete", success=success, failed=failed),
             )
             self.mw.populate_categories()
 
@@ -250,7 +250,7 @@ class EnrichmentActions:
             progress.close()
             UIHelper.show_success(
                 self.mw,
-                t("ui.enrichment.achievement_complete", success=success_count, failed=failed_count),
+                t("ui.enrichment.complete", success=success_count, failed=failed_count),
             )
             self.mw.populate_categories()
 

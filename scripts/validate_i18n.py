@@ -22,7 +22,7 @@ __all__: list[str] = []
 REPO_ROOT = Path(__file__).resolve().parent.parent
 I18N_DIR = REPO_ROOT / "resources" / "i18n"
 LOCALE_DIRS = ["en", "de"]
-SHARED_FILES = ["emoji.json", "logs.json"]
+SHARED_FILES = ["emoji.json", "languages.json", "logs.json"]
 
 
 # ---------------------------------------------------------------------------

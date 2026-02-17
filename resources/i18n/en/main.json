@@ -463,13 +463,11 @@
       "no_games_deck": "All games already have a Steam Deck status.",
       "deck_title": "Fetching Steam Deck Status",
       "deck_starting": "Fetching Steam Deck compatibility data...",
-      "deck_complete": "{success} games updated, {failed} failed.",
       "cancel_confirm": "Cancel enrichment? Progress so far will be saved.",
       "hltb_not_available": "HLTB library not installed. Install 'howlongtobeatpy'.",
       "no_games_achievements": "All games already have achievement data.",
       "achievement_title": "Fetching Achievements",
       "achievement_starting": "Starting achievement enrichment...",
-      "achievement_complete": "{success} updated, {failed} failed.",
       "no_steam_id": "Steam ID not configured. Please log in first."
     },
     "tag_import": {
