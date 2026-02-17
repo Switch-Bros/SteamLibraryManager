@@ -13,6 +13,7 @@ from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
 if TYPE_CHECKING:
+    from src.services.enrichment.base_enrichment_thread import BaseEnrichmentThread
     from src.ui.main_window import MainWindow
 
 logger = logging.getLogger("steamlibmgr.enrichment_actions")
@@ -44,9 +45,6 @@ class EnrichmentActions:
         Filters games with no or 'unknown' deck status, then launches
         the DeckEnrichmentThread with a progress dialog.
         """
-        from PyQt6.QtCore import Qt
-        from PyQt6.QtWidgets import QProgressDialog
-
         from src.services.enrichment.deck_enrichment_service import DeckEnrichmentThread
 
         if not self.mw.game_manager:
@@ -65,45 +63,15 @@ class EnrichmentActions:
 
         cache_dir = config.DATA_DIR / "cache"
 
-        # Create thread
+        # Create and launch thread
         thread = DeckEnrichmentThread(self.mw)
         thread.configure(games_to_enrich, cache_dir)
-
-        # Create progress dialog
-        progress = QProgressDialog(
-            t("ui.enrichment.deck_starting"),
-            t("common.cancel"),
-            0,
-            len(games_to_enrich),
-            self.mw,
+        self._run_enrichment(
+            thread,
+            title_key="ui.enrichment.deck_title",
+            starting_key="ui.enrichment.deck_starting",
+            total=len(games_to_enrich),
         )
-        progress.setWindowTitle(t("ui.enrichment.deck_title"))
-        progress.setWindowModality(Qt.WindowModality.WindowModal)
-        progress.setMinimumDuration(0)
-
-        # Keep references alive
-        self._deck_thread = thread
-        self._deck_progress = progress
-
-        def on_progress(text: str, current: int, total: int) -> None:
-            if progress.wasCanceled():
-                thread.cancel()
-                return
-            progress.setValue(current)
-            progress.setLabelText(text)
-
-        def on_finished(success: int, failed: int) -> None:
-            progress.close()
-            UIHelper.show_success(
-                self.mw,
-                t("ui.enrichment.complete", success=success, failed=failed),
-            )
-            self.mw.populate_categories()
-
-        thread.progress.connect(on_progress)
-        thread.finished_enrichment.connect(on_finished)
-        progress.canceled.connect(thread.cancel)
-        thread.start()
 
     def start_hltb_enrichment(self) -> None:
         """Starts HLTB enrichment for games missing HLTB data.
@@ -188,9 +156,6 @@ class EnrichmentActions:
         Checks that an API key and Steam ID are configured, then launches
         the AchievementEnrichmentThread with a progress dialog.
         """
-        from PyQt6.QtCore import Qt
-        from PyQt6.QtWidgets import QProgressDialog
-
         from src.config import config
         from src.services.enrichment.achievement_enrichment_service import AchievementEnrichmentThread
 
@@ -218,39 +183,65 @@ class EnrichmentActions:
             UIHelper.show_info(self.mw, t("ui.enrichment.no_games_achievements"))
             return
 
-        # Create thread
+        # Create and launch thread
         db_path = self._get_db_path()
         thread = AchievementEnrichmentThread(self.mw)
         thread.configure(games, db_path, api_key, steam_id)
+        self._run_enrichment(
+            thread,
+            title_key="ui.enrichment.achievement_title",
+            starting_key="ui.enrichment.achievement_starting",
+            total=len(games),
+        )
 
-        # Create progress dialog
+    def _run_enrichment(
+        self,
+        thread: BaseEnrichmentThread,
+        title_key: str,
+        starting_key: str,
+        total: int,
+    ) -> None:
+        """Launches an enrichment thread with a modal progress dialog.
+
+        Generic helper that de-duplicates the QProgressDialog setup shared
+        by deck, achievement, and similar enrichment launchers.
+
+        Args:
+            thread: Configured enrichment thread ready to start.
+            title_key: i18n key for the progress dialog title.
+            starting_key: i18n key for the initial progress label.
+            total: Total number of items to process.
+        """
+        from PyQt6.QtCore import Qt
+        from PyQt6.QtWidgets import QProgressDialog
+
         progress = QProgressDialog(
-            t("ui.enrichment.achievement_starting"),
+            t(starting_key),
             t("common.cancel"),
             0,
-            len(games),
+            total,
             self.mw,
         )
-        progress.setWindowTitle(t("ui.enrichment.achievement_title"))
+        progress.setWindowTitle(t(title_key))
         progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setMinimumDuration(0)
 
-        # Keep references alive
-        self._achievement_thread = thread
-        self._achievement_progress = progress
+        # Keep references alive to prevent garbage collection
+        self._active_thread = thread
+        self._active_progress = progress
 
-        def on_progress(text: str, current: int, total: int) -> None:
+        def on_progress(text: str, current: int, _total: int) -> None:
             if progress.wasCanceled():
                 thread.cancel()
                 return
             progress.setValue(current)
             progress.setLabelText(text)
 
-        def on_finished(success_count: int, failed_count: int) -> None:
+        def on_finished(success: int, failed: int) -> None:
             progress.close()
             UIHelper.show_success(
                 self.mw,
-                t("ui.enrichment.complete", success=success_count, failed=failed_count),
+                t("ui.enrichment.complete", success=success, failed=failed),
             )
             self.mw.populate_categories()
 

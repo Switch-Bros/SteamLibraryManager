@@ -13,8 +13,8 @@ from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
 import requests
-from PyQt6.QtCore import QThread, pyqtSignal
 
+from src.services.enrichment.base_enrichment_thread import BaseEnrichmentThread
 from src.utils.i18n import t
 
 if TYPE_CHECKING:
@@ -38,28 +38,19 @@ _REQUEST_TIMEOUT = 5
 _RATE_LIMIT_DELAY = 1.0
 
 
-class DeckEnrichmentThread(QThread):
+class DeckEnrichmentThread(BaseEnrichmentThread):
     """Background thread for fetching Steam Deck compatibility statuses.
 
     Iterates over games without a deck status, calls Valve's API for each,
     and caches the result. Emits progress signals for UI feedback.
-
-    Signals:
-        progress: Emitted per game (status_text, current_index, total_count).
-        finished_enrichment: Emitted on completion (success_count, failed_count).
-        error: Emitted on fatal errors (error_message).
     """
-
-    progress = pyqtSignal(str, int, int)
-    finished_enrichment = pyqtSignal(int, int)
-    error = pyqtSignal(str)
 
     def __init__(self, parent: Any = None) -> None:
         """Initializes the DeckEnrichmentThread."""
         super().__init__(parent)
-        self._cancelled: bool = False
         self._games: list[Game] = []
         self._cache_dir: Path = Path()
+        self._store_cache_dir: Path = Path()
 
     def configure(self, games: list[Game], cache_dir: Path) -> None:
         """Configures the thread with games and cache directory.
@@ -71,41 +62,52 @@ class DeckEnrichmentThread(QThread):
         self._games = games
         self._cache_dir = cache_dir
 
-    def cancel(self) -> None:
-        """Requests cancellation of the enrichment."""
-        self._cancelled = True
+    # ── BaseEnrichmentThread hooks ──────────────────────
 
-    def run(self) -> None:
-        """Executes the deck status enrichment in the background thread."""
-        self._cancelled = False
-        total = len(self._games)
-        success = 0
-        failed = 0
+    def _setup(self) -> None:
+        """Creates the store_data cache directory."""
+        self._store_cache_dir = self._cache_dir / "store_data"
+        self._store_cache_dir.mkdir(parents=True, exist_ok=True)
 
-        store_cache_dir = self._cache_dir / "store_data"
-        store_cache_dir.mkdir(parents=True, exist_ok=True)
+    def _get_items(self) -> list:
+        """Returns the list of games to enrich."""
+        return self._games
 
-        for idx, game in enumerate(self._games):
-            if self._cancelled:
-                break
+    def _process_item(self, item: Any) -> bool:
+        """Fetches the Steam Deck status for a single game.
 
-            self.progress.emit(
-                t("ui.enrichment.progress", name=game.name[:30], current=idx + 1, total=total),
-                idx + 1,
-                total,
-            )
+        Args:
+            item: A Game instance.
 
-            status = self._fetch_deck_status(game.app_id, store_cache_dir)
-            if status:
-                game.steam_deck_status = status
-                success += 1
-            else:
-                failed += 1
+        Returns:
+            True if a valid status was fetched and applied.
+        """
+        game: Game = item
+        status = self._fetch_deck_status(game.app_id, self._store_cache_dir)
+        if status:
+            game.steam_deck_status = status
+            return True
+        return False
 
-            if idx < total - 1:
-                time.sleep(_RATE_LIMIT_DELAY)
+    def _format_progress(self, item: Any, current: int, total: int) -> str:
+        """Formats progress text with the game name.
 
-        self.finished_enrichment.emit(success, failed)
+        Args:
+            item: A Game instance.
+            current: 1-based current index.
+            total: Total games count.
+
+        Returns:
+            Formatted progress string.
+        """
+        game: Game = item
+        return t("ui.enrichment.progress", name=game.name[:30], current=current, total=total)
+
+    def _rate_limit(self) -> None:
+        """Sleeps 1 second between API requests."""
+        time.sleep(_RATE_LIMIT_DELAY)
+
+    # ── Internal ────────────────────────────────────────
 
     @staticmethod
     def _fetch_deck_status(app_id: str, cache_dir: Path) -> str | None:

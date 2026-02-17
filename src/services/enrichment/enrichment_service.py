@@ -1,7 +1,11 @@
 """Background enrichment worker for metadata updates.
 
-Provides EnrichmentThread (QThread subclass) that runs HLTB and Steam API
-enrichment in a background thread, emitting progress signals for the UI.
+Provides EnrichmentThread (BaseEnrichmentThread subclass) that runs HLTB
+and Steam API enrichment in a background thread, emitting progress signals
+for the UI.
+
+HLTB mode uses the base class template pattern.
+Steam API mode uses custom batch processing (overrides run dispatch).
 """
 
 from __future__ import annotations
@@ -11,8 +15,7 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from PyQt6.QtCore import QThread, pyqtSignal
-
+from src.services.enrichment.base_enrichment_thread import BaseEnrichmentThread
 from src.utils.i18n import t
 
 if TYPE_CHECKING:
@@ -23,32 +26,25 @@ logger = logging.getLogger("steamlibmgr.enrichment_service")
 __all__ = ["EnrichmentThread"]
 
 
-class EnrichmentThread(QThread):
+class EnrichmentThread(BaseEnrichmentThread):
     """Background thread for metadata enrichment operations.
 
-    Subclasses QThread and overrides run() to perform enrichment work
-    in a dedicated thread. This avoids the lambda+moveToThread pitfall
-    where PyQt6 may execute lambdas on the main thread.
+    Supports two modes:
+    - HLTB: Per-game enrichment using the base class template pattern.
+    - Steam API: Batch enrichment with custom run logic.
 
-    Signals:
-        progress: Emitted for each processed item (step_text, current, total).
-        finished_enrichment: Emitted when enrichment completes (success_count, failed_count).
-        error: Emitted on fatal errors (error_message).
+    Configure with configure_hltb() or configure_steam() before starting.
     """
-
-    progress = pyqtSignal(str, int, int)
-    finished_enrichment = pyqtSignal(int, int)
-    error = pyqtSignal(str)
 
     def __init__(self, parent: Any = None) -> None:
         """Initializes the EnrichmentThread."""
         super().__init__(parent)
-        self._cancelled: bool = False
         self._mode: str = ""
         self._games: list[tuple[int, str]] = []
         self._db_path: Path | None = None
         self._hltb_client: HLTBClient | None = None
         self._api_key: str = ""
+        self._db: Any = None
 
     def configure_hltb(
         self,
@@ -86,74 +82,89 @@ class EnrichmentThread(QThread):
         self._db_path = db_path
         self._api_key = api_key
 
-    def cancel(self) -> None:
-        """Requests cancellation of the current enrichment operation."""
-        self._cancelled = True
-
     def run(self) -> None:
-        """Executes the configured enrichment operation in the background thread."""
+        """Dispatches to HLTB template or Steam custom implementation."""
         if self._mode == "hltb":
-            self._run_hltb()
+            super().run()
         elif self._mode == "steam":
             self._run_steam()
 
-    def _run_hltb(self) -> None:
-        """Enriches games with HowLongToBeat completion time data."""
+    # ── BaseEnrichmentThread hooks (HLTB mode) ─────────
+
+    def _setup(self) -> None:
+        """Opens the database connection for HLTB enrichment."""
         from src.core.database import Database
 
-        self._cancelled = False
-        total = len(self._games)
-        success = 0
-        failed = 0
+        self._db = Database(self._db_path)
 
-        db = Database(self._db_path)
-        try:
-            for idx, (app_id, name) in enumerate(self._games):
-                if self._cancelled:
-                    break
+    def _cleanup(self) -> None:
+        """Closes the database connection."""
+        if self._db:
+            self._db.close()
+            self._db = None
 
-                self.progress.emit(
-                    t("ui.enrichment.progress", name=name, current=idx + 1, total=total),
-                    idx + 1,
-                    total,
-                )
+    def _get_items(self) -> list:
+        """Returns the list of games to enrich."""
+        return self._games
 
-                try:
-                    result = self._hltb_client.search_game(name, app_id)
-                    if result:
-                        has_times = any((result.main_story, result.main_extras, result.completionist))
-                        db.conn.execute(
-                            """
-                            INSERT OR REPLACE INTO hltb_data
-                            (app_id, main_story, main_extras, completionist, last_updated)
-                            VALUES (?, ?, ?, ?, ?)
-                            """,
-                            (
-                                app_id,
-                                result.main_story,
-                                result.main_extras,
-                                result.completionist,
-                                int(time.time()),
-                            ),
-                        )
-                        db.conn.commit()
-                        if has_times:
-                            success += 1
-                        else:
-                            logger.debug("HLTB matched '%s' but 0h times, saved as checked", name)
-                            failed += 1
-                    else:
-                        logger.info("HLTB miss: %d '%s'", app_id, name)
-                        failed += 1
-                except Exception as exc:
-                    logger.warning("HLTB enrichment failed for %d (%s): %s", app_id, name, exc)
-                    failed += 1
+    def _process_item(self, item: Any) -> bool:
+        """Enriches a single game with HLTB data.
 
-                time.sleep(0.2)
-        finally:
-            db.close()
+        Args:
+            item: Tuple of (app_id, name).
 
-        self.finished_enrichment.emit(success, failed)
+        Returns:
+            True if meaningful HLTB times were found and stored.
+        """
+        app_id, name = item
+        result = self._hltb_client.search_game(name, app_id)
+
+        if result:
+            has_times = any((result.main_story, result.main_extras, result.completionist))
+            self._db.conn.execute(
+                """
+                INSERT OR REPLACE INTO hltb_data
+                (app_id, main_story, main_extras, completionist, last_updated)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    app_id,
+                    result.main_story,
+                    result.main_extras,
+                    result.completionist,
+                    int(time.time()),
+                ),
+            )
+            self._db.conn.commit()
+
+            if has_times:
+                return True
+
+            logger.debug("HLTB matched '%s' but 0h times, saved as checked", name)
+            return False
+
+        logger.info("HLTB miss: %d '%s'", app_id, name)
+        return False
+
+    def _format_progress(self, item: Any, current: int, total: int) -> str:
+        """Formats progress text with the game name.
+
+        Args:
+            item: Tuple of (app_id, name).
+            current: 1-based current index.
+            total: Total games count.
+
+        Returns:
+            Formatted progress string.
+        """
+        _app_id, name = item
+        return t("ui.enrichment.progress", name=name, current=current, total=total)
+
+    def _rate_limit(self) -> None:
+        """Sleeps 200ms between HLTB requests."""
+        time.sleep(0.2)
+
+    # ── Steam API mode (custom batch processing) ───────
 
     def _run_steam(self) -> None:
         """Enriches games with metadata from the Steam Web API."""
