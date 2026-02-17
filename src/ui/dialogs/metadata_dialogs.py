@@ -9,26 +9,25 @@ All dialogs feature visual indicators for modified fields.
 from __future__ import annotations
 
 from PyQt6.QtWidgets import (
-    QDialog,
-    QVBoxLayout,
-    QHBoxLayout,
+    QCheckBox,
     QFormLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
     QLineEdit,
     QPushButton,
-    QLabel,
     QTextEdit,
-    QGroupBox,
-    QCheckBox,
+    QVBoxLayout,
 )
 
 from src.ui.theme import Theme
-from src.ui.utils.font_helper import FontHelper
+from src.ui.widgets.base_dialog import BaseDialog
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.date_utils import parse_date_to_timestamp, format_timestamp_to_date
 from src.utils.i18n import t
 
 
-class MetadataEditDialog(QDialog):
+class MetadataEditDialog(BaseDialog):
     """Dialog for editing metadata of a single game.
 
     Provides a form interface for editing game metadata fields such as name,
@@ -52,32 +51,24 @@ class MetadataEditDialog(QDialog):
             original_metadata: Optional dictionary with original values for
                 comparison and revert functionality.
         """
-        super().__init__(parent)
         self.game_name = game_name
         self.current_metadata = current_metadata
         self.original_metadata = original_metadata or {}
         self.result_metadata = None
-
-        self.setWindowTitle(t("ui.metadata_editor.editing_title", game=game_name))
-        self.setMinimumWidth(600)
-        self.setModal(True)
-
-        self._create_ui()
+        super().__init__(
+            parent,
+            title_text=t("ui.metadata_editor.editing_title", game=game_name),
+            min_width=600,
+            buttons="custom",
+        )
         self._populate_fields()
 
-    def _create_ui(self):
-        """Creates the dialog user interface.
+    def _build_content(self, layout: QVBoxLayout) -> None:
+        """Adds form fields, original values group, and action buttons.
 
-        Sets up the form layout with input fields, VDF options group,
-        original values display, and action buttons.
+        Args:
+            layout: The main vertical layout.
         """
-        layout = QVBoxLayout(self)
-
-        # Title
-        title = QLabel(t("ui.metadata_editor.editing_title", game=self.game_name))
-        title.setFont(FontHelper.get_font(14, FontHelper.BOLD))
-        layout.addWidget(title)
-
         # Info
         info = QLabel(t("ui.metadata_editor.info_tracking"))
         info.setStyleSheet("color: gray; font-size: 10px;")
@@ -270,7 +261,7 @@ class MetadataEditDialog(QDialog):
         return self.result_metadata
 
 
-class BulkMetadataEditDialog(QDialog):
+class BulkMetadataEditDialog(BaseDialog):
     """Dialog for editing metadata of multiple games simultaneously.
 
     Allows users to apply the same metadata changes to multiple games at once.
@@ -291,15 +282,15 @@ class BulkMetadataEditDialog(QDialog):
             games_count: Total number of games to be edited.
             game_names: List of game names for preview display.
         """
-        super().__init__(parent)
         self.games_count = games_count
         self.game_names = game_names
         self.result_metadata = None
-
-        self.setWindowTitle(t("ui.metadata_editor.bulk_title", count=games_count))
-        self.setMinimumWidth(600)
-        self.setModal(True)
-        self._create_ui()
+        super().__init__(
+            parent,
+            title_text=t("ui.metadata_editor.bulk_title", count=games_count),
+            min_width=600,
+            buttons="custom",
+        )
 
     @staticmethod
     def _add_bulk_field(layout, label_text: str, placeholder: str = ""):
@@ -325,17 +316,12 @@ class BulkMetadataEditDialog(QDialog):
         layout.addLayout(row_layout)
         return checkbox, line_edit
 
-    def _create_ui(self):
-        """Creates the bulk edit dialog user interface.
+    def _build_content(self, layout: QVBoxLayout) -> None:
+        """Adds bulk edit fields, preview, warning, and action buttons.
 
-        Sets up the layout with title, game preview list, editable fields
-        with checkboxes, warning label, and action buttons.
+        Args:
+            layout: The main vertical layout.
         """
-        layout = QVBoxLayout(self)
-        title = QLabel(t("ui.metadata_editor.bulk_title", count=self.games_count))
-        title.setFont(FontHelper.get_font(14, FontHelper.BOLD))
-        layout.addWidget(title)
-
         # Emoji prefix assembled in code — keeps locale strings clean
         info = QLabel(f"{t('emoji.warning')} {t('ui.metadata_editor.bulk_info', count=self.games_count)}")
         info.setStyleSheet("color: orange; font-size: 11px;")
@@ -384,15 +370,14 @@ class BulkMetadataEditDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        for text, callback, is_def in [
-            (t("common.cancel"), self.reject, False),
-            (t("ui.metadata_editor.apply_button", count=self.games_count), self._apply, True),
-        ]:
-            btn = QPushButton(text)
-            btn.clicked.connect(callback)
-            if is_def:
-                btn.setDefault(True)
-            btn_layout.addWidget(btn)
+        cancel_btn = QPushButton(t("common.cancel"))
+        cancel_btn.clicked.connect(self.reject)
+        btn_layout.addWidget(cancel_btn)
+
+        apply_btn = QPushButton(t("ui.metadata_editor.apply_button", count=self.games_count))
+        apply_btn.setDefault(True)
+        apply_btn.clicked.connect(self._apply)
+        btn_layout.addWidget(apply_btn)
 
         layout.addLayout(btn_layout)
 
@@ -443,7 +428,7 @@ class BulkMetadataEditDialog(QDialog):
         return self.result_metadata
 
 
-class MetadataRestoreDialog(QDialog):
+class MetadataRestoreDialog(BaseDialog):
     """Dialog for restoring metadata modifications to original values.
 
     Displays information about the number of modified games and allows
@@ -461,25 +446,16 @@ class MetadataRestoreDialog(QDialog):
             parent: Parent widget for the dialog.
             modified_count: Number of games with modifications to restore.
         """
-        super().__init__(parent)
         self.modified_count = modified_count
         self.do_restore = False
-        self.setWindowTitle(t("menu.edit.reset_metadata"))
-        self.setMinimumWidth(500)
-        self.setModal(True)
-        self._create_ui()
+        super().__init__(parent, title_key="menu.edit.reset_metadata", buttons="custom")
 
-    def _create_ui(self):
-        """Creates the restore dialog user interface.
+    def _build_content(self, layout: QVBoxLayout) -> None:
+        """Adds restore info, warning, and action buttons.
 
-        Sets up the layout with title, information label, warning label,
-        and action buttons.
+        Args:
+            layout: The main vertical layout.
         """
-        layout = QVBoxLayout(self)
-        title = QLabel(t("menu.edit.reset_metadata"))
-        title.setFont(FontHelper.get_font(16, FontHelper.BOLD))
-        layout.addWidget(title)
-
         info_lbl = QLabel(t("ui.metadata_editor.restore_info", count=self.modified_count))
         info_lbl.setWordWrap(True)
         layout.addWidget(info_lbl)
@@ -491,15 +467,14 @@ class MetadataRestoreDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        for text, callback, is_def in [
-            (t("common.cancel"), self.reject, False),
-            (t("ui.metadata_editor.restore_button", count=self.modified_count), self._restore, True),
-        ]:
-            btn = QPushButton(text)
-            btn.clicked.connect(callback)
-            if is_def:
-                btn.setDefault(True)
-            btn_layout.addWidget(btn)
+        cancel_btn = QPushButton(t("common.cancel"))
+        cancel_btn.clicked.connect(self.reject)
+        btn_layout.addWidget(cancel_btn)
+
+        restore_btn = QPushButton(t("ui.metadata_editor.restore_button", count=self.modified_count))
+        restore_btn.setDefault(True)
+        restore_btn.clicked.connect(self._restore)
+        btn_layout.addWidget(restore_btn)
 
         layout.addLayout(btn_layout)
 
