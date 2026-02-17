@@ -10,7 +10,6 @@ curator, etc.) and save/load presets for recurring configurations.
 
 from __future__ import annotations
 
-import json
 import logging
 from pathlib import Path
 from typing import Any, Callable
@@ -29,7 +28,6 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QFrame,
     QButtonGroup,
-    QMessageBox,
     QLineEdit,
     QComboBox,
     QInputDialog,
@@ -41,7 +39,9 @@ from PyQt6.QtWidgets import (
 from src.config import config
 from src.services.autocat_preset_manager import AutoCatPreset, AutoCatPresetManager
 from src.ui.utils.font_helper import FontHelper
+from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
+from src.utils.json_utils import load_json, save_json
 
 logger = logging.getLogger("steamlibmgr.auto_categorize_dialog")
 
@@ -440,12 +440,7 @@ class AutoCategorizeDialog(QDialog):
         Args:
             urls: List of curator URLs to persist.
         """
-        try:
-            _CURATOR_HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
-            with open(_CURATOR_HISTORY_FILE, "w", encoding="utf-8") as f:
-                json.dump(urls, f, indent=2, ensure_ascii=False)
-        except OSError as exc:
-            logger.warning("Failed to save curator history: %s", exc)
+        save_json(_CURATOR_HISTORY_FILE, urls)
 
     @staticmethod
     def _read_curator_history() -> list[str]:
@@ -454,15 +449,9 @@ class AutoCategorizeDialog(QDialog):
         Returns:
             List of previously used curator URLs.
         """
-        if not _CURATOR_HISTORY_FILE.exists():
-            return []
-        try:
-            with open(_CURATOR_HISTORY_FILE, encoding="utf-8") as f:
-                data = json.load(f)
-            if isinstance(data, list):
-                return [str(u) for u in data]
-        except (json.JSONDecodeError, OSError) as exc:
-            logger.warning("Failed to read curator history: %s", exc)
+        data = load_json(_CURATOR_HISTORY_FILE, default=[])
+        if isinstance(data, list):
+            return [str(u) for u in data]
         return []
 
     def _on_curator_toggled(self, checked: bool) -> None:
@@ -556,12 +545,11 @@ class AutoCategorizeDialog(QDialog):
         # Check for existing preset
         existing = self._preset_manager.load_presets()
         if any(p.name == name for p in existing):
-            reply = QMessageBox.question(
+            if not UIHelper.confirm(
                 self,
-                t("auto_categorize.preset_overwrite_title"),
                 t("auto_categorize.preset_overwrite_msg", name=name),
-            )
-            if reply != QMessageBox.StandardButton.Yes:
+                title=t("auto_categorize.preset_overwrite_title"),
+            ):
                 return
 
         # Build curator recommendations tuple
@@ -687,14 +675,18 @@ class AutoCategorizeDialog(QDialog):
         selected_methods = self._get_selected_methods()
 
         if not selected_methods:
-            QMessageBox.warning(self, t("auto_categorize.no_method_title"), t("auto_categorize.error_no_method"))
+            UIHelper.show_warning(
+                self, t("auto_categorize.error_no_method"), title=t("auto_categorize.no_method_title")
+            )
             return
 
         # Validate curator URL if curator method is selected
         if "curator" in selected_methods:
             curator_url = self.curator_url_edit.text().strip()
             if not curator_url:
-                QMessageBox.warning(self, t("auto_categorize.no_method_title"), t("auto_categorize.curator_error_url"))
+                UIHelper.show_warning(
+                    self, t("auto_categorize.curator_error_url"), title=t("auto_categorize.no_method_title")
+                )
                 return
 
         self.result = {

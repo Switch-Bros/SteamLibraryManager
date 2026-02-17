@@ -12,13 +12,11 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from PyQt6.QtWidgets import QMessageBox
-
+from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
-    from src.ui.widgets.ui_helper import UIHelper
 
 logger = logging.getLogger("steamlibmgr.steam_actions")
 
@@ -62,7 +60,7 @@ class SteamActions:
         Displays a modal dialog containing the application name and description
         using Qt's standard About box.
         """
-        QMessageBox.about(self.mw, t("menu.help.about"), t("common.description"))
+        UIHelper.show_info(self.mw, t("common.description"), title=t("menu.help.about"))
 
     def on_login_success(self, result: dict) -> None:
         """Handles successful Steam authentication.
@@ -78,7 +76,6 @@ class SteamActions:
         """
         from src.core.token_store import TokenStore
         from src.ui.workers.session_restore_worker import SessionRestoreWorker
-        from src.ui.widgets.ui_helper import UIHelper
         from src.config import config
 
         steam_id_64 = result["steam_id"]

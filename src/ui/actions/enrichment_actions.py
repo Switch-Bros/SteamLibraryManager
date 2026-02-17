@@ -266,7 +266,7 @@ class EnrichmentActions:
         resolves them to localized names, and stores in the database.
         """
         from PyQt6.QtCore import Qt
-        from PyQt6.QtWidgets import QMessageBox, QProgressDialog
+        from PyQt6.QtWidgets import QProgressDialog
 
         from src.config import config
         from src.services.enrichment.tag_import_service import TagImportThread
@@ -288,14 +288,11 @@ class EnrichmentActions:
             tag_count = db.get_game_tag_count()
             db.close()
             if tag_count > 0:
-                reply = QMessageBox.question(
+                if not UIHelper.confirm(
                     self.mw,
-                    t("ui.tag_import.dialog_title"),
                     t("ui.tag_import.already_populated", count=tag_count),
-                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                    QMessageBox.StandardButton.No,
-                )
-                if reply != QMessageBox.StandardButton.Yes:
+                    title=t("ui.tag_import.dialog_title"),
+                ):
                     return
 
         # Determine language

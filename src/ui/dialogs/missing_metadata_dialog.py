@@ -23,12 +23,13 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QLabel,
     QFileDialog,
-    QMessageBox,
     QHeaderView,
 )
 
 from src.core.game_manager import Game
+from src.ui.theme import Theme
 from src.ui.utils.font_helper import FontHelper
+from src.ui.widgets.ui_helper import UIHelper
 from src.utils.date_utils import format_timestamp_to_date
 from src.utils.i18n import t
 
@@ -97,7 +98,7 @@ class MissingMetadataDialog(QDialog):
         # Info Text
         info = QLabel(t("ui.tools.missing_metadata.info"))
         info.setWordWrap(True)
-        info.setStyleSheet("color: #888; padding: 10px 0;")
+        info.setStyleSheet(f"color: {Theme.TEXT_MUTED}; padding: 10px 0;")
         layout.addWidget(info)
 
         # Table
@@ -134,7 +135,7 @@ class MissingMetadataDialog(QDialog):
 
         # Statistics Label
         self.stats_label = QLabel()
-        self.stats_label.setStyleSheet("color: #888; font-size: 10px;")
+        self.stats_label.setStyleSheet(f"color: {Theme.TEXT_MUTED}; font-size: 10px;")
 
         # Stats Layout
         stats_layout = QHBoxLayout()
@@ -291,11 +292,10 @@ class MissingMetadataDialog(QDialog):
                         [game.app_id, game.name, str(dev_val), str(pub_val), str(rel_val), ", ".join(missing_fields)]
                     )
 
-            QMessageBox.information(
+            UIHelper.show_success(
                 self,
-                t("common.success"),
                 t("ui.tools.missing_metadata.export_success", count=len(self.games), path=file_path),
             )
 
         except OSError as e:
-            QMessageBox.critical(self, t("common.error"), t("ui.tools.missing_metadata.export_error", error=str(e)))
+            UIHelper.show_error(self, t("ui.tools.missing_metadata.export_error", error=str(e)))

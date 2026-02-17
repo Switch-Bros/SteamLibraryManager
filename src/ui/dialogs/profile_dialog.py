@@ -25,7 +25,6 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.ui.utils.dialog_helpers import ask_confirmation, ask_text_input, show_error
 from src.ui.utils.font_helper import FontHelper
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
@@ -187,18 +186,18 @@ class ProfileDialog(QDialog):
 
     def _on_save_current(self) -> None:
         """Handles 'Save Current' button: asks for name, signals save action."""
-        name = ask_text_input(
+        name, ok = UIHelper.ask_text(
             self,
             title=t("ui.profile.new_title"),
             label=t("ui.profile.new_prompt"),
         )
-        if not name:
+        if not ok or not name:
             return
 
         # Check for duplicate
         existing = [n for n, _ in self.manager.list_profiles()]
         if name in existing:
-            overwrite = ask_confirmation(
+            overwrite = UIHelper.confirm(
                 self,
                 t("ui.profile.error_duplicate_name", name=name),
                 title=t("ui.profile.new_title"),
@@ -226,7 +225,7 @@ class ProfileDialog(QDialog):
         if not name:
             return
 
-        confirmed = ask_confirmation(
+        confirmed = UIHelper.confirm(
             self,
             t("ui.profile.delete_confirm", name=name),
             title=t("ui.profile.delete_confirm_title"),
@@ -244,13 +243,13 @@ class ProfileDialog(QDialog):
         if not name:
             return
 
-        new_name = ask_text_input(
+        new_name, ok = UIHelper.ask_text(
             self,
             title=t("ui.profile.rename_title"),
             label=t("ui.profile.rename_prompt"),
-            default_value=name,
+            current_text=name,
         )
-        if not new_name or new_name == name:
+        if not ok or not new_name or new_name == name:
             return
 
         success = self.manager.rename_profile(name, new_name)
@@ -301,4 +300,4 @@ class ProfileDialog(QDialog):
             UIHelper.show_success(self, t("ui.profile.import_success", name=profile.name))
             self._refresh_list()
         except (FileNotFoundError, KeyError, Exception) as exc:
-            show_error(self, t("ui.profile.error_import_failed", error=str(exc)))
+            UIHelper.show_error(self, t("ui.profile.error_import_failed", error=str(exc)))

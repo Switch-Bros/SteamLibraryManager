@@ -10,9 +10,10 @@ renaming, deleting, and merging categories. It supports both VDF parser
 
 from __future__ import annotations
 
-from src.core.localconfig_helper import LocalConfigHelper
 from src.core.cloud_storage_parser import CloudStorageParser
 from src.core.game_manager import GameManager
+from src.core.localconfig_helper import LocalConfigHelper
+from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
 __all__ = ["CategoryService"]
@@ -145,20 +146,16 @@ class CategoryService:
         Returns:
             bool: True if collection was deleted, False otherwise
         """
-        from PyQt6.QtWidgets import QMessageBox
-
         games_in_category = self.game_manager.get_games_by_category(category_name)
 
         if len(games_in_category) == 0:
-            # Show dialog
-            reply = QMessageBox.question(
+            confirmed = UIHelper.confirm(
                 parent_window,
-                t("ui.dialog.empty_collection_title"),
                 t("ui.dialog.empty_collection_message", name=category_name),
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                title=t("ui.dialog.empty_collection_title"),
             )
 
-            if reply == QMessageBox.StandardButton.Yes:
+            if confirmed:
                 self.delete_category(category_name)
                 return True
 

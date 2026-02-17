@@ -7,12 +7,12 @@ persisted as JSON in the application data directory.
 
 from __future__ import annotations
 
-import json
 import logging
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from src.config import config
+from src.utils.json_utils import load_json, save_json
 
 logger = logging.getLogger("steamlibmgr.autocat_preset_manager")
 
@@ -61,14 +61,8 @@ class AutoCatPresetManager:
         Returns:
             List of presets, empty if file does not exist or is invalid.
         """
-        if not self._file_path.exists():
-            return []
-
-        try:
-            with open(self._file_path, encoding="utf-8") as f:
-                data = json.load(f)
-        except (json.JSONDecodeError, OSError) as exc:
-            logger.warning("Failed to load presets from %s: %s", self._file_path, exc)
+        data = load_json(self._file_path, default=[])
+        if not data:
             return []
 
         presets: list[AutoCatPreset] = []
@@ -172,8 +166,6 @@ class AutoCatPresetManager:
         Args:
             presets: List of presets to persist.
         """
-        self._data_dir.mkdir(parents=True, exist_ok=True)
-
         data = []
         for p in presets:
             d = asdict(p)
@@ -183,5 +175,4 @@ class AutoCatPresetManager:
                 d["curator_recommendations"] = list(d["curator_recommendations"])
             data.append(d)
 
-        with open(self._file_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+        save_json(self._file_path, data)

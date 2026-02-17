@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from src.ui.theme import Theme
 from src.ui.utils.font_helper import FontHelper
 from src.ui.widgets.category_list import HorizontalCategoryList
 from src.ui.widgets.clickable_image import ClickableImage
@@ -105,7 +106,7 @@ def _build_header(w: GameDetailsWidget, main_layout: QVBoxLayout) -> None:
     w.pegi_image.set_default_image("resources/images/default_icons.png")
     w.pegi_image.clicked.connect(w._on_pegi_clicked)
     w.pegi_image.right_clicked.connect(w._on_pegi_right_click)
-    w.pegi_image.setStyleSheet("border: 1px solid #FDE100; background-color: #1b2838;")
+    w.pegi_image.setStyleSheet(f"border: 1px solid {Theme.PEGI_HOVER}; background-color: {Theme.BG_PRIMARY};")
 
     pegi_layout = QHBoxLayout()
     pegi_layout.addWidget(w.pegi_image)

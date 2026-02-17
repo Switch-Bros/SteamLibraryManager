@@ -18,7 +18,6 @@ from PyQt6.QtWidgets import QFileDialog
 from src.config import config
 from src.core.profile_manager import Profile, ProfileManager
 from src.services.filter_service import FilterState
-from src.ui.utils.dialog_helpers import ask_confirmation, ask_text_input, show_error
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
@@ -56,18 +55,18 @@ class ProfileActions:
 
     def save_current_as_profile(self) -> None:
         """Prompts the user for a name and saves the current state as a profile."""
-        name = ask_text_input(
+        name, ok = UIHelper.ask_text(
             self.mw,
             title=t("ui.profile.new_title"),
             label=t("ui.profile.new_prompt"),
         )
-        if not name:
+        if not ok or not name:
             return
 
         # Check for existing profile with same name
         existing = [n for n, _ in self.manager.list_profiles()]
         if name in existing:
-            overwrite = ask_confirmation(
+            overwrite = UIHelper.confirm(
                 self.mw,
                 t("ui.profile.error_duplicate_name", name=name),
                 title=t("ui.profile.new_title"),
@@ -85,7 +84,7 @@ class ProfileActions:
         Args:
             name: The profile name to load.
         """
-        confirmed = ask_confirmation(
+        confirmed = UIHelper.confirm(
             self.mw,
             t("ui.profile.load_confirm", name=name),
             title=t("ui.profile.load_confirm_title"),
@@ -96,7 +95,7 @@ class ProfileActions:
         try:
             profile = self.manager.load_profile(name)
         except (FileNotFoundError, Exception) as exc:
-            show_error(self.mw, t("ui.profile.error_load_failed", error=str(exc)))
+            UIHelper.show_error(self.mw, t("ui.profile.error_load_failed", error=str(exc)))
             return
 
         self._apply_profile(profile)
@@ -159,7 +158,7 @@ class ProfileActions:
             profile = self.manager.import_profile(Path(file_path))
             UIHelper.show_success(self.mw, t("ui.profile.import_success", name=profile.name))
         except (FileNotFoundError, KeyError, Exception) as exc:
-            show_error(self.mw, t("ui.profile.error_import_failed", error=str(exc)))
+            UIHelper.show_error(self.mw, t("ui.profile.error_import_failed", error=str(exc)))
 
     # ------------------------------------------------------------------
     # Private helpers

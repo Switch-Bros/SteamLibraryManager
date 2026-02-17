@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Callable
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QSplitter,
     QWidget,
@@ -19,7 +20,6 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QLabel,
 )
-from PyQt6.QtCore import Qt
 
 from src.utils.i18n import t
 

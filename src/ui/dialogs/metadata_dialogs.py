@@ -19,9 +19,9 @@ from PyQt6.QtWidgets import (
     QTextEdit,
     QGroupBox,
     QCheckBox,
-    QMessageBox,
 )
 
+from src.ui.theme import Theme
 from src.ui.utils.font_helper import FontHelper
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.date_utils import parse_date_to_timestamp, format_timestamp_to_date
@@ -193,7 +193,7 @@ class MetadataEditDialog(QDialog):
         Applies a yellow background style and tooltip to fields where the
         current value differs from the original value.
         """
-        modified_style = "background-color: #FFF3CD; border: 2px solid #FFA500;"
+        modified_style = Theme.modified_field()
 
         m = self.current_metadata
         o = self.original_metadata
@@ -243,8 +243,8 @@ class MetadataEditDialog(QDialog):
         after successful revert.
         """
         if not self.original_metadata:
-            QMessageBox.information(
-                self, t("ui.metadata_editor.revert_title"), t("ui.metadata_editor.revert_no_original")
+            UIHelper.show_info(
+                self, t("ui.metadata_editor.revert_no_original"), title=t("ui.metadata_editor.revert_title")
             )
             return
 
@@ -272,7 +272,7 @@ class MetadataEditDialog(QDialog):
         """
         name = self.name_edit.text().strip()
         if not name:
-            QMessageBox.warning(self, t("common.error"), t("ui.metadata_editor.error_empty_name"))
+            UIHelper.show_warning(self, t("ui.metadata_editor.error_empty_name"))
             return
 
         self.result_metadata = {
@@ -428,7 +428,7 @@ class BulkMetadataEditDialog(QDialog):
         """
         checks = [self.cb_dev, self.cb_pub, self.cb_date, self.cb_pre, self.cb_suf, self.cb_rem]
         if not any(c.isChecked() for c in checks):
-            QMessageBox.warning(self, t("ui.dialogs.no_changes"), t("ui.dialogs.no_selection"))
+            UIHelper.show_warning(self, t("ui.dialogs.no_selection"), title=t("ui.dialogs.no_changes"))
             return
 
         # Centralised helper — localised Yes/No buttons

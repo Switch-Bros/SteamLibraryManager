@@ -16,6 +16,8 @@ from PyQt6.QtWidgets import (
     QCheckBox,
 )
 
+from src.ui.theme import Theme
+
 __all__ = ["HorizontalCategoryList"]
 
 
@@ -118,7 +120,7 @@ class HorizontalCategoryList(QListWidget):
                 cb.setStyleSheet("QCheckBox { font-size: 11px; margin-left: 2px; color: #FFD700; font-weight: bold; }")
             else:
                 cb.setCheckState(Qt.CheckState.PartiallyChecked)
-                cb.setStyleSheet("QCheckBox { font-size: 11px; margin-left: 2px; color: #888888; }")
+                cb.setStyleSheet(f"QCheckBox {{ font-size: 11px; margin-left: 2px; color: {Theme.TEXT_MUTED}; }}")
 
             cb.setProperty("category", category)
             cb.setProperty("previous_state", cb.checkState())

@@ -27,6 +27,7 @@ from src.core.game_manager import Game
 from src.core.steam_assets import SteamAssets
 from src.ui.builders.details_ui_builder import build_details_ui
 from src.ui.dialogs.image_selection_dialog import ImageSelectionDialog
+from src.ui.theme import Theme
 from src.ui.widgets.category_list import HorizontalCategoryList
 from src.ui.widgets.clickable_image import ClickableImage
 from src.ui.widgets.info_label import (
@@ -123,18 +124,25 @@ class GameDetailsWidget(QWidget):
         self.current_games = games
 
         self.name_label.setText(t("ui.game_details.multi_select_title", count=len(games)))
-        self.lbl_appid.setText(f"<span style='color:#888;'>{t('ui.game_details.selected')}:</span> <b>{len(games)}</b>")
+        self.lbl_appid.setText(
+            f"<span style='color:{Theme.TEXT_MUTED};'>{t('ui.game_details.selected')}:</span> <b>{len(games)}</b>"
+        )
 
         total_hours = sum(g.playtime_hours for g in games)
         playtime_val = t("ui.game_details.hours", hours=total_hours)
         self.lbl_playtime.setText(
-            f"<span style='color:#888;'>{t('ui.game_details.total_playtime')}:</span> <b>{playtime_val}</b>"
+            f"<span style='color:{Theme.TEXT_MUTED};'>"
+            f"{t('ui.game_details.total_playtime')}:</span> <b>{playtime_val}</b>"
         )
 
-        self.lbl_updated.setText(f"<span style='color:#888;'>{t('ui.game_details.last_update')}:</span> <b>-</b>")
+        self.lbl_updated.setText(
+            f"<span style='color:{Theme.TEXT_MUTED};'>{t('ui.game_details.last_update')}:</span> <b>-</b>"
+        )
         self.lbl_proton.setText(t("ui.game_details.protondb") + ": -")
         self.lbl_steam_deck.setText(t("ui.game_details.steam_deck") + ": -")
-        self.lbl_reviews.setText(f"<span style='color:#888;'>{t('ui.game_details.reviews')}:</span> <b>-</b>")
+        self.lbl_reviews.setText(
+            f"<span style='color:{Theme.TEXT_MUTED};'>{t('ui.game_details.reviews')}:</span> <b>-</b>"
+        )
         self.edit_dev.setText(t("emoji.dash"))
         self.edit_pub.setText(t("emoji.dash"))
         self.edit_rel.setText(t("emoji.dash"))
@@ -165,18 +173,20 @@ class GameDetailsWidget(QWidget):
         self.current_game = game
         self.current_games = []
         self.name_label.setText(game.name)
-        self.lbl_appid.setText(f"<span style='color:#888;'>{t('ui.game_details.app_id')}:</span> <b>{game.app_id}</b>")
+        self.lbl_appid.setText(
+            f"<span style='color:{Theme.TEXT_MUTED};'>{t('ui.game_details.app_id')}:</span> <b>{game.app_id}</b>"
+        )
         playtime_val = (
             t("ui.game_details.hours", hours=game.playtime_hours)
             if game.playtime_hours > 0
             else t("ui.game_details.never_played")
         )
         self.lbl_playtime.setText(
-            f"<span style='color:#888;'>{t('ui.game_details.playtime')}:</span> <b>{playtime_val}</b>"
+            f"<span style='color:{Theme.TEXT_MUTED};'>{t('ui.game_details.playtime')}:</span> <b>{playtime_val}</b>"
         )
         update_val = format_timestamp_to_date(game.last_updated) if game.last_updated else t("emoji.dash")
         self.lbl_updated.setText(
-            f"<span style='color:#888;'>{t('ui.game_details.last_update')}:</span> <b>{update_val}</b>"
+            f"<span style='color:{Theme.TEXT_MUTED};'>{t('ui.game_details.last_update')}:</span> <b>{update_val}</b>"
         )
         self._update_proton_label(game.proton_db_rating)
         self._update_steam_deck_label(game.steam_deck_status)
@@ -193,7 +203,7 @@ class GameDetailsWidget(QWidget):
             review_val = t("emoji.dash")
 
         self.lbl_reviews.setText(
-            f"<span style='color:#888;'>{t('ui.game_details.reviews')}:</span> <b>{review_val}</b>"
+            f"<span style='color:{Theme.TEXT_MUTED};'>{t('ui.game_details.reviews')}:</span> <b>{review_val}</b>"
         )
 
         unknown = t("ui.game_details.value_unknown")
@@ -240,7 +250,7 @@ class GameDetailsWidget(QWidget):
         Args:
             game: The game whose achievement data to display.
         """
-        _GOLD = "#FDE100"
+        _GOLD = Theme.ACHIEVEMENT_GOLD
 
         if game.achievement_total > 0:
             set_info_label_value(self.lbl_achievement_total, str(game.achievement_total))

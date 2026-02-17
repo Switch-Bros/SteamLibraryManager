@@ -7,10 +7,13 @@ by clicking on one of the available PEGI icons.
 
 from __future__ import annotations
 
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QGridLayout, QWidget
+from pathlib import Path
+
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap, QIcon
-from pathlib import Path
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QGridLayout, QWidget
+
+from src.ui.theme import Theme
 from src.utils.i18n import t
 
 
@@ -21,20 +24,7 @@ class PEGIIconButton(QPushButton):
         super().__init__(parent)
         self.rating = rating
         self.setFixedSize(140, 140)
-        self.setStyleSheet("""
-            QPushButton {
-                border: 2px solid #3d4450;
-                background-color: #1b2838;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                border: 2px solid #FDE100;
-                background-color: #2a3f5f;
-            }
-            QPushButton:pressed {
-                background-color: #1a2332;
-            }
-        """)
+        self.setStyleSheet(Theme.pegi_button())
 
         # Load and display icon
         if icon_path.exists():
@@ -70,7 +60,7 @@ class PEGISelectorDialog(QDialog):
 
         # Title
         title = QLabel(t("ui.pegi_selector.instruction"))
-        title.setStyleSheet("font-size: 14px; font-weight: bold; color: #c7d5e0;")
+        title.setStyleSheet(f"font-size: 14px; font-weight: bold; color: {Theme.TEXT_PRIMARY};")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
 
@@ -91,10 +81,10 @@ class PEGISelectorDialog(QDialog):
 
             # Highlight current rating
             if rating == self.current_rating:
-                btn.setStyleSheet(btn.styleSheet() + """
-                    QPushButton {
-                        border: 3px solid #FDE100;
-                    }
+                btn.setStyleSheet(btn.styleSheet() + f"""
+                    QPushButton {{
+                        border: 3px solid {Theme.PEGI_HOVER};
+                    }}
                 """)
 
             grid.addWidget(btn, row, col)
