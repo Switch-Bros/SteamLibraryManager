@@ -9,8 +9,10 @@ Provides options to:
 
 from __future__ import annotations
 
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QMessageBox
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
 
+from src.ui.theme import Theme
+from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
 
@@ -65,7 +67,7 @@ class SteamRunningDialog(QDialog):
 
         explanation = QLabel(t("steam.running.explanation"))
         explanation.setWordWrap(True)
-        explanation.setStyleSheet("color: #888;")
+        explanation.setStyleSheet(f"color: {Theme.TEXT_MUTED};")
         message_layout.addWidget(explanation)
 
         header_layout.addLayout(message_layout, 1)
@@ -74,14 +76,7 @@ class SteamRunningDialog(QDialog):
         # Info box
         info_box = QLabel(t("steam.running.info"))
         info_box.setWordWrap(True)
-        info_box.setStyleSheet("""
-            QLabel {
-                background-color: #2a475e;
-                padding: 15px;
-                border-radius: 5px;
-                color: #c7d5e0;
-            }
-        """)
+        info_box.setStyleSheet(Theme.info_box())
         layout.addWidget(info_box)
 
         # Buttons
@@ -95,17 +90,7 @@ class SteamRunningDialog(QDialog):
 
         self.btn_close_steam = QPushButton(t("steam.running.close_and_save"))
         self.btn_close_steam.setDefault(True)
-        self.btn_close_steam.setStyleSheet("""
-            QPushButton {
-                background-color: #c75450;
-                color: white;
-                font-weight: bold;
-                padding: 8px 16px;
-            }
-            QPushButton:hover {
-                background-color: #d66460;
-            }
-        """)
+        self.btn_close_steam.setStyleSheet(Theme.button_danger())
         self.btn_close_steam.clicked.connect(self._on_close_steam)
         button_layout.addWidget(self.btn_close_steam)
 
@@ -120,22 +105,18 @@ class SteamRunningDialog(QDialog):
         from src.core.steam_account_scanner import kill_steam_process
 
         # Confirm action
-        reply = QMessageBox.question(
+        if not UIHelper.confirm(
             self,
-            t("steam.running.confirm_title"),
             t("steam.running.confirm_message"),
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
+            title=t("steam.running.confirm_title"),
+        ):
+            return
 
-        if reply == QMessageBox.StandardButton.Yes:
-            # Try to kill Steam
-            success = kill_steam_process()
+        # Try to kill Steam
+        success = kill_steam_process()
 
-            if success:
-                # Steam closed successfully
-                QMessageBox.information(self, t("common.success"), t("steam.running.steam_closed"))
-                self.done(self.CLOSE_AND_SAVE)
-            else:
-                # Failed to close Steam
-                QMessageBox.critical(self, t("common.error"), t("steam.running.close_failed"))
+        if success:
+            UIHelper.show_success(self, t("steam.running.steam_closed"))
+            self.done(self.CLOSE_AND_SAVE)
+        else:
+            UIHelper.show_error(self, t("steam.running.close_failed"))

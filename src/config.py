@@ -12,13 +12,14 @@ ENHANCEMENTS (2026-02-13):
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import platform
 import re
 from dataclasses import dataclass
 from pathlib import Path
+
+from src.utils.json_utils import load_json, save_json
 
 # Load environment variables silently
 try:
@@ -152,42 +153,30 @@ class Config:
 
     def _load_settings(self) -> None:
         """Load settings from JSON file."""
-        # Local import to avoid circular dependency
-        from src.utils.i18n import t
-
-        if not self.SETTINGS_FILE.exists():
+        data = load_json(self.SETTINGS_FILE)
+        if not data:
             return
 
-        try:
-            with open(self.SETTINGS_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
+        self.UI_LANGUAGE = data.get("ui_language", self.UI_LANGUAGE)
+        self.TAGS_LANGUAGE = data.get("tags_language", self.TAGS_LANGUAGE)
 
-                self.UI_LANGUAGE = data.get("ui_language", self.UI_LANGUAGE)
-                self.TAGS_LANGUAGE = data.get("tags_language", self.TAGS_LANGUAGE)
+        steam_path = data.get("steam_path")
+        if steam_path:
+            self.STEAM_PATH = Path(steam_path)
 
-                steam_path = data.get("steam_path")
-                if steam_path:
-                    self.STEAM_PATH = Path(steam_path)
+        self.STEAMGRIDDB_API_KEY = data.get("steamgriddb_api_key", self.STEAMGRIDDB_API_KEY)
+        self.STEAM_API_KEY = data.get("steam_api_key", self.STEAM_API_KEY)
+        self.TAGS_PER_GAME = data.get("tags_per_game", self.TAGS_PER_GAME)
+        self.IGNORE_COMMON_TAGS = data.get("ignore_common_tags", self.IGNORE_COMMON_TAGS)
+        self.MAX_BACKUPS = data.get("max_backups", self.MAX_BACKUPS)
+        self.STEAM_LIBRARIES = data.get("steam_libraries", [])
+        self.STEAM_USER_ID = data.get("steam_user_id")
 
-                self.STEAMGRIDDB_API_KEY = data.get("steamgriddb_api_key", self.STEAMGRIDDB_API_KEY)
-                self.STEAM_API_KEY = data.get("steam_api_key", self.STEAM_API_KEY)
-                self.TAGS_PER_GAME = data.get("tags_per_game", self.TAGS_PER_GAME)
-                self.IGNORE_COMMON_TAGS = data.get("ignore_common_tags", self.IGNORE_COMMON_TAGS)
-                self.MAX_BACKUPS = data.get("max_backups", self.MAX_BACKUPS)
-                self.STEAM_LIBRARIES = data.get("steam_libraries", [])
-                self.STEAM_USER_ID = data.get("steam_user_id")
-
-                # Load UI State
-                self.EXPANDED_CATEGORIES = data.get("expanded_categories", [])
-
-        except (OSError, json.JSONDecodeError) as e:
-            logger.error(t("logs.config.load_error", error=e))
+        # Load UI State
+        self.EXPANDED_CATEGORIES = data.get("expanded_categories", [])
 
     def save(self) -> None:
         """Save current configuration to JSON file."""
-        # Local import to avoid circular dependency
-        from src.utils.i18n import t
-
         data = {
             "ui_language": self.UI_LANGUAGE,
             "tags_language": self.TAGS_LANGUAGE,
@@ -202,16 +191,12 @@ class Config:
             "expanded_categories": self.EXPANDED_CATEGORIES,
         }
 
-        try:
-            with open(self.SETTINGS_FILE, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2)
-        except OSError as e:
-            logger.error(t("logs.config.save_error", error=e))
+        save_json(self.SETTINGS_FILE, data)
 
     def update_paths(self, **kwargs) -> None:
         """Update paths and save configuration."""
         if "steam_path" in kwargs:
-            self.STEAM_PATH = kwargs["steam_path"]
+            self.STEAM_PATH = Path(kwargs["steam_path"]) if kwargs["steam_path"] else None
         self.save()
 
     @staticmethod

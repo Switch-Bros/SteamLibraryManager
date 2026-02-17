@@ -10,13 +10,13 @@ separately and supports restoring them after Steam updates the file.
 
 from __future__ import annotations
 
-
 import logging
-import json
 from pathlib import Path
 from typing import Any
-from src.utils.i18n import t
+
 from src.utils.appinfo import AppInfo, IncompatibleVersionError
+from src.utils.i18n import t
+from src.utils.json_utils import load_json, save_json
 
 logger = logging.getLogger("steamlibmgr.appinfo_manager")
 
@@ -108,36 +108,28 @@ class AppInfoManager:
 
         Supports both old (direct metadata) and new (original + modified) formats.
         """
-        if not self.metadata_file.exists():
+        file_data = load_json(self.metadata_file)
+        if not file_data:
             self.modifications = {}
             self.modified_apps = []
             return
 
-        try:
-            with open(self.metadata_file, "r", encoding="utf-8") as f:
-                file_data = json.load(f)
+        # Support both old and new formats
+        self.modifications = {}
+        self.modified_apps = []
 
-            # Support both old and new formats
-            self.modifications = {}
-            self.modified_apps = []
+        for app_id_str, mod_data in file_data.items():
+            if isinstance(mod_data, dict):
+                # New format: {"original": {...}, "modified": {...}}
+                if "original" in mod_data or "modified" in mod_data:
+                    self.modifications[app_id_str] = mod_data
+                else:
+                    # Old format: Direct metadata
+                    self.modifications[app_id_str] = {"original": {}, "modified": mod_data}
 
-            for app_id_str, mod_data in file_data.items():
-                if isinstance(mod_data, dict):
-                    # New format: {"original": {...}, "modified": {...}}
-                    if "original" in mod_data or "modified" in mod_data:
-                        self.modifications[app_id_str] = mod_data
-                    else:
-                        # Old format: Direct metadata
-                        self.modifications[app_id_str] = {"original": {}, "modified": mod_data}
+                self.modified_apps.append(app_id_str)
 
-                    self.modified_apps.append(app_id_str)
-
-            logger.info(t("logs.appinfo.loaded", count=len(self.modifications)))
-
-        except (OSError, json.JSONDecodeError) as e:
-            logger.error(t("logs.appinfo.error", error=str(e)))
-            self.modifications = {}
-            self.modified_apps = []
+        logger.info(t("logs.appinfo.loaded", count=len(self.modifications)))
 
     def load_modifications_only(self) -> dict[str, dict]:
         """Loads ONLY custom_metadata.json, skips binary VDF parsing.
@@ -328,15 +320,10 @@ class AppInfoManager:
         Returns:
             bool: True if the save operation succeeded, False otherwise.
         """
-        try:
-            self.data_dir.mkdir(exist_ok=True, parents=True)
-            with open(self.metadata_file, "w", encoding="utf-8") as f:
-                json.dump(self.modifications, f, indent=2)
+        result = save_json(self.metadata_file, self.modifications)
+        if result:
             logger.info(t("logs.appinfo.saved_mods", count=len(self.modifications)))
-            return True
-        except OSError as e:
-            logger.error(t("logs.appinfo.error", error=str(e)))
-            return False
+        return result
 
     def write_to_vdf(self, backup: bool = True) -> bool:
         """

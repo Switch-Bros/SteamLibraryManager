@@ -19,64 +19,90 @@ class UIHelper:
     """A static helper class for common UI dialog interactions."""
 
     @staticmethod
-    def show_error(parent: QWidget, message: str, title: str | None = None) -> None:
-        """
-        Displays a standardized critical error message box.
+    def _show_message(
+        parent: QWidget,
+        message: str,
+        title: str,
+        icon: QMessageBox.Icon,
+    ) -> None:
+        """Display a message box with a localized OK button.
 
         Args:
-            parent (QWidget): The parent widget for the dialog.
-            message (str): The main error message to display.
-            title (str | None): The title for the dialog window. Defaults to the
-                                   common 'Error' translation.
+            parent: The parent widget for the dialog.
+            message: The message text to display.
+            title: The dialog window title.
+            icon: The QMessageBox icon to show.
         """
-        if title is None:
-            title = t("common.error")
-        QMessageBox.critical(parent, title, message)
+        msg = QMessageBox(parent)
+        msg.setWindowTitle(title)
+        msg.setText(message)
+        msg.setIcon(icon)
+        msg.addButton(t("common.ok"), QMessageBox.ButtonRole.AcceptRole)
+        msg.exec()
+
+    @staticmethod
+    def show_error(parent: QWidget, message: str, title: str | None = None) -> None:
+        """Displays a critical error message box with localized OK button.
+
+        Args:
+            parent: The parent widget for the dialog.
+            message: The main error message to display.
+            title: The title for the dialog window. Defaults to common 'Error'.
+        """
+        UIHelper._show_message(
+            parent,
+            message,
+            title or t("common.error"),
+            QMessageBox.Icon.Critical,
+        )
 
     @staticmethod
     def show_success(parent: QWidget, message: str, title: str | None = None) -> None:
-        """
-        Displays a standardized informational success message box.
+        """Displays an informational success message box with localized OK button.
 
         Args:
-            parent (QWidget): The parent widget for the dialog.
-            message (str): The success message to display.
-            title (str | None): The title for the dialog window. Defaults to the
-                                   common 'Success' translation.
+            parent: The parent widget for the dialog.
+            message: The success message to display.
+            title: The title for the dialog window. Defaults to common 'Success'.
         """
-        if title is None:
-            title = t("common.success")
-        QMessageBox.information(parent, title, message)
+        UIHelper._show_message(
+            parent,
+            message,
+            title or t("common.success"),
+            QMessageBox.Icon.Information,
+        )
 
     @staticmethod
     def show_warning(parent: QWidget, message: str, title: str | None = None) -> None:
-        """
-        Displays a standardized warning message box.
+        """Displays a warning message box with localized OK button.
 
         Args:
-            parent (QWidget): The parent widget for the dialog.
-            message (str): The warning message to display.
-            title (str | None): The title for the dialog window. Defaults to the
-                                   common 'Warning' translation.
+            parent: The parent widget for the dialog.
+            message: The warning message to display.
+            title: The title for the dialog window. Defaults to common 'Warning'.
         """
-        if title is None:
-            title = t("common.warning")  # Use the new 'warning' key
-        QMessageBox.warning(parent, title, message)
+        UIHelper._show_message(
+            parent,
+            message,
+            title or t("common.warning"),
+            QMessageBox.Icon.Warning,
+        )
 
     @staticmethod
     def show_info(parent: QWidget, message: str, title: str | None = None) -> None:
-        """
-        Displays a standardized informational message box.
+        """Displays an informational message box with localized OK button.
 
         Args:
-            parent (QWidget): The parent widget for the dialog.
-            message (str): The informational message to display.
-            title (str | None): The title for the dialog window. Defaults to the
-                                   common 'Info' translation.
+            parent: The parent widget for the dialog.
+            message: The informational message to display.
+            title: The title for the dialog window. Defaults to common 'Info'.
         """
-        if title is None:
-            title = t("common.info")
-        QMessageBox.information(parent, title, message)
+        UIHelper._show_message(
+            parent,
+            message,
+            title or t("common.info"),
+            QMessageBox.Icon.Information,
+        )
 
     @staticmethod
     def confirm(parent: QWidget, question: str, title: str | None = None) -> bool:

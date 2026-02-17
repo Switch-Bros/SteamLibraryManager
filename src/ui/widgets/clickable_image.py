@@ -10,17 +10,19 @@ superimposed badges based on metadata.
 
 from __future__ import annotations
 
-from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout
+import logging
+import os
+from typing import cast
+
+import requests
 from PyQt6.QtCore import Qt, pyqtSignal, QThread, QByteArray, QTimer, QPropertyAnimation, QEasingCurve, QRect
 from PyQt6.QtGui import QPixmap, QCursor, QImage
-from typing import cast
-import logging
-import requests
-import os
+from PyQt6.QtWidgets import QLabel, QWidget, QVBoxLayout, QHBoxLayout
 
 os.environ["OPENCV_LOG_LEVEL"] = "SILENT"
 import io
 from src.config import config
+from src.ui.theme import Theme
 from src.utils.i18n import t
 
 logger = logging.getLogger("steamlibmgr.clickable_image")
@@ -128,7 +130,7 @@ class ClickableImage(QWidget):
         # image_label — fills the entire widget (as before)
         self.image_label = QLabel(self)
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.image_label.setStyleSheet("border: 1px solid #FDE100; background-color: #1b2838;")
+        self.image_label.setStyleSheet(f"border: 1px solid {Theme.PEGI_HOVER}; background-color: {Theme.BG_PRIMARY};")
         self.image_label.setGeometry(0, 0, width, height)
         self.image_label.setScaledContents(False)
         # Pass through mouse events so enterEvent/leaveEvent work on self

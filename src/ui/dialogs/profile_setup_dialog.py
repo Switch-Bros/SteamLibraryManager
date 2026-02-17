@@ -21,12 +21,12 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QLabel,
     QLineEdit,
-    QMessageBox,
     QProgressBar,
 )
 
 from src.core.steam_account import SteamAccount
 from src.core.steam_account_scanner import scan_steam_accounts, fetch_steam_display_name
+from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
 
@@ -226,7 +226,7 @@ class ProfileSetupDialog(QDialog):
 
                 self.accept()
             else:
-                QMessageBox.warning(self, t("common.error"), t("steam.login.error_no_steam_id"))
+                UIHelper.show_warning(self, t("steam.login.error_no_steam_id"))
 
     @staticmethod
     def _save_login_tokens(login_result: dict | None, steam_id: str) -> None:
@@ -265,18 +265,20 @@ class ProfileSetupDialog(QDialog):
                     self.accept()
                     return
 
-            QMessageBox.warning(self, t("common.error"), t("steam.profile_setup.select_account_first"))
+            UIHelper.show_warning(self, t("steam.profile_setup.select_account_first"))
 
         elif self.radio_login.isChecked():
-            QMessageBox.information(
-                self, t("steam.profile_setup.login_required"), t("steam.profile_setup.click_steam_login_button")
+            UIHelper.show_info(
+                self,
+                t("steam.profile_setup.click_steam_login_button"),
+                title=t("steam.profile_setup.login_required"),
             )
 
         elif self.radio_manual.isChecked():
             steamid_text = self.input_steamid.text().strip()
 
             if not steamid_text:
-                QMessageBox.warning(self, t("common.error"), t("steam.profile_setup.enter_steamid64"))
+                UIHelper.show_warning(self, t("steam.profile_setup.enter_steamid64"))
                 return
 
             try:
@@ -290,13 +292,13 @@ class ProfileSetupDialog(QDialog):
                 self.accept()
 
             except ValueError:
-                QMessageBox.warning(self, t("common.error"), t("steam.profile_setup.invalid_steamid64"))
+                UIHelper.show_warning(self, t("steam.profile_setup.invalid_steamid64"))
 
         elif self.radio_community.isChecked():
             custom_url = self.input_community.text().strip().lower()
 
             if not custom_url:
-                QMessageBox.warning(self, t("common.error"), t("steam.profile_setup.enter_custom_url"))
+                UIHelper.show_warning(self, t("steam.profile_setup.enter_custom_url"))
                 return
 
             steam_id_64 = self._resolve_custom_url(custom_url)
@@ -306,7 +308,7 @@ class ProfileSetupDialog(QDialog):
                 self.selected_display_name = fetch_steam_display_name(steam_id_64)
                 self.accept()
             else:
-                QMessageBox.warning(self, t("common.error"), t("steam.profile_setup.custom_url_not_found"))
+                UIHelper.show_warning(self, t("steam.profile_setup.custom_url_not_found"))
 
     @staticmethod
     def _resolve_custom_url(custom_url: str) -> int | None:

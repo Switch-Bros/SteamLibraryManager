@@ -1,35 +1,13 @@
-"""
-UI Utility Package.
+"""UI Utility Package.
 
-This package provides reusable UI helper functions organized into three modules:
-- ui_helpers: Generic widget creation and styling
-- dialog_helpers: Common dialog patterns
+This package provides reusable UI helper functions:
 - qt_utils: Low-level Qt utilities
+
+Note: Widget creation helpers moved to src.ui.widgets.widget_factory.
+      Dialog helpers merged into src.ui.widgets.ui_helper.UIHelper.
 """
 
 from __future__ import annotations
-
-# UI Helpers - Widget creation and styling
-from src.ui.utils.ui_helpers import (
-    create_splitter,
-    create_search_bar,
-    create_progress_dialog,
-    create_labeled_widget,
-    set_widget_margins,
-    apply_dark_theme_to_widget,
-    ask_save_changes,
-)
-
-# Dialog Helpers - Common dialog patterns
-from src.ui.utils.dialog_helpers import (
-    ask_confirmation,
-    ask_text_input,
-    ask_choice,
-    show_warning,
-    show_info,
-    show_error,
-    ask_yes_no_cancel,
-)
 
 # Qt Utils - Low-level Qt utilities
 from src.ui.utils.qt_utils import (
@@ -46,22 +24,6 @@ from src.ui.utils.qt_utils import (
 )
 
 __all__ = [
-    # UI Helpers
-    "create_splitter",
-    "create_search_bar",
-    "create_progress_dialog",
-    "create_labeled_widget",
-    "set_widget_margins",
-    "apply_dark_theme_to_widget",
-    "ask_save_changes",
-    # Dialog Helpers
-    "ask_confirmation",
-    "ask_text_input",
-    "ask_choice",
-    "show_warning",
-    "show_info",
-    "show_error",
-    "ask_yes_no_cancel",
     # Qt Utils
     "clear_layout",
     "find_child_by_name",

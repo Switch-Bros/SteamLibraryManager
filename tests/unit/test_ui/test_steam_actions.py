@@ -67,38 +67,30 @@ class TestStartSteamLogin:
 class TestShowAbout:
     """Tests for show_about() method."""
 
-    @patch("src.ui.actions.steam_actions.QMessageBox")
-    def test_show_about_displays_dialog(self, _mock_qmessagebox, steam_actions, mock_main_window):
-        """Should display QMessageBox.about() with translated text."""
-        # Execute
+    @patch("src.ui.actions.steam_actions.UIHelper")
+    def test_show_about_displays_dialog(self, mock_ui_helper, steam_actions, mock_main_window):
+        """Should display UIHelper.show_info() with translated text."""
         steam_actions.show_about()
 
-        # Assert
-        _mock_qmessagebox.about.assert_called_once()
-
-        # Check that parent window was passed
-        call_args = _mock_qmessagebox.about.call_args[0]
-        assert call_args[0] == mock_main_window
+        mock_ui_helper.show_info.assert_called_once()
+        call_args = mock_ui_helper.show_info.call_args
+        assert call_args[0][0] == mock_main_window
 
     @patch("src.ui.actions.steam_actions.t")
-    @patch("src.ui.actions.steam_actions.QMessageBox")
-    def test_show_about_uses_i18n(self, _mock_qmessagebox, mock_t, steam_actions, mock_main_window):
+    @patch("src.ui.actions.steam_actions.UIHelper")
+    def test_show_about_uses_i18n(self, mock_ui_helper, mock_t, steam_actions, mock_main_window):
         """Should use t() for internationalized text."""
-        # Setup
-        mock_t.side_effect = lambda key: f"TRANSLATED_{key}"
+        mock_t.side_effect = lambda key, **kw: f"TRANSLATED_{key}"
 
-        # Execute
         steam_actions.show_about()
 
-        # Assert - t() was called for title and description
         mock_t.assert_any_call("menu.help.about")
         mock_t.assert_any_call("common.description")
 
-        # Verify QMessageBox.about was called with translated strings
-        _mock_qmessagebox.about.assert_called_once()
-        call_args = _mock_qmessagebox.about.call_args[0]
-        assert call_args[1] == "TRANSLATED_menu.help.about"
-        assert call_args[2] == "TRANSLATED_common.description"
+        mock_ui_helper.show_info.assert_called_once()
+        call_args = mock_ui_helper.show_info.call_args
+        assert call_args[0][1] == "TRANSLATED_common.description"
+        assert call_args[1]["title"] == "TRANSLATED_menu.help.about"
 
 
 # ==================================================================

@@ -27,11 +27,11 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QFrame,
     QWidget,
-    QMessageBox,
     QProgressBar,
 )
 
 from src.core.steam_login_manager import SteamLoginManager
+from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
 logger = logging.getLogger("steamlibmgr.login_dialog")
@@ -363,7 +363,7 @@ class ModernSteamLoginDialog(QDialog):
         """Handle login error."""
         self.hide_progress()
         self.pwd_login_btn.setEnabled(True)
-        QMessageBox.critical(self, t("common.error"), error)
+        UIHelper.show_error(self, error)
 
     def on_status_update(self, message: str):
         """Update status bar."""
@@ -374,7 +374,7 @@ class ModernSteamLoginDialog(QDialog):
         self.hide_progress()
         self.on_status_update(message)
         # Show message in password section
-        QMessageBox.information(self, t("steam.login.waiting_approval_title"), message)
+        UIHelper.show_info(self, message, title=t("steam.login.waiting_approval_title"))
 
     def load_qr_image(self, challenge_url: str):
         """Generate and display QR code from Steam challenge URL with optional logo."""
