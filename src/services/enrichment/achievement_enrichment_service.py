@@ -12,8 +12,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from PyQt6.QtCore import QThread, pyqtSignal
-
+from src.services.enrichment.base_enrichment_thread import BaseEnrichmentThread
 from src.utils.i18n import t
 
 logger = logging.getLogger("steamlibmgr.achievement_enrichment")
@@ -21,31 +20,23 @@ logger = logging.getLogger("steamlibmgr.achievement_enrichment")
 __all__ = ["AchievementEnrichmentThread"]
 
 
-class AchievementEnrichmentThread(QThread):
+class AchievementEnrichmentThread(BaseEnrichmentThread):
     """Background thread for fetching Steam achievement data.
 
     Iterates over games without achievement data, fetches schema + player
     progress + global rarity from Steam Web API, and writes results to the
     database.
-
-    Signals:
-        progress: Emitted per game (status_text, current_index, total_count).
-        finished_enrichment: Emitted on completion (success_count, failed_count).
-        error: Emitted on fatal errors (error_message).
     """
-
-    progress = pyqtSignal(str, int, int)
-    finished_enrichment = pyqtSignal(int, int)
-    error = pyqtSignal(str)
 
     def __init__(self, parent: Any = None) -> None:
         """Initializes the AchievementEnrichmentThread."""
         super().__init__(parent)
-        self._cancelled: bool = False
         self._games: list[tuple[int, str]] = []
         self._db_path: Path | None = None
         self._api_key: str = ""
         self._steam_id: str = ""
+        self._db: Any = None
+        self._api: Any = None
 
     def configure(
         self,
@@ -67,64 +58,69 @@ class AchievementEnrichmentThread(QThread):
         self._api_key = api_key
         self._steam_id = steam_id
 
-    def cancel(self) -> None:
-        """Requests cancellation of the enrichment."""
-        self._cancelled = True
+    # ── BaseEnrichmentThread hooks ──────────────────────
 
-    def run(self) -> None:
-        """Executes the achievement enrichment in the background thread."""
+    def _setup(self) -> None:
+        """Opens database and API connections.
+
+        Raises:
+            ValueError: If required configuration is missing.
+        """
         from src.core.database import Database
         from src.integrations.steam_web_api import SteamWebAPI
 
-        self._cancelled = False
-        total = len(self._games)
-        success = 0
-        failed = 0
-
         if not self._db_path or not self._api_key or not self._steam_id:
-            self.error.emit("Missing configuration (db_path, api_key, or steam_id)")
-            return
+            msg = "Missing configuration (db_path, api_key, or steam_id)"
+            raise ValueError(msg)
 
-        try:
-            db = Database(self._db_path)
-            api = SteamWebAPI(self._api_key)
-        except Exception as exc:
-            self.error.emit(str(exc))
-            return
+        self._db = Database(self._db_path)
+        self._api = SteamWebAPI(self._api_key)
 
-        try:
-            for idx, (app_id, name) in enumerate(self._games):
-                if self._cancelled:
-                    break
+    def _cleanup(self) -> None:
+        """Commits and closes the database connection."""
+        if self._db:
+            try:
+                self._db.commit()
+            except Exception:
+                pass
+            self._db.close()
+            self._db = None
 
-                self.progress.emit(
-                    t("ui.enrichment.progress", name=name[:30], current=idx + 1, total=total),
-                    idx + 1,
-                    total,
-                )
+    def _get_items(self) -> list:
+        """Returns the list of games to enrich."""
+        return self._games
 
-                try:
-                    enriched = self._enrich_game(api, db, app_id)
-                    if enriched:
-                        success += 1
-                    else:
-                        failed += 1
-                except Exception as exc:
-                    logger.warning("Achievement enrichment failed for %d: %s", app_id, exc)
-                    failed += 1
+    def _process_item(self, item: Any) -> bool:
+        """Fetches and stores achievement data for a single game.
 
-                # Rate limiting: ~1 second between games
-                if idx < total - 1:
-                    time.sleep(1.0)
+        Args:
+            item: Tuple of (app_id, name).
 
-            db.commit()
-        except Exception as exc:
-            self.error.emit(str(exc))
-            return
-        finally:
-            db.close()
+        Returns:
+            True if data was successfully fetched and stored.
+        """
+        app_id, _name = item
+        return self._enrich_game(self._api, self._db, app_id)
 
-        self.finished_enrichment.emit(success, failed)
+    def _format_progress(self, item: Any, current: int, total: int) -> str:
+        """Formats progress text with the game name.
+
+        Args:
+            item: Tuple of (app_id, name).
+            current: 1-based current index.
+            total: Total games count.
+
+        Returns:
+            Formatted progress string.
+        """
+        _app_id, name = item
+        return t("ui.enrichment.progress", name=name[:30], current=current, total=total)
+
+    def _rate_limit(self) -> None:
+        """Sleeps 1 second between games."""
+        time.sleep(1.0)
+
+    # ── Internal ────────────────────────────────────────
 
     def _enrich_game(
         self,
