@@ -9,7 +9,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PyQt6.QtWidgets import (
-    QDialog,
     QHBoxLayout,
     QLabel,
     QProgressBar,
@@ -19,6 +18,7 @@ from PyQt6.QtWidgets import (
 
 from src.services.enrichment.enrichment_service import EnrichmentThread
 from src.ui.utils.font_helper import FontHelper
+from src.ui.widgets.base_dialog import BaseDialog
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 __all__ = ["EnrichmentDialog"]
 
 
-class EnrichmentDialog(QDialog):
+class EnrichmentDialog(BaseDialog):
     """Progress dialog for background enrichment operations.
 
     Shows a title, progress bar, current item label, and cancel button.
@@ -42,21 +42,27 @@ class EnrichmentDialog(QDialog):
         """Initializes the EnrichmentDialog.
 
         Args:
-            title: Dialog title text.
+            title: Dialog title text (displayed as header label).
             parent: Parent widget.
         """
-        super().__init__(parent)
-        self.setWindowTitle(t("ui.enrichment.dialog_title"))
-        self.setMinimumWidth(500)
-        self.setMinimumHeight(150)
-        self.setModal(True)
-
+        self._header_title = title
         self._thread: EnrichmentThread | None = None
+        super().__init__(
+            parent,
+            title_key="ui.enrichment.dialog_title",
+            show_title_label=False,
+            buttons="custom",
+        )
+        self.setMinimumHeight(150)
 
-        layout = QVBoxLayout(self)
+    def _build_content(self, layout: QVBoxLayout) -> None:
+        """Adds progress bar, status label, and cancel button.
 
-        # Title label
-        title_label = QLabel(title)
+        Args:
+            layout: The main vertical layout.
+        """
+        # Title label (uses raw string, not the window title key)
+        title_label = QLabel(self._header_title)
         title_label.setFont(FontHelper.get_font(size=14, weight=FontHelper.BOLD))
         layout.addWidget(title_label)
 
