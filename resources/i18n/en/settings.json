@@ -9,8 +9,6 @@
     },
     "libraries": {
       "title": "Steam Library Folders",
-      "add": "Add",
-      "remove": "Remove",
       "confirm_remove": "Remove Library",
       "confirm_msg": "Do you really want to remove this library path?"
     },
@@ -32,8 +30,7 @@
       "step_2": "2. Generate/Copy API Key",
       "step_3": "3. Paste Key below",
       "get_key_btn": "Get API Key (Open Browser)",
-      "key_placeholder": "Paste API Key here...",
-      "save_btn": "Save"
+      "key_placeholder": "Paste API Key here..."
     },
     "general": {
       "steam_path": "Steam Installation Path",

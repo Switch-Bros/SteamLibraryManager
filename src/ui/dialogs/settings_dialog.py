@@ -174,11 +174,11 @@ class SettingsDialog(QDialog):
         lib_main_layout.addWidget(self.lib_list)
 
         lib_btn_layout = QHBoxLayout()
-        self.btn_add_lib = QPushButton(t("settings.libraries.add"))
+        self.btn_add_lib = QPushButton(t("common.add"))
         # noinspection PyUnresolvedReferences
         self.btn_add_lib.clicked.connect(self._add_library)
 
-        self.btn_remove_lib = QPushButton(t("settings.libraries.remove"))
+        self.btn_remove_lib = QPushButton(t("common.remove"))
         # noinspection PyUnresolvedReferences
         self.btn_remove_lib.clicked.connect(self._remove_library)
 
@@ -300,7 +300,7 @@ class SettingsDialog(QDialog):
 
     def _add_library(self):
         """Open a file dialog to add a new Steam library folder path."""
-        title = t("settings.libraries.add")
+        title = t("common.add")
         path = QFileDialog.getExistingDirectory(self, title)
         if path:
             # Avoid duplicates

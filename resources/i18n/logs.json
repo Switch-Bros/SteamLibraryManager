@@ -97,7 +97,6 @@
       "failed": "Backup failed: {error}",
       "rotated": "Rotated backup: {name}",
       "delete_error": "Error deleting old backup {name}: {error}",
-      "backup_failed": "Backup failed: {error}",
       "restore_success": "Backup restored: {name}",
       "restore_failed": "Backup restore failed: {error}"
     },
@@ -118,7 +117,6 @@
       "write_error": "Error writing appinfo.vdf: {error}",
       "unknown_type": "Warning: Unknown VDF type {type}",
       "string_index_out_of_range": "Warning: String index out of range at offset {offset}",
-      "parse_warning": "Failed to parse app {app_id}: {error}",
       "unknown_vdf_type": "Unknown VDF type {type}, skipping",
       "string_index_warning": "String index {index} out of range (table size: {size})",
       "write_error_detail": "Error writing appinfo.vdf: {error}"

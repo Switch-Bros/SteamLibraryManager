@@ -184,7 +184,7 @@ class ImageSelectionDialog(QDialog):
         self.key_input.setMinimumHeight(35)
         input_layout.addWidget(self.key_input)
 
-        save_btn = QPushButton(t("settings.grid_setup.save_btn"))
+        save_btn = QPushButton(t("common.save"))
         save_btn.setMinimumHeight(35)
         save_btn.clicked.connect(self._save_key_and_reload)
         input_layout.addWidget(save_btn)

@@ -9,8 +9,6 @@
     },
     "libraries": {
       "title": "Steam Bibliotheks-Ordner",
-      "add": "Hinzufügen",
-      "remove": "Entfernen",
       "confirm_remove": "Bibliothek entfernen",
       "confirm_msg": "Möchtest du diesen Bibliotheks-Pfad wirklich entfernen?"
     },
@@ -32,8 +30,7 @@
       "step_2": "2. API Key generieren/kopieren",
       "step_3": "3. Key hier einfügen",
       "get_key_btn": "Key holen (Browser öffnen)",
-      "key_placeholder": "API Key hier einfügen...",
-      "save_btn": "Speichern"
+      "key_placeholder": "API Key hier einfügen..."
     },
     "general": {
       "steam_path": "Steam Pfad",
