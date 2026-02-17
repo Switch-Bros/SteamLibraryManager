@@ -15,6 +15,7 @@ from pathlib import Path
 from src.services.smart_collections.models import (
     LogicOperator,
     SmartCollection,
+    group_from_dict,
     rule_from_dict,
 )
 
@@ -26,8 +27,9 @@ logger = logging.getLogger("steamlibmgr.smart_collection_importer")
 class SmartCollectionImporter:
     """Imports Smart Collections from JSON format.
 
-    Supports version 1.0 of the export format. Unknown fields are
-    silently ignored for forward compatibility.
+    Supports version 1.0 (flat rules) and 1.1 (grouped rules) of the
+    export format. Unknown fields are silently ignored for forward
+    compatibility.
     """
 
     @staticmethod
@@ -80,8 +82,10 @@ class SmartCollectionImporter:
     def _dict_to_collection(data: dict) -> SmartCollection:
         """Deserializes a single Smart Collection from a dict.
 
+        Supports both v1.0 (flat ``"rules"``) and v1.1 (``"groups"``) formats.
+
         Args:
-            data: Dict with name, logic, rules, and optional metadata.
+            data: Dict with name, logic, rules/groups, and optional metadata.
 
         Returns:
             SmartCollection instance ready for creation.
@@ -103,15 +107,25 @@ class SmartCollectionImporter:
             logger.warning("Unknown logic '%s', defaulting to OR", logic_str)
             logic = LogicOperator.OR
 
-        # Parse rules
-        raw_rules = data.get("rules", [])
-        if not isinstance(raw_rules, list):
-            msg = "'rules' must be a list"
-            raise ValueError(msg)
-
+        groups = []
         rules = []
-        for rule_data in raw_rules:
-            rules.append(rule_from_dict(rule_data))
+
+        # v1.1 format: groups
+        if "groups" in data:
+            raw_groups = data["groups"]
+            if not isinstance(raw_groups, list):
+                msg = "'groups' must be a list"
+                raise ValueError(msg)
+            for group_data in raw_groups:
+                groups.append(group_from_dict(group_data))
+        else:
+            # v1.0 format: flat rules
+            raw_rules = data.get("rules", [])
+            if not isinstance(raw_rules, list):
+                msg = "'rules' must be a list"
+                raise ValueError(msg)
+            for rule_data in raw_rules:
+                rules.append(rule_from_dict(rule_data))
 
         return SmartCollection(
             name=name,
@@ -119,5 +133,6 @@ class SmartCollectionImporter:
             icon=data.get("icon", "\U0001f9e0"),
             logic=logic,
             rules=rules,
+            groups=groups,
             auto_sync=data.get("auto_sync", True),
         )

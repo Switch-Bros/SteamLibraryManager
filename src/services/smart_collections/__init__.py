@@ -13,6 +13,7 @@ from src.services.smart_collections.models import (
     Operator,
     SmartCollection,
     SmartCollectionRule,
+    SmartCollectionRuleGroup,
 )
 from src.services.smart_collections.smart_collection_manager import SmartCollectionManager
 
@@ -24,4 +25,5 @@ __all__: list[str] = [
     "SmartCollectionEvaluator",
     "SmartCollectionManager",
     "SmartCollectionRule",
+    "SmartCollectionRuleGroup",
 ]

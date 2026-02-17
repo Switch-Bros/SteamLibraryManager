@@ -20,6 +20,7 @@ from src.services.smart_collections.models import (
     Operator,
     SmartCollection,
     SmartCollectionRule,
+    SmartCollectionRuleGroup,
     field_to_game_attr,
 )
 
@@ -44,7 +45,10 @@ class SmartCollectionEvaluator:
     def evaluate(self, game: Game, collection: SmartCollection) -> bool:
         """Checks if a game matches a Smart Collection's rules.
 
-        Uses AND or OR logic between rules depending on the collection's logic operator.
+        When the collection has groups, evaluates using grouped logic
+        (each group has its own internal AND/OR, and the top-level logic
+        combines group results).  Otherwise falls back to the legacy flat
+        rule evaluation.
 
         Args:
             game: The game to evaluate.
@@ -53,6 +57,10 @@ class SmartCollectionEvaluator:
         Returns:
             True if the game matches the collection's rules.
         """
+        if collection.groups:
+            return self._evaluate_groups(game, collection)
+
+        # Legacy flat-rule path
         if not collection.rules:
             return False
 
@@ -60,6 +68,41 @@ class SmartCollectionEvaluator:
             return all(self._evaluate_rule(game, rule) for rule in collection.rules)
         # OR
         return any(self._evaluate_rule(game, rule) for rule in collection.rules)
+
+    def _evaluate_groups(self, game: Game, collection: SmartCollection) -> bool:
+        """Evaluates a game against grouped rules.
+
+        Each group is evaluated independently with its internal logic operator,
+        then group results are combined with the collection's top-level logic.
+
+        Args:
+            game: The game to evaluate.
+            collection: The Smart Collection with groups.
+
+        Returns:
+            True if the game matches according to the group logic.
+        """
+        group_results = [self._evaluate_group(game, g) for g in collection.groups]
+        if collection.logic == LogicOperator.AND:
+            return all(group_results)
+        return any(group_results)
+
+    def _evaluate_group(self, game: Game, group: SmartCollectionRuleGroup) -> bool:
+        """Evaluates a single rule group against a game.
+
+        Args:
+            game: The game to evaluate.
+            group: The rule group with its internal logic operator.
+
+        Returns:
+            True if the game matches the group's rules. False if the group has no rules.
+        """
+        if not group.rules:
+            return False
+
+        if group.logic == LogicOperator.AND:
+            return all(self._evaluate_rule(game, rule) for rule in group.rules)
+        return any(self._evaluate_rule(game, rule) for rule in group.rules)
 
     def _evaluate_rule(self, game: Game, rule: SmartCollectionRule) -> bool:
         """Evaluates a single rule against a game, handling negation.

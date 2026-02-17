@@ -22,10 +22,13 @@ __all__ = [
     "Operator",
     "SmartCollection",
     "SmartCollectionRule",
+    "SmartCollectionRuleGroup",
     "VALID_OPERATORS",
     "collection_from_json",
     "collection_to_json",
     "field_to_game_attr",
+    "group_from_dict",
+    "group_to_dict",
     "rule_from_dict",
     "rule_to_dict",
 ]
@@ -242,17 +245,41 @@ class SmartCollectionRule:
     negated: bool = False
 
 
+@dataclass(frozen=True)
+class SmartCollectionRuleGroup:
+    """A group of rules with its own internal logic operator.
+
+    Groups enable nested boolean logic: e.g. (A AND B) OR (C AND D).
+    Each group evaluates its rules with its own logic operator, and the
+    top-level SmartCollection logic operator combines group results.
+
+    Attributes:
+        logic: The logic operator applied between rules within this group.
+        rules: The rules in this group.
+    """
+
+    logic: LogicOperator = LogicOperator.AND
+    rules: tuple[SmartCollectionRule, ...] = ()
+
+
 @dataclass
 class SmartCollection:
     """A Smart Collection with its rules and metadata.
+
+    When ``groups`` is non-empty the evaluator uses grouped logic:
+    each group is evaluated with its own internal logic operator, and
+    ``logic`` combines group results at the top level.
+    When ``groups`` is empty but ``rules`` is non-empty, the legacy
+    flat-rule evaluation path is used for backward compatibility.
 
     Attributes:
         collection_id: Database primary key (0 for unsaved).
         name: Display name of the collection.
         description: Optional description.
         icon: Emoji icon for display.
-        logic: Top-level logic operator between rules (AND/OR).
-        rules: List of filter rules.
+        logic: Top-level logic operator between rules/groups (AND/OR).
+        rules: Legacy flat list of filter rules.
+        groups: Grouped rules with per-group logic operators.
         is_active: Whether the collection is evaluated on refresh.
         auto_sync: Whether to sync matching games to Steam cloud.
         last_evaluated: Unix timestamp of last evaluation.
@@ -265,6 +292,7 @@ class SmartCollection:
     icon: str = "\U0001f9e0"
     logic: LogicOperator = LogicOperator.OR
     rules: list[SmartCollectionRule] = field(default_factory=list)
+    groups: list[SmartCollectionRuleGroup] = field(default_factory=list)
     is_active: bool = True
     auto_sync: bool = True
     last_evaluated: int = 0
@@ -315,31 +343,88 @@ def rule_from_dict(data: dict) -> SmartCollectionRule:
     )
 
 
+def group_to_dict(group: SmartCollectionRuleGroup) -> dict:
+    """Serializes a SmartCollectionRuleGroup to a JSON-compatible dict.
+
+    Args:
+        group: The rule group to serialize.
+
+    Returns:
+        Dict with logic and rules array.
+    """
+    return {
+        "logic": group.logic.value,
+        "rules": [rule_to_dict(r) for r in group.rules],
+    }
+
+
+def group_from_dict(data: dict) -> SmartCollectionRuleGroup:
+    """Deserializes a SmartCollectionRuleGroup from a dict.
+
+    Args:
+        data: Dict with logic and rules array.
+
+    Returns:
+        A SmartCollectionRuleGroup instance.
+
+    Raises:
+        ValueError: If logic operator value is invalid.
+    """
+    try:
+        logic = LogicOperator(data.get("logic", "AND"))
+    except ValueError:
+        logger.warning("Unknown group logic '%s', defaulting to AND", data.get("logic"))
+        logic = LogicOperator.AND
+
+    parsed_rules: list[SmartCollectionRule] = []
+    for rule_data in data.get("rules", []):
+        try:
+            parsed_rules.append(rule_from_dict(rule_data))
+        except (ValueError, KeyError) as exc:
+            logger.warning("Skipping invalid rule in group %s: %s", rule_data, exc)
+
+    return SmartCollectionRuleGroup(
+        logic=logic,
+        rules=tuple(parsed_rules),
+    )
+
+
 def collection_to_json(collection: SmartCollection) -> str:
     """Serializes a SmartCollection's rules to a JSON string for DB storage.
+
+    When ``groups`` is non-empty, the v2 format with a ``"groups"`` key is
+    used.  Otherwise the legacy v1 format with a flat ``"rules"`` key is
+    produced for backward compatibility.
 
     Args:
         collection: The SmartCollection to serialize.
 
     Returns:
-        JSON string with logic and rules array.
+        JSON string with logic and rules/groups.
     """
-    payload = {
+    payload: dict = {
         "logic": collection.logic.value,
-        "rules": [rule_to_dict(r) for r in collection.rules],
     }
+
+    if collection.groups:
+        payload["groups"] = [group_to_dict(g) for g in collection.groups]
+    else:
+        payload["rules"] = [rule_to_dict(r) for r in collection.rules]
+
     return json.dumps(payload, ensure_ascii=False)
 
 
 def collection_from_json(rules_json: str, collection: SmartCollection | None = None) -> SmartCollection:
     """Deserializes rules JSON into a SmartCollection (or updates an existing one).
 
+    Supports both v1 (flat ``"rules"``) and v2 (``"groups"``) formats.
+
     Args:
-        rules_json: JSON string with logic and rules array.
+        rules_json: JSON string with logic and rules/groups.
         collection: Optional existing SmartCollection to update. If None, a new one is created.
 
     Returns:
-        SmartCollection with deserialized rules and logic.
+        SmartCollection with deserialized rules/groups and logic.
     """
     if collection is None:
         collection = SmartCollection()
@@ -359,7 +444,18 @@ def collection_from_json(rules_json: str, collection: SmartCollection | None = N
         except ValueError:
             logger.warning("Unknown logic operator: %s", data["logic"])
 
-    if "rules" in data:
+    # v2 format: groups
+    if "groups" in data:
+        parsed_groups: list[SmartCollectionRuleGroup] = []
+        for group_data in data["groups"]:
+            try:
+                parsed_groups.append(group_from_dict(group_data))
+            except (ValueError, KeyError) as exc:
+                logger.warning("Skipping invalid group %s: %s", group_data, exc)
+        collection.groups = parsed_groups
+        collection.rules = []
+    # v1 format: flat rules
+    elif "rules" in data:
         parsed_rules: list[SmartCollectionRule] = []
         for rule_data in data["rules"]:
             try:
@@ -367,6 +463,7 @@ def collection_from_json(rules_json: str, collection: SmartCollection | None = N
             except (ValueError, KeyError) as exc:
                 logger.warning("Skipping invalid rule %s: %s", rule_data, exc)
         collection.rules = parsed_rules
+        collection.groups = []
 
     collection.last_evaluated = data.get("last_evaluated", collection.last_evaluated)
     return collection
