@@ -138,6 +138,7 @@ class SelectionHandler:
                     self.mw.details_widget.set_game(game, all_categories)
 
         fetch_thread.finished_signal.connect(on_fetch_complete)
+        self._current_fetch = fetch_thread
         fetch_thread.start()
 
         # Store single reference — old thread finishes silently
