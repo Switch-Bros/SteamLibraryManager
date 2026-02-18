@@ -35,7 +35,7 @@ from src.utils.i18n import t
 if TYPE_CHECKING:
     pass
 
-__all__ = ["RuleRowWidget"]
+__all__ = ["NoScrollComboBox", "RuleRowWidget"]
 
 logger = logging.getLogger("steamlibmgr.rule_row_widget")
 
@@ -51,6 +51,25 @@ _FIELD_HINT_I18N: dict[FilterField, str] = {
     for f in FilterField
     if f not in (FilterField.INSTALLED, FilterField.HIDDEN, FilterField.ACHIEVEMENT_PERFECT)
 }
+
+
+class NoScrollComboBox(QComboBox):
+    """QComboBox that ignores wheel events when not focused.
+
+    Prevents accidental value changes when scrolling through the parent
+    scroll area.
+    """
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+    def wheelEvent(self, event) -> None:  # noqa: N802
+        """Ignores wheel events unless the combo box has focus."""
+        if self.hasFocus():
+            super().wheelEvent(event)
+        else:
+            event.ignore()
 
 
 class RuleRowWidget(QWidget):
@@ -92,14 +111,14 @@ class RuleRowWidget(QWidget):
         layout.addWidget(self._negated_cb)
 
         # Field dropdown (grouped by category)
-        self._field_combo = QComboBox()
+        self._field_combo = NoScrollComboBox()
         self._field_combo.setMinimumWidth(140)
         self._populate_fields()
         self._field_combo.currentIndexChanged.connect(self._on_field_changed)
         layout.addWidget(self._field_combo)
 
         # Operator dropdown
-        self._operator_combo = QComboBox()
+        self._operator_combo = NoScrollComboBox()
         self._operator_combo.setMinimumWidth(100)
         self._operator_combo.currentIndexChanged.connect(lambda _: self.changed.emit())
         layout.addWidget(self._operator_combo)
