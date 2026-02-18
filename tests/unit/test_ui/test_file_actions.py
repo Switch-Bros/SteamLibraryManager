@@ -9,8 +9,10 @@ Tests the File menu action handler that manages:
 - Exit application
 """
 
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
+
 from src.ui.actions.file_actions import FileActions
 
 
@@ -91,7 +93,7 @@ class TestForceSave:
         file_actions.force_save()
 
         # Assert
-        mock_t.assert_called_with("common.save_success")
+        mock_t.assert_called_with("ui.save.success")
         mock_helper.show_success.assert_called_once()
 
 

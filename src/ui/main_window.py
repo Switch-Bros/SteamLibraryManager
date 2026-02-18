@@ -367,7 +367,7 @@ class MainWindow(QMainWindow):
             else:
                 event.ignore()
         else:
-            if UIHelper.confirm(self, t("common.confirm_exit"), __app_name__):
+            if UIHelper.confirm(self, t("ui.exit.confirm"), __app_name__):
                 self._stop_background_threads()
                 event.accept()
             else:

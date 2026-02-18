@@ -178,8 +178,21 @@
       "title": "Sichtbarkeit geändert",
       "message": "{game} ist jetzt {status}."
     },
+    "exit": {
+      "confirm": "Möchten Sie die Anwendung wirklich beenden?",
+      "save_and_exit": "Speichern && Beenden",
+      "discard_and_exit": "Verwerfen && Beenden"
+    },
+    "unsaved_changes": {
+      "title": "Nicht gespeicherte Änderungen",
+      "message": "Es wurden Änderungen an {filenames} vorgenommen.\n\nWollen Sie wirklich die App beenden?\n\nNicht gespeicherte Änderungen gehen verloren!",
+      "save_prompt": "Sie haben ungespeicherte Änderungen. Möchten Sie diese speichern?"
+    },
     "save": {
-      "conflict_warning": "Die Cloud-Speicherdatei wurde seit dem letzten Laden extern geändert. Deine Änderungen wurden gespeichert, aber die externen Änderungen könnten überschrieben worden sein. Ein Backup wurde vorher erstellt."
+      "conflict_warning": "Die Cloud-Speicherdatei wurde seit dem letzten Laden extern geändert. Deine Änderungen wurden gespeichert, aber die externen Änderungen könnten überschrieben worden sein. Ein Backup wurde vorher erstellt.",
+      "success": "Kollektionen erfolgreich gespeichert!",
+      "failed_title": "Speichern fehlgeschlagen",
+      "failed_msg": "Das Speichern ist fehlgeschlagen. Trotzdem schließen?"
     },
     "search": {
       "results_category": "Suchergebnisse ({count})",

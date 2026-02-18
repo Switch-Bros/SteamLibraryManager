@@ -178,8 +178,21 @@
       "title": "Visibility Changed",
       "message": "{game} is now {status}."
     },
+    "exit": {
+      "confirm": "Do you really want to exit the application?",
+      "save_and_exit": "Save && Exit",
+      "discard_and_exit": "Discard && Exit"
+    },
+    "unsaved_changes": {
+      "title": "Unsaved Changes",
+      "message": "Changes were made to {filenames}.\n\nDo you really want to exit?\n\nUnsaved changes will be lost!",
+      "save_prompt": "You have unsaved changes. Would you like to save them?"
+    },
     "save": {
-      "conflict_warning": "The cloud storage file was modified externally since it was last loaded. Your changes have been saved, but the external modifications may have been overwritten. A backup was created before saving."
+      "conflict_warning": "The cloud storage file was modified externally since it was last loaded. Your changes have been saved, but the external modifications may have been overwritten. A backup was created before saving.",
+      "success": "Collections saved successfully!",
+      "failed_title": "Save Failed",
+      "failed_msg": "Saving failed. Close anyway?"
     },
     "search": {
       "results_category": "Search Results ({count})",
