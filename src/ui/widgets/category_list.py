@@ -117,7 +117,10 @@ class HorizontalCategoryList(QListWidget):
                 cb.setStyleSheet("QCheckBox { font-size: 11px; margin-left: 2px; }")
             elif count == total_games:
                 cb.setCheckState(Qt.CheckState.Checked)
-                cb.setStyleSheet("QCheckBox { font-size: 11px; margin-left: 2px; color: #FFD700; font-weight: bold; }")
+                color = Theme.CATEGORY_SELECTED
+                cb.setStyleSheet(
+                    f"QCheckBox {{ font-size: 11px; margin-left: 2px; color: {color}; font-weight: bold; }}"
+                )
             else:
                 cb.setCheckState(Qt.CheckState.PartiallyChecked)
                 cb.setStyleSheet(f"QCheckBox {{ font-size: 11px; margin-left: 2px; color: {Theme.TEXT_MUTED}; }}")
