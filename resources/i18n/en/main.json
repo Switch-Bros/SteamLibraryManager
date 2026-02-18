@@ -20,6 +20,7 @@
       "create_collection_prompt": "Enter the name of the new collection:",
       "collection_exists": "A collection with the name '{name}' already exists!",
       "collection_created": "Collection '{name}' was created!",
+      "collection_created_with_games": "Collection '{name}' created with {count} game(s).",
       "filter_active": "Filters active: {count} of {total} games"
     },
     "game_details": {
@@ -111,7 +112,8 @@
       "auto_categorize": "Auto-Categorize",
       "merge_categories": "Merge Collections",
       "merge_duplicate_collection": "Merge duplicate '{name}' collections...",
-      "create_collection": "Create Collection"
+      "create_collection": "Create Collection",
+      "create_smart_collection": "Create Smart Collection"
     },
     "metadata_editor": {
       "title": "Edit Metadata",
