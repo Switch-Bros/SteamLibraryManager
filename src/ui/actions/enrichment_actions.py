@@ -100,11 +100,22 @@ class EnrichmentActions:
             return
 
         # Create thread with HLTB configuration
+        from src.config import config
+
         db_path = self._get_db_path()
         hltb_client = HLTBClient()
 
+        # Get 64-bit Steam ID for Steam Import prefetch
+        steam_user_id_64 = ""
+        if config.STEAM_USER_ID:
+            steam_user_id_64 = config.STEAM_USER_ID
+        else:
+            _, detected_id_64 = config.get_detected_user()
+            if detected_id_64:
+                steam_user_id_64 = detected_id_64
+
         thread = EnrichmentThread(self.mw)
-        thread.configure_hltb(games, db_path, hltb_client)
+        thread.configure_hltb(games, db_path, hltb_client, steam_user_id=steam_user_id_64)
 
         # Create dialog — thread starts in showEvent
         dialog = EnrichmentDialog(t("ui.enrichment.hltb_title"), self.mw)

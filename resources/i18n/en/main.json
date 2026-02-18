@@ -483,7 +483,8 @@
       "no_games_achievements": "All games already have achievement data.",
       "achievement_title": "Fetching Achievements",
       "achievement_starting": "Starting achievement enrichment...",
-      "no_steam_id": "Steam ID not configured. Please log in first."
+      "no_steam_id": "Steam ID not configured. Please log in first.",
+      "steam_import_loading": "Loading HLTB Steam Import data..."
     },
     "tag_import": {
       "loading_appinfo": "Loading appinfo.vdf...",

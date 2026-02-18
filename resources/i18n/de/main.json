@@ -483,7 +483,8 @@
       "no_games_achievements": "Alle Spiele haben bereits Achievement-Daten.",
       "achievement_title": "Achievements abrufen",
       "achievement_starting": "Starte Achievement-Anreicherung...",
-      "no_steam_id": "Steam-ID nicht konfiguriert. Bitte zuerst einloggen."
+      "no_steam_id": "Steam-ID nicht konfiguriert. Bitte zuerst einloggen.",
+      "steam_import_loading": "Lade HLTB Steam Import Daten..."
     },
     "tag_import": {
       "loading_appinfo": "Lade appinfo.vdf...",

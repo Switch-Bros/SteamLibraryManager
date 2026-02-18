@@ -167,6 +167,12 @@ CREATE TABLE IF NOT EXISTS hltb_data (
     FOREIGN KEY (app_id) REFERENCES games(app_id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS hltb_id_cache (
+    steam_app_id INTEGER PRIMARY KEY,
+    hltb_game_id INTEGER NOT NULL,
+    cached_at INTEGER NOT NULL
+);
+
 -- ============================================================================
 -- PERSONAL NOTES & JOURNAL
 -- ============================================================================
@@ -561,7 +567,7 @@ END;
 -- ============================================================================
 
 INSERT OR IGNORE INTO schema_version (version, applied_at, description)
-VALUES (3, strftime('%s', 'now'), 'Tag definitions + tag_id support');
+VALUES (4, strftime('%s', 'now'), 'HLTB ID cache table');
 
 -- ============================================================================
 -- END OF SCHEMA

@@ -428,25 +428,38 @@ class TestEndpointDiscovery:
         function searchGames(e){return fetch("/api/finder",{method:"POST",body:JSON.stringify(e)})}
         """
 
-        mock_homepage = MagicMock()
-        mock_homepage.text = homepage_html
-        mock_homepage.raise_for_status = MagicMock()
-
         mock_js = MagicMock()
         mock_js.text = js_content
         mock_js.raise_for_status = MagicMock()
 
-        client._session.get = MagicMock(side_effect=[mock_homepage, mock_js])
+        client._session.get = MagicMock(return_value=mock_js)
 
-        path = client._discover_endpoint()
+        path = client._discover_endpoint(homepage_html)
         assert path == "finder"
 
-    def test_discover_returns_empty_on_failure(self) -> None:
-        """Returns empty string when homepage fetch fails."""
+    def test_discover_returns_empty_on_no_match(self) -> None:
+        """Returns empty string when no init pattern found in JS."""
         client = HLTBClient()
-        client._session.get = MagicMock(side_effect=ConnectionError("offline"))
 
-        path = client._discover_endpoint()
+        homepage_html = """
+        <html><head>
+        <script src="/_next/static/chunks/abc123.js"></script>
+        </head><body></body></html>
+        """
+
+        mock_js = MagicMock()
+        mock_js.text = "var x = 42;"
+        mock_js.raise_for_status = MagicMock()
+
+        client._session.get = MagicMock(return_value=mock_js)
+
+        path = client._discover_endpoint(homepage_html)
+        assert path == ""
+
+    def test_discover_returns_empty_on_empty_html(self) -> None:
+        """Returns empty string for empty HTML."""
+        client = HLTBClient()
+        path = client._discover_endpoint("")
         assert path == ""
 
 
@@ -517,3 +530,239 @@ class TestFallbackSearch:
         assert result is not None
         # Only one POST call — no fallback needed
         assert client._session.post.call_count == 1
+
+
+class TestIdCache:
+    """Tests for the steam_app_id → hltb_game_id cache."""
+
+    def test_set_and_get_id_cache(self) -> None:
+        """set_id_cache populates and get_id_cache returns mappings."""
+        client = HLTBClient()
+        mappings = {620: 1234, 730: 5678}
+        client.set_id_cache(mappings)
+
+        result = client.get_id_cache()
+        assert result == {620: 1234, 730: 5678}
+        # Returned copy, not same object
+        assert result is not client._id_cache
+
+    def test_empty_id_cache(self) -> None:
+        """Empty cache returns empty dict."""
+        client = HLTBClient()
+        assert client.get_id_cache() == {}
+
+    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "fetch_game_by_id")
+    def test_search_game_uses_cache(self, mock_fetch: MagicMock, _mock_ready: MagicMock) -> None:
+        """search_game uses ID cache when app_id is cached."""
+        client = _make_ready_client()
+        client.set_id_cache({620: 1234})
+
+        expected_result = HLTBResult(game_name="Portal 2", main_story=8.5, main_extras=13.0, completionist=22.0)
+        mock_fetch.return_value = expected_result
+
+        result = client.search_game("Portal 2", app_id=620)
+
+        assert result is expected_result
+        mock_fetch.assert_called_once_with(1234)
+
+    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "fetch_game_by_id", return_value=None)
+    def test_search_game_falls_back_on_cache_miss(self, _mock_fetch: MagicMock, _mock_ready: MagicMock) -> None:
+        """search_game falls back to name search if fetch_game_by_id returns None."""
+        client = _make_ready_client()
+        client.set_id_cache({620: 9999})
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"data": [_make_hltb_entry("Portal 2")]}
+        mock_resp.raise_for_status = MagicMock()
+        client._session.post = MagicMock(return_value=mock_resp)
+
+        result = client.search_game("Portal 2", app_id=620)
+
+        assert result is not None
+        assert result.game_name == "Portal 2"
+
+    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    def test_search_game_skips_cache_without_app_id(self, _mock_ready: MagicMock) -> None:
+        """search_game skips cache lookup when app_id is 0."""
+        client = _make_ready_client()
+        client.set_id_cache({620: 1234})
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"data": [_make_hltb_entry("Portal 2")]}
+        mock_resp.raise_for_status = MagicMock()
+        client._session.post = MagicMock(return_value=mock_resp)
+
+        result = client.search_game("Portal 2", app_id=0)
+
+        assert result is not None
+        # Should have used POST (name search), not fetch_game_by_id
+        assert client._session.post.call_count == 1
+
+
+class TestFetchSteamImport:
+    """Tests for the fetch_steam_import method."""
+
+    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    def test_fetch_steam_import_success(self, _mock_ready: MagicMock) -> None:
+        """Successfully parses Steam Import API response."""
+        client = _make_ready_client()
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "games": [
+                {"steam_id": 620, "hltb_id": 1234, "name": "Portal 2"},
+                {"steam_id": 730, "hltb_id": 5678, "name": "Counter-Strike 2"},
+                {"steam_id": 0, "hltb_id": 0, "name": "Invalid"},  # filtered out
+            ]
+        }
+        mock_resp.raise_for_status = MagicMock()
+        client._session.post = MagicMock(return_value=mock_resp)
+
+        mappings = client.fetch_steam_import("76561198012345678")
+
+        assert mappings == {620: 1234, 730: 5678}
+
+    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    def test_fetch_steam_import_empty_response(self, _mock_ready: MagicMock) -> None:
+        """Empty response returns empty dict."""
+        client = _make_ready_client()
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"games": []}
+        mock_resp.raise_for_status = MagicMock()
+        client._session.post = MagicMock(return_value=mock_resp)
+
+        mappings = client.fetch_steam_import("76561198012345678")
+
+        assert mappings == {}
+
+    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    def test_fetch_steam_import_network_error(self, _mock_ready: MagicMock) -> None:
+        """Network error returns empty dict."""
+        client = _make_ready_client()
+        client._session.post = MagicMock(side_effect=ConnectionError("timeout"))
+
+        mappings = client.fetch_steam_import("76561198012345678")
+
+        assert mappings == {}
+
+    @patch.object(HLTBClient, "_ensure_api_ready", return_value=False)
+    def test_fetch_steam_import_api_not_ready(self, _mock_ready: MagicMock) -> None:
+        """Returns empty dict when API is not ready."""
+        client = HLTBClient()
+
+        mappings = client.fetch_steam_import("76561198012345678")
+
+        assert mappings == {}
+
+
+class TestFetchGameById:
+    """Tests for the fetch_game_by_id method."""
+
+    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    def test_fetch_game_by_id_success(self, _mock_ready: MagicMock) -> None:
+        """Successfully fetches game data by HLTB ID."""
+        client = _make_ready_client()
+        client._build_id = "abc123"
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "pageProps": {"game": {"data": {"game": [_make_hltb_entry("Portal 2", comp_main=30600)]}}}
+        }
+        mock_resp.raise_for_status = MagicMock()
+        client._session.get = MagicMock(return_value=mock_resp)
+
+        result = client.fetch_game_by_id(1234)
+
+        assert result is not None
+        assert result.game_name == "Portal 2"
+        assert result.main_story == pytest.approx(30600 / 3600, rel=1e-2)
+
+    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    def test_fetch_game_by_id_no_build_id(self, _mock_ready: MagicMock) -> None:
+        """Returns None when buildId is not available."""
+        client = _make_ready_client()
+        client._build_id = ""
+
+        result = client.fetch_game_by_id(1234)
+
+        assert result is None
+
+    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    def test_fetch_game_by_id_empty_game_list(self, _mock_ready: MagicMock) -> None:
+        """Returns None when game list is empty."""
+        client = _make_ready_client()
+        client._build_id = "abc123"
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"pageProps": {"game": {"data": {"game": []}}}}
+        mock_resp.raise_for_status = MagicMock()
+        client._session.get = MagicMock(return_value=mock_resp)
+
+        result = client.fetch_game_by_id(1234)
+
+        assert result is None
+
+    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    def test_fetch_game_by_id_malformed_response(self, _mock_ready: MagicMock) -> None:
+        """Returns None on malformed response."""
+        client = _make_ready_client()
+        client._build_id = "abc123"
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"pageProps": {}}
+        mock_resp.raise_for_status = MagicMock()
+        client._session.get = MagicMock(return_value=mock_resp)
+
+        result = client.fetch_game_by_id(1234)
+
+        assert result is None
+
+    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    def test_fetch_game_by_id_network_error(self, _mock_ready: MagicMock) -> None:
+        """Network error returns None."""
+        client = _make_ready_client()
+        client._build_id = "abc123"
+        client._session.get = MagicMock(side_effect=ConnectionError("timeout"))
+
+        result = client.fetch_game_by_id(1234)
+
+        assert result is None
+
+
+class TestDiscoverBuildId:
+    """Tests for the _discover_build_id static method."""
+
+    def test_discover_build_id_from_manifest(self) -> None:
+        """Extracts buildId from _buildManifest.js script tag."""
+        html = """
+        <html><head>
+        <script src="/_next/static/abc123def/_buildManifest.js"></script>
+        </head><body></body></html>
+        """
+        build_id = HLTBClient._discover_build_id(html)
+        assert build_id == "abc123def"
+
+    def test_discover_build_id_not_found(self) -> None:
+        """Returns empty string when no _buildManifest.js found."""
+        html = """
+        <html><head>
+        <script src="/_next/static/chunks/main.js"></script>
+        </head><body></body></html>
+        """
+        build_id = HLTBClient._discover_build_id(html)
+        assert build_id == ""
+
+    def test_discover_build_id_empty_html(self) -> None:
+        """Returns empty string for empty HTML."""
+        build_id = HLTBClient._discover_build_id("")
+        assert build_id == ""
