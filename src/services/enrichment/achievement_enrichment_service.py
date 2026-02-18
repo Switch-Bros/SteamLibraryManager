@@ -44,6 +44,7 @@ class AchievementEnrichmentThread(BaseEnrichmentThread):
         db_path: Path,
         api_key: str,
         steam_id: str,
+        force_refresh: bool = False,
     ) -> None:
         """Configures the thread with games and API credentials.
 
@@ -52,11 +53,13 @@ class AchievementEnrichmentThread(BaseEnrichmentThread):
             db_path: Path to the SQLite database file.
             api_key: Steam Web API key.
             steam_id: 64-bit Steam user ID.
+            force_refresh: If True, re-process all games instead of only missing.
         """
         self._games = games
         self._db_path = db_path
         self._api_key = api_key
         self._steam_id = steam_id
+        self._force_refresh = force_refresh
 
     # ── BaseEnrichmentThread hooks ──────────────────────
 

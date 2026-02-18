@@ -10,8 +10,10 @@ This module provides a client for the SteamGridDB API to fetch game images
 from __future__ import annotations
 
 import logging
-import requests
 from typing import Any
+
+import requests
+
 from src.config import config
 from src.utils.i18n import t
 
@@ -128,6 +130,57 @@ class SteamGridDB:
 
         logger.info(t("logs.steamgrid.found", count=len(all_images)))
         return all_images
+
+    def get_images_by_type_paged(
+        self,
+        steam_app_id: str | int,
+        img_type: str,
+        page: int = 0,
+        limit: int = 24,
+    ) -> list[dict[str, Any]]:
+        """Fetches one page of images from SteamGridDB.
+
+        Args:
+            steam_app_id: The Steam app ID.
+            img_type: Image type ('grids', 'heroes', 'logos', 'icons').
+            page: Page number (0-indexed).
+            limit: Maximum results per page (used to detect last page).
+
+        Returns:
+            List of image data dicts for this page. Empty list on error
+            or if no more results.
+        """
+        if not self.api_key:
+            return []
+
+        game_id = self._get_game_id(steam_app_id)
+        if not game_id:
+            return []
+
+        try:
+            params: dict[str, Any] = {
+                "page": page,
+                "nsfw": "any",
+                "types": "static,animated",
+                "limit": limit,
+            }
+
+            if img_type == "grids":
+                params["dimensions"] = "600x900,342x482"
+
+            url = f"{self.BASE_URL}/{img_type}/game/{game_id}"
+            response = requests.get(url, headers=self.headers, params=params, timeout=10)
+
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("success") and data.get("data"):
+                    return data["data"]
+
+            return []
+
+        except (requests.RequestException, ValueError, KeyError) as e:
+            logger.error(t("logs.steamgrid.exception", error=str(e)))
+            return []
 
     def _get_game_id(self, steam_app_id: str | int) -> int | None:
         """

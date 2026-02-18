@@ -287,8 +287,8 @@ class TestSchemaMigration:
         columns = [row[1] for row in cursor.fetchall()]
         assert "tag_id" in columns
 
-    def test_schema_version_is_4(self, db: Database) -> None:
-        """Database schema version must be 4."""
+    def test_schema_version_is_5(self, db: Database) -> None:
+        """Database schema version must be 5."""
         cursor = db.conn.execute("SELECT MAX(version) FROM schema_version")
         version = cursor.fetchone()[0]
-        assert version == 4
+        assert version == 5

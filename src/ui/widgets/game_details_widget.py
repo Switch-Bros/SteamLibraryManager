@@ -21,6 +21,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QMenu,
     QDialog,
+    QGroupBox,
 )
 
 from src.core.game_manager import Game
@@ -80,6 +81,10 @@ class GameDetailsWidget(QWidget):
     lbl_achievement_total: QLabel
     lbl_achievement_progress: QLabel
     lbl_achievement_perfect: QLabel
+    lbl_description: QLabel
+    lbl_private_badge: QLabel
+    dlc_group: QGroupBox
+    dlc_content: QLabel
     category_list: HorizontalCategoryList
 
     def __init__(self, parent=None):
@@ -156,6 +161,10 @@ class GameDetailsWidget(QWidget):
 
         games_categories = [game.categories for game in games]
         self.category_list.set_categories_multi(_all_categories, games_categories)
+
+        self.lbl_description.hide()
+        self.lbl_private_badge.hide()
+        self.dlc_group.hide()
 
         self.img_grid.clear()
         self.img_hero.clear()
@@ -234,6 +243,28 @@ class GameDetailsWidget(QWidget):
         self._update_achievement_labels(game)
 
         self.category_list.set_categories(_all_categories, game.categories)
+
+        # Description
+        if game.description:
+            self.lbl_description.setText(game.description[:300])
+            self.lbl_description.show()
+        else:
+            self.lbl_description.hide()
+
+        # Private badge
+        if game.is_private:
+            self.lbl_private_badge.setText(t("ui.detail.private_app"))
+            self.lbl_private_badge.show()
+        else:
+            self.lbl_private_badge.hide()
+
+        # DLC section
+        if game.dlc_ids:
+            self.dlc_group.setTitle(t("ui.detail.dlc_label") + f" ({len(game.dlc_ids)})")
+            self.dlc_content.setText(", ".join(str(d) for d in game.dlc_ids))
+            self.dlc_group.show()
+        else:
+            self.dlc_group.hide()
 
         # PEGI rating
         self._load_pegi_rating(game)
@@ -421,6 +452,9 @@ class GameDetailsWidget(QWidget):
         self._update_proton_label("unknown")
         self._update_steam_deck_label("unknown")
         self._clear_achievement_labels()
+        self.lbl_description.hide()
+        self.lbl_private_badge.hide()
+        self.dlc_group.hide()
 
         self.img_grid.load_image(None)
         self.img_hero.load_image(None)

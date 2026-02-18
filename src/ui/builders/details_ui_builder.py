@@ -20,6 +20,8 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QLineEdit,
     QWidget,
+    QScrollArea,
+    QGroupBox,
 )
 
 from src.ui.theme import Theme
@@ -51,6 +53,18 @@ def build_details_ui(w: GameDetailsWidget) -> None:
     # === HEADER (Title & Buttons) ===
     _build_header(w, main_layout)
 
+    # === PRIVATE BADGE (next to name) ===
+    w.lbl_private_badge = QLabel()
+    w.lbl_private_badge.setTextFormat(Qt.TextFormat.RichText)
+    w.lbl_private_badge.setStyleSheet(
+        f"color: {Theme.TEXT_MUTED}; background: #3a2020; " "border-radius: 3px; padding: 2px 6px; font-size: 11px;"
+    )
+    w.lbl_private_badge.hide()
+    main_layout.addWidget(w.lbl_private_badge)
+
+    # === DESCRIPTION ===
+    _build_description(w, main_layout)
+
     main_layout.addSpacing(10)
 
     line1 = QFrame()
@@ -66,6 +80,9 @@ def build_details_ui(w: GameDetailsWidget) -> None:
 
     # === ACHIEVEMENT GRID ===
     _build_achievement_grid(w, main_layout)
+
+    # === DLC SECTION ===
+    _build_dlc_section(w, main_layout)
 
     line2 = QFrame()
     line2.setFrameShape(QFrame.Shape.HLine)
@@ -87,6 +104,42 @@ def build_details_ui(w: GameDetailsWidget) -> None:
 # ---------------------------------------------------------------------------
 # Section builders
 # ---------------------------------------------------------------------------
+
+
+def _build_description(w: GameDetailsWidget, main_layout: QVBoxLayout) -> None:
+    """Builds the description section (max 3 lines, word-wrapped)."""
+    w.lbl_description = QLabel()
+    w.lbl_description.setWordWrap(True)
+    w.lbl_description.setMaximumHeight(60)
+    w.lbl_description.setStyleSheet(f"color: {Theme.TEXT_MUTED}; font-size: 12px; padding: 4px 0;")
+    w.lbl_description.setTextFormat(Qt.TextFormat.PlainText)
+    w.lbl_description.hide()
+    main_layout.addWidget(w.lbl_description)
+
+
+def _build_dlc_section(w: GameDetailsWidget, main_layout: QVBoxLayout) -> None:
+    """Builds the DLC section (group box with scrollable label list)."""
+    w.dlc_group = QGroupBox(t("ui.detail.dlc_label"))
+    w.dlc_group.setMaximumHeight(100)
+    w.dlc_group.setStyleSheet("QGroupBox { font-weight: bold; padding-top: 14px; margin-top: 4px; }")
+
+    dlc_layout = QVBoxLayout(w.dlc_group)
+    dlc_layout.setContentsMargins(4, 4, 4, 4)
+    dlc_layout.setSpacing(0)
+
+    scroll = QScrollArea()
+    scroll.setWidgetResizable(True)
+    scroll.setStyleSheet("QScrollArea { border: none; }")
+
+    w.dlc_content = QLabel()
+    w.dlc_content.setWordWrap(True)
+    w.dlc_content.setTextFormat(Qt.TextFormat.PlainText)
+    w.dlc_content.setStyleSheet(f"color: {Theme.TEXT_MUTED}; font-size: 11px;")
+    scroll.setWidget(w.dlc_content)
+
+    dlc_layout.addWidget(scroll)
+    w.dlc_group.hide()
+    main_layout.addWidget(w.dlc_group)
 
 
 def _build_header(w: GameDetailsWidget, main_layout: QVBoxLayout) -> None:

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QUrl
+from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal, QUrl
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
@@ -36,47 +36,44 @@ from src.utils.i18n import t
 logger = logging.getLogger("steamlibmgr.image_dialog")
 
 
-class SearchThread(QThread):
-    """
-    Background thread for fetching images from SteamGridDB.
+class PagedSearchThread(QThread):
+    """Background thread for fetching one page of images from SteamGridDB.
 
-    This thread performs the API call in the background to avoid blocking
-    the UI while images are being fetched.
+    Fetches a single page and emits the results. The dialog requests
+    the next page after the current one is displayed.
 
     Signals:
-        results_found (list): Emitted when images are fetched, passes the list of image data.
-
-    Attributes:
-        app_id (int): The Steam app ID to fetch images for.
-        img_type (str): The type of images to fetch ('grids', 'heroes', 'logos', 'icons').
-        api (SteamGridDB): The SteamGridDB API client.
+        page_loaded: Emitted with (images, has_more) per page.
     """
 
-    results_found = pyqtSignal(list)
+    page_loaded = pyqtSignal(list, bool)
 
-    def __init__(self, app_id, img_type):
-        """
-        Initializes the search thread.
+    def __init__(self, app_id: int, img_type: str, page: int = 0, page_size: int = 24) -> None:
+        """Initializes the paged search thread.
 
         Args:
-            app_id (int): The Steam app ID to fetch images for.
-            img_type (str): The type of images to fetch ('grids', 'heroes', 'logos', 'icons').
+            app_id: The Steam app ID to fetch images for.
+            img_type: Image type ('grids', 'heroes', 'logos', 'icons').
+            page: Page number (0-indexed).
+            page_size: Results per page.
         """
         super().__init__()
         self.app_id = app_id
         self.img_type = img_type
+        self.page = page
+        self.page_size = page_size
         self.api = SteamGridDB()
 
-    def run(self):
-        """
-        Fetches images from SteamGridDB and emits the results.
-
-        This method is called when the thread starts. It fetches all available
-        images of the specified type and emits them via the results_found signal.
-        """
-        # Fetches ALL images (via fix in steamgrid_api.py)
-        urls = self.api.get_images_by_type(self.app_id, self.img_type)
-        self.results_found.emit(urls)
+    def run(self) -> None:
+        """Fetches one page of images and emits the result."""
+        images = self.api.get_images_by_type_paged(
+            self.app_id,
+            self.img_type,
+            page=self.page,
+            limit=self.page_size,
+        )
+        has_more = len(images) >= self.page_size
+        self.page_loaded.emit(images, has_more)
 
 
 class ImageSelectionDialog(QDialog):
@@ -121,6 +118,15 @@ class ImageSelectionDialog(QDialog):
         self.img_type = img_type
         self.selected_url = None
         self.searcher = None
+
+        # Pagination state
+        self._current_page: int = 0
+        self._page_size: int = 24
+        self._all_loaded: bool = False
+        self._loading: bool = False
+        self._grid_row: int = 0
+        self._grid_col: int = 0
+        self._total_images: int = 0
 
         self._create_ui()
         self._check_api_and_start()
@@ -230,46 +236,86 @@ class ImageSelectionDialog(QDialog):
             self._check_api_and_start()
 
     def _start_search(self):
-        """
-        Starts the background search thread to fetch images.
+        """Starts paginated image loading from page 0.
 
-        This method creates and starts a SearchThread to fetch images from
-        SteamGridDB without blocking the UI.
+        Resets pagination state, clears the grid, and loads the first page.
         """
+        # Reset pagination state
+        self._current_page = 0
+        self._all_loaded = False
+        self._loading = False
+        self._grid_row = 0
+        self._grid_col = 0
+        self._total_images = 0
+
+        # Clear existing grid
+        while self.grid_layout.count():
+            child = self.grid_layout.takeAt(0)
+            if child and child.widget():
+                child.widget().deleteLater()
+
+        self.status_label.setText(t("ui.image_browser.loading_page", page=1))
         self.status_label.show()
-        self.searcher = SearchThread(self.app_id, self.img_type)
-        self.searcher.results_found.connect(self._on_results)
+        self._load_next_page()
+
+    def _load_next_page(self) -> None:
+        """Loads the next page of images in a background thread."""
+        if self._all_loaded or self._loading:
+            return
+
+        self._loading = True
+        self.searcher = PagedSearchThread(
+            self.app_id,
+            self.img_type,
+            page=self._current_page,
+            page_size=self._page_size,
+        )
+        self.searcher.page_loaded.connect(self._on_page_loaded)
         self.searcher.start()
 
-    def _on_results(self, items):
-        """
-        Handles the search results and displays them in the grid.
-
-        This method is called when the search thread finishes. It creates
-        clickable image widgets for each result and arranges them in a grid
-        layout optimized for the image type.
+    def _on_page_loaded(self, items: list, has_more: bool) -> None:
+        """Handles a loaded page: appends images and optionally loads next.
 
         Args:
-            items (list): List of image data dictionaries from SteamGridDB.
+            items: List of image data dicts for this page.
+            has_more: True if there are more pages to load.
         """
-        self.status_label.hide()
-        self.scroll.show()
+        self._loading = False
 
-        if not items:
+        # First page: hide status, show scroll area
+        if self._current_page == 0:
+            self.status_label.hide()
+            self.scroll.show()
+
+        if not items and self._total_images == 0:
             self.status_label.setText(t("ui.status.no_results"))
             self.status_label.show()
             return
 
+        # Append images to grid
+        self._append_images_to_grid(items)
+        self._total_images += len(items)
+
+        if has_more:
+            self._current_page += 1
+            # Small delay to let UI breathe, then load next page
+            QTimer.singleShot(100, self._load_next_page)
+        else:
+            self._all_loaded = True
+            if self._total_images > 0:
+                self.status_label.setText(t("ui.image_browser.all_loaded", count=self._total_images))
+                self.status_label.show()
+
+    def _append_images_to_grid(self, items: list) -> None:
+        """Appends image widgets to the grid from a page of results.
+
+        Args:
+            items: List of image data dicts to display.
+        """
         config_map = {"grids": (4, 220, 330), "heroes": (2, 460, 215), "logos": (3, 300, 150), "icons": (6, 162, 162)}
         cols, w, h = config_map.get(self.img_type, (3, 250, 250))
 
-        # Clear Grid
-        while self.grid_layout.count():
-            child = self.grid_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
-
-        row, col = 0, 0
+        row, col = self._grid_row, self._grid_col
         for item in items:
             # Container fixed size
             container = QWidget()
@@ -410,6 +456,10 @@ class ImageSelectionDialog(QDialog):
             if col >= cols:
                 col = 0
                 row += 1
+
+        # Save position for next page
+        self._grid_row = row
+        self._grid_col = col
 
     def _on_select(self, url, mime="", tags=None):
         """

@@ -42,6 +42,11 @@ class SteamAppDetails:
         review_score: Aggregate review score (0-100).
         review_desc: Human-readable review description.
         is_free: Whether the app is free to play.
+        description: Full game description text.
+        short_description: Short description / tagline.
+        age_ratings: Tuple of (rating_system, rating) pairs (e.g. ("PEGI", "16")).
+        dlc_ids: Tuple of DLC app IDs included with this game.
+        asset_urls: Tuple of (asset_type, url) pairs for library assets.
     """
 
     app_id: int
@@ -57,6 +62,11 @@ class SteamAppDetails:
     review_score: int = 0
     review_desc: str = ""
     is_free: bool = False
+    description: str = ""
+    short_description: str = ""
+    age_ratings: tuple[tuple[str, str], ...] = ()
+    dlc_ids: tuple[int, ...] = ()
+    asset_urls: tuple[tuple[str, str], ...] = ()
 
 
 class SteamWebAPI:
@@ -143,6 +153,11 @@ class SteamWebAPI:
                     "include_reviews": True,
                     "include_platforms": True,
                     "include_assets": True,
+                    "include_release": True,
+                    "include_supported_languages": True,
+                    "include_ratings": True,
+                    "include_full_description": True,
+                    "include_included_items": True,
                 },
             }
         )
@@ -326,12 +341,50 @@ class SteamWebAPI:
             import re
 
             cleaned = re.sub(r"<[^>]+>", "", languages_str)
+            cleaned = cleaned.replace("*", "")
             languages_list = [lang.strip() for lang in cleaned.split(",") if lang.strip()]
 
         # Reviews
         reviews = raw.get("reviews", {})
         review_score = reviews.get("summary_filtered", {}).get("review_score", 0)
         review_desc = reviews.get("summary_filtered", {}).get("review_score_label", "")
+
+        # Description
+        full_desc = raw.get("full_description", "")
+        short_desc = raw.get("short_description", "")
+
+        # Age Ratings
+        age_ratings_list: list[tuple[str, str]] = []
+        raw_ratings = raw.get("ratings", [])
+        if isinstance(raw_ratings, list):
+            for rating_entry in raw_ratings:
+                system = rating_entry.get("rating_system", "")
+                rating_val = rating_entry.get("rating", "")
+                if system and rating_val:
+                    age_ratings_list.append((system, str(rating_val)))
+        elif isinstance(raw_ratings, dict):
+            for system, data in raw_ratings.items():
+                if isinstance(data, dict):
+                    rating_val = data.get("rating", "")
+                    if rating_val:
+                        age_ratings_list.append((system.upper(), str(rating_val)))
+
+        # DLC / Included Items
+        dlc_ids_list: list[int] = []
+        included_items = raw.get("included_items", [])
+        if isinstance(included_items, list):
+            for item in included_items:
+                item_id = item.get("appid", 0)
+                if item_id:
+                    dlc_ids_list.append(item_id)
+
+        # Asset URLs
+        asset_urls_list: list[tuple[str, str]] = []
+        assets = raw.get("assets", {})
+        if isinstance(assets, dict):
+            for asset_type, asset_url in assets.items():
+                if isinstance(asset_url, str) and asset_url:
+                    asset_urls_list.append((asset_type, asset_url))
 
         return SteamAppDetails(
             app_id=app_id,
@@ -347,4 +400,359 @@ class SteamWebAPI:
             review_score=review_score,
             review_desc=review_desc,
             is_free=is_free,
+            description=full_desc,
+            short_description=short_desc,
+            age_ratings=tuple(age_ratings_list),
+            dlc_ids=tuple(dlc_ids_list),
+            asset_urls=tuple(asset_urls_list),
         )
+
+    # ------------------------------------------------------------------
+    # Tag Service Endpoints (Phase 6.2)
+    # ------------------------------------------------------------------
+
+    def fetch_tag_list(self, language: str = "german") -> dict[int, str]:
+        """Fetches the complete tag list from Steam.
+
+        Uses IStoreService/GetTagList/v1 to retrieve all known tags
+        with localized names.
+
+        Args:
+            language: Language for tag names (e.g. "german", "english").
+
+        Returns:
+            Dict mapping tag_id to localized tag name.
+        """
+        url = "https://api.steampowered.com/IStoreService/GetTagList/v1/"
+        params = {"key": self.api_key, "language": language}
+
+        try:
+            response = requests.get(url, params=params, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+            tags = data.get("response", {}).get("tags", [])
+            return {int(t.get("tagid", 0)): t.get("name", "") for t in tags if t.get("tagid")}
+        except (requests.RequestException, ValueError, KeyError) as exc:
+            logger.warning("GetTagList failed: %s", exc)
+            return {}
+
+    def fetch_localized_tag_names(self, tag_ids: list[int], language: str = "german") -> dict[int, str]:
+        """Fetches localized names for specific tag IDs.
+
+        Uses IStoreService/GetLocalizedNameForTags/v1.
+
+        Args:
+            tag_ids: List of tag IDs to resolve.
+            language: Language for tag names.
+
+        Returns:
+            Dict mapping tag_id to localized name.
+        """
+        url = "https://api.steampowered.com/IStoreService/GetLocalizedNameForTags/v1/"
+        params: dict[str, Any] = {"key": self.api_key, "language": language}
+        for i, tid in enumerate(tag_ids):
+            params[f"tagids[{i}]"] = tid
+
+        try:
+            response = requests.get(url, params=params, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+            tags = data.get("response", {}).get("tags", [])
+            return {int(t.get("tagid", 0)): t.get("name", "") for t in tags if t.get("tagid")}
+        except (requests.RequestException, ValueError, KeyError) as exc:
+            logger.warning("GetLocalizedNameForTags failed: %s", exc)
+            return {}
+
+    # ------------------------------------------------------------------
+    # Achievement Progress Endpoint (Phase 6.2)
+    # ------------------------------------------------------------------
+
+    def fetch_achievements_progress(self, steam_id: int, app_ids: list[int]) -> dict[int, dict]:
+        """Fetches achievement progress for multiple apps.
+
+        Uses IPlayerService/GetAchievementsProgress/v1 with array params.
+
+        Args:
+            steam_id: 64-bit Steam user ID.
+            app_ids: List of app IDs to query.
+
+        Returns:
+            Dict mapping app_id to progress dict with 'unlocked' and 'total'.
+        """
+        url = "https://api.steampowered.com/IPlayerService/GetAchievementsProgress/v1/"
+        params: dict[str, Any] = {"key": self.api_key, "steamid": steam_id}
+        for i, aid in enumerate(app_ids):
+            params[f"appids[{i}]"] = aid
+
+        try:
+            response = requests.get(url, params=params, timeout=30)
+            if response.status_code == 404:
+                logger.debug("GetAchievementsProgress: endpoint not available")
+                return {}
+            response.raise_for_status()
+            data = response.json()
+            progress_list = data.get("response", {}).get("achievement_progress", [])
+            result: dict[int, dict] = {}
+            for entry in progress_list:
+                aid = entry.get("appid", 0)
+                if aid:
+                    result[aid] = {
+                        "unlocked": entry.get("unlocked", 0),
+                        "total": entry.get("total", 0),
+                        "percentage": entry.get("percentage", 0.0),
+                    }
+            return result
+        except (requests.RequestException, ValueError, KeyError) as exc:
+            logger.warning("GetAchievementsProgress failed: %s", exc)
+            return {}
+
+    # ------------------------------------------------------------------
+    # DLC Endpoint (Phase 6.2)
+    # ------------------------------------------------------------------
+
+    def fetch_dlc_for_apps(self, app_ids: list[int]) -> dict[int, list[int]]:
+        """Fetches DLC app IDs for multiple games.
+
+        Uses IStoreBrowseService/GetDLCForApps/v1.
+
+        Args:
+            app_ids: List of base game app IDs.
+
+        Returns:
+            Dict mapping base app_id to list of DLC app IDs.
+        """
+        url = "https://api.steampowered.com/IStoreBrowseService/GetDLCForApps/v1/"
+        input_data = json.dumps({"appids": [{"appid": aid} for aid in app_ids]})
+        params = {"key": self.api_key, "input_json": input_data}
+
+        try:
+            response = requests.get(url, params=params, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+            dlc_data = data.get("response", {}).get("dlc_data", [])
+            result: dict[int, list[int]] = {}
+            for entry in dlc_data:
+                parent_id = entry.get("appid", 0)
+                dlc_list = [d.get("appid", 0) for d in entry.get("dlc", []) if d.get("appid")]
+                if parent_id and dlc_list:
+                    result[parent_id] = dlc_list
+            return result
+        except (requests.RequestException, ValueError, KeyError) as exc:
+            logger.warning("GetDLCForApps failed: %s", exc)
+            return {}
+
+    # ------------------------------------------------------------------
+    # Popular Tags Endpoint (Phase 6.2)
+    # ------------------------------------------------------------------
+
+    def fetch_popular_tags(self, language: str = "german") -> list[dict]:
+        """Fetches the most popular tags from Steam.
+
+        Uses IStoreService/GetMostPopularTags/v1.
+
+        Args:
+            language: Language for tag names.
+
+        Returns:
+            List of dicts with 'tagid' and 'name' keys.
+        """
+        url = "https://api.steampowered.com/IStoreService/GetMostPopularTags/v1/"
+        params = {"key": self.api_key, "language": language}
+
+        try:
+            response = requests.get(url, params=params, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+            return data.get("response", {}).get("tags", [])
+        except (requests.RequestException, ValueError, KeyError) as exc:
+            logger.warning("GetMostPopularTags failed: %s", exc)
+            return []
+
+    # ------------------------------------------------------------------
+    # Private Apps Endpoints (Phase 6.2)
+    # ------------------------------------------------------------------
+
+    def fetch_private_app_list(self) -> list[int]:
+        """Fetches the list of private (hidden) apps for the user.
+
+        Uses IAccountPrivateAppsService/GetPrivateAppList/v1.
+
+        Returns:
+            List of app IDs that are set as private.
+        """
+        url = "https://api.steampowered.com/IAccountPrivateAppsService/GetPrivateAppList/v1/"
+        params = {"key": self.api_key}
+
+        try:
+            response = requests.get(url, params=params, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+            apps = data.get("response", {}).get("apps", [])
+            return [a.get("appid", 0) for a in apps if a.get("appid")]
+        except (requests.RequestException, ValueError, KeyError) as exc:
+            logger.warning("GetPrivateAppList failed: %s", exc)
+            return []
+
+    def toggle_app_privacy(self, app_ids: list[int], private: bool) -> bool:
+        """Toggles privacy status for apps.
+
+        Uses IAccountPrivateAppsService/ToggleAppPrivacy/v1.
+
+        Args:
+            app_ids: List of app IDs to toggle.
+            private: True to make private, False to make public.
+
+        Returns:
+            True on success, False on failure.
+        """
+        url = "https://api.steampowered.com/IAccountPrivateAppsService/ToggleAppPrivacy/v1/"
+        data: dict[str, Any] = {
+            "key": self.api_key,
+            "private": private,
+        }
+        for i, aid in enumerate(app_ids):
+            data[f"appids[{i}]"] = aid
+
+        try:
+            response = requests.post(url, data=data, timeout=30)
+            response.raise_for_status()
+            return True
+        except (requests.RequestException, ValueError) as exc:
+            logger.warning("ToggleAppPrivacy failed: %s", exc)
+            return False
+
+    # ------------------------------------------------------------------
+    # Client Communication Endpoints (Phase 6.2)
+    # ------------------------------------------------------------------
+
+    def fetch_client_app_list(
+        self,
+        fields: str = "games",
+        filters: str = "installed",
+        language: str = "german",
+    ) -> list[dict]:
+        """Fetches the client's app list.
+
+        Uses IClientCommService/GetClientAppList/v1.
+
+        Args:
+            fields: Fields to include (e.g. "games").
+            filters: Filter type (e.g. "installed").
+            language: Language for localized data.
+
+        Returns:
+            List of app dicts from the client.
+        """
+        url = "https://api.steampowered.com/IClientCommService/GetClientAppList/v1/"
+        params = {
+            "key": self.api_key,
+            "fields": fields,
+            "filters": filters,
+            "language": language,
+        }
+
+        try:
+            response = requests.get(url, params=params, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+            return data.get("response", {}).get("apps", [])
+        except (requests.RequestException, ValueError, KeyError) as exc:
+            logger.warning("GetClientAppList failed: %s", exc)
+            return []
+
+    def fetch_client_info(self) -> dict:
+        """Fetches information about the running Steam client.
+
+        Uses IClientCommService/GetClientInfo/v1.
+
+        Returns:
+            Dict with client info, or empty dict on failure.
+        """
+        url = "https://api.steampowered.com/IClientCommService/GetClientInfo/v1/"
+        params = {"key": self.api_key}
+
+        try:
+            response = requests.get(url, params=params, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+            return data.get("response", {})
+        except (requests.RequestException, ValueError, KeyError) as exc:
+            logger.warning("GetClientInfo failed: %s", exc)
+            return {}
+
+    # ------------------------------------------------------------------
+    # Wishlist Endpoint (Phase 6.2)
+    # ------------------------------------------------------------------
+
+    def fetch_wishlist(self, steam_id: int) -> list[dict]:
+        """Fetches the user's Steam wishlist.
+
+        Uses IWishlistService/GetWishlist/v1.
+
+        Args:
+            steam_id: 64-bit Steam user ID.
+
+        Returns:
+            List of wishlist item dicts with 'appid', 'priority', etc.
+        """
+        url = "https://api.steampowered.com/IWishlistService/GetWishlist/v1/"
+        params: dict[str, Any] = {"key": self.api_key, "steamid": steam_id}
+
+        try:
+            response = requests.get(url, params=params, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+            return data.get("response", {}).get("items", [])
+        except (requests.RequestException, ValueError, KeyError) as exc:
+            logger.warning("GetWishlist failed: %s", exc)
+            return []
+
+    # ------------------------------------------------------------------
+    # Reference Endpoints — Stubs for future use (Phase 6.2)
+    # ------------------------------------------------------------------
+
+    def fetch_game_notes(self, steam_id: int, app_id: int) -> list[dict]:
+        """Stub: Fetches user game notes via IUserGameNotesService.
+
+        Args:
+            steam_id: 64-bit Steam user ID.
+            app_id: Steam app ID.
+
+        Returns:
+            Empty list (not yet implemented).
+        """
+        logger.debug("fetch_game_notes: stub called for user %d, app %d", steam_id, app_id)
+        return []
+
+    def fetch_player_count(self, app_id: int) -> int:
+        """Stub: Fetches current player count via ISteamChartsService.
+
+        Args:
+            app_id: Steam app ID.
+
+        Returns:
+            0 (not yet implemented).
+        """
+        logger.debug("fetch_player_count: stub called for app %d", app_id)
+        return 0
+
+    def fetch_family_group_info(self) -> dict:
+        """Stub: Fetches family sharing info via IFamilyGroupsService.
+
+        Returns:
+            Empty dict (not yet implemented).
+        """
+        logger.debug("fetch_family_group_info: stub called")
+        return {}
+
+    def fetch_cloud_files(self, app_id: int) -> list[dict]:
+        """Stub: Enumerates cloud save files via ICloudService/EnumerateUserFiles.
+
+        Args:
+            app_id: Steam app ID.
+
+        Returns:
+            Empty list (not yet implemented).
+        """
+        logger.debug("fetch_cloud_files: stub called for app %d", app_id)
+        return []

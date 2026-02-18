@@ -102,6 +102,12 @@ class Game:
     icon_url: str = ""
     cover_url: str = ""
 
+    # Extended metadata (Phase 6.2)
+    description: str = ""
+    is_private: bool = False
+    dlc_ids: list[int] = None
+    family_sharing_excluded: bool = False
+
     def __post_init__(self):
         """Initializes default lists and sort name if missing."""
         if self.categories is None:
@@ -114,6 +120,8 @@ class Game:
             self.platforms = []
         if self.languages is None:
             self.languages = []
+        if self.dlc_ids is None:
+            self.dlc_ids = []
 
         if not self.sort_name:
             self.sort_name = self.name

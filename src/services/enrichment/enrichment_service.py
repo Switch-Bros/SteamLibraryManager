@@ -53,6 +53,7 @@ class EnrichmentThread(BaseEnrichmentThread):
         db_path: Path,
         hltb_client: HLTBClient,
         steam_user_id: str = "",
+        force_refresh: bool = False,
     ) -> None:
         """Configures the thread for HLTB enrichment.
 
@@ -61,18 +62,21 @@ class EnrichmentThread(BaseEnrichmentThread):
             db_path: Path to the SQLite database file.
             hltb_client: HLTB client for searching.
             steam_user_id: 64-bit Steam ID for Steam Import prefetch.
+            force_refresh: If True, re-process all games instead of only missing.
         """
         self._mode = "hltb"
         self._games = games
         self._db_path = db_path
         self._hltb_client = hltb_client
         self._steam_user_id = steam_user_id
+        self._force_refresh = force_refresh
 
     def configure_steam(
         self,
         games: list[tuple[int, str]],
         db_path: Path,
         api_key: str,
+        force_refresh: bool = False,
     ) -> None:
         """Configures the thread for Steam API enrichment.
 
@@ -80,11 +84,13 @@ class EnrichmentThread(BaseEnrichmentThread):
             games: List of (app_id, name) tuples to enrich.
             db_path: Path to the SQLite database file.
             api_key: Steam Web API key.
+            force_refresh: If True, re-process all games instead of only missing.
         """
         self._mode = "steam"
         self._games = games
         self._db_path = db_path
         self._api_key = api_key
+        self._force_refresh = force_refresh
 
     def run(self) -> None:
         """Dispatches to HLTB template or Steam custom implementation."""

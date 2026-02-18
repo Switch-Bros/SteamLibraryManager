@@ -143,11 +143,16 @@
       "batch": {
         "root": "Batch-Operationen",
         "update_metadata": "Metadaten aktualisieren (Alle)",
+        "update_metadata_force": "Metadaten \u2014 Alle neu einlesen",
         "update_hltb": "HLTB Daten aktualisieren",
+        "update_hltb_force": "HLTB \u2014 Alle neu einlesen",
         "update_deck": "Fehlende Deck-Status abrufen",
+        "update_deck_force": "Deck-Status \u2014 Alle neu einlesen",
         "update_protondb": "ProtonDB Ratings aktualisieren",
+        "update_protondb_force": "ProtonDB \u2014 Alle neu einlesen",
         "check_store": "Store-Seiten prüfen",
         "update_achievements": "Achievements aktualisieren",
+        "update_achievements_force": "Achievements \u2014 Alle neu einlesen",
         "import_tags": "Tags aus Steam importieren"
       },
       "database": {

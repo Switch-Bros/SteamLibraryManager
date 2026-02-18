@@ -252,7 +252,7 @@ class SteamAssets:
             db.conn.execute(
                 """
                 INSERT OR REPLACE INTO custom_artwork
-                (app_id, artwork_type, source, source_url, file_hash, 
+                (app_id, artwork_type, source, source_url, file_hash,
                  file_size, width, height, set_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,

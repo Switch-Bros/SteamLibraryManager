@@ -143,11 +143,16 @@
       "batch": {
         "root": "Batch Operations",
         "update_metadata": "Update Metadata (All)",
+        "update_metadata_force": "Metadata \u2014 Re-fetch all",
         "update_hltb": "Update HLTB Data",
+        "update_hltb_force": "HLTB \u2014 Re-fetch all",
         "update_deck": "Fetch Missing Deck Status",
+        "update_deck_force": "Deck Status \u2014 Re-fetch all",
         "update_protondb": "Update ProtonDB Ratings",
+        "update_protondb_force": "ProtonDB \u2014 Re-fetch all",
         "check_store": "Check Store Pages",
         "update_achievements": "Update Achievements",
+        "update_achievements_force": "Achievements \u2014 Re-fetch all",
         "import_tags": "Import Tags from Steam"
       },
       "database": {

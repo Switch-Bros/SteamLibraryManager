@@ -174,6 +174,20 @@ CREATE TABLE IF NOT EXISTS hltb_id_cache (
 );
 
 -- ============================================================================
+-- PROTONDB RATINGS
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS protondb_ratings (
+    app_id INTEGER PRIMARY KEY,
+    tier TEXT NOT NULL,
+    confidence TEXT DEFAULT '',
+    trending_tier TEXT DEFAULT '',
+    score REAL DEFAULT 0.0,
+    best_reported TEXT DEFAULT '',
+    last_updated INTEGER NOT NULL
+);
+
+-- ============================================================================
 -- PERSONAL NOTES & JOURNAL
 -- ============================================================================
 
@@ -567,7 +581,7 @@ END;
 -- ============================================================================
 
 INSERT OR IGNORE INTO schema_version (version, applied_at, description)
-VALUES (4, strftime('%s', 'now'), 'HLTB ID cache table');
+VALUES (5, strftime('%s', 'now'), 'ProtonDB ratings table');
 
 -- ============================================================================
 -- END OF SCHEMA

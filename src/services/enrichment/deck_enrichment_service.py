@@ -52,15 +52,22 @@ class DeckEnrichmentThread(BaseEnrichmentThread):
         self._cache_dir: Path = Path()
         self._store_cache_dir: Path = Path()
 
-    def configure(self, games: list[Game], cache_dir: Path) -> None:
+    def configure(
+        self,
+        games: list[Game],
+        cache_dir: Path,
+        force_refresh: bool = False,
+    ) -> None:
         """Configures the thread with games and cache directory.
 
         Args:
             games: List of games to enrich (should be pre-filtered to those missing status).
             cache_dir: Base cache directory (store_data subdirectory will be used).
+            force_refresh: If True, re-process all games instead of only missing.
         """
         self._games = games
         self._cache_dir = cache_dir
+        self._force_refresh = force_refresh
 
     # ── BaseEnrichmentThread hooks ──────────────────────
 

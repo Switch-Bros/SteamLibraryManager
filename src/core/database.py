@@ -165,7 +165,7 @@ class Database:
     modification tracking, and fast queries for UI.
     """
 
-    SCHEMA_VERSION = 4
+    SCHEMA_VERSION = 5
 
     def __init__(self, db_path: Path):
         """Initialize database connection.
@@ -252,6 +252,10 @@ class Database:
             self._migrate_to_v4()
             self._set_schema_version(4)
 
+        if from_version < 5:
+            self._migrate_to_v5()
+            self._set_schema_version(5)
+
     def _migrate_to_v3(self) -> None:
         """Migrate to schema v3: tag_definitions table + tag_id column."""
         # Add tag_id column to game_tags (if not exists)
@@ -286,6 +290,22 @@ class Database:
             """)
         self.conn.commit()
         logger.info("Migrated to schema v4: hltb_id_cache")
+
+    def _migrate_to_v5(self) -> None:
+        """Migrate to schema v5: protondb_ratings table."""
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS protondb_ratings (
+                app_id INTEGER PRIMARY KEY,
+                tier TEXT NOT NULL,
+                confidence TEXT DEFAULT '',
+                trending_tier TEXT DEFAULT '',
+                score REAL DEFAULT 0.0,
+                best_reported TEXT DEFAULT '',
+                last_updated INTEGER NOT NULL
+            )
+            """)
+        self.conn.commit()
+        logger.info("Migrated to schema v5: protondb_ratings")
 
     # ========================================================================
     # GAME CRUD OPERATIONS
@@ -1038,6 +1058,18 @@ class Database:
             rows,
         )
 
+    def get_all_game_ids(self) -> list[tuple[int, str]]:
+        """Returns all game-type apps from the database.
+
+        Used by force-refresh enrichment to re-process all games
+        regardless of existing data.
+
+        Returns:
+            List of (app_id, name) tuples for all games.
+        """
+        cursor = self.conn.execute("SELECT app_id, name FROM games WHERE app_type IN ('game', '')")
+        return [(row[0], row[1]) for row in cursor.fetchall()]
+
     def get_apps_missing_metadata(self) -> list[tuple[int, str]]:
         """Returns apps with missing developer, publisher, or release date.
 
@@ -1123,6 +1155,100 @@ class Database:
         cursor = self.conn.execute("DELETE FROM hltb_id_cache WHERE cached_at <= ?", (cutoff,))
         self.conn.commit()
         return cursor.rowcount
+
+    # ========================================================================
+    # PROTONDB OPERATIONS (Phase 6.2)
+    # ========================================================================
+
+    _PROTONDB_TTL_DAYS = 7
+
+    def get_cached_protondb(self, app_id: int) -> dict | None:
+        """Returns cached ProtonDB rating if fresh enough.
+
+        Args:
+            app_id: Steam app ID.
+
+        Returns:
+            Dict with tier, confidence, trending_tier, score, best_reported,
+            last_updated keys, or None if not cached or expired.
+        """
+        cutoff = int(time.time()) - (self._PROTONDB_TTL_DAYS * 86400)
+        cursor = self.conn.execute(
+            "SELECT tier, confidence, trending_tier, score, best_reported, last_updated"
+            " FROM protondb_ratings WHERE app_id = ? AND last_updated > ?",
+            (app_id, cutoff),
+        )
+        row = cursor.fetchone()
+        if not row:
+            return None
+        return {
+            "tier": row[0],
+            "confidence": row[1],
+            "trending_tier": row[2],
+            "score": float(row[3]),
+            "best_reported": row[4],
+            "last_updated": int(row[5]),
+        }
+
+    def upsert_protondb(
+        self,
+        app_id: int,
+        tier: str,
+        confidence: str = "",
+        trending_tier: str = "",
+        score: float = 0.0,
+        best_reported: str = "",
+    ) -> None:
+        """Inserts or updates a ProtonDB rating.
+
+        Args:
+            app_id: Steam app ID.
+            tier: Compatibility tier.
+            confidence: Confidence level.
+            trending_tier: Trending tier direction.
+            score: Numeric score.
+            best_reported: Best reported tier.
+        """
+        self.conn.execute(
+            """
+            INSERT OR REPLACE INTO protondb_ratings
+            (app_id, tier, confidence, trending_tier, score, best_reported, last_updated)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (app_id, tier, confidence, trending_tier, score, best_reported, int(time.time())),
+        )
+
+    def get_apps_without_protondb(self) -> list[tuple[int, str]]:
+        """Returns game-type apps that have no ProtonDB rating.
+
+        Returns:
+            List of (app_id, name) tuples for games without ProtonDB data.
+        """
+        cursor = self.conn.execute("""
+            SELECT g.app_id, g.name FROM games g
+            LEFT JOIN protondb_ratings p ON g.app_id = p.app_id
+            WHERE p.app_id IS NULL AND g.app_type IN ('game', '')
+            """)
+        return [(row[0], row[1]) for row in cursor.fetchall()]
+
+    def batch_get_protondb(self, app_ids: list[int]) -> dict[int, str]:
+        """Batch load ProtonDB tiers for multiple app_ids.
+
+        Args:
+            app_ids: List of app IDs.
+
+        Returns:
+            Dict mapping app_id to tier string.
+        """
+        if not app_ids:
+            return {}
+
+        placeholders = ",".join("?" * len(app_ids))
+        cursor = self.conn.execute(
+            f"SELECT app_id, tier FROM protondb_ratings WHERE app_id IN ({placeholders})",
+            app_ids,
+        )
+        return {row[0]: row[1] for row in cursor.fetchall()}
 
     # ========================================================================
     # ACHIEVEMENT OPERATIONS (Phase 5.2)
