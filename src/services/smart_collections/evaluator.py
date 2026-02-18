@@ -130,8 +130,10 @@ class SmartCollectionEvaluator:
         field_value = self._get_field_value(game, rule.field)
 
         if rule.field in _TEXT_LIST_FIELDS:
-            if not isinstance(field_value, list):
+            if not isinstance(field_value, (list, tuple)):
                 field_value = [str(field_value)] if field_value else []
+            else:
+                field_value = list(field_value)
             return self._match_text_list(field_value, rule.operator, rule.value)
 
         if rule.field in _TEXT_SINGLE_FIELDS or rule.field in _ENUM_FIELDS:

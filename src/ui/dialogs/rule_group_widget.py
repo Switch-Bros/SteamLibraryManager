@@ -12,7 +12,6 @@ import logging
 
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
-    QComboBox,
     QGroupBox,
     QHBoxLayout,
     QPushButton,
@@ -25,7 +24,7 @@ from src.services.smart_collections.models import (
     SmartCollectionRule,
     SmartCollectionRuleGroup,
 )
-from src.ui.dialogs.rule_row_widget import RuleRowWidget
+from src.ui.dialogs.rule_row_widget import NoScrollComboBox, RuleRowWidget
 from src.utils.i18n import t
 
 __all__ = ["RuleGroupWidget"]
@@ -81,11 +80,13 @@ class RuleGroupWidget(QGroupBox):
         self.setTitle(t("ui.smart_collections.group_header", index=self._index))
 
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(4)
 
         # Header row: logic dropdown + remove button
         header_row = QHBoxLayout()
 
-        self._logic_combo = QComboBox()
+        self._logic_combo = NoScrollComboBox()
         self._logic_combo.addItem("AND", LogicOperator.AND.value)
         self._logic_combo.addItem("OR", LogicOperator.OR.value)
         self._logic_combo.currentIndexChanged.connect(lambda _: self.changed.emit())
@@ -133,6 +134,7 @@ class RuleGroupWidget(QGroupBox):
         if row_widget in self._rule_rows:
             self._rule_rows.remove(row_widget)
             self._rules_layout.removeWidget(row_widget)
+            row_widget.hide()
             row_widget.deleteLater()
             self.changed.emit()
 

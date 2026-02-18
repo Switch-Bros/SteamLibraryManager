@@ -90,14 +90,16 @@ class SmartCollectionDialog(QDialog):
     def _create_ui(self) -> None:
         """Builds the complete dialog UI."""
         self.setWindowTitle(t("ui.smart_collections.builder_title"))
-        self.setMinimumSize(700, 600)
-        self.resize(800, 700)
+        self.setMinimumSize(700, 700)
+        self.resize(800, 900)
 
         main_layout = QVBoxLayout(self)
 
         # --- Name & Description ---
         info_group = QGroupBox(t("ui.smart_collections.name_label"))
         info_layout = QVBoxLayout(info_group)
+        info_layout.setContentsMargins(5, 5, 5, 5)
+        info_layout.setSpacing(4)
 
         name_row = QHBoxLayout()
         name_row.addWidget(QLabel(t("ui.smart_collections.name_label") + ":"))
@@ -131,11 +133,13 @@ class SmartCollectionDialog(QDialog):
         # --- Rule Groups ---
         groups_group = QGroupBox(t("ui.smart_collections.groups_label"))
         groups_layout = QVBoxLayout(groups_group)
+        groups_layout.setContentsMargins(5, 5, 5, 5)
+        groups_layout.setSpacing(4)
 
         # Scrollable group area
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
-        scroll.setMinimumHeight(200)
+        scroll.setMinimumHeight(350)
         self._groups_container = QWidget()
         self._groups_layout = QVBoxLayout(self._groups_container)
         self._groups_layout.setContentsMargins(4, 4, 4, 4)
@@ -161,6 +165,8 @@ class SmartCollectionDialog(QDialog):
         # --- Preview ---
         preview_group = QGroupBox(t("ui.smart_collections.preview_label"))
         preview_layout = QVBoxLayout(preview_group)
+        preview_layout.setContentsMargins(5, 5, 5, 5)
+        preview_layout.setSpacing(4)
 
         self._match_count_label = QLabel(t("ui.smart_collections.matching_count", count=0))
         preview_layout.addWidget(self._match_count_label)
@@ -223,6 +229,7 @@ class SmartCollectionDialog(QDialog):
         if group_widget in self._group_widgets:
             self._group_widgets.remove(group_widget)
             self._groups_layout.removeWidget(group_widget)
+            group_widget.hide()
             group_widget.deleteLater()
             # Re-index remaining groups
             for i, gw in enumerate(self._group_widgets):
