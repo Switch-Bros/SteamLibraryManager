@@ -165,7 +165,7 @@ class Database:
     modification tracking, and fast queries for UI.
     """
 
-    SCHEMA_VERSION = 3
+    SCHEMA_VERSION = 4
 
     def __init__(self, db_path: Path):
         """Initialize database connection.
@@ -248,6 +248,10 @@ class Database:
             self._migrate_to_v3()
             self._set_schema_version(3)
 
+        if from_version < 4:
+            self._migrate_to_v4()
+            self._set_schema_version(4)
+
     def _migrate_to_v3(self) -> None:
         """Migrate to schema v3: tag_definitions table + tag_id column."""
         # Add tag_id column to game_tags (if not exists)
@@ -270,6 +274,18 @@ class Database:
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_tag_definitions_lang ON tag_definitions(language)")
         self.conn.commit()
         logger.info("Migrated to schema v3: tag_definitions + tag_id")
+
+    def _migrate_to_v4(self) -> None:
+        """Migrate to schema v4: hltb_id_cache table."""
+        self.conn.execute("""
+            CREATE TABLE IF NOT EXISTS hltb_id_cache (
+                steam_app_id INTEGER PRIMARY KEY,
+                hltb_game_id INTEGER NOT NULL,
+                cached_at INTEGER NOT NULL
+            )
+            """)
+        self.conn.commit()
+        logger.info("Migrated to schema v4: hltb_id_cache")
 
     # ========================================================================
     # GAME CRUD OPERATIONS
@@ -1052,6 +1068,61 @@ class Database:
             WHERE h.app_id IS NULL AND g.app_type IN ('game', '')
             """)
         return [(row[0], row[1]) for row in cursor.fetchall()]
+
+    # ========================================================================
+    # HLTB ID CACHE (Phase 5.5)
+    # ========================================================================
+
+    _HLTB_CACHE_TTL_DAYS = 30
+
+    def load_hltb_id_cache(self) -> dict[int, int]:
+        """Loads the steam_app_id → hltb_game_id cache from database.
+
+        Only returns entries younger than 30 days.
+
+        Returns:
+            Dict mapping steam_app_id to hltb_game_id.
+        """
+        cutoff = int(time.time()) - (self._HLTB_CACHE_TTL_DAYS * 86400)
+        cursor = self.conn.execute(
+            "SELECT steam_app_id, hltb_game_id FROM hltb_id_cache WHERE cached_at > ?",
+            (cutoff,),
+        )
+        return {row[0]: row[1] for row in cursor.fetchall()}
+
+    def save_hltb_id_cache(self, mappings: dict[int, int]) -> int:
+        """Saves steam_app_id → hltb_game_id mappings to the cache table.
+
+        Uses INSERT OR REPLACE to update existing entries.
+
+        Args:
+            mappings: Dict mapping steam_app_id to hltb_game_id.
+
+        Returns:
+            Number of mappings saved.
+        """
+        if not mappings:
+            return 0
+
+        now = int(time.time())
+        rows = [(steam_id, hltb_id, now) for steam_id, hltb_id in mappings.items()]
+        self.conn.executemany(
+            "INSERT OR REPLACE INTO hltb_id_cache (steam_app_id, hltb_game_id, cached_at) VALUES (?, ?, ?)",
+            rows,
+        )
+        self.conn.commit()
+        return len(rows)
+
+    def clear_expired_hltb_cache(self) -> int:
+        """Removes expired entries from the HLTB ID cache.
+
+        Returns:
+            Number of entries removed.
+        """
+        cutoff = int(time.time()) - (self._HLTB_CACHE_TTL_DAYS * 86400)
+        cursor = self.conn.execute("DELETE FROM hltb_id_cache WHERE cached_at <= ?", (cutoff,))
+        self.conn.commit()
+        return cursor.rowcount
 
     # ========================================================================
     # ACHIEVEMENT OPERATIONS (Phase 5.2)

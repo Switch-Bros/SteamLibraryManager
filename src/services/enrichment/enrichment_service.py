@@ -43,6 +43,7 @@ class EnrichmentThread(BaseEnrichmentThread):
         self._games: list[tuple[int, str]] = []
         self._db_path: Path | None = None
         self._hltb_client: HLTBClient | None = None
+        self._steam_user_id: str = ""
         self._api_key: str = ""
         self._db: Any = None
 
@@ -51,6 +52,7 @@ class EnrichmentThread(BaseEnrichmentThread):
         games: list[tuple[int, str]],
         db_path: Path,
         hltb_client: HLTBClient,
+        steam_user_id: str = "",
     ) -> None:
         """Configures the thread for HLTB enrichment.
 
@@ -58,11 +60,13 @@ class EnrichmentThread(BaseEnrichmentThread):
             games: List of (app_id, name) tuples to enrich.
             db_path: Path to the SQLite database file.
             hltb_client: HLTB client for searching.
+            steam_user_id: 64-bit Steam ID for Steam Import prefetch.
         """
         self._mode = "hltb"
         self._games = games
         self._db_path = db_path
         self._hltb_client = hltb_client
+        self._steam_user_id = steam_user_id
 
     def configure_steam(
         self,
@@ -92,10 +96,35 @@ class EnrichmentThread(BaseEnrichmentThread):
     # ── BaseEnrichmentThread hooks (HLTB mode) ─────────
 
     def _setup(self) -> None:
-        """Opens the database connection for HLTB enrichment."""
+        """Opens the database connection and pre-loads the HLTB ID cache.
+
+        Loads cached steam_app_id → hltb_game_id mappings from the DB.
+        If a Steam user ID is configured and the cache is empty,
+        fetches fresh mappings via the Steam Import API.
+        """
         from src.core.database import Database
 
         self._db = Database(self._db_path)
+
+        # Load existing ID cache from DB
+        cached_mappings = self._db.load_hltb_id_cache()
+
+        # If cache is empty and we have a Steam user ID, fetch from API
+        if not cached_mappings and self._steam_user_id and self._hltb_client:
+            self.progress.emit(
+                t("ui.enrichment.steam_import_loading"),
+                0,
+                len(self._games),
+            )
+            api_mappings = self._hltb_client.fetch_steam_import(self._steam_user_id)
+            if api_mappings:
+                self._db.save_hltb_id_cache(api_mappings)
+                cached_mappings = api_mappings
+                logger.info("HLTB Steam Import: saved %d mappings to DB", len(api_mappings))
+
+        # Populate the client's in-memory cache
+        if cached_mappings and self._hltb_client:
+            self._hltb_client.set_id_cache(cached_mappings)
 
     def _cleanup(self) -> None:
         """Closes the database connection."""
@@ -143,7 +172,19 @@ class EnrichmentThread(BaseEnrichmentThread):
             logger.debug("HLTB matched '%s' but 0h times, saved as checked", name)
             return False
 
-        logger.info("HLTB miss: %d '%s'", app_id, name)
+        # Mark as checked with NULL times so it won't be retried.
+        # _batch_get_hltb() filters with "AND main_story IS NOT NULL",
+        # so these won't appear as 0-hour games in the UI.
+        self._db.conn.execute(
+            """
+            INSERT OR REPLACE INTO hltb_data
+            (app_id, main_story, main_extras, completionist, last_updated)
+            VALUES (?, NULL, NULL, NULL, ?)
+            """,
+            (app_id, int(time.time())),
+        )
+        self._db.conn.commit()
+        logger.info("HLTB miss: %d '%s' (marked as checked)", app_id, name)
         return False
 
     def _format_progress(self, item: Any, current: int, total: int) -> str:
