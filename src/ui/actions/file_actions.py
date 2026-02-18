@@ -84,12 +84,12 @@ class FileActions:
             if result == SteamRunningDialog.CLOSE_AND_SAVE:
                 # Steam was closed, proceed with save
                 self.mw.save_collections()
-                UIHelper.show_success(self.mw, t("common.save_success"))
+                UIHelper.show_success(self.mw, t("ui.save.success"))
             # else: User cancelled, do nothing
         else:
             # Steam not running, safe to save
             self.mw.save_collections()
-            UIHelper.show_success(self.mw, t("common.save_success"))
+            UIHelper.show_success(self.mw, t("ui.save.success"))
 
     def remove_duplicate_collections(self) -> None:
         """Opens the merge-duplicates dialog for cloud storage collections.
@@ -134,7 +134,7 @@ class FileActions:
 
         try:
             VDFTextExporter.export_collections(collections, Path(file_path))
-            UIHelper.show_success(self.mw, t("common.save_success"))
+            UIHelper.show_success(self.mw, t("ui.save.success"))
         except OSError as exc:
             UIHelper.show_warning(self.mw, str(exc))
 
@@ -401,7 +401,7 @@ class FileActions:
         manager = BackupManager(config.DATA_DIR / "backups")
         success = manager.restore_backup(Path(file_path), db_path)
         if success:
-            UIHelper.show_success(self.mw, t("common.save_success"))
+            UIHelper.show_success(self.mw, t("ui.save.success"))
             self.refresh_data()
         else:
             UIHelper.show_warning(self.mw, t("ui.export.error", error="Restore failed"))
@@ -445,11 +445,11 @@ class FileActions:
 
         msg = QMessageBox(self.mw)
         msg.setIcon(QMessageBox.Icon.Warning)
-        msg.setWindowTitle(t("common.unsaved_changes_title"))
-        msg.setText(t("common.unsaved_changes_msg", filenames=", ".join(filenames)))
+        msg.setWindowTitle(t("ui.unsaved_changes.title"))
+        msg.setText(t("ui.unsaved_changes.message", filenames=", ".join(filenames)))
 
-        save_btn = msg.addButton(t("common.save_and_exit"), QMessageBox.ButtonRole.AcceptRole)
-        discard_btn = msg.addButton(t("common.discard_and_exit"), QMessageBox.ButtonRole.DestructiveRole)
+        save_btn = msg.addButton(t("ui.exit.save_and_exit"), QMessageBox.ButtonRole.AcceptRole)
+        discard_btn = msg.addButton(t("ui.exit.discard_and_exit"), QMessageBox.ButtonRole.DestructiveRole)
         msg.addButton(t("common.cancel"), QMessageBox.ButtonRole.RejectRole)
         msg.setDefaultButton(save_btn)
 

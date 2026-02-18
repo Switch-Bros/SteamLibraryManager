@@ -286,8 +286,8 @@ def ask_save_changes(parent: QWidget, save_callback: Callable[[], bool]) -> bool
     # === 3-BUTTON DIALOG: Save / Discard / Cancel ===
     msg = QMessageBox(parent)
     msg.setIcon(QMessageBox.Icon.Question)
-    msg.setWindowTitle(t("common.unsaved_changes_title"))
-    msg.setText(t("common.unsaved_changes_save_prompt"))
+    msg.setWindowTitle(t("ui.unsaved_changes.title"))
+    msg.setText(t("ui.unsaved_changes.save_prompt"))
 
     save_btn = msg.addButton(t("common.save"), QMessageBox.ButtonRole.AcceptRole)
     discard_btn = msg.addButton(t("common.discard"), QMessageBox.ButtonRole.DestructiveRole)
@@ -305,8 +305,8 @@ def ask_save_changes(parent: QWidget, save_callback: Callable[[], bool]) -> bool
         # === SAVE FAILED - RETRY DIALOG ===
         retry_msg = QMessageBox(parent)
         retry_msg.setIcon(QMessageBox.Icon.Warning)
-        retry_msg.setWindowTitle(t("common.save_failed_title"))
-        retry_msg.setText(t("common.save_failed_msg"))
+        retry_msg.setWindowTitle(t("ui.save.failed_title"))
+        retry_msg.setText(t("ui.save.failed_msg"))
 
         yes_btn = retry_msg.addButton(t("common.yes"), QMessageBox.ButtonRole.YesRole)
         retry_msg.addButton(t("common.no"), QMessageBox.ButtonRole.NoRole)
