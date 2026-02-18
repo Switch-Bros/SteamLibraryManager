@@ -6,7 +6,7 @@ Handler for all category (collection) actions and context menus.
 Extracts the following methods from MainWindow:
   - on_game_right_click / on_category_right_click   (context menus)
   - remove_duplicate_collections                    (bulk cleanup)
-  - create_new_collection / rename_category         (CRUD)
+  - rename_category                                  (CRUD)
   - delete_category / delete_multiple_categories    (CRUD)
   - merge_categories                                (CRUD)
 
@@ -100,6 +100,16 @@ class CategoryActionHandler:
         menu.addSeparator()
         menu.addAction(t("ui.context_menu.edit_metadata"), lambda: mw.edit_actions.edit_game_metadata(game))
 
+        menu.addSeparator()
+        menu.addAction(
+            t("ui.context_menu.create_collection"),
+            lambda: self._create_collection_with_games(mw.selected_games or [game]),
+        )
+        menu.addAction(
+            t("ui.context_menu.create_smart_collection"),
+            mw.edit_actions.create_smart_collection,
+        )
+
         menu.exec(pos)
 
     def on_category_right_click(self, category: str, pos) -> None:
@@ -145,8 +155,6 @@ class CategoryActionHandler:
 
         else:
             # --- Normal user category ---
-            menu.addAction(t("ui.context_menu.create_collection"), self.create_new_collection)
-            menu.addSeparator()
             menu.addAction(t("common.rename"), lambda: self.rename_category(category))
             menu.addAction(t("common.delete"), lambda: self.delete_category(category))
 
@@ -194,24 +202,6 @@ class CategoryActionHandler:
                 UIHelper.show_info(mw, t("ui.main_window.no_duplicates"))
         except RuntimeError as e:
             UIHelper.show_error(mw, str(e))
-
-    def create_new_collection(self) -> None:
-        """Prompts the user for a name and creates a new empty collection."""
-        mw = self.mw
-        if not mw.category_service:
-            return
-
-        name, ok = UIHelper.ask_text(
-            mw, t("ui.main_window.create_collection_title"), t("ui.main_window.create_collection_prompt")
-        )
-
-        if ok and name:
-            try:
-                mw.category_service.create_collection(name)
-                self._flush()
-                UIHelper.show_success(mw, t("ui.main_window.collection_created", name=name))
-            except ValueError as e:
-                UIHelper.show_error(mw, str(e))
 
     def rename_category(self, old_name: str) -> None:
         """Prompts the user for a new name and renames the category.
@@ -375,6 +365,50 @@ class CategoryActionHandler:
                 if merged > 0:
                     self._flush(stats=True)
                     UIHelper.show_success(mw, t("categories.merge_duplicates_success", count=merged))
+
+    # ------------------------------------------------------------------
+    # Collection creation with games
+    # ------------------------------------------------------------------
+
+    def _create_collection_with_games(self, games: list[Game]) -> None:
+        """Prompts for a name, creates a collection, and adds the given games.
+
+        Args:
+            games: The games to add to the newly created collection.
+        """
+        mw = self.mw
+        if not mw.category_service:
+            return
+
+        name, ok = UIHelper.ask_text(
+            mw,
+            t("ui.main_window.create_collection_title"),
+            t("ui.main_window.create_collection_prompt"),
+        )
+        if not ok or not name:
+            return
+
+        try:
+            mw.category_service.create_collection(name)
+        except ValueError as e:
+            UIHelper.show_error(mw, str(e))
+            return
+
+        for game in games:
+            mw.category_service.add_app_to_category(game.app_id, name)
+
+        self._flush()
+
+        if games:
+            UIHelper.show_success(
+                mw,
+                t("ui.main_window.collection_created_with_games", name=name, count=len(games)),
+            )
+        else:
+            UIHelper.show_success(
+                mw,
+                t("ui.main_window.collection_created", name=name),
+            )
 
     # ------------------------------------------------------------------
     # Internal helpers

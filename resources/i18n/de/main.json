@@ -20,6 +20,7 @@
       "create_collection_prompt": "Geben Sie den Namen der neuen Kollektion ein:",
       "collection_exists": "Eine Kollektion mit dem Namen '{name}' existiert bereits!",
       "collection_created": "Kollektion '{name}' wurde erstellt!",
+      "collection_created_with_games": "Kollektion '{name}' erstellt mit {count} Spiel(en).",
       "filter_active": "Filter aktiv: {count} von {total} Spielen"
     },
     "game_details": {
@@ -111,7 +112,8 @@
       "auto_categorize": "Auto-Kategorisieren",
       "merge_categories": "Kollektionen zusammenführen",
       "merge_duplicate_collection": "Doppelte '{name}' Kollektionen zusammenführen...",
-      "create_collection": "Kollektion erstellen"
+      "create_collection": "Kollektion erstellen",
+      "create_smart_collection": "Smart Kollektion erstellen"
     },
     "metadata_editor": {
       "title": "Metadaten bearbeiten",
