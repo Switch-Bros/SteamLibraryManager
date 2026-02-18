@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 from src.core.game import Game
@@ -38,14 +39,14 @@ def _make_game(
 class TestDeckEnrichmentConfig:
     """Tests for DeckEnrichmentThread configuration."""
 
-    def test_configure_stores_games(self, tmp_path: object) -> None:
+    def test_configure_stores_games(self, tmp_path: Path) -> None:
         """Configure should store the games list."""
         thread = DeckEnrichmentThread()
         games = [_make_game("1", "Game A"), _make_game("2", "Game B")]
         thread.configure(games, tmp_path)
         assert thread._games is games
 
-    def test_configure_stores_cache_dir(self, tmp_path: object) -> None:
+    def test_configure_stores_cache_dir(self, tmp_path: Path) -> None:
         """Configure should store the cache directory."""
         thread = DeckEnrichmentThread()
         thread.configure([], tmp_path)
@@ -68,7 +69,7 @@ class TestFetchDeckStatus:
     """Tests for the static _fetch_deck_status method."""
 
     @patch("src.services.enrichment.deck_enrichment_service.requests.get")
-    def test_fetch_verified_status(self, mock_get: MagicMock, tmp_path: object) -> None:
+    def test_fetch_verified_status(self, mock_get: MagicMock, tmp_path: Path) -> None:
         """API returning resolved_category=3 should map to 'verified'."""
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -82,7 +83,7 @@ class TestFetchDeckStatus:
         assert result == "verified"
 
     @patch("src.services.enrichment.deck_enrichment_service.requests.get")
-    def test_fetch_playable_status(self, mock_get: MagicMock, tmp_path: object) -> None:
+    def test_fetch_playable_status(self, mock_get: MagicMock, tmp_path: Path) -> None:
         """API returning resolved_category=2 should map to 'playable'."""
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -96,7 +97,7 @@ class TestFetchDeckStatus:
         assert result == "playable"
 
     @patch("src.services.enrichment.deck_enrichment_service.requests.get")
-    def test_fetch_unsupported_status(self, mock_get: MagicMock, tmp_path: object) -> None:
+    def test_fetch_unsupported_status(self, mock_get: MagicMock, tmp_path: Path) -> None:
         """API returning resolved_category=1 should map to 'unsupported'."""
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -110,7 +111,7 @@ class TestFetchDeckStatus:
         assert result == "unsupported"
 
     @patch("src.services.enrichment.deck_enrichment_service.requests.get")
-    def test_fetch_unknown_status(self, mock_get: MagicMock, tmp_path: object) -> None:
+    def test_fetch_unknown_status(self, mock_get: MagicMock, tmp_path: Path) -> None:
         """API returning resolved_category=0 should map to 'unknown'."""
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -124,7 +125,7 @@ class TestFetchDeckStatus:
         assert result == "unknown"
 
     @patch("src.services.enrichment.deck_enrichment_service.requests.get")
-    def test_fetch_api_error_returns_none(self, mock_get: MagicMock, tmp_path: object) -> None:
+    def test_fetch_api_error_returns_none(self, mock_get: MagicMock, tmp_path: Path) -> None:
         """Network errors should return None."""
         import requests as req_mod
 
@@ -137,7 +138,7 @@ class TestFetchDeckStatus:
         assert result is None
 
     @patch("src.services.enrichment.deck_enrichment_service.requests.get")
-    def test_fetch_non_200_returns_none(self, mock_get: MagicMock, tmp_path: object) -> None:
+    def test_fetch_non_200_returns_none(self, mock_get: MagicMock, tmp_path: Path) -> None:
         """Non-200 HTTP status should return None."""
         mock_response = MagicMock()
         mock_response.status_code = 500
@@ -150,7 +151,7 @@ class TestFetchDeckStatus:
         assert result is None
 
     @patch("src.services.enrichment.deck_enrichment_service.requests.get")
-    def test_fetch_creates_cache_file(self, mock_get: MagicMock, tmp_path: object) -> None:
+    def test_fetch_creates_cache_file(self, mock_get: MagicMock, tmp_path: Path) -> None:
         """Successful fetch should create a cache file."""
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -166,7 +167,7 @@ class TestFetchDeckStatus:
         assert cache_file.exists()
 
     @patch("src.services.enrichment.deck_enrichment_service.requests.get")
-    def test_fetch_handles_list_results(self, mock_get: MagicMock, tmp_path: object) -> None:
+    def test_fetch_handles_list_results(self, mock_get: MagicMock, tmp_path: Path) -> None:
         """API sometimes returns results as a list — handle gracefully."""
         mock_response = MagicMock()
         mock_response.status_code = 200

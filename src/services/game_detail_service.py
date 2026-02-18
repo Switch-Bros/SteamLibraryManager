@@ -178,42 +178,69 @@ class GameDetailService:
     def _fetch_proton_rating(self, app_id: str) -> None:
         """Fetches ProtonDB compatibility rating.
 
+        Checks the DB cache first (7-day TTL), then falls back to the
+        ProtonDB API via ProtonDBClient. Persists results to the database.
+
         Args:
             app_id: The Steam app ID.
         """
-        cache_file = self._cache_dir / "store_data" / f"{app_id}_proton.json"
-
-        # Always use English tier names for internal storage (translated on display)
         unknown_status = "unknown"
 
-        if cache_file.exists():
-            try:
-                cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
-                if cache_age < timedelta(days=7):
-                    with open(cache_file, "r") as f:
-                        data = json.load(f)
-                        if app_id in self._games:
-                            self._games[app_id].proton_db_rating = data.get("tier", unknown_status)
-                    return
-            except (OSError, json.JSONDecodeError):
-                pass
+        if app_id not in self._games:
+            return
 
+        # 1. DB cache lookup (7-day TTL)
         try:
-            url = f"https://www.protondb.com/api/v1/reports/summaries/{app_id}.json"
-            response = requests.get(url, timeout=5)
-            if response.status_code == 200:
-                data = response.json()
-                tier = data.get("tier", unknown_status)
-                with open(cache_file, "w") as f:
-                    json.dump({"tier": tier}, f)
-                if app_id in self._games:
-                    self._games[app_id].proton_db_rating = tier
+            from src.core.database import Database
+            from src.config import config
+
+            db_path = config.DATA_DIR / "games.db"
+            if db_path.exists():
+                db = Database(db_path)
+                cached = db.get_cached_protondb(int(app_id))
+                if cached:
+                    self._games[app_id].proton_db_rating = cached["tier"]
+                    db.close()
+                    return
+                db.close()
+        except Exception as exc:
+            logger.debug("ProtonDB DB lookup failed for %s: %s", app_id, exc)
+
+        # 2. API call via ProtonDBClient
+        try:
+            from src.core.database import Database as DB
+            from src.integrations.protondb_api import ProtonDBClient
+
+            client = ProtonDBClient()
+            result = client.get_rating(int(app_id))
+
+            if result:
+                self._games[app_id].proton_db_rating = result.tier
+
+                # Persist to DB
+                try:
+                    from src.config import config as cfg
+
+                    db_path = cfg.DATA_DIR / "games.db"
+                    if db_path.exists():
+                        db = DB(db_path)
+                        db.upsert_protondb(
+                            int(app_id),
+                            tier=result.tier,
+                            confidence=result.confidence,
+                            trending_tier=result.trending_tier,
+                            score=result.score,
+                            best_reported=result.best_reported,
+                        )
+                        db.commit()
+                        db.close()
+                except Exception as exc:
+                    logger.debug("ProtonDB DB persist failed for %s: %s", app_id, exc)
             else:
-                if app_id in self._games:
-                    self._games[app_id].proton_db_rating = unknown_status
-        except (requests.RequestException, ValueError, KeyError, OSError):
-            if app_id in self._games:
                 self._games[app_id].proton_db_rating = unknown_status
+
+        except Exception:
+            self._games[app_id].proton_db_rating = unknown_status
 
     def _fetch_steam_deck_status(self, app_id: str) -> None:
         """Fetches Steam Deck compatibility status from Valve's Deck API.

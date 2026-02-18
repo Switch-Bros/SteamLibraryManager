@@ -260,6 +260,22 @@
       "db_import_message": "Setting up database...",
       "db_import_progress": "Importing games..."
     },
+    "image_browser": {
+      "loading_page": "Loading page {page}...",
+      "loading_more": "Loading more...",
+      "all_loaded": "All {count} images loaded."
+    },
+    "detail": {
+      "description_label": "Description",
+      "dlc_label": "DLC",
+      "dlc_none": "No DLC available",
+      "age_rating": "Age Rating",
+      "private_app": "Private App",
+      "installed_via_api": "Installed (API)",
+      "family_sharing": "Family Sharing",
+      "family_sharing_yes": "Allowed",
+      "family_sharing_no": "Excluded"
+    },
     "tools": {
       "missing_metadata": {
         "title": "Games with Missing Metadata",
@@ -479,12 +495,19 @@
       "deck_title": "Fetching Steam Deck Status",
       "deck_starting": "Fetching Steam Deck compatibility data...",
       "cancel_confirm": "Cancel enrichment? Progress so far will be saved.",
+      "force_refresh_title": "Re-fetch All Data",
+      "force_refresh_confirm": "This will re-fetch data for ALL games, overwriting existing values.\n\nThis may take a long time. Continue?",
       "hltb_not_available": "HLTB library not installed. Install 'howlongtobeatpy'.",
       "no_games_achievements": "All games already have achievement data.",
       "achievement_title": "Fetching Achievements",
       "achievement_starting": "Starting achievement enrichment...",
       "no_steam_id": "Steam ID not configured. Please log in first.",
-      "steam_import_loading": "Loading HLTB Steam Import data..."
+      "steam_import_loading": "Loading HLTB Steam Import data...",
+      "protondb_title": "Fetching ProtonDB Ratings",
+      "protondb_starting": "Starting ProtonDB enrichment...",
+      "no_games_protondb": "All games already have ProtonDB ratings.",
+      "tag_list_loaded": "Tag list loaded ({count} tags).",
+      "private_apps_found": "Found {count} private apps."
     },
     "tag_import": {
       "loading_appinfo": "Loading appinfo.vdf...",

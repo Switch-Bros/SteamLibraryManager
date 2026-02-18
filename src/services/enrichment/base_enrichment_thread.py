@@ -39,6 +39,7 @@ class BaseEnrichmentThread(QThread):
         """
         super().__init__(parent)
         self._cancelled: bool = False
+        self._force_refresh: bool = False
 
     def cancel(self) -> None:
         """Request cancellation of the enrichment loop."""

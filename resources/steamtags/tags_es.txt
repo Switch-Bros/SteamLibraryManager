@@ -149,7 +149,7 @@
 4195	Caricaturescos
 4202	Comercio
 4231	Rol de acción
-4234	Corto 
+4234	Corto
 4236	Botín
 4242	Episódico
 4252	Estilizados
@@ -203,7 +203,7 @@
 5125	Generación por procedimientos
 5153	Kickstarter
 5154	Puntuación de ataque
-5160	Dinosaurios 
+5160	Dinosaurios
 5179	Guerra Fría
 5186	Psicológicos
 5228	Sangre

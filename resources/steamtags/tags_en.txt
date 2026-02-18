@@ -192,12 +192,12 @@
 4840	4 Player Local
 4845	Capitalism
 4853	Political
-4878	Parody 
+4878	Parody
 4885	Bullet Hell
 4947	Romance
 4975	2.5D
 4994	Naval Combat
-5030	Dystopian 
+5030	Dystopian
 5055	eSports
 5094	Narration
 5125	Procedural Generation

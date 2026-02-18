@@ -469,32 +469,65 @@ class MenuBuilder:
         update_meta_action = QAction(t("menu.tools.batch.update_metadata"), mw)
         update_meta_action.triggered.connect(mw.enrichment_actions.start_steam_api_enrichment)
         batch_menu.addAction(update_meta_action)
+        update_meta_force = QAction(t("menu.tools.batch.update_metadata_force"), mw)
+        update_meta_force.triggered.connect(
+            lambda checked: mw.enrichment_actions.start_steam_api_enrichment(force_refresh=True)
+        )
+        batch_menu.addAction(update_meta_force)
+        batch_menu.addSeparator()
 
         # Update HLTB (wired to enrichment)
         update_hltb_action = QAction(t("menu.tools.batch.update_hltb"), mw)
         update_hltb_action.triggered.connect(mw.enrichment_actions.start_hltb_enrichment)
         batch_menu.addAction(update_hltb_action)
+        update_hltb_force = QAction(t("menu.tools.batch.update_hltb_force"), mw)
+        update_hltb_force.triggered.connect(
+            lambda checked: mw.enrichment_actions.start_hltb_enrichment(force_refresh=True)
+        )
+        batch_menu.addAction(update_hltb_force)
+        batch_menu.addSeparator()
 
         # Update Deck Status (wired to enrichment)
         update_deck_action = QAction(t("menu.tools.batch.update_deck"), mw)
         update_deck_action.triggered.connect(mw.enrichment_actions.start_deck_enrichment)
         batch_menu.addAction(update_deck_action)
+        update_deck_force = QAction(t("menu.tools.batch.update_deck_force"), mw)
+        update_deck_force.triggered.connect(
+            lambda checked: mw.enrichment_actions.start_deck_enrichment(force_refresh=True)
+        )
+        batch_menu.addAction(update_deck_force)
+        batch_menu.addSeparator()
 
         # Update Achievements (wired to enrichment)
         update_ach_action = QAction(t("menu.tools.batch.update_achievements"), mw)
         update_ach_action.triggered.connect(mw.enrichment_actions.start_achievement_enrichment)
         batch_menu.addAction(update_ach_action)
+        update_ach_force = QAction(t("menu.tools.batch.update_achievements_force"), mw)
+        update_ach_force.triggered.connect(
+            lambda checked: mw.enrichment_actions.start_achievement_enrichment(force_refresh=True)
+        )
+        batch_menu.addAction(update_ach_force)
+        batch_menu.addSeparator()
 
         # Import Tags from appinfo.vdf
         import_tags_action = QAction(t("menu.tools.batch.import_tags"), mw)
         import_tags_action.triggered.connect(mw.enrichment_actions.start_tag_import)
         batch_menu.addAction(import_tags_action)
+        batch_menu.addSeparator()
+
+        # Update ProtonDB Ratings (wired to enrichment)
+        update_protondb_action = QAction(t("menu.tools.batch.update_protondb"), mw)
+        update_protondb_action.triggered.connect(mw.enrichment_actions.start_protondb_enrichment)
+        batch_menu.addAction(update_protondb_action)
+        update_protondb_force = QAction(t("menu.tools.batch.update_protondb_force"), mw)
+        update_protondb_force.triggered.connect(
+            lambda checked: mw.enrichment_actions.start_protondb_enrichment(force_refresh=True)
+        )
+        batch_menu.addAction(update_protondb_force)
+        batch_menu.addSeparator()
 
         # Remaining batch stubs
-        for key in (
-            "update_protondb",
-            "check_store",
-        ):
+        for key in ("check_store",):
             action = QAction(t(f"menu.tools.batch.{key}"), mw)
             action.triggered.connect(lambda checked, k=f"menu.tools.batch.{key}": self._not_implemented(k))
             batch_menu.addAction(action)

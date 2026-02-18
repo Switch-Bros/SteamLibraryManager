@@ -89,10 +89,12 @@ class TestHLTBEnrichment:
         thread = EnrichmentThread()
 
         mock_client = MagicMock()
-        mock_client.search_game.side_effect = lambda name, app_id=0: (
-            thread.cancel(),
-            HLTBResult(game_name=name, main_story=10.0, main_extras=0.0, completionist=0.0),
-        )[1]
+
+        def _cancel_and_return(name: str, app_id: int = 0) -> HLTBResult:
+            thread.cancel()
+            return HLTBResult(game_name=name, main_story=10.0, main_extras=0.0, completionist=0.0)
+
+        mock_client.search_game.side_effect = _cancel_and_return
 
         finished_spy = MagicMock()
         thread.finished_enrichment.connect(finished_spy)

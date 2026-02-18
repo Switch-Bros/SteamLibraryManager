@@ -260,6 +260,22 @@
       "db_import_message": "Datenbank wird eingerichtet...",
       "db_import_progress": "Spiele werden importiert..."
     },
+    "image_browser": {
+      "loading_page": "Lade Seite {page}...",
+      "loading_more": "Lade weitere...",
+      "all_loaded": "Alle {count} Bilder geladen."
+    },
+    "detail": {
+      "description_label": "Beschreibung",
+      "dlc_label": "DLC",
+      "dlc_none": "Keine DLCs verfügbar",
+      "age_rating": "Altersfreigabe",
+      "private_app": "Privates Spiel",
+      "installed_via_api": "Installiert (API)",
+      "family_sharing": "Familienfreigabe",
+      "family_sharing_yes": "Erlaubt",
+      "family_sharing_no": "Ausgeschlossen"
+    },
     "tools": {
       "missing_metadata": {
         "title": "Spiele mit fehlenden Metadaten",
@@ -479,12 +495,19 @@
       "deck_title": "Steam-Deck-Status abrufen",
       "deck_starting": "Lade Steam-Deck-Kompatibilitätsdaten...",
       "cancel_confirm": "Anreicherung abbrechen? Bisheriger Fortschritt wird gespeichert.",
+      "force_refresh_title": "Alle Daten neu einlesen",
+      "force_refresh_confirm": "Hiermit werden die Daten ALLER Spiele neu abgerufen und bestehende Werte überschrieben.\n\nDas kann eine Weile dauern. Fortfahren?",
       "hltb_not_available": "HLTB-Bibliothek nicht installiert. Installiere 'howlongtobeatpy'.",
       "no_games_achievements": "Alle Spiele haben bereits Achievement-Daten.",
       "achievement_title": "Achievements abrufen",
       "achievement_starting": "Starte Achievement-Anreicherung...",
       "no_steam_id": "Steam-ID nicht konfiguriert. Bitte zuerst einloggen.",
-      "steam_import_loading": "Lade HLTB Steam Import Daten..."
+      "steam_import_loading": "Lade HLTB Steam Import Daten...",
+      "protondb_title": "ProtonDB-Bewertungen abrufen",
+      "protondb_starting": "Starte ProtonDB-Anreicherung...",
+      "no_games_protondb": "Alle Spiele haben bereits ProtonDB-Bewertungen.",
+      "tag_list_loaded": "Tag-Liste geladen ({count} Tags).",
+      "private_apps_found": "{count} private Apps gefunden."
     },
     "tag_import": {
       "loading_appinfo": "Lade appinfo.vdf...",

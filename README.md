@@ -154,7 +154,7 @@ python src/main.py
 ---
 ## 🌍 **Steam Library Manager** *(Deutsch)*
 
-Ein moderner, leistungsstarker Bibliotheks-Manager für Steam auf Linux und dem Steam Deck.  
+Ein moderner, leistungsstarker Bibliotheks-Manager für Steam auf Linux und dem Steam Deck.
 Organisiere deine Sammlung, bearbeite Metadaten und automatisiere Kategorien.
 
 > ⚠️ **Hinweis:** Dieses Projekt befindet sich aktuell in der aktiven Entwicklung (Alpha/Beta). Backups werden automatisch erstellt, aber Nutzung auf eigene Gefahr.
@@ -216,6 +216,6 @@ Developing this tool takes time and caffeine. If it helps you tame your library,
 Die Entwicklung dieses Tools kostet Zeit und Koffein. Wenn dir der Manager hilft, deine Bibliothek zu bändigen, freue ich mich riesig über einen Kaffee!
 
 [![17688665364546846464391088987251](https://github.com/user-attachments/assets/a2495674-be9e-4d64-bc23-058094635036)
-](https://www.paypal.com/donate/?hosted_button_id=HWPG6YAGXAWJJ) 
+](https://www.paypal.com/donate/?hosted_button_id=HWPG6YAGXAWJJ)
 
 (Screenshots und detaillierte Dokumentation folgen in Kürze)

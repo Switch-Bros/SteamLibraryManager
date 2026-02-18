@@ -39,20 +39,34 @@ class EnrichmentActions:
         """
         self.mw: MainWindow = main_window
 
-    def start_deck_enrichment(self) -> None:
+    def start_deck_enrichment(self, force_refresh: bool = False) -> None:
         """Starts deck status enrichment for games missing deck data.
 
         Filters games with no or 'unknown' deck status, then launches
         the DeckEnrichmentThread with a progress dialog.
+
+        Args:
+            force_refresh: If True, re-fetch all games (with confirmation).
         """
         from src.services.enrichment.deck_enrichment_service import DeckEnrichmentThread
 
         if not self.mw.game_manager:
             return
 
-        # Filter games missing deck status
+        if force_refresh:
+            if not UIHelper.confirm(
+                self.mw,
+                t("ui.enrichment.force_refresh_confirm"),
+                title=t("ui.enrichment.force_refresh_title"),
+            ):
+                return
+
+        # Filter games
         all_games = self.mw.game_manager.get_real_games()
-        games_to_enrich = [g for g in all_games if not g.steam_deck_status or g.steam_deck_status == "unknown"]
+        if force_refresh:
+            games_to_enrich = all_games
+        else:
+            games_to_enrich = [g for g in all_games if not g.steam_deck_status or g.steam_deck_status == "unknown"]
 
         if not games_to_enrich:
             UIHelper.show_info(self.mw, t("ui.enrichment.no_games_deck"))
@@ -65,7 +79,7 @@ class EnrichmentActions:
 
         # Create and launch thread
         thread = DeckEnrichmentThread(self.mw)
-        thread.configure(games_to_enrich, cache_dir)
+        thread.configure(games_to_enrich, cache_dir, force_refresh=force_refresh)
         self._run_enrichment(
             thread,
             title_key="ui.enrichment.deck_title",
@@ -73,11 +87,14 @@ class EnrichmentActions:
             total=len(games_to_enrich),
         )
 
-    def start_hltb_enrichment(self) -> None:
+    def start_hltb_enrichment(self, force_refresh: bool = False) -> None:
         """Starts HLTB enrichment for games missing HLTB data.
 
         Checks that howlongtobeatpy is installed and that there are
         games without HLTB data. Launches the enrichment dialog.
+
+        Args:
+            force_refresh: If True, re-fetch all games (with confirmation).
         """
         from src.integrations.hltb_api import HLTBClient
         from src.services.enrichment.enrichment_service import EnrichmentThread
@@ -88,12 +105,23 @@ class EnrichmentActions:
             UIHelper.show_warning(self.mw, t("ui.enrichment.hltb_not_available"))
             return
 
+        if force_refresh:
+            if not UIHelper.confirm(
+                self.mw,
+                t("ui.enrichment.force_refresh_confirm"),
+                title=t("ui.enrichment.force_refresh_title"),
+            ):
+                return
+
         # Check database
         db = self._open_database()
         if db is None:
             return
 
-        games = db.get_apps_without_hltb()
+        if force_refresh:
+            games = db.get_all_game_ids()
+        else:
+            games = db.get_apps_without_hltb()
         db.close()
         if not games:
             UIHelper.show_info(self.mw, t("ui.enrichment.no_games_hltb"))
@@ -115,18 +143,27 @@ class EnrichmentActions:
                 steam_user_id_64 = detected_id_64
 
         thread = EnrichmentThread(self.mw)
-        thread.configure_hltb(games, db_path, hltb_client, steam_user_id=steam_user_id_64)
+        thread.configure_hltb(
+            games,
+            db_path,
+            hltb_client,
+            steam_user_id=steam_user_id_64,
+            force_refresh=force_refresh,
+        )
 
         # Create dialog — thread starts in showEvent
         dialog = EnrichmentDialog(t("ui.enrichment.hltb_title"), self.mw)
         dialog.start_thread(thread)
         dialog.exec()
 
-    def start_steam_api_enrichment(self) -> None:
+    def start_steam_api_enrichment(self, force_refresh: bool = False) -> None:
         """Starts Steam API enrichment for games missing metadata.
 
         Checks that an API key is configured and that there are
         games with missing metadata. Launches the enrichment dialog.
+
+        Args:
+            force_refresh: If True, re-fetch all games (with confirmation).
         """
         from src.config import config
         from src.services.enrichment.enrichment_service import EnrichmentThread
@@ -139,12 +176,23 @@ class EnrichmentActions:
             self._open_settings_api_tab()
             return
 
+        if force_refresh:
+            if not UIHelper.confirm(
+                self.mw,
+                t("ui.enrichment.force_refresh_confirm"),
+                title=t("ui.enrichment.force_refresh_title"),
+            ):
+                return
+
         # Check database
         db = self._open_database()
         if db is None:
             return
 
-        games = db.get_apps_missing_metadata()
+        if force_refresh:
+            games = db.get_all_game_ids()
+        else:
+            games = db.get_apps_missing_metadata()
         db.close()
         if not games:
             UIHelper.show_info(self.mw, t("ui.enrichment.no_games_steam"))
@@ -154,18 +202,21 @@ class EnrichmentActions:
         db_path = self._get_db_path()
 
         thread = EnrichmentThread(self.mw)
-        thread.configure_steam(games, db_path, api_key)
+        thread.configure_steam(games, db_path, api_key, force_refresh=force_refresh)
 
         # Create dialog — thread starts in showEvent
         dialog = EnrichmentDialog(t("ui.enrichment.steam_title"), self.mw)
         dialog.start_thread(thread)
         dialog.exec()
 
-    def start_achievement_enrichment(self) -> None:
+    def start_achievement_enrichment(self, force_refresh: bool = False) -> None:
         """Starts achievement enrichment for games missing achievement data.
 
         Checks that an API key and Steam ID are configured, then launches
         the AchievementEnrichmentThread with a progress dialog.
+
+        Args:
+            force_refresh: If True, re-fetch all games (with confirmation).
         """
         from src.config import config
         from src.services.enrichment.achievement_enrichment_service import AchievementEnrichmentThread
@@ -183,12 +234,23 @@ class EnrichmentActions:
             UIHelper.show_warning(self.mw, t("ui.enrichment.no_steam_id"))
             return
 
+        if force_refresh:
+            if not UIHelper.confirm(
+                self.mw,
+                t("ui.enrichment.force_refresh_confirm"),
+                title=t("ui.enrichment.force_refresh_title"),
+            ):
+                return
+
         # Check database
         db = self._open_database()
         if db is None:
             return
 
-        games = db.get_apps_without_achievements()
+        if force_refresh:
+            games = db.get_all_game_ids()
+        else:
+            games = db.get_apps_without_achievements()
         db.close()
         if not games:
             UIHelper.show_info(self.mw, t("ui.enrichment.no_games_achievements"))
@@ -197,7 +259,7 @@ class EnrichmentActions:
         # Create and launch thread
         db_path = self._get_db_path()
         thread = AchievementEnrichmentThread(self.mw)
-        thread.configure(games, db_path, api_key, steam_id)
+        thread.configure(games, db_path, api_key, steam_id, force_refresh=force_refresh)
         self._run_enrichment(
             thread,
             title_key="ui.enrichment.achievement_title",
@@ -260,6 +322,50 @@ class EnrichmentActions:
         thread.finished_enrichment.connect(on_finished)
         progress.canceled.connect(thread.cancel)
         thread.start()
+
+    def start_protondb_enrichment(self, force_refresh: bool = False) -> None:
+        """Starts ProtonDB enrichment for games missing ProtonDB data.
+
+        Checks that there are games without ProtonDB ratings, then
+        launches the ProtonDBEnrichmentThread with a progress dialog.
+
+        Args:
+            force_refresh: If True, re-fetch all games (with confirmation).
+        """
+        from src.services.enrichment.protondb_enrichment_service import ProtonDBEnrichmentThread
+
+        if force_refresh:
+            if not UIHelper.confirm(
+                self.mw,
+                t("ui.enrichment.force_refresh_confirm"),
+                title=t("ui.enrichment.force_refresh_title"),
+            ):
+                return
+
+        # Check database
+        db = self._open_database()
+        if db is None:
+            return
+
+        if force_refresh:
+            games = db.get_all_game_ids()
+        else:
+            games = db.get_apps_without_protondb()
+        db.close()
+        if not games:
+            UIHelper.show_info(self.mw, t("ui.enrichment.no_games_protondb"))
+            return
+
+        # Create and launch thread
+        db_path = self._get_db_path()
+        thread = ProtonDBEnrichmentThread(self.mw)
+        thread.configure(games, db_path, force_refresh=force_refresh)
+        self._run_enrichment(
+            thread,
+            title_key="ui.enrichment.protondb_title",
+            starting_key="ui.enrichment.protondb_starting",
+            total=len(games),
+        )
 
     def start_tag_import(self) -> None:
         """Starts background import of tags from appinfo.vdf.
