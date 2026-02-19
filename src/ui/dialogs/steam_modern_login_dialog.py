@@ -377,63 +377,70 @@ class ModernSteamLoginDialog(QDialog):
         UIHelper.show_info(self, message, title=t("steam.login.waiting_approval_title"))
 
     def load_qr_image(self, challenge_url: str):
-        """Generate and display QR code from Steam challenge URL with optional logo."""
+        """Generate and display a styled QR code from Steam challenge URL.
+
+        Creates a QR code with rounded modules and an optional custom logo
+        centered on a white background. Falls back to standard square modules
+        if styled image classes are unavailable.
+
+        Args:
+            challenge_url: The Steam authentication challenge URL to encode.
+        """
         try:
             import qrcode
             from io import BytesIO
-            from PIL import Image, ImageDraw, ImageFont
+            from pathlib import Path
 
-            # Generate QR code with HIGHER error correction (allows logo overlay)
+            from PIL import Image
+
+            # Generate QR code with HIGH error correction (allows logo overlay)
             qr = qrcode.QRCode(
                 version=1,
-                error_correction=qrcode.constants.ERROR_CORRECT_H,  # HIGH = 30% can be damaged
-                box_size=15,  # Bigger box = higher resolution (was 10)
-                border=4,  # Smaller border for better use of space
+                error_correction=qrcode.constants.ERROR_CORRECT_H,
+                box_size=15,
+                border=4,
             )
             qr.add_data(challenge_url)
             qr.make(fit=True)
 
-            # Create high-quality image
-            img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
-
-            # OPTIONAL: Add "SLM" logo in center (if space allows)
+            # Try styled image with rounded modules, fall back to standard
             try:
-                # Calculate center position for logo
-                img_width, img_height = img.size
-                logo_size = img_width // 6  # Logo is 20% of QR code size
-                logo_pos = ((img_width - logo_size) // 2, (img_height - logo_size) // 2)
+                from qrcode.image.styledpil import StyledPilImage
+                from qrcode.image.styles.moduledrawers.pil import RoundedModuleDrawer
 
-                # Create logo: white rounded square with "SLM" text
-                logo = Image.new("RGB", (logo_size, logo_size), "white")
-                draw = ImageDraw.Draw(logo)
+                img = qr.make_image(
+                    image_factory=StyledPilImage,
+                    module_drawer=RoundedModuleDrawer(),
+                ).convert("RGBA")
+            except (ImportError, Exception) as styled_err:
+                logger.warning("Styled QR modules unavailable, using standard: %s", styled_err)
+                img = qr.make_image(fill_color="black", back_color="white").convert("RGBA")
 
-                # Draw black border
-                draw.rectangle([0, 0, logo_size - 1, logo_size - 1], outline="black", width=3)
-
-                # Try to use a font, fallback to default if not available
+            # Try to overlay custom logo from resources
+            logo_path = Path(__file__).parent.parent.parent.parent / "resources" / "icons" / "qr_login.png"
+            if logo_path.exists():
                 try:
-                    font_size = int(logo_size * 0.45)
-                    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", font_size)
-                except (OSError, IOError):
-                    font = ImageFont.load_default()
+                    logo_img = Image.open(logo_path).convert("RGBA")
 
-                # Draw "SLM" text centered
-                text = "SLM"
-                # Get text bounding box (for PIL >= 8.0.0)
-                bbox = draw.textbbox((0, 0), text, font=font)
-                text_width = bbox[2] - bbox[0]
-                text_height = bbox[3] - bbox[1]
+                    # Scale logo to ~20% of QR width (sweet spot for ERROR_CORRECT_H)
+                    img_width, img_height = img.size
+                    logo_max = int(img_width * 0.20)
+                    logo_img = logo_img.resize((logo_max, logo_max), Image.LANCZOS)
 
-                # Center text with slight vertical adjustment for better balance
-                text_x = (logo_size - text_width) // 2
-                text_y = (logo_size - text_height) // 2 - 2  # Slight upward shift
-                draw.text((text_x, text_y), text, fill="black", font=font)
+                    # White background slightly larger than logo for clean transition
+                    padding = 8
+                    bg_size = logo_max + (padding * 2)
+                    white_bg = Image.new("RGBA", (bg_size, bg_size), (255, 255, 255, 255))
 
-                # Paste logo onto QR code
-                img.paste(logo, logo_pos)
-            except Exception as logo_error:
-                # If logo fails, continue without it (QR code still works)
-                logger.error(t("logs.auth.qr_logo_error", error=logo_error))
+                    # Center logo on white background (alpha mask for transparency)
+                    white_bg.paste(logo_img, (padding, padding), logo_img)
+
+                    # Paste centered on QR code
+                    pos_x = (img_width - bg_size) // 2
+                    pos_y = (img_height - bg_size) // 2
+                    img.paste(white_bg, (pos_x, pos_y), white_bg)
+                except Exception as logo_err:
+                    logger.warning("Failed to overlay QR logo: %s", logo_err)
 
             # Convert to QPixmap
             buffer = BytesIO()
@@ -443,15 +450,21 @@ class ModernSteamLoginDialog(QDialog):
             pixmap = QPixmap()
             pixmap.loadFromData(buffer.read())
 
-            # Scale to display size (smooth scaling for better quality)
+            # Scale to display size with smooth scaling
             self.qr_label.setPixmap(
-                pixmap.scaled(300, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                pixmap.scaled(
+                    300,
+                    300,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
             )
 
         except ImportError:
-            self.qr_label.setText("QR Code generation requires 'qrcode' package\n\n" "Install: pip install qrcode[pil]")
+            self.qr_label.setText(t("steam.login.qr_missing_package"))
         except Exception as e:
-            self.qr_label.setText(f"Failed to generate QR code: {e}")
+            logger.error("QR code generation failed: %s", e)
+            self.qr_label.setText(t("steam.login.qr_generation_failed"))
 
     def show_progress(self):
         """Show progress bar."""

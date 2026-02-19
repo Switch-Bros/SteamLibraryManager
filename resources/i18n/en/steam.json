@@ -35,7 +35,9 @@
       "status_starting_qr": "Starting QR authentication...",
       "status_logging_in": "Logging in...",
       "token_expired": "Your session has expired. Please log in again.",
-      "session_restored": "Session restored from saved credentials."
+      "session_restored": "Session restored from saved credentials.",
+      "qr_missing_package": "QR code generation requires the 'qrcode' package.\nInstall: pip install qrcode[pil]",
+      "qr_generation_failed": "Failed to generate QR code."
     },
     "profile_setup": {
       "title": "Profile Setup",
