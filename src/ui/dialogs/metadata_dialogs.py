@@ -8,6 +8,7 @@ All dialogs feature visual indicators for modified fields.
 
 from __future__ import annotations
 
+from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QCheckBox,
     QFormLayout,
@@ -16,11 +17,14 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QListWidget,
+    QListWidgetItem,
     QPushButton,
     QTextEdit,
     QVBoxLayout,
 )
 
+from src.core.game_manager import Game
 from src.ui.theme import Theme
 from src.ui.widgets.base_dialog import BaseDialog
 from src.ui.widgets.ui_helper import UIHelper
@@ -275,20 +279,21 @@ class BulkMetadataEditDialog(BaseDialog):
         result_metadata: Dictionary containing the bulk edit settings after save.
     """
 
-    def __init__(self, parent, games_count: int, game_names: list[str]):
+    def __init__(self, parent, games: list[Game], game_names: list[str]):
         """Initializes the bulk metadata edit dialog.
 
         Args:
             parent: Parent widget for the dialog.
-            games_count: Total number of games to be edited.
+            games: List of game objects for metadata reference.
             game_names: List of game names for preview display.
         """
-        self.games_count = games_count
+        self.games = games
+        self.games_count = len(games)
         self.game_names = game_names
         self.result_metadata = None
         super().__init__(
             parent,
-            title_text=t("ui.metadata_editor.bulk_title", count=games_count),
+            title_text=t("ui.metadata_editor.bulk_title", count=self.games_count),
             min_width=600,
             buttons="custom",
         )
@@ -330,16 +335,17 @@ class BulkMetadataEditDialog(BaseDialog):
 
         preview_group = QGroupBox(t("ui.metadata_editor.bulk_preview", count=self.games_count))
         preview_layout = QVBoxLayout()
-        preview_text = QTextEdit()
-        preview_text.setReadOnly(True)
-        preview_text.setMaximumHeight(120)
+        self.game_list = QListWidget()
+        self.game_list.setMaximumHeight(120)
 
         names = self.game_names[:20]
         if len(self.game_names) > 20:
             names.append(t("ui.metadata_editor.bulk_more", count=len(self.game_names) - 20))
-        preview_text.setPlainText("\n".join(names))
+        for name in names:
+            self.game_list.addItem(name)
+        self.game_list.currentItemChanged.connect(self._on_game_clicked)
 
-        preview_layout.addWidget(preview_text)
+        preview_layout.addWidget(self.game_list)
         preview_group.setLayout(preview_layout)
         layout.addWidget(preview_group)
 
@@ -360,6 +366,14 @@ class BulkMetadataEditDialog(BaseDialog):
         self.cb_pre, self.edit_pre = self._add_bulk_field(f_layout, t("ui.metadata_editor.add_prefix"))
         self.cb_suf, self.edit_suf = self._add_bulk_field(f_layout, t("ui.metadata_editor.add_suffix"))
         self.cb_rem, self.edit_rem = self._add_bulk_field(f_layout, t("ui.metadata_editor.remove_text"))
+
+        # Connect name modification fields to live preview
+        self.edit_pre.textChanged.connect(self._update_name_preview)
+        self.edit_suf.textChanged.connect(self._update_name_preview)
+        self.edit_rem.textChanged.connect(self._update_name_preview)
+        self.cb_pre.toggled.connect(self._update_name_preview)
+        self.cb_suf.toggled.connect(self._update_name_preview)
+        self.cb_rem.toggled.connect(self._update_name_preview)
 
         fields_group.setLayout(f_layout)
         layout.addWidget(fields_group)
@@ -396,6 +410,77 @@ class BulkMetadataEditDialog(BaseDialog):
         btn_layout.addWidget(apply_btn)
 
         layout.addLayout(btn_layout)
+
+    def _on_game_clicked(self, current: QListWidgetItem | None, _previous: QListWidgetItem | None) -> None:
+        """Shows selected game's metadata as placeholder reference in fields.
+
+        Args:
+            current: The newly selected list item.
+            _previous: The previously selected list item (unused).
+        """
+        if not current:
+            return
+
+        # Find the game object by list index (preview text may differ from original)
+        idx = self.game_list.row(current)
+        if idx < 0 or idx >= len(self.games):
+            return
+        game = self.games[idx]
+
+        self.edit_dev.setPlaceholderText(game.developer or "—")
+        self.edit_pub.setPlaceholderText(game.publisher or "—")
+        self.edit_date.setPlaceholderText(format_timestamp_to_date(game.release_year) if game.release_year else "—")
+
+    def _update_name_preview(self) -> None:
+        """Updates the game list to show live preview of name modifications."""
+        mods: dict[str, str] = {}
+        if self.cb_pre.isChecked() and self.edit_pre.text():
+            mods["prefix"] = self.edit_pre.text()
+        if self.cb_suf.isChecked() and self.edit_suf.text():
+            mods["suffix"] = self.edit_suf.text()
+        if self.cb_rem.isChecked() and self.edit_rem.text():
+            mods["remove"] = self.edit_rem.text()
+
+        for i in range(min(self.game_list.count(), len(self.game_names))):
+            item = self.game_list.item(i)
+            if not item:
+                continue
+            original_name = self.game_names[i]
+
+            if mods:
+                preview_name = self._preview_name_modification(original_name, mods)
+                if preview_name != original_name:
+                    item.setText(preview_name)
+                    item.setForeground(QColor(Theme.MODIFIED_FIELD_BORDER))
+                else:
+                    item.setText(original_name)
+                    item.setForeground(QColor(Theme.TEXT_PRIMARY))
+            else:
+                item.setText(original_name)
+                item.setForeground(QColor(Theme.TEXT_PRIMARY))
+
+    @staticmethod
+    def _preview_name_modification(name: str, mods: dict[str, str]) -> str:
+        """Applies name modifications for preview display.
+
+        Same logic as MetadataService._apply_name_modifications() but
+        duplicated here to avoid service dependency in dialog.
+
+        Args:
+            name: Original game name.
+            mods: Dict with optional 'prefix', 'suffix', 'remove' keys.
+
+        Returns:
+            Modified name string.
+        """
+        result = name
+        if mods.get("remove"):
+            result = result.replace(mods["remove"], "")
+        if mods.get("prefix"):
+            result = mods["prefix"] + result
+        if mods.get("suffix"):
+            result = result + mods["suffix"]
+        return result
 
     def _on_revert_toggled(self, checked: bool) -> None:
         """Disables all edit fields when revert is toggled.
