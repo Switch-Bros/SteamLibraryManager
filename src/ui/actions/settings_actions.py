@@ -8,6 +8,7 @@ Extracts settings dialog and language change logic from MainWindow.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from src.config import config
@@ -31,11 +32,21 @@ class SettingsActions:
         self.mw: "MainWindow" = main_window
 
     def show_settings(self) -> None:
-        """Opens the settings dialog and applies changes on save."""
+        """Opens the settings dialog and applies changes on save.
+
+        Tracks the last persisted language so unsaved live-preview
+        changes are reverted when the dialog is closed without saving.
+        """
+        self._last_persisted_language = config.UI_LANGUAGE
         dialog = SettingsDialog(self.mw)
         dialog.language_changed.connect(self.on_language_changed_live)
         dialog.settings_saved.connect(self.apply_settings)
         dialog.exec()
+        # Revert unsaved live language change
+        if config.UI_LANGUAGE != self._last_persisted_language:
+            config.UI_LANGUAGE = self._last_persisted_language
+            init_i18n(self._last_persisted_language)
+            self._refresh_ui()
 
     def on_language_changed_live(self, new_language: str) -> None:
         """Handles live language change from settings dialog.
@@ -55,7 +66,7 @@ class SettingsActions:
         """
         # Steam path
         if "steam_path" in settings and settings["steam_path"]:
-            config.STEAM_PATH = settings["steam_path"]
+            config.STEAM_PATH = Path(settings["steam_path"])
 
         # UI Language
         if "ui_language" in settings and settings["ui_language"]:
@@ -91,6 +102,7 @@ class SettingsActions:
 
         # Save config
         config.save()
+        self._last_persisted_language = config.UI_LANGUAGE
         self.mw.set_status(t("settings.applied"))
 
     def _refresh_ui(self) -> None:
