@@ -55,12 +55,11 @@ class SteamActions:
         dialog.exec()
 
     def show_about(self) -> None:
-        """Shows the About dialog with application information.
+        """Shows the professional About dialog with application information."""
+        from src.ui.dialogs.about_dialog import AboutDialog
 
-        Displays a modal dialog containing the application name and description
-        using Qt's standard About box.
-        """
-        UIHelper.show_info(self.mw, t("common.description"), title=t("menu.help.about"))
+        dialog = AboutDialog(parent=self.mw)
+        dialog.exec()
 
     def on_login_success(self, result: dict) -> None:
         """Handles successful Steam authentication.
