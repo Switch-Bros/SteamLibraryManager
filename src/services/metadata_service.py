@@ -125,6 +125,7 @@ class MetadataService:
             meta = metadata.copy()
             if new_name != game.name:
                 meta["name"] = new_name
+                meta["sort_as"] = new_name
 
             # Set metadata
             self.appinfo_manager.set_app_metadata(game.app_id, meta)
@@ -149,6 +150,10 @@ class MetadataService:
         """
         result = name
 
+        # Remove first — so prefix/suffix don't get mangled
+        if mods.get("remove"):
+            result = result.replace(mods["remove"], "")
+
         # Apply prefix
         if mods.get("prefix"):
             result = mods["prefix"] + result
@@ -156,10 +161,6 @@ class MetadataService:
         # Apply suffix
         if mods.get("suffix"):
             result = result + mods["suffix"]
-
-        # Apply remove
-        if mods.get("remove"):
-            result = result.replace(mods["remove"], "")
 
         return result
 

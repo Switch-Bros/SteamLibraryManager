@@ -199,6 +199,45 @@ class TestMetadataService:
         # Assert
         assert result == "[TEST] Game (2024)"
 
+    def test_apply_name_modifications_order_remove_first(self, metadata_service):
+        """Test that remove is applied before prefix to avoid mangling prefix text."""
+        # "The Game" → remove "The " → "Game" → prefix "The Best " → "The Best Game"
+        # If prefix were applied first: "The Best The Game" → remove "The " → " Best  Game"
+        result = metadata_service._apply_name_modifications("The Game", {"prefix": "The Best ", "remove": "The "})
+
+        # Remove first: "Game" → "The Best Game"
+        assert result == "The Best Game"
+
+    # === SORT AS ===
+
+    def test_apply_bulk_metadata_updates_sort_as(self, metadata_service, mock_appinfo_manager):
+        """Test that sort_as is updated when name changes via bulk edit."""
+        # Setup
+        games = [Game(app_id="1", name="The LEGO Movie")]
+        metadata = {"developer": "TT Games"}
+        name_mods = {"remove": "The "}
+
+        # Execute
+        metadata_service.apply_bulk_metadata(games, metadata, name_mods)
+
+        # Assert — sort_as must be set to the new name
+        call_args = mock_appinfo_manager.set_app_metadata.call_args[0]
+        assert call_args[1]["name"] == "LEGO Movie"
+        assert call_args[1]["sort_as"] == "LEGO Movie"
+
+    def test_apply_bulk_metadata_no_sort_as_when_name_unchanged(self, metadata_service, mock_appinfo_manager):
+        """Test that sort_as is not set when name is not modified."""
+        # Setup
+        games = [Game(app_id="1", name="Game")]
+        metadata = {"developer": "Dev"}
+
+        # Execute
+        metadata_service.apply_bulk_metadata(games, metadata)
+
+        # Assert — no sort_as in metadata since name didn't change
+        call_args = mock_appinfo_manager.set_app_metadata.call_args[0]
+        assert "sort_as" not in call_args[1]
+
     # === MISSING METADATA ===
 
     def test_find_missing_metadata_some(self, metadata_service, mock_game_manager):

@@ -430,7 +430,7 @@ class EditActions:
             return
 
         game_names = [g.name for g in self.mw.selected_games]
-        dialog = BulkMetadataEditDialog(self.mw, len(self.mw.selected_games), game_names)
+        dialog = BulkMetadataEditDialog(self.mw, self.mw.selected_games, game_names)
 
         if dialog.exec():
             settings = dialog.get_metadata()
