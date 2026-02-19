@@ -82,7 +82,8 @@ class DatabaseEntry:
     release_date: int | None = None
 
     # Review data
-    review_score: int | None = None  # 0-100
+    review_score: int | None = None  # Steam review category (1-9)
+    review_percentage: int | None = None  # Steam review positive percentage (0-100)
     review_count: int | None = None
 
     # Price & status
@@ -149,6 +150,7 @@ def database_entry_to_game(entry: DatabaseEntry) -> Game:
         platforms=list(entry.platforms),
         languages=interface_languages,
         review_score=str(entry.review_score) if entry.review_score is not None else "",
+        review_percentage=entry.review_percentage or 0,
         review_count=entry.review_count or 0,
         last_updated=str(entry.last_updated) if entry.last_updated else "",
         achievement_total=entry.achievements_total,
@@ -165,7 +167,7 @@ class Database:
     modification tracking, and fast queries for UI.
     """
 
-    SCHEMA_VERSION = 5
+    SCHEMA_VERSION = 6
 
     def __init__(self, db_path: Path):
         """Initialize database connection.
@@ -256,6 +258,10 @@ class Database:
             self._migrate_to_v5()
             self._set_schema_version(5)
 
+        if from_version < 6:
+            self._migrate_to_v6()
+            self._set_schema_version(6)
+
     def _migrate_to_v3(self) -> None:
         """Migrate to schema v3: tag_definitions table + tag_id column."""
         # Add tag_id column to game_tags (if not exists)
@@ -307,6 +313,15 @@ class Database:
         self.conn.commit()
         logger.info("Migrated to schema v5: protondb_ratings")
 
+    def _migrate_to_v6(self) -> None:
+        """Migrate to schema v6: review_percentage column in games table."""
+        try:
+            self.conn.execute("ALTER TABLE games ADD COLUMN review_percentage INTEGER")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+        self.conn.commit()
+        logger.info("Migrated to schema v6: review_percentage column")
+
     # ========================================================================
     # GAME CRUD OPERATIONS
     # ========================================================================
@@ -328,14 +343,14 @@ class Database:
                 app_id, name, sort_as, app_type,
                 developer, publisher,
                 original_release_date, steam_release_date, release_date,
-                review_score, review_count,
+                review_score, review_percentage, review_count,
                 is_free, is_early_access,
                 vr_support, controller_support,
                 cloud_saves, workshop, trading_cards, achievements_total,
                 platforms,
                 is_modified, last_synced, last_updated,
                 created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 entry.app_id,
@@ -348,6 +363,7 @@ class Database:
                 entry.steam_release_date,
                 entry.release_date,
                 entry.review_score,
+                entry.review_percentage,
                 entry.review_count,
                 entry.is_free,
                 entry.is_early_access,
@@ -460,7 +476,7 @@ class Database:
                     name = ?, sort_as = ?, app_type = ?,
                     developer = ?, publisher = ?,
                     original_release_date = ?, steam_release_date = ?, release_date = ?,
-                    review_score = ?, review_count = ?,
+                    review_score = ?, review_percentage = ?, review_count = ?,
                     is_free = ?, is_early_access = ?,
                     vr_support = ?, controller_support = ?,
                     cloud_saves = ?, workshop = ?, trading_cards = ?, achievements_total = ?,
@@ -479,6 +495,7 @@ class Database:
                     entry.steam_release_date,
                     entry.release_date,
                     entry.review_score,
+                    entry.review_percentage,
                     entry.review_count,
                     entry.is_free,
                     entry.is_early_access,
@@ -1003,6 +1020,7 @@ class Database:
             "steam_release_date",
             "release_date",
             "review_score",
+            "review_percentage",
             "review_count",
             "is_free",
             "is_early_access",
@@ -1658,20 +1676,20 @@ class Database:
         cursor = self.conn.execute("SELECT app_id FROM games")
         return {row[0] for row in cursor.fetchall()}
 
-    def bulk_update_review_scores(self, scores: list[tuple[int, int]]) -> int:
-        """Batch-update review_score in the games table.
+    def bulk_update_review_percentages(self, percentages: list[tuple[int, int]]) -> int:
+        """Batch-update review_percentage in the games table.
 
         Args:
-            scores: List of (review_score, app_id) tuples.
+            percentages: List of (review_percentage, app_id) tuples.
 
         Returns:
             Number of rows updated.
         """
         self.conn.executemany(
-            "UPDATE games SET review_score = ? WHERE app_id = ?",
-            scores,
+            "UPDATE games SET review_percentage = ? WHERE app_id = ?",
+            percentages,
         )
-        return len(scores)
+        return len(percentages)
 
     # ========================================================================
     # UTILITY METHODS

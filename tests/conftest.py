@@ -166,7 +166,8 @@ def sample_database_entries():
             genres=["Action", "FPS"],
             tags=["Competitive", "Shooter"],
             platforms=["windows", "linux"],
-            review_score=83,
+            review_score=9,  # Overwhelmingly Positive category
+            review_percentage=83,
             review_count=7000000,
             last_updated=1700000000,
         ),

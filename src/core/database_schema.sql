@@ -44,7 +44,8 @@ CREATE TABLE IF NOT EXISTS games (
     release_date INTEGER,
 
     -- Review Data
-    review_score INTEGER,  -- 0-100
+    review_score INTEGER,  -- Steam review category (1-9)
+    review_percentage INTEGER,  -- Steam review positive percentage (0-100)
     review_count INTEGER,
 
     -- Price & Status
@@ -581,7 +582,7 @@ END;
 -- ============================================================================
 
 INSERT OR IGNORE INTO schema_version (version, applied_at, description)
-VALUES (5, strftime('%s', 'now'), 'ProtonDB ratings table');
+VALUES (6, strftime('%s', 'now'), 'Add review_percentage column');
 
 -- ============================================================================
 -- END OF SCHEMA
