@@ -6,7 +6,7 @@ Tests the Steam menu action handler that manages:
 - About dialog display
 """
 
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -67,30 +67,16 @@ class TestStartSteamLogin:
 class TestShowAbout:
     """Tests for show_about() method."""
 
-    @patch("src.ui.actions.steam_actions.UIHelper")
-    def test_show_about_displays_dialog(self, mock_ui_helper, steam_actions, mock_main_window):
-        """Should display UIHelper.show_info() with translated text."""
-        steam_actions.show_about()
-
-        mock_ui_helper.show_info.assert_called_once()
-        call_args = mock_ui_helper.show_info.call_args
-        assert call_args[0][0] == mock_main_window
-
-    @patch("src.ui.actions.steam_actions.t")
-    @patch("src.ui.actions.steam_actions.UIHelper")
-    def test_show_about_uses_i18n(self, mock_ui_helper, mock_t, steam_actions, mock_main_window):
-        """Should use t() for internationalized text."""
-        mock_t.side_effect = lambda key, **kw: f"TRANSLATED_{key}"
+    @patch("src.ui.dialogs.about_dialog.AboutDialog")
+    def test_show_about_opens_about_dialog(self, mock_dialog_cls, steam_actions):
+        """Should create and exec an AboutDialog."""
+        mock_instance = MagicMock()
+        mock_dialog_cls.return_value = mock_instance
 
         steam_actions.show_about()
 
-        mock_t.assert_any_call("menu.help.about")
-        mock_t.assert_any_call("common.description")
-
-        mock_ui_helper.show_info.assert_called_once()
-        call_args = mock_ui_helper.show_info.call_args
-        assert call_args[0][1] == "TRANSLATED_common.description"
-        assert call_args[1]["title"] == "TRANSLATED_menu.help.about"
+        mock_dialog_cls.assert_called_once()
+        mock_instance.exec.assert_called_once()
 
 
 # ==================================================================
