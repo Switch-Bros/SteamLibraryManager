@@ -435,6 +435,17 @@ class EditActions:
         if dialog.exec():
             settings = dialog.get_metadata()
             if settings:
+                # Revert mode: restore all selected games to original metadata
+                if settings.get("__revert_to_original__"):
+                    count = self.mw.metadata_service.restore_games_to_original(self.mw.selected_games)
+                    self.mw.file_actions.refresh_data()
+                    UIHelper.show_success(
+                        self.mw,
+                        t("ui.metadata_editor.bulk_reverted", count=count),
+                    )
+                    return
+
+                # Normal bulk edit
                 name_mods = settings.pop("name_modifications", None)
                 count = self.mw.metadata_service.apply_bulk_metadata(self.mw.selected_games, settings, name_mods)
                 self.mw.populate_categories()

@@ -163,6 +163,33 @@ class MetadataService:
 
         return result
 
+    def restore_games_to_original(self, games: list[Game]) -> int:
+        """Restore metadata to original values for specific games.
+
+        Removes the modification entries for each game so that the
+        original values from Steam are used again. This is the per-game
+        equivalent of ``clear_all_modifications()``.
+
+        Args:
+            games: List of games to restore.
+
+        Returns:
+            Number of games restored.
+        """
+        restored = 0
+        for game in games:
+            app_id = game.app_id
+            if app_id in self.appinfo_manager.modifications:
+                del self.appinfo_manager.modifications[app_id]
+                if app_id in self.appinfo_manager.modified_apps:
+                    self.appinfo_manager.modified_apps.remove(app_id)
+                restored += 1
+
+        if restored > 0:
+            self.appinfo_manager.save_appinfo()
+
+        return restored
+
     # === MISSING METADATA ===
 
     def find_missing_metadata(self) -> list[Game]:

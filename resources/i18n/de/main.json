@@ -153,7 +153,10 @@
       "updated_single": "Metadaten aktualisiert: {game}",
       "updated_bulk": "Metadaten für {count} Spiele aktualisiert.",
       "no_changes_to_restore": "Keine Metadaten-Änderungen zum Wiederherstellen.",
-      "restored_count": "Metadaten für {count} Spiele wiederhergestellt."
+      "restored_count": "Metadaten für {count} Spiele wiederhergestellt.",
+      "bulk_revert_label": "Alle auf Original-Metadaten zurücksetzen",
+      "bulk_revert_help": "Stellt die Original-Metadaten jedes Spiels aus Steam wieder her.",
+      "bulk_reverted": "Original-Metadaten für {count} Spiele wiederhergestellt."
     },
     "store_check": {
       "title": "Store-Verfügbarkeit prüfen",
