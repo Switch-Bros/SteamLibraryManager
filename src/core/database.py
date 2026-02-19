@@ -1251,6 +1251,55 @@ class Database:
         return {row[0]: row[1] for row in cursor.fetchall()}
 
     # ========================================================================
+    # HEALTH CHECK QUERIES (MD 05)
+    # ========================================================================
+
+    def get_games_missing_artwork(self) -> list[tuple[int, str]]:
+        """Returns games that have no custom artwork entry in the database.
+
+        Returns:
+            List of (app_id, name) tuples for games without cover images.
+        """
+        cursor = self.conn.execute("""
+            SELECT g.app_id, g.name FROM games g
+            LEFT JOIN custom_artwork ca ON g.app_id = ca.app_id
+            WHERE ca.app_id IS NULL AND g.app_type IN ('game', '')
+        """)
+        return [(row[0], row[1]) for row in cursor.fetchall()]
+
+    def get_stale_hltb_count(self, max_age_days: int = 30) -> int:
+        """Counts games with HLTB cache older than max_age_days.
+
+        Args:
+            max_age_days: Maximum cache age in days.
+
+        Returns:
+            Number of games with stale HLTB data.
+        """
+        cutoff = int(time.time()) - (max_age_days * 86400)
+        cursor = self.conn.execute(
+            "SELECT COUNT(*) FROM hltb_data WHERE last_updated < ?",
+            (cutoff,),
+        )
+        return cursor.fetchone()[0]
+
+    def get_stale_protondb_count(self, max_age_days: int = 7) -> int:
+        """Counts games with ProtonDB cache older than max_age_days.
+
+        Args:
+            max_age_days: Maximum cache age in days.
+
+        Returns:
+            Number of games with stale ProtonDB data.
+        """
+        cutoff = int(time.time()) - (max_age_days * 86400)
+        cursor = self.conn.execute(
+            "SELECT COUNT(*) FROM protondb_ratings WHERE last_updated < ?",
+            (cutoff,),
+        )
+        return cursor.fetchone()[0]
+
+    # ========================================================================
     # ACHIEVEMENT OPERATIONS (Phase 5.2)
     # ========================================================================
 
