@@ -92,10 +92,17 @@ class ImageLoader(QThread):
 
 
 class ClickableImage(QWidget):
-    """A widget that displays an image and emits signals on clicks."""
+    """A widget that displays an image and emits signals on clicks.
+
+    Signals:
+        clicked: Emitted on left click.
+        right_clicked: Emitted on right click.
+        load_finished: Emitted when image loading completes (success or failure).
+    """
 
     clicked = pyqtSignal()
     right_clicked = pyqtSignal()
+    load_finished = pyqtSignal()
 
     def __init__(
         self,
@@ -301,6 +308,7 @@ class ClickableImage(QWidget):
             if not cached_pixmap.isNull():
                 self._apply_pixmap(cached_pixmap)
                 self._create_badges(is_animated=False)
+                self.load_finished.emit()
                 return
 
         if self.loader and self.loader.isRunning():
@@ -325,6 +333,7 @@ class ClickableImage(QWidget):
                 self._load_local_image(self.default_image)
             else:
                 self.image_label.setText(t("emoji.error"))
+            self.load_finished.emit()
             return
 
         # 1. Attempt to load with Pillow (for Animations)
@@ -355,6 +364,7 @@ class ClickableImage(QWidget):
                     if self.frames:
                         self._start_animation()
                         self._create_badges(is_animated=True)
+                        self.load_finished.emit()
                         return
                 else:
                     # Static image via Pillow
@@ -365,6 +375,7 @@ class ClickableImage(QWidget):
                     qim = QImage(img_bytes, im.width, im.height, QImage.Format.Format_RGBA8888)
                     self._apply_pixmap(QPixmap.fromImage(qim))
                     self._create_badges(is_animated=False)
+                    self.load_finished.emit()
                     return
 
             # Fix: Catch specific exceptions (Fixes 'Too broad exception clause')
@@ -383,6 +394,7 @@ class ClickableImage(QWidget):
                 self._load_local_image(self.default_image)
             else:
                 self.image_label.setText(t("emoji.error"))
+        self.load_finished.emit()
 
     def _start_animation(self):
         """Starts or restarts the GIF animation."""
@@ -432,6 +444,7 @@ class ClickableImage(QWidget):
 
             # Create animated badge for WEBM
             self._create_badges(is_animated=True)
+            self.load_finished.emit()
 
         except Exception as e:
             logger.error(t("logs.image.webm_load_failed", error=e))
@@ -439,6 +452,7 @@ class ClickableImage(QWidget):
             if self.video_cap:
                 self.video_cap.release()
                 self.video_cap = None
+            self.load_finished.emit()
 
     def _next_video_frame(self):
         """Reads and displays the next frame from the WEBM video."""

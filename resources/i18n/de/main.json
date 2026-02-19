@@ -522,5 +522,44 @@
       "confirm_reimport": "Tags erneut importieren",
       "no_steam_path": "Steam-Installationspfad nicht konfiguriert."
     }
+  },
+  "health_check": {
+    "title": "Bibliothek prüfen",
+    "confirm": "Alle {count} Spiele auf Store-Verfügbarkeit, fehlende Daten und veraltete Caches prüfen?\n\nDies kann 4–5 Minuten dauern.",
+    "progress": {
+      "starting": "Gesundheitscheck wird vorbereitet...",
+      "store_batch": "Prüfe Store-Verfügbarkeit ({current}/{total} Batches)...",
+      "store_detail": "Prüfe Details fehlender Spiele ({current}/{total})...",
+      "metadata": "Prüfe Metadaten...",
+      "artwork": "Prüfe Artwork...",
+      "cache": "Prüfe Cache-Aktualität..."
+    },
+    "result": {
+      "title": "Ergebnisse der Bibliotheksprüfung",
+      "summary": "{total} Spiele geprüft — {issues} Probleme gefunden.",
+      "no_issues": "Deine Bibliothek ist in Top-Zustand! Keine Probleme gefunden."
+    },
+    "tabs": {
+      "store": "Store-Verfügbarkeit",
+      "data": "Fehlende Daten",
+      "cache": "Cache-Status"
+    },
+    "store_status": {
+      "available": "Verfügbar",
+      "age_gate": "Verfügbar (Altersverifikation)",
+      "geo_locked": "In deiner Region nicht verfügbar",
+      "delisted": "Aus dem Store entfernt",
+      "removed": "Vom Store gelöscht",
+      "unknown": "Unbekannt"
+    },
+    "data_status": {
+      "missing_metadata": "{count} Spiele mit unvollständigen Metadaten",
+      "missing_artwork": "{count} Spiele ohne Cover-Bilder",
+      "ghost_apps": "{count} Nicht-Spiel-Apps erkannt"
+    },
+    "cache_status": {
+      "stale_hltb": "{count} Spiele mit HLTB-Daten älter als 30 Tage",
+      "stale_protondb": "{count} Spiele mit ProtonDB-Daten älter als 7 Tage"
+    }
   }
 }

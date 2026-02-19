@@ -128,6 +128,12 @@ class ImageSelectionDialog(QDialog):
         self._grid_col: int = 0
         self._total_images: int = 0
 
+        # Throttling for animated image loading
+        self._animated_load_queue: list[tuple] = []
+        self._animated_loading_count: int = 0
+        self._MAX_CONCURRENT_ANIMATED: int = 3
+        self._ANIMATED_DELAY_MS: int = 150
+
         self._create_ui()
         self._check_api_and_start()
 
@@ -247,6 +253,10 @@ class ImageSelectionDialog(QDialog):
         self._grid_row = 0
         self._grid_col = 0
         self._total_images = 0
+
+        # Reset animated loading queue
+        self._animated_load_queue.clear()
+        self._animated_loading_count = 0
 
         # Clear existing grid
         while self.grid_layout.count():
@@ -432,11 +442,11 @@ class ImageSelectionDialog(QDialog):
                 container.leaveEvent = leave_handler
 
             # Smart loading: FULL for animated (WEBM, WEBP, GIF), thumbnail for static
-            # Animated images load progressively, static images load instantly
+            # Animated images use throttled loading to prevent UI freezes
             if is_animated:
-                img_widget.load_image(item["url"])  # FULL URL for animation
+                self._queue_animated_load(img_widget, item["url"])
             else:
-                img_widget.load_image(item["thumb"])  # Thumbnail for speed
+                img_widget.load_image(item["thumb"])  # Thumbnail — instant, no throttle
 
             # When user clicks, select the full URL and convert WEBM to PNG if needed
             def make_click_handler(url, mime_type, tag_list):
@@ -496,3 +506,32 @@ class ImageSelectionDialog(QDialog):
             str: The URL of the selected image, or None if no image was selected.
         """
         return self.selected_url
+
+    # ── Animated image throttling ──────────────────────────────────
+
+    def _queue_animated_load(self, widget: ClickableImage, url: str) -> None:
+        """Queue an animated image for throttled loading.
+
+        Args:
+            widget: The ClickableImage widget to load the image into.
+            url: The URL of the animated image to load.
+        """
+        self._animated_load_queue.append((widget, url))
+        self._process_animated_queue()
+
+    def _process_animated_queue(self) -> None:
+        """Process the animated load queue up to the concurrency limit."""
+        while self._animated_load_queue and self._animated_loading_count < self._MAX_CONCURRENT_ANIMATED:
+            widget, url = self._animated_load_queue.pop(0)
+            self._animated_loading_count += 1
+            widget.load_finished.connect(self._on_animated_load_finished)
+            widget.load_image(url)
+
+    def _on_animated_load_finished(self) -> None:
+        """Handle completion of an animated image load.
+
+        Decrements the counter and schedules the next queue processing
+        with a small delay to avoid overwhelming the UI.
+        """
+        self._animated_loading_count = max(0, self._animated_loading_count - 1)
+        QTimer.singleShot(self._ANIMATED_DELAY_MS, self._process_animated_queue)

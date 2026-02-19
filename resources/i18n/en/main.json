@@ -522,5 +522,44 @@
       "confirm_reimport": "Re-import Tags",
       "no_steam_path": "Steam installation path not configured."
     }
+  },
+  "health_check": {
+    "title": "Library Health Check",
+    "confirm": "Check all {count} games for store availability, missing data, and stale caches?\n\nThis may take 4-5 minutes.",
+    "progress": {
+      "starting": "Preparing health check...",
+      "store_batch": "Checking store availability ({current}/{total} batches)...",
+      "store_detail": "Checking details for missing games ({current}/{total})...",
+      "metadata": "Checking metadata...",
+      "artwork": "Checking artwork...",
+      "cache": "Checking cache freshness..."
+    },
+    "result": {
+      "title": "Health Check Results",
+      "summary": "{total} games checked — {issues} issues found.",
+      "no_issues": "Your library is in great shape! No issues found."
+    },
+    "tabs": {
+      "store": "Store Availability",
+      "data": "Missing Data",
+      "cache": "Cache Status"
+    },
+    "store_status": {
+      "available": "Available",
+      "age_gate": "Available (Age Gate)",
+      "geo_locked": "Not available in your region",
+      "delisted": "Delisted from Store",
+      "removed": "Removed from Store",
+      "unknown": "Unknown"
+    },
+    "data_status": {
+      "missing_metadata": "{count} games with incomplete metadata",
+      "missing_artwork": "{count} games without cover images",
+      "ghost_apps": "{count} non-game apps detected"
+    },
+    "cache_status": {
+      "stale_hltb": "{count} games with HLTB data older than 30 days",
+      "stale_protondb": "{count} games with ProtonDB data older than 7 days"
+    }
   }
 }

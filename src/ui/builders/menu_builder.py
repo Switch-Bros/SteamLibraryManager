@@ -526,11 +526,10 @@ class MenuBuilder:
         batch_menu.addAction(update_protondb_force)
         batch_menu.addSeparator()
 
-        # Remaining batch stubs
-        for key in ("check_store",):
-            action = QAction(t(f"menu.tools.batch.{key}"), mw)
-            action.triggered.connect(lambda checked, k=f"menu.tools.batch.{key}": self._not_implemented(k))
-            batch_menu.addAction(action)
+        # Store-Seiten prüfen (Library Health Check)
+        check_store_action = QAction(t("menu.tools.batch.check_store"), mw)
+        check_store_action.triggered.connect(mw.tools_actions.start_library_health_check)
+        batch_menu.addAction(check_store_action)
 
         # --- Database submenu ---
         db_menu = tools_menu.addMenu(t("menu.tools.database.root"))

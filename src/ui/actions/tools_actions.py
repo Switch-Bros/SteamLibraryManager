@@ -104,6 +104,7 @@ class ToolsActions:
     def __init__(self, main_window: "MainWindow"):
         self.main_window = main_window
         self._store_check_thread: StoreCheckThread | None = None
+        self._health_thread: QThread | None = None
 
     def find_missing_metadata(self) -> None:
         """Shows a dialog listing games with incomplete metadata."""
@@ -149,3 +150,87 @@ class ToolsActions:
         # noinspection PyUnresolvedReferences
         self._store_check_thread.finished.connect(on_check_finished)
         self._store_check_thread.start()
+
+    def start_library_health_check(self) -> None:
+        """Starts the full library health check with progress dialog.
+
+        Shows a confirmation dialog, then launches a background thread
+        that performs batch store checks, metadata checks, and cache
+        freshness checks. Opens the result dialog when complete.
+        """
+        from src.config import config
+        from src.services.library_health_thread import LibraryHealthThread
+        from src.ui.dialogs.health_check_dialog import HealthCheckResultDialog
+
+        if not self.main_window.game_manager:
+            return
+
+        all_games = self.main_window.game_manager.get_real_games()
+        game_count = len(all_games)
+
+        if not UIHelper.confirm(
+            self.main_window,
+            t("health_check.confirm", count=game_count),
+            t("health_check.title"),
+        ):
+            return
+
+        # Build game list as (app_id, name) with int app_ids
+        games: list[tuple[int, str]] = []
+        for g in all_games:
+            try:
+                games.append((int(g.app_id), g.name))
+            except (ValueError, TypeError):
+                continue
+
+        # Get API key (optional — DB checks work without it)
+        api_key = config.STEAM_API_KEY or ""
+
+        # Get database path
+        db_path = None
+        if hasattr(self.main_window, "game_service") and self.main_window.game_service:
+            db = getattr(self.main_window.game_service, "database", None)
+            if db and hasattr(db, "db_path"):
+                db_path = db.db_path
+
+        if db_path is None:
+            UIHelper.show_warning(self.main_window, t("health_check.progress.starting"))
+            return
+
+        # Progress dialog
+        progress = QProgressDialog(
+            t("health_check.progress.starting"),
+            t("common.cancel"),
+            0,
+            100,
+            self.main_window,
+        )
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
+        progress.setWindowTitle(t("health_check.title"))
+        progress.setMinimumDuration(0)
+        progress.show()
+
+        # Start background thread
+        self._health_thread = LibraryHealthThread(games, api_key, db_path, self.main_window)
+
+        def on_progress(current: int, total: int, key: str) -> None:
+            if progress.wasCanceled():
+                self._health_thread.cancel()
+                return
+            percent = int((current / max(total, 1)) * 100)
+            progress.setValue(percent)
+            progress.setLabelText(t(key, current=current, total=total))
+
+        def on_phase(phase_key: str) -> None:
+            progress.setLabelText(t(phase_key))
+
+        def on_finished(report: object) -> None:
+            progress.close()
+            dialog = HealthCheckResultDialog(self.main_window, report)
+            dialog.exec()
+
+        self._health_thread.progress.connect(on_progress)
+        self._health_thread.phase_changed.connect(on_phase)
+        self._health_thread.finished_report.connect(on_finished)
+        progress.canceled.connect(self._health_thread.cancel)
+        self._health_thread.start()
