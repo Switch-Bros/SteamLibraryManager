@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import Qt, QUrl
-from PyQt6.QtGui import QAction, QActionGroup, QDesktopServices
+from PyQt6.QtGui import QAction, QActionGroup, QDesktopServices, QKeySequence
 from PyQt6.QtWidgets import QMenuBar, QLabel
 
 from src.utils.i18n import t
@@ -142,11 +142,13 @@ class MenuBuilder:
 
         # Refresh
         refresh_action = QAction(t("menu.file.refresh"), mw)
+        refresh_action.setShortcut(QKeySequence("Ctrl+R"))
         refresh_action.triggered.connect(mw.file_actions.refresh_data)
         file_menu.addAction(refresh_action)
 
         # Save
         save_action = QAction(t("common.save"), mw)
+        save_action.setShortcut(QKeySequence("Ctrl+S"))
         save_action.triggered.connect(mw.file_actions.force_save)
         file_menu.addAction(save_action)
 
@@ -233,6 +235,7 @@ class MenuBuilder:
 
         # Exit
         exit_action = QAction(t("menu.file.exit"), mw)
+        exit_action.setShortcut(QKeySequence("Ctrl+Q"))
         exit_action.triggered.connect(mw.file_actions.exit_application)
         file_menu.addAction(exit_action)
 
@@ -258,6 +261,7 @@ class MenuBuilder:
 
         # Auto-Categorize
         auto_cat_action = QAction(t("menu.edit.auto_categorize"), mw)
+        auto_cat_action.setShortcut(QKeySequence("Ctrl+Shift+A"))
         auto_cat_action.triggered.connect(mw.edit_actions.auto_categorize)
         edit_menu.addAction(auto_cat_action)
 
@@ -282,6 +286,7 @@ class MenuBuilder:
 
         # Smart Collections
         create_smart_action = QAction(t("menu.edit.collections.create_smart"), mw)
+        create_smart_action.setShortcut(QKeySequence("Ctrl+Shift+N"))
         create_smart_action.triggered.connect(mw.edit_actions.create_smart_collection)
         collections_menu.addAction(create_smart_action)
 
@@ -542,6 +547,7 @@ class MenuBuilder:
 
         # Settings (wired action)
         settings_action = QAction(t("menu.tools.settings"), mw)
+        settings_action.setShortcut(QKeySequence("Ctrl+P"))
         settings_action.triggered.connect(mw.settings_actions.show_settings)
         tools_menu.addAction(settings_action)
 
@@ -561,6 +567,8 @@ class MenuBuilder:
         docs_menu = help_menu.addMenu(t("menu.help.docs.root"))
         for key in ("manual", "tips", "shortcuts"):
             action = QAction(t(f"menu.help.docs.{key}"), mw)
+            if key == "manual":
+                action.setShortcut(QKeySequence("F1"))
             action.triggered.connect(lambda checked, k=f"menu.help.docs.{key}": self._not_implemented(k))
             docs_menu.addAction(action)
 
@@ -600,6 +608,7 @@ class MenuBuilder:
 
         # About (wired action)
         about_action = QAction(t("menu.help.about"), mw)
+        about_action.setShortcut(QKeySequence("F12"))
         about_action.triggered.connect(mw.steam_actions.show_about)
         help_menu.addAction(about_action)
 
