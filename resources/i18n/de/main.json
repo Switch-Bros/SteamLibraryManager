@@ -561,5 +561,9 @@
       "stale_hltb": "{count} Spiele mit HLTB-Daten älter als 30 Tage",
       "stale_protondb": "{count} Spiele mit ProtonDB-Daten älter als 7 Tage"
     }
+  },
+  "easter_egg": {
+    "switchbros_title": "🎮 Du hast es gefunden!",
+    "switchbros_message": "SLM wurde mit ❤️ von der SwitchBros Community erstellt.\n\nNintendo Switch 🎮 | PC Gaming 🖥️ | Open Source 🌍\n\nDanke, dass du Teil der Familie bist!"
   }
 }

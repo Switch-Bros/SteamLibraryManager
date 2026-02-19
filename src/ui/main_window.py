@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 
 from PyQt6.QtWidgets import QMainWindow, QToolBar
 from PyQt6.QtCore import Qt, QThread, QTimer
+from PyQt6.QtGui import QKeySequence, QShortcut
 
 from src.core.game_manager import GameManager, Game
 from src.core.localconfig_helper import LocalConfigHelper
@@ -125,6 +126,21 @@ class MainWindow(QMainWindow):
         self.steam_username: str | None = None
         self.current_search_query: str = ""  # Track active search
 
+        # Easter egg state
+        self._konami_buffer: list[int] = []
+        self._konami_sequence: list[int] = [
+            Qt.Key.Key_Up,
+            Qt.Key.Key_Up,
+            Qt.Key.Key_Down,
+            Qt.Key.Key_Down,
+            Qt.Key.Key_Left,
+            Qt.Key.Key_Right,
+            Qt.Key.Key_Left,
+            Qt.Key.Key_Right,
+            Qt.Key.Key_B,
+            Qt.Key.Key_A,
+        ]
+
         # Threads & Dialogs
         self.store_check_thread: QThread | None = None
 
@@ -152,6 +168,7 @@ class MainWindow(QMainWindow):
         self.category_populator = CategoryPopulator(self)
 
         self._create_ui()
+        self._register_shortcuts()
         self.show()
 
         # Non-blocking startup via BootstrapService
@@ -507,19 +524,124 @@ class MainWindow(QMainWindow):
             return self.localconfig_helper.save()
         return False
 
+    # ------------------------------------------------------------------
+    # Keyboard Shortcuts & Easter Eggs
+    # ------------------------------------------------------------------
+
+    def _register_shortcuts(self) -> None:
+        """Registers keyboard shortcuts not bound to menu actions."""
+        # Ctrl+F: Focus search bar
+        QShortcut(QKeySequence("Ctrl+F"), self).activated.connect(lambda: self.search_entry.setFocus())
+
+        # F5: Refresh data (alternative to Ctrl+R in menu)
+        QShortcut(QKeySequence("F5"), self).activated.connect(self.file_actions.refresh_data)
+
+        # Ctrl+Shift+S: Create backup snapshot
+        QShortcut(QKeySequence("Ctrl+Shift+S"), self).activated.connect(self.file_actions.export_db_backup)
+
+        # Ctrl+A: Select all games in current category
+        QShortcut(QKeySequence("Ctrl+A"), self).activated.connect(self._select_all_in_category)
+
+        # Ctrl+B: Toggle sidebar (tree) visibility
+        QShortcut(QKeySequence("Ctrl+B"), self).activated.connect(
+            lambda: self.tree.setVisible(not self.tree.isVisible())
+        )
+
+        # Ctrl+I: Open Image Browser for selected game
+        QShortcut(QKeySequence("Ctrl+I"), self).activated.connect(self._open_image_browser)
+
+    def _select_all_in_category(self) -> None:
+        """Selects all game items under the currently active category."""
+        if self.search_entry.hasFocus():
+            self.search_entry.selectAll()
+            return
+
+        categories = self.tree.get_selected_categories()
+        if not categories:
+            return
+
+        for i in range(self.tree.topLevelItemCount()):
+            item = self.tree.topLevelItem(i)
+            if item and item.text(0) in categories:
+                for j in range(item.childCount()):
+                    child = item.child(j)
+                    if child:
+                        child.setSelected(True)
+
+    def _open_image_browser(self) -> None:
+        """Opens the Image Browser for the currently selected game."""
+        if not self.selected_game:
+            self.set_status(t("ui.errors.no_selection"))
+            return
+        self.details_widget.on_image_click("grids")
+
+    def _show_switchbros_easter_egg(self) -> None:
+        """Shows the hidden SwitchBros community tribute."""
+        UIHelper.show_info(
+            self,
+            t("easter_egg.switchbros_message"),
+            title=t("easter_egg.switchbros_title"),
+        )
+
     def keyPressEvent(self, event) -> None:
-        """Handle key press events.
+        """Handles key press events for shortcuts and easter eggs.
+
+        Supports layered ESC behavior, Konami code easter egg,
+        and additional keyboard shortcuts for power users.
 
         Args:
             event: The key press event.
         """
-        # ESC key: Clear selection
-        if event.key() == Qt.Key.Key_Escape:
+        # --- Konami Code tracking ---
+        self._konami_buffer.append(event.key())
+        if len(self._konami_buffer) > 10:
+            self._konami_buffer = self._konami_buffer[-10:]
+        if self._konami_buffer == self._konami_sequence:
+            self._konami_buffer.clear()
+            self._show_switchbros_easter_egg()
+            return
+
+        key = event.key()
+
+        # ESC: Layered behavior (search → selection → nothing)
+        if key == Qt.Key.Key_Escape:
+            # Layer 1: Clear search bar if it has text
+            if self.search_entry.text():
+                self.search_entry.clear()
+                self._populate_categories()
+                return
+            # Layer 2: Clear game selection
             if self.selected_games:
                 self.selected_games = []
                 self.tree.clearSelection()
                 self.details_widget.clear()
                 self.set_status(t("ui.main_window.status_ready"))
-        else:
-            # Pass other keys to parent
-            super().keyPressEvent(event)
+            return
+
+        # Del: Remove selected games from current category
+        if key == Qt.Key.Key_Delete:
+            if self.selected_games:
+                categories = self.tree.get_selected_categories()
+                if categories:
+                    category = categories[0]
+                    count = len(self.selected_games)
+                    msg = t("ui.dialogs.confirm_bulk", count=count)
+                    if UIHelper.confirm(self, msg, category):
+                        self._apply_category_to_games(self.selected_games, category, False)
+                        self._populate_categories()
+            return
+
+        # F2: Rename selected category
+        if key == Qt.Key.Key_F2:
+            categories = self.tree.get_selected_categories()
+            if categories:
+                self.category_handler.rename_category(categories[0])
+            return
+
+        # Space: Toggle details panel (only when tree doesn't have focus)
+        if key == Qt.Key.Key_Space:
+            if not self.tree.hasFocus():
+                self.details_widget.setVisible(not self.details_widget.isVisible())
+                return
+
+        super().keyPressEvent(event)

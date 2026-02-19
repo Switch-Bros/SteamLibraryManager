@@ -82,6 +82,11 @@ class ViewActions:
             self.main_window.populate_categories()
             return
 
+        # Easter egg: "switchbros" triggers community tribute
+        if query.strip().lower() == "switchbros":
+            self.main_window._show_switchbros_easter_egg()
+            return
+
         if not self.main_window.game_manager or not self.main_window.search_service:
             return
 
