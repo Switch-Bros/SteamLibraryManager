@@ -398,8 +398,8 @@ class GameManager:
                 game.platforms = list(entry.platforms)
             if not game.review_score and entry.review_score is not None:
                 game.review_score = str(entry.review_score)
-            if not game.review_percentage and entry.review_score is not None:
-                game.review_percentage = entry.review_score
+            if not game.review_percentage and entry.review_percentage:
+                game.review_percentage = entry.review_percentage
             if not game.review_count and entry.review_count:
                 game.review_count = entry.review_count
 

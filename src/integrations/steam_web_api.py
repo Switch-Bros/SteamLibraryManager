@@ -39,7 +39,7 @@ class SteamAppDetails:
         tags: Tuple of user-defined tag names.
         platforms: Tuple of supported platform names.
         languages: Tuple of supported language names.
-        review_score: Aggregate review score (0-100).
+        review_score: Steam review category (1-9, e.g. 8 = Very Positive).
         review_desc: Human-readable review description.
         is_free: Whether the app is free to play.
         description: Full game description text.

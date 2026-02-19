@@ -29,7 +29,7 @@ class TestDatabaseSchema:
     def test_schema_creation_succeeds(self, database: Database) -> None:
         """Database should create schema on init."""
         version = database._get_schema_version()
-        assert version == 5
+        assert version == 6
 
     def test_game_count_empty_db(self, database: Database) -> None:
         """Empty database should have zero games."""

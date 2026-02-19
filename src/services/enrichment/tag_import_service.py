@@ -173,11 +173,11 @@ class TagImportThread(QThread):
                 db.bulk_insert_game_tags_by_id(batch)
                 db.commit()
 
-            # Persist review scores to games table
+            # Persist review percentages to games table
             if review_batch:
-                db.bulk_update_review_scores(review_batch)
+                db.bulk_update_review_percentages(review_batch)
                 db.commit()
-                logger.info("Updated review scores for %d games", len(review_batch))
+                logger.info("Updated review percentages for %d games", len(review_batch))
 
             total_tags = db.get_game_tag_count()
             logger.info(

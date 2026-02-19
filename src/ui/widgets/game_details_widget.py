@@ -344,7 +344,7 @@ class GameDetailsWidget(QWidget):
             path = SteamAssets.get_asset_path(self.current_game.app_id, img_type)
             asset_map[img_type].load_image(path)
 
-    def _on_image_click(self, img_type: str) -> None:
+    def on_image_click(self, img_type: str) -> None:
         """Opens the image selection dialog on click.
 
         Args:
@@ -358,7 +358,7 @@ class GameDetailsWidget(QWidget):
             if url and SteamAssets.save_custom_image(self.current_game.app_id, img_type, url):
                 self._reload_single_asset(img_type)
 
-    def _on_image_right_click(self, img_type: str) -> None:
+    def on_image_right_click(self, img_type: str) -> None:
         """Shows reset context menu on right-click.
 
         Args:
@@ -415,7 +415,7 @@ class GameDetailsWidget(QWidget):
         else:
             self.pegi_image.load_image(None)
 
-    def _on_pegi_clicked(self) -> None:
+    def on_pegi_clicked(self) -> None:
         """Opens the PEGI selector dialog on click."""
         if not self.current_game:
             return
@@ -427,7 +427,7 @@ class GameDetailsWidget(QWidget):
             selected_rating = dialog.get_selected_rating()
             self.pegi_override_requested.emit(self.current_game.app_id, selected_rating)
 
-    def _on_pegi_right_click(self) -> None:
+    def on_pegi_right_click(self) -> None:
         """Shows reset context menu on PEGI right-click."""
         if not self.current_game:
             return
@@ -468,7 +468,7 @@ class GameDetailsWidget(QWidget):
     # Event handlers
     # ------------------------------------------------------------------
 
-    def _on_category_toggle(self, category_name: str, checked: bool) -> None:
+    def on_category_toggle(self, category_name: str, checked: bool) -> None:
         """Handles category checkbox toggle events.
 
         Args:
@@ -481,12 +481,12 @@ class GameDetailsWidget(QWidget):
             for game in self.current_games:
                 self.category_changed.emit(game.app_id, category_name, checked)
 
-    def _on_edit(self) -> None:
+    def on_edit(self) -> None:
         """Opens the metadata editor for the current game."""
         if self.current_game:
             self.edit_metadata.emit(self.current_game)
 
-    def _open_current_store(self) -> None:
+    def open_current_store(self) -> None:
         """Opens the Steam Store page in the default browser."""
         if self.current_game:
             import webbrowser
