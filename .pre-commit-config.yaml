@@ -27,6 +27,6 @@ repos:
       - id: check-json
       - id: check-yaml
       - id: check-added-large-files
-        args: [--maxkb=1024]  # Grid-Bilder können groß sein
+        args: [--maxkb=2048]  # Screenshots & Grid-Bilder können groß sein
       - id: check-merge-conflict
       - id: detect-private-key
