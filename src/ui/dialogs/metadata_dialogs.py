@@ -11,6 +11,7 @@ from __future__ import annotations
 from PyQt6.QtWidgets import (
     QCheckBox,
     QFormLayout,
+    QFrame,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -363,6 +364,21 @@ class BulkMetadataEditDialog(BaseDialog):
         fields_group.setLayout(f_layout)
         layout.addWidget(fields_group)
 
+        # --- Revert to original section ---
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        layout.addWidget(separator)
+
+        self.cb_revert = QCheckBox(t("ui.metadata_editor.bulk_revert_label"))
+        self.cb_revert.toggled.connect(self._on_revert_toggled)
+        layout.addWidget(self.cb_revert)
+
+        revert_help = QLabel(t("ui.metadata_editor.bulk_revert_help"))
+        revert_help.setStyleSheet(f"color: {Theme.TEXT_MUTED}; font-size: 11px; margin-left: 24px;")
+        revert_help.setWordWrap(True)
+        layout.addWidget(revert_help)
+
         warn_lbl = QLabel(f"{t('emoji.warning')} {t('auto_categorize.warning_backup')}")
         warn_lbl.setStyleSheet("color: orange;")
         layout.addWidget(warn_lbl)
@@ -381,14 +397,36 @@ class BulkMetadataEditDialog(BaseDialog):
 
         layout.addLayout(btn_layout)
 
+    def _on_revert_toggled(self, checked: bool) -> None:
+        """Disables all edit fields when revert is toggled.
+
+        Revert and normal edit are mutually exclusive: when the revert
+        checkbox is checked, all field checkboxes and their inputs are
+        grayed out.
+
+        Args:
+            checked: Whether the revert checkbox is checked.
+        """
+        field_widgets = [
+            (self.cb_dev, self.edit_dev),
+            (self.cb_pub, self.edit_pub),
+            (self.cb_date, self.edit_date),
+            (self.cb_pre, self.edit_pre),
+            (self.cb_suf, self.edit_suf),
+            (self.cb_rem, self.edit_rem),
+        ]
+        for checkbox, line_edit in field_widgets:
+            checkbox.setEnabled(not checked)
+            line_edit.setEnabled(not checked and checkbox.isChecked())
+
     def _apply(self):
         """Validates selections and stores the bulk edit settings.
 
-        Validates that at least one field is selected for editing, shows a
-        confirmation dialog, and stores the result metadata if confirmed.
+        Validates that at least one field or the revert checkbox is selected,
+        shows a confirmation dialog, and stores the result metadata if confirmed.
         """
         checks = [self.cb_dev, self.cb_pub, self.cb_date, self.cb_pre, self.cb_suf, self.cb_rem]
-        if not any(c.isChecked() for c in checks):
+        if not self.cb_revert.isChecked() and not any(c.isChecked() for c in checks):
             UIHelper.show_warning(self, t("ui.dialogs.no_selection"), title=t("ui.dialogs.no_changes"))
             return
 
@@ -396,6 +434,12 @@ class BulkMetadataEditDialog(BaseDialog):
         if not UIHelper.confirm(
             self, t("ui.dialogs.confirm_bulk", count=self.games_count), t("ui.dialogs.confirm_bulk_title")
         ):
+            return
+
+        # Revert mode: signal caller to restore original metadata
+        if self.cb_revert.isChecked():
+            self.result_metadata = {"__revert_to_original__": True}
+            self.accept()
             return
 
         self.result_metadata = {}
