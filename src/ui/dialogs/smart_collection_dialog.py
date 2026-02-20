@@ -89,7 +89,12 @@ class SmartCollectionDialog(QDialog):
 
     def _create_ui(self) -> None:
         """Builds the complete dialog UI."""
-        self.setWindowTitle(t("ui.smart_collections.builder_title"))
+        title_key = (
+            "ui.smart_collections.builder_title_edit"
+            if self._edit_collection
+            else "ui.smart_collections.builder_title_create"
+        )
+        self.setWindowTitle(t(title_key))
         self.setMinimumSize(700, 700)
         self.resize(800, 900)
 
