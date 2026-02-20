@@ -11,7 +11,7 @@
 [![HLTB](https://img.shields.io/badge/HLTB-Included-FDE100?style=plastic&logoColor=FDE100&labelColor=000000)](https://howlongtobeat.com/)
 [![Downloads](https://img.shields.io/badge/Downloads-Coming%20Soon-FDE100?style=plastic&logo=github&logoColor=FDE100&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager/releases)
 <!-- [![Downloads](https://img.shields.io/github/downloads/Switch-Bros/SteamLibraryManager/total?color=FDE100&labelColor=000000&style=plastic&logo=github&logoColor=FDE100&label=Downloads)](https://github.com/Switch-Bros/SteamLibraryManager/releases) -->
-[![Tests](https://img.shields.io/badge/Tests-1053%20passed-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
+[![Tests](https://img.shields.io/badge/Tests-1162%20passed-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
 [![i18n](https://img.shields.io/badge/i18n-🇬🇧%20🇩🇪-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
 [![Donate](https://img.shields.io/badge/Tip-Support%20me%20on%20PayPal-FDE100?style=plastic&logo=paypal&logoColor=FDE100&labelColor=000000)](https://www.paypal.com/donate/?hosted_button_id=HWPG6YAGXAWJJ)
 
