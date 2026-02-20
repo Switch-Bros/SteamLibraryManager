@@ -352,7 +352,8 @@
       "animated": "GIF"
     },
     "smart_collections": {
-      "builder_title": "Smart Collection Builder",
+      "builder_title_create": "Erstelle deine Smarte Kollektion",
+      "builder_title_edit": "Bearbeite deine Smarte Kollektion",
       "name_label": "Name",
       "description_label": "Beschreibung",
       "logic_label": "Logik",
