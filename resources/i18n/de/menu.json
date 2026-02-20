@@ -153,7 +153,8 @@
         "check_store": "Store-Seiten prüfen",
         "update_achievements": "Achievements aktualisieren",
         "update_achievements_force": "Achievements \u2014 Alle neu einlesen",
-        "import_tags": "Tags aus Steam importieren"
+        "import_tags": "Tags aus Steam importieren",
+        "enrich_all": "ALLE Daten NEU einlesen"
       },
       "database": {
         "root": "Datenbank",

@@ -136,6 +136,44 @@ class UIHelper:
         return msg.clickedButton() == yes_btn
 
     @staticmethod
+    def show_batch_result(
+        parent: QWidget,
+        message: str,
+        title: str | None = None,
+    ) -> bool:
+        """Displays a batch operation result with force-refresh option.
+
+        Shows the result message with two buttons:
+        - "Alle neu einlesen" (force refresh) -> returns True
+        - "OK" (close) -> returns False
+
+        This replaces separate force-refresh menu entries. Users can
+        trigger force-refresh from the result dialog instead.
+
+        Args:
+            parent: The parent widget for the dialog.
+            message: The result message to display.
+            title: The dialog window title. Defaults to common 'Info'.
+
+        Returns:
+            True if the user clicked force-refresh, False for OK.
+        """
+        msg = QMessageBox(parent)
+        msg.setWindowTitle(title or t("common.info"))
+        msg.setText(message)
+        msg.setIcon(QMessageBox.Icon.Information)
+
+        refresh_btn = msg.addButton(
+            t("ui.enrichment.force_refresh_button"),
+            QMessageBox.ButtonRole.ActionRole,
+        )
+        ok_btn = msg.addButton(t("common.ok"), QMessageBox.ButtonRole.AcceptRole)
+        msg.setDefaultButton(ok_btn)
+
+        msg.exec()
+        return msg.clickedButton() == refresh_btn
+
+    @staticmethod
     def ask_text(parent: QWidget, title: str, label: str, current_text: str = "") -> tuple[str, bool]:
         """
         Displays a standardized input dialog to ask the user for text.

@@ -13,6 +13,8 @@ from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from src.services.enrichment.base_enrichment_thread import BaseEnrichmentThread
     from src.ui.main_window import MainWindow
 
@@ -46,20 +48,12 @@ class EnrichmentActions:
         the DeckEnrichmentThread with a progress dialog.
 
         Args:
-            force_refresh: If True, re-fetch all games (with confirmation).
+            force_refresh: If True, re-fetch all games.
         """
         from src.services.enrichment.deck_enrichment_service import DeckEnrichmentThread
 
         if not self.mw.game_manager:
             return
-
-        if force_refresh:
-            if not UIHelper.confirm(
-                self.mw,
-                t("ui.enrichment.force_refresh_confirm"),
-                title=t("ui.enrichment.force_refresh_title"),
-            ):
-                return
 
         # Filter games
         all_games = self.mw.game_manager.get_real_games()
@@ -69,7 +63,16 @@ class EnrichmentActions:
             games_to_enrich = [g for g in all_games if not g.steam_deck_status or g.steam_deck_status == "unknown"]
 
         if not games_to_enrich:
-            UIHelper.show_info(self.mw, t("ui.enrichment.no_games_deck"))
+            if UIHelper.show_batch_result(
+                self.mw,
+                t("ui.enrichment.no_games_deck"),
+                t("ui.enrichment.complete_title"),
+            ) and UIHelper.confirm(
+                self.mw,
+                t("ui.enrichment.force_refresh_confirm"),
+                title=t("ui.enrichment.force_refresh_title"),
+            ):
+                self.start_deck_enrichment(force_refresh=True)
             return
 
         # Determine cache directory
@@ -80,11 +83,13 @@ class EnrichmentActions:
         # Create and launch thread
         thread = DeckEnrichmentThread(self.mw)
         thread.configure(games_to_enrich, cache_dir, force_refresh=force_refresh)
+        callback = None if force_refresh else lambda: self.start_deck_enrichment(force_refresh=True)
         self._run_enrichment(
             thread,
             title_key="ui.enrichment.deck_title",
             starting_key="ui.enrichment.deck_starting",
             total=len(games_to_enrich),
+            force_refresh_callback=callback,
         )
 
     def start_hltb_enrichment(self, force_refresh: bool = False) -> None:
@@ -94,7 +99,7 @@ class EnrichmentActions:
         games without HLTB data. Launches the enrichment dialog.
 
         Args:
-            force_refresh: If True, re-fetch all games (with confirmation).
+            force_refresh: If True, re-fetch all games.
         """
         from src.integrations.hltb_api import HLTBClient
         from src.services.enrichment.enrichment_service import EnrichmentThread
@@ -104,14 +109,6 @@ class EnrichmentActions:
         if not HLTBClient.is_available():
             UIHelper.show_warning(self.mw, t("ui.enrichment.hltb_not_available"))
             return
-
-        if force_refresh:
-            if not UIHelper.confirm(
-                self.mw,
-                t("ui.enrichment.force_refresh_confirm"),
-                title=t("ui.enrichment.force_refresh_title"),
-            ):
-                return
 
         # Check database
         db = self._open_database()
@@ -124,7 +121,16 @@ class EnrichmentActions:
             games = db.get_apps_without_hltb()
         db.close()
         if not games:
-            UIHelper.show_info(self.mw, t("ui.enrichment.no_games_hltb"))
+            if UIHelper.show_batch_result(
+                self.mw,
+                t("ui.enrichment.no_games_hltb"),
+                t("ui.enrichment.complete_title"),
+            ) and UIHelper.confirm(
+                self.mw,
+                t("ui.enrichment.force_refresh_confirm"),
+                title=t("ui.enrichment.force_refresh_title"),
+            ):
+                self.start_hltb_enrichment(force_refresh=True)
             return
 
         # Create thread with HLTB configuration
@@ -156,6 +162,18 @@ class EnrichmentActions:
         dialog.start_thread(thread)
         dialog.exec()
 
+        # Check if user wants force refresh from batch result
+        if not force_refresh and dialog.wants_force_refresh:
+            if UIHelper.confirm(
+                self.mw,
+                t("ui.enrichment.force_refresh_confirm"),
+                title=t("ui.enrichment.force_refresh_title"),
+            ):
+                self.start_hltb_enrichment(force_refresh=True)
+                return
+
+        self.mw.populate_categories()
+
     def start_steam_api_enrichment(self, force_refresh: bool = False) -> None:
         """Starts Steam API enrichment for games missing metadata.
 
@@ -163,7 +181,7 @@ class EnrichmentActions:
         games with missing metadata. Launches the enrichment dialog.
 
         Args:
-            force_refresh: If True, re-fetch all games (with confirmation).
+            force_refresh: If True, re-fetch all games.
         """
         from src.config import config
         from src.services.enrichment.enrichment_service import EnrichmentThread
@@ -176,14 +194,6 @@ class EnrichmentActions:
             self._open_settings_api_tab()
             return
 
-        if force_refresh:
-            if not UIHelper.confirm(
-                self.mw,
-                t("ui.enrichment.force_refresh_confirm"),
-                title=t("ui.enrichment.force_refresh_title"),
-            ):
-                return
-
         # Check database
         db = self._open_database()
         if db is None:
@@ -195,7 +205,16 @@ class EnrichmentActions:
             games = db.get_apps_missing_metadata()
         db.close()
         if not games:
-            UIHelper.show_info(self.mw, t("ui.enrichment.no_games_steam"))
+            if UIHelper.show_batch_result(
+                self.mw,
+                t("ui.enrichment.no_games_steam"),
+                t("ui.enrichment.complete_title"),
+            ) and UIHelper.confirm(
+                self.mw,
+                t("ui.enrichment.force_refresh_confirm"),
+                title=t("ui.enrichment.force_refresh_title"),
+            ):
+                self.start_steam_api_enrichment(force_refresh=True)
             return
 
         # Create thread with Steam API configuration
@@ -209,6 +228,18 @@ class EnrichmentActions:
         dialog.start_thread(thread)
         dialog.exec()
 
+        # Check if user wants force refresh from batch result
+        if not force_refresh and dialog.wants_force_refresh:
+            if UIHelper.confirm(
+                self.mw,
+                t("ui.enrichment.force_refresh_confirm"),
+                title=t("ui.enrichment.force_refresh_title"),
+            ):
+                self.start_steam_api_enrichment(force_refresh=True)
+                return
+
+        self.mw.populate_categories()
+
     def start_achievement_enrichment(self, force_refresh: bool = False) -> None:
         """Starts achievement enrichment for games missing achievement data.
 
@@ -216,7 +247,7 @@ class EnrichmentActions:
         the AchievementEnrichmentThread with a progress dialog.
 
         Args:
-            force_refresh: If True, re-fetch all games (with confirmation).
+            force_refresh: If True, re-fetch all games.
         """
         from src.config import config
         from src.services.enrichment.achievement_enrichment_service import AchievementEnrichmentThread
@@ -234,14 +265,6 @@ class EnrichmentActions:
             UIHelper.show_warning(self.mw, t("ui.enrichment.no_steam_id"))
             return
 
-        if force_refresh:
-            if not UIHelper.confirm(
-                self.mw,
-                t("ui.enrichment.force_refresh_confirm"),
-                title=t("ui.enrichment.force_refresh_title"),
-            ):
-                return
-
         # Check database
         db = self._open_database()
         if db is None:
@@ -253,18 +276,29 @@ class EnrichmentActions:
             games = db.get_apps_without_achievements()
         db.close()
         if not games:
-            UIHelper.show_info(self.mw, t("ui.enrichment.no_games_achievements"))
+            if UIHelper.show_batch_result(
+                self.mw,
+                t("ui.enrichment.no_games_achievements"),
+                t("ui.enrichment.complete_title"),
+            ) and UIHelper.confirm(
+                self.mw,
+                t("ui.enrichment.force_refresh_confirm"),
+                title=t("ui.enrichment.force_refresh_title"),
+            ):
+                self.start_achievement_enrichment(force_refresh=True)
             return
 
         # Create and launch thread
         db_path = self._get_db_path()
         thread = AchievementEnrichmentThread(self.mw)
         thread.configure(games, db_path, api_key, steam_id, force_refresh=force_refresh)
+        callback = None if force_refresh else lambda: self.start_achievement_enrichment(force_refresh=True)
         self._run_enrichment(
             thread,
             title_key="ui.enrichment.achievement_title",
             starting_key="ui.enrichment.achievement_starting",
             total=len(games),
+            force_refresh_callback=callback,
         )
 
     def _run_enrichment(
@@ -273,6 +307,7 @@ class EnrichmentActions:
         title_key: str,
         starting_key: str,
         total: int,
+        force_refresh_callback: Callable[[], None] | None = None,
     ) -> None:
         """Launches an enrichment thread with a modal progress dialog.
 
@@ -284,6 +319,8 @@ class EnrichmentActions:
             title_key: i18n key for the progress dialog title.
             starting_key: i18n key for the initial progress label.
             total: Total number of items to process.
+            force_refresh_callback: If provided, completion dialog offers
+                a force-refresh button that triggers this callback.
         """
         from PyQt6.QtCore import Qt
         from PyQt6.QtWidgets import QProgressDialog
@@ -312,10 +349,24 @@ class EnrichmentActions:
 
         def on_finished(success: int, failed: int) -> None:
             progress.close()
-            UIHelper.show_success(
-                self.mw,
-                t("ui.enrichment.complete", success=success, failed=failed),
-            )
+            if force_refresh_callback:
+                wants_refresh = UIHelper.show_batch_result(
+                    self.mw,
+                    t("ui.enrichment.complete", success=success, failed=failed),
+                    t("ui.enrichment.complete_title"),
+                )
+                if wants_refresh and UIHelper.confirm(
+                    self.mw,
+                    t("ui.enrichment.force_refresh_confirm"),
+                    title=t("ui.enrichment.force_refresh_title"),
+                ):
+                    force_refresh_callback()
+                    return
+            else:
+                UIHelper.show_success(
+                    self.mw,
+                    t("ui.enrichment.complete", success=success, failed=failed),
+                )
             self.mw.populate_categories()
 
         thread.progress.connect(on_progress)
@@ -330,17 +381,9 @@ class EnrichmentActions:
         launches the ProtonDBEnrichmentThread with a progress dialog.
 
         Args:
-            force_refresh: If True, re-fetch all games (with confirmation).
+            force_refresh: If True, re-fetch all games.
         """
         from src.services.enrichment.protondb_enrichment_service import ProtonDBEnrichmentThread
-
-        if force_refresh:
-            if not UIHelper.confirm(
-                self.mw,
-                t("ui.enrichment.force_refresh_confirm"),
-                title=t("ui.enrichment.force_refresh_title"),
-            ):
-                return
 
         # Check database
         db = self._open_database()
@@ -353,18 +396,29 @@ class EnrichmentActions:
             games = db.get_apps_without_protondb()
         db.close()
         if not games:
-            UIHelper.show_info(self.mw, t("ui.enrichment.no_games_protondb"))
+            if UIHelper.show_batch_result(
+                self.mw,
+                t("ui.enrichment.no_games_protondb"),
+                t("ui.enrichment.complete_title"),
+            ) and UIHelper.confirm(
+                self.mw,
+                t("ui.enrichment.force_refresh_confirm"),
+                title=t("ui.enrichment.force_refresh_title"),
+            ):
+                self.start_protondb_enrichment(force_refresh=True)
             return
 
         # Create and launch thread
         db_path = self._get_db_path()
         thread = ProtonDBEnrichmentThread(self.mw)
         thread.configure(games, db_path, force_refresh=force_refresh)
+        callback = None if force_refresh else lambda: self.start_protondb_enrichment(force_refresh=True)
         self._run_enrichment(
             thread,
             title_key="ui.enrichment.protondb_title",
             starting_key="ui.enrichment.protondb_starting",
             total=len(games),
+            force_refresh_callback=callback,
         )
 
     def start_tag_import(self) -> None:
@@ -456,6 +510,97 @@ class EnrichmentActions:
         thread.error.connect(on_error)
         progress.canceled.connect(thread.cancel)
         thread.start()
+
+    def start_enrich_all(self) -> None:
+        """Starts a full refresh of all enrichment data.
+
+        Runs tag import followed by four parallel tracks:
+        Steam API (metadata + achievements), HLTB, ProtonDB, and Deck.
+        """
+        from src.config import config
+        from src.services.enrichment.enrich_all_coordinator import EnrichAllCoordinator
+        from src.ui.dialogs.enrich_all_progress_dialog import EnrichAllProgressDialog
+
+        # Check prerequisites
+        if not self.mw.game_manager:
+            return
+
+        api_key = config.STEAM_API_KEY
+        if not api_key:
+            UIHelper.show_warning(self.mw, t("ui.enrichment.no_api_key"))
+            self._open_settings_api_tab()
+            return
+
+        # Resolve Steam user ID
+        steam_id = config.STEAM_USER_ID or ""
+        if not steam_id:
+            _, detected_id = config.get_detected_user()
+            if detected_id:
+                steam_id = detected_id
+
+        # Get game lists
+        all_deck_games = self.mw.game_manager.get_real_games()
+        db = self._open_database()
+        if db is None:
+            return
+        all_db_games = db.get_all_game_ids()
+        db.close()
+
+        if not all_db_games:
+            UIHelper.show_info(self.mw, t("ui.enrichment.no_games_steam"))
+            return
+
+        # Confirm with user
+        if not UIHelper.confirm(
+            self.mw,
+            t("ui.enrichment.enrich_all_confirm", count=len(all_db_games)),
+            title=t("ui.enrichment.enrich_all_title"),
+        ):
+            return
+
+        # Check HLTB availability
+        hltb_client = None
+        try:
+            from src.integrations.hltb_api import HLTBClient
+
+            if HLTBClient.is_available():
+                hltb_client = HLTBClient()
+        except ImportError:
+            pass
+
+        # Gather paths and config
+        db_path = self._get_db_path()
+        if db_path is None:
+            return
+
+        steam_path = config.STEAM_PATH
+        cache_dir = config.DATA_DIR / "cache"
+
+        language = "en"
+        if hasattr(self.mw, "tag_resolver") and self.mw.tag_resolver:
+            i18n = getattr(self.mw, "_i18n", None)
+            if i18n:
+                language = i18n.locale
+
+        # Create dialog and coordinator (coordinator parented to dialog)
+        dialog = EnrichAllProgressDialog(self.mw)
+        coordinator = EnrichAllCoordinator(dialog)
+        coordinator.configure(
+            db_path=db_path,
+            api_key=api_key,
+            steam_id=steam_id,
+            steam_path=steam_path,
+            games_deck=all_deck_games,
+            games_db=all_db_games,
+            hltb_client=hltb_client,
+            language=language,
+            cache_dir=cache_dir,
+        )
+
+        dialog.set_coordinator(coordinator)
+        dialog.exec()
+
+        self.mw.populate_categories()
 
     def _open_settings_api_tab(self) -> None:
         """Opens the Settings dialog on the API keys tab."""

@@ -511,7 +511,16 @@
       "protondb_starting": "Starte ProtonDB-Anreicherung...",
       "no_games_protondb": "Alle Spiele haben bereits ProtonDB-Bewertungen.",
       "tag_list_loaded": "Tag-Liste geladen ({count} Tags).",
-      "private_apps_found": "{count} private Apps gefunden."
+      "private_apps_found": "{count} private Apps gefunden.",
+      "force_refresh_button": "Alle neu einlesen",
+      "enrich_all_title": "Alle Daten neu einlesen",
+      "enrich_all_confirm": "Hiermit werden ALLE Daten für alle {count} Spiele aus ALLEN Quellen neu abgerufen.\n\nDas beinhaltet: Metadaten, HLTB, Deck-Status, Achievements, ProtonDB und Tags.\n\nDas kann eine Weile dauern. Fortfahren?",
+      "enrich_all_complete": "Alle Anreicherungsvorgänge erfolgreich abgeschlossen! {total} Spiele aktualisiert.",
+      "enrich_all_tags": "Tags importiert",
+      "enrich_all_steam": "Steam API (Metadaten + Achievements)",
+      "enrich_all_hltb": "HowLongToBeat",
+      "enrich_all_protondb": "ProtonDB",
+      "enrich_all_deck": "Steam Deck Status"
     },
     "tag_import": {
       "loading_appinfo": "Lade appinfo.vdf...",

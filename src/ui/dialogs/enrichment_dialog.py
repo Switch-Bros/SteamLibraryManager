@@ -47,6 +47,7 @@ class EnrichmentDialog(BaseDialog):
         """
         self._header_title = title
         self._thread: EnrichmentThread | None = None
+        self.wants_force_refresh: bool = False
         super().__init__(
             parent,
             title_key="ui.enrichment.dialog_title",
@@ -123,14 +124,14 @@ class EnrichmentDialog(BaseDialog):
         self._status_label.setText(step_text)
 
     def _on_finished(self, success: int, failed: int) -> None:
-        """Shows completion summary and closes the dialog.
+        """Shows completion summary with force-refresh option and closes.
 
         Args:
             success: Number of successfully updated games.
             failed: Number of failed games.
         """
         self._cleanup_thread()
-        UIHelper.show_info(
+        self.wants_force_refresh = UIHelper.show_batch_result(
             self,
             t("ui.enrichment.complete", success=success, failed=failed),
             t("ui.enrichment.complete_title"),

@@ -158,12 +158,23 @@ class TestEnrichmentActionsForceRefresh:
         # With force_refresh, the code uses all_games directly
         assert len(all_games) == 2
 
+    @patch("src.config.config")
+    @patch(
+        "src.services.enrichment.deck_enrichment_service.DeckEnrichmentThread",
+    )
     @patch("src.ui.actions.enrichment_actions.UIHelper")
-    def test_force_refresh_cancelled_by_user(self, mock_helper: MagicMock) -> None:
-        """If user cancels confirmation, enrichment should not start."""
-        mock_helper.confirm.return_value = False
+    def test_force_refresh_runs_without_upfront_confirm(
+        self,
+        mock_helper: MagicMock,
+        _mock_thread_cls: MagicMock,
+        mock_config: MagicMock,
+    ) -> None:
+        """With force_refresh=True, no confirm is shown and enrichment proceeds."""
+        mock_config.DATA_DIR = MagicMock()
         mock_mw = MagicMock()
-        mock_mw.game_manager.get_real_games.return_value = [MagicMock(steam_deck_status="verified")]
+        mock_mw.game_manager.get_real_games.return_value = [
+            MagicMock(steam_deck_status="verified"),
+        ]
 
         from src.ui.actions.enrichment_actions import EnrichmentActions
 
@@ -172,4 +183,27 @@ class TestEnrichmentActionsForceRefresh:
         with patch.object(actions, "_run_enrichment") as mock_run:
             actions.start_deck_enrichment(force_refresh=True)
 
-        mock_run.assert_not_called()
+        # No upfront confirm dialog (removed in batch menu redesign)
+        mock_helper.confirm.assert_not_called()
+        # Enrichment should proceed
+        mock_run.assert_called_once()
+        # force_refresh_callback should be None (already in force_refresh mode)
+        call_kwargs = mock_run.call_args[1]
+        assert call_kwargs["force_refresh_callback"] is None
+
+    @patch("src.ui.actions.enrichment_actions.UIHelper")
+    def test_no_games_shows_batch_result(self, mock_helper: MagicMock) -> None:
+        """When no games need enrichment, show_batch_result is used."""
+        mock_helper.show_batch_result.return_value = False
+        mock_mw = MagicMock()
+        mock_mw.game_manager.get_real_games.return_value = [
+            MagicMock(steam_deck_status="verified"),
+        ]
+
+        from src.ui.actions.enrichment_actions import EnrichmentActions
+
+        actions = EnrichmentActions(mock_mw)
+        actions.start_deck_enrichment(force_refresh=False)
+
+        mock_helper.show_batch_result.assert_called_once()
+        mock_helper.show_info.assert_not_called()
