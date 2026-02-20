@@ -27,6 +27,9 @@ coverage.xml
 /todo.md
 
 # ========== Bestehende Einträge bleiben ALLE erhalten ==========
+# Test artifacts (MagicMock used as db_path creates SQLite files)
+<MagicMock*
+
 __pycache__/
 *.py[cod]
 .venv/
