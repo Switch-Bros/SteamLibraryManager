@@ -38,6 +38,8 @@ data/
 resources/icons/Icon_Namen.txt
 cleanup_dependencies_dev.sh
 *.zip
+/AGENTS.md
+/CLAUDE.md
 /SLM-Fortschritt.md
 /MASTERPLAN_FINAL.md
 /NEXTCHAT.md
