@@ -10,7 +10,10 @@
 [![ProtonDB](https://img.shields.io/badge/ProtonDB-Included-FDE100?style=plastic&logo=linux&logoColor=FDE100&labelColor=000000)](https://www.protondb.com/)
 [![HLTB](https://img.shields.io/badge/HLTB-Included-FDE100?style=plastic&logoColor=FDE100&labelColor=000000)](https://howlongtobeat.com/)
 [![Tests](https://img.shields.io/badge/Tests-1281%20passed-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
+[![Overall Progress](https://img.shields.io/badge/Progress-92%25-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
+[![Phase](https://img.shields.io/badge/Phase%207%2F7-69%25-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
 [![Downloads](https://img.shields.io/badge/Downloads-Coming%20Soon-FDE100?style=plastic&logo=github&logoColor=FDE100&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager/releases)
+
 [![i18n](https://img.shields.io/badge/i18n-🇬🇧%20🇩🇪-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
 
 [![Donate](https://img.shields.io/badge/Tip-Support%20SLM%20on%20PayPal-FDE100?style=plastic&logo=paypal&logoColor=FDE100&labelColor=000000)](https://www.paypal.com/donate/?hosted_button_id=HWPG6YAGXAWJJ)
