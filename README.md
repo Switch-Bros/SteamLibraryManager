@@ -9,11 +9,11 @@
 [![SteamGridDB](https://img.shields.io/badge/SteamGridDB-Required-FDE100?style=plastic&logo=steam&logoColor=FDE100&labelColor=000000)](https://www.steamgriddb.com/api)
 [![ProtonDB](https://img.shields.io/badge/ProtonDB-Included-FDE100?style=plastic&logo=linux&logoColor=FDE100&labelColor=000000)](https://www.protondb.com/)
 [![HLTB](https://img.shields.io/badge/HLTB-Included-FDE100?style=plastic&logoColor=FDE100&labelColor=000000)](https://howlongtobeat.com/)
-[![Downloads](https://img.shields.io/badge/Downloads-Coming%20Soon-FDE100?style=plastic&logo=github&logoColor=FDE100&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager/releases)
-<!-- [![Downloads](https://img.shields.io/github/downloads/Switch-Bros/SteamLibraryManager/total?color=FDE100&labelColor=000000&style=plastic&logo=github&logoColor=FDE100&label=Downloads)](https://github.com/Switch-Bros/SteamLibraryManager/releases) -->
 [![Tests](https://img.shields.io/badge/Tests-1281%20passed-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
+[![Downloads](https://img.shields.io/badge/Downloads-Coming%20Soon-FDE100?style=plastic&logo=github&logoColor=FDE100&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager/releases)
 [![i18n](https://img.shields.io/badge/i18n-🇬🇧%20🇩🇪-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
-[![Donate](https://img.shields.io/badge/Tip-Support%20me%20on%20PayPal-FDE100?style=plastic&logo=paypal&logoColor=FDE100&labelColor=000000)](https://www.paypal.com/donate/?hosted_button_id=HWPG6YAGXAWJJ)
+
+[![Donate](https://img.shields.io/badge/Tip-Support%20SLM%20on%20PayPal-FDE100?style=plastic&logo=paypal&logoColor=FDE100&labelColor=000000)](https://www.paypal.com/donate/?hosted_button_id=HWPG6YAGXAWJJ)
 
 > **The Depressurizer alternative for Linux.**
 > Organize your Steam library, auto-categorize games, edit metadata, and take control of your collection.
@@ -29,21 +29,21 @@
 
 ---
 
-## ☕ Support This Project
+## ☕ HELP! 🙏 Please consider supporting this project!
 
-I never asked and I never begged — but I have to be honest: developing this has cost me way more than I expected. API costs, testing infrastructure, and hundreds of hours of work add up fast.
+I wouldn't normally ask, and I'd certainly never beg — but I have to be honest: development has cost me significantly more than expected. API costs, test infrastructure, and hundreds of hours of work add up fast.
 
-If Steam Library Manager helps you tame your library and you want to say thanks — a small tip means the world to me. Any amount, no matter how small, makes a real difference and keeps this project alive.
+If the Steam Library Manager helps you tame your library and you'd like to say thanks — a small tip goes a long way for this project. Any amount, no matter how small, makes a real difference and keeps this project alive.
 
-**You pick the amount** — whether it's €3, €5, €10, or anything you choose.
+**You choose the amount** — whether 3 €, 5 €, 10 € (default), or just enter whatever you'd like to give.
 
 <p align="center">
   <a href="https://www.paypal.com/donate/?hosted_button_id=HWPG6YAGXAWJJ">
-    <img src="https://img.shields.io/badge/💛_Leave_a_Tip_on_PayPal-FDE100?style=for-the-badge&labelColor=000000" alt="PayPal Tip">
+    <img src="https://img.shields.io/badge/💛_Tip_via_PayPal-FDE100?style=for-the-badge&labelColor=000000" alt="PayPal Tip">
   </a>
 </p>
 
-*Thank you to everyone who has already tipped — you're awesome!* 🙏
+*Thanks to everyone who has already contributed — you're amazing!* 🙏
 
 ---
 
@@ -199,6 +199,36 @@ Developed with **PyQt6** for seamless desktop integration. This is not a Windows
 
 ---
 
+### 🎮 External Games — *One Library to Rule Them All*
+
+Got games scattered across Epic, GOG, Amazon, Lutris, Bottles, itch.io, and Flatpak? **SLM finds them all** — and adds them to Steam as Non-Steam shortcuts in one go.
+
+- **8 platform parsers** — Heroic (Epic/GOG/Amazon), Lutris, Bottles, itch.io, Flatpak, and existing shortcuts.vdf
+- **Auto-detection** — SLM scans for installed launchers (native and Flatpak) and reads their game libraries directly. Steam's "Add a Non-Steam Game" dialog only sees executables in your PATH — it has no idea what Heroic, Lutris, or Bottles have installed
+- **Duplicate protection** — games already in Steam are detected and skipped
+- **Platform collections** — imported games are automatically sorted into Steam collections by platform. In SLM's sidebar, each collection gets a visual emoji indicator for instant recognition:
+
+| Collection | Indicator |
+|---|---|
+| Epic Games 🟦 | Blue (Epic brand color) |
+| GOG Galaxy 🟣 | Purple (GOG brand color) |
+| Amazon Games 🟠 | Orange (Amazon brand color) |
+| Lutris 🎮 | Controller |
+| Bottles 🍾 | Bottle |
+| itch.io 🎲 | Dice |
+| Flatpak 📦 | Package |
+
+- **Binary VDF parser** — reads and writes Steam's `shortcuts.vdf` format with byte-for-byte accuracy
+- **Batch import** — scan all platforms at once, pick what you want, add them all with progress tracking
+
+*Steam's own "Add a Non-Steam Game" dialog can select multiple apps — but it only sees what's in your PATH, not your actual game libraries. SLM scans Heroic, Lutris, Bottles, and more directly, knows exactly what's installed, and organizes everything into clean collections automatically.*
+
+<p align="center">
+  <img src="resources/screenshots/17_external_games.png" alt="External Games Manager — Scan and Import" width="800">
+</p>
+
+---
+
 ## 📸 Screenshots
 
 <details>
@@ -222,6 +252,7 @@ Developed with **PyQt6** for seamless desktop integration. This is not a Windows
 | 14 | ![Context](resources/screenshots/14_context_menu.png) | Right-click context menu |
 | 15 | ![Export](resources/screenshots/15_export_dialog.png) | Export dialog (CSV/JSON/VDF) |
 | 16 | ![About](resources/screenshots/16_about_dialog.png) | About dialog |
+| 17 | ![External](resources/screenshots/17_external_games.png) | External Games Manager — multi-platform import |
 
 </details>
 
@@ -393,25 +424,7 @@ In no event shall the authors or copyright holders be liable for any claim, dama
   <img src="resources/screenshots/de_01_hero_main_window.png" alt="Steam Library Manager — Hauptfenster (Deutsch)" width="900">
 </p>
 
----
 
-## ☕ Dieses Projekt unterstützen
-
-Ich habe nie danach gefragt und nie darum gebettelt — aber ich muss ehrlich sein: Die Entwicklung hat mich deutlich mehr gekostet als erwartet. API-Kosten, Test-Infrastruktur und hunderte Stunden Arbeit summieren sich schnell.
-
-Wenn dir der Steam Library Manager hilft deine Bibliothek zu bändigen und du Danke sagen möchtest — ein kleines Trinkgeld bedeutet mir enorm viel. Jeder Betrag, egal wie klein, macht einen echten Unterschied und hält dieses Projekt am Leben.
-
-**Du wählst den Betrag** — ob 3 €, 5 €, 10 € oder was immer du möchtest.
-
-<p align="center">
-  <a href="https://www.paypal.com/donate/?hosted_button_id=HWPG6YAGXAWJJ">
-    <img src="https://img.shields.io/badge/💛_Trinkgeld_via_PayPal-FDE100?style=for-the-badge&labelColor=000000" alt="PayPal Trinkgeld">
-  </a>
-</p>
-
-*Danke an alle die schon etwas gegeben haben — ihr seid großartig!* 🙏
-
----
 
 ## ✨ Features
 
@@ -427,6 +440,26 @@ Unsere Smart Collections sprengen diese Limitierung mit vollständiger **boolesc
 - Filtere nach **Spielzeitbereichen**, **Bewertungen**, **Steam Deck-Kompatibilität**, **ProtonDB-Ratings**, **Achievement-Fortschritt**, **HowLongToBeat-Zeiten**, **Tags**, **Genres** und mehr
 - Kollektionen **aktualisieren sich selbst** sobald sich deine Bibliotheksdaten ändern
 - **Import & Export** als JSON — teile deine Setups mit Freunden oder sichere sie
+
+---
+
+## ☕ HILFE! 🙏 Bitte denk darüber nach dieses Projekt zu unterstützen!
+
+Ich würde normalerweise nie danach fragen, und schon gar nicht darum betteln — aber ich muss ehrlich sein: Die Entwicklung hat mich deutlich mehr gekostet als erwartet. API-Kosten, Test-Infrastruktur und hunderte Stunden Arbeit summieren sich schnell.
+
+Wenn dir der Steam Library Manager hilft deine Bibliothek zu bändigen und du Danke sagen möchtest — ein kleines Trinkgeld hilft diesem Projekt enorm viel. Jeder Betrag, egal wie klein, macht einen echten Unterschied und hält dieses Projekt am Leben.
+
+**Du wählst den Betrag** — ob 3 €, 5 €, 10 € (voreingestellt), oder gib einfach ein was du geben möchtest.
+
+<p align="center">
+  <a href="https://www.paypal.com/donate/?hosted_button_id=HWPG6YAGXAWJJ">
+    <img src="https://img.shields.io/badge/💛_Trinkgeld_via_PayPal-FDE100?style=for-the-badge&labelColor=000000" alt="PayPal Trinkgeld">
+  </a>
+</p>
+
+*Danke an alle die schon etwas gegeben haben — ihr seid großartig!* 🙏
+
+---
 
 Der Clou: Im Steam Client erscheinen unsere Smart Collections als **ganz normale statische Kollektionen** — Steam merkt keinen Unterschied. Aber in SLM sind sie volldynamisch und unendlich mächtiger als alles was Steam bietet.
 
@@ -530,6 +563,36 @@ Entwickelt mit **PyQt6** für nahtlose Desktop-Integration. Das ist keine Window
 
 <p align="center">
   <img src="resources/screenshots/de_14_context_menu.png" alt="Rechtsklick-Kontextmenü (Deutsch)" width="600">
+</p>
+
+---
+
+### 🎮 Externe Spiele — *Eine Bibliothek für alles*
+
+Spiele verstreut über Epic, GOG, Amazon, Lutris, Bottles, itch.io und Flatpak? **SLM findet sie alle** — und fügt sie in einem Rutsch als Non-Steam-Shortcuts zu Steam hinzu.
+
+- **8 Plattform-Parser** — Heroic (Epic/GOG/Amazon), Lutris, Bottles, itch.io, Flatpak und bestehende shortcuts.vdf
+- **Auto-Erkennung** — SLM scannt nach installierten Launchern (nativ und Flatpak) und liest deren Spielebibliotheken direkt aus. Steams „Steam fremdes Spiel hinzufügen"-Dialog sieht nur Programme in deinem PATH — er hat keine Ahnung was Heroic, Lutris oder Bottles installiert haben
+- **Duplikat-Schutz** — bereits in Steam vorhandene Spiele werden erkannt und übersprungen
+- **Plattform-Kollektionen** — importierte Spiele werden automatisch nach Plattform in Steam-Kollektionen einsortiert. In SLMs Seitenleiste bekommt jede Kollektion einen visuellen Emoji-Indikator zur sofortigen Erkennung:
+
+| Kollektion | Indikator |
+|---|---|
+| Epic Games 🟦 | Blau (Epic-Markenfarbe) |
+| GOG Galaxy 🟣 | Lila (GOG-Markenfarbe) |
+| Amazon Games 🟠 | Orange (Amazon-Markenfarbe) |
+| Lutris 🎮 | Controller |
+| Bottles 🍾 | Flasche |
+| itch.io 🎲 | Würfel |
+| Flatpak 📦 | Paket |
+
+- **Binärer VDF-Parser** — liest und schreibt Steams `shortcuts.vdf`-Format mit Byte-genauer Präzision
+- **Batch-Import** — alle Plattformen auf einmal scannen, auswählen, alle mit Fortschrittsanzeige hinzufügen
+
+*Steams eigener „Steam fremdes Spiel hinzufügen"-Dialog kann zwar mehrere Apps markieren — aber er sieht nur was in deinem PATH liegt, nicht deine tatsächlichen Spielebibliotheken. SLM scannt Heroic, Lutris, Bottles und mehr direkt, weiß genau was installiert ist, und organisiert alles automatisch in saubere Kollektionen.*
+
+<p align="center">
+  <img src="resources/screenshots/17_external_games.png" alt="External Games Manager — Scannen und Importieren" width="800">
 </p>
 
 ---
