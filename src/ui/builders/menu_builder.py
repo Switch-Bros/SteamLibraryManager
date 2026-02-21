@@ -523,6 +523,14 @@ class MenuBuilder:
 
         tools_menu.addSeparator()
 
+        # External Games Manager
+        external_games_action = QAction(t("menu.tools.external_games"), mw)
+        external_games_action.setShortcut(QKeySequence("Ctrl+Shift+E"))
+        external_games_action.triggered.connect(mw.tools_actions.show_external_games)
+        tools_menu.addAction(external_games_action)
+
+        tools_menu.addSeparator()
+
         # Settings (wired action)
         settings_action = QAction(t("menu.tools.settings"), mw)
         settings_action.setShortcut(QKeySequence("Ctrl+P"))

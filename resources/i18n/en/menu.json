@@ -163,6 +163,7 @@
         "import_appinfo": "Fetch Data from appinfo",
         "backup": "Create Backup"
       },
+      "external_games": "External Games...",
       "settings": "Settings"
     },
     "help": {

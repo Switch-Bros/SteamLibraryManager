@@ -167,7 +167,7 @@ class Database:
     modification tracking, and fast queries for UI.
     """
 
-    SCHEMA_VERSION = 6
+    SCHEMA_VERSION = 7
 
     def __init__(self, db_path: Path):
         """Initialize database connection.
@@ -262,6 +262,10 @@ class Database:
             self._migrate_to_v6()
             self._set_schema_version(6)
 
+        if from_version < 7:
+            self._migrate_to_v7()
+            self._set_schema_version(7)
+
     def _migrate_to_v3(self) -> None:
         """Migrate to schema v3: tag_definitions table + tag_id column."""
         # Add tag_id column to game_tags (if not exists)
@@ -321,6 +325,27 @@ class Database:
             pass  # Column already exists
         self.conn.commit()
         logger.info("Migrated to schema v6: review_percentage column")
+
+    def _migrate_to_v7(self) -> None:
+        """Migrate to schema v7: external_games table."""
+        self.conn.executescript("""
+            CREATE TABLE IF NOT EXISTS external_games (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                steam_shortcut_id INTEGER,
+                platform TEXT NOT NULL,
+                platform_app_id TEXT,
+                name TEXT NOT NULL,
+                install_path TEXT,
+                launch_command TEXT,
+                icon_path TEXT,
+                added_at INTEGER DEFAULT (strftime('%s', 'now')),
+                UNIQUE(platform, platform_app_id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_external_platform ON external_games(platform);
+            CREATE INDEX IF NOT EXISTS idx_external_name ON external_games(name);
+        """)
+        self.conn.commit()
+        logger.info("Migrated to schema v7: external_games table")
 
     # ========================================================================
     # GAME CRUD OPERATIONS
