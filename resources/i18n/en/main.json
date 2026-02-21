@@ -534,6 +534,31 @@
       "already_populated": "Tags already imported ({count} associations). Import again?",
       "confirm_reimport": "Re-import Tags",
       "no_steam_path": "Steam installation path not configured."
+    },
+    "external": {
+      "title": "External Games Manager",
+      "scan": "Scan Platforms",
+      "scanning": "Scanning platforms...",
+      "found_games": "Found {count} games ({existing} already in Steam)",
+      "no_games": "No external games found",
+      "add_selected": "Add Selected to Steam",
+      "add_all": "Add All to Steam",
+      "adding_game": "Adding: {name} ({current}/{total})",
+      "complete": "Import Complete",
+      "complete_message": "Added: {added}, Skipped: {skipped}, Errors: {errors}",
+      "no_selection": "No Selection",
+      "select_games_first": "Please select games to add first.",
+      "platform_tag": "Add platform category tag",
+      "download_artwork": "Download artwork from SteamGridDB",
+      "restart_steam": "Please restart Steam to see the added games.",
+      "restart_hint": "Steam must be restarted for changes to take effect.",
+      "confirm_add": "Add {count} games to Steam?",
+      "filter_all": "All Platforms",
+      "already_exists": "Already in Steam",
+      "col_platform": "Platform",
+      "col_name": "Name",
+      "col_path": "Path",
+      "col_status": "Status"
     }
   },
   "health_check": {

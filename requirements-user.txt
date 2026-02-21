@@ -16,6 +16,9 @@ opencv-python-headless>=4.8.0
 # ===== Steam File Parsing =====
 vdf>=3.4
 
+# ===== YAML Parsing (Bottles integration) =====
+PyYAML>=6.0
+
 # ===== HTTP & APIs =====
 requests>=2.32.0
 requests-oauthlib>=2.0.0

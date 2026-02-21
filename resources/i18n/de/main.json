@@ -534,6 +534,31 @@
       "already_populated": "Tags bereits importiert ({count} Zuordnungen). Erneut importieren?",
       "confirm_reimport": "Tags erneut importieren",
       "no_steam_path": "Steam-Installationspfad nicht konfiguriert."
+    },
+    "external": {
+      "title": "Externe Spiele verwalten",
+      "scan": "Plattformen scannen",
+      "scanning": "Scanne Plattformen...",
+      "found_games": "{count} Spiele gefunden ({existing} bereits in Steam)",
+      "no_games": "Keine externen Spiele gefunden",
+      "add_selected": "Ausgewählte zu Steam hinzufügen",
+      "add_all": "Alle zu Steam hinzufügen",
+      "adding_game": "Hinzufügen: {name} ({current}/{total})",
+      "complete": "Import abgeschlossen",
+      "complete_message": "Hinzugefügt: {added}, Übersprungen: {skipped}, Fehler: {errors}",
+      "no_selection": "Keine Auswahl",
+      "select_games_first": "Bitte wähle zuerst Spiele aus.",
+      "platform_tag": "Plattform-Kategorie-Tag hinzufügen",
+      "download_artwork": "Artwork von SteamGridDB herunterladen",
+      "restart_steam": "Bitte starte Steam neu um die Spiele zu sehen.",
+      "restart_hint": "Steam muss neugestartet werden damit die Änderungen wirksam werden.",
+      "confirm_add": "{count} Spiele zu Steam hinzufügen?",
+      "filter_all": "Alle Plattformen",
+      "already_exists": "Bereits in Steam",
+      "col_platform": "Plattform",
+      "col_name": "Name",
+      "col_path": "Pfad",
+      "col_status": "Status"
     }
   },
   "health_check": {

@@ -106,6 +106,13 @@ class ToolsActions:
         self._store_check_thread: StoreCheckThread | None = None
         self._health_thread: QThread | None = None
 
+    def show_external_games(self) -> None:
+        """Opens the External Games Manager dialog."""
+        from src.ui.dialogs.external_games_dialog import ExternalGamesDialog
+
+        dialog = ExternalGamesDialog(self.main_window)
+        dialog.exec()
+
     def find_missing_metadata(self) -> None:
         """Shows a dialog listing games with incomplete metadata."""
         if not self.main_window.metadata_service:
