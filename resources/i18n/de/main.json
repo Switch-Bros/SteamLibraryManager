@@ -558,7 +558,14 @@
       "col_platform": "Plattform",
       "col_name": "Name",
       "col_path": "Pfad",
-      "col_status": "Status"
+      "col_status": "Status",
+      "platform_emulation_roms": "Emulation (ROMs)",
+      "rom_scanning_roms": "Durchsuche ROM-Verzeichnisse...",
+      "rom_found_roms": "{count} ROMs in {systems} Systemen gefunden",
+      "rom_no_emulators": "Keine Emulatoren auf diesem System erkannt",
+      "rom_no_roms": "Keine ROM-Dateien in bekannten Verzeichnissen gefunden",
+      "rom_emulator_detected": "Erkannt: {name} in {path}",
+      "rom_system_label": "System: {system}"
     }
   },
   "health_check": {

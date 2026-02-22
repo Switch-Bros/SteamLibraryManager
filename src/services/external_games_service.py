@@ -18,6 +18,7 @@ from src.integrations.external_games.heroic_gog_parser import HeroicGOGParser
 from src.integrations.external_games.itch_parser import ItchParser
 from src.integrations.external_games.lutris_parser import LutrisParser
 from src.integrations.external_games.models import ExternalGame
+from src.integrations.external_games.rom_parser import RomParser
 from src.integrations.external_games.shortcuts_vdf_parser import ShortcutsVDFParser
 
 if TYPE_CHECKING:
@@ -61,6 +62,7 @@ class ExternalGamesService:
             ItchParser(),
             BottlesParser(),
             FlatpakParser(),
+            RomParser(),
         ]
         return {p.platform_name(): p for p in parsers}
 

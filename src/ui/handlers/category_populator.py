@@ -12,6 +12,7 @@ from collections import OrderedDict
 from typing import TYPE_CHECKING
 
 from src.core.game import Game
+from src.integrations.external_games.models import get_collection_emoji
 from src.utils.i18n import t
 
 if TYPE_CHECKING:
@@ -265,10 +266,18 @@ class CategoryPopulator:
             for sc in mw.smart_collection_manager.get_all():
                 smart_collections.add(sc.name)
 
-        # Pass dynamic collections, smart collections, and duplicate info to tree
+        # Identify external platform collections (ROM systems, platform parsers)
+        external_platform_collections: set[str] = set()
+        for cat_name_check in categories_data:
+            if get_collection_emoji(cat_name_check):
+                external_platform_collections.add(cat_name_check)
+
+        # Pass dynamic collections, smart collections, external platforms,
+        # and duplicate info to tree
         mw.tree.populate_categories(
             categories_data,
             dynamic_collections,
             duplicate_display_info,
             smart_collections,
+            external_platform_collections,
         )

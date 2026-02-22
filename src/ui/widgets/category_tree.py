@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import QTreeWidget, QTreeWidgetItem, QAbstractItemView, QWi
 
 from src.config import config
 from src.core.game_manager import Game
+from src.integrations.external_games.models import get_collection_emoji
 from src.utils.i18n import t
 
 
@@ -83,6 +84,7 @@ class GameTreeWidget(QTreeWidget):
         dynamic_collections: set | None = None,
         duplicate_info: dict[str, tuple[str, int, int]] | None = None,
         smart_collections: set | None = None,
+        external_platform_collections: set | None = None,
     ) -> None:
         """Rebuilds the entire tree with the provided category-to-game mapping.
 
@@ -98,6 +100,8 @@ class GameTreeWidget(QTreeWidget):
                 Used to display duplicate collections individually.
             smart_collections: Set of collection names that are Smart Collections.
                 These will get a brain emoji.
+            external_platform_collections: Set of collection names from external
+                platform parsers. These will get platform-specific emojis.
         """
         self.clear()
 
@@ -107,6 +111,8 @@ class GameTreeWidget(QTreeWidget):
             duplicate_info = {}
         if smart_collections is None:
             smart_collections = set()
+        if external_platform_collections is None:
+            external_platform_collections = set()
 
         for cat_name, games in categories.items():
             cat_item = QTreeWidgetItem(self)
@@ -129,6 +135,10 @@ class GameTreeWidget(QTreeWidget):
                     display_name = f"{cat_name} {t('emoji.brain')}"
                 elif cat_name in dynamic_collections:
                     display_name = f"{cat_name} {t('emoji.blitz')}"
+                elif cat_name in external_platform_collections:
+                    emoji = get_collection_emoji(cat_name)
+                    if emoji:
+                        display_name = f"{cat_name} {emoji}"
 
             # Use i18n key for category count display
             cat_item.setText(0, t("categories.category_count", name=display_name, count=len(games)))
