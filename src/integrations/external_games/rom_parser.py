@@ -12,7 +12,6 @@ import re
 import shutil
 import subprocess
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from src.integrations.external_games.base_parser import BaseExternalParser
 from src.integrations.external_games.emulator_config import (
@@ -23,9 +22,6 @@ from src.integrations.external_games.emulator_config import (
     EmulatorDef,
 )
 from src.integrations.external_games.models import ExternalGame
-
-if TYPE_CHECKING:
-    pass
 
 __all__ = ["RomParser"]
 
@@ -44,6 +40,12 @@ class RomParser(BaseExternalParser):
     3. System PATH (shutil.which)
     4. Common AppImage locations (~/.local/share/applications/, ~/Applications/)
     """
+
+    # System aliases — maps alternative directory names to canonical system IDs.
+    # EmuDeck creates separate roms/gbc/ directories, but RetroArch (GB) handles both.
+    _SYSTEM_ALIASES: dict[str, str] = {
+        "gbc": "gb",
+    }
 
     # Common AppImage search directories (ORDER = PRIORITY!)
     APPIMAGE_DIRS: tuple[str, ...] = (
@@ -273,15 +275,19 @@ class RomParser(BaseExternalParser):
     ) -> list[tuple[EmulatorDef, Path]]:
         """Get available emulators for a specific system.
 
+        Resolves system aliases (e.g. "gbc" -> "gb") before lookup,
+        so ROMs in EmuDeck's roms/gbc/ directory find the GB emulator.
+
         Args:
-            system_name: System ID (e.g. "switch").
+            system_name: System ID (e.g. "switch", "gbc").
             detected: Dict of detected emulator name to path.
 
         Returns:
             List of (EmulatorDef, exe_path) tuples, ordered by priority.
         """
+        effective_system = RomParser._SYSTEM_ALIASES.get(system_name, system_name)
         results: list[tuple[EmulatorDef, Path]] = []
-        for emu_def in SYSTEM_EMULATORS.get(system_name, []):
+        for emu_def in SYSTEM_EMULATORS.get(effective_system, []):
             if emu_def.name in detected:
                 results.append((emu_def, detected[emu_def.name]))
         return results

@@ -318,6 +318,35 @@ class TestEmulatorDetection:
 
 
 # ===========================================================================
+# System Alias Tests
+# ===========================================================================
+
+
+class TestSystemAliases:
+    """Tests for system alias resolution."""
+
+    def test_gbc_alias_uses_gb_emulator(self, parser: RomParser) -> None:
+        """GBC system alias resolves to GB emulator."""
+        detected = {"RetroArch (GB)": Path("/usr/bin/retroarch")}
+        results = parser._get_emulators_for_system("gbc", detected)
+        assert len(results) == 1
+        assert results[0][0].name == "RetroArch (GB)"
+
+    def test_unknown_system_returns_empty(self, parser: RomParser) -> None:
+        """Unknown system with no alias returns empty list."""
+        detected = {"RetroArch (GB)": Path("/usr/bin/retroarch")}
+        results = parser._get_emulators_for_system("dreamcast", detected)
+        assert results == []
+
+    def test_direct_system_still_works(self, parser: RomParser) -> None:
+        """Direct system ID (no alias needed) still works."""
+        detected = {"RetroArch (GB)": Path("/usr/bin/retroarch")}
+        results = parser._get_emulators_for_system("gb", detected)
+        assert len(results) == 1
+        assert results[0][0].name == "RetroArch (GB)"
+
+
+# ===========================================================================
 # ROM Scan Tests
 # ===========================================================================
 
