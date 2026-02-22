@@ -427,23 +427,6 @@ In no event shall the authors or copyright holders be liable for any claim, dama
   <img src="resources/screenshots/de_01_hero_main_window.png" alt="Steam Library Manager — Hauptfenster (Deutsch)" width="900">
 </p>
 
-
-
-## ✨ Features
-
----
-
-### 🧠 Smart Collections — *Besser als Steams eigene dynamische Kollektionen*
-
-Steam hat dynamische Kollektionen — aber die haben **seit ihrer Einführung nur UND-Logik**. Spiele die *entweder* "Platinum auf ProtonDB" *oder* "Native Linux" sind anzeigen? Geht nicht in Steam. Du kannst nur einschränken, nie Alternativen kombinieren.
-
-Unsere Smart Collections sprengen diese Limitierung mit vollständiger **boolescher Logik**:
-
-- **UND / ODER / NICHT** Operatoren mit **verschachtelten Regelgruppen** — kombiniere beliebig viele Bedingungen
-- Filtere nach **Spielzeitbereichen**, **Bewertungen**, **Steam Deck-Kompatibilität**, **ProtonDB-Ratings**, **Achievement-Fortschritt**, **HowLongToBeat-Zeiten**, **Tags**, **Genres** und mehr
-- Kollektionen **aktualisieren sich selbst** sobald sich deine Bibliotheksdaten ändern
-- **Import & Export** als JSON — teile deine Setups mit Freunden oder sichere sie
-
 ---
 
 ## ☕ HILFE! 🙏 Bitte denk darüber nach dieses Projekt zu unterstützen!
@@ -463,6 +446,21 @@ Wenn dir der Steam Library Manager hilft deine Bibliothek zu bändigen und du Da
 *Danke an alle die schon etwas gegeben haben — ihr seid großartig!* 🙏
 
 ---
+
+## ✨ Features
+
+---
+
+### 🧠 Smart Collections — *Besser als Steams eigene dynamische Kollektionen*
+
+Steam hat dynamische Kollektionen — aber die haben **seit ihrer Einführung nur UND-Logik**. Spiele die *entweder* "Platinum auf ProtonDB" *oder* "Native Linux" sind anzeigen? Geht nicht in Steam. Du kannst nur einschränken, nie Alternativen kombinieren.
+
+Unsere Smart Collections sprengen diese Limitierung mit vollständiger **boolescher Logik**:
+
+- **UND / ODER / NICHT** Operatoren mit **verschachtelten Regelgruppen** — kombiniere beliebig viele Bedingungen
+- Filtere nach **Spielzeitbereichen**, **Bewertungen**, **Steam Deck-Kompatibilität**, **ProtonDB-Ratings**, **Achievement-Fortschritt**, **HowLongToBeat-Zeiten**, **Tags**, **Genres** und mehr
+- Kollektionen **aktualisieren sich selbst** sobald sich deine Bibliotheksdaten ändern
+- **Import & Export** als JSON — teile deine Setups mit Freunden oder sichere sie
 
 Der Clou: Im Steam Client erscheinen unsere Smart Collections als **ganz normale statische Kollektionen** — Steam merkt keinen Unterschied. Aber in SLM sind sie volldynamisch und unendlich mächtiger als alles was Steam bietet.
 
