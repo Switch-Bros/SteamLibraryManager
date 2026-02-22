@@ -88,7 +88,7 @@ class ViewActions:
 
             egg = load_easter_egg("searchbar")
             if egg:
-                from src.ui.helpers.ui_helper import UIHelper
+                from src.ui.widgets.ui_helper import UIHelper
 
                 UIHelper.show_info(
                     self.main_window,
