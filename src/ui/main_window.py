@@ -576,11 +576,23 @@ class MainWindow(QMainWindow):
         self.details_widget.on_image_click("grids")
 
     def _show_switchbros_easter_egg(self) -> None:
-        """Shows the hidden SwitchBros community tribute."""
-        UIHelper.show_info(
-            self,
-            t("easter_egg.switchbros_message"),
-            title=t("easter_egg.switchbros_title"),
+        """Shows the hidden SwitchBros community tribute with sound."""
+        from src.utils.enigma import load_easter_egg, play_easter_egg_sound
+
+        egg = load_easter_egg("konami")
+        if not egg:
+            return
+
+        if "sound" in egg:
+            play_easter_egg_sound(egg["sound"])
+
+        QTimer.singleShot(
+            1000,
+            lambda: UIHelper.show_info(
+                self,
+                egg.get("message", ""),
+                title=egg.get("title", "Easter Egg"),
+            ),
         )
 
     def keyPressEvent(self, event) -> None:

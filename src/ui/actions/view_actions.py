@@ -84,7 +84,17 @@ class ViewActions:
 
         # Easter egg: "switchbros" triggers community tribute
         if query.strip().lower() == "switchbros":
-            self.main_window._show_switchbros_easter_egg()
+            from src.utils.enigma import load_easter_egg
+
+            egg = load_easter_egg("searchbar")
+            if egg:
+                from src.ui.helpers.ui_helper import UIHelper
+
+                UIHelper.show_info(
+                    self.main_window,
+                    egg.get("message", ""),
+                    title=egg.get("title", ""),
+                )
             return
 
         if not self.main_window.game_manager or not self.main_window.search_service:

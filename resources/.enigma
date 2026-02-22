@@ -1,0 +1,11 @@
+{
+    "konami": {
+        "title": "🎮 SwitchBros",
+        "message": "A tribute to the SwitchBros community!\n\nNintendo Switch Hacking, Modding & Themes\n\n🎵 Music by Euphlka",
+        "sound": "Konami-victory.wav"
+    },
+    "searchbar": {
+        "title": "🎮 SwitchBros",
+        "message": "You found us! 👀"
+    }
+}
