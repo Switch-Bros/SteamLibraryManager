@@ -1,7 +1,8 @@
 """Data models for external (non-Steam) games.
 
 Defines the ExternalGame dataclass and supported platform constants
-used by all platform parsers.
+used by all platform parsers. Also provides emoji mapping for
+external platform collections in the category tree.
 """
 
 from __future__ import annotations
@@ -10,10 +11,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TypeAlias
 
+from src.utils.i18n import t
+
 __all__ = [
     "ExternalGame",
     "PlatformName",
     "SUPPORTED_PLATFORMS",
+    "get_collection_emoji",
 ]
 
 PlatformName: TypeAlias = str
@@ -57,4 +61,53 @@ SUPPORTED_PLATFORMS: tuple[str, ...] = (
     "itch.io",
     "Bottles",
     "Flatpak",
+    "Emulation (ROMs)",
 )
+
+
+# Mapping: Collection-Name -> emoji.json Key (NOT the emoji itself!)
+# t() is called lazily in get_collection_emoji() — NOT at import time!
+_COLLECTION_EMOJI_KEYS: dict[str, str] = {
+    # Platform parsers (Phase 6.5)
+    "Epic Games": "emoji.epic",
+    "GOG Galaxy": "emoji.gog",
+    "Amazon Games": "emoji.amazon",
+    "Lutris": "emoji.game",
+    "Bottles": "emoji.bottles",
+    "itch.io": "emoji.dice",
+    "Flatpak": "emoji.flatpak",
+    "Heroic": "emoji.heroic",
+    "EA": "emoji.ea",
+    "Ubisoft": "emoji.ubisoft",
+    # ROM systems (Phase 6.5.2)
+    "Nintendo Switch": "emoji.switch",
+    "Nintendo Wii U": "emoji.wiiu",
+    "Nintendo Wii": "emoji.wii",
+    "Nintendo 3DS": "emoji.3ds",
+    "Nintendo DS": "emoji.ds",
+    "Game Boy Advance": "emoji.gba",
+    "Game Boy": "emoji.gameboy",
+    "Super Nintendo": "emoji.snes",
+    "Nintendo Entertainment System": "emoji.nes",
+    "Nintendo 64": "emoji.n64",
+    "Nintendo GameCube": "emoji.gamecube",
+    "PlayStation Portable": "emoji.psp",
+    "MS-DOS": "emoji.msdos",
+}
+
+
+def get_collection_emoji(collection_name: str) -> str:
+    """Get emoji for an external platform/system collection.
+
+    Called at RUNTIME (not import time) to ensure i18n is initialized.
+    Follows the same pattern as Smart Collections which call t('emoji.brain')
+    directly in populate_categories().
+
+    Args:
+        collection_name: Name of the collection (e.g. "Nintendo Switch").
+
+    Returns:
+        Emoji string, or empty string if no mapping exists.
+    """
+    key = _COLLECTION_EMOJI_KEYS.get(collection_name, "")
+    return t(key) if key else ""

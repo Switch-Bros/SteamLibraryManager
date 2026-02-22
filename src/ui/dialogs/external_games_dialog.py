@@ -451,7 +451,7 @@ class ExternalGamesDialog(BaseDialog):
             QApplication.processEvents()
 
             try:
-                tag = game.platform
+                tag = self._collection_name_for_platform(game.platform)
                 if self._service and self._service.add_to_steam(game, category_tag=tag):
                     stats["added"] += 1
                 else:
@@ -461,6 +461,23 @@ class ExternalGamesDialog(BaseDialog):
                 stats["errors"] += 1
 
         self._on_add_finished(stats)
+
+    @staticmethod
+    def _collection_name_for_platform(platform: str) -> str:
+        """Extract clean collection name from platform string.
+
+        Converts "Emulation (Nintendo Switch)" to "Nintendo Switch" so that
+        Steam collections use clean system names instead of the wrapper format.
+
+        Args:
+            platform: Platform string from ExternalGame.
+
+        Returns:
+            Clean collection name for Steam category tag.
+        """
+        if platform.startswith("Emulation (") and platform.endswith(")"):
+            return platform[len("Emulation (") : -1]
+        return platform
 
     def _on_add_progress(self, current: int, total: int, name: str) -> None:
         """Updates progress UI during adding.
