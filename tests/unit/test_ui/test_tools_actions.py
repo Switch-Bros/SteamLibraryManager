@@ -51,15 +51,17 @@ def test_check_store_availability_starts_thread(mock_main_window):
     game.app_id = "12345"
     game.name = "Test Game"
 
-    # Mock QProgressDialog and requests to prevent GUI/Network interaction
+    # Mock UIHelper.create_progress_dialog and StoreCheckThread
     with (
-        patch("src.ui.actions.tools_actions.QProgressDialog") as mock_progress,
+        patch("src.ui.actions.tools_actions.UIHelper") as mock_helper,
         patch("src.ui.actions.tools_actions.StoreCheckThread") as mock_thread_cls,
     ):
+        mock_progress = Mock()
+        mock_helper.create_progress_dialog.return_value = mock_progress
         mock_thread = Mock()
         mock_thread_cls.return_value = mock_thread
 
         actions.check_store_availability(game)
 
-        mock_progress.return_value.show.assert_called_once()
+        mock_progress.show.assert_called_once()
         mock_thread.start.assert_called_once()

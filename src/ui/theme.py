@@ -237,3 +237,23 @@ class Theme:
             CSS stylesheet string for QLineEdit.
         """
         return f"border: 2px solid {Theme.MODIFIED_FIELD_BORDER};"
+
+    # ------------------------------------------------------------------
+    # Style constants for consistent UI (replacements happen in separate task)
+    # ------------------------------------------------------------------
+    STYLE_HINT = "color: gray; font-style: italic;"
+    STYLE_WARNING = "color: orange;"
+    STYLE_SUCCESS = "color: green; font-weight: bold;"
+    STYLE_ERROR = "color: red; font-weight: bold;"
+    STYLE_SECTION_HEADER = "font-size: 14px; font-weight: bold;"
+    STYLE_PROGRESS_BAR = """
+        QProgressBar {
+            border: 1px solid #555;
+            border-radius: 5px;
+            background: #2b2b2b;
+        }
+        QProgressBar::chunk {
+            background: #4a9eff;
+            border-radius: 4px;
+        }
+    """

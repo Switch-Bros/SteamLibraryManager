@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from PyQt6.QtCore import QThread, pyqtSignal, Qt
-from PyQt6.QtWidgets import QProgressDialog, QApplication
+from PyQt6.QtCore import QThread, pyqtSignal
 import requests
 
 from src.utils.i18n import t
@@ -133,11 +132,14 @@ class ToolsActions:
             game: The game object to check.
         """
         # Create and show progress dialog
-        progress = QProgressDialog(t("ui.store_check.checking"), None, 0, 0, self.main_window)
-        progress.setWindowModality(Qt.WindowModality.WindowModal)
-        progress.setWindowTitle(t("ui.store_check.title"))
+        progress = UIHelper.create_progress_dialog(
+            self.main_window,
+            t("ui.store_check.checking"),
+            maximum=0,
+            cancelable=False,
+            title=t("ui.store_check.title"),
+        )
         progress.show()
-        QApplication.processEvents()
 
         # Define callback for thread completion
         def on_check_finished(status: str, details: str):
@@ -205,16 +207,12 @@ class ToolsActions:
             return
 
         # Progress dialog
-        progress = QProgressDialog(
-            t("health_check.progress.starting"),
-            t("common.cancel"),
-            0,
-            100,
+        progress = UIHelper.create_progress_dialog(
             self.main_window,
+            t("health_check.progress.starting"),
+            maximum=100,
+            title=t("health_check.title"),
         )
-        progress.setWindowModality(Qt.WindowModality.WindowModal)
-        progress.setWindowTitle(t("health_check.title"))
-        progress.setMinimumDuration(0)
         progress.show()
 
         # Start background thread

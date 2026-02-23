@@ -407,6 +407,18 @@ class GameManager:
             if not game.languages and entry.languages:
                 game.languages = [lang for lang, support in entry.languages.items() if support.get("interface", False)]
 
+            # v8 enrichment cache fields
+            if not game.pegi_rating and entry.pegi_rating:
+                game.pegi_rating = entry.pegi_rating
+            if not game.esrb_rating and entry.esrb_rating:
+                game.esrb_rating = entry.esrb_rating
+            if not game.metacritic_score and entry.metacritic_score:
+                game.metacritic_score = entry.metacritic_score
+            if not game.steam_deck_status and entry.steam_deck_status:
+                game.steam_deck_status = entry.steam_deck_status
+            if not game.description and entry.short_description:
+                game.description = entry.short_description
+
             enriched += 1
 
         # Batch load HLTB data from separate table
@@ -417,6 +429,14 @@ class GameManager:
                 game.hltb_main_story = main
                 game.hltb_main_extras = extras
                 game.hltb_completionist = comp
+
+        # ProtonDB batch-load from separate table
+        numeric_ids = [int(aid) for aid in self.games.keys() if aid.isdigit()]
+        protondb_lookup = database.batch_get_protondb(numeric_ids)
+        for aid_int, tier in protondb_lookup.items():
+            game = self.games.get(str(aid_int))
+            if game and not game.proton_db_rating:
+                game.proton_db_rating = tier
 
         logger.info(t("logs.db.loaded_from_cache", count=enriched, duration="<1"))
         return enriched

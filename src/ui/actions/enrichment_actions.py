@@ -322,19 +322,12 @@ class EnrichmentActions:
             force_refresh_callback: If provided, completion dialog offers
                 a force-refresh button that triggers this callback.
         """
-        from PyQt6.QtCore import Qt
-        from PyQt6.QtWidgets import QProgressDialog
-
-        progress = QProgressDialog(
-            t(starting_key),
-            t("common.cancel"),
-            0,
-            total,
+        progress = UIHelper.create_progress_dialog(
             self.mw,
+            t(starting_key),
+            maximum=total,
+            title=t(title_key),
         )
-        progress.setWindowTitle(t(title_key))
-        progress.setWindowModality(Qt.WindowModality.WindowModal)
-        progress.setMinimumDuration(0)
 
         # Keep references alive to prevent garbage collection
         self._active_thread = thread
@@ -427,9 +420,6 @@ class EnrichmentActions:
         Parses the binary appinfo.vdf, extracts store_tags (TagIDs),
         resolves them to localized names, and stores in the database.
         """
-        from PyQt6.QtCore import Qt
-        from PyQt6.QtWidgets import QProgressDialog
-
         from src.config import config
         from src.services.enrichment.tag_import_service import TagImportThread
 
@@ -469,16 +459,12 @@ class EnrichmentActions:
         thread.configure(steam_path, db_path, language)
 
         # Create progress dialog
-        progress = QProgressDialog(
-            t("ui.tag_import.starting"),
-            t("common.cancel"),
-            0,
-            0,
+        progress = UIHelper.create_progress_dialog(
             self.mw,
+            t("ui.tag_import.starting"),
+            maximum=0,
+            title=t("ui.tag_import.dialog_title"),
         )
-        progress.setWindowTitle(t("ui.tag_import.dialog_title"))
-        progress.setWindowModality(Qt.WindowModality.WindowModal)
-        progress.setMinimumDuration(0)
 
         # Keep references alive
         self._tag_import_thread = thread

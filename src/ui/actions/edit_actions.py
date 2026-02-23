@@ -14,8 +14,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QMessageBox, QProgressDialog, QApplication
+from PyQt6.QtWidgets import QMessageBox, QApplication
 
 from src.core.game_manager import Game
 from src.services.curator_client import CuratorRecommendation
@@ -189,15 +188,11 @@ class EditActions:
         games = self.mw.game_manager.get_real_games() if settings["scope"] == "all" else self.dialog_games
         methods = settings["methods"]
 
-        progress = QProgressDialog(
-            t("auto_categorize.processing", current=0, total=len(games)),
-            t("common.cancel"),
-            0,
-            len(methods) * len(games),
+        progress = UIHelper.create_progress_dialog(
             self.mw,
+            t("auto_categorize.processing", current=0, total=len(games)),
+            maximum=len(methods) * len(games),
         )
-        progress.setWindowModality(Qt.WindowModality.WindowModal)
-        progress.setMinimumDuration(0)
 
         step = 0
 

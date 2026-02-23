@@ -3,8 +3,7 @@
 This package provides reusable UI helper functions:
 - qt_utils: Low-level Qt utilities
 
-Note: Widget creation helpers moved to src.ui.widgets.widget_factory.
-      Dialog helpers merged into src.ui.widgets.ui_helper.UIHelper.
+Note: Dialog/progress helpers live in src.ui.widgets.ui_helper.UIHelper.
 """
 
 from __future__ import annotations
