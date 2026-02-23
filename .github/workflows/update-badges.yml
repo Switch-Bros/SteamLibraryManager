@@ -58,14 +58,18 @@ jobs:
     - name: Parse test results and update badge
       run: |
         # Extract passed/failed counts from JUnit XML
+        # pytest wraps results in <testsuites><testsuite tests="N" ...>
+        # so we must read attributes from the <testsuite> child, not root.
         TESTS_ATTR=$(python3 -c "
         import xml.etree.ElementTree as ET
         tree = ET.parse('test-results.xml')
         root = tree.getroot()
-        total = int(root.attrib.get('tests', 0))
-        failures = int(root.attrib.get('failures', 0))
-        errors = int(root.attrib.get('errors', 0))
-        passed = total - failures - errors
+        ts = root.find('testsuite') if root.tag == 'testsuites' else root
+        total = int(ts.attrib.get('tests', 0))
+        failures = int(ts.attrib.get('failures', 0))
+        errors = int(ts.attrib.get('errors', 0))
+        skipped = int(ts.attrib.get('skipped', 0))
+        passed = total - failures - errors - skipped
         print(f'{passed}')
         ")
 
@@ -96,9 +100,11 @@ jobs:
         git commit -m "Update test badge to $(python3 -c "
         import xml.etree.ElementTree as ET
         root = ET.parse('test-results.xml').getroot()
-        t = int(root.attrib.get('tests',0))
-        f = int(root.attrib.get('failures',0))
-        e = int(root.attrib.get('errors',0))
-        print(t - f - e)
+        ts = root.find('testsuite') if root.tag == 'testsuites' else root
+        t = int(ts.attrib.get('tests',0))
+        f = int(ts.attrib.get('failures',0))
+        e = int(ts.attrib.get('errors',0))
+        s = int(ts.attrib.get('skipped',0))
+        print(t - f - e - s)
         ") passed"
         git push
