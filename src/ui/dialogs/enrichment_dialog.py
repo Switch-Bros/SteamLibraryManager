@@ -153,7 +153,7 @@ class EnrichmentDialog(BaseDialog):
         if self._thread:
             self._thread.cancel()
         self._cancel_btn.setEnabled(False)
-        self._cancel_btn.setText("...")
+        self._cancel_btn.setText(t("emoji.ellipsis"))
 
     def _cleanup_thread(self) -> None:
         """Stops and cleans up the background thread."""

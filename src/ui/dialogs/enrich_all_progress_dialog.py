@@ -155,15 +155,15 @@ class EnrichAllProgressDialog(BaseDialog):
 
         if success == -1:
             bar.setValue(0)
-            status.setText("\u2014")
+            status.setText(t("emoji.em_dash"))
             status.setStyleSheet("color: gray;")
         elif failed < 0:
             bar.setValue(100)
-            status.setText("\u2717")
+            status.setText(t("emoji.cross"))
             status.setStyleSheet("color: red; font-weight: bold;")
         else:
             bar.setValue(100)
-            status.setText("\u2713")
+            status.setText(t("emoji.check_mark"))
             status.setStyleSheet("color: green; font-weight: bold;")
 
     def _on_all_finished(self, results: dict[str, tuple[int, int]]) -> None:
@@ -185,7 +185,7 @@ class EnrichAllProgressDialog(BaseDialog):
         if self._coordinator:
             self._coordinator.cancel()
         self._cancel_btn.setEnabled(False)
-        self._cancel_btn.setText("...")
+        self._cancel_btn.setText(t("emoji.ellipsis"))
 
     def closeEvent(self, event) -> None:
         """Prevents closing while enrichment is running.
