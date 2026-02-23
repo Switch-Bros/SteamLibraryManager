@@ -135,6 +135,10 @@ class ClickableImage(QWidget):
         self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
         # image_label — fills the entire widget (as before)
+        # Generation counter — incremented on every load_image() call.
+        # _on_loaded() checks this to discard stale results from previous loads.
+        self._load_generation: int = 0
+
         self.image_label = QLabel(self)
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setStyleSheet(f"border: 1px solid {Theme.PEGI_HOVER}; background-color: {Theme.BG_PRIMARY};")
@@ -276,6 +280,7 @@ class ClickableImage(QWidget):
             self.metadata = metadata
 
         self.current_path = url_or_path
+        self._load_generation += 1
         self.timer.stop()
         self.video_timer.stop()
         self.frames = []
@@ -317,16 +322,27 @@ class ClickableImage(QWidget):
 
         self.image_label.setText(t("common.loading"))
 
+        # Capture generation so the callback can detect stale results
+        gen = self._load_generation
         self.loader = ImageLoader(url_or_path)
-        self.loader.loaded.connect(self._on_loaded)
+        self.loader.loaded.connect(lambda data, g=gen: self._on_loaded(data, g))
         self.loader.start()
 
-    def _on_loaded(self, data: QByteArray):
+    def _on_loaded(self, data: QByteArray, generation: int = -1):
         """Handles the loaded image data, parsing it with Pillow if available.
 
-        Robust handling for animations (APNG, WEBP, GIF) and fallback to Qt
-        to avoid red crosses or crashes.
+        Discards stale results from previous load_image() calls to prevent
+        race conditions when clicking rapidly between games.
+
+        Args:
+            data: The raw image bytes.
+            generation: Load generation counter.  If it doesn't match the
+                current generation, the result is stale and discarded.
         """
+        # Stale result — a newer load_image() call has been made since this one started
+        if generation != -1 and generation != self._load_generation:
+            return
+
         if data.isEmpty():
             if self.default_image:
                 self.current_path = None  # Reset to prevent caching default image under wrong path

@@ -629,7 +629,9 @@ class MainWindow(QMainWindow):
         Returns:
             False always — never consume the event.
         """
-        if event.type() == event.Type.KeyPress:
+        from PyQt6.QtGui import QKeyEvent
+
+        if isinstance(event, QKeyEvent):
             self._konami_buffer.append(event.key())
             self._konami_timer.start()
             if len(self._konami_buffer) > 10:
