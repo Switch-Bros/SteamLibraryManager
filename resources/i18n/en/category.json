@@ -129,6 +129,8 @@
     "error_no_method": "Please select at least one categorization method.",
     "estimate_minutes": "~{count} minutes",
     "estimate_seconds": "~{count} seconds",
-    "estimate_instant": "Instant"
+    "estimate_instant": "Instant",
+    "select_all": "Select All",
+    "deselect_all": "Deselect All"
   }
 }

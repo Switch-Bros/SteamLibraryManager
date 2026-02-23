@@ -1,11 +1,9 @@
 # src/ui/auto_categorize_dialog.py
 
-"""
-Dialog for automatic game categorization.
+"""Dialog for automatic game categorization.
 
-This module provides a dialog that allows users to automatically categorize
-their Steam games using various methods (tags, publisher, franchise, genre,
-curator, etc.) and save/load presets for recurring configurations.
+Provides preset management, method selection (via AutoCatMethodSelector),
+curator configuration, and start logic.
 """
 
 from __future__ import annotations
@@ -16,29 +14,26 @@ from typing import Any, Callable
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QDialog,
-    QVBoxLayout,
-    QHBoxLayout,
-    QGridLayout,
-    QGroupBox,
-    QLabel,
     QCheckBox,
-    QRadioButton,
-    QSpinBox,
-    QPushButton,
-    QFrame,
-    QButtonGroup,
-    QLineEdit,
     QComboBox,
+    QDialog,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
     QInputDialog,
-    QWidget,
+    QLabel,
+    QLineEdit,
     QListWidget,
     QMenu,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
 )
 
 from src.config import config
 from src.services.autocat_preset_manager import AutoCatPreset, AutoCatPresetManager
 from src.ui.utils.font_helper import FontHelper
+from src.ui.widgets.autocat_method_selector import AutoCatMethodSelector
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 from src.utils.json_utils import load_json, save_json
@@ -51,8 +46,6 @@ _MAX_CURATOR_HISTORY = 20
 
 class AutoCategorizeDialog(QDialog):
     """Dialog for configuring and starting automatic game categorization.
-
-    Supports method selection, curator configuration, and preset management.
 
     Attributes:
         games: List of games to categorize (selected or uncategorized).
@@ -76,7 +69,7 @@ class AutoCategorizeDialog(QDialog):
             parent: Parent widget.
             games: List of games to categorize (selected or uncategorized).
             all_games_count: Total number of games in the library.
-            on_start: Callback function to execute when categorization starts.
+            on_start: Callback to execute when categorization starts.
             category_name: Name of the category being processed, if any.
         """
         super().__init__(parent)
@@ -88,13 +81,11 @@ class AutoCategorizeDialog(QDialog):
         self.result: dict[str, Any] | None = None
         self._preset_manager = AutoCatPresetManager()
 
-        # Window setup
         self.setWindowTitle(t("auto_categorize.title"))
         self.setMinimumWidth(550)
         self.setModal(True)
 
         self._create_ui()
-        self._update_estimate()
         self._center_on_parent()
 
     def _center_on_parent(self) -> None:
@@ -107,7 +98,7 @@ class AutoCategorizeDialog(QDialog):
             )
 
     def _create_ui(self) -> None:
-        """Initialize and lay out all UI components for the auto-categorize dialog."""
+        """Initialize and lay out all UI components."""
         layout = QVBoxLayout(self)
         layout.setSpacing(10)
         layout.setContentsMargins(20, 20, 20, 20)
@@ -118,131 +109,29 @@ class AutoCategorizeDialog(QDialog):
         title.setFont(FontHelper.get_font(16, FontHelper.BOLD))
         layout.addWidget(title)
 
-        # === PRESET SECTION ===
+        # Preset section
         self._create_preset_section(layout)
 
-        # === METHODS GROUP (2-column grid) ===
-        methods_group = QGroupBox(t("auto_categorize.method_group"))
-        methods_grid = QGridLayout()
-        methods_grid.setSpacing(4)
+        # Method selector widget
+        self.selector = AutoCatMethodSelector(self, len(self.games), self.all_games_count, self.category_name)
+        self.selector.methods_changed.connect(self._on_methods_changed)
+        layout.addWidget(self.selector)
 
-        self.cb_tags = QCheckBox(t("auto_categorize.option_tags"))
-        self.cb_tags.setChecked(True)
-        self.cb_publisher = QCheckBox(t("auto_categorize.by_publisher"))
-        self.cb_franchise = QCheckBox(t("auto_categorize.option_franchise"))
-        self.cb_genre = QCheckBox(t("auto_categorize.by_genre"))
-        self.cb_developer = QCheckBox(t("auto_categorize.by_developer"))
-        self.cb_platform = QCheckBox(t("auto_categorize.by_platform"))
-        self.cb_user_score = QCheckBox(t("auto_categorize.by_user_score"))
-        self.cb_hours_played = QCheckBox(t("auto_categorize.by_hours_played"))
-        self.cb_flags = QCheckBox(t("auto_categorize.by_flags"))
-        self.cb_vr = QCheckBox(t("auto_categorize.by_vr"))
-        self.cb_year = QCheckBox(t("auto_categorize.by_year"))
-        self.cb_hltb = QCheckBox(t("auto_categorize.by_hltb"))
-        self.cb_language = QCheckBox(t("auto_categorize.by_language"))
-        self.cb_deck_status = QCheckBox(t("auto_categorize.by_deck_status"))
-        self.cb_achievements = QCheckBox(t("auto_categorize.by_achievements"))
-        self.cb_pegi = QCheckBox(t("auto_categorize.by_pegi"))
-        self.cb_curator = QCheckBox(t("auto_categorize.by_curator"))
-
-        checkboxes = [
-            self.cb_tags,
-            self.cb_publisher,
-            self.cb_franchise,
-            self.cb_genre,
-            self.cb_developer,
-            self.cb_platform,
-            self.cb_user_score,
-            self.cb_hours_played,
-            self.cb_flags,
-            self.cb_vr,
-            self.cb_year,
-            self.cb_hltb,
-            self.cb_language,
-            self.cb_deck_status,
-            self.cb_achievements,
-            self.cb_pegi,
-            self.cb_curator,
-        ]
-        cols = 3
-        for i, cb in enumerate(checkboxes):
-            methods_grid.addWidget(cb, i // cols, i % cols)
-
-        methods_group.setLayout(methods_grid)
-        layout.addWidget(methods_group)
-
-        # === TAGS SETTINGS GROUP ===
-        self.tags_group = QGroupBox(t("auto_categorize.settings"))
-        tags_layout = QVBoxLayout()
-
-        # Tags per game
-        tags_per_game_layout = QHBoxLayout()
-        tags_per_game_layout.addWidget(QLabel(t("auto_categorize.tags_per_game") + ":"))
-        self.tags_count_spin = QSpinBox()
-        self.tags_count_spin.setMinimum(1)
-        self.tags_count_spin.setMaximum(50)
-        self.tags_count_spin.setValue(config.TAGS_PER_GAME)
-        tags_per_game_layout.addWidget(self.tags_count_spin)
-        tags_per_game_layout.addStretch()
-        tags_layout.addLayout(tags_per_game_layout)
-
-        # Ignore common tags
-        self.cb_ignore_common = QCheckBox(t("settings.tags.ignore_common"))
-        self.cb_ignore_common.setChecked(config.IGNORE_COMMON_TAGS)
-        tags_layout.addWidget(self.cb_ignore_common)
-
-        self.tags_group.setLayout(tags_layout)
-        layout.addWidget(self.tags_group)
-
-        # === CURATOR SETTINGS GROUP ===
+        # Curator settings
         self._create_curator_section(layout)
 
-        # === APPLY TO GROUP ===
-        apply_group = QGroupBox(t("auto_categorize.apply_group"))
-        apply_layout = QVBoxLayout()
-
-        self.scope_group = QButtonGroup(self)
-
-        # Determine label for "Selected" option
-        if self.category_name:
-            scope_text = t("auto_categorize.scope_category", name=self.category_name, count=len(self.games))
-        else:
-            scope_text = t("auto_categorize.scope_selected", count=len(self.games))
-
-        self.rb_selected = QRadioButton(scope_text)
-        self.rb_selected.setChecked(True)
-        self.scope_group.addButton(self.rb_selected)
-        apply_layout.addWidget(self.rb_selected)
-
-        self.rb_all = QRadioButton(t("auto_categorize.scope_all", count=self.all_games_count))
-        self.scope_group.addButton(self.rb_all)
-        apply_layout.addWidget(self.rb_all)
-
-        # If "All Games" are selected, pre-select "All" option
-        if len(self.games) == self.all_games_count:
-            self.rb_all.setChecked(True)
-
-        apply_group.setLayout(apply_layout)
-        layout.addWidget(apply_group)
-
-        # === SEPARATOR ===
+        # Separator
         separator = QFrame()
         separator.setFrameShape(QFrame.Shape.HLine)
         separator.setFrameShadow(QFrame.Shadow.Sunken)
         layout.addWidget(separator)
 
-        # === ESTIMATE LABEL ===
-        self.estimate_label = QLabel()
-        self.estimate_label.setWordWrap(True)
-        self.estimate_label.setStyleSheet("color: gray; font-style: italic;")
-        layout.addWidget(self.estimate_label)
-
-        # === WARNING ===
+        # Warning
         warning = QLabel(t("auto_categorize.warning_backup"))
         warning.setStyleSheet("color: orange;")
         layout.addWidget(warning)
 
-        # === BUTTONS ===
+        # Buttons
         button_layout = QHBoxLayout()
         button_layout.addStretch()
 
@@ -257,35 +146,20 @@ class AutoCategorizeDialog(QDialog):
 
         layout.addLayout(button_layout)
 
-        # === CONNECT SIGNALS (After all widgets are created) ===
-        # noinspection DuplicatedCode
-        self.cb_tags.toggled.connect(self._update_estimate)
-        self.cb_publisher.toggled.connect(self._update_estimate)
-        self.cb_franchise.toggled.connect(self._update_estimate)
-        self.cb_genre.toggled.connect(self._update_estimate)
-        self.cb_developer.toggled.connect(self._update_estimate)
-        self.cb_platform.toggled.connect(self._update_estimate)
-        self.cb_user_score.toggled.connect(self._update_estimate)
-        self.cb_hours_played.toggled.connect(self._update_estimate)
-        self.cb_flags.toggled.connect(self._update_estimate)
-        self.cb_vr.toggled.connect(self._update_estimate)
-        self.cb_year.toggled.connect(self._update_estimate)
-        self.cb_hltb.toggled.connect(self._update_estimate)
-        self.cb_language.toggled.connect(self._update_estimate)
-        self.cb_deck_status.toggled.connect(self._update_estimate)
-        self.cb_achievements.toggled.connect(self._update_estimate)
-        self.cb_pegi.toggled.connect(self._update_estimate)
-        self.cb_curator.toggled.connect(self._update_estimate)
-        self.cb_curator.toggled.connect(self._on_curator_toggled)
-        self.tags_count_spin.valueChanged.connect(self._update_estimate)
-        self.rb_selected.toggled.connect(self._update_estimate)
-        self.rb_all.toggled.connect(self._update_estimate)
+    def _on_methods_changed(self) -> None:
+        """Handle method selection changes from the selector."""
+        self.curator_group.setVisible(self.selector.is_curator_selected())
+        self.adjustSize()
+
+    # ------------------------------------------------------------------
+    # Preset section
+    # ------------------------------------------------------------------
 
     def _create_preset_section(self, parent_layout: QVBoxLayout) -> None:
         """Create the preset load/save/delete section.
 
         Args:
-            parent_layout: The parent layout to add the section to.
+            parent_layout: Layout to add the section to.
         """
         preset_group = QGroupBox(t("auto_categorize.preset_section"))
         preset_layout = QHBoxLayout()
@@ -311,19 +185,125 @@ class AutoCategorizeDialog(QDialog):
         preset_group.setLayout(preset_layout)
         parent_layout.addWidget(preset_group)
 
-    def _create_curator_section(self, parent_layout: QVBoxLayout) -> None:
-        """Create the curator settings section with history list, URL input, and type checkboxes.
+    def _refresh_preset_combo(self) -> None:
+        """Reload preset names into the combo box."""
+        self.preset_combo.clear()
+        presets = self._preset_manager.load_presets()
+        if not presets:
+            self.preset_combo.addItem(t("auto_categorize.preset_no_presets"))
+            self.preset_combo.setEnabled(False)
+        else:
+            self.preset_combo.setEnabled(True)
+            for preset in presets:
+                self.preset_combo.addItem(preset.name)
 
-        The history list supports click-to-select (fills URL input) and right-click
-        context menu for removing entries.
+    def _load_preset(self) -> None:
+        """Load the selected preset and apply its settings."""
+        presets = self._preset_manager.load_presets()
+        if not presets:
+            return
+
+        idx = self.preset_combo.currentIndex()
+        if idx < 0 or idx >= len(presets):
+            return
+
+        self._apply_preset(presets[idx])
+
+    def _apply_preset(self, preset: AutoCatPreset) -> None:
+        """Apply a preset's settings to the dialog.
 
         Args:
-            parent_layout: The parent layout to add the section to.
+            preset: The preset to apply.
+        """
+        self.selector.apply_preset(
+            set(preset.methods),
+            preset.tags_count,
+            preset.ignore_common,
+        )
+
+        if preset.curator_url:
+            self.curator_url_edit.setText(preset.curator_url)
+        if preset.curator_recommendations:
+            rec_set = set(preset.curator_recommendations)
+            self.cb_curator_recommended.setChecked("recommended" in rec_set)
+            self.cb_curator_not_recommended.setChecked("not_recommended" in rec_set)
+            self.cb_curator_informational.setChecked("informational" in rec_set)
+
+    def _save_preset(self) -> None:
+        """Save the current dialog settings as a named preset."""
+        name, ok = QInputDialog.getText(self, t("auto_categorize.preset_save"), t("auto_categorize.preset_name_prompt"))
+        if not ok or not name.strip():
+            return
+
+        name = name.strip()
+
+        existing = self._preset_manager.load_presets()
+        if any(p.name == name for p in existing):
+            if not UIHelper.confirm(
+                self,
+                t("auto_categorize.preset_overwrite_msg", name=name),
+                title=t("auto_categorize.preset_overwrite_title"),
+            ):
+                return
+
+        # Build curator settings
+        curator_recs: tuple[str, ...] | None = None
+        curator_url: str | None = None
+        if self.selector.is_curator_selected():
+            curator_url = self.curator_url_edit.text().strip() or None
+            recs: list[str] = []
+            if self.cb_curator_recommended.isChecked():
+                recs.append("recommended")
+            if self.cb_curator_not_recommended.isChecked():
+                recs.append("not_recommended")
+            if self.cb_curator_informational.isChecked():
+                recs.append("informational")
+            curator_recs = tuple(recs) if recs else None
+
+        settings = self.selector.get_settings()
+        preset = AutoCatPreset(
+            name=name,
+            methods=tuple(settings["methods"]),
+            tags_count=settings["tags_count"],
+            ignore_common=settings["ignore_common"],
+            curator_url=curator_url,
+            curator_recommendations=curator_recs,
+        )
+
+        self._preset_manager.save_preset(preset)
+        self._refresh_preset_combo()
+
+        idx = self.preset_combo.findText(name)
+        if idx >= 0:
+            self.preset_combo.setCurrentIndex(idx)
+
+    def _delete_preset(self) -> None:
+        """Delete the currently selected preset."""
+        presets = self._preset_manager.load_presets()
+        if not presets:
+            return
+
+        idx = self.preset_combo.currentIndex()
+        if idx < 0 or idx >= len(presets):
+            return
+
+        self._preset_manager.delete_preset(presets[idx].name)
+        self._refresh_preset_combo()
+
+    # ------------------------------------------------------------------
+    # Curator section
+    # ------------------------------------------------------------------
+
+    def _create_curator_section(self, parent_layout: QVBoxLayout) -> None:
+        """Create the curator settings section with history, URL input, and type checkboxes.
+
+        Args:
+            parent_layout: Layout to add the section to.
         """
         self.curator_group = QGroupBox(t("auto_categorize.by_curator"))
         curator_layout = QVBoxLayout()
 
-        # Curator history list (small scrollable box, right-click context menu)
+        # Curator history list
         self.curator_history_list = QListWidget()
         self.curator_history_list.setMaximumHeight(80)
         self.curator_history_list.itemClicked.connect(self._on_curator_history_clicked)
@@ -332,7 +312,7 @@ class AutoCategorizeDialog(QDialog):
         self._load_curator_history()
         curator_layout.addWidget(self.curator_history_list)
 
-        # Curator URL input + Add button
+        # Curator URL input
         url_layout = QHBoxLayout()
         url_layout.addWidget(QLabel(t("auto_categorize.curator_url_label")))
         self.curator_url_edit = QLineEdit()
@@ -368,17 +348,18 @@ class AutoCategorizeDialog(QDialog):
         self.curator_group.setVisible(False)
         parent_layout.addWidget(self.curator_group)
 
-    # === CURATOR HISTORY ===
+    # ------------------------------------------------------------------
+    # Curator history
+    # ------------------------------------------------------------------
 
     def _load_curator_history(self) -> None:
         """Load saved curator URLs into the history list widget."""
         self.curator_history_list.clear()
-        urls = self._read_curator_history()
-        for url in urls:
+        for url in self._read_curator_history():
             self.curator_history_list.addItem(url)
 
     def _on_curator_history_clicked(self, item: Any) -> None:
-        """Fill the URL input when a history item is clicked.
+        """Fill URL input when a history item is clicked.
 
         Args:
             item: The clicked QListWidgetItem.
@@ -386,10 +367,10 @@ class AutoCategorizeDialog(QDialog):
         self.curator_url_edit.setText(item.text())
 
     def _on_curator_history_context_menu(self, position: Any) -> None:
-        """Show context menu for the curator history list (right-click to remove).
+        """Show context menu for curator history (remove entry).
 
         Args:
-            position: The position where the context menu was requested.
+            position: Position where the context menu was requested.
         """
         item = self.curator_history_list.itemAt(position)
         if not item:
@@ -403,11 +384,10 @@ class AutoCategorizeDialog(QDialog):
             self._remove_curator_url(item.text())
 
     def _add_curator_url(self) -> None:
-        """Add the current URL input text to the curator history list."""
+        """Add the current URL input text to curator history."""
         url = self.curator_url_edit.text().strip()
-        if not url:
-            return
-        self._save_curator_url_to_history(url)
+        if url:
+            self._save_curator_url_to_history(url)
 
     def _remove_curator_url(self, url: str) -> None:
         """Remove a curator URL from the persistent history.
@@ -415,30 +395,24 @@ class AutoCategorizeDialog(QDialog):
         Args:
             url: The curator URL to remove.
         """
-        urls = self._read_curator_history()
-        urls = [u for u in urls if u != url]
+        urls = [u for u in self._read_curator_history() if u != url]
         self._write_curator_history(urls)
         self._load_curator_history()
 
     def _save_curator_url_to_history(self, url: str) -> None:
-        """Add a curator URL to the persistent history (most recent first, deduped).
+        """Add a curator URL to persistent history (most recent first, deduped).
 
         Args:
             url: The curator URL to save.
         """
-        urls = self._read_curator_history()
-
-        # Remove if already present, then prepend
-        urls = [u for u in urls if u != url]
+        urls = [u for u in self._read_curator_history() if u != url]
         urls.insert(0, url)
-        urls = urls[:_MAX_CURATOR_HISTORY]
-
-        self._write_curator_history(urls)
+        self._write_curator_history(urls[:_MAX_CURATOR_HISTORY])
         self._load_curator_history()
 
     @staticmethod
     def _write_curator_history(urls: list[str]) -> None:
-        """Write the curator URL history to disk.
+        """Write curator URL history to disk.
 
         Args:
             urls: List of curator URLs to persist.
@@ -453,241 +427,25 @@ class AutoCategorizeDialog(QDialog):
             List of previously used curator URLs.
         """
         data = load_json(_CURATOR_HISTORY_FILE, default=[])
-        if isinstance(data, list):
-            return [str(u) for u in data]
-        return []
+        return [str(u) for u in data] if isinstance(data, list) else []
 
-    def _on_curator_toggled(self, checked: bool) -> None:
-        """Show or hide the curator settings group.
-
-        Args:
-            checked: Whether the curator checkbox is checked.
-        """
-        self.curator_group.setVisible(checked)
-        self.adjustSize()
-
-    # === PRESET MANAGEMENT ===
-
-    def _refresh_preset_combo(self) -> None:
-        """Reload preset names into the combo box."""
-        self.preset_combo.clear()
-        presets = self._preset_manager.load_presets()
-        if not presets:
-            self.preset_combo.addItem(t("auto_categorize.preset_no_presets"))
-            self.preset_combo.setEnabled(False)
-        else:
-            self.preset_combo.setEnabled(True)
-            for preset in presets:
-                self.preset_combo.addItem(preset.name)
-
-    def _load_preset(self) -> None:
-        """Load the selected preset and apply its settings to the dialog."""
-        presets = self._preset_manager.load_presets()
-        if not presets:
-            return
-
-        idx = self.preset_combo.currentIndex()
-        if idx < 0 or idx >= len(presets):
-            return
-
-        preset = presets[idx]
-        self._apply_preset(preset)
-
-    def _apply_preset(self, preset: AutoCatPreset) -> None:
-        """Apply a preset's settings to the dialog widgets.
-
-        Args:
-            preset: The preset to apply.
-        """
-        methods = set(preset.methods)
-
-        # Method checkboxes
-        method_map: dict[str, QCheckBox] = {
-            "tags": self.cb_tags,
-            "publisher": self.cb_publisher,
-            "franchise": self.cb_franchise,
-            "genre": self.cb_genre,
-            "developer": self.cb_developer,
-            "platform": self.cb_platform,
-            "user_score": self.cb_user_score,
-            "hours_played": self.cb_hours_played,
-            "flags": self.cb_flags,
-            "vr": self.cb_vr,
-            "year": self.cb_year,
-            "hltb": self.cb_hltb,
-            "language": self.cb_language,
-            "deck_status": self.cb_deck_status,
-            "achievements": self.cb_achievements,
-            "pegi": self.cb_pegi,
-            "curator": self.cb_curator,
-        }
-
-        for method_name, checkbox in method_map.items():
-            checkbox.setChecked(method_name in methods)
-
-        # Tags settings
-        self.tags_count_spin.setValue(preset.tags_count)
-        self.cb_ignore_common.setChecked(preset.ignore_common)
-
-        # Curator settings
-        if preset.curator_url:
-            self.curator_url_edit.setText(preset.curator_url)
-        if preset.curator_recommendations:
-            rec_set = set(preset.curator_recommendations)
-            self.cb_curator_recommended.setChecked("recommended" in rec_set)
-            self.cb_curator_not_recommended.setChecked("not_recommended" in rec_set)
-            self.cb_curator_informational.setChecked("informational" in rec_set)
-
-    def _save_preset(self) -> None:
-        """Save the current dialog settings as a named preset."""
-        name, ok = QInputDialog.getText(self, t("auto_categorize.preset_save"), t("auto_categorize.preset_name_prompt"))
-        if not ok or not name.strip():
-            return
-
-        name = name.strip()
-
-        # Check for existing preset
-        existing = self._preset_manager.load_presets()
-        if any(p.name == name for p in existing):
-            if not UIHelper.confirm(
-                self,
-                t("auto_categorize.preset_overwrite_msg", name=name),
-                title=t("auto_categorize.preset_overwrite_title"),
-            ):
-                return
-
-        # Build curator recommendations tuple
-        curator_recs: tuple[str, ...] | None = None
-        curator_url: str | None = None
-        if self.cb_curator.isChecked():
-            curator_url = self.curator_url_edit.text().strip() or None
-            recs: list[str] = []
-            if self.cb_curator_recommended.isChecked():
-                recs.append("recommended")
-            if self.cb_curator_not_recommended.isChecked():
-                recs.append("not_recommended")
-            if self.cb_curator_informational.isChecked():
-                recs.append("informational")
-            curator_recs = tuple(recs) if recs else None
-
-        preset = AutoCatPreset(
-            name=name,
-            methods=tuple(self._get_selected_methods()),
-            tags_count=self.tags_count_spin.value(),
-            ignore_common=self.cb_ignore_common.isChecked(),
-            curator_url=curator_url,
-            curator_recommendations=curator_recs,
-        )
-
-        self._preset_manager.save_preset(preset)
-        self._refresh_preset_combo()
-
-        # Select the newly saved preset
-        idx = self.preset_combo.findText(name)
-        if idx >= 0:
-            self.preset_combo.setCurrentIndex(idx)
-
-    def _delete_preset(self) -> None:
-        """Delete the currently selected preset."""
-        presets = self._preset_manager.load_presets()
-        if not presets:
-            return
-
-        idx = self.preset_combo.currentIndex()
-        if idx < 0 or idx >= len(presets):
-            return
-
-        name = presets[idx].name
-        self._preset_manager.delete_preset(name)
-        self._refresh_preset_combo()
-
-    # === METHODS & ESTIMATE ===
-
-    def _get_selected_methods(self) -> list[str]:
-        """Get the list of selected categorization methods.
-
-        Returns:
-            A list of method names.
-        """
-        methods = []
-        if self.cb_tags.isChecked():
-            methods.append("tags")
-        if self.cb_publisher.isChecked():
-            methods.append("publisher")
-        if self.cb_franchise.isChecked():
-            methods.append("franchise")
-        if self.cb_genre.isChecked():
-            methods.append("genre")
-        if self.cb_developer.isChecked():
-            methods.append("developer")
-        if self.cb_platform.isChecked():
-            methods.append("platform")
-        if self.cb_user_score.isChecked():
-            methods.append("user_score")
-        if self.cb_hours_played.isChecked():
-            methods.append("hours_played")
-        if self.cb_flags.isChecked():
-            methods.append("flags")
-        if self.cb_vr.isChecked():
-            methods.append("vr")
-        if self.cb_year.isChecked():
-            methods.append("year")
-        if self.cb_hltb.isChecked():
-            methods.append("hltb")
-        if self.cb_language.isChecked():
-            methods.append("language")
-        if self.cb_deck_status.isChecked():
-            methods.append("deck_status")
-        if self.cb_achievements.isChecked():
-            methods.append("achievements")
-        if self.cb_pegi.isChecked():
-            methods.append("pegi")
-        if self.cb_curator.isChecked():
-            methods.append("curator")
-        return methods
-
-    def _update_estimate(self) -> None:
-        """Update the time estimate label based on selected options."""
-        # Safety check if called before UI is fully initialized
-        if not hasattr(self, "estimate_label") or not hasattr(self, "tags_group"):
-            return
-
-        self.tags_group.setVisible(self.cb_tags.isChecked())
-        self.adjustSize()
-
-        game_count = self.all_games_count if self.rb_all.isChecked() else len(self.games)
-        selected_methods = self._get_selected_methods()
-
-        if "tags" in selected_methods:
-            seconds = int(game_count * 1.5)
-            minutes = seconds // 60
-            if minutes > 0:
-                time_str = t("auto_categorize.estimate_minutes", count=minutes)
-            else:
-                time_str = t("auto_categorize.estimate_seconds", count=seconds)
-        else:
-            time_str = t("auto_categorize.estimate_instant")
-
-        self.estimate_label.setText(
-            t("auto_categorize.estimate_label", time=time_str, games=game_count, methods=len(selected_methods))
-        )
+    # ------------------------------------------------------------------
+    # Start
+    # ------------------------------------------------------------------
 
     def _start(self) -> None:
-        """Start the auto-categorization process.
+        """Start the auto-categorization process."""
+        settings = self.selector.get_settings()
+        methods = settings["methods"]
 
-        Validates the selection, builds the configuration result,
-        and calls the on_start callback.
-        """
-        selected_methods = self._get_selected_methods()
-
-        if not selected_methods:
+        if not methods:
             UIHelper.show_warning(
                 self, t("auto_categorize.error_no_method"), title=t("auto_categorize.no_method_title")
             )
             return
 
         # Validate curator URL if curator method is selected
-        if "curator" in selected_methods:
+        if "curator" in methods:
             curator_url = self.curator_url_edit.text().strip()
             if not curator_url:
                 UIHelper.show_warning(
@@ -695,15 +453,10 @@ class AutoCategorizeDialog(QDialog):
                 )
                 return
 
-        self.result = {
-            "methods": selected_methods,
-            "scope": "all" if self.rb_all.isChecked() else "selected",
-            "tags_count": self.tags_count_spin.value(),
-            "ignore_common": self.cb_ignore_common.isChecked(),
-        }
+        self.result = dict(settings)
 
         # Add curator-specific settings
-        if "curator" in selected_methods:
+        if "curator" in methods:
             curator_url_val = self.curator_url_edit.text().strip()
             self.result["curator_url"] = curator_url_val
             self._save_curator_url_to_history(curator_url_val)
