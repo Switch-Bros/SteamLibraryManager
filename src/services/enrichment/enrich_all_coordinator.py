@@ -26,6 +26,7 @@ TRACK_STEAM = "steam"
 TRACK_HLTB = "hltb"
 TRACK_PROTONDB = "protondb"
 TRACK_DECK = "deck"
+TRACK_PEGI = "pegi"
 
 
 class EnrichAllCoordinator(QObject):
@@ -70,6 +71,7 @@ class EnrichAllCoordinator(QObject):
         self._hltb_client: HLTBClient | None = None
         self._language: str = "en"
         self._cache_dir: Path | None = None
+        self._games_pegi: list[tuple[int, str]] = []
 
     def configure(
         self,
@@ -82,6 +84,7 @@ class EnrichAllCoordinator(QObject):
         hltb_client: HLTBClient | None,
         language: str,
         cache_dir: Path,
+        games_pegi: list[tuple[int, str]] | None = None,
     ) -> None:
         """Configures all enrichment tracks.
 
@@ -105,6 +108,7 @@ class EnrichAllCoordinator(QObject):
         self._hltb_client = hltb_client
         self._language = language
         self._cache_dir = cache_dir
+        self._games_pegi = games_pegi or []
 
     def start(self) -> None:
         """Starts the enrichment pipeline.
@@ -206,6 +210,14 @@ class EnrichAllCoordinator(QObject):
             self._start_deck_track()
         else:
             self.track_finished.emit(TRACK_DECK, -1, 0)
+
+        # Track E: PEGI age ratings
+        if self._games_pegi and self._db_path:
+            self._pending_tracks += 1
+            self._start_pegi_track()
+        else:
+            self._results[TRACK_PEGI] = (-1, 0)
+            self.track_finished.emit(TRACK_PEGI, -1, 0)
 
         if self._pending_tracks == 0:
             self.all_finished.emit(self._results)
@@ -364,6 +376,29 @@ class EnrichAllCoordinator(QObject):
         thread.error.connect(lambda msg: self._on_track_error(TRACK_DECK, msg))
 
         self._threads[TRACK_DECK] = thread
+        thread.start()
+
+    # -- Track E: PEGI age ratings --------------------------------------
+
+    def _start_pegi_track(self) -> None:
+        """Starts PEGI age rating enrichment track."""
+        from src.services.enrichment.pegi_enrichment_service import (
+            PEGIEnrichmentThread,
+        )
+
+        thread = PEGIEnrichmentThread(self)
+        thread.configure(
+            self._games_pegi,
+            self._db_path,  # type: ignore[arg-type]
+            language=self._language,
+            force_refresh=True,
+        )
+
+        thread.progress.connect(lambda _t, cur, tot: self.track_progress.emit(TRACK_PEGI, cur, tot))
+        thread.finished_enrichment.connect(lambda s, f: self._on_simple_track_done(TRACK_PEGI, s, f))
+        thread.error.connect(lambda msg: self._on_track_error(TRACK_PEGI, msg))
+
+        self._threads[TRACK_PEGI] = thread
         thread.start()
 
     # ------------------------------------------------------------------

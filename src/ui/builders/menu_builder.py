@@ -435,6 +435,14 @@ class MenuBuilder:
             )
             achievement_menu.addAction(action)
 
+        # --- PEGI age rating filter submenu (all unchecked by default = no filtering) ---
+        pegi_menu = view_menu.addMenu(t("menu.view.pegi.root"))
+        for key in ("pegi_3", "pegi_7", "pegi_12", "pegi_16", "pegi_18", "pegi_none"):
+            action = QAction(t(f"menu.view.pegi.{key}"), mw)
+            action.setCheckable(True)
+            action.triggered.connect(lambda checked, k=key: mw.view_actions.on_filter_toggled("pegi", k, checked))
+            pegi_menu.addAction(action)
+
         view_menu.addSeparator()
 
         # --- Statistics (single action, opens tabbed dialog) ---
@@ -499,6 +507,18 @@ class MenuBuilder:
         update_protondb_action = QAction(t("menu.tools.batch.update_protondb"), mw)
         update_protondb_action.triggered.connect(mw.enrichment_actions.start_protondb_enrichment)
         batch_menu.addAction(update_protondb_action)
+
+        # Update PEGI Ratings (wired to enrichment)
+        update_pegi_action = QAction(t("menu.tools.batch.update_pegi"), mw)
+        update_pegi_action.triggered.connect(mw.enrichment_actions.start_pegi_enrichment)
+        batch_menu.addAction(update_pegi_action)
+
+        # PEGI Force Refresh
+        update_pegi_force_action = QAction(t("menu.tools.batch.update_pegi_force"), mw)
+        update_pegi_force_action.triggered.connect(
+            lambda: mw.enrichment_actions.start_pegi_enrichment(force_refresh=True)
+        )
+        batch_menu.addAction(update_pegi_force_action)
 
         batch_menu.addSeparator()
 

@@ -810,6 +810,59 @@ class AutoCategorizeService:
 
         return categories_added
 
+    # === PEGI AGE RATING CATEGORIZATION ===
+
+    _PEGI_BUCKETS: tuple[tuple[str, str], ...] = (
+        ("3", "auto_categorize.pegi_3"),
+        ("7", "auto_categorize.pegi_7"),
+        ("12", "auto_categorize.pegi_12"),
+        ("16", "auto_categorize.pegi_16"),
+        ("18", "auto_categorize.pegi_18"),
+    )
+
+    def categorize_by_pegi(self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None) -> int:
+        """Categorize games by PEGI age rating.
+
+        Creates categories for each PEGI level (3, 7, 12, 16, 18)
+        plus an "Unknown" category for games without ratings.
+
+        Args:
+            games: List of games to categorize.
+            progress_callback: Optional callback(current_index, game_name).
+
+        Returns:
+            Number of categories added.
+        """
+        categories_added = 0
+
+        for i, game in enumerate(games):
+            if progress_callback:
+                progress_callback(i, game.name)
+
+            pegi = game.pegi_rating or ""
+
+            if pegi:
+                for rating, key in self._PEGI_BUCKETS:
+                    if str(pegi) == rating:
+                        label = t(key)
+                        break
+                else:
+                    label = t("auto_categorize.pegi_unknown")
+            else:
+                label = t("auto_categorize.pegi_unknown")
+
+            category = t("auto_categorize.cat_pegi", rating=label)
+
+            try:
+                self.category_service.add_app_to_category(game.app_id, category)
+                if category not in game.categories:
+                    game.categories.append(category)
+                categories_added += 1
+            except (ValueError, RuntimeError):
+                pass
+
+        return categories_added
+
     # === LANGUAGE CATEGORIZATION ===
 
     def categorize_by_language(

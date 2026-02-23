@@ -17,6 +17,7 @@ from src.services.filter_constants import (
     ALL_ACHIEVEMENT_KEYS,
     ALL_DECK_KEYS,
     ALL_LANGUAGE_KEYS,
+    ALL_PEGI_KEYS,
     ALL_PLATFORM_KEYS,
     ALL_SORT_KEYS,
     ALL_STATUS_KEYS,
@@ -34,6 +35,7 @@ __all__ = [
     "ALL_ACHIEVEMENT_KEYS",
     "ALL_DECK_KEYS",
     "ALL_LANGUAGE_KEYS",
+    "ALL_PEGI_KEYS",
     "ALL_PLATFORM_KEYS",
     "ALL_SORT_KEYS",
     "ALL_STATUS_KEYS",
@@ -63,6 +65,7 @@ class FilterState:
     active_languages: frozenset[str] = frozenset()
     active_deck_statuses: frozenset[str] = frozenset()
     active_achievement_filters: frozenset[str] = frozenset()
+    active_pegi_ratings: frozenset[str] = frozenset()
     sort_key: SortKey = SortKey.NAME
 
 
@@ -82,6 +85,7 @@ class FilterService:
         self._active_languages: set[str] = set()
         self._active_deck_statuses: set[str] = set()
         self._active_achievement_filters: set[str] = set()
+        self._active_pegi_ratings: set[str] = set()
         self._sort_key: SortKey = SortKey.NAME
 
     @property
@@ -99,6 +103,7 @@ class FilterService:
             active_languages=frozenset(self._active_languages),
             active_deck_statuses=frozenset(self._active_deck_statuses),
             active_achievement_filters=frozenset(self._active_achievement_filters),
+            active_pegi_ratings=frozenset(self._active_pegi_ratings),
             sort_key=self._sort_key,
         )
 
@@ -114,6 +119,7 @@ class FilterService:
         self._active_languages = set(state.active_languages)
         self._active_deck_statuses = set(state.active_deck_statuses)
         self._active_achievement_filters = set(state.active_achievement_filters)
+        self._active_pegi_ratings = set(state.active_pegi_ratings)
         self._sort_key = state.sort_key
 
     def set_sort_key(self, key: str) -> None:
@@ -242,6 +248,25 @@ class FilterService:
         else:
             self._active_deck_statuses.discard(key)
 
+    def toggle_pegi_rating(self, key: str, active: bool) -> None:
+        """Activates or deactivates a PEGI age rating filter.
+
+        When at least one PEGI filter is active, only games matching
+        any active rating are shown (OR logic). When none are active,
+        all games pass (no PEGI filtering).
+
+        Args:
+            key: The PEGI filter key (e.g. "pegi_18", "pegi_none").
+            active: True to activate, False to deactivate.
+        """
+        if key not in ALL_PEGI_KEYS:
+            logger.warning("Unknown PEGI filter key: %s", key)
+            return
+        if active:
+            self._active_pegi_ratings.add(key)
+        else:
+            self._active_pegi_ratings.discard(key)
+
     def toggle_achievement_filter(self, key: str, active: bool) -> None:
         """Activates or deactivates an achievement filter.
 
@@ -290,6 +315,8 @@ class FilterService:
             return True
         if self._active_achievement_filters:
             return True
+        if self._active_pegi_ratings:
+            return True
         return False
 
     def apply(self, games: list[Game]) -> list[Game]:
@@ -324,6 +351,8 @@ class FilterService:
             if not self._passes_deck_filter(game):
                 continue
             if not self._passes_achievement_filter(game):
+                continue
+            if not self._passes_pegi_filter(game):
                 continue
             result.append(game)
         return result
@@ -466,3 +495,33 @@ class FilterService:
             if key == "none" and total == 0:
                 return True
         return False
+
+    def _passes_pegi_filter(self, game: Game) -> bool:
+        """Checks if a game passes the PEGI age rating filter (OR logic).
+
+        If no PEGI filters are active, all games pass. Games without
+        PEGI data match the "pegi_none" key.
+
+        Args:
+            game: The game to check.
+
+        Returns:
+            True if no PEGI filter is active or game matches at least one.
+        """
+        if not self._active_pegi_ratings:
+            return True
+
+        pegi_map = {
+            "pegi_3": "3",
+            "pegi_7": "7",
+            "pegi_12": "12",
+            "pegi_16": "16",
+            "pegi_18": "18",
+        }
+        rating = game.pegi_rating or ""
+
+        if not rating:
+            return "pegi_none" in self._active_pegi_ratings
+
+        allowed = {pegi_map[k] for k in self._active_pegi_ratings if k in pegi_map}
+        return rating in allowed

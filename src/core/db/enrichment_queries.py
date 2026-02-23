@@ -266,6 +266,19 @@ class EnrichmentQueryMixin:
             """)
         return [(row[0], row[1]) for row in cursor.fetchall()]
 
+    def get_apps_without_pegi(self) -> list[tuple[int, str]]:
+        """Returns game-type apps that have no PEGI age rating.
+
+        Returns:
+            List of (app_id, name) tuples.
+        """
+        cursor = self.conn.execute("""
+            SELECT app_id, name FROM games
+            WHERE (pegi_rating IS NULL OR pegi_rating = '')
+            AND app_type IN ('game', '')
+            """)
+        return [(row[0], row[1]) for row in cursor.fetchall()]
+
     def batch_get_protondb(self, app_ids: list[int]) -> dict[int, str]:
         """Batch load ProtonDB tiers for multiple app_ids.
 

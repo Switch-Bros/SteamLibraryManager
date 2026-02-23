@@ -212,6 +212,7 @@ class EditActions:
             "language": self.mw.autocategorize_service.categorize_by_language,
             "deck_status": self.mw.autocategorize_service.categorize_by_deck_status,
             "achievements": self.mw.autocategorize_service.categorize_by_achievements,
+            "pegi": self.mw.autocategorize_service.categorize_by_pegi,
         }
 
         for method in methods:
