@@ -21,7 +21,6 @@ from __future__ import annotations
 import hashlib
 import logging
 import struct
-from enum import IntEnum
 from typing import BinaryIO
 
 # Import i18n if available (optional for standalone use)
@@ -37,69 +36,22 @@ except ImportError:
         return key.split(".")[-1]
 
 
-__all__ = ("AppInfo", "AppInfoVersion", "IncompatibleVersionError", "load", "loads")
+from src.utils.appinfo_constants import (
+    EUniverse,
+    IncompatibleVersionError,
+    MAGIC_NUMBER,
+    TYPE_DICT,
+    TYPE_FLOAT32,
+    TYPE_INT32,
+    TYPE_INT64,
+    TYPE_SECTION_END,
+    TYPE_STRING,
+    VALID_VERSIONS,
+)
+
+__all__ = ("AppInfo", "IncompatibleVersionError", "load", "loads")
 
 logger = logging.getLogger("steamlibmgr.appinfo")
-
-# ===== VERSION DEFINITIONS =====
-
-
-class AppInfoVersion(IntEnum):
-    """
-    AppInfo format version identifiers.
-
-    These are the magic numbers used to identify different versions of the
-    appinfo.vdf file format.
-    """
-
-    # Old versions (for reference, not implemented)
-    # VERSION_24 = 0x06445624  # circa 2011
-    # VERSION_25 = 0x07445625  # circa 2012
-    # VERSION_26 = 0x07445626  # circa 2013
-    # VERSION_27 = 0x07445627  # circa 2017
-
-    # Supported versions
-    VERSION_28 = 0x07564428  # Dec 2022 - June 2024 (Binary SHA-1)
-    VERSION_29 = 0x07564429  # June 2024+ (String Table)
-    VERSION_39 = 0x07564427  # Alternate magic for v27
-    VERSION_40 = 0x07564428  # Alternate magic for v28
-    VERSION_41 = 0x07564429  # Alternate magic for v29
-
-
-class EUniverse(IntEnum):
-    """
-    Steam Universe identifiers.
-
-    Defines the Steam environment the appinfo.vdf file belongs to.
-    """
-
-    Invalid = 0
-    Public = 1
-    Beta = 2
-    Internal = 3
-    Dev = 4
-
-
-class IncompatibleVersionError(Exception):
-    """
-    Raised when an unsupported appinfo.vdf version is encountered.
-
-    Attributes:
-        version (int): The version number that was detected.
-        magic (int): The magic number that was read from the file.
-    """
-
-    def __init__(self, version: int, magic: int):
-        """
-        Initializes the exception.
-
-        Args:
-            version (int): The version number that was detected.
-            magic (int): The magic number that was read from the file.
-        """
-        self.version = version
-        self.magic = magic
-        super().__init__(f"Incompatible version {version} (magic: 0x{magic:08X})")
 
 
 # ===== MAIN PARSER CLASS =====
@@ -124,18 +76,6 @@ class AppInfo:
         string_table (list[str]): String table for version 41+ files.
         string_table_offset (int): Offset of the string table in the file.
     """
-
-    # Binary type markers for VDF data
-    TYPE_SECTION_END = 0x08
-    TYPE_DICT = 0x00
-    TYPE_STRING = 0x01
-    TYPE_INT32 = 0x02
-    TYPE_FLOAT32 = 0x03
-    TYPE_POINTER = 0x04  # Unused
-    TYPE_WIDESTRING = 0x05  # Unused
-    TYPE_COLOR = 0x06  # Unused
-    TYPE_INT64 = 0x07
-    TYPE_END = 0x08
 
     def __init__(self, path: str | None = None, data: bytes | None = None):
         """
@@ -195,12 +135,11 @@ class AppInfo:
         self.magic = raw_magic >> 8
 
         # Verify magic number
-        if self.magic != 0x07_56_44:
+        if self.magic != MAGIC_NUMBER:
             raise IncompatibleVersionError(self.version, raw_magic)
 
         # Verify version
-        valid_versions = [28, 29, 39, 40, 41]
-        if self.version not in valid_versions:
+        if self.version not in VALID_VERSIONS:
             raise IncompatibleVersionError(self.version, raw_magic)
 
         # Read universe
@@ -319,30 +258,30 @@ class AppInfo:
             value_type = self._read_byte()
 
             # Check for end marker
-            if value_type == self.TYPE_SECTION_END:
+            if value_type == TYPE_SECTION_END:
                 break
 
             # Read key
             key = self._read_key()
 
             # Parse value based on type
-            if value_type == self.TYPE_DICT:
+            if value_type == TYPE_DICT:
                 # Nested dictionary
                 result[key] = self._parse_vdf()
 
-            elif value_type == self.TYPE_STRING:
+            elif value_type == TYPE_STRING:
                 # String value
                 result[key] = self._read_cstring()
 
-            elif value_type == self.TYPE_INT32:
+            elif value_type == TYPE_INT32:
                 # 32-bit integer
                 result[key] = self._read_int32()
 
-            elif value_type == self.TYPE_FLOAT32:
+            elif value_type == TYPE_FLOAT32:
                 # 32-bit float
                 result[key] = self._read_float32()
 
-            elif value_type == self.TYPE_INT64:
+            elif value_type == TYPE_INT64:
                 # 64-bit integer
                 result[key] = self._read_int64()
 
@@ -587,19 +526,19 @@ class AppInfo:
         for key, value in vdf_data.items():
             if isinstance(value, dict):
                 # Nested dictionary
-                output.append(self.TYPE_DICT)
+                output.append(TYPE_DICT)
                 output.extend(self._encode_key(key))
                 output.extend(self._encode_vdf(value))
 
             elif isinstance(value, str):
                 # String value
-                output.append(self.TYPE_STRING)
+                output.append(TYPE_STRING)
                 output.extend(self._encode_key(key))
                 output.extend(self._encode_cstring(value))
 
             elif isinstance(value, float):
                 # Float value
-                output.append(self.TYPE_FLOAT32)
+                output.append(TYPE_FLOAT32)
                 output.extend(self._encode_key(key))
                 output.extend(struct.pack("<f", value))
 
@@ -607,17 +546,17 @@ class AppInfo:
                 # Integer value - check range
                 if -2147483648 <= value <= 2147483647:
                     # 32-bit
-                    output.append(self.TYPE_INT32)
+                    output.append(TYPE_INT32)
                     output.extend(self._encode_key(key))
                     output.extend(struct.pack("<i", value))
                 else:
                     # 64-bit
-                    output.append(self.TYPE_INT64)
+                    output.append(TYPE_INT64)
                     output.extend(self._encode_key(key))
                     output.extend(struct.pack("<q", value))
 
         # End marker
-        output.append(self.TYPE_SECTION_END)
+        output.append(TYPE_SECTION_END)
 
         return output
 
@@ -831,34 +770,3 @@ def loads(file_data: bytes) -> AppInfo:
         AppInfo: The parsed AppInfo object.
     """
     return AppInfo(data=file_data)
-
-
-# ===== MAIN (for testing) =====
-
-if __name__ == "__main__":
-    import sys
-
-    if len(sys.argv) < 2:
-        print("Usage: python appinfo.py <path-to-appinfo.vdf>")
-        sys.exit(1)
-
-    file_path = sys.argv[1]
-
-    print(f"Loading {file_path}...")
-    appinfo = AppInfo(path=file_path)
-
-    print(f"Version: {appinfo.version}")
-    print(f"Universe: {appinfo.universe.name}")
-    print(f"Apps: {len(appinfo.apps)}")
-
-    if appinfo.string_table:
-        print(f"String table: {len(appinfo.string_table)} strings")
-
-    # Show first few apps
-    for i, (show_app_id, show_app_data) in enumerate(list(appinfo.apps.items())[:5]):
-        show_data_dict = show_app_data.get("data", {})
-        common_data = show_data_dict.get("common", {})
-        name = common_data.get("name", f"App {show_app_id}")
-        print(f"  {show_app_id}: {name}")
-
-    print("\n✅ Parse successful!")
