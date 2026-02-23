@@ -177,12 +177,10 @@ class MainWindow(QMainWindow):
         self._konami_timer.setInterval(3000)
         self._konami_timer.timeout.connect(self._konami_buffer.clear)
 
-        # Application-wide event filter for easter egg detection
-        from PyQt6.QtWidgets import QApplication
-
-        app = QApplication.instance()
-        if app:
-            app.installEventFilter(self)
+        # Event filter on tree widget for Konami code detection.
+        # Installed on the tree (not QApplication) because the tree has
+        # focus during normal navigation and consumes arrow/letter keys.
+        self.tree.installEventFilter(self)
 
         # Non-blocking startup via BootstrapService
         self._init_bootstrap_service()
@@ -381,11 +379,7 @@ class MainWindow(QMainWindow):
         Args:
             event: The close event from Qt.
         """
-        from PyQt6.QtWidgets import QApplication
-
-        app = QApplication.instance()
-        if app:
-            app.removeEventFilter(self)
+        self.tree.removeEventFilter(self)
 
         parser = self._get_active_parser()
         has_collection_changes = parser is not None and parser.modified
