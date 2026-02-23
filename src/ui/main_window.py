@@ -177,10 +177,14 @@ class MainWindow(QMainWindow):
         self._konami_timer.setInterval(3000)
         self._konami_timer.timeout.connect(self._konami_buffer.clear)
 
-        # Event filter on tree widget for Konami code detection.
-        # Installed on the tree (not QApplication) because the tree has
-        # focus during normal navigation and consumes arrow/letter keys.
-        self.tree.installEventFilter(self)
+        # Application-wide event filter for surprise code detection.
+        # Must be on QApplication so keys are captured regardless of
+        # which widget currently holds focus.
+        from PyQt6.QtWidgets import QApplication
+
+        app = QApplication.instance()
+        if app:
+            app.installEventFilter(self)
 
         # Non-blocking startup via BootstrapService
         self._init_bootstrap_service()
@@ -379,7 +383,11 @@ class MainWindow(QMainWindow):
         Args:
             event: The close event from Qt.
         """
-        self.tree.removeEventFilter(self)
+        from PyQt6.QtWidgets import QApplication
+
+        app = QApplication.instance()
+        if app:
+            app.removeEventFilter(self)
 
         parser = self._get_active_parser()
         has_collection_changes = parser is not None and parser.modified
@@ -609,12 +617,12 @@ class MainWindow(QMainWindow):
         )
 
     def eventFilter(self, obj, event) -> bool:
-        """Application-wide event filter for Konami code detection.
+        """Application-wide event filter for surprise code detection.
 
-        Observes all key press events regardless of which widget has
-        focus.  Does NOT consume events — all keys still reach their
-        target widgets normally.  Buffer auto-clears after 3 seconds
-        of inactivity to prevent stale partial sequences.
+        Observes only KeyPress events (not KeyRelease or ShortcutOverride)
+        regardless of which widget has focus.  Does NOT consume events —
+        all keys still reach their target widgets normally.  Buffer
+        auto-clears after 3 seconds of inactivity.
 
         Args:
             obj: The object that received the event.
@@ -623,9 +631,10 @@ class MainWindow(QMainWindow):
         Returns:
             False always — never consume the event.
         """
+        from PyQt6.QtCore import QEvent
         from PyQt6.QtGui import QKeyEvent
 
-        if isinstance(event, QKeyEvent):
+        if event.type() == QEvent.Type.KeyPress and isinstance(event, QKeyEvent) and not event.isAutoRepeat():
             self._konami_buffer.append(event.key())
             self._konami_timer.start()
             if len(self._konami_buffer) > 10:
