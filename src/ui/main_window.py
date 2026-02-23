@@ -126,19 +126,20 @@ class MainWindow(QMainWindow):
         self.steam_username: str | None = None
         self.current_search_query: str = ""  # Track active search
 
-        # Easter egg state
+        # Easter egg state — explicit int() to guarantee comparison
+        # with event.key() works across all PyQt6 versions.
         self._konami_buffer: list[int] = []
         self._konami_sequence: list[int] = [
-            Qt.Key.Key_Up,
-            Qt.Key.Key_Up,
-            Qt.Key.Key_Down,
-            Qt.Key.Key_Down,
-            Qt.Key.Key_Left,
-            Qt.Key.Key_Right,
-            Qt.Key.Key_Left,
-            Qt.Key.Key_Right,
-            Qt.Key.Key_B,
-            Qt.Key.Key_A,
+            int(Qt.Key.Key_Up),
+            int(Qt.Key.Key_Up),
+            int(Qt.Key.Key_Down),
+            int(Qt.Key.Key_Down),
+            int(Qt.Key.Key_Left),
+            int(Qt.Key.Key_Right),
+            int(Qt.Key.Key_Left),
+            int(Qt.Key.Key_Right),
+            int(Qt.Key.Key_B),
+            int(Qt.Key.Key_A),
         ]
 
         # Threads & Dialogs
@@ -635,13 +636,16 @@ class MainWindow(QMainWindow):
         from PyQt6.QtGui import QKeyEvent
 
         if event.type() == QEvent.Type.KeyPress and isinstance(event, QKeyEvent) and not event.isAutoRepeat():
-            self._konami_buffer.append(event.key())
+            self._konami_buffer.append(int(event.key()))
             self._konami_timer.start()
             if len(self._konami_buffer) > 10:
                 self._konami_buffer = self._konami_buffer[-10:]
             if self._konami_buffer == self._konami_sequence:
                 self._konami_buffer.clear()
                 self._konami_timer.stop()
+                # Clean up any stray letters (B/A) from the search bar
+                if self.search_entry and self.search_entry.text():
+                    self.search_entry.clear()
                 self._show_switchbros_easter_egg()
         return super().eventFilter(obj, event)
 
