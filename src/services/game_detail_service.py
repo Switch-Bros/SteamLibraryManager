@@ -24,6 +24,8 @@ from typing import TYPE_CHECKING
 
 import requests
 
+from src.utils.age_ratings import USK_TO_PEGI
+
 from src.core.game import Game
 from src.utils.date_utils import format_timestamp_to_date
 from src.utils.i18n import t
@@ -419,17 +421,8 @@ class GameDetailService:
             usk_data = ratings["usk"]
             usk_rating = usk_data.get("rating", "")
 
-            # USK -> PEGI mapping
-            usk_to_pegi = {
-                "0": "3",
-                "6": "7",
-                "12": "12",
-                "16": "16",
-                "18": "18",
-            }
-
-            if usk_rating in usk_to_pegi:
-                game.pegi_rating = usk_to_pegi[usk_rating]
+            if usk_rating in USK_TO_PEGI:
+                game.pegi_rating = USK_TO_PEGI[usk_rating]
 
         # Priority 3: ESRB (USA) - store for fallback display
         if "esrb" in ratings:

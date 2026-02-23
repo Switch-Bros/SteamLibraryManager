@@ -9,7 +9,18 @@ consistent styling, titles, and use of internationalization across the applicati
 
 from __future__ import annotations
 
-from PyQt6.QtWidgets import QWidget, QMessageBox, QDialog, QVBoxLayout, QLabel, QLineEdit, QDialogButtonBox
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QDialog,
+    QDialogButtonBox,
+    QFileDialog,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QProgressDialog,
+    QVBoxLayout,
+    QWidget,
+)
 
 from src.utils.i18n import t
 from src.version import __app_name__
@@ -214,3 +225,107 @@ class UIHelper:
         if dialog.exec() == QDialog.DialogCode.Accepted:
             return line_edit.text(), True
         return "", False
+
+    @staticmethod
+    def create_progress_dialog(
+        parent: QWidget,
+        message: str,
+        maximum: int = 100,
+        cancelable: bool = True,
+        title: str | None = None,
+    ) -> QProgressDialog:
+        """Create a standard progress dialog.
+
+        Args:
+            parent: Parent widget.
+            message: Progress message text.
+            maximum: Maximum progress value.
+            cancelable: Whether dialog can be cancelled.
+            title: Optional window title.
+
+        Returns:
+            Configured QProgressDialog.
+        """
+        dialog = QProgressDialog(
+            message,
+            t("common.cancel") if cancelable else "",
+            0,
+            maximum,
+            parent,
+        )
+        if title:
+            dialog.setWindowTitle(title)
+        dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        dialog.setMinimumDuration(0)
+        if not cancelable:
+            dialog.setCancelButton(None)
+        return dialog
+
+    @staticmethod
+    def show_choice(
+        parent: QWidget,
+        message: str,
+        title: str,
+        buttons: list[tuple[str, QMessageBox.ButtonRole]],
+        icon: QMessageBox.Icon = QMessageBox.Icon.Question,
+    ) -> int:
+        """Show dialog with custom buttons.
+
+        Args:
+            parent: Parent widget.
+            message: Dialog message text.
+            title: Window title.
+            buttons: List of (label, role) tuples.
+            icon: Dialog icon type.
+
+        Returns:
+            Index of clicked button (0-based).
+        """
+        msg = QMessageBox(parent)
+        msg.setIcon(icon)
+        msg.setWindowTitle(title)
+        msg.setText(message)
+        btn_objects = [msg.addButton(label, role) for label, role in buttons]
+        msg.exec()
+        clicked = msg.clickedButton()
+        return next((i for i, btn in enumerate(btn_objects) if btn == clicked), 0)
+
+    @staticmethod
+    def ask_save_file(
+        parent: QWidget,
+        title: str,
+        filters: str,
+        default_name: str = "",
+    ) -> str | None:
+        """Show standard save file dialog.
+
+        Args:
+            parent: Parent widget.
+            title: Dialog title.
+            filters: File type filters (e.g., "CSV Files (*.csv)").
+            default_name: Default filename.
+
+        Returns:
+            Selected file path, or None if cancelled.
+        """
+        path, _ = QFileDialog.getSaveFileName(parent, title, default_name, filters)
+        return path if path else None
+
+    @staticmethod
+    def ask_open_file(
+        parent: QWidget,
+        title: str,
+        filters: str,
+    ) -> str | None:
+        """Show standard open file dialog.
+
+        Args:
+            parent: Parent widget.
+            title: Dialog title.
+            filters: File type filters.
+
+        Returns:
+            Selected file path, or None if cancelled.
+        """
+        path, _ = QFileDialog.getOpenFileName(parent, title, "", filters)
+        return path if path else None

@@ -19,6 +19,7 @@ from datetime import datetime, timedelta
 
 import requests
 from bs4 import BeautifulSoup
+from src.utils.age_ratings import ESRB_TO_PEGI, USK_TO_PEGI
 from src.utils.i18n import t
 
 logger = logging.getLogger("steamlibmgr.steam_store")
@@ -363,8 +364,7 @@ class SteamStoreScraper:
             usk_elem = soup.find("img", alt=lambda x: x and "USK" in x)
             if usk_elem:
                 alt_text = str(usk_elem.get("alt", ""))
-                usk_to_pegi = {"18": "18", "16": "16", "12": "12", "6": "7", "0": "3"}
-                for usk_age, pegi_age in usk_to_pegi.items():
+                for usk_age, pegi_age in USK_TO_PEGI.items():
                     if usk_age in alt_text:
                         return pegi_age
 
@@ -419,23 +419,10 @@ class SteamStoreScraper:
             return age_map.get(rating)
 
         elif system == "esrb":
-            esrb_map = {
-                "AO": "18",
-                "Adults Only": "18",
-                "M": "18",
-                "Mature": "18",
-                "T": "16",
-                "Teen": "16",
-                "E10+": "12",
-                "Everyone 10+": "12",
-                "E": "3",
-                "Everyone": "3",
-            }
-            return esrb_map.get(rating)
+            return ESRB_TO_PEGI.get(rating.lower())
 
         elif system == "usk":
-            usk_map = {"18": "18", "16": "16", "12": "12", "6": "7", "0": "3"}
-            return usk_map.get(rating)
+            return USK_TO_PEGI.get(rating)
 
         return None
 

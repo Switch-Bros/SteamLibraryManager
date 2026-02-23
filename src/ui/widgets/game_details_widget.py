@@ -37,6 +37,7 @@ from src.ui.widgets.info_label import (
     set_info_label_value,
     update_hltb_label,
 )
+from src.utils.age_ratings import ESRB_TO_PEGI
 from src.utils.date_utils import format_timestamp_to_date
 from src.utils.i18n import t
 
@@ -389,16 +390,7 @@ class GameDetailsWidget(QWidget):
         if hasattr(game, "pegi_rating") and game.pegi_rating:
             pegi_to_display = str(game.pegi_rating).strip()
         elif hasattr(game, "esrb_rating") and game.esrb_rating:
-            esrb_to_pegi = {
-                "Everyone": "3",
-                "Everyone 10+": "7",
-                "Teen": "12",
-                "Mature": "18",
-                "Mature 17+": "18",
-                "Adults Only": "18",
-                "Adults Only 18+": "18",
-            }
-            pegi_to_display = esrb_to_pegi.get(game.esrb_rating, "")
+            pegi_to_display = ESRB_TO_PEGI.get(game.esrb_rating.lower(), "")
 
         if not pegi_to_display:
             from src.integrations.steam_store import SteamStoreScraper
