@@ -633,9 +633,17 @@ class MainWindow(QMainWindow):
             False always — never consume the event.
         """
         from PyQt6.QtCore import QEvent
-        from PyQt6.QtGui import QKeyEvent
+        from PyQt6.QtGui import QKeyEvent, QWindow
 
-        if event.type() == QEvent.Type.KeyPress and isinstance(event, QKeyEvent) and not event.isAutoRepeat():
+        # QApplication delivers each key event to every widget in the
+        # propagation chain.  Only count it once — when delivered to the
+        # platform QWindow (always first in the chain).
+        if (
+            isinstance(obj, QWindow)
+            and event.type() == QEvent.Type.KeyPress
+            and isinstance(event, QKeyEvent)
+            and not event.isAutoRepeat()
+        ):
             self._konami_buffer.append(int(event.key()))
             self._konami_timer.start()
             if len(self._konami_buffer) > 10:
