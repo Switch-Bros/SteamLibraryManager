@@ -129,6 +129,8 @@
     "error_no_method": "Bitte wähle mindestens eine Kategorisierungsmethode.",
     "estimate_minutes": "~{count} Minuten",
     "estimate_seconds": "~{count} Sekunden",
-    "estimate_instant": "Sofort"
+    "estimate_instant": "Sofort",
+    "select_all": "Alle auswählen",
+    "deselect_all": "Alle abwählen"
   }
 }
