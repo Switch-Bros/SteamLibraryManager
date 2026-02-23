@@ -414,6 +414,54 @@ class EnrichmentActions:
             force_refresh_callback=callback,
         )
 
+    def start_pegi_enrichment(self, force_refresh: bool = False) -> None:
+        """Starts PEGI age rating enrichment for games missing ratings.
+
+        Args:
+            force_refresh: If True, re-fetch all games.
+        """
+        from src.services.enrichment.pegi_enrichment_service import PEGIEnrichmentThread
+
+        # Check database
+        db = self._open_database()
+        if db is None:
+            return
+
+        if force_refresh:
+            games = db.get_all_game_ids()
+        else:
+            games = db.get_apps_without_pegi()
+        db.close()
+        if not games:
+            if UIHelper.show_batch_result(
+                self.mw,
+                t("ui.enrichment.no_games_pegi"),
+                t("ui.enrichment.complete_title"),
+            ) and UIHelper.confirm(
+                self.mw,
+                t("ui.enrichment.force_refresh_confirm"),
+                title=t("ui.enrichment.force_refresh_title"),
+            ):
+                self.start_pegi_enrichment(force_refresh=True)
+            return
+
+        # Create and launch thread
+        db_path = self._get_db_path()
+        language = "en"
+        if hasattr(self.mw, "_i18n") and self.mw._i18n:
+            language = self.mw._i18n.locale
+
+        thread = PEGIEnrichmentThread(self.mw)
+        thread.configure(games, db_path, language=language, force_refresh=force_refresh)
+        callback = None if force_refresh else lambda: self.start_pegi_enrichment(force_refresh=True)
+        self._run_enrichment(
+            thread,
+            title_key="ui.enrichment.pegi_title",
+            starting_key="ui.enrichment.pegi_starting",
+            total=len(games),
+            force_refresh_callback=callback,
+        )
+
     def start_tag_import(self) -> None:
         """Starts background import of tags from appinfo.vdf.
 
@@ -581,6 +629,7 @@ class EnrichmentActions:
             hltb_client=hltb_client,
             language=language,
             cache_dir=cache_dir,
+            games_pegi=all_db_games,
         )
 
         dialog.set_coordinator(coordinator)

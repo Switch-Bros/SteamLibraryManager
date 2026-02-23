@@ -510,6 +510,9 @@
       "protondb_title": "Fetching ProtonDB Ratings",
       "protondb_starting": "Starting ProtonDB enrichment...",
       "no_games_protondb": "All games already have ProtonDB ratings.",
+      "pegi_title": "Updating Age Ratings",
+      "pegi_starting": "Fetching age ratings from Steam...",
+      "no_games_pegi": "All games already have PEGI ratings.",
       "tag_list_loaded": "Tag list loaded ({count} tags).",
       "private_apps_found": "Found {count} private apps.",
       "force_refresh_button": "Force Refresh All",
@@ -520,7 +523,8 @@
       "enrich_all_steam": "Steam API (Metadata + Achievements)",
       "enrich_all_hltb": "HowLongToBeat",
       "enrich_all_protondb": "ProtonDB",
-      "enrich_all_deck": "Steam Deck Status"
+      "enrich_all_deck": "Steam Deck Status",
+      "enrich_all_pegi": "Age Ratings (PEGI)"
     },
     "tag_import": {
       "loading_appinfo": "Loading appinfo.vdf...",

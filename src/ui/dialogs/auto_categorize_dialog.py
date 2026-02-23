@@ -142,6 +142,7 @@ class AutoCategorizeDialog(QDialog):
         self.cb_language = QCheckBox(t("auto_categorize.by_language"))
         self.cb_deck_status = QCheckBox(t("auto_categorize.by_deck_status"))
         self.cb_achievements = QCheckBox(t("auto_categorize.by_achievements"))
+        self.cb_pegi = QCheckBox(t("auto_categorize.by_pegi"))
         self.cb_curator = QCheckBox(t("auto_categorize.by_curator"))
 
         checkboxes = [
@@ -160,6 +161,7 @@ class AutoCategorizeDialog(QDialog):
             self.cb_language,
             self.cb_deck_status,
             self.cb_achievements,
+            self.cb_pegi,
             self.cb_curator,
         ]
         cols = 3
@@ -272,6 +274,7 @@ class AutoCategorizeDialog(QDialog):
         self.cb_language.toggled.connect(self._update_estimate)
         self.cb_deck_status.toggled.connect(self._update_estimate)
         self.cb_achievements.toggled.connect(self._update_estimate)
+        self.cb_pegi.toggled.connect(self._update_estimate)
         self.cb_curator.toggled.connect(self._update_estimate)
         self.cb_curator.toggled.connect(self._on_curator_toggled)
         self.tags_count_spin.valueChanged.connect(self._update_estimate)
@@ -515,6 +518,7 @@ class AutoCategorizeDialog(QDialog):
             "language": self.cb_language,
             "deck_status": self.cb_deck_status,
             "achievements": self.cb_achievements,
+            "pegi": self.cb_pegi,
             "curator": self.cb_curator,
         }
 
@@ -636,6 +640,8 @@ class AutoCategorizeDialog(QDialog):
             methods.append("deck_status")
         if self.cb_achievements.isChecked():
             methods.append("achievements")
+        if self.cb_pegi.isChecked():
+            methods.append("pegi")
         if self.cb_curator.isChecked():
             methods.append("curator")
         return methods

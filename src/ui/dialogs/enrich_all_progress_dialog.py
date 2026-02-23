@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (
 from src.services.enrichment.enrich_all_coordinator import (
     TRACK_DECK,
     TRACK_HLTB,
+    TRACK_PEGI,
     TRACK_PROTONDB,
     TRACK_STEAM,
     TRACK_TAGS,
@@ -40,6 +41,7 @@ _TRACK_LABELS: list[tuple[str, str]] = [
     (TRACK_HLTB, "ui.enrichment.enrich_all_hltb"),
     (TRACK_PROTONDB, "ui.enrichment.enrich_all_protondb"),
     (TRACK_DECK, "ui.enrichment.enrich_all_deck"),
+    (TRACK_PEGI, "ui.enrichment.enrich_all_pegi"),
 ]
 
 

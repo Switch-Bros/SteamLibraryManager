@@ -14,6 +14,7 @@ __all__ = [
     "ALL_ACHIEVEMENT_KEYS",
     "ALL_DECK_KEYS",
     "ALL_LANGUAGE_KEYS",
+    "ALL_PEGI_KEYS",
     "ALL_PLATFORM_KEYS",
     "ALL_SORT_KEYS",
     "ALL_STATUS_KEYS",
@@ -56,6 +57,9 @@ ALL_DECK_KEYS: frozenset[str] = frozenset({"verified", "playable", "unsupported"
 
 # All known achievement filter keys
 ALL_ACHIEVEMENT_KEYS: frozenset[str] = frozenset({"perfect", "almost", "progress", "started", "none"})
+
+# All known PEGI age rating filter keys
+ALL_PEGI_KEYS: frozenset[str] = frozenset({"pegi_3", "pegi_7", "pegi_12", "pegi_16", "pegi_18", "pegi_none"})
 
 # All known language filter keys
 ALL_LANGUAGE_KEYS: frozenset[str] = frozenset(

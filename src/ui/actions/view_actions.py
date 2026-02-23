@@ -53,6 +53,8 @@ class ViewActions:
             fs.toggle_deck_status(key, checked)
         elif group == "achievement":
             fs.toggle_achievement_filter(key, checked)
+        elif group == "pegi":
+            fs.toggle_pegi_rating(key, checked)
 
         # Re-run search if active, otherwise repopulate full tree
         if self.main_window.current_search_query:

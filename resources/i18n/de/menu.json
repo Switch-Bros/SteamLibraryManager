@@ -117,6 +117,15 @@
         "started": "Gerade begonnen (<25%)",
         "none": "Keine Achievements"
       },
+      "pegi": {
+        "root": "Altersfreigabe",
+        "pegi_3": "PEGI 3 (Alle Altersgruppen)",
+        "pegi_7": "PEGI 7",
+        "pegi_12": "PEGI 12",
+        "pegi_16": "PEGI 16",
+        "pegi_18": "PEGI 18 (Nur Erwachsene)",
+        "pegi_none": "Kein Rating"
+      },
       "statistics": {
         "root": "Statistiken anzeigen",
         "overview": "Gesamtübersicht",
@@ -150,6 +159,8 @@
         "update_deck_force": "Deck-Status \u2014 Alle neu einlesen",
         "update_protondb": "ProtonDB Ratings aktualisieren",
         "update_protondb_force": "ProtonDB \u2014 Alle neu einlesen",
+        "update_pegi": "Altersfreigabe aktualisieren",
+        "update_pegi_force": "Altersfreigabe \u2014 Alle neu einlesen",
         "check_store": "Store-Seiten prüfen",
         "update_achievements": "Achievements aktualisieren",
         "update_achievements_force": "Achievements \u2014 Alle neu einlesen",
