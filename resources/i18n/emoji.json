@@ -87,6 +87,10 @@
     "gamecube": "🟤",
     "psp": "🔵",
     "msdos": "💾",
-    "controller": "🎮"
+    "controller": "🎮",
+    "check_mark": "✓",
+    "cross": "✗",
+    "ellipsis": "...",
+    "em_dash": "—"
   }
 }
