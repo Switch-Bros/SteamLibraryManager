@@ -159,6 +159,7 @@ class ExternalGamesDialog(BaseDialog):
         self._filter_combo.addItem(t("ui.external.filter_all"), "")
         self._filter_combo.currentIndexChanged.connect(self._on_filter_changed)
         self._filter_combo.setMinimumWidth(160)
+        self._filter_combo.setMaxVisibleItems(10)
         top_row.addWidget(self._filter_combo)
 
         layout.addLayout(top_row)
@@ -258,12 +259,12 @@ class ExternalGamesDialog(BaseDialog):
         """
         self._btn_scan.setEnabled(True)
 
-        # Flatten results
+        # Flatten results — use actual game platforms for the filter
+        # (RomParser creates per-system platforms like "Emulation (Nintendo Switch)")
         self._all_games.clear()
-        platforms: set[str] = set()
-        for platform, games in results.items():
-            platforms.add(platform)
+        for games in results.values():
             self._all_games.extend(games)
+        platforms = {g.platform for g in self._all_games}
 
         if not self._all_games:
             self._status_label.setText(t("ui.external.no_games"))
@@ -271,12 +272,26 @@ class ExternalGamesDialog(BaseDialog):
             self._btn_add_all.setEnabled(False)
             return
 
-        # Update filter combo
+        # Update filter combo — group emulation sub-platforms under one header
         self._filter_combo.blockSignals(True)
         self._filter_combo.clear()
         self._filter_combo.addItem(t("ui.external.filter_all"), "")
-        for plat in sorted(platforms):
+
+        emu_prefix = "Emulation ("
+        emu_platforms = sorted(p for p in platforms if p.startswith(emu_prefix))
+        other_platforms = sorted(p for p in platforms if not p.startswith(emu_prefix))
+
+        if emu_platforms:
+            # Group header — filters ALL emulation games
+            self._filter_combo.addItem("Emulation (ROMs)", "emulation_all")
+            # Sub-entries with indent
+            for plat in emu_platforms:
+                system = plat[len(emu_prefix) : -1]  # "Nintendo Switch"
+                self._filter_combo.addItem(f"    {system}", plat)
+
+        for plat in other_platforms:
             self._filter_combo.addItem(plat, plat)
+
         self._filter_combo.blockSignals(False)
 
         # Populate table
@@ -328,16 +343,22 @@ class ExternalGamesDialog(BaseDialog):
                 chk_item.setCheckState(Qt.CheckState.Checked)
                 self._table.setItem(row, self._COL_STATUS, chk_item)
 
+    def _get_filtered_games(self) -> list[ExternalGame]:
+        """Return games matching the current platform filter.
+
+        Returns:
+            Filtered game list (all games if no filter active).
+        """
+        platform_filter = self._filter_combo.currentData()
+        if not platform_filter:
+            return self._all_games
+        if platform_filter == "emulation_all":
+            return [g for g in self._all_games if g.platform.startswith("Emulation (")]
+        return [g for g in self._all_games if g.platform == platform_filter]
+
     def _on_filter_changed(self, _index: int) -> None:
         """Handles platform filter changes."""
-        platform_filter = self._filter_combo.currentData()
-
-        if not platform_filter:
-            filtered = self._all_games
-        else:
-            filtered = [g for g in self._all_games if g.platform == platform_filter]
-
-        self._populate_table(filtered)
+        self._populate_table(self._get_filtered_games())
 
     # ------------------------------------------------------------------
     # Adding games
@@ -350,12 +371,7 @@ class ExternalGamesDialog(BaseDialog):
             Games that are checked and not already in Steam.
         """
         selected: list[ExternalGame] = []
-        platform_filter = self._filter_combo.currentData()
-
-        if not platform_filter:
-            visible_games = self._all_games
-        else:
-            visible_games = [g for g in self._all_games if g.platform == platform_filter]
+        visible_games = self._get_filtered_games()
 
         for row in range(self._table.rowCount()):
             status_item = self._table.item(row, self._COL_STATUS)
@@ -503,12 +519,7 @@ class ExternalGamesDialog(BaseDialog):
             self._existing_names = self._service.get_existing_shortcuts()
 
         # Re-populate table to show updated status
-        platform_filter = self._filter_combo.currentData()
-        if not platform_filter:
-            self._populate_table(self._all_games)
-        else:
-            filtered = [g for g in self._all_games if g.platform == platform_filter]
-            self._populate_table(filtered)
+        self._populate_table(self._get_filtered_games())
 
         # Update status
         existing_count = sum(1 for g in self._all_games if g.name.lower() in self._existing_names)
