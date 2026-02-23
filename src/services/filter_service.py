@@ -11,81 +11,38 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from enum import Enum
 from typing import TYPE_CHECKING
+
+from src.services.filter_constants import (
+    ALL_ACHIEVEMENT_KEYS,
+    ALL_DECK_KEYS,
+    ALL_LANGUAGE_KEYS,
+    ALL_PLATFORM_KEYS,
+    ALL_SORT_KEYS,
+    ALL_STATUS_KEYS,
+    ALL_TYPE_KEYS,
+    SortKey,
+    TYPE_APP_TYPE_MAP,
+)
 
 if TYPE_CHECKING:
     from src.core.game import Game
 
 logger = logging.getLogger("steamlibmgr.filter_service")
 
-__all__ = ["ALL_ACHIEVEMENT_KEYS", "ALL_DECK_KEYS", "ALL_LANGUAGE_KEYS", "FilterService", "FilterState", "SortKey"]
-
-# Maps menu sort key strings to SortKey enum values
-ALL_SORT_KEYS: frozenset[str] = frozenset({"name", "playtime", "last_played", "release_date"})
-
-
-class SortKey(Enum):
-    """Available sort keys for the game list.
-
-    Attributes:
-        NAME: Sort alphabetically by display name (A-Z).
-        PLAYTIME: Sort by total playtime (descending).
-        LAST_PLAYED: Sort by last played date (most recent first).
-        RELEASE_DATE: Sort by release year (newest first).
-    """
-
-    NAME = "name"
-    PLAYTIME = "playtime"
-    LAST_PLAYED = "last_played"
-    RELEASE_DATE = "release_date"
-
-
-# All known type keys with their matching app_type values
-ALL_TYPE_KEYS: frozenset[str] = frozenset({"games", "soundtracks", "software", "videos", "dlcs", "tools"})
-
-# All known platform keys
-ALL_PLATFORM_KEYS: frozenset[str] = frozenset({"linux", "windows", "steamos"})
-
-# All known status keys
-ALL_STATUS_KEYS: frozenset[str] = frozenset({"installed", "not_installed", "hidden", "with_playtime", "favorites"})
-
-# All known Steam Deck compatibility filter keys
-ALL_DECK_KEYS: frozenset[str] = frozenset({"verified", "playable", "unsupported", "unknown"})
-
-# All known achievement filter keys
-ALL_ACHIEVEMENT_KEYS: frozenset[str] = frozenset({"perfect", "almost", "progress", "started", "none"})
-
-# All known language filter keys
-ALL_LANGUAGE_KEYS: frozenset[str] = frozenset(
-    {
-        "english",
-        "german",
-        "french",
-        "spanish",
-        "italian",
-        "portuguese",
-        "russian",
-        "polish",
-        "japanese",
-        "chinese_simplified",
-        "chinese_traditional",
-        "korean",
-        "dutch",
-        "swedish",
-        "turkish",
-    }
-)
-
-# Maps menu type keys to the app_type values they accept
-_TYPE_APP_TYPE_MAP: dict[str, frozenset[str]] = {
-    "games": frozenset({"game", ""}),
-    "soundtracks": frozenset({"music"}),
-    "software": frozenset({"application"}),
-    "videos": frozenset({"video"}),
-    "dlcs": frozenset({"dlc"}),
-    "tools": frozenset({"tool"}),
-}
+__all__ = [
+    "ALL_ACHIEVEMENT_KEYS",
+    "ALL_DECK_KEYS",
+    "ALL_LANGUAGE_KEYS",
+    "ALL_PLATFORM_KEYS",
+    "ALL_SORT_KEYS",
+    "ALL_STATUS_KEYS",
+    "ALL_TYPE_KEYS",
+    "FilterService",
+    "FilterState",
+    "SortKey",
+    "TYPE_APP_TYPE_MAP",
+]
 
 
 @dataclass(frozen=True)
@@ -385,7 +342,7 @@ class FilterService:
 
         app_type = game.app_type.lower() if game.app_type else ""
         for type_key in self._enabled_types:
-            accepted_types = _TYPE_APP_TYPE_MAP.get(type_key, frozenset())
+            accepted_types = TYPE_APP_TYPE_MAP.get(type_key, frozenset())
             if app_type in accepted_types:
                 return True
         return False
