@@ -15,7 +15,7 @@ from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtGui import QAction, QActionGroup, QDesktopServices, QKeySequence
 from PyQt6.QtWidgets import QMenuBar, QLabel
 
-from src.utils.i18n import t
+from src.utils.i18n import get_language, t
 
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
@@ -551,11 +551,20 @@ class MenuBuilder:
 
         # --- Documentation submenu ---
         docs_menu = help_menu.addMenu(t("menu.help.docs.root"))
-        for key in ("manual", "tips", "shortcuts"):
+        docs_map = {
+            "manual": "USER_MANUAL.md",
+            "tips": "TIPS_AND_TRICKS.md",
+            "shortcuts": "KEYBOARD_SHORTCUTS.md",
+            "faq": "FAQ.md",
+        }
+        docs_base = f"{_GITHUB_URL}/blob/main/docs"
+        for key in ("manual", "tips", "shortcuts", "faq"):
             action = QAction(t(f"menu.help.docs.{key}"), mw)
             if key == "manual":
                 action.setShortcut(QKeySequence("F1"))
-            action.triggered.connect(lambda checked, k=f"menu.help.docs.{key}": self._not_implemented(k))
+            action.triggered.connect(
+                lambda checked, k=key: self._open_url(f"{docs_base}/{get_language()}/{docs_map[k]}")
+            )
             docs_menu.addAction(action)
 
         # --- Online submenu ---

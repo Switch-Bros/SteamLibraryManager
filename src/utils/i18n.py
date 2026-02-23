@@ -13,7 +13,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-__all__ = ["I18n", "init_i18n", "t"]
+__all__ = ["I18n", "get_language", "init_i18n", "t"]
 
 logger = logging.getLogger("steamlibmgr.i18n")
 
@@ -176,6 +176,17 @@ def init_i18n(locale: str = "en") -> I18n:
     global _i18n_instance
     _i18n_instance = I18n(locale)
     return _i18n_instance
+
+
+def get_language() -> str:
+    """Return the current locale code of the global i18n instance.
+
+    Returns:
+        The active locale code (e.g. 'en', 'de').
+    """
+    if _i18n_instance is None:
+        init_i18n()
+    return _i18n_instance.locale
 
 
 def t(key: str, **kwargs: Any) -> str:
