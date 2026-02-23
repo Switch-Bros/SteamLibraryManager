@@ -182,7 +182,7 @@ class TestParseItemExtended:
 class TestFetchTagList:
     """Tests for SteamWebAPI.fetch_tag_list()."""
 
-    @patch("src.integrations.steam_web_api.requests.get")
+    @patch("src.integrations.steam_api_endpoints.requests.get")
     def test_success(self, mock_get: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -201,7 +201,7 @@ class TestFetchTagList:
 
         assert result == {19: "Action", 21: "Adventure"}
 
-    @patch("src.integrations.steam_web_api.requests.get")
+    @patch("src.integrations.steam_api_endpoints.requests.get")
     def test_empty(self, mock_get: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -213,7 +213,7 @@ class TestFetchTagList:
 
         assert result == {}
 
-    @patch("src.integrations.steam_web_api.requests.get")
+    @patch("src.integrations.steam_api_endpoints.requests.get")
     def test_network_error(self, mock_get: MagicMock) -> None:
         import requests
 
@@ -233,7 +233,7 @@ class TestFetchTagList:
 class TestFetchLocalizedTagNames:
     """Tests for SteamWebAPI.fetch_localized_tag_names()."""
 
-    @patch("src.integrations.steam_web_api.requests.get")
+    @patch("src.integrations.steam_api_endpoints.requests.get")
     def test_success(self, mock_get: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -266,7 +266,7 @@ class TestFetchLocalizedTagNames:
 class TestFetchAchievementsProgress:
     """Tests for SteamWebAPI.fetch_achievements_progress()."""
 
-    @patch("src.integrations.steam_web_api.requests.get")
+    @patch("src.integrations.steam_api_endpoints.requests.get")
     def test_batch_success(self, mock_get: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -288,7 +288,7 @@ class TestFetchAchievementsProgress:
         assert result[730]["total"] == 50
         assert 570 in result
 
-    @patch("src.integrations.steam_web_api.requests.get")
+    @patch("src.integrations.steam_api_endpoints.requests.get")
     def test_404_returns_empty(self, mock_get: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.status_code = 404
@@ -308,7 +308,7 @@ class TestFetchAchievementsProgress:
 class TestFetchDlcForApps:
     """Tests for SteamWebAPI.fetch_dlc_for_apps()."""
 
-    @patch("src.integrations.steam_web_api.requests.get")
+    @patch("src.integrations.steam_api_endpoints.requests.get")
     def test_success(self, mock_get: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -330,7 +330,7 @@ class TestFetchDlcForApps:
         assert 730 in result
         assert result[730] == [1001, 1002]
 
-    @patch("src.integrations.steam_web_api.requests.get")
+    @patch("src.integrations.steam_api_endpoints.requests.get")
     def test_empty_dlc(self, mock_get: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -351,7 +351,7 @@ class TestFetchDlcForApps:
 class TestFetchPrivateAppList:
     """Tests for SteamWebAPI.fetch_private_app_list()."""
 
-    @patch("src.integrations.steam_web_api.requests.get")
+    @patch("src.integrations.steam_api_endpoints.requests.get")
     def test_success(self, mock_get: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -363,7 +363,7 @@ class TestFetchPrivateAppList:
 
         assert result == [100, 200]
 
-    @patch("src.integrations.steam_web_api.requests.get")
+    @patch("src.integrations.steam_api_endpoints.requests.get")
     def test_empty(self, mock_get: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -375,7 +375,7 @@ class TestFetchPrivateAppList:
 
         assert result == []
 
-    @patch("src.integrations.steam_web_api.requests.get")
+    @patch("src.integrations.steam_api_endpoints.requests.get")
     def test_auth_error(self, mock_get: MagicMock) -> None:
         import requests as req
 
@@ -398,7 +398,7 @@ class TestFetchPrivateAppList:
 class TestToggleAppPrivacy:
     """Tests for SteamWebAPI.toggle_app_privacy()."""
 
-    @patch("src.integrations.steam_web_api.requests.post")
+    @patch("src.integrations.steam_api_endpoints.requests.post")
     def test_success(self, mock_post: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -409,7 +409,7 @@ class TestToggleAppPrivacy:
 
         assert result is True
 
-    @patch("src.integrations.steam_web_api.requests.post")
+    @patch("src.integrations.steam_api_endpoints.requests.post")
     def test_failure(self, mock_post: MagicMock) -> None:
         import requests as req
 
@@ -432,7 +432,7 @@ class TestToggleAppPrivacy:
 class TestFetchClientAppList:
     """Tests for SteamWebAPI.fetch_client_app_list()."""
 
-    @patch("src.integrations.steam_web_api.requests.get")
+    @patch("src.integrations.steam_api_endpoints.requests.get")
     def test_success(self, mock_get: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -452,7 +452,7 @@ class TestFetchClientAppList:
         assert len(result) == 2
         assert result[0]["appid"] == 730
 
-    @patch("src.integrations.steam_web_api.requests.get")
+    @patch("src.integrations.steam_api_endpoints.requests.get")
     def test_steam_not_running(self, mock_get: MagicMock) -> None:
         import requests as req
 
@@ -475,7 +475,7 @@ class TestFetchClientAppList:
 class TestFetchWishlist:
     """Tests for SteamWebAPI.fetch_wishlist()."""
 
-    @patch("src.integrations.steam_web_api.requests.get")
+    @patch("src.integrations.steam_api_endpoints.requests.get")
     def test_success(self, mock_get: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -495,7 +495,7 @@ class TestFetchWishlist:
         assert len(result) == 2
         assert result[0]["appid"] == 100
 
-    @patch("src.integrations.steam_web_api.requests.get")
+    @patch("src.integrations.steam_api_endpoints.requests.get")
     def test_empty_wishlist(self, mock_get: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
@@ -516,7 +516,7 @@ class TestFetchWishlist:
 class TestFetchPopularTags:
     """Tests for SteamWebAPI.fetch_popular_tags()."""
 
-    @patch("src.integrations.steam_web_api.requests.get")
+    @patch("src.integrations.steam_api_endpoints.requests.get")
     def test_success(self, mock_get: MagicMock) -> None:
         mock_resp = MagicMock()
         mock_resp.status_code = 200

@@ -6,12 +6,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.integrations.hltb_api import (
-    HLTBClient,
-    HLTBResult,
-    _levenshtein,
-    _normalize_for_compare,
-    _simplify_name,
+from src.integrations.hltb_api import HLTBClient, HLTBResult
+from src.integrations.hltb_models import (
+    find_best_match,
+    levenshtein,
+    normalize_for_compare,
+    normalize_name,
+    simplify_name,
 )
 
 
@@ -64,162 +65,162 @@ class TestHLTBResult:
 
 
 class TestNormalizeName:
-    """Tests for the _normalize_name static method."""
+    """Tests for the normalize_name free function."""
 
     def test_normalize_name_strips_trademark(self) -> None:
         """Trademark and registered symbols are removed."""
-        assert HLTBClient._normalize_name("Fallout\u2122") == "Fallout"
-        assert HLTBClient._normalize_name("Skyrim\u00ae") == "Skyrim"
+        assert normalize_name("Fallout\u2122") == "Fallout"
+        assert normalize_name("Skyrim\u00ae") == "Skyrim"
 
     def test_normalize_name_preserves_edition_suffix(self) -> None:
         """Edition suffixes are preserved (stripped later as fallback)."""
-        assert HLTBClient._normalize_name("Game - Deluxe Edition") == "Game - Deluxe Edition"
-        assert HLTBClient._normalize_name("Game - GOTY Edition Pack") == "Game - GOTY Edition Pack"
+        assert normalize_name("Game - Deluxe Edition") == "Game - Deluxe Edition"
+        assert normalize_name("Game - GOTY Edition Pack") == "Game - GOTY Edition Pack"
 
     def test_normalize_name_strips_copyright(self) -> None:
         """Copyright symbol is removed."""
-        assert HLTBClient._normalize_name("Game\u00a9") == "Game"
+        assert normalize_name("Game\u00a9") == "Game"
 
     def test_normalize_name_strips_text_symbols(self) -> None:
         """Text-form symbols like (TM) and (R) are removed."""
-        assert HLTBClient._normalize_name("Game(TM)") == "Game"
-        assert HLTBClient._normalize_name("Game(R)") == "Game"
+        assert normalize_name("Game(TM)") == "Game"
+        assert normalize_name("Game(R)") == "Game"
 
     def test_normalize_name_adds_space_for_symbols(self) -> None:
         """Symbols replaced with space to keep word boundaries."""
-        assert HLTBClient._normalize_name("Velocity\u00aeUltra") == "Velocity Ultra"
+        assert normalize_name("Velocity\u00aeUltra") == "Velocity Ultra"
 
     def test_normalize_name_strips_year_tags(self) -> None:
         """Year tags like (2003) are removed."""
-        assert HLTBClient._normalize_name("Broken Sword 3 (2003)") == "Broken Sword 3"
-        assert HLTBClient._normalize_name("Tomb Raider IV (1999)") == "Tomb Raider IV"
+        assert normalize_name("Broken Sword 3 (2003)") == "Broken Sword 3"
+        assert normalize_name("Tomb Raider IV (1999)") == "Tomb Raider IV"
 
     def test_normalize_name_strips_classic_tag(self) -> None:
         """(Classic) parenthetical is removed."""
-        assert HLTBClient._normalize_name("Mafia II (Classic)") == "Mafia II"
+        assert normalize_name("Mafia II (Classic)") == "Mafia II"
 
     def test_normalize_name_superscript_digits(self) -> None:
         """Superscript digits are normalized to regular digits."""
-        assert HLTBClient._normalize_name("TrackMania\u00b2 Stadium") == "TrackMania2 Stadium"
+        assert normalize_name("TrackMania\u00b2 Stadium") == "TrackMania2 Stadium"
 
     def test_normalize_name_backtick_to_apostrophe(self) -> None:
         """Backtick is normalized to apostrophe."""
-        assert HLTBClient._normalize_name("The Siren`s Call") == "The Siren's Call"
+        assert normalize_name("The Siren`s Call") == "The Siren's Call"
 
     def test_normalize_name_strips_infinity_symbol(self) -> None:
         """Infinity symbols are stripped."""
-        assert HLTBClient._normalize_name("Skullgirls \u221eEndless Beta\u221e") == "Skullgirls Endless Beta"
+        assert normalize_name("Skullgirls \u221eEndless Beta\u221e") == "Skullgirls Endless Beta"
 
     def test_normalize_name_preserves_numbers(self) -> None:
         """Numbers in game names are preserved."""
-        assert HLTBClient._normalize_name("Half-Life 2") == "Half-Life 2"
-        assert HLTBClient._normalize_name("Portal 2") == "Portal 2"
+        assert normalize_name("Half-Life 2") == "Half-Life 2"
+        assert normalize_name("Portal 2") == "Portal 2"
 
     def test_normalize_name_empty_input(self) -> None:
         """Empty string returns empty string."""
-        assert HLTBClient._normalize_name("") == ""
+        assert normalize_name("") == ""
 
 
 class TestNormalizeForCompare:
-    """Tests for the _normalize_for_compare function."""
+    """Tests for the normalize_for_compare function."""
 
     def test_strips_accents(self) -> None:
         """Accented characters are stripped to base form."""
-        assert _normalize_for_compare("Café") == "cafe"
+        assert normalize_for_compare("Café") == "cafe"
 
     def test_lowercases(self) -> None:
         """Names are lowercased."""
-        assert _normalize_for_compare("PORTAL 2") == "portal 2"
+        assert normalize_for_compare("PORTAL 2") == "portal 2"
 
     def test_strips_special_chars(self) -> None:
         """Special characters (TM, etc.) are removed."""
-        assert _normalize_for_compare("Fallout\u2122") == "fallout"
+        assert normalize_for_compare("Fallout\u2122") == "fallout"
 
 
 class TestLevenshtein:
-    """Tests for the _levenshtein distance function."""
+    """Tests for the levenshtein distance function."""
 
     def test_identical_strings(self) -> None:
         """Identical strings have distance 0."""
-        assert _levenshtein("portal", "portal") == 0
+        assert levenshtein("portal", "portal") == 0
 
     def test_empty_strings(self) -> None:
         """Empty vs non-empty string has distance equal to length."""
-        assert _levenshtein("", "abc") == 3
-        assert _levenshtein("abc", "") == 3
+        assert levenshtein("", "abc") == 3
+        assert levenshtein("abc", "") == 3
 
     def test_single_edit(self) -> None:
         """Strings differing by one character have distance 1."""
-        assert _levenshtein("cat", "bat") == 1
-        assert _levenshtein("cat", "cats") == 1
+        assert levenshtein("cat", "bat") == 1
+        assert levenshtein("cat", "cats") == 1
 
     def test_different_strings(self) -> None:
         """Completely different strings have high distance."""
-        assert _levenshtein("abc", "xyz") == 3
+        assert levenshtein("abc", "xyz") == 3
 
     def test_case_sensitive(self) -> None:
         """Distance is case-sensitive."""
-        assert _levenshtein("ABC", "abc") == 3
+        assert levenshtein("ABC", "abc") == 3
 
 
 class TestSimplifyName:
-    """Tests for the _simplify_name function."""
+    """Tests for the simplify_name function."""
 
     def test_strips_deluxe_edition(self) -> None:
         """Strips '- Deluxe Edition' and similar suffixes."""
-        assert _simplify_name("Game - Deluxe Edition") == "Game"
+        assert simplify_name("Game - Deluxe Edition") == "Game"
 
     def test_strips_goty(self) -> None:
         """Strips '- Game of the Year Edition'."""
-        assert _simplify_name("Game - Game of the Year Edition") == "Game"
+        assert simplify_name("Game - Game of the Year Edition") == "Game"
 
     def test_strips_directors_cut(self) -> None:
         """Strips '- Director's Cut'."""
-        assert _simplify_name("Game - Director's Cut") == "Game"
+        assert simplify_name("Game - Director's Cut") == "Game"
 
     def test_strips_remastered(self) -> None:
         """Strips ': Remastered' with colon separator."""
-        assert _simplify_name("Game: Remastered") == "Game"
+        assert simplify_name("Game: Remastered") == "Game"
 
     def test_preserves_name_without_edition(self) -> None:
         """Names without edition suffixes are not altered."""
-        assert _simplify_name("Half-Life 2") == "Half-Life 2"
+        assert simplify_name("Half-Life 2") == "Half-Life 2"
 
     def test_strips_with_em_dash(self) -> None:
         """Strips edition suffixes with em dash separator."""
-        assert _simplify_name("Game\u2014Complete Edition") == "Game"
+        assert simplify_name("Game\u2014Complete Edition") == "Game"
 
     def test_strips_year_tag(self) -> None:
         """Strips year tags in parentheses."""
-        assert _simplify_name("Game (2013)") == "Game"
+        assert simplify_name("Game (2013)") == "Game"
 
     def test_strips_anniversary_edition(self) -> None:
         """Strips numbered anniversary editions."""
-        assert _simplify_name("Game 25th Anniversary Edition") == "Game"
+        assert simplify_name("Game 25th Anniversary Edition") == "Game"
 
     def test_strips_classic(self) -> None:
         """Strips 'Classic' suffix."""
-        assert _simplify_name("Artifact Classic") == "Artifact"
+        assert simplify_name("Artifact Classic") == "Artifact"
 
     def test_strips_stacked_suffixes(self) -> None:
         """Handles stacked suffixes via iterative stripping."""
-        assert _simplify_name("Game - Enhanced Edition - Director's Cut") == "Game"
+        assert simplify_name("Game - Enhanced Edition - Director's Cut") == "Game"
 
     def test_strips_legacy_edition(self) -> None:
         """Strips '- Legacy Edition'."""
-        assert _simplify_name("Company of Heroes - Legacy Edition") == "Company of Heroes"
+        assert simplify_name("Company of Heroes - Legacy Edition") == "Company of Heroes"
 
     def test_strips_online_suffix(self) -> None:
         """Strips 'Online' suffix."""
-        assert _simplify_name("Game Online") == "Game"
+        assert simplify_name("Game Online") == "Game"
 
     def test_strips_season(self) -> None:
         """Strips 'Season N' suffix."""
-        assert _simplify_name("Game - Season 2") == "Game"
+        assert simplify_name("Game - Season 2") == "Game"
 
     def test_strips_hd(self) -> None:
         """Strips 'HD' suffix."""
-        assert _simplify_name("Game HD") == "Game"
+        assert simplify_name("Game HD") == "Game"
 
 
 class TestSearchGame:
@@ -393,18 +394,18 @@ class TestFindBestMatch:
             _make_hltb_entry("Team Fortress Classic"),
             _make_hltb_entry("Team Fortress 2"),
         ]
-        match, distance = HLTBClient._find_best_match(results, "Team Fortress 2")
+        match, distance = find_best_match(results, "Team Fortress 2")
         assert match is not None
         assert match["game_name"] == "Team Fortress 2"
         assert distance == 0
 
-    def test_returns_closest_levenshtein_match(self) -> None:
+    def test_returns_closestlevenshtein_match(self) -> None:
         """Returns result with smallest Levenshtein distance."""
         results = [
             _make_hltb_entry("ZZZZZZZZZZ"),
             _make_hltb_entry("Portal 3"),
         ]
-        match, distance = HLTBClient._find_best_match(results, "Portal 2")
+        match, distance = find_best_match(results, "Portal 2")
         assert match is not None
         assert match["game_name"] == "Portal 3"
         assert distance == 1
