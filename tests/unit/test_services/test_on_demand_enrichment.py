@@ -3,7 +3,8 @@
 """Tests for on-demand enrichment in GameDetailService.
 
 Covers needs_enrichment(), _fetch_hltb_data(), _fetch_achievement_data()
-with mocked APIs to avoid real network calls.
+with mocked APIs to avoid real network calls. Also tests enricher
+apply functions from game_detail_enrichers.
 """
 
 from __future__ import annotations
@@ -15,6 +16,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from src.core.game import Game
+from src.services.game_detail_enrichers import (
+    apply_achievement_data,
+    apply_hltb_data,
+)
 from src.services.game_detail_service import GameDetailService
 
 # ---------------------------------------------------------------------------
@@ -180,7 +185,7 @@ class TestFetchHltbData:
         assert games["100"].hltb_main_story == 0.0
         assert "100" in service._hltb_checked
 
-    @patch("src.services.game_detail_service.GameDetailService._persist_hltb")
+    @patch("src.services.game_detail_service.persist_hltb")
     def test_fetches_from_api(self, mock_persist: MagicMock, service: GameDetailService, games: dict) -> None:
         """Fetches from HLTB API when no cache exists."""
         mock_result = MagicMock()
@@ -201,7 +206,7 @@ class TestFetchHltbData:
         mock_persist.assert_called_once_with(100, 10.0, 15.0, 20.0)
         assert "100" in service._hltb_checked
 
-    @patch("src.services.game_detail_service.GameDetailService._persist_hltb")
+    @patch("src.services.game_detail_service.persist_hltb")
     def test_api_no_match(
         self, mock_persist: MagicMock, service: GameDetailService, games: dict, cache_dir: Path
     ) -> None:
@@ -301,8 +306,8 @@ class TestFetchAchievementData:
         assert games["100"].achievement_total == 0
         assert "100" in service._achievements_checked
 
-    @patch("src.services.game_detail_service.GameDetailService._persist_achievements")
-    @patch("src.services.game_detail_service.GameDetailService._persist_achievement_stats")
+    @patch("src.services.game_detail_service.persist_achievements")
+    @patch("src.services.game_detail_service.persist_achievement_stats")
     def test_fetches_from_api_with_achievements(
         self,
         mock_persist_stats: MagicMock,
@@ -345,7 +350,7 @@ class TestFetchAchievementData:
         mock_persist_records.assert_called_once()
         assert "100" in service._achievements_checked
 
-    @patch("src.services.game_detail_service.GameDetailService._persist_achievement_stats")
+    @patch("src.services.game_detail_service.persist_achievement_stats")
     def test_fetches_no_achievements(
         self,
         mock_persist_stats: MagicMock,
@@ -409,44 +414,51 @@ class TestFetchAchievementData:
 
 
 # ---------------------------------------------------------------------------
-# _apply helpers
+# Apply helper functions (enrichers)
 # ---------------------------------------------------------------------------
 
 
 class TestApplyHelpers:
-    """Tests for _apply_hltb_data and _apply_achievement_data."""
+    """Tests for apply_hltb_data and apply_achievement_data enricher functions."""
 
-    def test_apply_hltb_data(self, service: GameDetailService, games: dict) -> None:
+    def test_apply_hltb_data(self) -> None:
         """Applies HLTB data to game object."""
+        game = Game(app_id="100", name="Test Game")
         data = {"main_story": 8.5, "main_extras": 12.0, "completionist": 20.0}
-        service._apply_hltb_data("100", data)
-        assert games["100"].hltb_main_story == 8.5
-        assert games["100"].hltb_main_extras == 12.0
-        assert games["100"].hltb_completionist == 20.0
+        apply_hltb_data(game, data)
+        assert game.hltb_main_story == 8.5
+        assert game.hltb_main_extras == 12.0
+        assert game.hltb_completionist == 20.0
 
-    def test_apply_hltb_no_data(self, service: GameDetailService, games: dict) -> None:
+    def test_apply_hltb_no_data(self) -> None:
         """Does not modify game when data has no_data flag."""
+        game = Game(app_id="100", name="Test Game")
         data = {"no_data": True}
-        service._apply_hltb_data("100", data)
-        assert games["100"].hltb_main_story == 0.0
+        apply_hltb_data(game, data)
+        assert game.hltb_main_story == 0.0
 
-    def test_apply_achievement_data(self, service: GameDetailService, games: dict) -> None:
+    def test_apply_achievement_data(self) -> None:
         """Applies achievement data to game object."""
+        game = Game(app_id="100", name="Test Game")
         data = {"total": 40, "unlocked": 20, "percentage": 50.0, "perfect": False}
-        service._apply_achievement_data("100", data)
-        assert games["100"].achievement_total == 40
-        assert games["100"].achievement_unlocked == 20
-        assert games["100"].achievement_percentage == 50.0
-        assert games["100"].achievement_perfect is False
+        apply_achievement_data(game, data)
+        assert game.achievement_total == 40
+        assert game.achievement_unlocked == 20
+        assert game.achievement_percentage == 50.0
+        assert game.achievement_perfect is False
 
-    def test_apply_achievement_perfect(self, service: GameDetailService, games: dict) -> None:
+    def test_apply_achievement_perfect(self) -> None:
         """Applies perfect game achievement data."""
+        game = Game(app_id="100", name="Test Game")
         data = {"total": 10, "unlocked": 10, "percentage": 100.0, "perfect": True}
-        service._apply_achievement_data("100", data)
-        assert games["100"].achievement_total == 10
-        assert games["100"].achievement_perfect is True
+        apply_achievement_data(game, data)
+        assert game.achievement_total == 10
+        assert game.achievement_perfect is True
 
-    def test_apply_to_unknown_app_id(self, service: GameDetailService) -> None:
-        """Gracefully handles unknown app_id."""
-        service._apply_hltb_data("999", {"main_story": 5.0})
-        service._apply_achievement_data("999", {"total": 10})
+    def test_enricher_functions_work_standalone(self) -> None:
+        """Enricher functions can be called directly without service."""
+        game = Game(app_id="999", name="Test")
+        apply_hltb_data(game, {"main_story": 5.0})
+        assert game.hltb_main_story == 5.0
+        apply_achievement_data(game, {"total": 10})
+        assert game.achievement_total == 10
