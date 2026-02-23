@@ -171,6 +171,19 @@ class MainWindow(QMainWindow):
         self._register_shortcuts()
         self.show()
 
+        # Konami buffer timeout — clears half-typed sequences after 3 seconds
+        self._konami_timer = QTimer(self)
+        self._konami_timer.setSingleShot(True)
+        self._konami_timer.setInterval(3000)
+        self._konami_timer.timeout.connect(self._konami_buffer.clear)
+
+        # Application-wide event filter for easter egg detection
+        from PyQt6.QtWidgets import QApplication
+
+        app = QApplication.instance()
+        if app:
+            app.installEventFilter(self)
+
         # Non-blocking startup via BootstrapService
         self._init_bootstrap_service()
 
@@ -368,6 +381,12 @@ class MainWindow(QMainWindow):
         Args:
             event: The close event from Qt.
         """
+        from PyQt6.QtWidgets import QApplication
+
+        app = QApplication.instance()
+        if app:
+            app.removeEventFilter(self)
+
         parser = self._get_active_parser()
         has_collection_changes = parser is not None and parser.modified
         has_metadata_changes = self.appinfo_manager is not None and self.appinfo_manager.vdf_dirty
@@ -595,24 +614,41 @@ class MainWindow(QMainWindow):
             ),
         )
 
-    def keyPressEvent(self, event) -> None:
-        """Handles key press events for shortcuts and easter eggs.
+    def eventFilter(self, obj, event) -> bool:
+        """Application-wide event filter for Konami code detection.
 
-        Supports layered ESC behavior, Konami code easter egg,
-        and additional keyboard shortcuts for power users.
+        Observes all key press events regardless of which widget has
+        focus.  Does NOT consume events — all keys still reach their
+        target widgets normally.  Buffer auto-clears after 3 seconds
+        of inactivity to prevent stale partial sequences.
+
+        Args:
+            obj: The object that received the event.
+            event: The event to filter.
+
+        Returns:
+            False always — never consume the event.
+        """
+        if event.type() == event.Type.KeyPress:
+            self._konami_buffer.append(event.key())
+            self._konami_timer.start()
+            if len(self._konami_buffer) > 10:
+                self._konami_buffer = self._konami_buffer[-10:]
+            if self._konami_buffer == self._konami_sequence:
+                self._konami_buffer.clear()
+                self._konami_timer.stop()
+                self._show_switchbros_easter_egg()
+        return super().eventFilter(obj, event)
+
+    def keyPressEvent(self, event) -> None:
+        """Handles key press events for shortcuts.
+
+        Supports layered ESC behavior and additional keyboard
+        shortcuts for power users.
 
         Args:
             event: The key press event.
         """
-        # --- Konami Code tracking ---
-        self._konami_buffer.append(event.key())
-        if len(self._konami_buffer) > 10:
-            self._konami_buffer = self._konami_buffer[-10:]
-        if self._konami_buffer == self._konami_sequence:
-            self._konami_buffer.clear()
-            self._show_switchbros_easter_egg()
-            return
-
         key = event.key()
 
         # ESC: Layered behavior (search → selection → nothing)
