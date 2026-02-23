@@ -1,10 +1,11 @@
 # tests/unit/test_services/test_game_detail_service.py
 
-"""Tests for GameDetailService."""
+"""Tests for GameDetailService and enricher functions."""
 
 from unittest.mock import patch
 
 from src.core.game import Game
+from src.services.game_detail_enrichers import apply_review_data, apply_store_data
 from src.services.game_detail_service import GameDetailService
 
 
@@ -35,12 +36,14 @@ class TestFetchGameDetails:
         service = GameDetailService(games, tmp_path)
         assert service.fetch_game_details("999") is False
 
+    @patch("src.services.game_detail_enrichers.requests.get")
     @patch("src.services.game_detail_service.requests.get")
-    def test_returns_true_for_existing_game(self, mock_get, tmp_path):
+    def test_returns_true_for_existing_game(self, mock_svc_get, mock_enr_get, tmp_path):
         """Test that fetching details for known app_id returns True."""
         import requests as req_mod
 
-        mock_get.side_effect = req_mod.RequestException("No network in tests")
+        mock_svc_get.side_effect = req_mod.RequestException("No network in tests")
+        mock_enr_get.side_effect = req_mod.RequestException("No network in tests")
         games = {"440": Game(app_id="440", name="TF2")}
         service = GameDetailService(games, tmp_path)
         # Returns True because the game exists; individual fetches swallow exceptions
@@ -48,13 +51,11 @@ class TestFetchGameDetails:
 
 
 class TestApplyStoreData:
-    """Tests for _apply_store_data."""
+    """Tests for apply_store_data enricher function."""
 
-    def test_applies_developer_and_publisher(self, tmp_path):
+    def test_applies_developer_and_publisher(self):
         """Test that store data is correctly applied to a game."""
         game = Game(app_id="440", name="TF2")
-        games = {"440": game}
-        service = GameDetailService(games, tmp_path)
 
         store_data = {
             "developers": ["Valve"],
@@ -63,7 +64,7 @@ class TestApplyStoreData:
             "genres": [{"description": "Action"}, {"description": "Free to Play"}],
             "categories": [{"description": "Multi-player"}],
         }
-        service._apply_store_data("440", store_data)
+        apply_store_data(game, store_data)
 
         assert game.developer == "Valve"
         assert game.publisher == "Valve"
@@ -71,38 +72,32 @@ class TestApplyStoreData:
         assert "Action" in game.genres
         assert "Multi-player" in game.tags
 
-    def test_skips_developer_when_name_overridden(self, tmp_path):
+    def test_skips_developer_when_name_overridden(self):
         """Test that developer is not overwritten when name is overridden."""
         game = Game(app_id="440", name="TF2", developer="Custom Dev")
         game.name_overridden = True
-        games = {"440": game}
-        service = GameDetailService(games, tmp_path)
 
         store_data = {"developers": ["Valve"], "publishers": ["Valve"]}
-        service._apply_store_data("440", store_data)
+        apply_store_data(game, store_data)
 
         assert game.developer == "Custom Dev"
 
-    def test_applies_pegi_rating(self, tmp_path):
+    def test_applies_pegi_rating(self):
         """Test PEGI rating extraction from store data."""
         game = Game(app_id="440", name="TF2")
-        games = {"440": game}
-        service = GameDetailService(games, tmp_path)
 
         store_data = {"ratings": {"pegi": {"rating": "16"}}}
-        service._apply_store_data("440", store_data)
+        apply_store_data(game, store_data)
 
         assert game.pegi_rating == "16"
 
 
 class TestApplyReviewData:
-    """Tests for _apply_review_data."""
+    """Tests for apply_review_data enricher function."""
 
-    def test_applies_review_count(self, tmp_path):
+    def test_applies_review_count(self):
         """Test that review data is correctly applied."""
         game = Game(app_id="440", name="TF2")
-        games = {"440": game}
-        service = GameDetailService(games, tmp_path)
 
         review_data = {
             "query_summary": {
@@ -110,13 +105,12 @@ class TestApplyReviewData:
                 "total_reviews": 500000,
             }
         }
-        service._apply_review_data("440", review_data)
+        apply_review_data(game, review_data)
 
         assert game.review_count == 500000
 
-    def test_skips_missing_game(self, tmp_path):
-        """Test that review data for missing game is silently skipped."""
-        games: dict[str, Game] = {}
-        service = GameDetailService(games, tmp_path)
-        # Should not raise
-        service._apply_review_data("999", {"query_summary": {}})
+    def test_handles_empty_summary(self):
+        """Test that empty query_summary doesn't crash."""
+        game = Game(app_id="999", name="Test")
+        apply_review_data(game, {"query_summary": {}})
+        assert game.review_count == 0
