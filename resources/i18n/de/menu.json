@@ -172,7 +172,8 @@
         "root": "Dokumentation",
         "manual": "Benutzerhandbuch",
         "tips": "Tipps && Tricks",
-        "shortcuts": "Keyboard Shortcuts"
+        "shortcuts": "Keyboard Shortcuts",
+        "faq": "Häufige Fragen"
       },
       "online": {
         "root": "Online",
