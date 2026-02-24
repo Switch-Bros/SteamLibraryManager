@@ -98,7 +98,7 @@ class CategoryActionHandler:
             menu.addAction(t("menu.edit.auto_categorize"), lambda: mw.edit_actions.auto_categorize_single(game))
 
         menu.addSeparator()
-        menu.addAction(t("ui.context_menu.edit_metadata"), lambda: mw.edit_actions.edit_game_metadata(game))
+        menu.addAction(t("ui.context_menu.edit_metadata"), lambda: mw.metadata_actions.edit_game_metadata(game))
 
         menu.addSeparator()
         menu.addAction(

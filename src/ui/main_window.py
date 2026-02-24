@@ -60,6 +60,7 @@ from src.ui.handlers.keyboard_handler import KeyboardHandler
 from src.ui.actions import (
     FileActions,
     EditActions,
+    MetadataActions,
     ViewActions,
     ToolsActions,
     SteamActions,
@@ -68,6 +69,7 @@ from src.ui.actions import (
     ProfileActions,
 )
 from src.ui.actions.enrichment_actions import EnrichmentActions
+from src.ui.actions.enrichment_starters import EnrichmentStarters
 
 
 class MainWindow(QMainWindow):
@@ -137,6 +139,7 @@ class MainWindow(QMainWindow):
         # Initialize Action Handlers
         self.file_actions = FileActions(self)
         self.edit_actions = EditActions(self)
+        self.metadata_actions = MetadataActions(self)
         self.view_actions = ViewActions(self)
         self.tools_actions = ToolsActions(self)
         self.steam_actions = SteamActions(self)
@@ -144,6 +147,7 @@ class MainWindow(QMainWindow):
         self.settings_actions = SettingsActions(self)
         self.profile_actions = ProfileActions(self)
         self.enrichment_actions = EnrichmentActions(self)
+        self.enrichment_starters = EnrichmentStarters(self)
 
         # UI Action Handlers (extracted category / context-menu logic)
         self.category_handler: CategoryActionHandler = CategoryActionHandler(self)
@@ -355,6 +359,7 @@ class MainWindow(QMainWindow):
 
         # Collect threads from action handlers
         for handler in (
+            getattr(self, "enrichment_starters", None),
             getattr(self, "enrichment_actions", None),
             getattr(self, "tools_actions", None),
         ):

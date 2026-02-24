@@ -162,7 +162,7 @@ class TestEnrichmentActionsForceRefresh:
     @patch(
         "src.services.enrichment.deck_enrichment_service.DeckEnrichmentThread",
     )
-    @patch("src.ui.actions.enrichment_actions.UIHelper")
+    @patch("src.ui.actions.enrichment_starters.UIHelper")
     def test_force_refresh_runs_without_upfront_confirm(
         self,
         mock_helper: MagicMock,
@@ -176,12 +176,12 @@ class TestEnrichmentActionsForceRefresh:
             MagicMock(steam_deck_status="verified"),
         ]
 
-        from src.ui.actions.enrichment_actions import EnrichmentActions
+        from src.ui.actions.enrichment_starters import EnrichmentStarters
 
-        actions = EnrichmentActions(mock_mw)
+        starters = EnrichmentStarters(mock_mw)
 
-        with patch.object(actions, "_run_enrichment") as mock_run:
-            actions.start_deck_enrichment(force_refresh=True)
+        with patch.object(starters, "_run_enrichment") as mock_run:
+            starters.start_deck_enrichment(force_refresh=True)
 
         # No upfront confirm dialog (removed in batch menu redesign)
         mock_helper.confirm.assert_not_called()
@@ -191,7 +191,7 @@ class TestEnrichmentActionsForceRefresh:
         call_kwargs = mock_run.call_args[1]
         assert call_kwargs["force_refresh_callback"] is None
 
-    @patch("src.ui.actions.enrichment_actions.UIHelper")
+    @patch("src.ui.actions.enrichment_starters.UIHelper")
     def test_no_games_shows_batch_result(self, mock_helper: MagicMock) -> None:
         """When no games need enrichment, show_batch_result is used."""
         mock_helper.show_batch_result.return_value = False
@@ -200,10 +200,10 @@ class TestEnrichmentActionsForceRefresh:
             MagicMock(steam_deck_status="verified"),
         ]
 
-        from src.ui.actions.enrichment_actions import EnrichmentActions
+        from src.ui.actions.enrichment_starters import EnrichmentStarters
 
-        actions = EnrichmentActions(mock_mw)
-        actions.start_deck_enrichment(force_refresh=False)
+        starters = EnrichmentStarters(mock_mw)
+        starters.start_deck_enrichment(force_refresh=False)
 
         mock_helper.show_batch_result.assert_called_once()
         mock_helper.show_info.assert_not_called()

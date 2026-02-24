@@ -10,7 +10,9 @@ and are designed to extract action logic from the monolithic main_window.py.
 from __future__ import annotations
 
 from src.ui.actions.edit_actions import EditActions
+from src.ui.actions.enrichment_starters import EnrichmentStarters
 from src.ui.actions.file_actions import FileActions
+from src.ui.actions.metadata_actions import MetadataActions
 from src.ui.actions.game_actions import GameActions
 from src.ui.actions.profile_actions import ProfileActions
 from src.ui.actions.settings_actions import SettingsActions
@@ -22,6 +24,8 @@ from src.ui.actions.view_actions import ViewActions
 __all__ = [
     "FileActions",
     "EditActions",
+    "EnrichmentStarters",
+    "MetadataActions",
     "ViewActions",
     "ToolsActions",
     "SteamActions",

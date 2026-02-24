@@ -130,9 +130,9 @@ class CentralWidgetBuilder:
         # noinspection PyUnresolvedReferences
         details_widget.category_changed.connect(self.mw.category_change_handler.on_category_changed_from_details)
         # noinspection PyUnresolvedReferences
-        details_widget.edit_metadata.connect(self.mw.edit_actions.edit_game_metadata)
+        details_widget.edit_metadata.connect(self.mw.metadata_actions.edit_game_metadata)
         # noinspection PyUnresolvedReferences
-        details_widget.pegi_override_requested.connect(self.mw.edit_actions.on_pegi_override_requested)
+        details_widget.pegi_override_requested.connect(self.mw.metadata_actions.on_pegi_override_requested)
         splitter.addWidget(details_widget)
 
         splitter.setSizes([350, 1050])
