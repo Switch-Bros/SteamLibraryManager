@@ -15,7 +15,6 @@ from pathlib import Path
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
-    QDialog,
     QHBoxLayout,
     QVBoxLayout,
     QLabel,
@@ -24,6 +23,7 @@ from PyQt6.QtWidgets import (
 )
 
 from src.ui.utils.font_helper import FontHelper
+from src.ui.widgets.base_dialog import BaseDialog
 from src.utils.i18n import t
 from src.version import __app_name__, __version__, __release_date__, __author__, __license__
 
@@ -65,7 +65,7 @@ class _ClickableLabel(QLabel):
         super().mousePressEvent(ev)
 
 
-class AboutDialog(QDialog):
+class AboutDialog(BaseDialog):
     """Professional About dialog inspired by Adobe Photoshop's splash screen.
 
     Two-column layout: app logo on the left, version/credits/license on the
@@ -78,20 +78,27 @@ class AboutDialog(QDialog):
         Args:
             parent: Optional parent widget.
         """
-        super().__init__(parent)
-        self.setWindowTitle(f"{t('menu.help.about')} — {__app_name__}")
-        self.setFixedSize(650, 400)
         self._click_count = 0
-        self._build_ui()
+
+        super().__init__(
+            parent,
+            title_text=f"{t('menu.help.about')} — {__app_name__}",
+            min_width=650,
+            show_title_label=False,
+            buttons="none",
+        )
+        self.setFixedSize(650, 400)
 
     # ------------------------------------------------------------------
     # UI Construction
     # ------------------------------------------------------------------
 
-    def _build_ui(self) -> None:
-        """Builds the complete dialog layout."""
-        root = QHBoxLayout(self)
-        root.setContentsMargins(24, 24, 24, 24)
+    def _build_content(self, layout: QVBoxLayout) -> None:
+        """Builds the two-column dialog layout."""
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(0)
+
+        root = QHBoxLayout()
         root.setSpacing(0)
 
         # --- Left: Logo ---
@@ -108,6 +115,8 @@ class AboutDialog(QDialog):
 
         # --- Right: Info ---
         root.addLayout(self._build_info_column(), stretch=1)
+
+        layout.addLayout(root)
 
         # --- Global stylesheet ---
         self.setStyleSheet(f"""
@@ -202,7 +211,7 @@ class AboutDialog(QDialog):
         license_label.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 12px;")
         col.addWidget(license_label)
 
-        github_label = QLabel(f'GitHub: <a href="{_GITHUB_URL}" style="color: {_TEXT_LINK};">' f"{_GITHUB_URL}</a>")
+        github_label = QLabel(f'GitHub: <a href="{_GITHUB_URL}" style="color: {_TEXT_LINK};">{_GITHUB_URL}</a>')
         github_label.setTextFormat(Qt.TextFormat.RichText)
         github_label.setOpenExternalLinks(True)
         github_label.setStyleSheet("font-size: 12px;")
@@ -243,7 +252,7 @@ class AboutDialog(QDialog):
         return line
 
     def _on_logo_clicked(self) -> None:
-        """Easter egg: opens the GitHub page after 3 clicks."""
+        """Surprise: opens the GitHub page after 3 clicks."""
         self._click_count += 1
         if self._click_count >= 3:
             self._click_count = 0

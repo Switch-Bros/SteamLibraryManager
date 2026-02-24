@@ -9,26 +9,22 @@ Provides options to:
 
 from __future__ import annotations
 
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
+from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton, QLabel
 
 from src.ui.theme import Theme
+from src.ui.widgets.base_dialog import BaseDialog
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
 
-class SteamRunningDialog(QDialog):
+class SteamRunningDialog(BaseDialog):
     """Warning dialog shown when Steam is running during save operation.
-
-    Provides two options:
-    - Cancel: Return to app without saving
-    - Close Steam & Save: Kill Steam process and proceed with save
 
     Return codes:
         CANCELLED: User cancelled the operation
         CLOSE_AND_SAVE: User chose to close Steam and save
     """
 
-    # Return codes
     CANCELLED = 0
     CLOSE_AND_SAVE = 1
 
@@ -38,26 +34,25 @@ class SteamRunningDialog(QDialog):
         Args:
             parent: Parent widget
         """
-        super().__init__(parent)
-        self._setup_ui()
+        super().__init__(
+            parent,
+            title_key="steam.running.title",
+            min_width=450,
+            show_title_label=False,
+            buttons="custom",
+        )
 
-    def _setup_ui(self):
-        """Setup the UI layout."""
-        self.setWindowTitle(t("steam.running.title"))
-        self.setMinimumWidth(450)
-
-        layout = QVBoxLayout(self)
+    def _build_content(self, layout: QVBoxLayout) -> None:
+        """Builds the warning content with icon, message, and action buttons."""
         layout.setSpacing(20)
 
         # Warning icon + message
         header_layout = QHBoxLayout()
 
-        # Warning icon
         icon_label = QLabel(t("emoji.warning"))
         icon_label.setStyleSheet("font-size: 48px;")
         header_layout.addWidget(icon_label)
 
-        # Warning message
         message_layout = QVBoxLayout()
         message_layout.setSpacing(10)
 
@@ -104,7 +99,6 @@ class SteamRunningDialog(QDialog):
         """Handle close Steam button click."""
         from src.core.steam_account_scanner import kill_steam_process
 
-        # Confirm action
         if not UIHelper.confirm(
             self,
             t("steam.running.confirm_message"),
@@ -112,7 +106,6 @@ class SteamRunningDialog(QDialog):
         ):
             return
 
-        # Try to kill Steam
         success = kill_steam_process()
 
         if success:
