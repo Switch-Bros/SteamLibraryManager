@@ -7,6 +7,7 @@ DB methods based on the flag.
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from src.services.enrichment.achievement_enrichment_service import AchievementEnrichmentThread
@@ -41,26 +42,26 @@ class TestBaseEnrichmentThreadForceRefresh:
 class TestEnrichmentThreadForceRefresh:
     """Tests for EnrichmentThread force_refresh propagation."""
 
-    def test_hltb_configure_default(self) -> None:
+    def test_hltb_configure_default(self, tmp_path: Path) -> None:
         thread = EnrichmentThread()
         mock_client = MagicMock()
-        thread.configure_hltb([(1, "Game")], MagicMock(), mock_client)
+        thread.configure_hltb([(1, "Game")], tmp_path / "test.db", mock_client)
         assert thread._force_refresh is False
 
-    def test_hltb_configure_force(self) -> None:
+    def test_hltb_configure_force(self, tmp_path: Path) -> None:
         thread = EnrichmentThread()
         mock_client = MagicMock()
-        thread.configure_hltb([(1, "Game")], MagicMock(), mock_client, force_refresh=True)
+        thread.configure_hltb([(1, "Game")], tmp_path / "test.db", mock_client, force_refresh=True)
         assert thread._force_refresh is True
 
-    def test_steam_configure_default(self) -> None:
+    def test_steam_configure_default(self, tmp_path: Path) -> None:
         thread = EnrichmentThread()
-        thread.configure_steam([(1, "Game")], MagicMock(), "test-key")
+        thread.configure_steam([(1, "Game")], tmp_path / "test.db", "test-key")
         assert thread._force_refresh is False
 
-    def test_steam_configure_force(self) -> None:
+    def test_steam_configure_force(self, tmp_path: Path) -> None:
         thread = EnrichmentThread()
-        thread.configure_steam([(1, "Game")], MagicMock(), "test-key", force_refresh=True)
+        thread.configure_steam([(1, "Game")], tmp_path / "test.db", "test-key", force_refresh=True)
         assert thread._force_refresh is True
 
 
@@ -72,14 +73,14 @@ class TestEnrichmentThreadForceRefresh:
 class TestDeckEnrichmentThreadForceRefresh:
     """Tests for DeckEnrichmentThread force_refresh propagation."""
 
-    def test_configure_default(self) -> None:
+    def test_configure_default(self, tmp_path: Path) -> None:
         thread = DeckEnrichmentThread()
-        thread.configure([], MagicMock())
+        thread.configure([], tmp_path / "cache")
         assert thread._force_refresh is False
 
-    def test_configure_force(self) -> None:
+    def test_configure_force(self, tmp_path: Path) -> None:
         thread = DeckEnrichmentThread()
-        thread.configure([], MagicMock(), force_refresh=True)
+        thread.configure([], tmp_path / "cache", force_refresh=True)
         assert thread._force_refresh is True
 
 
@@ -91,16 +92,16 @@ class TestDeckEnrichmentThreadForceRefresh:
 class TestAchievementEnrichmentThreadForceRefresh:
     """Tests for AchievementEnrichmentThread force_refresh propagation."""
 
-    def test_configure_default(self) -> None:
+    def test_configure_default(self, tmp_path: Path) -> None:
         thread = AchievementEnrichmentThread()
-        thread.configure([(1, "Game")], MagicMock(), "key", "steam_id")
+        thread.configure([(1, "Game")], tmp_path / "test.db", "key", "steam_id")
         assert thread._force_refresh is False
 
-    def test_configure_force(self) -> None:
+    def test_configure_force(self, tmp_path: Path) -> None:
         thread = AchievementEnrichmentThread()
         thread.configure(
             [(1, "Game")],
-            MagicMock(),
+            tmp_path / "test.db",
             "key",
             "steam_id",
             force_refresh=True,
@@ -116,14 +117,14 @@ class TestAchievementEnrichmentThreadForceRefresh:
 class TestProtonDBEnrichmentThreadForceRefresh:
     """Tests for ProtonDBEnrichmentThread force_refresh propagation."""
 
-    def test_configure_default(self) -> None:
+    def test_configure_default(self, tmp_path: Path) -> None:
         thread = ProtonDBEnrichmentThread()
-        thread.configure([(1, "Game")], MagicMock())
+        thread.configure([(1, "Game")], tmp_path / "test.db")
         assert thread._force_refresh is False
 
-    def test_configure_force(self) -> None:
+    def test_configure_force(self, tmp_path: Path) -> None:
         thread = ProtonDBEnrichmentThread()
-        thread.configure([(1, "Game")], MagicMock(), force_refresh=True)
+        thread.configure([(1, "Game")], tmp_path / "test.db", force_refresh=True)
         assert thread._force_refresh is True
 
 
@@ -170,7 +171,7 @@ class TestEnrichmentActionsForceRefresh:
         mock_config: MagicMock,
     ) -> None:
         """With force_refresh=True, no confirm is shown and enrichment proceeds."""
-        mock_config.DATA_DIR = MagicMock()
+        mock_config.DATA_DIR = Path("/tmp/slm-test")
         mock_mw = MagicMock()
         mock_mw.game_manager.get_real_games.return_value = [
             MagicMock(steam_deck_status="verified"),

@@ -6,6 +6,7 @@ and the EnrichAllCoordinator's track management.
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from src.services.enrichment.enrich_all_coordinator import (
@@ -25,19 +26,19 @@ from src.services.enrichment.enrich_all_coordinator import (
 class TestEnrichAllCoordinator:
     """Tests for EnrichAllCoordinator track management."""
 
-    def _make_coordinator(self) -> EnrichAllCoordinator:
+    def _make_coordinator(self, tmp_path: Path) -> EnrichAllCoordinator:
         """Creates a coordinator with minimal configuration."""
         coord = EnrichAllCoordinator()
         coord.configure(
-            db_path=MagicMock(),
+            db_path=tmp_path / "test.db",
             api_key="test-key",
             steam_id="76561198000000000",
-            steam_path=MagicMock(),
+            steam_path=tmp_path / "steam",
             games_deck=[MagicMock()],
             games_db=[(1, "Game A"), (2, "Game B")],
             hltb_client=MagicMock(),
             language="en",
-            cache_dir=MagicMock(),
+            cache_dir=tmp_path / "cache",
         )
         return coord
 
@@ -48,15 +49,15 @@ class TestEnrichAllCoordinator:
         assert coord._results == {}
         assert coord._cancelled is False
 
-    def test_cancel_sets_flag(self) -> None:
+    def test_cancel_sets_flag(self, tmp_path: Path) -> None:
         """Cancel sets the cancellation flag."""
-        coord = self._make_coordinator()
+        coord = self._make_coordinator(tmp_path)
         coord.cancel()
         assert coord._cancelled is True
 
-    def test_track_completion_decrements_counter(self) -> None:
+    def test_track_completion_decrements_counter(self, tmp_path: Path) -> None:
         """Each track completion decrements the pending counter."""
-        coord = self._make_coordinator()
+        coord = self._make_coordinator(tmp_path)
         coord._pending_tracks = 3
 
         finished_signals: list[dict] = []
@@ -74,9 +75,9 @@ class TestEnrichAllCoordinator:
         assert coord._pending_tracks == 0
         assert len(finished_signals) == 1
 
-    def test_all_tracks_complete_emits_all_finished(self) -> None:
+    def test_all_tracks_complete_emits_all_finished(self, tmp_path: Path) -> None:
         """When all tracks complete, all_finished signal is emitted."""
-        coord = self._make_coordinator()
+        coord = self._make_coordinator(tmp_path)
         coord._pending_tracks = 2
 
         results_received: list[dict] = []
@@ -90,9 +91,9 @@ class TestEnrichAllCoordinator:
         assert result[TRACK_HLTB] == (10, 0)
         assert result[TRACK_DECK] == (5, 2)
 
-    def test_track_error_still_completes(self) -> None:
+    def test_track_error_still_completes(self, tmp_path: Path) -> None:
         """Track errors still decrement the counter and emit track_finished."""
-        coord = self._make_coordinator()
+        coord = self._make_coordinator(tmp_path)
         coord._pending_tracks = 1
 
         finished: list[tuple[str, int, int]] = []
@@ -108,11 +109,11 @@ class TestEnrichAllCoordinator:
         assert len(all_done) == 1
         assert coord._results[TRACK_PROTONDB] == (0, -1)
 
-    def test_skipped_tracks_emit_minus_one(self) -> None:
+    def test_skipped_tracks_emit_minus_one(self, tmp_path: Path) -> None:
         """Tracks without prerequisites emit success=-1 (skipped)."""
         coord = EnrichAllCoordinator()
         coord.configure(
-            db_path=MagicMock(),
+            db_path=tmp_path / "test.db",
             api_key="",  # No API key → Steam + Achievements skipped
             steam_id="",
             steam_path=None,  # No steam path → Tags skipped
@@ -120,7 +121,7 @@ class TestEnrichAllCoordinator:
             games_db=[(1, "Game")],
             hltb_client=None,  # No HLTB → HLTB skipped
             language="en",
-            cache_dir=MagicMock(),
+            cache_dir=tmp_path / "cache",
         )
 
         finished: list[tuple[str, int, int]] = []
@@ -141,9 +142,9 @@ class TestEnrichAllCoordinator:
             assert len(track_finished) == 1
             assert track_finished[0][1] == -1
 
-    def test_steam_track_chains_metadata_then_achievements(self) -> None:
+    def test_steam_track_chains_metadata_then_achievements(self, tmp_path: Path) -> None:
         """Steam track runs metadata first, then achievements."""
-        coord = self._make_coordinator()
+        coord = self._make_coordinator(tmp_path)
         coord._pending_tracks = 1
 
         finished: list[tuple[str, int, int]] = []
@@ -159,9 +160,9 @@ class TestEnrichAllCoordinator:
         # Achievement phase was triggered
         mock_ach.assert_called_once_with(10, 2)
 
-    def test_steam_track_done_combines_counts(self) -> None:
+    def test_steam_track_done_combines_counts(self, tmp_path: Path) -> None:
         """Steam track done handler sums metadata + achievement counts."""
-        coord = self._make_coordinator()
+        coord = self._make_coordinator(tmp_path)
         coord._pending_tracks = 1
 
         finished: list[tuple[str, int, int]] = []
@@ -177,9 +178,9 @@ class TestEnrichAllCoordinator:
         assert len(all_done) == 1
         assert coord._results[TRACK_STEAM] == (18, 3)
 
-    def test_tags_error_continues_to_parallel_tracks(self) -> None:
+    def test_tags_error_continues_to_parallel_tracks(self, tmp_path: Path) -> None:
         """Tag import error should still start parallel tracks."""
-        coord = self._make_coordinator()
+        coord = self._make_coordinator(tmp_path)
 
         finished: list[tuple[str, int, int]] = []
         coord.track_finished.connect(lambda t, s, f: finished.append((t, s, f)))
