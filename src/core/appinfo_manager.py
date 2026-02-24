@@ -20,7 +20,26 @@ from src.utils.json_utils import load_json, save_json
 
 logger = logging.getLogger("steamlibmgr.appinfo_manager")
 
-__all__ = ["AppInfoManager"]
+__all__ = ["AppInfoManager", "extract_associations"]
+
+
+def extract_associations(associations: dict, assoc_type: str) -> list[str]:
+    """Extracts names of a given type from a VDF associations block.
+
+    Args:
+        associations: VDF associations dictionary (indexed by "0", "1", ...).
+        assoc_type: The type to extract ("developer" or "publisher").
+
+    Returns:
+        List of names matching the given type.
+    """
+    if not isinstance(associations, dict):
+        return []
+    return [
+        entry["name"]
+        for entry in associations.values()
+        if isinstance(entry, dict) and entry.get("type") == assoc_type and entry.get("name")
+    ]
 
 
 class AppInfoManager:
@@ -211,23 +230,8 @@ class AppInfoManager:
                 # =============================================
                 # DEVELOPER & PUBLISHER - ASSOCIATIONS FIRST!
                 # =============================================
-                devs = []
-                pubs = []
-
-                # A) TRY 'associations' FIRST (new format)
-                if "associations" in common:
-                    assoc = common["associations"]
-
-                    # associations is a dict with index as Key ("0", "1", ...)
-                    for entry in assoc.values():
-                        if isinstance(entry, dict):
-                            entry_type = entry.get("type", "")
-                            entry_name = entry.get("name", "")
-
-                            if entry_type == "developer" and entry_name:
-                                devs.append(entry_name)
-                            elif entry_type == "publisher" and entry_name:
-                                pubs.append(entry_name)
+                devs = extract_associations(common.get("associations", {}), "developer")
+                pubs = extract_associations(common.get("associations", {}), "publisher")
 
                 # B) FALLBACK: Direct fields (old format)
                 if not devs:

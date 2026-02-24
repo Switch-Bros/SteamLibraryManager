@@ -63,6 +63,33 @@ class SteamAssets:
         "capsules": "grid_h",  # Horizontal grid
     }
 
+    # Filename suffix per asset type (appended to app_id)
+    _FILENAME_SUFFIXES: dict[str, str] = {
+        "grids": "p",
+        "heroes": "_hero",
+        "logos": "_logo",
+        "icons": "_icon",
+        "capsules": "",
+    }
+
+    # CDN URL paths per asset type
+    _CDN_PATHS: dict[str, str] = {
+        "grids": "library_600x900.jpg",
+        "heroes": "library_hero.jpg",
+        "logos": "logo.png",
+        "icons": "icon.jpg",
+        "capsules": "header.jpg",
+    }
+
+    # Filename suffix keyed by DB type name (for export/import)
+    _DB_FILENAME_SUFFIXES: dict[str, str] = {
+        "grid_p": "p",
+        "grid_h": "",
+        "hero": "_hero",
+        "logo": "_logo",
+        "icon": "_icon",
+    }
+
     @staticmethod
     def get_steam_grid_path() -> Path:
         """
@@ -109,19 +136,9 @@ class SteamAssets:
             grid_dir = config.STEAM_PATH / "userdata" / short_id / "config" / "grid"
 
             # Determine base filename based on asset type
-            filename_base = ""
-            if asset_type == "grids":
-                filename_base = f"{app_id}p"  # Grid = <app_id>p
-            elif asset_type == "heroes":
-                filename_base = f"{app_id}_hero"
-            elif asset_type == "logos":
-                filename_base = f"{app_id}_logo"
-            elif asset_type == "icons":
-                filename_base = f"{app_id}_icon"
-            elif asset_type == "capsules":
-                filename_base = f"{app_id}"  # Horizontal grid (no suffix)
-
-            if filename_base:
+            suffix = SteamAssets._FILENAME_SUFFIXES.get(asset_type)
+            if suffix is not None:
+                filename_base = f"{app_id}{suffix}"
                 # Check all possible extensions
                 for ext in [".png", ".jpg", ".jpeg", ".webp", ".gif"]:
                     local_path = grid_dir / (filename_base + ext)
@@ -129,17 +146,9 @@ class SteamAssets:
                         return str(local_path)
 
         # Fallback to Steam CDN URLs
-        if asset_type == "grids":
-            return f"https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id}/library_600x900.jpg"
-        elif asset_type == "heroes":
-            return f"https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id}/library_hero.jpg"
-        elif asset_type == "logos":
-            return f"https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id}/logo.png"
-        elif asset_type == "icons":
-            return f"https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id}/icon.jpg"
-        elif asset_type == "capsules":
-            return f"https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id}/header.jpg"
-
+        cdn_path = SteamAssets._CDN_PATHS.get(asset_type)
+        if cdn_path:
+            return f"https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id}/{cdn_path}"
         return ""
 
     @staticmethod
@@ -170,19 +179,11 @@ class SteamAssets:
             grid_dir = SteamAssets.get_steam_grid_path()
 
             # Determine correct filename for Steam
-            if asset_type == "grids":
-                filename = f"{app_id}p.png"  # Grid = <app_id>p.png
-            elif asset_type == "heroes":
-                filename = f"{app_id}_hero.png"
-            elif asset_type == "logos":
-                filename = f"{app_id}_logo.png"
-            elif asset_type == "icons":
-                filename = f"{app_id}_icon.png"  # MUST BE PNG!
-            elif asset_type == "capsules":
-                filename = f"{app_id}.png"  # Horizontal grid (Big Picture)
-            else:
+            suffix = SteamAssets._FILENAME_SUFFIXES.get(asset_type)
+            if suffix is None:
                 logger.info(t("logs.assets.unknown_type", type=asset_type))
                 return False
+            filename = f"{app_id}{suffix}.png"
 
             target_file = grid_dir / filename
 
@@ -287,18 +288,10 @@ class SteamAssets:
             grid_dir = SteamAssets.get_steam_grid_path()
 
             # Determine correct filename
-            if asset_type == "grids":
-                filename = f"{app_id}p.png"
-            elif asset_type == "heroes":
-                filename = f"{app_id}_hero.png"
-            elif asset_type == "logos":
-                filename = f"{app_id}_logo.png"
-            elif asset_type == "icons":
-                filename = f"{app_id}_icon.png"
-            elif asset_type == "capsules":
-                filename = f"{app_id}.png"
-            else:
+            suffix = SteamAssets._FILENAME_SUFFIXES.get(asset_type)
+            if suffix is None:
                 return False
+            filename = f"{app_id}{suffix}.png"
 
             target_file = grid_dir / filename
 
@@ -352,18 +345,10 @@ class SteamAssets:
             file_hash = row["file_hash"]
 
             # Determine source filename
-            if artwork_type == "grid_p":
-                source_file = grid_dir / f"{app_id}p.png"
-            elif artwork_type == "grid_h":
-                source_file = grid_dir / f"{app_id}.png"
-            elif artwork_type == "hero":
-                source_file = grid_dir / f"{app_id}_hero.png"
-            elif artwork_type == "logo":
-                source_file = grid_dir / f"{app_id}_logo.png"
-            elif artwork_type == "icon":
-                source_file = grid_dir / f"{app_id}_icon.png"
-            else:
+            db_suffix = SteamAssets._DB_FILENAME_SUFFIXES.get(artwork_type)
+            if db_suffix is None:
                 continue
+            source_file = grid_dir / f"{app_id}{db_suffix}.png"
 
             if not source_file.exists():
                 logger.warning(f"Missing artwork file: {source_file}")
@@ -433,18 +418,10 @@ class SteamAssets:
                 continue
 
             # Determine destination filename
-            if artwork_type == "grid_p":
-                dest_file = grid_dir / f"{app_id}p.png"
-            elif artwork_type == "grid_h":
-                dest_file = grid_dir / f"{app_id}.png"
-            elif artwork_type == "hero":
-                dest_file = grid_dir / f"{app_id}_hero.png"
-            elif artwork_type == "logo":
-                dest_file = grid_dir / f"{app_id}_logo.png"
-            elif artwork_type == "icon":
-                dest_file = grid_dir / f"{app_id}_icon.png"
-            else:
+            db_suffix = SteamAssets._DB_FILENAME_SUFFIXES.get(artwork_type)
+            if db_suffix is None:
                 continue
+            dest_file = grid_dir / f"{app_id}{db_suffix}.png"
 
             # Copy file
             shutil.copy2(source_file, dest_file)

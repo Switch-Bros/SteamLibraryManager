@@ -11,6 +11,7 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
+from src.core.appinfo_manager import extract_associations
 from src.core.database import Database, DatabaseEntry, ImportStats
 from src.utils.i18n import t
 
@@ -229,8 +230,9 @@ class DatabaseImporter:
             app_type = app_type.lower()
 
         # Developers & Publishers (using associations format from appinfo)
-        developer = self._extract_associations(common, "developer")
-        publisher = self._extract_associations(common, "publisher")
+        associations = common.get("associations", {})
+        developer = ", ".join(extract_associations(associations, "developer"))
+        publisher = ", ".join(extract_associations(associations, "publisher"))
 
         # Fallback to direct fields
         if not developer:
@@ -271,29 +273,6 @@ class DatabaseImporter:
             controller_support=controller_support,
             last_updated=int(time.time()),
         )
-
-    @staticmethod
-    def _extract_associations(common: dict, assoc_type: str) -> str:
-        """Extract developer/publisher from associations block.
-
-        Args:
-            common: The common section from VDF data.
-            assoc_type: 'developer' or 'publisher'.
-
-        Returns:
-            Comma-separated string of names, or empty string.
-        """
-        associations = common.get("associations", {})
-        if not isinstance(associations, dict):
-            return ""
-
-        names = []
-        for entry in associations.values():
-            if isinstance(entry, dict):
-                if entry.get("type") == assoc_type and entry.get("name"):
-                    names.append(entry["name"])
-
-        return ", ".join(names)
 
     @staticmethod
     def _parse_release_date(common: dict) -> int | None:

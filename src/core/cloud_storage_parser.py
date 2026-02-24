@@ -177,8 +177,8 @@ class CloudStorageParser:
             # Sanitize: 'added' must always be a list of ints.
             # Migrated collections sometimes have 'added': 0 (a bare timestamp).
             for collection in self.collections:
-                added = collection.get("added", collection.get("apps", []))
-                if not isinstance(added, list):
+                raw_added = collection.get("added", collection.get("apps"))
+                if not isinstance(raw_added, list):
                     collection["added"] = []
                     collection.setdefault("apps", [])
 
@@ -196,7 +196,7 @@ class CloudStorageParser:
 
                 # CRITICAL FIX 2: Skip EMPTY special collections (favorites/hidden)!
                 # Steam only shows these if they contain games
-                added_apps = collection.get("added", collection.get("apps", []))
+                added_apps = self._get_collection_apps(collection)
                 special_ids = self._get_special_collection_ids()
                 if collection_name in special_ids and not added_apps:
                     continue  # Don't save empty favorites/hidden
@@ -270,6 +270,19 @@ class CloudStorageParser:
         return [c.get("name", "") for c in self.collections if c.get("name")]
 
     @staticmethod
+    def _get_collection_apps(collection: dict) -> list[int]:
+        """Extracts app IDs from a collection dict (handles both 'added' and 'apps' keys).
+
+        Args:
+            collection: Cloud collection dictionary.
+
+        Returns:
+            List of app IDs, empty list on invalid data.
+        """
+        apps = collection.get("added", collection.get("apps", []))
+        return apps if isinstance(apps, list) else []
+
+    @staticmethod
     def _to_app_id_int(app_id) -> int | None:
         """Safely converts an app-id value to int.
 
@@ -304,10 +317,7 @@ class CloudStorageParser:
 
         categories: list[str] = []
         for collection in self.collections:
-            apps = collection.get("added", collection.get("apps", []))
-            # Guard: 'added' can be a bare timestamp int (0) in migrated data
-            if not isinstance(apps, list):
-                continue
+            apps = self._get_collection_apps(collection)
             if app_id_int in apps:
                 categories.append(collection.get("name", ""))
 
@@ -327,9 +337,7 @@ class CloudStorageParser:
 
         # Remove app from all collections
         for collection in self.collections:
-            apps = collection.get("added", collection.get("apps", []))
-            if not isinstance(apps, list):
-                continue
+            apps = self._get_collection_apps(collection)
             if app_id_int in apps:
                 apps.remove(app_id_int)
 
@@ -349,7 +357,7 @@ class CloudStorageParser:
                 self.collections.append(collection)
 
             # Add app
-            apps = collection.get("added", collection.get("apps", []))
+            apps = self._get_collection_apps(collection)
             if app_id_int not in apps:
                 apps.append(app_id_int)
 
@@ -433,8 +441,7 @@ class CloudStorageParser:
         """
         app_ids = set()
         for collection in self.collections:
-            apps = collection.get("added", collection.get("apps", []))
-            app_ids.update(str(app_id) for app_id in apps)
+            app_ids.update(str(a) for a in self._get_collection_apps(collection))
         return list(app_ids)
 
     @staticmethod
@@ -478,9 +485,7 @@ class CloudStorageParser:
 
         removed = False
         for collection in self.collections:
-            apps = collection.get("added", collection.get("apps", []))
-            if not isinstance(apps, list):
-                continue
+            apps = self._get_collection_apps(collection)
             if app_id_int in apps:
                 apps.remove(app_id_int)
                 removed = True
