@@ -16,6 +16,7 @@ import time
 import json
 from pathlib import Path
 from datetime import datetime, timedelta
+from typing import Any
 
 import requests
 from bs4 import BeautifulSoup
@@ -88,6 +89,33 @@ class SteamStoreScraper:
             "Steam Leaderboards",
         }
 
+    def _check_cache(self, cache_file: Path, max_age_days: int = 30) -> Any | None:
+        """Returns cached JSON data if the file exists and is fresh enough.
+
+        Args:
+            cache_file: Path to the cache JSON file.
+            max_age_days: Maximum age in days before cache is considered stale.
+
+        Returns:
+            Parsed JSON data if valid, None if stale or missing.
+        """
+        if not cache_file.exists():
+            return None
+        try:
+            mtime = datetime.fromtimestamp(cache_file.stat().st_mtime)
+            if datetime.now() - mtime < timedelta(days=max_age_days):
+                with open(cache_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+        except (OSError, json.JSONDecodeError, ValueError):
+            pass
+        return None
+
+    def _rate_limit(self) -> None:
+        """Enforces minimum interval between API requests."""
+        elapsed = time.time() - self.last_request_time
+        if elapsed < self.min_request_interval:
+            time.sleep(self.min_request_interval - elapsed)
+
     def fetch_tags(self, app_id: str) -> list[str]:
         """
         Fetches tags for a game from the Steam Store page.
@@ -106,21 +134,12 @@ class SteamStoreScraper:
         cache_file = self.cache_dir / f"{app_id}_{self.language_code}.json"
 
         # 1. Check Cache
-        if cache_file.exists():
-            try:
-                # Cache validation (30 days)
-                mtime = datetime.fromtimestamp(cache_file.stat().st_mtime)
-                if datetime.now() - mtime < timedelta(days=30):
-                    with open(cache_file, "r", encoding="utf-8") as f:
-                        return json.load(f)
-            except (OSError, json.JSONDecodeError):
-                pass
+        cached = self._check_cache(cache_file)
+        if cached is not None:
+            return cached
 
         # 2. Rate Limiting
-        current_time = time.time()
-        time_since_last = current_time - self.last_request_time
-        if time_since_last < self.min_request_interval:
-            time.sleep(self.min_request_interval - time_since_last)
+        self._rate_limit()
 
         # 3. Fetch from Steam
         try:
@@ -175,20 +194,12 @@ class SteamStoreScraper:
         cache_file.parent.mkdir(exist_ok=True, parents=True)
 
         # 1. Check Cache
-        if cache_file.exists():
-            try:
-                mtime = datetime.fromtimestamp(cache_file.stat().st_mtime)
-                if datetime.now() - mtime < timedelta(days=30):
-                    with open(cache_file, "r", encoding="utf-8") as f:
-                        data = json.load(f)
-                        return data.get("pegi_rating")
-            except (OSError, ValueError, json.JSONDecodeError):
-                pass
+        cached = self._check_cache(cache_file)
+        if cached is not None:
+            return cached.get("pegi_rating")
 
         # 2. Rate Limiting
-        time_since_last = time.time() - self.last_request_time
-        if time_since_last < self.min_request_interval:
-            time.sleep(self.min_request_interval - time_since_last)
+        self._rate_limit()
 
         # 3. Try HTML scraping FIRST (most reliable!)
         pegi_rating = self._fetch_age_rating_from_html(app_id)
@@ -368,18 +379,13 @@ class SteamStoreScraper:
                     if usk_age in alt_text:
                         return pegi_age
 
-            # Method 3: Look for ESRB rating (USA)
+            # Method 3: Look for ESRB rating (USA) — use shared ESRB_TO_PEGI dict
             esrb_elem = soup.find("img", alt=lambda x: x and "ESRB" in x)
             if esrb_elem:
-                alt_text = esrb_elem.get("alt", "").lower()
-                if "adults only" in alt_text or "mature" in alt_text:
-                    return "18"
-                elif "teen" in alt_text:
-                    return "16"
-                elif "everyone 10+" in alt_text:
-                    return "12"
-                elif "everyone" in alt_text:
-                    return "3"
+                alt_text = str(esrb_elem.get("alt", "")).lower()
+                for esrb_name, pegi_age in ESRB_TO_PEGI.items():
+                    if esrb_name in alt_text:
+                        return pegi_age
 
             # Method 4: Check for age gate div (fallback)
             age_divs = soup.find_all("div", class_=lambda x: x and "age" in x.lower())
@@ -397,34 +403,6 @@ class SteamStoreScraper:
         except (requests.RequestException, AttributeError) as e:
             logger.error(t("logs.steam_store.html_scrape_failed", app_id=app_id, error=e))
             return None
-
-    @staticmethod
-    def _convert_to_pegi(rating: str, system: str) -> str | None:
-        """
-        Converts age ratings from different systems to PEGI.
-
-        Note: This method is kept for backward compatibility but is no longer
-        actively used since the new API method handles conversions internally.
-
-        Args:
-            rating (str): The rating value (e.g., "18", "Mature").
-            system (str): The rating system ('steam', 'esrb', 'usk').
-
-        Returns:
-            str | None: PEGI rating or None.
-        """
-        if system == "steam":
-            # Steam age gate: 18+ → PEGI 18, 16+ → PEGI 16, etc.
-            age_map = {"18": "18", "16": "16", "12": "12", "7": "7", "3": "3", "0": "3"}
-            return age_map.get(rating)
-
-        elif system == "esrb":
-            return ESRB_TO_PEGI.get(rating.lower())
-
-        elif system == "usk":
-            return USK_TO_PEGI.get(rating)
-
-        return None
 
     def get_cache_coverage(self, app_ids: list[str]) -> dict:
         """
@@ -445,23 +423,13 @@ class SteamStoreScraper:
         """
         total = len(app_ids)
         cached = 0
-        missing = 0
 
         for app_id in app_ids:
             cache_file = self.cache_dir / f"{app_id}_{self.language_code}.json"
+            if self._check_cache(cache_file) is not None:
+                cached += 1
 
-            if cache_file.exists():
-                try:
-                    mtime = datetime.fromtimestamp(cache_file.stat().st_mtime)
-                    if datetime.now() - mtime < timedelta(days=30):
-                        cached += 1
-                    else:
-                        missing += 1
-                except OSError:
-                    missing += 1
-            else:
-                missing += 1
-
+        missing = total - cached
         percentage = (cached / total * 100) if total > 0 else 0.0
 
         return {"total": total, "cached": cached, "missing": missing, "percentage": round(percentage, 1)}
