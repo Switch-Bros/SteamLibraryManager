@@ -1,11 +1,9 @@
-# src/ui/missing_metadata_dialog.py
+# src/ui/dialogs/missing_metadata_dialog.py
 
-"""
-Dialog for displaying and exporting games with missing metadata.
+"""Dialog for displaying and exporting games with missing metadata.
 
-This module provides a dialog that shows a table of games that are missing
-metadata fields (developer, publisher, release date) and allows exporting
-the list to a CSV file.
+Shows a table of games that are missing metadata fields (developer,
+publisher, release date) and allows exporting the list to a CSV file.
 """
 
 from __future__ import annotations
@@ -15,7 +13,6 @@ from pathlib import Path
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QDialog,
     QVBoxLayout,
     QHBoxLayout,
     QTableWidget,
@@ -29,53 +26,53 @@ from PyQt6.QtWidgets import (
 from src.core.game_manager import Game
 from src.ui.theme import Theme
 from src.ui.utils.font_helper import FontHelper
+from src.ui.widgets.base_dialog import BaseDialog
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.date_utils import format_timestamp_to_date
 from src.utils.i18n import t
 
 
-class MissingMetadataDialog(QDialog):
-    """
-    Dialog for displaying games with missing metadata.
+class MissingMetadataDialog(BaseDialog):
+    """Dialog for displaying games with missing metadata.
 
-    This dialog shows a table of games that are missing one or more metadata
-    fields (developer, publisher, release date) and provides functionality to
-    export the list to a CSV file.
+    Shows a table of games that are missing one or more metadata
+    fields (developer, publisher, release date) and provides
+    functionality to export the list to a CSV file.
 
     Attributes:
-        games (list[Game]): List of games with missing metadata.
-        table (QTableWidget): Table widget displaying the games.
-        stats_label (QLabel): Label displaying statistics about missing fields.
+        games: List of games with missing metadata.
+        table: Table widget displaying the games.
+        stats_label: Label displaying statistics about missing fields.
     """
 
     def __init__(self, parent, games: list[Game]):
-        """
-        Initializes the missing metadata dialog.
+        """Initializes the missing metadata dialog.
 
         Args:
             parent: Parent widget.
-            games (list[Game]): List of games with missing metadata.
+            games: List of games with missing metadata.
         """
-        super().__init__(parent)
         self.games = games
 
-        self.setWindowTitle(t("ui.tools.missing_metadata.title"))
-        self.setMinimumSize(900, 600)
-        self.setModal(True)
-
-        self._create_ui()
+        super().__init__(
+            parent,
+            title_key="ui.tools.missing_metadata.title",
+            min_width=900,
+            show_title_label=False,
+            buttons="custom",
+        )
+        self.setMinimumHeight(600)
         self._populate_table()
 
     @staticmethod
     def _is_missing(value) -> bool:
-        """
-        Checks if a metadata value is considered missing.
+        """Checks if a metadata value is considered missing.
 
         Args:
             value: The value to check.
 
         Returns:
-            bool: True if the value is missing, False otherwise.
+            True if the value is missing, False otherwise.
         """
         if value is None:
             return True
@@ -86,10 +83,8 @@ class MissingMetadataDialog(QDialog):
             return True
         return False
 
-    def _create_ui(self):
-        """Creates the user interface for the dialog."""
-        layout = QVBoxLayout(self)
-
+    def _build_content(self, layout: QVBoxLayout) -> None:
+        """Creates the dialog content with header, table, stats, and buttons."""
         # Header
         header = QLabel(t("ui.tools.missing_metadata.header", count=len(self.games)))
         header.setFont(FontHelper.get_font(14, FontHelper.BOLD))
@@ -114,30 +109,26 @@ class MissingMetadataDialog(QDialog):
             ]
         )
 
-        # --- Column Behavior: Fixed widths with stretch for name column ---
-        header = self.table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # App ID
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Name (stretches)
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # Developer
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Publisher
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Release
+        # Column behavior: fixed widths with stretch for name column
+        tbl_header = self.table.horizontalHeader()
+        tbl_header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        tbl_header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        tbl_header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
+        tbl_header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
+        tbl_header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
 
-        # Set fixed column widths
-        self.table.setColumnWidth(0, 70)  # App ID
-        self.table.setColumnWidth(2, 180)  # Developer
-        self.table.setColumnWidth(3, 130)  # Publisher
-        self.table.setColumnWidth(4, 110)  # Release
+        self.table.setColumnWidth(0, 70)
+        self.table.setColumnWidth(2, 180)
+        self.table.setColumnWidth(3, 130)
+        self.table.setColumnWidth(4, 110)
 
-        # Alternating row colors
         self.table.setAlternatingRowColors(True)
-
         layout.addWidget(self.table)
 
         # Statistics Label
         self.stats_label = QLabel()
         self.stats_label.setStyleSheet(f"color: {Theme.TEXT_MUTED}; font-size: 10px;")
 
-        # Stats Layout
         stats_layout = QHBoxLayout()
         stats_layout.addWidget(self.stats_label)
         stats_layout.addStretch()
@@ -160,30 +151,24 @@ class MissingMetadataDialog(QDialog):
 
     @staticmethod
     def _create_item(text: str) -> QTableWidgetItem:
-        """
-        Creates a read-only table item.
+        """Creates a read-only table item.
 
         Args:
-            text (str): The text to display in the item.
+            text: The text to display in the item.
 
         Returns:
-            QTableWidgetItem: A read-only table item.
+            A read-only table item.
         """
         item = QTableWidgetItem(str(text))
 
-        # FIX: Calculate flags as integer first to avoid PyCharm type confusion
+        # Calculate flags as integer first to avoid PyCharm type confusion
         flags_val = Qt.ItemFlag.ItemIsEnabled.value | Qt.ItemFlag.ItemIsSelectable.value
         item.setFlags(Qt.ItemFlag(flags_val))
 
         return item
 
     def _populate_table(self):
-        """
-        Populates the table with games and their missing metadata.
-
-        This method fills the table with game information and marks missing
-        fields with an ❌ emoji. It also updates the statistics label.
-        """
+        """Populates the table with games and their missing metadata."""
         self.table.setRowCount(len(self.games))
 
         missing_dev = 0
@@ -191,41 +176,34 @@ class MissingMetadataDialog(QDialog):
         missing_rel = 0
 
         for row, game in enumerate(self.games):
-            # 1. AppID
             self.table.setItem(row, 0, self._create_item(str(game.app_id)))
-
-            # 2. Name
             self.table.setItem(row, 1, self._create_item(game.name))
 
-            # 3. Developer
+            # Developer
             dev_val = game.developer if game.developer else ""
             if self._is_missing(dev_val):
-                # Emoji prefix assembled here — locale string is plain text
                 display_dev = f"{t('emoji.error')} {t('ui.tools.missing_metadata.missing_marked')}"
                 missing_dev += 1
             else:
                 display_dev = str(dev_val)
-
             self.table.setItem(row, 2, self._create_item(display_dev))
 
-            # 4. Publisher
+            # Publisher
             pub_val = game.publisher if game.publisher else ""
             if self._is_missing(pub_val):
                 display_pub = f"{t('emoji.error')} {t('ui.tools.missing_metadata.missing_marked')}"
                 missing_pub += 1
             else:
                 display_pub = str(pub_val)
-
             self.table.setItem(row, 3, self._create_item(display_pub))
 
-            # 5. Release
+            # Release
             raw_rel = game.release_year if game.release_year else ""
             if self._is_missing(raw_rel):
                 display_rel = f"{t('emoji.error')} {t('ui.tools.missing_metadata.missing_marked')}"
                 missing_rel += 1
             else:
                 display_rel = format_timestamp_to_date(raw_rel)
-
             self.table.setItem(row, 4, self._create_item(display_rel))
 
         # Update Statistics
@@ -233,12 +211,7 @@ class MissingMetadataDialog(QDialog):
         self.stats_label.setText(stats)
 
     def _export_csv(self):
-        """
-        Exports the missing metadata list to a CSV file.
-
-        This method opens a file dialog for the user to choose a save location,
-        then writes the game data with missing metadata information to a CSV file.
-        """
+        """Exports the missing metadata list to a CSV file."""
         default_name = f"missing_metadata_{len(self.games)}_games.csv"
 
         file_path, _ = QFileDialog.getSaveFileName(
@@ -252,7 +225,6 @@ class MissingMetadataDialog(QDialog):
             with open(file_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
 
-                # Header (Localized)
                 writer.writerow(
                     [
                         t("ui.tools.missing_metadata.col_appid"),
@@ -264,23 +236,19 @@ class MissingMetadataDialog(QDialog):
                     ]
                 )
 
-                # Data
                 for game in self.games:
                     missing_fields = []
 
-                    # Developer
                     dev_val = game.developer if game.developer else ""
                     if self._is_missing(dev_val):
                         dev_val = t("ui.tools.missing_metadata.missing")
                         missing_fields.append(t("ui.game_details.developer"))
 
-                    # Publisher
                     pub_val = game.publisher if game.publisher else ""
                     if self._is_missing(pub_val):
                         pub_val = t("ui.tools.missing_metadata.missing")
                         missing_fields.append(t("ui.game_details.publisher"))
 
-                    # Release
                     raw_rel = game.release_year if game.release_year else ""
                     if self._is_missing(raw_rel):
                         rel_val = t("ui.tools.missing_metadata.missing")

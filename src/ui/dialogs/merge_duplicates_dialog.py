@@ -10,7 +10,6 @@ duplicates are merged into the chosen one.
 from __future__ import annotations
 
 from PyQt6.QtWidgets import (
-    QDialog,
     QVBoxLayout,
     QHBoxLayout,
     QLabel,
@@ -22,13 +21,13 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.ui.utils.font_helper import FontHelper
+from src.ui.widgets.base_dialog import BaseDialog
 from src.utils.i18n import t
 
 __all__ = ["MergeDuplicatesDialog"]
 
 
-class MergeDuplicatesDialog(QDialog):
+class MergeDuplicatesDialog(BaseDialog):
     """Dialog for selecting which duplicate collections to keep.
 
     For each group of duplicate collections (same name), the user picks
@@ -53,8 +52,6 @@ class MergeDuplicatesDialog(QDialog):
                 duplicate collection dicts (from CloudStorageParser).
             filter_name: If set, only show the group with this name.
         """
-        super().__init__(parent)
-
         if filter_name and filter_name in duplicate_groups:
             self._groups: dict[str, list[dict]] = {filter_name: duplicate_groups[filter_name]}
         else:
@@ -62,22 +59,17 @@ class MergeDuplicatesDialog(QDialog):
 
         self._button_groups: dict[str, QButtonGroup] = {}
 
-        self.setWindowTitle(t("categories.merge_duplicates_title"))
-        self.setMinimumWidth(550)
+        super().__init__(
+            parent,
+            title_key="categories.merge_duplicates_title",
+            min_width=550,
+            show_title_label=True,
+            buttons="custom",
+        )
         self.setMinimumHeight(300)
-        self.setModal(True)
 
-        self._create_ui()
-
-    def _create_ui(self) -> None:
+    def _build_content(self, layout: QVBoxLayout) -> None:
         """Creates the dialog UI with scrollable group boxes."""
-        layout = QVBoxLayout(self)
-
-        # Title
-        title = QLabel(t("categories.merge_duplicates_title"))
-        title.setFont(FontHelper.get_font(14, FontHelper.BOLD))
-        layout.addWidget(title)
-
         # Info text
         info = QLabel(t("categories.merge_duplicates_info"))
         info.setWordWrap(True)
