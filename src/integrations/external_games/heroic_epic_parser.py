@@ -5,11 +5,10 @@ Reads Legendary's installed.json to detect Epic Games Store titles.
 
 from __future__ import annotations
 
-import json
 import logging
 from pathlib import Path
 
-from src.integrations.external_games.base_parser import BaseExternalParser
+from src.integrations.external_games.base_heroic_parser import BaseHeroicParser
 from src.integrations.external_games.models import ExternalGame
 
 __all__ = ["HeroicEpicParser"]
@@ -30,8 +29,10 @@ _FLATPAK = (
 )
 
 
-class HeroicEpicParser(BaseExternalParser):
+class HeroicEpicParser(BaseHeroicParser):
     """Parser for Epic Games installed through Heroic/Legendary."""
+
+    _RUNNER = "legendary"
 
     def platform_name(self) -> str:
         """Return platform name.
@@ -63,20 +64,11 @@ class HeroicEpicParser(BaseExternalParser):
         Returns:
             List of detected Epic games.
         """
-        config_path = self._find_config_file()
-        if not config_path:
-            return []
-
-        try:
-            data = json.loads(config_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as e:
-            logger.warning("Failed to read Heroic Epic config: %s", e)
-            return []
-
+        data, config_path = self._load_heroic_config_with_path()
         if not isinstance(data, dict):
             return []
 
-        is_flatpak = str(config_path).startswith(str(Path.home() / ".var"))
+        is_flatpak = self._is_flatpak(config_path) if config_path else False
         games: list[ExternalGame] = []
 
         for app_name, entry in data.items():
@@ -91,7 +83,7 @@ class HeroicEpicParser(BaseExternalParser):
             if isinstance(install_size, str):
                 install_size = 0
 
-            launch_cmd = self._build_launch_command(app_name, is_flatpak)
+            launch_cmd = self._build_heroic_launch_command(app_name, is_flatpak)
 
             games.append(
                 ExternalGame(
@@ -108,19 +100,3 @@ class HeroicEpicParser(BaseExternalParser):
 
         logger.info("Found %d Epic games via Heroic", len(games))
         return games
-
-    @staticmethod
-    def _build_launch_command(app_name: str, is_flatpak: bool) -> str:
-        """Build the Heroic launch URI for an Epic game.
-
-        Args:
-            app_name: Legendary app name / ID.
-            is_flatpak: Whether Heroic is installed as Flatpak.
-
-        Returns:
-            Launch command string.
-        """
-        uri = f"heroic://launch/{app_name}?runner=legendary"
-        if is_flatpak:
-            return f'flatpak run com.heroicgameslauncher.hgl --no-gui --no-sandbox "{uri}"'
-        return uri
