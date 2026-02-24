@@ -6,15 +6,13 @@ missing a deck status. Rate-limited to ~1 request/second.
 
 from __future__ import annotations
 
-import json
 import logging
 import time
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
 
-import requests
-
 from src.services.enrichment.base_enrichment_thread import BaseEnrichmentThread
+from src.utils.deck_utils import fetch_deck_compatibility
 from src.utils.i18n import t
 
 if TYPE_CHECKING:
@@ -24,17 +22,6 @@ logger = logging.getLogger("steamlibmgr.deck_enrichment")
 
 __all__ = ["DeckEnrichmentThread"]
 
-# Valve API: resolved_category values
-_DECK_STATUS_MAP: dict[int, str] = {
-    0: "unknown",
-    1: "unsupported",
-    2: "playable",
-    3: "verified",
-}
-
-_API_URL = "https://store.steampowered.com/saleaction/ajaxgetdeckappcompatibilityreport?nAppID={app_id}"
-_USER_AGENT = "SteamLibraryManager/1.0"
-_REQUEST_TIMEOUT = 5
 _RATE_LIMIT_DELAY = 1.0
 
 
@@ -127,34 +114,4 @@ class DeckEnrichmentThread(BaseEnrichmentThread):
         Returns:
             The deck status string ("verified", "playable", etc.), or None on failure.
         """
-        cache_file = cache_dir / f"{app_id}_deck.json"
-
-        try:
-            url = _API_URL.format(app_id=app_id)
-            response = requests.get(
-                url,
-                timeout=_REQUEST_TIMEOUT,
-                headers={"User-Agent": _USER_AGENT},
-            )
-
-            if response.status_code != 200:
-                logger.debug("Deck API returned %d for %s", response.status_code, app_id)
-                return None
-
-            data = response.json()
-            results = data.get("results", {})
-
-            if isinstance(results, list):
-                results = results[0] if results else {}
-
-            resolved_category = results.get("resolved_category", 0) if isinstance(results, dict) else 0
-            status = _DECK_STATUS_MAP.get(resolved_category, "unknown")
-
-            with open(cache_file, "w") as f:
-                json.dump({"status": status, "category": resolved_category}, f)
-
-            return status
-
-        except (requests.RequestException, ValueError, KeyError, OSError) as exc:
-            logger.debug("Deck API fetch failed for %s: %s", app_id, exc)
-            return None
+        return fetch_deck_compatibility(app_id, cache_dir)
