@@ -86,6 +86,9 @@ class SelectionHandler:
         self.mw.selected_game = game
         all_categories = list(self.mw.game_manager.get_all_categories().keys())
 
+        # Compute curator overlap from filter cache (no DB access)
+        self._update_curator_overlap(game)
+
         # PERFORMANCE FIX: Show UI immediately, fetch details in background
         self.mw.details_widget.set_game(game, all_categories)
 
@@ -175,3 +178,29 @@ class SelectionHandler:
         # Manually update selected_games list
         self.mw.selected_games = [self.mw.game_manager.get_game(aid) for aid in app_ids]
         self.mw.selected_games = [g for g in self.mw.selected_games if g is not None]
+
+    # ------------------------------------------------------------------
+    # Curator overlap
+    # ------------------------------------------------------------------
+
+    def _update_curator_overlap(self, game: Game) -> None:
+        """Computes curator overlap from the filter cache and sets it on the game.
+
+        Uses the in-memory curator cache from FilterService, so no DB access
+        is needed on each game selection.
+
+        Args:
+            game: The game to compute overlap for.
+        """
+        try:
+            fs = self.mw.filter_service
+            cache = fs.curator_cache
+            if not cache:
+                game.curator_overlap = ""
+                return
+            numeric_id = int(game.app_id)
+            recommending = sum(1 for recs in cache.values() if numeric_id in recs)
+            total = len(cache)
+            game.curator_overlap = f"{recommending}/{total}"
+        except (ValueError, TypeError, AttributeError):
+            game.curator_overlap = ""

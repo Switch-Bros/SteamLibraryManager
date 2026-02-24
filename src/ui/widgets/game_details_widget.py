@@ -82,6 +82,7 @@ class GameDetailsWidget(QWidget):
     lbl_achievement_total: QLabel
     lbl_achievement_progress: QLabel
     lbl_achievement_perfect: QLabel
+    lbl_curator_overlap: QLabel
     lbl_description: QLabel
     lbl_private_badge: QLabel
     dlc_group: QGroupBox
@@ -215,6 +216,10 @@ class GameDetailsWidget(QWidget):
         self.lbl_reviews.setText(
             f"<span style='color:{Theme.TEXT_MUTED};'>{t('ui.game_details.reviews')}:</span> <b>{review_val}</b>"
         )
+
+        # Curator overlap
+        curator_val = game.curator_overlap if game.curator_overlap else t("emoji.dash")
+        set_info_label_value(self.lbl_curator_overlap, curator_val)
 
         unknown = t("ui.game_details.value_unknown")
 

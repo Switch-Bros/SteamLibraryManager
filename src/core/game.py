@@ -98,6 +98,9 @@ class Game:
     achievement_percentage: float = 0.0
     achievement_perfect: bool = False
 
+    # Curator overlap (transient, computed from cache on selection)
+    curator_overlap: str = ""
+
     # Images
     icon_url: str = ""
     cover_url: str = ""

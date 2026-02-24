@@ -67,6 +67,7 @@
       "achievement_perfect": "Perfect Game",
       "achievement_none": "No Achievements",
       "achievement_format": "{unlocked}/{total} ({percentage}%)",
+      "curator_overlap": "Curators",
       "proton_tiers": {
         "platinum": "Platinum",
         "gold": "Gold",
@@ -546,7 +547,20 @@
       "remove": "Remove Curator",
       "remove_confirm": "Remove curator \"{name}\" and all its recommendations?",
       "no_selection": "Please select a curator first.",
-      "invalid_url": "Could not parse curator ID from the given URL."
+      "invalid_url": "Could not parse curator ID from the given URL.",
+      "export": "Export",
+      "export_title": "Export Curators",
+      "export_success": "Exported {count} curator(s) to JSON.",
+      "import_btn": "Import",
+      "import_title": "Import Curators",
+      "import_success": "Imported {count} curator(s) from JSON.",
+      "import_error": "Failed to read JSON file: {error}",
+      "import_empty": "The selected file contains no curator data.",
+      "top_curators": "Top Curators",
+      "top_title": "Add Top Steam Curators",
+      "top_info": "Select from the most popular Steam curators. Already added curators are greyed out.",
+      "top_fetch_error": "Could not fetch top curators: {error}",
+      "top_empty": "No curators found from the Steam API."
     },
     "tag_import": {
       "loading_appinfo": "Loading appinfo.vdf...",

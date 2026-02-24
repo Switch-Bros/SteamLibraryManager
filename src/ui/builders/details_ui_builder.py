@@ -292,6 +292,8 @@ def _build_metadata_grid(w: GameDetailsWidget, main_layout: QVBoxLayout) -> None
     meta_grid.addWidget(w.lbl_steam_deck, 2, 1)
     w.lbl_reviews = InfoLabel("ui.game_details.reviews", t("emoji.dash"))
     meta_grid.addWidget(w.lbl_reviews, 3, 1)
+    w.lbl_curator_overlap = InfoLabel("ui.game_details.curator_overlap", t("emoji.dash"))
+    meta_grid.addWidget(w.lbl_curator_overlap, 4, 1)
 
     # Column 2: Metadata fields
     meta_grid.addWidget(QLabel(f"<b>{t('ui.game_details.section_metadata')}</b>"), 0, 2)

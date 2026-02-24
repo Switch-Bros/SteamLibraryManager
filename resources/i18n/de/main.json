@@ -67,6 +67,7 @@
       "achievement_perfect": "Perfektes Spiel",
       "achievement_none": "Keine Achievements",
       "achievement_format": "{unlocked}/{total} ({percentage}%)",
+      "curator_overlap": "Kuratoren",
       "proton_tiers": {
         "platinum": "Platin",
         "gold": "Gold",
@@ -546,7 +547,20 @@
       "remove": "Kurator entfernen",
       "remove_confirm": "Kurator \"{name}\" und alle Empfehlungen entfernen?",
       "no_selection": "Bitte zuerst einen Kurator ausw\u00e4hlen.",
-      "invalid_url": "Kurator-ID konnte nicht aus der URL gelesen werden."
+      "invalid_url": "Kurator-ID konnte nicht aus der URL gelesen werden.",
+      "export": "Exportieren",
+      "export_title": "Kuratoren exportieren",
+      "export_success": "{count} Kurator(en) als JSON exportiert.",
+      "import_btn": "Importieren",
+      "import_title": "Kuratoren importieren",
+      "import_success": "{count} Kurator(en) aus JSON importiert.",
+      "import_error": "JSON-Datei konnte nicht gelesen werden: {error}",
+      "import_empty": "Die ausgew\u00e4hlte Datei enth\u00e4lt keine Kurator-Daten.",
+      "top_curators": "Top-Kuratoren",
+      "top_title": "Top Steam-Kuratoren hinzuf\u00fcgen",
+      "top_info": "Aus den beliebtesten Steam-Kuratoren ausw\u00e4hlen. Bereits hinzugef\u00fcgte sind ausgegraut.",
+      "top_fetch_error": "Top-Kuratoren konnten nicht abgerufen werden: {error}",
+      "top_empty": "Keine Kuratoren von der Steam-API gefunden."
     },
     "tag_import": {
       "loading_appinfo": "Lade appinfo.vdf...",

@@ -216,3 +216,105 @@ class CuratorClient:
 
         logger.info("Fetched %d recommendations for curator %d", len(all_recommendations), curator_id)
         return all_recommendations
+
+    @staticmethod
+    def fetch_top_curators(count: int = 50) -> list[dict[str, int | str]]:
+        """Fetches the most popular Steam curators via the public API.
+
+        Args:
+            count: Number of curators to fetch (max 50).
+
+        Returns:
+            List of dicts with keys: curator_id, name.
+
+        Raises:
+            ConnectionError: If the Steam Store API is unreachable.
+        """
+        import json
+
+        url = f"https://store.steampowered.com/curators/ajaxgetcurators/render/" f"?start=0&count={min(count, 50)}"
+        try:
+            request = Request(url)
+            request.add_header("Accept", "application/json")
+            with urlopen(request, timeout=15) as response:  # noqa: S310
+                data = json.loads(response.read().decode("utf-8"))
+        except (URLError, TimeoutError, OSError) as exc:
+            raise ConnectionError(f"Failed to fetch top curators: {exc}") from exc
+
+        results: list[dict[str, int | str]] = []
+        html = data.get("results_html", "")
+        if not html:
+            return results
+
+        # Parse curator blocks from the HTML
+        curator_block_pattern = re.compile(
+            r'data-clanid="(\d+)".*?curator_name[^>]*>([^<]+)<',
+            re.DOTALL,
+        )
+        for match in curator_block_pattern.finditer(html):
+            results.append(
+                {
+                    "curator_id": int(match.group(1)),
+                    "name": match.group(2).strip(),
+                }
+            )
+
+        logger.info("Fetched %d top curators", len(results))
+        return results
+
+    @staticmethod
+    def discover_subscribed_curators(steam_cookies: str) -> list[dict[str, int | str]]:
+        """Discovers curators the user is currently following on Steam.
+
+        Parses the ``gFollowedCuratorIDs`` JavaScript variable from the
+        user's Steam curator page.
+
+        Args:
+            steam_cookies: Cookie header value for authentication
+                           (must contain ``steamLoginSecure``).
+
+        Returns:
+            List of dicts with keys: curator_id, name (name may be empty).
+
+        Raises:
+            ConnectionError: If the Steam Store is unreachable.
+        """
+        url = "https://store.steampowered.com/curators/mycurators/"
+        try:
+            request = Request(url)
+            request.add_header("Cookie", steam_cookies)
+            with urlopen(request, timeout=15) as response:  # noqa: S310
+                html = response.read().decode("utf-8", errors="replace")
+        except (URLError, TimeoutError, OSError) as exc:
+            raise ConnectionError(f"Failed to fetch subscribed curators: {exc}") from exc
+
+        # Extract gFollowedCuratorIDs = [123, 456, ...]
+        ids_pattern = re.compile(r"gFollowedCuratorIDs\s*=\s*\[([^\]]*)\]")
+        match = ids_pattern.search(html)
+        if not match:
+            logger.warning("Could not find gFollowedCuratorIDs in page")
+            return []
+
+        raw_ids = match.group(1).strip()
+        if not raw_ids:
+            return []
+
+        results: list[dict[str, int | str]] = []
+        for chunk in raw_ids.split(","):
+            chunk = chunk.strip()
+            if chunk.isdigit():
+                results.append({"curator_id": int(chunk), "name": ""})
+
+        # Try to extract names from the same page
+        name_pattern = re.compile(
+            r'data-clanid="(\d+)"[^>]*>.*?curator_name[^>]*>([^<]+)<',
+            re.DOTALL,
+        )
+        name_map = {int(m.group(1)): m.group(2).strip() for m in name_pattern.finditer(html)}
+        for entry in results:
+            cid = entry["curator_id"]
+            if isinstance(cid, int) and cid in name_map:
+                entry["name"] = name_map[cid]
+
+        logger.info("Discovered %d subscribed curators", len(results))
+        return results

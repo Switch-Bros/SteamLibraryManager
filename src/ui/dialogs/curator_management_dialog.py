@@ -19,6 +19,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QCheckBox,
     QDialog,
+    QFileDialog,
     QHBoxLayout,
     QHeaderView,
     QInputDialog,
@@ -116,6 +117,18 @@ class CuratorManagementDialog(BaseDialog):
         remove_btn = QPushButton(t("ui.curator.remove"))
         remove_btn.clicked.connect(self._on_remove)
         btn_layout.addWidget(remove_btn)
+
+        export_btn = QPushButton(t("ui.curator.export"))
+        export_btn.clicked.connect(self._on_export)
+        btn_layout.addWidget(export_btn)
+
+        import_btn = QPushButton(t("ui.curator.import_btn"))
+        import_btn.clicked.connect(self._on_import)
+        btn_layout.addWidget(import_btn)
+
+        top_btn = QPushButton(t("ui.curator.top_curators"))
+        top_btn.clicked.connect(self._on_top_curators)
+        btn_layout.addWidget(top_btn)
 
         btn_layout.addStretch()
 
@@ -298,6 +311,178 @@ class CuratorManagementDialog(BaseDialog):
         if row < len(curators):
             self._db.remove_curator(curators[row]["curator_id"])
             self._refresh_table()
+
+    # ------------------------------------------------------------------
+    # Top Curators (Auto-Discovery)
+    # ------------------------------------------------------------------
+
+    def _on_top_curators(self) -> None:
+        """Fetches the most popular Steam curators and presents a selection dialog."""
+        from src.services.curator_client import CuratorClient
+
+        if not self._db:
+            return
+
+        try:
+            top_list = CuratorClient.fetch_top_curators(count=50)
+        except ConnectionError as exc:
+            UIHelper.show_warning(self, t("ui.curator.top_fetch_error", error=str(exc)))
+            return
+
+        if not top_list:
+            UIHelper.show_info(self, t("ui.curator.top_empty"))
+            return
+
+        existing_ids = {c["curator_id"] for c in self._db.get_all_curators()}
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(t("ui.curator.top_title"))
+        dialog.setMinimumWidth(500)
+        dialog.setModal(True)
+
+        dlg_layout = QVBoxLayout(dialog)
+        info_label = QLabel(t("ui.curator.top_info"))
+        info_label.setWordWrap(True)
+        dlg_layout.addWidget(info_label)
+
+        checkboxes: list[tuple[QCheckBox, int, str]] = []
+        for entry in top_list:
+            curator_id = entry["curator_id"]
+            name = str(entry.get("name", f"Curator {curator_id}"))
+            cb = QCheckBox(name)
+            if curator_id in existing_ids:
+                cb.setChecked(True)
+                cb.setEnabled(False)
+                cb.setToolTip(t("ui.curator.already_added"))
+            dlg_layout.addWidget(cb)
+            checkboxes.append((cb, int(curator_id), name))
+
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        cancel_btn = QPushButton(t("common.cancel"))
+        cancel_btn.clicked.connect(dialog.reject)
+        btn_layout.addWidget(cancel_btn)
+        ok_btn = QPushButton(t("common.ok"))
+        ok_btn.clicked.connect(dialog.accept)
+        ok_btn.setDefault(True)
+        btn_layout.addWidget(ok_btn)
+        dlg_layout.addLayout(btn_layout)
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        added = 0
+        for cb, curator_id, name in checkboxes:
+            if cb.isChecked() and curator_id not in existing_ids:
+                url = f"https://store.steampowered.com/curator/{curator_id}/"
+                self._db.add_curator(curator_id, name, url, source="discovered")
+                added += 1
+
+        if added > 0:
+            self._refresh_table()
+
+    # ------------------------------------------------------------------
+    # Export / Import
+    # ------------------------------------------------------------------
+
+    def _on_export(self) -> None:
+        """Export all curators and recommendations to a JSON file."""
+        import json
+
+        if not self._db:
+            return
+
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            t("ui.curator.export_title"),
+            "curators.json",
+            "JSON (*.json)",
+        )
+        if not path:
+            return
+
+        curators = self._db.get_all_curators()
+        export_data: list[dict] = []
+        for curator in curators:
+            recs = sorted(self._db.get_recommendations_for_curator(curator["curator_id"]))
+            export_data.append(
+                {
+                    "curator_id": curator["curator_id"],
+                    "name": curator["name"],
+                    "url": curator.get("url", ""),
+                    "source": curator.get("source", "manual"),
+                    "active": bool(curator.get("active", True)),
+                    "last_updated": curator.get("last_updated"),
+                    "recommendations": recs,
+                }
+            )
+
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump({"version": 1, "curators": export_data}, f, indent=2, ensure_ascii=False)
+
+        UIHelper.show_info(
+            self,
+            t("ui.curator.export_success", count=len(export_data)),
+        )
+
+    def _on_import(self) -> None:
+        """Import curators and recommendations from a JSON file."""
+        import json
+
+        if not self._db:
+            return
+
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            t("ui.curator.import_title"),
+            "",
+            "JSON (*.json)",
+        )
+        if not path:
+            return
+
+        try:
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, OSError) as exc:
+            UIHelper.show_warning(self, t("ui.curator.import_error", error=str(exc)))
+            return
+
+        curators_data = data.get("curators", [])
+        if not curators_data:
+            UIHelper.show_warning(self, t("ui.curator.import_empty"))
+            return
+
+        # Merge: skip curators whose local data is newer
+        existing = {c["curator_id"]: c for c in self._db.get_all_curators()}
+        imported = 0
+
+        for entry in curators_data:
+            curator_id = entry.get("curator_id")
+            if not isinstance(curator_id, int):
+                continue
+
+            local = existing.get(curator_id)
+            if local and local.get("last_updated") and entry.get("last_updated"):
+                if local["last_updated"] >= entry["last_updated"]:
+                    continue
+
+            name = entry.get("name", f"Curator {curator_id}")
+            url = entry.get("url", "")
+            source = entry.get("source", "manual")
+            self._db.add_curator(curator_id, name, url, source)
+
+            recs = entry.get("recommendations", [])
+            if recs:
+                self._db.save_curator_recommendations(curator_id, recs)
+
+            imported += 1
+
+        self._refresh_table()
+        UIHelper.show_info(
+            self,
+            t("ui.curator.import_success", count=imported),
+        )
 
     # ------------------------------------------------------------------
     # DB lifecycle
