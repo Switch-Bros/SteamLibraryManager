@@ -19,6 +19,8 @@ from src.utils.i18n import t
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
+__all__ = ["StatusbarBuilder"]
+
 
 class StatusbarBuilder:
     """Constructs the application status bar with its permanent widgets.

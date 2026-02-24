@@ -29,6 +29,8 @@ from src.ui.widgets.base_dialog import BaseDialog
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
+__all__ = ["AccountScanWorker", "ProfileSetupDialog"]
+
 
 class AccountScanWorker(QThread):
     """Background worker to scan Steam accounts without blocking UI."""

@@ -28,6 +28,8 @@ from src.utils.i18n import t
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
+__all__ = ["CategoryActionHandler"]
+
 
 class CategoryActionHandler:
     """Handles all category/collection CRUD operations and context menus.

@@ -244,5 +244,11 @@
       "top_curators_fetched": "Fetched {count} top curators from Steam",
       "subscribed_discovered": "Discovered {count} subscribed curators"
     }
+  },
+  "errors": {
+    "appinfo": {
+      "no_data": "No data provided: either path or data parameter is required",
+      "no_output_path": "No output path specified and no file path was set during initialization"
+    }
   }
 }

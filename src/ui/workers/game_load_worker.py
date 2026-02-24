@@ -14,6 +14,8 @@ from PyQt6.QtCore import QThread, pyqtSignal
 if TYPE_CHECKING:
     from src.services.game_service import GameService
 
+__all__ = ["GameLoadWorker"]
+
 
 class GameLoadWorker(QThread):
     """Background thread for loading games without blocking the UI.

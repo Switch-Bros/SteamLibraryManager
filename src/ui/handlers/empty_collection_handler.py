@@ -14,6 +14,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
+__all__ = ["EmptyCollectionHandler"]
+
 
 class EmptyCollectionHandler:
     """Handles automatic deletion of empty user collections."""

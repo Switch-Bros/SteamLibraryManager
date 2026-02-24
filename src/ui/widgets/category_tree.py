@@ -19,6 +19,8 @@ from src.core.game_manager import Game
 from src.integrations.external_games.models import get_collection_emoji
 from src.utils.i18n import t
 
+__all__ = ["GameTreeWidget"]
+
 
 class GameTreeWidget(QTreeWidget):
     """

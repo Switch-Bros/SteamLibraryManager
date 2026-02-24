@@ -53,7 +53,7 @@ disable_error_code = [
 
 [tool.pytest.ini_options]
 minversion = "8.3"
-addopts = "-ra -q --strict-markers"
+addopts = "-v --tb=short -ra --strict-markers"
 testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"

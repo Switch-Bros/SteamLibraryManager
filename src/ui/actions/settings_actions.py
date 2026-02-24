@@ -19,6 +19,8 @@ from src.version import __app_name__
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
+__all__ = ["SettingsActions"]
+
 
 class SettingsActions:
     """Handles settings dialog and configuration changes."""

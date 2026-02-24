@@ -71,6 +71,8 @@ from src.ui.actions import (
 from src.ui.actions.enrichment_actions import EnrichmentActions
 from src.ui.actions.enrichment_starters import EnrichmentStarters
 
+__all__ = ["MainWindow"]
+
 
 class MainWindow(QMainWindow):
     """Primary application window for Steam Library Manager.

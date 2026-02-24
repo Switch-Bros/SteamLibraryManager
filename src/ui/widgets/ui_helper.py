@@ -25,6 +25,8 @@ from PyQt6.QtWidgets import (
 from src.utils.i18n import t
 from src.version import __app_name__
 
+__all__ = ["UIHelper"]
+
 
 class UIHelper:
     """A static helper class for common UI dialog interactions."""

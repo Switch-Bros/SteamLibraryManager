@@ -20,6 +20,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("steamlibmgr.steam_actions")
 
+__all__ = ["SteamActions"]
+
 
 class SteamActions:
     """Handles all Steam menu actions.

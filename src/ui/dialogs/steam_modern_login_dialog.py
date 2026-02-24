@@ -36,6 +36,8 @@ from src.utils.i18n import t
 
 logger = logging.getLogger("steamlibmgr.login_dialog")
 
+__all__ = ["ModernSteamLoginDialog"]
+
 
 class ModernSteamLoginDialog(QDialog):
     """

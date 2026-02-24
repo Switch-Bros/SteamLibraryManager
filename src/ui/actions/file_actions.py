@@ -26,6 +26,8 @@ if TYPE_CHECKING:
     from src.core.game import Game
     from src.ui.main_window import MainWindow
 
+__all__ = ["FileActions"]
+
 
 class FileActions:
     """Handles all File menu actions.

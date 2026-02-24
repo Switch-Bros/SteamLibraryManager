@@ -12,6 +12,8 @@ from src.core.game_manager import Game
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
+__all__ = ["StoreCheckThread", "ToolsActions"]
+
 
 class StoreCheckThread(QThread):
     """Background thread to check Steam Store availability."""

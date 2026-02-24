@@ -24,6 +24,8 @@ from src.utils.i18n import t
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
+__all__ = ["SelectionHandler"]
+
 
 class SelectionHandler:
     """Handles game selection events and background details loading.
