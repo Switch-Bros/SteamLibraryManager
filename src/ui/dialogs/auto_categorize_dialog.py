@@ -1,4 +1,4 @@
-# src/ui/auto_categorize_dialog.py
+# src/ui/dialogs/auto_categorize_dialog.py
 
 """Dialog for automatic game categorization.
 
@@ -18,7 +18,6 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
-    QDialog,
     QFrame,
     QGroupBox,
     QHBoxLayout,
@@ -36,6 +35,7 @@ from src.config import config
 from src.services.autocat_preset_manager import AutoCatPreset, AutoCatPresetManager
 from src.ui.utils.font_helper import FontHelper
 from src.ui.widgets.autocat_method_selector import AutoCatMethodSelector
+from src.ui.widgets.base_dialog import BaseDialog
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 from src.utils.json_utils import load_json, save_json
@@ -46,7 +46,7 @@ _CURATOR_HISTORY_FILE: Path = config.DATA_DIR / "curator_history.json"
 _MAX_CURATOR_HISTORY = 20
 
 
-class AutoCategorizeDialog(QDialog):
+class AutoCategorizeDialog(BaseDialog):
     """Dialog for configuring and starting automatic game categorization.
 
     Attributes:
@@ -74,8 +74,6 @@ class AutoCategorizeDialog(QDialog):
             on_start: Callback to execute when categorization starts.
             category_name: Name of the category being processed, if any.
         """
-        super().__init__(parent)
-
         self.games = games
         self.all_games_count = all_games_count
         self.on_start = on_start
@@ -83,11 +81,13 @@ class AutoCategorizeDialog(QDialog):
         self.result: dict[str, Any] | None = None
         self._preset_manager = AutoCatPresetManager()
 
-        self.setWindowTitle(t("auto_categorize.title"))
-        self.setMinimumWidth(550)
-        self.setModal(True)
-
-        self._create_ui()
+        super().__init__(
+            parent,
+            title_key="auto_categorize.title",
+            min_width=550,
+            show_title_label=False,
+            buttons="custom",
+        )
         self._center_on_parent()
 
     def _center_on_parent(self) -> None:
@@ -99,9 +99,8 @@ class AutoCategorizeDialog(QDialog):
                 parent_geo.y() + (parent_geo.height() - self.height()) // 2,
             )
 
-    def _create_ui(self) -> None:
+    def _build_content(self, layout: QVBoxLayout) -> None:
         """Initialize and lay out all UI components."""
-        layout = QVBoxLayout(self)
         layout.setSpacing(10)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSizeConstraint(QVBoxLayout.SizeConstraint.SetMinAndMaxSize)

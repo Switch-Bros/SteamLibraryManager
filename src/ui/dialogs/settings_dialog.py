@@ -1,9 +1,8 @@
-# src/ui/settings_dialog.py
+# src/ui/dialogs/settings_dialog.py
 
-"""
-Settings dialog for application configuration.
+"""Settings dialog for application configuration.
 
-This module provides a tabbed settings dialog where users can configure
+Provides a tabbed settings dialog where users can configure
 language preferences, Steam paths, library locations, tag settings, backup
 limits, and API keys.
 """
@@ -14,7 +13,6 @@ from PyQt6.QtCore import QUrl
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
-    QDialog,
     QVBoxLayout,
     QHBoxLayout,
     QLabel,
@@ -32,55 +30,55 @@ from PyQt6.QtWidgets import (
 )
 
 from src.config import config
+from src.ui.widgets.base_dialog import BaseDialog
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
 
-class SettingsDialog(QDialog):
-    """
-    Dialog for application settings configuration.
+class SettingsDialog(BaseDialog):
+    """Dialog for application settings configuration.
 
-    This dialog provides two tabs (General and Other) for configuring various
+    Provides two tabs (General and Other) for configuring various
     application settings including language, paths, APIs, and backup options.
 
     Signals:
-        language_changed (str): Emitted when the UI language is changed, passes the language code.
+        language_changed: Emitted when the UI language is changed, passes the language code.
+        settings_saved: Emitted when settings are saved, passes the settings dict.
 
     Attributes:
-        tabs (QTabWidget): The tab widget containing General and Other tabs.
-        combo_ui_lang (QComboBox): Dropdown for UI language selection.
-        combo_tags_lang (QComboBox): Dropdown for tags language selection.
-        path_edit (QLineEdit): Input field for Steam installation path.
-        lib_list (QListWidget): List of additional Steam library folders.
-        spin_tags (QSpinBox): Spinner for tags per game setting.
-        check_common (QCheckBox): Checkbox for ignoring common tags.
-        spin_backup (QSpinBox): Spinner for maximum backup files.
-        steam_api_edit (QLineEdit): Input field for Steam Web API key.
-        sgdb_key_edit (QLineEdit): Input field for SteamGridDB API key.
+        tabs: The tab widget containing General and Other tabs.
+        combo_ui_lang: Dropdown for UI language selection.
+        combo_tags_lang: Dropdown for tags language selection.
+        path_edit: Input field for Steam installation path.
+        lib_list: List of additional Steam library folders.
+        spin_tags: Spinner for tags per game setting.
+        check_common: Checkbox for ignoring common tags.
+        spin_backup: Spinner for maximum backup files.
+        steam_api_edit: Input field for Steam Web API key.
+        sgdb_key_edit: Input field for SteamGridDB API key.
     """
 
     language_changed = pyqtSignal(str)
     settings_saved = pyqtSignal(dict)
 
     def __init__(self, parent=None):
-        """
-        Initializes the settings dialog.
+        """Initializes the settings dialog.
 
         Args:
-            parent: Parent widget. Defaults to None.
+            parent: Parent widget.
         """
-        super().__init__(parent)
-        self.setWindowTitle(t("settings.title"))
-        # Slightly taller for the backup section
+        super().__init__(
+            parent,
+            title_key="settings.title",
+            min_width=600,
+            show_title_label=False,
+            buttons="custom",
+        )
         self.resize(600, 700)
-        self.setModal(True)
-
-        self._create_ui()
         self._load_current_settings()
 
-    def _create_ui(self):
-        """Creates the user interface with tabs and buttons."""
-        layout = QVBoxLayout(self)
+    def _build_content(self, layout: QVBoxLayout) -> None:
+        """Creates the tabbed UI with buttons."""
         self.tabs = QTabWidget()
         layout.addWidget(self.tabs)
 
@@ -108,11 +106,10 @@ class SettingsDialog(QDialog):
         layout.addLayout(btn_layout)
 
     def _init_general_tab(self, parent: QWidget):
-        """
-        Initializes the General tab with language, Steam path, and library settings.
+        """Initializes the General tab with language, Steam path, and library settings.
 
         Args:
-            parent (QWidget): The parent widget for this tab.
+            parent: The parent widget for this tab.
         """
         layout = QVBoxLayout(parent)
 
@@ -190,11 +187,10 @@ class SettingsDialog(QDialog):
         layout.addWidget(group_libs)
 
     def _init_other_tab(self, parent: QWidget):
-        """
-        Initializes the Other tab with tags, backup, and API settings.
+        """Initializes the Other tab with tags, backup, and API settings.
 
         Args:
-            parent (QWidget): The parent widget for this tab.
+            parent: The parent widget for this tab.
         """
         layout = QVBoxLayout(parent)
 
@@ -219,7 +215,6 @@ class SettingsDialog(QDialog):
         self.spin_backup.setSuffix(f" {t('settings.backup.files')}")
         form_backup.addRow(t("settings.backup.limit"), self.spin_backup)
 
-        # Explanation text
         lbl_backup_help = QLabel(t("settings.backup.explanation"))
         lbl_backup_help.setStyleSheet("color: gray; font-size: 10px; font-style: italic;")
         lbl_backup_help.setWordWrap(True)
@@ -303,7 +298,6 @@ class SettingsDialog(QDialog):
         title = t("common.add")
         path = QFileDialog.getExistingDirectory(self, title)
         if path:
-            # Avoid duplicates
             current_items = [self.lib_list.item(i).text() for i in range(self.lib_list.count())]
             if path not in current_items:
                 self.lib_list.addItem(path)
@@ -316,11 +310,10 @@ class SettingsDialog(QDialog):
                 self.lib_list.takeItem(row)
 
     def _on_language_changed(self, index: int):
-        """
-        Handles UI language changes.
+        """Handles UI language changes.
 
         Args:
-            index (int): The index of the selected language in the combo box.
+            index: The index of the selected language in the combo box.
         """
         code = self.combo_ui_lang.itemData(index)
         self.language_changed.emit(code)
@@ -330,11 +323,10 @@ class SettingsDialog(QDialog):
         self.settings_saved.emit(self.get_settings())
 
     def get_settings(self) -> dict:
-        """
-        Collects all settings from the dialog.
+        """Collects all settings from the dialog.
 
         Returns:
-            dict: A dictionary containing all configured settings.
+            A dictionary containing all configured settings.
         """
         libraries = []
         for i in range(self.lib_list.count()):

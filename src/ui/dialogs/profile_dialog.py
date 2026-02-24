@@ -15,7 +15,6 @@ from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QDialog,
     QHBoxLayout,
     QLabel,
     QListWidget,
@@ -25,7 +24,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.ui.utils.font_helper import FontHelper
+from src.ui.widgets.base_dialog import BaseDialog
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
@@ -37,7 +36,7 @@ logger = logging.getLogger("steamlibmgr.profile_dialog")
 __all__ = ["ProfileDialog"]
 
 
-class ProfileDialog(QDialog):
+class ProfileDialog(BaseDialog):
     """Modal dialog for profile management.
 
     After ``exec()`` returns ``Accepted``, the caller should check
@@ -56,29 +55,22 @@ class ProfileDialog(QDialog):
             manager: The ProfileManager for data operations.
             parent: Optional parent widget.
         """
-        super().__init__(parent)
         self.manager: ProfileManager = manager
         self.action: str = ""
         self.selected_name: str = ""
 
-        self.setWindowTitle(t("ui.profile.dialog_title"))
-        self.setMinimumWidth(500)
+        super().__init__(
+            parent,
+            title_key="ui.profile.dialog_title",
+            min_width=500,
+            show_title_label=True,
+            buttons="custom",
+        )
         self.setMinimumHeight(420)
-        self.setModal(True)
-
-        self._setup_ui()
         self._refresh_list()
 
-    def _setup_ui(self) -> None:
-        """Creates the dialog layout with title, info, list, and action buttons."""
-        layout = QVBoxLayout(self)
-        layout.setSpacing(12)
-
-        # Title
-        title = QLabel(t("ui.profile.dialog_title"))
-        title.setFont(FontHelper.get_font(14, FontHelper.BOLD))
-        layout.addWidget(title)
-
+    def _build_content(self, layout: QVBoxLayout) -> None:
+        """Creates the dialog layout with info, list, and action buttons."""
         # Info text
         info = QLabel(t("ui.profile.info_text"))
         info.setWordWrap(True)
