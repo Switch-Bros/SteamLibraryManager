@@ -1,7 +1,7 @@
 """Progress dialog for the 'Refresh ALL Data' operation.
 
-Displays five track rows with independent progress bars for
-Tags, Steam API, HLTB, ProtonDB, and Deck status enrichment.
+Displays track rows with independent progress bars for
+Tags, Steam API, HLTB, ProtonDB, Deck status, PEGI, and Curator enrichment.
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
 )
 
 from src.services.enrichment.enrich_all_coordinator import (
+    TRACK_CURATOR,
     TRACK_DECK,
     TRACK_HLTB,
     TRACK_PEGI,
@@ -42,6 +43,7 @@ _TRACK_LABELS: list[tuple[str, str]] = [
     (TRACK_PROTONDB, "ui.enrichment.enrich_all_protondb"),
     (TRACK_DECK, "ui.enrichment.enrich_all_deck"),
     (TRACK_PEGI, "ui.enrichment.enrich_all_pegi"),
+    (TRACK_CURATOR, "ui.enrichment.enrich_all_curator"),
 ]
 
 

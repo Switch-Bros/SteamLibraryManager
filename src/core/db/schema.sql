@@ -426,6 +426,27 @@ CREATE TABLE IF NOT EXISTS external_games (
 );
 
 -- ============================================================================
+-- v9: CURATOR RECOMMENDATIONS
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS curators (
+    curator_id    INTEGER PRIMARY KEY,
+    name          TEXT NOT NULL,
+    url           TEXT NOT NULL DEFAULT '',
+    source        TEXT NOT NULL DEFAULT 'manual',  -- manual, subscribed, preset
+    active        INTEGER NOT NULL DEFAULT 1,
+    last_updated  TEXT,
+    total_count   INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS curator_recommendations (
+    curator_id    INTEGER NOT NULL,
+    app_id        INTEGER NOT NULL,
+    PRIMARY KEY (curator_id, app_id),
+    FOREIGN KEY (curator_id) REFERENCES curators(curator_id) ON DELETE CASCADE
+);
+
+-- ============================================================================
 -- MODIFICATION TRACKING
 -- ============================================================================
 
@@ -625,6 +646,9 @@ CREATE INDEX IF NOT EXISTS idx_external_name ON external_games(name);
 CREATE INDEX IF NOT EXISTS idx_ugs_status ON user_game_status(status);
 CREATE INDEX IF NOT EXISTS idx_ugs_priority ON user_game_status(priority);
 
+-- v9: Curator recommendations
+CREATE INDEX IF NOT EXISTS idx_curator_rec_app ON curator_recommendations(app_id);
+
 -- ============================================================================
 -- VIEWS FOR CONVENIENCE
 -- ============================================================================
@@ -721,7 +745,7 @@ END;
 -- ============================================================================
 
 INSERT OR IGNORE INTO schema_version (version, applied_at, description)
-VALUES (8, strftime('%s', 'now'), 'v8: PEGI + user data normalization + future tables');
+VALUES (9, strftime('%s', 'now'), 'v9: curator recommendations');
 
 -- ============================================================================
 -- END OF SCHEMA

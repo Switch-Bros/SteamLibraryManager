@@ -234,6 +234,11 @@
       "file_not_found": "Font file not found: {path}",
       "load_failed": "Failed to load font from {path}",
       "app_font_set": "Set application-wide font: {name} {size}pt"
+    },
+    "curator": {
+      "fetch_success": "Curator '{name}': {count} recommendations fetched",
+      "fetch_failed": "Failed to fetch curator '{name}': {error}",
+      "enrichment_complete": "Curator enrichment: {success} updated, {failed} failed"
     }
   }
 }

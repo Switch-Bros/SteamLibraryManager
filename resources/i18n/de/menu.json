@@ -165,6 +165,7 @@
         "update_achievements": "Achievements aktualisieren",
         "update_achievements_force": "Achievements \u2014 Alle neu einlesen",
         "import_tags": "Tags aus Steam importieren",
+        "update_curator": "Kurator-Daten aktualisieren",
         "enrich_all": "ALLE Daten NEU einlesen"
       },
       "database": {

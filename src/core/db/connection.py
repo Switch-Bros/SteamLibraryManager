@@ -23,7 +23,7 @@ class ConnectionBase:
     which is provided by SchemaMixin via multiple inheritance.
     """
 
-    SCHEMA_VERSION = 8
+    SCHEMA_VERSION = 9
 
     conn: sqlite3.Connection
     db_path: Path

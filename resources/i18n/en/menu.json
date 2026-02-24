@@ -165,6 +165,7 @@
         "update_achievements": "Update Achievements",
         "update_achievements_force": "Achievements \u2014 Re-fetch all",
         "import_tags": "Import Tags from Steam",
+        "update_curator": "Refresh Curator Data",
         "enrich_all": "Refresh ALL Data"
       },
       "database": {

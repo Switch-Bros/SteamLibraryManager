@@ -27,6 +27,7 @@ TRACK_HLTB = "hltb"
 TRACK_PROTONDB = "protondb"
 TRACK_DECK = "deck"
 TRACK_PEGI = "pegi"
+TRACK_CURATOR = "curator"
 
 
 class EnrichAllCoordinator(QObject):
@@ -219,6 +220,17 @@ class EnrichAllCoordinator(QObject):
             self._results[TRACK_PEGI] = (-1, 0)
             self.track_finished.emit(TRACK_PEGI, -1, 0)
 
+        # Track G: Curator recommendations
+        if self._db_path:
+            curators = self._get_curators_for_refresh()
+            if curators:
+                self._pending_tracks += 1
+                self._start_curator_track(curators)
+            else:
+                self.track_finished.emit(TRACK_CURATOR, -1, 0)
+        else:
+            self.track_finished.emit(TRACK_CURATOR, -1, 0)
+
         if self._pending_tracks == 0:
             self.all_finished.emit(self._results)
 
@@ -376,6 +388,43 @@ class EnrichAllCoordinator(QObject):
             force_refresh=True,
         )
         self._wire_and_start_track(TRACK_PEGI, thread)
+
+    # -- Track G: Curator recommendations --------------------------------
+
+    def _start_curator_track(self, curators: list) -> None:
+        """Starts curator recommendation enrichment track.
+
+        Args:
+            curators: List of curator dicts from DB.
+        """
+        from src.services.enrichment.curator_enrichment_service import (
+            CuratorEnrichmentThread,
+        )
+
+        thread = CuratorEnrichmentThread(self)
+        thread.configure(
+            curators,
+            self._db_path,  # type: ignore[arg-type]
+            force_refresh=True,
+        )
+        self._wire_and_start_track(TRACK_CURATOR, thread)
+
+    def _get_curators_for_refresh(self) -> list:
+        """Opens DB to fetch curators needing refresh.
+
+        Returns:
+            List of curator dicts, or empty list.
+        """
+        from src.core.db import Database
+
+        try:
+            db = Database(self._db_path)  # type: ignore[arg-type]
+            curators = db.get_all_curators()
+            db.close()
+            return curators
+        except Exception as exc:
+            logger.warning("Failed to query curators: %s", exc)
+            return []
 
     # ------------------------------------------------------------------
     # Shared track wiring

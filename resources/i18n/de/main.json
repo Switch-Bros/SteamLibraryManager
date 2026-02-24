@@ -524,7 +524,12 @@
       "enrich_all_hltb": "HowLongToBeat",
       "enrich_all_protondb": "ProtonDB",
       "enrich_all_deck": "Steam Deck Status",
-      "enrich_all_pegi": "Altersfreigabe (PEGI)"
+      "enrich_all_pegi": "Altersfreigabe (PEGI)",
+      "enrich_all_curator": "Kurator-Empfehlungen",
+      "curator_title": "Kurator-Empfehlungen",
+      "curator_starting": "Lade Kurator-Empfehlungen...",
+      "curator_progress": "Kurator {current}/{total}: {name}",
+      "no_curators": "Keine Kuratoren konfiguriert. Kuratoren hinzuf\u00fcgen \u00fcber Werkzeuge \u2192 Kuratoren verwalten."
     },
     "tag_import": {
       "loading_appinfo": "Lade appinfo.vdf...",

@@ -296,6 +296,49 @@ class EnrichmentStarters:
             configure_kwargs={"language": language},
         )
 
+    def start_curator_enrichment(self, force_refresh: bool = False) -> None:
+        """Starts curator recommendation enrichment.
+
+        Fetches recommendations for all configured curators and
+        persists them to the database.
+
+        Args:
+            force_refresh: If True, refresh all curators regardless of age.
+        """
+        db = self._open_database()
+        if db is None:
+            return
+
+        curators = db.get_all_curators() if force_refresh else db.get_curators_needing_refresh()
+        db.close()
+
+        if not curators:
+            UIHelper.show_batch_result(
+                self.mw,
+                t("ui.enrichment.no_curators"),
+                t("ui.enrichment.complete_title"),
+            )
+            return
+
+        from src.services.enrichment.curator_enrichment_service import (
+            CuratorEnrichmentThread,
+        )
+
+        db_path = self._get_db_path()
+        if db_path is None:
+            return
+
+        thread = CuratorEnrichmentThread(self.mw)
+        thread.configure(curators, db_path, force_refresh=force_refresh)
+        callback = None if force_refresh else lambda: self.start_curator_enrichment(force_refresh=True)
+        self._run_enrichment(
+            thread,
+            title_key="ui.enrichment.curator_title",
+            starting_key="ui.enrichment.curator_starting",
+            total=len(curators),
+            force_refresh_callback=callback,
+        )
+
     def start_tag_import(self) -> None:
         """Starts background import of tags from appinfo.vdf."""
         from src.config import config
