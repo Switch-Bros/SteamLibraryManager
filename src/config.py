@@ -19,6 +19,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from src.utils.i18n import t
 from src.utils.json_utils import load_json, save_json
 
 # Load environment variables silently
@@ -101,7 +102,7 @@ class Config:
             detected = self._find_steam_path()
             if detected:
                 self.STEAM_PATH = detected
-                logger.info(f"Auto-detected Steam: {detected} ({self.installation_type})")
+                logger.info(t("logs.config.auto_detected", path=detected, type=self.installation_type))
 
         # Auto-Detect Libraries if empty
         if not self.STEAM_LIBRARIES and self.STEAM_PATH:
@@ -228,7 +229,7 @@ class Config:
                 path_str, _ = winreg.QueryValueEx(key, "SteamPath")
                 path = Path(path_str)
                 if path.exists():
-                    logger.info(f"Found Steam via Registry: {path}")
+                    logger.info(t("logs.config.found_via_registry", path=path))
                     return path
             except OSError:
                 pass
@@ -242,7 +243,7 @@ class Config:
             ]
             for p in common_paths:
                 if p.exists():
-                    logger.info(f"Found Steam at: {p}")
+                    logger.info(t("logs.config.found_at", path=p))
                     return p
 
         else:
@@ -252,7 +253,7 @@ class Config:
             # Check Flatpak FIRST (most common on Deck/modern Linux)
             flatpak_path = home / ".var/app/com.valvesoftware.Steam/.local/share/Steam"
             if flatpak_path.exists():
-                logger.info(f"Found Flatpak Steam: {flatpak_path}")
+                logger.info(t("logs.config.found_flatpak", path=flatpak_path))
                 return flatpak_path
 
             # Check Native Steam
@@ -266,16 +267,14 @@ class Config:
                 if p.exists():
                     # Resolve symlinks
                     resolved = p.resolve() if p.is_symlink() else p
-                    logger.info(f"Found Native Steam: {resolved}")
+                    logger.info(t("logs.config.found_native", path=resolved))
                     return resolved
 
-        logger.warning("Steam installation not found!")
+        logger.warning(t("logs.config.not_found"))
         return None
 
     def _detect_library_folders(self) -> list[str]:
         """Parses libraryfolders.vdf to find all steam library paths."""
-        from src.utils.i18n import t
-
         if not self.STEAM_PATH:
             return []
 
@@ -294,7 +293,7 @@ class Config:
                     path = path.replace("\\\\", "\\")
                     libraries.add(path)
 
-            logger.info(f"Detected {len(libraries)} library folders")
+            logger.info(t("logs.config.library_folders_detected", count=len(libraries)))
 
         except Exception as e:
             logger.error(t("logs.config.library_read_error", error=e))

@@ -76,7 +76,7 @@ class DataLoadHandler:
             user_id: The Steam user ID to load games for.
         """
         if not self.mw.game_service:
-            logger.error("GameService not initialized, cannot load games")
+            logger.error(t("logs.data_load.game_service_not_initialized"))
             return
 
         # Show inline loading state
