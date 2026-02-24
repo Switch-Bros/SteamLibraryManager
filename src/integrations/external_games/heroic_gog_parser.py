@@ -12,7 +12,7 @@ import logging
 import re
 from pathlib import Path
 
-from src.integrations.external_games.base_parser import BaseExternalParser
+from src.integrations.external_games.base_heroic_parser import BaseHeroicParser
 from src.integrations.external_games.models import ExternalGame
 
 __all__ = ["HeroicGOGParser"]
@@ -56,8 +56,10 @@ def _parse_size_string(size_str: str) -> int:
     return int(value * _SIZE_MULTIPLIERS.get(unit, 1))
 
 
-class HeroicGOGParser(BaseExternalParser):
+class HeroicGOGParser(BaseHeroicParser):
     """Parser for GOG games installed through Heroic."""
+
+    _RUNNER = "gog"
 
     def platform_name(self) -> str:
         """Return platform name.
@@ -89,22 +91,14 @@ class HeroicGOGParser(BaseExternalParser):
         Returns:
             List of detected GOG games.
         """
-        config_path = self._find_config_file()
-        if not config_path:
-            return []
-
-        try:
-            data = json.loads(config_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as e:
-            logger.warning("Failed to read Heroic GOG config: %s", e)
-            return []
+        data, config_path = self._load_heroic_config_with_path()
 
         installed = data.get("installed", []) if isinstance(data, dict) else []
         if not isinstance(installed, list):
             return []
 
-        is_flatpak = str(config_path).startswith(str(Path.home() / ".var"))
-        heroic_config = config_path.parent.parent
+        is_flatpak = self._is_flatpak(config_path) if config_path else False
+        heroic_config = config_path.parent.parent if config_path else None
         games: list[ExternalGame] = []
 
         for entry in installed:
@@ -120,7 +114,7 @@ class HeroicGOGParser(BaseExternalParser):
             size_raw = entry.get("install_size", 0)
             install_size = _parse_size_string(str(size_raw)) if isinstance(size_raw, str) else int(size_raw or 0)
 
-            launch_cmd = self._build_launch_command(app_name, is_flatpak)
+            launch_cmd = self._build_heroic_launch_command(app_name, is_flatpak)
             metadata: list[tuple[str, str]] = []
             if entry.get("version"):
                 metadata.append(("version", str(entry["version"])))
@@ -143,7 +137,7 @@ class HeroicGOGParser(BaseExternalParser):
         return games
 
     @staticmethod
-    def _resolve_name(app_name: str, install_path: str, heroic_config: Path) -> str:
+    def _resolve_name(app_name: str, install_path: str, heroic_config: Path | None) -> str:
         """Resolve game name from metadata or install path.
 
         GOG installed.json lacks a title field. Try metadata cache
@@ -157,34 +151,17 @@ class HeroicGOGParser(BaseExternalParser):
         Returns:
             Resolved game name.
         """
-        # Try store_cache metadata
-        cache_file = heroic_config / "store_cache" / f"{app_name}.json"
-        if cache_file.exists():
-            try:
-                meta = json.loads(cache_file.read_text(encoding="utf-8"))
-                if isinstance(meta, dict) and meta.get("title"):
-                    return str(meta["title"])
-            except (OSError, json.JSONDecodeError):
-                pass
+        if heroic_config:
+            cache_file = heroic_config / "store_cache" / f"{app_name}.json"
+            if cache_file.exists():
+                try:
+                    meta = json.loads(cache_file.read_text(encoding="utf-8"))
+                    if isinstance(meta, dict) and meta.get("title"):
+                        return str(meta["title"])
+                except (OSError, json.JSONDecodeError):
+                    pass
 
-        # Fall back to install path last component
         if install_path:
             return Path(install_path).name
 
         return app_name
-
-    @staticmethod
-    def _build_launch_command(app_name: str, is_flatpak: bool) -> str:
-        """Build the Heroic launch URI for a GOG game.
-
-        Args:
-            app_name: GOG app ID.
-            is_flatpak: Whether Heroic is installed as Flatpak.
-
-        Returns:
-            Launch command string.
-        """
-        uri = f"heroic://launch/{app_name}?runner=gog"
-        if is_flatpak:
-            return f'flatpak run com.heroicgameslauncher.hgl --no-gui --no-sandbox "{uri}"'
-        return uri
