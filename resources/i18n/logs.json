@@ -238,7 +238,11 @@
     "curator": {
       "fetch_success": "Curator '{name}': {count} recommendations fetched",
       "fetch_failed": "Failed to fetch curator '{name}': {error}",
-      "enrichment_complete": "Curator enrichment: {success} updated, {failed} failed"
+      "enrichment_complete": "Curator enrichment: {success} updated, {failed} failed",
+      "export_complete": "Exported {count} curators to {path}",
+      "import_complete": "Imported {count} curators from {path}",
+      "top_curators_fetched": "Fetched {count} top curators from Steam",
+      "subscribed_discovered": "Discovered {count} subscribed curators"
     }
   }
 }
