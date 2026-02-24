@@ -20,6 +20,11 @@ from PyQt6.QtCore import QObject, pyqtSignal, QThread
 from src.core.token_store import TokenStore
 from src.utils.i18n import t
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
 logger = logging.getLogger("steamlibmgr.login_manager")
 
 
@@ -32,6 +37,73 @@ try:
 except ImportError:
     WEBAUTH_AVAILABLE = False
     wa = None  # steam.webauth not available, using new IAuthenticationService API
+
+
+def _poll_auth_session(
+    client_id: str,
+    request_id: str,
+    interval: float,
+    timeout: float,
+    stop_check: Callable[[], bool],
+    on_interaction: Callable[[], None] | None = None,
+) -> dict | None:
+    """Polls the Steam auth session until login completes or times out.
+
+    Used by both QR and password login flows to wait for user approval.
+    Calls ``IAuthenticationService/PollAuthSessionStatus/v1/``.
+
+    Args:
+        client_id: Steam auth client ID from session start.
+        request_id: Request identifier from session start.
+        interval: Seconds between poll requests.
+        timeout: Maximum total wait time in seconds.
+        stop_check: Returns True when polling should abort.
+        on_interaction: Called once when remote interaction is detected.
+
+    Returns:
+        Dict with steam_id, access_token, refresh_token, account_name
+        on success, None on timeout or failure.
+    """
+    url = "https://api.steampowered.com/IAuthenticationService/PollAuthSessionStatus/v1/"
+    start_time = time.time()
+    interaction_fired = False
+
+    while not stop_check() and (time.time() - start_time) < timeout:
+        try:
+            response = requests.post(
+                url,
+                data={"client_id": client_id, "request_id": request_id},
+                timeout=10,
+            )
+            response.raise_for_status()
+            result = response.json().get("response", {})
+
+            if result.get("had_remote_interaction") and on_interaction and not interaction_fired:
+                on_interaction()
+                interaction_fired = True
+
+            if result.get("access_token"):
+                access_token = result["access_token"]
+                steam_id = result.get("steamid")
+                if not steam_id:
+                    steam_id = TokenStore.get_steamid_from_token(access_token)
+                if not steam_id:
+                    logger.warning(t("logs.auth.could_not_resolve_steamid"))
+                    return None
+
+                return {
+                    "steam_id": steam_id,
+                    "access_token": access_token,
+                    "refresh_token": result.get("refresh_token"),
+                    "account_name": result.get("account_name"),
+                }
+
+            time.sleep(interval)
+
+        except (requests.RequestException, ValueError, KeyError):
+            time.sleep(interval)
+
+    return None
 
 
 class QRCodeLoginThread(QThread):
@@ -73,13 +145,20 @@ class QRCodeLoginThread(QThread):
             self.polling_update.emit(t("steam.login.status_scan_qr"))
 
             # Step 3: Poll for completion
-            result = self._poll_for_completion(client_id, request_id, interval or 5.0, timeout=300.0)
+            result = _poll_auth_session(
+                client_id,
+                request_id,
+                interval or 5.0,
+                300.0,
+                stop_check=lambda: self._stop_requested,
+                on_interaction=lambda: self.polling_update.emit(t("steam.login.status_waiting_approval")),
+            )
 
             if result:
+                logger.info(t("logs.auth.qr_challenge_approved"))
                 self.login_success.emit(result)
             else:
                 if not self._stop_requested:
-                    # Could be timeout OR failed to get steam_id
                     self.login_error.emit(t("steam.login.error_no_steam_id"))
 
         except Exception as e:
@@ -119,56 +198,6 @@ class QRCodeLoginThread(QThread):
         except (requests.RequestException, ValueError, KeyError):
             # Error starting QR session - will be shown to user via login_error signal
             return None, None, None, None
-
-    def _poll_for_completion(self, client_id: str, request_id: str, interval: float, timeout: float) -> dict | None:
-        """Poll until user approves or timeout."""
-        url = "https://api.steampowered.com/IAuthenticationService/PollAuthSessionStatus/v1/"
-
-        start_time = time.time()
-
-        while not self._stop_requested and (time.time() - start_time) < timeout:
-            try:
-                data = {
-                    "client_id": client_id,
-                    "request_id": request_id,
-                }
-
-                response = requests.post(url, data=data, timeout=10)
-                response.raise_for_status()
-
-                result = response.json().get("response", {})
-
-                if result.get("had_remote_interaction"):
-                    self.polling_update.emit(t("steam.login.status_waiting_approval"))
-
-                if result.get("access_token"):
-                    # SUCCESS! But we need to get the actual SteamID64!
-                    access_token = result.get("access_token")
-                    logger.info(t("logs.auth.qr_challenge_approved"))
-
-                    # Get SteamID64 using the access token
-                    steam_id_64 = TokenStore.get_steamid_from_token(access_token)
-
-                    if not steam_id_64:
-                        # CRITICAL: Cannot proceed without valid SteamID64
-                        logger.info(t("logs.auth.could_not_resolve_steamid"))
-                        # Return None to trigger error in run() method
-                        return None
-
-                    return {
-                        "steam_id": steam_id_64,
-                        "access_token": access_token,
-                        "refresh_token": result.get("refresh_token"),
-                        "account_name": result.get("account_name"),
-                    }
-
-                time.sleep(interval)
-
-            except (requests.RequestException, ValueError, KeyError):
-                # Poll error - retry after interval
-                time.sleep(interval)
-
-        return None
 
 
 class UsernamePasswordLoginThread(QThread):
@@ -241,8 +270,15 @@ class UsernamePasswordLoginThread(QThread):
                 request_id = result.get("request_id")
 
                 if client_id and request_id:
-                    final_result = self._poll_for_credentials_approval(client_id, request_id)
+                    final_result = _poll_auth_session(
+                        client_id,
+                        request_id,
+                        5.0,
+                        120.0,
+                        stop_check=lambda: self._stop_requested,
+                    )
                     if final_result:
+                        final_result["method"] = "password"
                         self.login_success.emit(final_result)
                     else:
                         self.login_error.emit(t("steam.login.error_mobile_timeout"))
@@ -269,49 +305,6 @@ class UsernamePasswordLoginThread(QThread):
 
         except (requests.RequestException, ValueError, KeyError) as e:
             self.login_error.emit(t("steam.login.error_login_generic", error=str(e)))
-
-    def _poll_for_credentials_approval(self, client_id: str, request_id: str) -> dict | None:
-        """Poll for mobile approval."""
-        url = "https://api.steampowered.com/IAuthenticationService/PollAuthSessionStatus/v1/"
-
-        start_time = time.time()
-        timeout = 120.0  # 2 minutes for approval
-
-        while not self._stop_requested and (time.time() - start_time) < timeout:
-            try:
-                data = {
-                    "client_id": client_id,
-                    "request_id": request_id,
-                }
-
-                response = requests.post(url, data=data, timeout=10)
-                response.raise_for_status()
-
-                result = response.json().get("response", {})
-
-                if result.get("access_token"):
-                    access_token = result["access_token"]
-                    # Resolve real SteamID64 from token (same as QR flow)
-                    steam_id = result.get("steamid")
-                    if not steam_id:
-                        steam_id = TokenStore.get_steamid_from_token(access_token)
-                    if not steam_id:
-                        logger.warning(t("logs.auth.could_not_resolve_steamid"))
-                        return None
-
-                    return {
-                        "method": "password",
-                        "steam_id": steam_id,
-                        "access_token": access_token,
-                        "refresh_token": result.get("refresh_token"),
-                    }
-
-                time.sleep(5.0)
-
-            except (requests.RequestException, ValueError, KeyError):
-                time.sleep(5.0)
-
-        return None
 
     @staticmethod
     def _fetch_rsa_key(username: str) -> tuple[str, str, str] | None:
@@ -398,7 +391,7 @@ class SteamLoginManager(QObject):
         # noinspection PyUnresolvedReferences
         self.qr_thread.qr_ready.connect(self.qr_ready.emit)
         # noinspection PyUnresolvedReferences
-        self.qr_thread.login_success.connect(self._on_qr_success)
+        self.qr_thread.login_success.connect(lambda r: self._on_login_success(r, "qr"))
         # noinspection PyUnresolvedReferences
         self.qr_thread.login_error.connect(self.login_error.emit)
         # noinspection PyUnresolvedReferences
@@ -411,7 +404,7 @@ class SteamLoginManager(QObject):
 
         self.pwd_thread = UsernamePasswordLoginThread(username, password)
         # noinspection PyUnresolvedReferences
-        self.pwd_thread.login_success.connect(self._on_pwd_success)
+        self.pwd_thread.login_success.connect(lambda r: self._on_login_success(r, "password"))
         # noinspection PyUnresolvedReferences
         self.pwd_thread.login_error.connect(self.login_error.emit)
         # noinspection PyUnresolvedReferences
@@ -428,22 +421,15 @@ class SteamLoginManager(QObject):
             self.pwd_thread.stop()
             self.pwd_thread.wait()
 
-    def _on_qr_success(self, result: dict):
-        """Handle QR success."""
-        self.status_update.emit(t("steam.login.status_success"))
-        self.login_success.emit(
-            {
-                "method": "qr",
-                "steam_id": result["steam_id"],
-                "access_token": result["access_token"],
-                "refresh_token": result["refresh_token"],
-                "account_name": result.get("account_name"),
-            }
-        )
+    def _on_login_success(self, result: dict, method: str) -> None:
+        """Handles successful login from any method (QR or password).
 
-    def _on_pwd_success(self, result: dict):
-        """Handle password success."""
+        Args:
+            result: Authentication result dict from ``_poll_auth_session``.
+            method: Login method identifier (``"qr"`` or ``"password"``).
+        """
         self.status_update.emit(t("steam.login.status_success"))
+        result["method"] = method
         self.login_success.emit(result)
 
     @staticmethod
