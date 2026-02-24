@@ -47,3 +47,4 @@ cleanup_dependencies_dev.sh
 /MASTERPLAN_FINAL.md
 /NEXTCHAT.md
 /.claude/settings.json
+/.claude/commands/
