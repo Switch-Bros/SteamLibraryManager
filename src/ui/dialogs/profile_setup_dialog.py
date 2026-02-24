@@ -1,5 +1,4 @@
-"""
-Profile Setup Dialog.
+"""Profile Setup Dialog.
 
 This dialog is shown on first launch to let the user select their Steam account.
 Provides 4 options:
@@ -26,6 +25,7 @@ from PyQt6.QtWidgets import (
 
 from src.core.steam_account import SteamAccount
 from src.core.steam_account_scanner import scan_steam_accounts, fetch_steam_display_name
+from src.ui.widgets.base_dialog import BaseDialog
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
@@ -37,6 +37,11 @@ class AccountScanWorker(QThread):
     scan_complete = pyqtSignal()
 
     def __init__(self, steam_path: str):
+        """Initializes the account scan worker.
+
+        Args:
+            steam_path: Path to the Steam installation directory.
+        """
         super().__init__()
         self.steam_path = steam_path
 
@@ -47,7 +52,7 @@ class AccountScanWorker(QThread):
         self.scan_complete.emit()
 
 
-class ProfileSetupDialog(QDialog):
+class ProfileSetupDialog(BaseDialog):
     """Profile setup dialog for selecting/configuring Steam user.
 
     Provides 4 methods to select a Steam account:
@@ -57,35 +62,35 @@ class ProfileSetupDialog(QDialog):
     - Enter Steam Community custom URL
 
     Attributes:
-        steam_path: Path to Steam installation
-        selected_steam_id_64: The SteamID64 chosen by the user
-        selected_display_name: The display name of the selected account
-        scanned_accounts: List of accounts found in userdata/
+        steam_path: Path to Steam installation.
+        selected_steam_id_64: The SteamID64 chosen by the user.
+        selected_display_name: The display name of the selected account.
+        scanned_accounts: List of accounts found in userdata/.
     """
 
     def __init__(self, steam_path: str, parent=None):
         """Initialize the profile setup dialog.
 
         Args:
-            steam_path: Path to the Steam installation directory
-            parent: Parent widget
+            steam_path: Path to the Steam installation directory.
+            parent: Parent widget.
         """
-        super().__init__(parent)
-
         self.steam_path = steam_path
         self.selected_steam_id_64: int | None = None
         self.selected_display_name: str | None = None
         self.scanned_accounts: list[SteamAccount] = []
 
-        self._setup_ui()
+        super().__init__(
+            parent,
+            title_key="steam.profile_setup.title",
+            min_width=500,
+            show_title_label=False,
+            buttons="custom",
+        )
         self._start_account_scan()
 
-    def _setup_ui(self):
-        """Setup the UI layout."""
-        self.setWindowTitle(t("steam.profile_setup.title"))
-        self.setMinimumWidth(500)
-
-        layout = QVBoxLayout(self)
+    def _build_content(self, layout: QVBoxLayout) -> None:
+        """Builds the profile setup form with account options."""
         layout.setSpacing(15)
 
         # Header
@@ -179,11 +184,10 @@ class ProfileSetupDialog(QDialog):
         """Handle accounts found from scan.
 
         Args:
-            accounts: List of SteamAccount objects found
+            accounts: List of SteamAccount objects found.
         """
         self.scanned_accounts = accounts
 
-        # Populate dropdown
         self.combo_accounts.clear()
         for account in accounts:
             self.combo_accounts.addItem(str(account), account)
@@ -216,12 +220,10 @@ class ProfileSetupDialog(QDialog):
         result = dialog.exec()
 
         if result == QDialog.DialogCode.Accepted:
-            # Get steam_id_64 directly (already int!)
             if dialog.steam_id_64 is not None:
                 self.selected_steam_id_64 = dialog.steam_id_64
                 self.selected_display_name = dialog.display_name
 
-                # Persist tokens so restore_session() finds them on next startup
                 self._save_login_tokens(dialog.login_result, str(dialog.steam_id_64))
 
                 self.accept()
@@ -246,7 +248,6 @@ class ProfileSetupDialog(QDialog):
         refresh_token = login_result.get("refresh_token")
 
         if access_token:
-            # Make token available immediately for the current session
             config.STEAM_ACCESS_TOKEN = access_token
 
         if access_token and refresh_token:
@@ -315,10 +316,10 @@ class ProfileSetupDialog(QDialog):
         """Resolve Steam Community custom URL to SteamID64.
 
         Args:
-            custom_url: The custom URL part (e.g., "heikesfootslave")
+            custom_url: The custom URL part (e.g., "heikesfootslave").
 
         Returns:
-            SteamID64 if found, None otherwise
+            SteamID64 if found, None otherwise.
         """
         import requests
         import xml.etree.ElementTree as ElementTree
