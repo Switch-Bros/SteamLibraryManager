@@ -8,15 +8,18 @@ from __future__ import annotations
 
 import logging
 
+import requests
 from typing import Callable
 from pathlib import Path
 
 from src.utils.i18n import t
+from src.core.game import Game
 from src.core.game_manager import GameManager
 from src.core.localconfig_helper import LocalConfigHelper
 from src.core.cloud_storage_parser import CloudStorageParser
 from src.core.appinfo_manager import AppInfoManager
 from src.core.database import Database
+from src.core.db.models import DatabaseEntry
 from src.core.database_importer import DatabaseImporter
 from src.core.packageinfo_parser import PackageInfoParser
 
@@ -273,6 +276,17 @@ class GameService:
         if discovered > 0 and self.cloud_storage_parser:
             self.game_manager.merge_with_localconfig(self.cloud_storage_parser)
 
+        # Step 5.5: Fresh API call to discover newly purchased games
+        # (Depressurizer approach — catches games not in local files/DB)
+        if progress_callback:
+            progress_callback(t("ui.status.api_refresh"), 0, 0)
+        new_app_ids = self._refresh_from_api(user_id)
+        if new_app_ids:
+            if self.cloud_storage_parser:
+                self.game_manager.merge_with_localconfig(self.cloud_storage_parser)
+            if self.database:
+                self._save_new_games_to_db(new_app_ids)
+
         # Re-enrich ALL games with DB metadata (fixes fallback names from
         # both discover_missing_games and merge_with_localconfig)
         if self.database:
@@ -289,6 +303,115 @@ class GameService:
             self.game_manager.apply_metadata_overrides(self.appinfo_manager)
 
         return True
+
+    def _refresh_from_api(self, steam_user_id: str) -> list[str]:
+        """Refresh game list from GetOwnedGames API to catch new purchases.
+
+        Runs AFTER the main loading pipeline as a safety net to discover games
+        purchased since the last Steam Client sync. This is the Depressurizer
+        approach: always do a fresh API call.
+
+        Args:
+            steam_user_id: SteamID64 of the user.
+
+        Returns:
+            List of newly discovered app_ids (empty if none found or on error).
+        """
+        if not self.game_manager:
+            return []
+
+        from src.config import config
+
+        access_token = getattr(config, "STEAM_ACCESS_TOKEN", None)
+
+        if not access_token and not self.api_key:
+            logger.debug("No API credentials — skipping refresh")
+            return []
+
+        try:
+            url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
+
+            if access_token:
+                params = {
+                    "access_token": access_token,
+                    "steamid": steam_user_id,
+                    "include_appinfo": 1,
+                    "include_played_free_games": 1,
+                    "include_free_sub": 1,
+                    "skip_unvetted_apps": 0,
+                    "format": "json",
+                }
+            else:
+                params = {
+                    "key": self.api_key,
+                    "steamid": steam_user_id,
+                    "include_appinfo": 1,
+                    "include_played_free_games": 1,
+                    "include_free_sub": 1,
+                    "skip_unvetted_apps": 0,
+                    "format": "json",
+                }
+
+            response = requests.get(url, params=params, timeout=15)
+            response.raise_for_status()
+            data = response.json()
+
+            games_data = data.get("response", {}).get("games", [])
+            if not games_data:
+                return []
+
+            new_app_ids: list[str] = []
+
+            for game_data in games_data:
+                app_id = str(game_data["appid"])
+
+                if app_id not in self.game_manager.games:
+                    name = game_data.get("name") or t("ui.game_details.game_fallback", id=app_id)
+                    playtime = game_data.get("playtime_forever", 0)
+
+                    game = Game(
+                        app_id=app_id,
+                        name=name,
+                        playtime_minutes=playtime,
+                        app_type="game",
+                    )
+                    self.game_manager.games[app_id] = game
+                    new_app_ids.append(app_id)
+                    logger.debug("API refresh: discovered %s (%s)", app_id, name)
+
+            if new_app_ids:
+                logger.info("API refresh: discovered %d new games", len(new_app_ids))
+
+            return new_app_ids
+
+        except Exception as e:
+            logger.warning("API refresh failed (non-fatal): %s", e)
+            return []
+
+    def _save_new_games_to_db(self, new_app_ids: list[str]) -> None:
+        """Persist newly discovered games to the database.
+
+        Args:
+            new_app_ids: App IDs of games to save.
+        """
+        if not self.database or not self.game_manager:
+            return
+
+        for app_id in new_app_ids:
+            game = self.game_manager.games.get(app_id)
+            if not game:
+                continue
+            entry = DatabaseEntry(
+                app_id=int(app_id),
+                name=game.name,
+                app_type=game.app_type or "game",
+            )
+            try:
+                self.database.insert_game(entry)
+            except Exception as e:
+                logger.debug("DB insert for %s failed: %s", app_id, e)
+
+        self.database.commit()
 
     def merge_with_localconfig(self) -> None:
         """Merges collections from active parser into game_manager.

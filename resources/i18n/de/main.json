@@ -317,7 +317,8 @@
       "no_selection": "Keine Spiele ausgewählt."
     },
     "status": {
-      "no_results": "Keine Bilder gefunden."
+      "no_results": "Keine Bilder gefunden.",
+      "api_refresh": "Suche nach neuen Spielen..."
     },
     "profile": {
       "dialog_title": "Profil-Manager",
