@@ -1,7 +1,7 @@
 """Database schema creation and migrations.
 
 Handles initial schema creation from SQL file and all version
-migrations (v3 through v8).
+migrations (v3 through v9).
 """
 
 from __future__ import annotations
@@ -108,6 +108,10 @@ class SchemaMixin:
         if from_version < 8:
             self._migrate_to_v8()
             self._set_schema_version(8)
+
+        if from_version < 9:
+            self._migrate_to_v9()
+            self._set_schema_version(9)
 
     def _migrate_to_v3(self) -> None:
         """Migrate to schema v3: tag_definitions table + tag_id column."""
@@ -290,3 +294,30 @@ class SchemaMixin:
         """)
         self.conn.commit()
         logger.info("Migrated to schema v8: PEGI + user data normalization + future tables")
+
+    def _migrate_to_v9(self) -> None:
+        """Migrate to schema v9: curator tables."""
+        self.conn.executescript("""
+            CREATE TABLE IF NOT EXISTS curators (
+                curator_id    INTEGER PRIMARY KEY,
+                name          TEXT NOT NULL,
+                url           TEXT NOT NULL DEFAULT '',
+                source        TEXT NOT NULL DEFAULT 'manual',
+                active        INTEGER NOT NULL DEFAULT 1,
+                last_updated  TEXT,
+                total_count   INTEGER DEFAULT 0
+            );
+
+            CREATE TABLE IF NOT EXISTS curator_recommendations (
+                curator_id    INTEGER NOT NULL,
+                app_id        INTEGER NOT NULL,
+                PRIMARY KEY (curator_id, app_id),
+                FOREIGN KEY (curator_id) REFERENCES curators(curator_id)
+                    ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_curator_rec_app
+                ON curator_recommendations(app_id);
+        """)
+        self.conn.commit()
+        logger.info("Migrated to schema v9: curator tables")

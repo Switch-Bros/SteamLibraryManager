@@ -524,7 +524,12 @@
       "enrich_all_hltb": "HowLongToBeat",
       "enrich_all_protondb": "ProtonDB",
       "enrich_all_deck": "Steam Deck Status",
-      "enrich_all_pegi": "Age Ratings (PEGI)"
+      "enrich_all_pegi": "Age Ratings (PEGI)",
+      "enrich_all_curator": "Curator Recommendations",
+      "curator_title": "Curator Recommendations",
+      "curator_starting": "Fetching curator recommendations...",
+      "curator_progress": "Curator {current}/{total}: {name}",
+      "no_curators": "No curators configured. Add curators via Tools \u2192 Manage Curators."
     },
     "tag_import": {
       "loading_appinfo": "Loading appinfo.vdf...",

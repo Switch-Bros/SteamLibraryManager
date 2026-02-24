@@ -9,6 +9,7 @@ the schema.
 from __future__ import annotations
 
 from src.core.db.connection import ConnectionBase
+from src.core.db.curator_mixin import CuratorMixin
 from src.core.db.enrichment_queries import EnrichmentQueryMixin
 from src.core.db.game_batch_queries import GameBatchQueryMixin
 from src.core.db.game_queries import GameQueryMixin
@@ -40,6 +41,7 @@ class Database(
     SmartCollectionMixin,
     TagQueryMixin,
     ModificationMixin,
+    CuratorMixin,
     ConnectionBase,
 ):
     """Main database class composing all query mixins.

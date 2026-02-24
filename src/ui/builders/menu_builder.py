@@ -528,6 +528,11 @@ class MenuBuilder:
         )
         batch_menu.addAction(update_pegi_force_action)
 
+        # Update Curator Recommendations
+        update_curator_action = QAction(t("menu.tools.batch.update_curator"), mw)
+        update_curator_action.triggered.connect(mw.enrichment_starters.start_curator_enrichment)
+        batch_menu.addAction(update_curator_action)
+
         batch_menu.addSeparator()
 
         # Enrich ALL — coordinated parallel refresh
