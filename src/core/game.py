@@ -163,21 +163,29 @@ NON_GAME_APP_IDS: frozenset[str] = frozenset(
     {
         # Proton Versions
         "1493710",  # Proton Experimental
-        "2348590",  # Proton 8.0
+        "2348590",  # Proton Hotfix
         "2230260",  # Proton 7.0
+        "2180100",  # Proton 9.0
         "1887720",  # Proton 6.3
+        "1826330",  # Proton 8.0
         "1580130",  # Proton 5.13
         "1420170",  # Proton 5.0
         "1245040",  # Proton 4.11
         "1113280",  # Proton 4.2
         "961940",  # Proton 3.16
         "930400",  # Proton 3.7
+        "858280",  # Proton 3.7 Beta
         # Steam Linux Runtime
         "1628350",  # Steam Linux Runtime 3.0 (sniper)
         "1391110",  # Steam Linux Runtime 2.0 (soldier)
         "1070560",  # Steam Linux Runtime 1.0 (scout)
         # Steam Tools
-        "228980",  # Steamworks Common Redistributables
+        "1517290",  # Steamworks Common Redistributables
+        "228980",  # Steamworks Common Redistributables (old)
+        "243750",  # Source Filmmaker
+        "223530",  # SDK Base 2006
+        # Invalid
+        "0",  # Invalid/Unknown
     }
 )
 
