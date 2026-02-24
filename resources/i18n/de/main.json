@@ -531,6 +531,23 @@
       "curator_progress": "Kurator {current}/{total}: {name}",
       "no_curators": "Keine Kuratoren konfiguriert. Kuratoren hinzuf\u00fcgen \u00fcber Werkzeuge \u2192 Kuratoren verwalten."
     },
+    "curator": {
+      "title": "Kuratoren verwalten",
+      "col_active": "Aktiv",
+      "col_name": "Name",
+      "col_count": "Empf.",
+      "col_updated": "Zuletzt aktualisiert",
+      "add": "Kurator hinzuf\u00fcgen",
+      "add_prompt": "Steam-Kurator-URL oder numerische ID eingeben:",
+      "popular": "Beliebte Kuratoren",
+      "popular_title": "Beliebte Kuratoren hinzuf\u00fcgen",
+      "popular_info": "Kuratoren zum Hinzuf\u00fcgen ausw\u00e4hlen. Bereits hinzugef\u00fcgte sind ausgegraut.",
+      "already_added": "Bereits hinzugef\u00fcgt",
+      "remove": "Kurator entfernen",
+      "remove_confirm": "Kurator \"{name}\" und alle Empfehlungen entfernen?",
+      "no_selection": "Bitte zuerst einen Kurator ausw\u00e4hlen.",
+      "invalid_url": "Kurator-ID konnte nicht aus der URL gelesen werden."
+    },
     "tag_import": {
       "loading_appinfo": "Lade appinfo.vdf...",
       "extracting": "Extrahiere Tags aus {total} Apps...",

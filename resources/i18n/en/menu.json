@@ -126,6 +126,10 @@
         "pegi_18": "PEGI 18 (Adults Only)",
         "pegi_none": "No Rating"
       },
+      "curator": {
+        "root": "Curator Recommendations",
+        "no_data": "No curator data loaded"
+      },
       "statistics": {
         "root": "Show Statistics",
         "overview": "Overview",
@@ -176,6 +180,7 @@
         "backup": "Create Backup"
       },
       "external_games": "External Games...",
+      "manage_curators": "Manage Curators...",
       "settings": "Settings"
     },
     "help": {

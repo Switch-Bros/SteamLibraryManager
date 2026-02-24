@@ -66,6 +66,7 @@ class FilterState:
     active_deck_statuses: frozenset[str] = frozenset()
     active_achievement_filters: frozenset[str] = frozenset()
     active_pegi_ratings: frozenset[str] = frozenset()
+    active_curator_ids: frozenset[int] = frozenset()
     sort_key: SortKey = SortKey.NAME
 
 
@@ -88,10 +89,20 @@ class FilterService:
         self._active_pegi_ratings: set[str] = set()
         self._sort_key: SortKey = SortKey.NAME
 
+        # Curator filter: maps curator_id -> set of recommended app_ids
+        self._curator_cache: dict[int, set[int]] = {}
+        # Which curator_ids are currently active for filtering
+        self._active_curator_ids: set[int] = set()
+
     @property
     def sort_key(self) -> SortKey:
         """The current sort key."""
         return self._sort_key
+
+    @property
+    def curator_cache(self) -> dict[int, set[int]]:
+        """The current curator recommendation cache."""
+        return self._curator_cache
 
     @property
     def state(self) -> FilterState:
@@ -104,6 +115,7 @@ class FilterService:
             active_deck_statuses=frozenset(self._active_deck_statuses),
             active_achievement_filters=frozenset(self._active_achievement_filters),
             active_pegi_ratings=frozenset(self._active_pegi_ratings),
+            active_curator_ids=frozenset(self._active_curator_ids),
             sort_key=self._sort_key,
         )
 
@@ -120,6 +132,7 @@ class FilterService:
         self._active_deck_statuses = set(state.active_deck_statuses)
         self._active_achievement_filters = set(state.active_achievement_filters)
         self._active_pegi_ratings = set(state.active_pegi_ratings)
+        self._active_curator_ids = set(state.active_curator_ids)
         self._sort_key = state.sort_key
 
     def set_sort_key(self, key: str) -> None:
@@ -207,6 +220,26 @@ class FilterService:
         """Activates or deactivates an achievement filter."""
         self._toggle_filter(key, active, ALL_ACHIEVEMENT_KEYS, self._active_achievement_filters, "achievement")
 
+    def set_curator_cache(self, cache: dict[int, set[int]]) -> None:
+        """Replaces the curator recommendation cache.
+
+        Args:
+            cache: Maps curator_id to the set of recommended app_ids.
+        """
+        self._curator_cache = cache
+
+    def toggle_curator_filter(self, curator_id: int, active: bool) -> None:
+        """Activates or deactivates a curator filter.
+
+        Args:
+            curator_id: The curator ID to toggle.
+            active: Whether to enable (True) or disable (False).
+        """
+        if curator_id not in self._curator_cache:
+            logger.warning("Unknown curator ID for filter: %d", curator_id)
+            return
+        self._active_curator_ids.add(curator_id) if active else self._active_curator_ids.discard(curator_id)
+
     def is_type_category_visible(self, type_key: str) -> bool:
         """Checks whether a type category should be shown in the sidebar.
 
@@ -237,6 +270,8 @@ class FilterService:
         if self._active_achievement_filters:
             return True
         if self._active_pegi_ratings:
+            return True
+        if self._active_curator_ids:
             return True
         return False
 
@@ -274,6 +309,8 @@ class FilterService:
             if not self._passes_achievement_filter(game):
                 continue
             if not self._passes_pegi_filter(game):
+                continue
+            if not self._passes_curator_filter(game):
                 continue
             result.append(game)
         return result
@@ -446,3 +483,30 @@ class FilterService:
 
         allowed = {pegi_map[k] for k in self._active_pegi_ratings if k in pegi_map}
         return rating in allowed
+
+    def _passes_curator_filter(self, game: Game) -> bool:
+        """Checks if a game passes the curator filter (OR logic).
+
+        If no curator filters are active, all games pass. When active,
+        a game must be recommended by at least one of the selected curators.
+        Uses the in-memory cache — no database access.
+
+        Args:
+            game: The game to check.
+
+        Returns:
+            True if no curator filter is active or game matches at least one.
+        """
+        if not self._active_curator_ids:
+            return True
+
+        try:
+            numeric_id = int(game.app_id)
+        except (ValueError, TypeError):
+            return False
+
+        for curator_id in self._active_curator_ids:
+            recommended = self._curator_cache.get(curator_id, set())
+            if numeric_id in recommended:
+                return True
+        return False

@@ -11,39 +11,28 @@ from __future__ import annotations
 __all__ = ["AutoCategorizeDialog"]
 
 import logging
-from pathlib import Path
 from typing import Any, Callable
 
-from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QCheckBox,
     QComboBox,
     QFrame,
     QGroupBox,
     QHBoxLayout,
     QInputDialog,
     QLabel,
-    QLineEdit,
-    QListWidget,
-    QMenu,
     QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
-from src.config import config
 from src.services.autocat_preset_manager import AutoCatPreset, AutoCatPresetManager
 from src.ui.utils.font_helper import FontHelper
 from src.ui.widgets.autocat_method_selector import AutoCatMethodSelector
 from src.ui.widgets.base_dialog import BaseDialog
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
-from src.utils.json_utils import load_json, save_json
 
 logger = logging.getLogger("steamlibmgr.auto_categorize_dialog")
-
-_CURATOR_HISTORY_FILE: Path = config.DATA_DIR / "curator_history.json"
-_MAX_CURATOR_HISTORY = 20
 
 
 class AutoCategorizeDialog(BaseDialog):
@@ -222,14 +211,6 @@ class AutoCategorizeDialog(BaseDialog):
             preset.ignore_common,
         )
 
-        if preset.curator_url:
-            self.curator_url_edit.setText(preset.curator_url)
-        if preset.curator_recommendations:
-            rec_set = set(preset.curator_recommendations)
-            self.cb_curator_recommended.setChecked("recommended" in rec_set)
-            self.cb_curator_not_recommended.setChecked("not_recommended" in rec_set)
-            self.cb_curator_informational.setChecked("informational" in rec_set)
-
     def _save_preset(self) -> None:
         """Save the current dialog settings as a named preset."""
         name, ok = QInputDialog.getText(self, t("auto_categorize.preset_save"), t("auto_categorize.preset_name_prompt"))
@@ -247,28 +228,12 @@ class AutoCategorizeDialog(BaseDialog):
             ):
                 return
 
-        # Build curator settings
-        curator_recs: tuple[str, ...] | None = None
-        curator_url: str | None = None
-        if self.selector.is_curator_selected():
-            curator_url = self.curator_url_edit.text().strip() or None
-            recs: list[str] = []
-            if self.cb_curator_recommended.isChecked():
-                recs.append("recommended")
-            if self.cb_curator_not_recommended.isChecked():
-                recs.append("not_recommended")
-            if self.cb_curator_informational.isChecked():
-                recs.append("informational")
-            curator_recs = tuple(recs) if recs else None
-
         settings = self.selector.get_settings()
         preset = AutoCatPreset(
             name=name,
             methods=tuple(settings["methods"]),
             tags_count=settings["tags_count"],
             ignore_common=settings["ignore_common"],
-            curator_url=curator_url,
-            curator_recommendations=curator_recs,
         )
 
         self._preset_manager.save_preset(preset)
@@ -296,7 +261,11 @@ class AutoCategorizeDialog(BaseDialog):
     # ------------------------------------------------------------------
 
     def _create_curator_section(self, parent_layout: QVBoxLayout) -> None:
-        """Create the curator settings section with history, URL input, and type checkboxes.
+        """Create the curator settings section with info label.
+
+        The old live-fetch approach (URL input + recommendation type checkboxes)
+        has been replaced. Curators are now managed via Tools > Manage Curators
+        and their recommendations are stored in the database.
 
         Args:
             parent_layout: Layout to add the section to.
@@ -304,131 +273,14 @@ class AutoCategorizeDialog(BaseDialog):
         self.curator_group = QGroupBox(t("auto_categorize.by_curator"))
         curator_layout = QVBoxLayout()
 
-        # Curator history list
-        self.curator_history_list = QListWidget()
-        self.curator_history_list.setMaximumHeight(80)
-        self.curator_history_list.itemClicked.connect(self._on_curator_history_clicked)
-        self.curator_history_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.curator_history_list.customContextMenuRequested.connect(self._on_curator_history_context_menu)
-        self._load_curator_history()
-        curator_layout.addWidget(self.curator_history_list)
-
-        # Curator URL input
-        url_layout = QHBoxLayout()
-        url_layout.addWidget(QLabel(t("auto_categorize.curator_url_label")))
-        self.curator_url_edit = QLineEdit()
-        self.curator_url_edit.setPlaceholderText(t("auto_categorize.curator_url_placeholder"))
-        url_layout.addWidget(self.curator_url_edit)
-
-        add_btn = QPushButton(t("common.add"))
-        add_btn.clicked.connect(self._add_curator_url)
-        url_layout.addWidget(add_btn)
-        curator_layout.addLayout(url_layout)
-
-        # Recommendation type checkboxes
-        rec_label = QLabel(t("auto_categorize.curator_include_label"))
-        curator_layout.addWidget(rec_label)
-
-        rec_layout = QHBoxLayout()
-        self.cb_curator_recommended = QCheckBox(t("auto_categorize.curator_recommended"))
-        self.cb_curator_recommended.setChecked(True)
-        rec_layout.addWidget(self.cb_curator_recommended)
-
-        self.cb_curator_not_recommended = QCheckBox(t("auto_categorize.curator_not_recommended"))
-        self.cb_curator_not_recommended.setChecked(True)
-        rec_layout.addWidget(self.cb_curator_not_recommended)
-
-        self.cb_curator_informational = QCheckBox(t("auto_categorize.curator_informational"))
-        self.cb_curator_informational.setChecked(True)
-        rec_layout.addWidget(self.cb_curator_informational)
-
-        rec_layout.addStretch()
-        curator_layout.addLayout(rec_layout)
+        # Info label explaining the new DB-backed approach
+        info_label = QLabel(t("auto_categorize.curator_info"))
+        info_label.setWordWrap(True)
+        curator_layout.addWidget(info_label)
 
         self.curator_group.setLayout(curator_layout)
         self.curator_group.setVisible(False)
         parent_layout.addWidget(self.curator_group)
-
-    # ------------------------------------------------------------------
-    # Curator history
-    # ------------------------------------------------------------------
-
-    def _load_curator_history(self) -> None:
-        """Load saved curator URLs into the history list widget."""
-        self.curator_history_list.clear()
-        for url in self._read_curator_history():
-            self.curator_history_list.addItem(url)
-
-    def _on_curator_history_clicked(self, item: Any) -> None:
-        """Fill URL input when a history item is clicked.
-
-        Args:
-            item: The clicked QListWidgetItem.
-        """
-        self.curator_url_edit.setText(item.text())
-
-    def _on_curator_history_context_menu(self, position: Any) -> None:
-        """Show context menu for curator history (remove entry).
-
-        Args:
-            position: Position where the context menu was requested.
-        """
-        item = self.curator_history_list.itemAt(position)
-        if not item:
-            return
-
-        menu = QMenu(self)
-        remove_action = menu.addAction(t("auto_categorize.curator_remove"))
-        action = menu.exec(self.curator_history_list.mapToGlobal(position))
-
-        if action == remove_action:
-            self._remove_curator_url(item.text())
-
-    def _add_curator_url(self) -> None:
-        """Add the current URL input text to curator history."""
-        url = self.curator_url_edit.text().strip()
-        if url:
-            self._save_curator_url_to_history(url)
-
-    def _remove_curator_url(self, url: str) -> None:
-        """Remove a curator URL from the persistent history.
-
-        Args:
-            url: The curator URL to remove.
-        """
-        urls = [u for u in self._read_curator_history() if u != url]
-        self._write_curator_history(urls)
-        self._load_curator_history()
-
-    def _save_curator_url_to_history(self, url: str) -> None:
-        """Add a curator URL to persistent history (most recent first, deduped).
-
-        Args:
-            url: The curator URL to save.
-        """
-        urls = [u for u in self._read_curator_history() if u != url]
-        urls.insert(0, url)
-        self._write_curator_history(urls[:_MAX_CURATOR_HISTORY])
-        self._load_curator_history()
-
-    @staticmethod
-    def _write_curator_history(urls: list[str]) -> None:
-        """Write curator URL history to disk.
-
-        Args:
-            urls: List of curator URLs to persist.
-        """
-        save_json(_CURATOR_HISTORY_FILE, urls)
-
-    @staticmethod
-    def _read_curator_history() -> list[str]:
-        """Read curator URL history from disk.
-
-        Returns:
-            List of previously used curator URLs.
-        """
-        data = load_json(_CURATOR_HISTORY_FILE, default=[])
-        return [str(u) for u in data] if isinstance(data, list) else []
 
     # ------------------------------------------------------------------
     # Start
@@ -445,30 +297,7 @@ class AutoCategorizeDialog(BaseDialog):
             )
             return
 
-        # Validate curator URL if curator method is selected
-        if "curator" in methods:
-            curator_url = self.curator_url_edit.text().strip()
-            if not curator_url:
-                UIHelper.show_warning(
-                    self, t("auto_categorize.curator_error_url"), title=t("auto_categorize.no_method_title")
-                )
-                return
-
         self.result = dict(settings)
-
-        # Add curator-specific settings
-        if "curator" in methods:
-            curator_url_val = self.curator_url_edit.text().strip()
-            self.result["curator_url"] = curator_url_val
-            self._save_curator_url_to_history(curator_url_val)
-            recs: list[str] = []
-            if self.cb_curator_recommended.isChecked():
-                recs.append("recommended")
-            if self.cb_curator_not_recommended.isChecked():
-                recs.append("not_recommended")
-            if self.cb_curator_informational.isChecked():
-                recs.append("informational")
-            self.result["curator_recommendations"] = recs
 
         self.accept()
         if self.on_start:

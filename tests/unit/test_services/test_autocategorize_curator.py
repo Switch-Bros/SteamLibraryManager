@@ -1,139 +1,113 @@
-"""Unit tests for AutoCategorizeService.categorize_by_curator."""
+"""Unit tests for AutoCategorizeService.categorize_by_curator (DB-backed).
 
-from unittest.mock import Mock, patch, MagicMock
+The old live-fetch curator tests were replaced when categorize_by_curator
+was rewritten to use DB-stored recommendations (Phase 8B).
+
+Comprehensive tests live in tests/unit/test_services/test_curator_autocat.py.
+This file covers additional edge cases.
+"""
+
+from __future__ import annotations
+
+import time
+from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 
+from src.core.database import Database
 from src.core.game import Game
 from src.services.autocategorize_service import AutoCategorizeService
-from src.services.curator_client import CuratorRecommendation
+
+
+@pytest.fixture
+def db(tmp_path: Path) -> Database:
+    """Creates a Database with test games for FK constraints."""
+    db_path = tmp_path / "test_autocat_curator.db"
+    database = Database(db_path)
+    now = int(time.time())
+    for app_id in (440, 730, 570):
+        database.conn.execute(
+            "INSERT OR IGNORE INTO games (app_id, name, app_type, created_at, updated_at) " "VALUES (?, ?, ?, ?, ?)",
+            (app_id, f"Game {app_id}", "game", now, now),
+        )
+    database.commit()
+    return database
+
+
+@pytest.fixture
+def games() -> list[Game]:
+    """Create a list of test games."""
+    g1 = Game(app_id="440", name="Team Fortress 2")
+    g1.categories = []
+    g2 = Game(app_id="730", name="Counter-Strike 2")
+    g2.categories = []
+    g3 = Game(app_id="570", name="Dota 2")
+    g3.categories = []
+    return [g1, g2, g3]
+
+
+@pytest.fixture
+def service() -> AutoCategorizeService:
+    """Create AutoCategorizeService instance."""
+    return AutoCategorizeService(MagicMock(), MagicMock())
 
 
 class TestCategorizeByCurator:
-    """Tests for curator-based categorization."""
+    """Tests for DB-backed curator categorization."""
 
-    @pytest.fixture
-    def mock_game_manager(self) -> Mock:
-        """Create a mock GameManager."""
-        return Mock()
-
-    @pytest.fixture
-    def mock_category_service(self) -> Mock:
-        """Create a mock CategoryService."""
-        service = Mock()
-        service.add_app_to_category = Mock()
-        return service
-
-    @pytest.fixture
-    def service(self, mock_game_manager: Mock, mock_category_service: Mock) -> AutoCategorizeService:
-        """Create AutoCategorizeService instance."""
-        return AutoCategorizeService(mock_game_manager, mock_category_service)
-
-    @pytest.fixture
-    def games(self) -> list[Game]:
-        """Create a list of test games."""
-        g1 = Game(app_id="440", name="Team Fortress 2")
-        g1.categories = []
-        g2 = Game(app_id="730", name="Counter-Strike 2")
-        g2.categories = []
-        g3 = Game(app_id="570", name="Dota 2")
-        g3.categories = []
-        return [g1, g2, g3]
-
-    @patch("src.services.autocategorize_service.CuratorClient")
     def test_categorize_by_curator_success(
-        self, mock_client_cls: MagicMock, service: AutoCategorizeService, games: list[Game]
+        self, service: AutoCategorizeService, db: Database, games: list[Game]
     ) -> None:
-        """Test successful curator categorization with matching games."""
-        mock_client = Mock()
-        mock_client.fetch_recommendations.return_value = {
-            440: CuratorRecommendation.RECOMMENDED,
-            730: CuratorRecommendation.NOT_RECOMMENDED,
-        }
-        mock_client_cls.return_value = mock_client
+        """Matching games should be categorized."""
+        db.add_curator(123, "Test Curator")
+        db.save_curator_recommendations(123, [440, 730])
 
-        count = service.categorize_by_curator(games, curator_url="https://store.steampowered.com/curator/123/")
-
-        # 2 games matched (440 and 730), not 570
+        count = service.categorize_by_curator(games, db_path=db.db_path)
         assert count == 2
-        mock_client.fetch_recommendations.assert_called_once()
 
-    @patch("src.services.autocategorize_service.CuratorClient")
     def test_categorize_by_curator_no_matches(
-        self, mock_client_cls: MagicMock, service: AutoCategorizeService, games: list[Game]
+        self, service: AutoCategorizeService, db: Database, games: list[Game]
     ) -> None:
-        """Test curator categorization when no games match."""
-        mock_client = Mock()
-        mock_client.fetch_recommendations.return_value = {
-            999: CuratorRecommendation.RECOMMENDED,
-        }
-        mock_client_cls.return_value = mock_client
+        """Games not in recommendations should not be categorized."""
+        db.add_curator(123, "Test Curator")
+        db.save_curator_recommendations(123, [999])
 
-        count = service.categorize_by_curator(games, curator_url="https://store.steampowered.com/curator/123/")
-
+        count = service.categorize_by_curator(games, db_path=db.db_path)
         assert count == 0
 
-    @patch("src.services.autocategorize_service.CuratorClient")
-    def test_categorize_by_curator_filter_types(
-        self, mock_client_cls: MagicMock, service: AutoCategorizeService, games: list[Game]
-    ) -> None:
-        """Test curator categorization with type filtering."""
-        mock_client = Mock()
-        mock_client.fetch_recommendations.return_value = {
-            440: CuratorRecommendation.RECOMMENDED,
-            730: CuratorRecommendation.NOT_RECOMMENDED,
-            570: CuratorRecommendation.INFORMATIONAL,
-        }
-        mock_client_cls.return_value = mock_client
-
-        # Only include RECOMMENDED
-        count = service.categorize_by_curator(
-            games,
-            curator_url="https://store.steampowered.com/curator/123/",
-            included_types={CuratorRecommendation.RECOMMENDED},
-        )
-
-        assert count == 1
-
-    @patch("src.services.autocategorize_service.CuratorClient")
     def test_categorize_by_curator_with_progress_callback(
-        self, mock_client_cls: MagicMock, service: AutoCategorizeService, games: list[Game]
+        self, service: AutoCategorizeService, db: Database, games: list[Game]
     ) -> None:
-        """Test that progress callback is invoked for each game."""
-        mock_client = Mock()
-        mock_client.fetch_recommendations.return_value = {}
-        mock_client_cls.return_value = mock_client
+        """Progress callback should be invoked during processing."""
+        db.add_curator(123, "Test Curator")
+        db.save_curator_recommendations(123, [440])
 
-        callback = Mock()
+        calls: list[tuple[int, str]] = []
         service.categorize_by_curator(
-            games,
-            curator_url="https://store.steampowered.com/curator/123/",
-            progress_callback=callback,
+            games, db_path=db.db_path, progress_callback=lambda i, name: calls.append((i, name))
         )
+        assert len(calls) > 0
 
-        assert callback.call_count == len(games)
+    def test_categorize_by_curator_empty_games_list(self, service: AutoCategorizeService, db: Database) -> None:
+        """Empty game list should return 0."""
+        db.add_curator(123, "Test Curator")
+        db.save_curator_recommendations(123, [440])
 
-    @patch("src.services.autocategorize_service.CuratorClient")
-    def test_categorize_by_curator_empty_games_list(
-        self, mock_client_cls: MagicMock, service: AutoCategorizeService
-    ) -> None:
-        """Test curator categorization with empty game list."""
-        mock_client = Mock()
-        mock_client.fetch_recommendations.return_value = {440: CuratorRecommendation.RECOMMENDED}
-        mock_client_cls.return_value = mock_client
-
-        count = service.categorize_by_curator([], curator_url="https://store.steampowered.com/curator/123/")
-
+        count = service.categorize_by_curator([], db_path=db.db_path)
         assert count == 0
 
-    @patch("src.services.autocategorize_service.CuratorClient")
-    def test_categorize_by_curator_invalid_url_raises(
-        self, mock_client_cls: MagicMock, service: AutoCategorizeService, games: list[Game]
-    ) -> None:
-        """Test that invalid curator URL raises ValueError."""
-        mock_client = Mock()
-        mock_client.fetch_recommendations.side_effect = ValueError("Invalid curator URL")
-        mock_client_cls.return_value = mock_client
+    def test_categorize_by_curator_no_db_path(self, service: AutoCategorizeService, games: list[Game]) -> None:
+        """No db_path should return 0."""
+        count = service.categorize_by_curator(games, db_path=None)
+        assert count == 0
 
-        with pytest.raises(ValueError, match="Invalid curator URL"):
-            service.categorize_by_curator(games, curator_url="bad-url")
+    def test_categorize_by_curator_partial_matches(
+        self, service: AutoCategorizeService, db: Database, games: list[Game]
+    ) -> None:
+        """Only matching games should be counted."""
+        db.add_curator(123, "Test Curator")
+        db.save_curator_recommendations(123, [440])
+
+        count = service.categorize_by_curator(games, db_path=db.db_path)
+        assert count == 1
