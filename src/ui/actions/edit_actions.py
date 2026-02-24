@@ -419,7 +419,7 @@ class EditActions:
                     game.name = new_meta["name"]
 
                 self.mw.populate_categories()
-                self.mw.on_game_selected(game)
+                self.mw.selection_handler.on_game_selected(game)
                 UIHelper.show_success(self.mw, t("ui.metadata_editor.updated_single", game=game.name))
 
     def bulk_edit_metadata(self) -> None:
@@ -490,7 +490,7 @@ class EditActions:
                     if self.mw.appinfo_manager:
                         self.mw.game_manager.apply_metadata_overrides(self.mw.appinfo_manager)
 
-                self.mw.on_game_selected(game)
+                self.mw.selection_handler.on_game_selected(game)
 
     def restore_metadata_changes(self) -> None:
         """Opens dialog to restore metadata changes."""

@@ -112,15 +112,15 @@ class CentralWidgetBuilder:
         # Tree Widget
         tree = GameTreeWidget()
         # noinspection PyUnresolvedReferences,DuplicatedCode
-        tree.game_clicked.connect(self.mw.on_game_selected)
+        tree.game_clicked.connect(self.mw.selection_handler.on_game_selected)
         # noinspection PyUnresolvedReferences
         tree.game_right_clicked.connect(self.mw.on_game_right_click)
         # noinspection PyUnresolvedReferences
         tree.category_right_clicked.connect(self.mw.on_category_right_click)
         # noinspection PyUnresolvedReferences
-        tree.selection_changed.connect(self.mw.on_games_selected)
+        tree.selection_changed.connect(self.mw.selection_handler.on_games_selected)
         # noinspection PyUnresolvedReferences
-        tree.games_dropped.connect(self.mw.on_games_dropped)
+        tree.games_dropped.connect(self.mw.category_change_handler.on_games_dropped)
         left_layout.addWidget(tree)
 
         splitter.addWidget(left_widget)
@@ -128,7 +128,7 @@ class CentralWidgetBuilder:
         # RIGHT SIDE (Details)
         details_widget = GameDetailsWidget()
         # noinspection PyUnresolvedReferences
-        details_widget.category_changed.connect(self.mw.on_category_changed_from_details)
+        details_widget.category_changed.connect(self.mw.category_change_handler.on_category_changed_from_details)
         # noinspection PyUnresolvedReferences
         details_widget.edit_metadata.connect(self.mw.edit_actions.edit_game_metadata)
         # noinspection PyUnresolvedReferences
