@@ -101,6 +101,21 @@ class ViewActions:
                 )
             return
 
+        # Easter egg: "teamslm" triggers Team Credits
+        if query.strip().lower() == "teamslm":
+            from src.utils.enigma import load_easter_egg
+
+            egg = load_easter_egg("teamslm")
+            if egg:
+                from src.ui.widgets.ui_helper import UIHelper
+
+                UIHelper.show_info(
+                    self.main_window,
+                    egg.get("message", ""),
+                    title=egg.get("title", ""),
+                )
+            return
+
         if not self.main_window.game_manager or not self.main_window.search_service:
             return
 

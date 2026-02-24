@@ -252,8 +252,24 @@ class AboutDialog(BaseDialog):
         return line
 
     def _on_logo_clicked(self) -> None:
-        """Surprise: opens the GitHub page after 3 clicks."""
+        """Hidden interactions based on click count.
+
+        3 clicks opens GitHub, 5 clicks shows SwitchBros tribute.
+        """
         self._click_count += 1
-        if self._click_count >= 3:
-            self._click_count = 0
+
+        if self._click_count == 3:
             webbrowser.open(_GITHUB_URL)
+
+        elif self._click_count >= 5:
+            from src.utils.enigma import load_easter_egg
+            from src.ui.widgets.ui_helper import UIHelper
+
+            egg = load_easter_egg("logo_tribute")
+            if egg:
+                UIHelper.show_info(
+                    self,
+                    egg.get("message", ""),
+                    title=egg.get("title", ""),
+                )
+            self._click_count = 0
