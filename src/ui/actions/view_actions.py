@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__all__ = ["ViewActions"]
+
 from typing import TYPE_CHECKING
 
 from src.utils.i18n import t
