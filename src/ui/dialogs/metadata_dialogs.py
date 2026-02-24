@@ -229,24 +229,18 @@ class BulkMetadataEditDialog(BaseDialog):
     def _preview_name_modification(name: str, mods: dict[str, str]) -> str:
         """Applies name modifications for preview display.
 
-        Same logic as MetadataService._apply_name_modifications() but
-        duplicated here to avoid service dependency in dialog.
+        Delegates to :func:`src.utils.name_utils.apply_name_modifications`.
 
         Args:
             name: Original game name.
-            mods: Dict with optional 'prefix', 'suffix', 'remove' keys.
+            mods: Dict with optional ``prefix``, ``suffix``, ``remove`` keys.
 
         Returns:
             Modified name string.
         """
-        result = name
-        if mods.get("remove"):
-            result = result.replace(mods["remove"], "")
-        if mods.get("prefix"):
-            result = mods["prefix"] + result
-        if mods.get("suffix"):
-            result = result + mods["suffix"]
-        return result
+        from src.utils.name_utils import apply_name_modifications
+
+        return apply_name_modifications(name, mods)
 
     def _on_revert_toggled(self, checked: bool) -> None:
         """Disables all edit fields when revert is toggled.

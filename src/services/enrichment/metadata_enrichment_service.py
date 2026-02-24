@@ -303,28 +303,7 @@ class MetadataEnrichmentService:
                 game.metacritic_score = int(steam_meta["metacritic_score"])
 
         # 2. CUSTOM OVERRIDES
-        for app_id, meta_data in modifications.items():
-            if app_id in self._games:
-                game = self._games[app_id]
-                modified = meta_data.get("modified", {})
-
-                if modified.get("name"):
-                    game.name = modified["name"]
-                    game.name_overridden = True
-                if modified.get("sort_as"):
-                    game.sort_name = modified["sort_as"]
-                elif game.name_overridden:
-                    game.sort_name = game.name
-                if modified.get("developer"):
-                    game.developer = modified["developer"]
-                if modified.get("publisher"):
-                    game.publisher = modified["publisher"]
-                if modified.get("release_date"):
-                    game.release_year = modified["release_date"]
-                if modified.get("pegi_rating"):
-                    game.pegi_rating = modified["pegi_rating"]
-
-                count += 1
+        count += self._apply_overrides_to_games(modifications)
 
         if count > 0:
             logger.info(t("logs.manager.applied_overrides", count=count))
@@ -332,12 +311,24 @@ class MetadataEnrichmentService:
     def apply_custom_overrides(self, modifications: dict[str, dict]) -> None:
         """Applies ONLY custom JSON overrides, skipping the binary appinfo phase.
 
-        Identical to the second half of ``apply_metadata_overrides()`` but
-        without needing a loaded binary.  Used during lazy-load startup
-        where the DB already provides base metadata.
+        Used during lazy-load startup where the DB already provides base
+        metadata, so only the JSON override layer is needed.
 
         Args:
             modifications: Dict of {app_id: {"original": ..., "modified": {...}}}.
+        """
+        count = self._apply_overrides_to_games(modifications)
+        if count > 0:
+            logger.info(t("logs.manager.applied_overrides", count=count))
+
+    def _apply_overrides_to_games(self, modifications: dict[str, dict]) -> int:
+        """Applies custom JSON field overrides to matching games.
+
+        Args:
+            modifications: Dict of {app_id: {"original": ..., "modified": {...}}}.
+
+        Returns:
+            Number of games that had overrides applied.
         """
         count = 0
         for app_id, meta_data in modifications.items():
@@ -362,6 +353,4 @@ class MetadataEnrichmentService:
                     game.pegi_rating = modified["pegi_rating"]
 
                 count += 1
-
-        if count > 0:
-            logger.info(t("logs.manager.applied_overrides", count=count))
+        return count

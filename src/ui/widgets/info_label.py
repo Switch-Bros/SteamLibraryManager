@@ -135,24 +135,43 @@ def update_hltb_label(label: QLabel, hours: float, dash: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _format_rating_html(
+    value: str,
+    color_map: dict[str, str],
+    display_key_prefix: str,
+    title_key: str,
+) -> str:
+    """Returns a styled HTML string for a rating label.
+
+    Shared formatter for ProtonDB tiers and Steam Deck statuses.
+
+    Args:
+        value: Raw rating value (e.g. "gold", "verified").
+        color_map: Theme color mapping (e.g. Theme.PROTONDB_COLORS).
+        display_key_prefix: i18n key prefix for display text.
+        title_key: i18n key for the label title.
+    """
+    key = value.lower() if value else "unknown"
+    if key not in color_map:
+        key = "unknown"
+    color = color_map[key]
+    display = t(f"{display_key_prefix}.{key}")
+    if display.startswith("["):
+        display = key.title()
+    title = t(title_key)
+    return (
+        f"<span style='color:{Theme.TEXT_MUTED};'>{title}:</span> "
+        f"<span style='color:{color}; font-weight:bold;'>{display}</span>"
+    )
+
+
 def format_proton_html(tier: str) -> str:
     """Returns styled HTML string for the ProtonDB rating label.
 
     Args:
         tier: ProtonDB tier (platinum, gold, silver, bronze, native, borked, pending, unknown).
     """
-    tier_lower = tier.lower() if tier else "unknown"
-    if tier_lower not in Theme.PROTONDB_COLORS:
-        tier_lower = "unknown"
-    color = Theme.PROTONDB_COLORS[tier_lower]
-    display = t(f"ui.game_details.proton_tiers.{tier_lower}")
-    if display.startswith("["):
-        display = tier_lower.title()
-    title = t("ui.game_details.proton_db")
-    return (
-        f"<span style='color:{Theme.TEXT_MUTED};'>{title}:</span> "
-        f"<span style='color:{color}; font-weight:bold;'>{display}</span>"
-    )
+    return _format_rating_html(tier, Theme.PROTONDB_COLORS, "ui.game_details.proton_tiers", "ui.game_details.proton_db")
 
 
 def format_deck_html(status: str) -> str:
@@ -161,15 +180,6 @@ def format_deck_html(status: str) -> str:
     Args:
         status: Deck status (verified, playable, unsupported, unknown).
     """
-    status_lower = status.lower() if status else "unknown"
-    if status_lower not in Theme.STEAMDECK_COLORS:
-        status_lower = "unknown"
-    color = Theme.STEAMDECK_COLORS[status_lower]
-    display = t(f"ui.game_details.steam_deck_status.{status_lower}")
-    if display.startswith("["):
-        display = status_lower.title()
-    title = t("ui.game_details.steam_deck")
-    return (
-        f"<span style='color:{Theme.TEXT_MUTED};'>{title}:</span> "
-        f"<span style='color:{color}; font-weight:bold;'>{display}</span>"
+    return _format_rating_html(
+        status, Theme.STEAMDECK_COLORS, "ui.game_details.steam_deck_status", "ui.game_details.steam_deck"
     )

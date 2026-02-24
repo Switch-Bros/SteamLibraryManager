@@ -138,31 +138,20 @@ class MetadataService:
 
     @staticmethod
     def _apply_name_modifications(name: str, mods: dict[str, str]) -> str:
-        """
-        Apply prefix, suffix, and remove modifications to a name.
+        """Applies prefix, suffix, and remove modifications to a name.
+
+        Delegates to :func:`src.utils.name_utils.apply_name_modifications`.
 
         Args:
             name: Original name.
-            mods: Dictionary with optional 'prefix', 'suffix', 'remove' keys.
+            mods: Dictionary with optional ``prefix``, ``suffix``, ``remove`` keys.
 
         Returns:
             Modified name.
         """
-        result = name
+        from src.utils.name_utils import apply_name_modifications
 
-        # Remove first — so prefix/suffix don't get mangled
-        if mods.get("remove"):
-            result = result.replace(mods["remove"], "")
-
-        # Apply prefix
-        if mods.get("prefix"):
-            result = mods["prefix"] + result
-
-        # Apply suffix
-        if mods.get("suffix"):
-            result = result + mods["suffix"]
-
-        return result
+        return apply_name_modifications(name, mods)
 
     def restore_games_to_original(self, games: list[Game]) -> int:
         """Restore metadata to original values for specific games.

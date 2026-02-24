@@ -139,15 +139,10 @@ class CategoryActionHandler:
             menu.exec(pos)
             return
 
-        # --- Steam-Standard-Collektions are not editable ---
-        steam_standard_collections: list[str] = [
-            t("categories.all_games"),
-            t("categories.favorites"),
-            t("categories.uncategorized"),
-            t("categories.hidden"),
-        ]
+        # --- Steam-Standard-Collections are not editable ---
+        from src.ui.constants import get_protected_collection_names
 
-        if category in steam_standard_collections:
+        if category in get_protected_collection_names():
             # ONLY allow Auto-Categorize, NOTHING else!
             menu.addAction(t("menu.edit.auto_categorize"), lambda: mw.edit_actions.auto_categorize_category(category))
             menu.exec(pos)
