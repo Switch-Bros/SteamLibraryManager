@@ -25,24 +25,6 @@ class EmptyCollectionHandler:
             main_window: The MainWindow instance.
         """
         self.mw: "MainWindow" = main_window
-        self._protected_collections: set[str] | None = None
-
-    def get_protected_collections(self) -> set[str]:
-        """Get the set of Steam standard collections that cannot be deleted.
-
-        Returns:
-            Set of protected collection names (translated).
-        """
-        if self._protected_collections is None:
-            from src.utils.i18n import t
-
-            self._protected_collections = {
-                t("categories.all_games"),
-                t("categories.favorites"),
-                t("categories.uncategorized"),
-                t("categories.hidden"),
-            }
-        return self._protected_collections
 
     def check_and_delete_if_empty(self, category_name: str) -> bool:
         """Check if collection is empty and delete it automatically (no dialog).
@@ -56,7 +38,9 @@ class EmptyCollectionHandler:
             True if collection was deleted, False otherwise.
         """
         # Never delete Steam standard collections
-        if category_name in self.get_protected_collections():
+        from src.ui.constants import get_protected_collection_names
+
+        if category_name in get_protected_collection_names():
             return False
 
         if not self.mw.game_manager or not self.mw.category_service:

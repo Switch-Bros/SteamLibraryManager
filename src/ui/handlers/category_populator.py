@@ -173,11 +173,9 @@ class CategoryPopulator:
 
         # Sort with German umlaut support
         # Skip special categories (Favorites, Uncategorized, Hidden, All Games, Type categories)
-        special_categories = {
-            t("categories.favorites"),
-            t("categories.uncategorized"),
-            t("categories.hidden"),
-            t("categories.all_games"),
+        from src.ui.constants import get_protected_collection_names
+
+        special_categories = get_protected_collection_names() | {
             t("categories.soundtracks"),
             t("categories.tools"),
             t("categories.software"),

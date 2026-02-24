@@ -322,14 +322,18 @@ class GameDetailsWidget(QWidget):
     # Image handling
     # ------------------------------------------------------------------
 
+    @property
+    def _asset_map(self) -> dict[str, ClickableImage]:
+        """Maps asset type names to their corresponding image widgets."""
+        return {"grids": self.img_grid, "heroes": self.img_hero, "logos": self.img_logo, "icons": self.img_icon}
+
     def _reload_images(self, app_id: str) -> None:
         """Reloads all game images from the asset manager.
 
         Args:
             app_id: The Steam app ID.
         """
-        asset_map = {"grids": self.img_grid, "heroes": self.img_hero, "logos": self.img_logo, "icons": self.img_icon}
-        for asset_type, img_widget in asset_map.items():
+        for asset_type, img_widget in self._asset_map.items():
             img_widget.load_image(SteamAssets.get_asset_path(app_id, asset_type))
 
     def _reload_single_asset(self, img_type: str) -> None:
@@ -340,10 +344,9 @@ class GameDetailsWidget(QWidget):
         """
         if not self.current_game:
             return
-        asset_map = {"grids": self.img_grid, "heroes": self.img_hero, "logos": self.img_logo, "icons": self.img_icon}
-        if img_type in asset_map:
-            path = SteamAssets.get_asset_path(self.current_game.app_id, img_type)
-            asset_map[img_type].load_image(path)
+        widget = self._asset_map.get(img_type)
+        if widget:
+            widget.load_image(SteamAssets.get_asset_path(self.current_game.app_id, img_type))
 
     def on_image_click(self, img_type: str) -> None:
         """Opens the image selection dialog on click.
