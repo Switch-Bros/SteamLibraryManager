@@ -19,6 +19,8 @@ from src.utils.i18n import t
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
+__all__ = ["CentralWidgetBuilder"]
+
 
 class CentralWidgetBuilder:
     """Builder for the central widget with splitter layout.

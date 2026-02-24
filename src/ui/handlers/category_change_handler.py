@@ -22,6 +22,8 @@ from src.ui.handlers.empty_collection_handler import EmptyCollectionHandler
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
 
+__all__ = ["CategoryChangeHandler"]
+
 
 class CategoryChangeHandler:
     """Handles category assignment changes from UI events.

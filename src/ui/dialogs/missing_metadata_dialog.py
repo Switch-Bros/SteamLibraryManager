@@ -31,6 +31,8 @@ from src.ui.widgets.ui_helper import UIHelper
 from src.utils.date_utils import format_timestamp_to_date
 from src.utils.i18n import t
 
+__all__ = ["MissingMetadataDialog"]
+
 
 class MissingMetadataDialog(BaseDialog):
     """Dialog for displaying games with missing metadata.

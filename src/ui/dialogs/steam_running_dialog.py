@@ -16,6 +16,8 @@ from src.ui.widgets.base_dialog import BaseDialog
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
+__all__ = ["SteamRunningDialog"]
+
 
 class SteamRunningDialog(BaseDialog):
     """Warning dialog shown when Steam is running during save operation.

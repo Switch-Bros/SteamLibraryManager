@@ -16,6 +16,8 @@ from src.ui.theme import Theme
 from src.ui.widgets.base_dialog import BaseDialog
 from src.utils.i18n import t
 
+__all__ = ["PEGIIconButton", "PEGISelectorDialog"]
+
 
 class PEGIIconButton(QPushButton):
     """A clickable button displaying a PEGI icon."""

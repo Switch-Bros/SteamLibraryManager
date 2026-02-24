@@ -297,7 +297,9 @@
         "missing": "Missing",
         "save_csv": "Save CSV",
         "stats": "{count} games with incomplete metadata found",
-        "missing_marked": "Missing"
+        "missing_marked": "Missing",
+        "export_success": "Exported {count} games to {path}.",
+        "export_error": "Export failed: {error}"
       },
       "merger": {
         "title": "Collections Import/Export",

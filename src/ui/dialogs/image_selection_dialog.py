@@ -35,6 +35,8 @@ from src.utils.i18n import t
 
 logger = logging.getLogger("steamlibmgr.image_dialog")
 
+__all__ = ["ImageSelectionDialog", "PagedSearchThread"]
+
 
 class PagedSearchThread(QThread):
     """Background thread for fetching one page of images from SteamGridDB.
