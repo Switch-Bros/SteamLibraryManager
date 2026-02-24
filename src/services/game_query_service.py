@@ -81,20 +81,30 @@ class GameQueryService:
         games = [g for g in self.get_real_games() if g.has_category(category)]
         return sorted(games, key=lambda g: g.sort_name.lower())
 
-    def get_uncategorized_games(self) -> list[Game]:
+    def get_uncategorized_games(self, smart_collection_names: set[str] | None = None) -> list[Game]:
         """Gets games that have no user collections (system categories don't count).
 
         Only actual games (``app_type == "game"`` or unknown) are considered.
         Non-game visible types (music, tool, application, video) are already
         served by their own type categories and are therefore NOT uncategorized.
 
+        Smart Collections are local to SLM and do not exist in Steam, so games
+        that are ONLY in a Smart Collection are still "uncategorized" from
+        Steam's perspective.
+
+        Args:
+            smart_collection_names: Optional set of Smart Collection names to
+                exclude from the categorisation check.
+
         Returns:
             A sorted list of uncategorized games.
         """
-        system_categories = {
+        excluded_categories: set[str] = {
             t("categories.favorites"),
             t("categories.hidden"),
         }
+        if smart_collection_names:
+            excluded_categories = excluded_categories | smart_collection_names
 
         uncategorized = []
         for game in self._games.values():
@@ -106,10 +116,10 @@ class GameQueryService:
             if not is_real_game(game):
                 continue
 
-            # Filter out system categories
-            user_categories = [cat for cat in game.categories if cat not in system_categories]
+            # Only count real Steam collections (not system or smart)
+            real_categories = [cat for cat in game.categories if cat not in excluded_categories]
 
-            if not user_categories:
+            if not real_categories:
                 uncategorized.append(game)
 
         return sorted(uncategorized, key=lambda g: g.sort_name.lower())

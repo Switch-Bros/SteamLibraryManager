@@ -456,9 +456,9 @@ class GameManager:
         """Gets all games belonging to a specific category."""
         return self.query_service.get_games_by_category(category)
 
-    def get_uncategorized_games(self) -> list[Game]:
+    def get_uncategorized_games(self, smart_collection_names: set[str] | None = None) -> list[Game]:
         """Gets games that have no user collections."""
-        return self.query_service.get_uncategorized_games()
+        return self.query_service.get_uncategorized_games(smart_collection_names)
 
     def get_favorites(self) -> list[Game]:
         """Gets all favorite games."""

@@ -138,9 +138,21 @@ class CategoryPopulator:
             [g for g in mw.game_manager.get_favorites() if not g.hidden and g.app_id in filtered_ids],
         )
 
-        # Uncategorized games (within filtered set)
+        # Identify Smart Collection names BEFORE uncategorized check —
+        # games only in Smart Collections are still "uncategorized" from
+        # Steam's perspective (Smart Collections are local to SLM).
+        smart_collections: set[str] = set()
+        if hasattr(mw, "smart_collection_manager") and mw.smart_collection_manager:
+            for sc in mw.smart_collection_manager.get_all():
+                smart_collections.add(sc.name)
+
+        # Uncategorized games (within filtered set, excluding Smart Collections)
         uncategorized = sort_fn(
-            [g for g in mw.game_manager.get_uncategorized_games() if not g.hidden and g.app_id in filtered_ids],
+            [
+                g
+                for g in mw.game_manager.get_uncategorized_games(smart_collections)
+                if not g.hidden and g.app_id in filtered_ids
+            ],
         )
 
         # Build categories_data in correct Steam order
@@ -257,12 +269,6 @@ class CategoryPopulator:
             for collection in mw.cloud_storage_parser.collections:
                 if "filterSpec" in collection:
                     dynamic_collections.add(collection["name"])
-
-        # Identify Smart Collections and auto-refresh
-        smart_collections: set[str] = set()
-        if hasattr(mw, "smart_collection_manager") and mw.smart_collection_manager:
-            for sc in mw.smart_collection_manager.get_all():
-                smart_collections.add(sc.name)
 
         # Identify external platform collections (ROM systems, platform parsers)
         external_platform_collections: set[str] = set()
