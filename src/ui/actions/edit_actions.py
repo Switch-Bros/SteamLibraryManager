@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING
 from PyQt6.QtWidgets import QMessageBox
 
 from src.core.game_manager import Game
-from src.services.curator_client import CuratorRecommendation
 from src.ui.dialogs.auto_categorize_dialog import AutoCategorizeDialog
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
@@ -225,29 +224,14 @@ class EditActions:
                 )
 
             elif method == "curator":
-                curator_url = settings.get("curator_url", "")
-                rec_strings = settings.get(
-                    "curator_recommendations", ["recommended", "not_recommended", "informational"]
-                )
-
-                rec_map = {
-                    "recommended": CuratorRecommendation.RECOMMENDED,
-                    "not_recommended": CuratorRecommendation.NOT_RECOMMENDED,
-                    "informational": CuratorRecommendation.INFORMATIONAL,
-                }
-                included_types = {rec_map[r] for r in rec_strings if r in rec_map}
-
-                progress.setLabelText(t("auto_categorize.curator_fetching"))
+                progress.setLabelText(t("ui.enrichment.curator_starting"))
                 progress.setValue(step)
 
-                try:
-                    self.mw.autocategorize_service.categorize_by_curator(
-                        games,
-                        curator_url=curator_url,
-                        included_types=included_types,
-                    )
-                except (ValueError, ConnectionError) as exc:
-                    UIHelper.show_error(self.mw, t("auto_categorize.curator_error_fetch", error=str(exc)))
+                db_path = self._get_db_path()
+                self.mw.autocategorize_service.categorize_by_curator(
+                    games,
+                    db_path=db_path,
+                )
 
             elif method in simple_methods:
                 # Update progress for fast batch operations
@@ -263,6 +247,18 @@ class EditActions:
         progress.close()
         self.mw.populate_categories()
         UIHelper.show_success(self.mw, t("common.success"))
+
+    def _get_db_path(self):
+        """Returns the database file path from the active game service.
+
+        Returns:
+            Path to the SQLite database, or None if not available.
+        """
+        if hasattr(self.mw, "game_service") and self.mw.game_service:
+            db = getattr(self.mw.game_service, "database", None)
+            if db and hasattr(db, "db_path"):
+                return db.db_path
+        return None
 
     # ------------------------------------------------------------------
     # Smart Collections

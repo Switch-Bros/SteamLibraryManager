@@ -112,6 +112,49 @@ class ToolsActions:
         dialog = ExternalGamesDialog(self.main_window)
         dialog.exec()
 
+    def show_curator_manager(self) -> None:
+        """Opens the Curator Management dialog."""
+        from src.ui.dialogs.curator_management_dialog import CuratorManagementDialog
+
+        db_path = None
+        if hasattr(self.main_window, "game_service") and self.main_window.game_service:
+            db = getattr(self.main_window.game_service, "database", None)
+            if db and hasattr(db, "db_path"):
+                db_path = db.db_path
+
+        if db_path is None:
+            UIHelper.show_warning(self.main_window, t("ui.enrichment.no_curators"))
+            return
+
+        dialog = CuratorManagementDialog(self.main_window, db_path)
+        dialog.exec()
+
+        # Refresh curator filter cache after management changes
+        self._refresh_curator_cache()
+
+    def _refresh_curator_cache(self) -> None:
+        """Rebuilds the curator filter cache from the database."""
+        db_path = None
+        if hasattr(self.main_window, "game_service") and self.main_window.game_service:
+            db = getattr(self.main_window.game_service, "database", None)
+            if db and hasattr(db, "db_path"):
+                db_path = db.db_path
+
+        if db_path is None:
+            return
+
+        from src.core.database import Database
+
+        temp_db = Database(db_path)
+        try:
+            cache: dict[int, set[int]] = {}
+            for curator in temp_db.get_active_curators():
+                curator_id = curator["curator_id"]
+                cache[curator_id] = temp_db.get_recommendations_for_curator(curator_id)
+            self.main_window.filter_service.set_curator_cache(cache)
+        finally:
+            temp_db.close()
+
     def find_missing_metadata(self) -> None:
         """Shows a dialog listing games with incomplete metadata."""
         if not self.main_window.metadata_service:

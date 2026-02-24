@@ -6,7 +6,7 @@ plus special methods for tags, franchise, flags, deck, achievements, curator, PE
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from src.core.game_manager import Game, GameManager
 from src.integrations.steam_store import SteamStoreScraper
@@ -17,7 +17,9 @@ from src.services.autocat_configs import (
     SIMPLE_METHOD_CONFIGS,
 )
 from src.services.category_service import CategoryService
-from src.services.curator_client import CuratorClient, CuratorRecommendation
+
+if TYPE_CHECKING:
+    from pathlib import Path
 from src.utils.i18n import t
 
 __all__ = ["AutoCategorizeService"]
@@ -406,47 +408,54 @@ class AutoCategorizeService:
     def categorize_by_curator(
         self,
         games: list[Game],
-        curator_url: str,
-        included_types: set[CuratorRecommendation] | None = None,
+        db_path: Path | None = None,
         progress_callback: Callable[[int, str], None] | None = None,
     ) -> int:
-        """Categorize games based on a Steam Curator's recommendations.
+        """Categorize games based on stored curator recommendations from DB.
+
+        Creates one collection per active curator, named "{name} {emoji.curator}".
+        Reads recommendations from the database — no live network requests.
 
         Args:
             games: List of games to categorize.
-            curator_url: Steam Curator URL or numeric ID.
-            included_types: Set of recommendation types to include.
+            db_path: Path to the SQLite database file.
             progress_callback: Optional callback(current_index, game_name).
 
         Returns:
             Number of categories added.
-
-        Raises:
-            ValueError: If the curator URL is invalid.
-            ConnectionError: If the Steam Store API is unreachable.
         """
-        if included_types is None:
-            included_types = set(CuratorRecommendation)
-        client = CuratorClient()
-        recommendations = client.fetch_recommendations(curator_url)
-        raw_name = CuratorClient.parse_curator_name(curator_url)
-        if not raw_name:
-            curator_id = CuratorClient.parse_curator_id(curator_url)
-            raw_name = f"Curator {curator_id}" if curator_id else "Curator"
-        curator_name = f"{raw_name} {t('emoji.curator')}"
-        categories_added = 0
-        for i, game in enumerate(games):
-            if progress_callback:
-                progress_callback(i, game.name)
-            try:
-                numeric_id = int(game.app_id)
-            except (ValueError, TypeError):
-                continue
-            rec_type = recommendations.get(numeric_id)
-            if rec_type is None or rec_type not in included_types:
-                continue
-            categories_added += self._add_category(game, curator_name)
-        return categories_added
+        if db_path is None:
+            return 0
+
+        from src.core.database import Database
+
+        db = Database(db_path)
+        try:
+            curators = db.get_active_curators()
+            if not curators:
+                return 0
+
+            categories_added = 0
+            for curator in curators:
+                curator_id = curator["curator_id"]
+                curator_name = f"{curator['name']} {t('emoji.curator')}"
+                recommended_ids = db.get_recommendations_for_curator(curator_id)
+                if not recommended_ids:
+                    continue
+
+                for i, game in enumerate(games):
+                    if progress_callback:
+                        progress_callback(i, game.name)
+                    try:
+                        numeric_id = int(game.app_id)
+                    except (ValueError, TypeError):
+                        continue
+                    if numeric_id in recommended_ids:
+                        categories_added += self._add_category(game, curator_name)
+
+            return categories_added
+        finally:
+            db.close()
 
     # -- Cache coverage & time estimation ----------------------------------
 

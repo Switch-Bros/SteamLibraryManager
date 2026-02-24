@@ -451,6 +451,10 @@ class MenuBuilder:
             ("pegi_3", "pegi_7", "pegi_12", "pegi_16", "pegi_18", "pegi_none"),
         )
 
+        # Curator filter submenu (dynamically populated)
+        self._curator_filter_menu = view_menu.addMenu(t("menu.view.curator.root"))
+        self._curator_filter_menu.aboutToShow.connect(self._populate_curator_filter_menu)
+
         view_menu.addSeparator()
 
         # --- Statistics (single action, opens tabbed dialog) ---
@@ -562,6 +566,11 @@ class MenuBuilder:
         external_games_action.triggered.connect(mw.tools_actions.show_external_games)
         tools_menu.addAction(external_games_action)
 
+        # Curator Manager
+        curator_manage_action = QAction(t("menu.tools.manage_curators"), mw)
+        curator_manage_action.triggered.connect(mw.tools_actions.show_curator_manager)
+        tools_menu.addAction(curator_manage_action)
+
         tools_menu.addSeparator()
 
         # Settings (wired action)
@@ -639,6 +648,55 @@ class MenuBuilder:
         about_action.setShortcut(QKeySequence("F12"))
         about_action.triggered.connect(mw.steam_actions.show_about)
         help_menu.addAction(about_action)
+
+    def _populate_curator_filter_menu(self) -> None:
+        """Dynamically populates the curator filter submenu from cached data.
+
+        Called when the submenu is about to show. Reads curator names from
+        the filter service cache and creates checkable actions.
+        """
+        menu = self._curator_filter_menu
+        menu.clear()
+        mw = self.main_window
+
+        cache = mw.filter_service.curator_cache
+        if not cache:
+            no_data = QAction(t("menu.view.curator.no_data"), mw)
+            no_data.setEnabled(False)
+            menu.addAction(no_data)
+            return
+
+        # Build name lookup from DB (fast, only curator table)
+        curator_names: dict[int, str] = {}
+        try:
+            db_path = None
+            if hasattr(mw, "game_service") and mw.game_service:
+                db = getattr(mw.game_service, "database", None)
+                if db and hasattr(db, "db_path"):
+                    db_path = db.db_path
+
+            if db_path:
+                from src.core.database import Database
+
+                temp_db = Database(db_path)
+                for c in temp_db.get_all_curators():
+                    curator_names[c["curator_id"]] = c["name"]
+                temp_db.close()
+        except Exception:
+            pass
+
+        active_ids = mw.filter_service._active_curator_ids
+        for curator_id in sorted(cache.keys()):
+            name = curator_names.get(curator_id, f"Curator {curator_id}")
+            count = len(cache[curator_id])
+            label = f"{name} ({count})"
+            action = QAction(label, mw)
+            action.setCheckable(True)
+            action.setChecked(curator_id in active_ids)
+            action.triggered.connect(
+                lambda checked, cid=curator_id: mw.view_actions.on_filter_toggled("curator", str(cid), checked)
+            )
+            menu.addAction(action)
 
     def _attach_corner_widget(self, menubar: QMenuBar) -> None:
         """Attaches the user-info label to the top-right corner of the menu bar.

@@ -57,6 +57,11 @@ class ViewActions:
             fs.toggle_achievement_filter(key, checked)
         elif group == "pegi":
             fs.toggle_pegi_rating(key, checked)
+        elif group == "curator":
+            try:
+                fs.toggle_curator_filter(int(key), checked)
+            except (ValueError, TypeError):
+                pass
 
         # Re-run search if active, otherwise repopulate full tree
         if self.main_window.current_search_query:
