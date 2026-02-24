@@ -267,6 +267,27 @@ class HLTBClient:
             return to_result(match)
         return None
 
+    def _post_search(self, payload: dict) -> requests.Response:
+        """Sends a search POST request to the HLTB API.
+
+        Args:
+            payload: JSON payload for the search.
+
+        Returns:
+            Response object from the API.
+        """
+        return self._session.post(
+            f"{_HLTB_BASE}/api/{self._api_path}",
+            json=payload,
+            headers={
+                "Content-Type": "application/json",
+                "Origin": _HLTB_BASE,
+                "Referer": f"{_HLTB_BASE}/",
+                "x-auth-token": self._auth_token,
+            },
+            timeout=15,
+        )
+
     def _search_and_find(self, search_name: str) -> tuple[dict | None, int]:
         """Performs an HLTB API search and returns the best match with distance.
 
@@ -306,38 +327,15 @@ class HLTBClient:
             "useCache": True,
         }
 
-        search_url = f"{_HLTB_BASE}/api/{self._api_path}"
-
         try:
-            resp = self._session.post(
-                search_url,
-                json=payload,
-                headers={
-                    "Content-Type": "application/json",
-                    "Origin": _HLTB_BASE,
-                    "Referer": f"{_HLTB_BASE}/",
-                    "x-auth-token": self._auth_token,
-                },
-                timeout=15,
-            )
+            resp = self._post_search(payload)
             # If 404 or 403, invalidate cache and retry once
             if resp.status_code in (403, 404):
                 logger.info("HLTB endpoint returned %d, refreshing...", resp.status_code)
                 self._cache_time = 0.0
                 if not self._ensure_api_ready():
                     return None, 0
-                search_url = f"{_HLTB_BASE}/api/{self._api_path}"
-                resp = self._session.post(
-                    search_url,
-                    json=payload,
-                    headers={
-                        "Content-Type": "application/json",
-                        "Origin": _HLTB_BASE,
-                        "Referer": f"{_HLTB_BASE}/",
-                        "x-auth-token": self._auth_token,
-                    },
-                    timeout=15,
-                )
+                resp = self._post_search(payload)
 
             resp.raise_for_status()
             data = resp.json()

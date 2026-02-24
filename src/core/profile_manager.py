@@ -14,7 +14,7 @@ import logging
 import re
 import shutil
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -273,20 +273,7 @@ class ProfileManager:
         except FileNotFoundError:
             return False
 
-        # Build renamed profile, preserving original created_at
-        renamed = Profile(
-            name=new_name.strip(),
-            collections=old_profile.collections,
-            autocat_methods=old_profile.autocat_methods,
-            tags_per_game=old_profile.tags_per_game,
-            ignore_common_tags=old_profile.ignore_common_tags,
-            filter_enabled_types=old_profile.filter_enabled_types,
-            filter_enabled_platforms=old_profile.filter_enabled_platforms,
-            filter_active_statuses=old_profile.filter_active_statuses,
-            filter_active_languages=old_profile.filter_active_languages,
-            sort_key=old_profile.sort_key,
-            created_at=old_profile.created_at,
-        )
+        renamed = replace(old_profile, name=new_name.strip())
 
         self.save_profile(renamed)
         # Only delete old if filename actually changed
@@ -343,19 +330,7 @@ class ProfileManager:
 
         # Stamp import time if no creation time was set
         if profile.created_at == 0.0:
-            profile = Profile(
-                name=profile.name,
-                collections=profile.collections,
-                autocat_methods=profile.autocat_methods,
-                tags_per_game=profile.tags_per_game,
-                ignore_common_tags=profile.ignore_common_tags,
-                filter_enabled_types=profile.filter_enabled_types,
-                filter_enabled_platforms=profile.filter_enabled_platforms,
-                filter_active_statuses=profile.filter_active_statuses,
-                filter_active_languages=profile.filter_active_languages,
-                sort_key=profile.sort_key,
-                created_at=time.time(),
-            )
+            profile = replace(profile, created_at=time.time())
 
         self.save_profile(profile)
         logger.info("Imported profile '%s' from %s", profile.name, source_path)
