@@ -106,5 +106,7 @@ jobs:
         e = int(ts.attrib.get('errors',0))
         s = int(ts.attrib.get('skipped',0))
         print(t - f - e - s)
-        ") passed"
+        ") passed [skip ci]"
+        # Rebase on latest master to avoid conflicts with concurrent pushes
+        git pull --rebase origin master
         git push
