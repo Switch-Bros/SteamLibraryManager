@@ -16,7 +16,7 @@ __all__ = ["EditActions"]
 
 from typing import TYPE_CHECKING
 
-from PyQt6.QtWidgets import QMessageBox, QApplication
+from PyQt6.QtWidgets import QMessageBox
 
 from src.core.game_manager import Game
 from src.services.curator_client import CuratorRecommendation
@@ -227,10 +227,9 @@ class EditActions:
                 def tags_progress(index: int, name: str) -> None:
                     if progress.wasCanceled():
                         return
-                    progress.setValue(step + index)
                     if index % 10 == 0:
                         progress.setLabelText(t("auto_categorize.status_tags", game=name[:30]))
-                    QApplication.processEvents()
+                    progress.setValue(step + index)
 
                 self.mw.autocategorize_service.categorize_by_tags(
                     games, tags_count=settings["tags_count"], progress_callback=tags_progress
@@ -249,9 +248,8 @@ class EditActions:
                 }
                 included_types = {rec_map[r] for r in rec_strings if r in rec_map}
 
-                progress.setValue(step)
                 progress.setLabelText(t("auto_categorize.curator_fetching"))
-                QApplication.processEvents()
+                progress.setValue(step)
 
                 try:
                     self.mw.autocategorize_service.categorize_by_curator(
