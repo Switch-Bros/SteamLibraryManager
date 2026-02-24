@@ -27,7 +27,6 @@ CORE_MODULES: list[str] = [
     "src.core.local_games_loader",
     "src.core.localconfig_helper",
     "src.core.logging",
-    "src.core.non_game_apps",
     "src.core.packageinfo_parser",
     "src.core.steam_account",
     "src.core.steam_account_scanner",

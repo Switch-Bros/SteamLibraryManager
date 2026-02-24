@@ -447,34 +447,6 @@ class SteamLoginManager(QObject):
         self.login_success.emit(result)
 
     @staticmethod
-    def _get_steamid_from_account_name(account_name: str) -> str | None:
-        """Convert account name to SteamID64 using Steam Community API.
-
-        Args:
-            account_name: Steam account name (login name)
-
-        Returns:
-            SteamID64 as string, or None if failed
-        """
-        try:
-            # Try ResolveVanityURL API
-            url = "https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/"
-            params = {"key": "YOUR_API_KEY_HERE", "vanityurl": account_name}  # This won't work without API key
-
-            response = requests.get(url, params=params, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                steam_id = data.get("response", {}).get("steamid")
-                if steam_id:
-                    logger.info(t("logs.auth.account_name_resolved"))
-                    return str(steam_id)
-
-        except Exception as e:
-            logger.error(t("logs.auth.account_name_resolve_error", error=str(e)))
-
-        return None
-
-    @staticmethod
     def get_owned_games(session_or_token, steam_id: str) -> dict | None:
         """Get owned games using token."""
         url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
