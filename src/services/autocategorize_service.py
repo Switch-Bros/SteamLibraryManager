@@ -43,6 +43,26 @@ class AutoCategorizeService:
         self.category_service = category_service
         self.steam_scraper = steam_scraper
 
+    # -- Shared helper -----------------------------------------------------
+
+    def _add_category(self, game: Game, category: str) -> bool:
+        """Adds a game to a category, updating both DB and in-memory state.
+
+        Args:
+            game: The game to categorize.
+            category: Category name to add.
+
+        Returns:
+            True if category was added, False on error.
+        """
+        try:
+            self.category_service.add_app_to_category(game.app_id, category)
+            if category not in game.categories:
+                game.categories.append(category)
+            return True
+        except (ValueError, RuntimeError):
+            return False
+
     # -- Generic engines ---------------------------------------------------
 
     def _categorize_simple(
@@ -74,13 +94,7 @@ class AutoCategorizeService:
                     continue
                 display = str(v).capitalize() if cfg.capitalize else str(v)
                 category = display if cfg.use_raw else t(cfg.i18n_key, **{cfg.i18n_kwarg: display})
-                try:
-                    self.category_service.add_app_to_category(game.app_id, category)
-                    if category not in game.categories:
-                        game.categories.append(category)
-                    categories_added += 1
-                except (ValueError, RuntimeError):
-                    pass
+                categories_added += self._add_category(game, category)
         return categories_added
 
     def _categorize_by_buckets(
@@ -124,13 +138,7 @@ class AutoCategorizeService:
                     else:
                         continue
             category = t(cfg.i18n_wrapper_key, **{cfg.i18n_wrapper_kwarg: label})
-            try:
-                self.category_service.add_app_to_category(game.app_id, category)
-                if category not in game.categories:
-                    game.categories.append(category)
-                categories_added += 1
-            except (ValueError, RuntimeError):
-                pass
+            categories_added += self._add_category(game, category)
         return categories_added
 
     # -- Simple method wrappers --------------------------------------------
@@ -216,13 +224,7 @@ class AutoCategorizeService:
             if progress_callback:
                 progress_callback(i, game.name)
             for tag in self.steam_scraper.fetch_tags(game.app_id)[:tags_count]:
-                try:
-                    self.category_service.add_app_to_category(game.app_id, tag)
-                    if tag not in game.categories:
-                        game.categories.append(tag)
-                    categories_added += 1
-                except (ValueError, RuntimeError):
-                    pass
+                categories_added += self._add_category(game, tag)
         return categories_added
 
     @staticmethod
@@ -282,13 +284,7 @@ class AutoCategorizeService:
                 continue
             category = t("auto_categorize.cat_franchise", name=franchise)
             for game in matched_games:
-                try:
-                    self.category_service.add_app_to_category(game.app_id, category)
-                    if category not in game.categories:
-                        game.categories.append(category)
-                    categories_added += 1
-                except (ValueError, RuntimeError):
-                    pass
+                categories_added += self._add_category(game, category)
         return categories_added
 
     def categorize_by_flags(
@@ -312,13 +308,7 @@ class AutoCategorizeService:
                 flags.append("Free to Play")
             for flag_name in flags:
                 category = t("auto_categorize.cat_flags", name=flag_name)
-                try:
-                    self.category_service.add_app_to_category(game.app_id, category)
-                    if category not in game.categories:
-                        game.categories.append(category)
-                    categories_added += 1
-                except (ValueError, RuntimeError):
-                    pass
+                categories_added += self._add_category(game, category)
         return categories_added
 
     _DECK_STATUS_KEYS: frozenset[str] = frozenset({"verified", "playable", "unsupported"})
@@ -343,13 +333,7 @@ class AutoCategorizeService:
             if not status or status not in self._DECK_STATUS_KEYS:
                 continue
             category = f"{t('auto_categorize.cat_deck_' + status)} {t('emoji.vr')}"
-            try:
-                self.category_service.add_app_to_category(game.app_id, category)
-                if category not in game.categories:
-                    game.categories.append(category)
-                categories_added += 1
-            except (ValueError, RuntimeError):
-                pass
+            categories_added += self._add_category(game, category)
         return categories_added
 
     _PEGI_BUCKETS: tuple[tuple[str, str], ...] = (
@@ -385,13 +369,7 @@ class AutoCategorizeService:
             else:
                 label = t("auto_categorize.pegi_unknown")
             category = t("auto_categorize.cat_pegi", rating=label)
-            try:
-                self.category_service.add_app_to_category(game.app_id, category)
-                if category not in game.categories:
-                    game.categories.append(category)
-                categories_added += 1
-            except (ValueError, RuntimeError):
-                pass
+            categories_added += self._add_category(game, category)
         return categories_added
 
     def categorize_by_achievements(
@@ -422,13 +400,7 @@ class AutoCategorizeService:
                 cat_name = f"{t('auto_categorize.cat_achievement_progress')} {trophy}"
             else:
                 cat_name = f"{t('auto_categorize.cat_achievement_started')} {trophy}"
-            try:
-                self.category_service.add_app_to_category(game.app_id, cat_name)
-                if cat_name not in game.categories:
-                    game.categories.append(cat_name)
-                categories_added += 1
-            except (ValueError, RuntimeError):
-                pass
+            categories_added += self._add_category(game, cat_name)
         return categories_added
 
     def categorize_by_curator(
@@ -473,13 +445,7 @@ class AutoCategorizeService:
             rec_type = recommendations.get(numeric_id)
             if rec_type is None or rec_type not in included_types:
                 continue
-            try:
-                self.category_service.add_app_to_category(game.app_id, curator_name)
-                if curator_name not in game.categories:
-                    game.categories.append(curator_name)
-                categories_added += 1
-            except (ValueError, RuntimeError):
-                pass
+            categories_added += self._add_category(game, curator_name)
         return categories_added
 
     # -- Cache coverage & time estimation ----------------------------------

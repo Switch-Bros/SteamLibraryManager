@@ -162,129 +162,50 @@ class FilterService:
         # Default: NAME (A-Z) using sort_name
         return sorted(games, key=lambda g: g.sort_name.lower())
 
-    def toggle_type(self, key: str, enabled: bool) -> None:
-        """Enables or disables a type filter.
+    def _toggle_filter(
+        self, key: str, active: bool, valid_keys: frozenset[str], target_set: set[str], label: str
+    ) -> None:
+        """Toggles a single filter key in the target set.
 
         Args:
-            key: The type key (e.g. "games", "soundtracks").
-            enabled: True to show this type, False to hide it.
+            key: The filter key to toggle.
+            active: Whether to add (True) or remove (False).
+            valid_keys: Set of valid keys for validation.
+            target_set: The mutable set to modify.
+            label: Category label for log messages.
         """
-        if key not in ALL_TYPE_KEYS:
-            logger.warning("Unknown type filter key: %s", key)
+        if key not in valid_keys:
+            logger.warning("Unknown %s filter key: %s", label, key)
             return
-        if enabled:
-            self._enabled_types.add(key)
-        else:
-            self._enabled_types.discard(key)
+        target_set.add(key) if active else target_set.discard(key)
+
+    def toggle_type(self, key: str, enabled: bool) -> None:
+        """Enables or disables a type filter."""
+        self._toggle_filter(key, enabled, ALL_TYPE_KEYS, self._enabled_types, "type")
 
     def toggle_platform(self, key: str, enabled: bool) -> None:
-        """Enables or disables a platform filter.
-
-        Args:
-            key: The platform key (e.g. "linux", "windows", "steamos").
-            enabled: True to show this platform, False to hide it.
-        """
-        if key not in ALL_PLATFORM_KEYS:
-            logger.warning("Unknown platform filter key: %s", key)
-            return
-        if enabled:
-            self._enabled_platforms.add(key)
-        else:
-            self._enabled_platforms.discard(key)
+        """Enables or disables a platform filter."""
+        self._toggle_filter(key, enabled, ALL_PLATFORM_KEYS, self._enabled_platforms, "platform")
 
     def toggle_status(self, key: str, active: bool) -> None:
-        """Activates or deactivates a status filter.
-
-        When at least one status filter is active, only games matching
-        any active status are shown (OR logic).
-
-        Args:
-            key: The status key (e.g. "installed", "favorites").
-            active: True to activate, False to deactivate.
-        """
-        if key not in ALL_STATUS_KEYS:
-            logger.warning("Unknown status filter key: %s", key)
-            return
-        if active:
-            self._active_statuses.add(key)
-        else:
-            self._active_statuses.discard(key)
+        """Activates or deactivates a status filter."""
+        self._toggle_filter(key, active, ALL_STATUS_KEYS, self._active_statuses, "status")
 
     def toggle_language(self, key: str, active: bool) -> None:
-        """Activates or deactivates a language filter.
-
-        When at least one language filter is active, only games supporting
-        any active language are shown (OR logic). When none are active,
-        all games pass (no language filtering).
-
-        Args:
-            key: The language key (e.g. "english", "german").
-            active: True to activate, False to deactivate.
-        """
-        if key not in ALL_LANGUAGE_KEYS:
-            logger.warning("Unknown language filter key: %s", key)
-            return
-        if active:
-            self._active_languages.add(key)
-        else:
-            self._active_languages.discard(key)
+        """Activates or deactivates a language filter."""
+        self._toggle_filter(key, active, ALL_LANGUAGE_KEYS, self._active_languages, "language")
 
     def toggle_deck_status(self, key: str, active: bool) -> None:
-        """Activates or deactivates a Steam Deck compatibility filter.
-
-        When at least one deck status filter is active, only games matching
-        any active status are shown (OR logic). When none are active,
-        all games pass (no deck filtering).
-
-        Args:
-            key: The deck status key (e.g. "verified", "playable").
-            active: True to activate, False to deactivate.
-        """
-        if key not in ALL_DECK_KEYS:
-            logger.warning("Unknown deck status filter key: %s", key)
-            return
-        if active:
-            self._active_deck_statuses.add(key)
-        else:
-            self._active_deck_statuses.discard(key)
+        """Activates or deactivates a Steam Deck compatibility filter."""
+        self._toggle_filter(key, active, ALL_DECK_KEYS, self._active_deck_statuses, "deck status")
 
     def toggle_pegi_rating(self, key: str, active: bool) -> None:
-        """Activates or deactivates a PEGI age rating filter.
-
-        When at least one PEGI filter is active, only games matching
-        any active rating are shown (OR logic). When none are active,
-        all games pass (no PEGI filtering).
-
-        Args:
-            key: The PEGI filter key (e.g. "pegi_18", "pegi_none").
-            active: True to activate, False to deactivate.
-        """
-        if key not in ALL_PEGI_KEYS:
-            logger.warning("Unknown PEGI filter key: %s", key)
-            return
-        if active:
-            self._active_pegi_ratings.add(key)
-        else:
-            self._active_pegi_ratings.discard(key)
+        """Activates or deactivates a PEGI age rating filter."""
+        self._toggle_filter(key, active, ALL_PEGI_KEYS, self._active_pegi_ratings, "PEGI")
 
     def toggle_achievement_filter(self, key: str, active: bool) -> None:
-        """Activates or deactivates an achievement filter.
-
-        When at least one achievement filter is active, only games matching
-        any active filter are shown (OR logic). When none are active,
-        all games pass (no achievement filtering).
-
-        Args:
-            key: The achievement filter key (e.g. "perfect", "almost").
-            active: True to activate, False to deactivate.
-        """
-        if key not in ALL_ACHIEVEMENT_KEYS:
-            logger.warning("Unknown achievement filter key: %s", key)
-            return
-        if active:
-            self._active_achievement_filters.add(key)
-        else:
-            self._active_achievement_filters.discard(key)
+        """Activates or deactivates an achievement filter."""
+        self._toggle_filter(key, active, ALL_ACHIEVEMENT_KEYS, self._active_achievement_filters, "achievement")
 
     def is_type_category_visible(self, type_key: str) -> bool:
         """Checks whether a type category should be shown in the sidebar.
