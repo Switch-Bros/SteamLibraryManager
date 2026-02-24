@@ -127,6 +127,42 @@ class MenuBuilder:
             return
         self._not_implemented("menu.edit.collections.merge")
 
+    def _add_filter_submenu(
+        self,
+        parent_menu,
+        i18n_prefix: str,
+        keys: tuple[str, ...],
+        filter_name: str | None = None,
+        checked_default: bool = False,
+    ) -> None:
+        """Adds a checkable filter submenu to the given parent menu.
+
+        All View-menu filter submenus follow the same pattern: a submenu
+        with checkable actions that call ``view_actions.on_filter_toggled``.
+        This helper eliminates the repetition.
+
+        Args:
+            parent_menu: Parent menu to add the submenu to.
+            i18n_prefix: i18n key prefix (e.g. ``menu.view.type``).
+            keys: Tuple of filter keys used for both i18n and toggling.
+            filter_name: Filter category name passed to on_filter_toggled.
+                Defaults to the last segment of *i18n_prefix*.
+            checked_default: Whether items start checked.
+        """
+        if filter_name is None:
+            filter_name = i18n_prefix.rsplit(".", 1)[-1]
+        sub = parent_menu.addMenu(t(f"{i18n_prefix}.root"))
+        mw = self.main_window
+        for key in keys:
+            action = QAction(t(f"{i18n_prefix}.{key}"), mw)
+            action.setCheckable(True)
+            if checked_default:
+                action.setChecked(True)
+            action.triggered.connect(
+                lambda checked, k=key, fn=filter_name: mw.view_actions.on_filter_toggled(fn, k, checked)
+            )
+            sub.addAction(action)
+
     # ------------------------------------------------------------------
     # Private – one method per top-level menu
     # ------------------------------------------------------------------
@@ -359,89 +395,61 @@ class MenuBuilder:
 
         view_menu.addSeparator()
 
-        # --- Type filter submenu (all checked by default) ---
-        type_menu = view_menu.addMenu(t("menu.view.type.root"))
-        for key in ("games", "soundtracks", "software", "videos", "dlcs", "tools"):
-            action = QAction(t(f"menu.view.type.{key}"), mw)
-            action.setCheckable(True)
-            action.setChecked(True)
-            action.triggered.connect(lambda checked, k=key: mw.view_actions.on_filter_toggled("type", k, checked))
-            type_menu.addAction(action)
-
-        # --- Platform filter submenu (all checked by default) ---
-        platform_menu = view_menu.addMenu(t("menu.view.platform.root"))
-        for key in ("linux", "windows", "steamos"):
-            action = QAction(t(f"menu.view.platform.{key}"), mw)
-            action.setCheckable(True)
-            action.setChecked(True)
-            action.triggered.connect(lambda checked, k=key: mw.view_actions.on_filter_toggled("platform", k, checked))
-            platform_menu.addAction(action)
-
-        # --- Status filter submenu (all unchecked by default) ---
-        status_menu = view_menu.addMenu(t("menu.view.status.root"))
-        for key in (
-            "installed",
-            "not_installed",
-            "hidden",
-            "with_playtime",
-            "favorites",
-        ):
-            action = QAction(t(f"menu.view.status.{key}"), mw)
-            action.setCheckable(True)
-            action.triggered.connect(lambda checked, k=key: mw.view_actions.on_filter_toggled("status", k, checked))
-            status_menu.addAction(action)
-
-        # --- Language filter submenu (all unchecked by default = no filtering) ---
-        language_menu = view_menu.addMenu(t("menu.view.language.root"))
-        for key in (
-            "english",
-            "german",
-            "french",
-            "spanish",
-            "italian",
-            "portuguese",
-            "russian",
-            "polish",
-            "japanese",
-            "chinese_simplified",
-            "chinese_traditional",
-            "korean",
-            "dutch",
-            "swedish",
-            "turkish",
-        ):
-            action = QAction(t(f"menu.view.language.{key}"), mw)
-            action.setCheckable(True)
-            action.triggered.connect(lambda checked, k=key: mw.view_actions.on_filter_toggled("language", k, checked))
-            language_menu.addAction(action)
-
-        # --- Steam Deck filter submenu (all unchecked by default = no filtering) ---
-        deck_menu = view_menu.addMenu(t("menu.view.deck.root"))
-        for key in ("verified", "playable", "unsupported", "unknown"):
-            action = QAction(t(f"menu.view.deck.{key}"), mw)
-            action.setCheckable(True)
-            action.triggered.connect(
-                lambda checked, k=key: mw.view_actions.on_filter_toggled("deck_status", k, checked)
-            )
-            deck_menu.addAction(action)
-
-        # --- Achievement filter submenu (all unchecked by default = no filtering) ---
-        achievement_menu = view_menu.addMenu(t("menu.view.achievement.root"))
-        for key in ("perfect", "almost", "progress", "started", "none"):
-            action = QAction(t(f"menu.view.achievement.{key}"), mw)
-            action.setCheckable(True)
-            action.triggered.connect(
-                lambda checked, k=key: mw.view_actions.on_filter_toggled("achievement", k, checked)
-            )
-            achievement_menu.addAction(action)
-
-        # --- PEGI age rating filter submenu (all unchecked by default = no filtering) ---
-        pegi_menu = view_menu.addMenu(t("menu.view.pegi.root"))
-        for key in ("pegi_3", "pegi_7", "pegi_12", "pegi_16", "pegi_18", "pegi_none"):
-            action = QAction(t(f"menu.view.pegi.{key}"), mw)
-            action.setCheckable(True)
-            action.triggered.connect(lambda checked, k=key: mw.view_actions.on_filter_toggled("pegi", k, checked))
-            pegi_menu.addAction(action)
+        # --- Filter submenus (Type/Platform default checked, rest unchecked) ---
+        self._add_filter_submenu(
+            view_menu,
+            "menu.view.type",
+            ("games", "soundtracks", "software", "videos", "dlcs", "tools"),
+            checked_default=True,
+        )
+        self._add_filter_submenu(
+            view_menu,
+            "menu.view.platform",
+            ("linux", "windows", "steamos"),
+            checked_default=True,
+        )
+        self._add_filter_submenu(
+            view_menu,
+            "menu.view.status",
+            ("installed", "not_installed", "hidden", "with_playtime", "favorites"),
+        )
+        self._add_filter_submenu(
+            view_menu,
+            "menu.view.language",
+            (
+                "english",
+                "german",
+                "french",
+                "spanish",
+                "italian",
+                "portuguese",
+                "russian",
+                "polish",
+                "japanese",
+                "chinese_simplified",
+                "chinese_traditional",
+                "korean",
+                "dutch",
+                "swedish",
+                "turkish",
+            ),
+        )
+        self._add_filter_submenu(
+            view_menu,
+            "menu.view.deck",
+            ("verified", "playable", "unsupported", "unknown"),
+            filter_name="deck_status",
+        )
+        self._add_filter_submenu(
+            view_menu,
+            "menu.view.achievement",
+            ("perfect", "almost", "progress", "started", "none"),
+        )
+        self._add_filter_submenu(
+            view_menu,
+            "menu.view.pegi",
+            ("pegi_3", "pegi_7", "pegi_12", "pegi_16", "pegi_18", "pegi_none"),
+        )
 
         view_menu.addSeparator()
 
