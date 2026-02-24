@@ -199,7 +199,7 @@ class ToolbarBuilder:
 
         # Create custom message box
         msg_box = QMessageBox(mw)
-        msg_box.setWindowTitle("Steam")
+        msg_box.setWindowTitle(t("steam.login.steam_login_title"))
         msg_box.setText(t("steam.login.logged_in_as", user=mw.steam_username))
         msg_box.setIcon(QMessageBox.Icon.Information)
 

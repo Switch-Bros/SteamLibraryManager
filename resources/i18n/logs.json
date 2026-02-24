@@ -16,7 +16,17 @@
       "loaded": "Settings loaded",
       "save_error": "Error saving configuration: {error}",
       "load_error": "Error loading configuration: {error}",
-      "library_read_error": "Error reading libraries: {error}"
+      "library_read_error": "Error reading libraries: {error}",
+      "auto_detected": "Auto-detected Steam: {path} ({type})",
+      "found_via_registry": "Found Steam via Registry: {path}",
+      "found_at": "Found Steam at: {path}",
+      "found_flatpak": "Found Flatpak Steam: {path}",
+      "found_native": "Found Native Steam: {path}",
+      "not_found": "Steam installation not found!",
+      "library_folders_detected": "Detected {count} library folders"
+    },
+    "data_load": {
+      "game_service_not_initialized": "GameService not initialized, cannot load games"
     },
     "manager": {
       "api_trying": "Trying Steam Web API...",
