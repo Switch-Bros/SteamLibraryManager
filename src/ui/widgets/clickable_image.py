@@ -10,6 +10,8 @@ superimposed badges based on metadata via ImageBadgeOverlay.
 
 from __future__ import annotations
 
+__all__ = ["ClickableImage", "ImageLoader"]
+
 import io
 import logging
 import os

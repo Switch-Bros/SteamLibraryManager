@@ -12,6 +12,8 @@ Connects back to MainWindow to access services and update UI.
 
 from __future__ import annotations
 
+__all__ = ["EditActions"]
+
 from typing import TYPE_CHECKING
 
 from PyQt6.QtWidgets import QMessageBox, QApplication

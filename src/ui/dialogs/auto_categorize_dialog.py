@@ -8,6 +8,8 @@ curator configuration, and start logic.
 
 from __future__ import annotations
 
+__all__ = ["AutoCategorizeDialog"]
+
 import logging
 from pathlib import Path
 from typing import Any, Callable
