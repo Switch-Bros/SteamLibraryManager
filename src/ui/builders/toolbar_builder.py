@@ -99,7 +99,7 @@ class ToolbarBuilder:
         edit_text = f"{t('emoji.edit')} {t('menu.edit.metadata.bulk')}"
         bulk_edit_action = QAction(edit_text, mw)
         bulk_edit_action.setToolTip(t("menu.edit.metadata.bulk"))
-        bulk_edit_action.triggered.connect(mw.edit_actions.bulk_edit_metadata)
+        bulk_edit_action.triggered.connect(mw.metadata_actions.bulk_edit_metadata)
         toolbar.addAction(bulk_edit_action)
 
         toolbar.addSeparator()

@@ -99,7 +99,7 @@ class MenuBuilder:
         if mw.selected_game is None:
             mw.set_status(t("ui.errors.no_selection"))
             return
-        mw.edit_actions.edit_game_metadata(mw.selected_game)
+        mw.metadata_actions.edit_game_metadata(mw.selected_game)
 
     def _rename_selected_collection(self) -> None:
         """Selection guard for collection renaming.
@@ -292,7 +292,7 @@ class MenuBuilder:
         metadata_menu.addAction(single_action)
 
         bulk_action = QAction(t("menu.edit.metadata.bulk"), mw)
-        bulk_action.triggered.connect(mw.edit_actions.bulk_edit_metadata)
+        bulk_action.triggered.connect(mw.metadata_actions.bulk_edit_metadata)
         metadata_menu.addAction(bulk_action)
 
         # Auto-Categorize
@@ -357,7 +357,7 @@ class MenuBuilder:
 
         # Reset Metadata
         reset_action = QAction(t("menu.edit.reset_metadata"), mw)
-        reset_action.triggered.connect(mw.edit_actions.restore_metadata_changes)
+        reset_action.triggered.connect(mw.metadata_actions.restore_metadata_changes)
         edit_menu.addAction(reset_action)
 
         # Remove Duplicates
@@ -488,43 +488,43 @@ class MenuBuilder:
 
         # Update Metadata (wired to enrichment)
         update_meta_action = QAction(t("menu.tools.batch.update_metadata"), mw)
-        update_meta_action.triggered.connect(mw.enrichment_actions.start_steam_api_enrichment)
+        update_meta_action.triggered.connect(mw.enrichment_starters.start_steam_api_enrichment)
         batch_menu.addAction(update_meta_action)
 
         # Update HLTB (wired to enrichment)
         update_hltb_action = QAction(t("menu.tools.batch.update_hltb"), mw)
-        update_hltb_action.triggered.connect(mw.enrichment_actions.start_hltb_enrichment)
+        update_hltb_action.triggered.connect(mw.enrichment_starters.start_hltb_enrichment)
         batch_menu.addAction(update_hltb_action)
 
         # Update Deck Status (wired to enrichment)
         update_deck_action = QAction(t("menu.tools.batch.update_deck"), mw)
-        update_deck_action.triggered.connect(mw.enrichment_actions.start_deck_enrichment)
+        update_deck_action.triggered.connect(mw.enrichment_starters.start_deck_enrichment)
         batch_menu.addAction(update_deck_action)
 
         # Update Achievements (wired to enrichment)
         update_ach_action = QAction(t("menu.tools.batch.update_achievements"), mw)
-        update_ach_action.triggered.connect(mw.enrichment_actions.start_achievement_enrichment)
+        update_ach_action.triggered.connect(mw.enrichment_starters.start_achievement_enrichment)
         batch_menu.addAction(update_ach_action)
 
         # Import Tags from appinfo.vdf
         import_tags_action = QAction(t("menu.tools.batch.import_tags"), mw)
-        import_tags_action.triggered.connect(mw.enrichment_actions.start_tag_import)
+        import_tags_action.triggered.connect(mw.enrichment_starters.start_tag_import)
         batch_menu.addAction(import_tags_action)
 
         # Update ProtonDB Ratings (wired to enrichment)
         update_protondb_action = QAction(t("menu.tools.batch.update_protondb"), mw)
-        update_protondb_action.triggered.connect(mw.enrichment_actions.start_protondb_enrichment)
+        update_protondb_action.triggered.connect(mw.enrichment_starters.start_protondb_enrichment)
         batch_menu.addAction(update_protondb_action)
 
         # Update PEGI Ratings (wired to enrichment)
         update_pegi_action = QAction(t("menu.tools.batch.update_pegi"), mw)
-        update_pegi_action.triggered.connect(mw.enrichment_actions.start_pegi_enrichment)
+        update_pegi_action.triggered.connect(mw.enrichment_starters.start_pegi_enrichment)
         batch_menu.addAction(update_pegi_action)
 
         # PEGI Force Refresh
         update_pegi_force_action = QAction(t("menu.tools.batch.update_pegi_force"), mw)
         update_pegi_force_action.triggered.connect(
-            lambda: mw.enrichment_actions.start_pegi_enrichment(force_refresh=True)
+            lambda: mw.enrichment_starters.start_pegi_enrichment(force_refresh=True)
         )
         batch_menu.addAction(update_pegi_force_action)
 

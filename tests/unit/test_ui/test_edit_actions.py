@@ -1,16 +1,18 @@
 """
-Unit tests for EditActions.
+Unit tests for EditActions (auto-categorization & smart collections)
+and MetadataActions (metadata editing, PEGI overrides, restoration).
 """
 
 import pytest
 from unittest.mock import MagicMock, patch
 from src.ui.actions.edit_actions import EditActions
+from src.ui.actions.metadata_actions import MetadataActions
 from src.core.game_manager import Game
 
 
 @pytest.fixture
 def mock_mainwindow():
-    """Mock for MainWindow to isolate EditActions."""
+    """Mock for MainWindow to isolate action handlers."""
     mw = MagicMock()
     # Mock selected games list
     mw.selected_games = []
@@ -21,7 +23,7 @@ def mock_mainwindow():
     mw.autocategorize_service = MagicMock()
     mw.steam_scraper = MagicMock()
 
-    # Mock public methods required by EditActions
+    # Mock public methods required by action handlers
     mw.populate_categories = MagicMock()
     mw.on_game_selected = MagicMock()
     mw.save_collections = MagicMock()
@@ -36,8 +38,13 @@ def edit_actions(mock_mainwindow):
     return EditActions(mock_mainwindow)
 
 
-@patch("src.ui.actions.edit_actions.UIHelper")  # <--- WICHTIG: UIHelper patchen!
-def test_edit_game_metadata_opens_dialog(mock_ui_helper, edit_actions, mock_mainwindow):
+@pytest.fixture
+def metadata_actions(mock_mainwindow):
+    return MetadataActions(mock_mainwindow)
+
+
+@patch("src.ui.actions.metadata_actions.UIHelper")
+def test_edit_game_metadata_opens_dialog(mock_ui_helper, metadata_actions, mock_mainwindow):
     """Test that edit_game_metadata prepares data and opens dialog."""
     # Setup
     game = Game("123", "Test Game")
@@ -45,13 +52,13 @@ def test_edit_game_metadata_opens_dialog(mock_ui_helper, edit_actions, mock_main
     mock_mainwindow.metadata_service.get_original_metadata.return_value = {}
 
     # Mock the Dialog class specifically inside the module
-    with patch("src.ui.actions.edit_actions.MetadataEditDialog") as MockDialog:
+    with patch("src.ui.actions.metadata_actions.MetadataEditDialog") as MockDialog:
         instance = MockDialog.return_value
         instance.exec.return_value = True  # Simulate user clicking OK
         instance.get_metadata.return_value = {"name": "New Name", "developer": "Dev"}
 
         # Execute
-        edit_actions.edit_game_metadata(game)
+        metadata_actions.edit_game_metadata(game)
 
         # Assert
         # 1. Dialog was created
@@ -66,11 +73,11 @@ def test_edit_game_metadata_opens_dialog(mock_ui_helper, edit_actions, mock_main
         mock_ui_helper.show_success.assert_called()
 
 
-@patch("src.ui.actions.edit_actions.UIHelper")  # <--- WICHTIG: UIHelper patchen!
-def test_pegi_override_saves(mock_ui_helper, edit_actions, mock_mainwindow):
+@patch("src.ui.actions.metadata_actions.UIHelper")
+def test_pegi_override_saves(mock_ui_helper, metadata_actions, mock_mainwindow):
     """Test that PEGI override triggers appinfo manager."""
     # Execute
-    edit_actions.on_pegi_override_requested("123", "18")
+    metadata_actions.on_pegi_override_requested("123", "18")
 
     # Assert
     mock_mainwindow.appinfo_manager.set_app_metadata.assert_called_with("123", {"pegi_rating": "18"})
