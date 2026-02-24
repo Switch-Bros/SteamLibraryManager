@@ -64,7 +64,7 @@ class CategoryActionHandler:
         mw = self.mw
         menu = QMenu(mw)
 
-        menu.addAction(t("ui.context_menu.view_details"), lambda: mw.on_game_selected(game))
+        menu.addAction(t("ui.context_menu.view_details"), lambda: mw.selection_handler.on_game_selected(game))
         menu.addAction(t("ui.context_menu.toggle_favorite"), lambda: mw.game_actions.toggle_favorite(game))
 
         menu.addSeparator()

@@ -21,8 +21,7 @@ if TYPE_CHECKING:
     from src.services.smart_collections.smart_collection_manager import SmartCollectionManager
 
 from PyQt6.QtWidgets import QMainWindow, QToolBar
-from PyQt6.QtCore import Qt, QThread, QTimer
-from PyQt6.QtGui import QKeySequence, QShortcut
+from PyQt6.QtCore import QThread, QTimer
 
 from src.core.game_manager import GameManager, Game
 from src.core.localconfig_helper import LocalConfigHelper
@@ -55,6 +54,7 @@ from src.ui.handlers import (
     CategoryChangeHandler,
     CategoryPopulator,
 )
+from src.ui.handlers.keyboard_handler import KeyboardHandler
 
 # Actions
 from src.ui.actions import (
@@ -126,22 +126,6 @@ class MainWindow(QMainWindow):
         self.steam_username: str | None = None
         self.current_search_query: str = ""  # Track active search
 
-        # Easter egg state — explicit int() to guarantee comparison
-        # with event.key() works across all PyQt6 versions.
-        self._konami_buffer: list[int] = []
-        self._konami_sequence: list[int] = [
-            int(Qt.Key.Key_Up),
-            int(Qt.Key.Key_Up),
-            int(Qt.Key.Key_Down),
-            int(Qt.Key.Key_Down),
-            int(Qt.Key.Key_Left),
-            int(Qt.Key.Key_Right),
-            int(Qt.Key.Key_Left),
-            int(Qt.Key.Key_Right),
-            int(Qt.Key.Key_B),
-            int(Qt.Key.Key_A),
-        ]
-
         # Threads & Dialogs
         self.store_check_thread: QThread | None = None
 
@@ -167,25 +151,12 @@ class MainWindow(QMainWindow):
         self.category_change_handler = CategoryChangeHandler(self)
         self.data_load_handler = DataLoadHandler(self)
         self.category_populator = CategoryPopulator(self)
+        self.keyboard_handler = KeyboardHandler(self)
 
         self._create_ui()
-        self._register_shortcuts()
+        self.keyboard_handler.register_shortcuts()
+        self.keyboard_handler.install_event_filter()
         self.show()
-
-        # Konami buffer timeout — clears half-typed sequences after 3 seconds
-        self._konami_timer = QTimer(self)
-        self._konami_timer.setSingleShot(True)
-        self._konami_timer.setInterval(3000)
-        self._konami_timer.timeout.connect(self._konami_buffer.clear)
-
-        # Application-wide event filter for surprise code detection.
-        # Must be on QApplication so keys are captured regardless of
-        # which widget currently holds focus.
-        from PyQt6.QtWidgets import QApplication
-
-        app = QApplication.instance()
-        if app:
-            app.installEventFilter(self)
 
         # Non-blocking startup via BootstrapService
         self._init_bootstrap_service()
@@ -294,34 +265,6 @@ class MainWindow(QMainWindow):
         """
         self.category_populator.populate()
 
-    def on_games_selected(self, games: list[Game]) -> None:
-        """Handles multi-selection changes. Delegated to SelectionHandler."""
-        self.selection_handler.on_games_selected(games)
-
-    def on_game_selected(self, game: Game) -> None:
-        """Handles single game selection. Delegated to SelectionHandler."""
-        self.selection_handler.on_game_selected(game)
-
-    def fetch_game_details_async(self, app_id: str, all_categories: list[str]) -> None:
-        """Fetches game details async. Delegated to SelectionHandler."""
-        self.selection_handler.fetch_game_details_async(app_id, all_categories)
-
-    def _restore_game_selection(self, app_ids: list[str]) -> None:
-        """Restores game selection. Delegated to SelectionHandler."""
-        self.selection_handler.restore_game_selection(app_ids)
-
-    def _apply_category_to_games(self, games: list[Game], category: str, checked: bool) -> None:
-        """Applies category changes. Delegated to CategoryChangeHandler."""
-        self.category_change_handler.apply_category_to_games(games, category, checked)
-
-    def on_category_changed_from_details(self, app_id: str, category: str, checked: bool) -> None:
-        """Handles category toggles. Delegated to CategoryChangeHandler."""
-        self.category_change_handler.on_category_changed_from_details(app_id, category, checked)
-
-    def on_games_dropped(self, games: list[Game], target_category: str) -> None:
-        """Handles drag-and-drop. Delegated to CategoryChangeHandler."""
-        self.category_change_handler.on_games_dropped(games, target_category)
-
     def on_game_right_click(self, game: Game, pos) -> None:
         """Shows context menu for a right-clicked game.
 
@@ -353,13 +296,7 @@ class MainWindow(QMainWindow):
         self.statusbar.showMessage(text)
 
     def _update_statistics(self) -> None:
-        """
-        Update the statistics display in the status bar.
-
-        Retrieves game statistics from the game manager and displays them
-        in the permanent status bar widget, showing category count, games
-        in categories, and total real games.
-        """
+        """Updates the statistics display in the status bar."""
         if not self.game_manager:
             return
 
@@ -384,11 +321,7 @@ class MainWindow(QMainWindow):
         Args:
             event: The close event from Qt.
         """
-        from PyQt6.QtWidgets import QApplication
-
-        app = QApplication.instance()
-        if app:
-            app.removeEventFilter(self)
+        self.keyboard_handler.remove_event_filter()
 
         parser = self._get_active_parser()
         has_collection_changes = parser is not None and parser.modified
@@ -499,28 +432,15 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def save_collections(self) -> bool:
-        """Persists collections to the active parser (cloud or local).
-
-        Public wrapper around ``_save_collections`` so that external
-        handler classes can trigger a save without accessing a protected member.
-
-        Returns:
-            True if the save succeeded, False otherwise.
-        """
+        """Persists collections to the active parser."""
         return self._save_collections()
 
     def populate_categories(self) -> None:
-        """Rebuilds the category tree widget from current game data.
-
-        Public wrapper around ``_populate_categories`` for use by handlers.
-        """
+        """Rebuilds the category tree from current data."""
         self._populate_categories()
 
     def update_statistics(self) -> None:
-        """Refreshes the statistics label in the status bar.
-
-        Public wrapper around ``_update_statistics`` for use by handlers.
-        """
+        """Refreshes the statistics label in the status bar."""
         self._update_statistics()
 
     # ------------------------------------------------------------------
@@ -547,166 +467,15 @@ class MainWindow(QMainWindow):
         return False
 
     # ------------------------------------------------------------------
-    # Keyboard Shortcuts & Easter Eggs
+    # Keyboard & Easter Egg delegation
     # ------------------------------------------------------------------
 
-    def _register_shortcuts(self) -> None:
-        """Registers keyboard shortcuts not bound to menu actions."""
-        # Ctrl+F: Focus search bar
-        QShortcut(QKeySequence("Ctrl+F"), self).activated.connect(lambda: self.search_entry.setFocus())
-
-        # F5: Refresh data (alternative to Ctrl+R in menu)
-        QShortcut(QKeySequence("F5"), self).activated.connect(self.file_actions.refresh_data)
-
-        # Ctrl+Shift+S: Create backup snapshot
-        QShortcut(QKeySequence("Ctrl+Shift+S"), self).activated.connect(self.file_actions.export_db_backup)
-
-        # Ctrl+A: Select all games in current category
-        QShortcut(QKeySequence("Ctrl+A"), self).activated.connect(self._select_all_in_category)
-
-        # Ctrl+B: Toggle sidebar (tree) visibility
-        QShortcut(QKeySequence("Ctrl+B"), self).activated.connect(
-            lambda: self.tree.setVisible(not self.tree.isVisible())
-        )
-
-        # Ctrl+I: Open Image Browser for selected game
-        QShortcut(QKeySequence("Ctrl+I"), self).activated.connect(self._open_image_browser)
-
-    def _select_all_in_category(self) -> None:
-        """Selects all game items under the currently active category."""
-        if self.search_entry.hasFocus():
-            self.search_entry.selectAll()
-            return
-
-        categories = self.tree.get_selected_categories()
-        if not categories:
-            return
-
-        for i in range(self.tree.topLevelItemCount()):
-            item = self.tree.topLevelItem(i)
-            if item and item.text(0) in categories:
-                for j in range(item.childCount()):
-                    child = item.child(j)
-                    if child:
-                        child.setSelected(True)
-
-    def _open_image_browser(self) -> None:
-        """Opens the Image Browser for the currently selected game."""
-        if not self.selected_game:
-            self.set_status(t("ui.errors.no_selection"))
-            return
-        self.details_widget.on_image_click("grids")
-
-    def _show_switchbros_easter_egg(self) -> None:
-        """Shows the hidden SwitchBros community tribute with sound."""
-        from src.utils.enigma import load_easter_egg, play_easter_egg_sound
-
-        egg = load_easter_egg("konami")
-        if not egg:
-            return
-
-        if "sound" in egg:
-            play_easter_egg_sound(egg["sound"])
-
-        QTimer.singleShot(
-            1000,
-            lambda: UIHelper.show_info(
-                self,
-                egg.get("message", ""),
-                title=egg.get("title", "Easter Egg"),
-            ),
-        )
-
     def eventFilter(self, obj, event) -> bool:
-        """Application-wide event filter for surprise code detection.
-
-        Observes only KeyPress events (not KeyRelease or ShortcutOverride)
-        regardless of which widget has focus.  Does NOT consume events —
-        all keys still reach their target widgets normally.  Buffer
-        auto-clears after 3 seconds of inactivity.
-
-        Args:
-            obj: The object that received the event.
-            event: The event to filter.
-
-        Returns:
-            False always — never consume the event.
-        """
-        from PyQt6.QtCore import QEvent
-        from PyQt6.QtGui import QKeyEvent, QWindow
-
-        # QApplication delivers each key event to every widget in the
-        # propagation chain.  Only count it once — when delivered to the
-        # platform QWindow (always first in the chain).
-        if (
-            isinstance(obj, QWindow)
-            and event.type() == QEvent.Type.KeyPress
-            and isinstance(event, QKeyEvent)
-            and not event.isAutoRepeat()
-        ):
-            self._konami_buffer.append(int(event.key()))
-            self._konami_timer.start()
-            if len(self._konami_buffer) > 10:
-                self._konami_buffer = self._konami_buffer[-10:]
-            if self._konami_buffer == self._konami_sequence:
-                self._konami_buffer.clear()
-                self._konami_timer.stop()
-                # Clean up any stray letters (B/A) from the search bar
-                if self.search_entry and self.search_entry.text():
-                    self.search_entry.clear()
-                self._show_switchbros_easter_egg()
+        """Delegates to KeyboardHandler for surprise code detection."""
+        self.keyboard_handler.handle_event_filter(obj, event)
         return super().eventFilter(obj, event)
 
     def keyPressEvent(self, event) -> None:
-        """Handles key press events for shortcuts.
-
-        Supports layered ESC behavior and additional keyboard
-        shortcuts for power users.
-
-        Args:
-            event: The key press event.
-        """
-        key = event.key()
-
-        # ESC: Layered behavior (search → selection → nothing)
-        if key == Qt.Key.Key_Escape:
-            # Layer 1: Clear search bar if it has text
-            if self.search_entry.text():
-                self.search_entry.clear()
-                self._populate_categories()
-                return
-            # Layer 2: Clear game selection
-            if self.selected_games:
-                self.selected_games = []
-                self.tree.clearSelection()
-                self.details_widget.clear()
-                self.set_status(t("ui.main_window.status_ready"))
-            return
-
-        # Del: Remove selected games from current category
-        if key == Qt.Key.Key_Delete:
-            if self.selected_games:
-                categories = self.tree.get_selected_categories()
-                if categories:
-                    category = categories[0]
-                    count = len(self.selected_games)
-                    msg = t("ui.dialogs.confirm_bulk", count=count)
-                    if UIHelper.confirm(self, msg, category):
-                        self._apply_category_to_games(self.selected_games, category, False)
-                        self._populate_categories()
-            return
-
-        # F2: Rename selected category
-        if key == Qt.Key.Key_F2:
-            categories = self.tree.get_selected_categories()
-            if categories:
-                self.category_handler.rename_category(categories[0])
-            return
-
-        # Space: Toggle details panel (only when tree doesn't have focus)
-        if key == Qt.Key.Key_Space:
-            if not self.tree.hasFocus():
-                self.details_widget.setVisible(not self.details_widget.isVisible())
-                return
-
-        super().keyPressEvent(event)
+        """Delegates to KeyboardHandler for shortcut processing."""
+        if not self.keyboard_handler.handle_key_press(event):
+            super().keyPressEvent(event)
