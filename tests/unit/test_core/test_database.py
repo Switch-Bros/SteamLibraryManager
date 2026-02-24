@@ -331,19 +331,21 @@ class TestDatabaseImporter:
         assert importer.needs_initial_import() is False
 
     def test_extract_associations_developer(self) -> None:
-        """_extract_associations should extract developer names."""
-        common = {
-            "associations": {
-                "0": {"type": "developer", "name": "Valve"},
-                "1": {"type": "publisher", "name": "Valve Corporation"},
-            }
+        """extract_associations should extract developer names."""
+        from src.core.appinfo_manager import extract_associations
+
+        associations = {
+            "0": {"type": "developer", "name": "Valve"},
+            "1": {"type": "publisher", "name": "Valve Corporation"},
         }
-        result = DatabaseImporter._extract_associations(common, "developer")
-        assert result == "Valve"
+        result = extract_associations(associations, "developer")
+        assert result == ["Valve"]
 
     def test_extract_associations_empty(self) -> None:
-        """_extract_associations returns empty string when no associations."""
-        assert DatabaseImporter._extract_associations({}, "developer") == ""
+        """extract_associations returns empty list when no associations."""
+        from src.core.appinfo_manager import extract_associations
+
+        assert extract_associations({}, "developer") == []
 
     def test_extract_genres_dict_with_description(self) -> None:
         """_extract_genres should handle dict values with description key."""
