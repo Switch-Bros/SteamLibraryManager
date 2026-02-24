@@ -7,7 +7,7 @@ and add them to Steam as Non-Steam shortcuts.
 from __future__ import annotations
 
 import logging
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -445,38 +445,50 @@ class ExternalGamesDialog(BaseDialog):
             self._add_thread.start()
 
     def _add_with_platform_tags(self, games: list[ExternalGame]) -> None:
-        """Adds games with per-platform category tags synchronously in a thread.
+        """Adds games with per-platform category tags using non-blocking batching.
 
-        Groups games by platform and uses each platform name as the tag.
+        Uses QTimer.singleShot to yield to the event loop between batches,
+        keeping the dialog responsive without resorting to processEvents().
 
         Args:
             games: Games to add.
         """
-        # Group by platform for proper tagging
         self._progress_bar.setVisible(True)
         self._progress_label.setVisible(True)
         self._progress_bar.setMaximum(len(games))
 
-        stats = {"added": 0, "skipped": 0, "errors": 0}
-        for i, game in enumerate(games):
+        self._batch_stats = {"added": 0, "skipped": 0, "errors": 0}
+        self._batch_games = games
+        self._add_batch(0)
+
+    def _add_batch(self, index: int) -> None:
+        """Processes a batch of games and schedules the next batch.
+
+        Args:
+            index: Current index in the game list.
+        """
+        if index >= len(self._batch_games):
+            self._on_add_finished(self._batch_stats)
+            return
+
+        batch_end = min(index + 5, len(self._batch_games))
+        for i in range(index, batch_end):
+            game = self._batch_games[i]
             self._progress_bar.setValue(i + 1)
-            self._progress_label.setText(t("ui.external.adding_game", name=game.name, current=i + 1, total=len(games)))
-            # Process events to keep UI responsive
-            from PyQt6.QtWidgets import QApplication
-
-            QApplication.processEvents()
-
+            self._progress_label.setText(
+                t("ui.external.adding_game", name=game.name, current=i + 1, total=len(self._batch_games))
+            )
             try:
                 tag = self._collection_name_for_platform(game.platform)
                 if self._service and self._service.add_to_steam(game, category_tag=tag):
-                    stats["added"] += 1
+                    self._batch_stats["added"] += 1
                 else:
-                    stats["skipped"] += 1
+                    self._batch_stats["skipped"] += 1
             except Exception:
                 logger.exception("Error adding %s", game.name)
-                stats["errors"] += 1
+                self._batch_stats["errors"] += 1
 
-        self._on_add_finished(stats)
+        QTimer.singleShot(0, lambda: self._add_batch(batch_end))
 
     @staticmethod
     def _collection_name_for_platform(platform: str) -> str:
