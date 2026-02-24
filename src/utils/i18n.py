@@ -60,53 +60,33 @@ class I18n:
         else:
             self.translations = self.fallback_translations
 
-    def _load_shared_files(self) -> dict[str, Any]:
-        """Load all JSON files from the i18n root directory.
-
-        These are language-agnostic shared files (emoji.json, logs.json).
-
-        Returns:
-            Merged dictionary of all shared JSON files.
-        """
-        merged_data: dict[str, Any] = {}
-
-        if not self.i18n_root.exists():
-            return {}
-
-        for file_path in sorted(self.i18n_root.glob("*.json")):
-            try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    file_data = json.load(f)
-                    merged_data = self._deep_merge(merged_data, file_data)
-            except (OSError, json.JSONDecodeError) as e:
-                logger.error("Error loading shared i18n file %s: %s", file_path.name, e)
-
-        return merged_data
-
-    def _load_locale_directory(self, locale_code: str) -> dict[str, Any]:
-        """Load all JSON files from a locale directory.
+    def _load_json_directory(self, directory: Path) -> dict[str, Any]:
+        """Loads and deep-merges all JSON files from a directory.
 
         Args:
-            locale_code: The folder name to look for (e.g. 'en', 'de').
+            directory: Path to scan for ``*.json`` files.
 
         Returns:
-            Merged dictionary of all JSON files in the locale directory.
+            Merged dictionary of all JSON files found.
         """
-        merged_data: dict[str, Any] = {}
-        target_dir = self.i18n_root / locale_code
-
-        if not target_dir.exists():
-            return {}
-
-        for file_path in sorted(target_dir.glob("*.json")):
+        merged: dict[str, Any] = {}
+        if not directory.exists():
+            return merged
+        for file_path in sorted(directory.glob("*.json")):
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
-                    file_data = json.load(f)
-                    merged_data = self._deep_merge(merged_data, file_data)
+                    merged = self._deep_merge(merged, json.load(f))
             except (OSError, json.JSONDecodeError) as e:
                 logger.error("Error loading i18n file %s: %s", file_path.name, e)
+        return merged
 
-        return merged_data
+    def _load_shared_files(self) -> dict[str, Any]:
+        """Load language-agnostic shared files from the i18n root."""
+        return self._load_json_directory(self.i18n_root)
+
+    def _load_locale_directory(self, locale_code: str) -> dict[str, Any]:
+        """Load all JSON files from a locale directory."""
+        return self._load_json_directory(self.i18n_root / locale_code)
 
     def _deep_merge(self, base: dict[str, Any], update: dict[str, Any]) -> dict[str, Any]:
         """Recursive merge of dictionaries.

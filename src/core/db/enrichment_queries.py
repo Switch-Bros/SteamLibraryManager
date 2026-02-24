@@ -25,6 +25,41 @@ class EnrichmentQueryMixin:
     Requires ConnectionBase attributes: conn.
     """
 
+    # ── Shared query helpers ─────────────────────────────────────────────
+
+    def _get_apps_without_join(self, table: str) -> list[tuple[int, str]]:
+        """Returns game-type apps with no entry in the given table.
+
+        Args:
+            table: Target table name to LEFT JOIN against.
+
+        Returns:
+            List of (app_id, name) tuples.
+        """
+        cursor = self.conn.execute(
+            f"SELECT g.app_id, g.name FROM games g"
+            f" LEFT JOIN {table} t ON g.app_id = t.app_id"
+            f" WHERE t.app_id IS NULL AND g.app_type IN ('game', '')"
+        )
+        return [(row[0], row[1]) for row in cursor.fetchall()]
+
+    def _get_stale_count(self, table: str, max_age_days: int) -> int:
+        """Counts entries with cache older than max_age_days.
+
+        Args:
+            table: Table name with a last_updated column.
+            max_age_days: Maximum cache age in days.
+
+        Returns:
+            Number of stale entries.
+        """
+        cutoff = int(time.time()) - (max_age_days * 86400)
+        cursor = self.conn.execute(
+            f"SELECT COUNT(*) FROM {table} WHERE last_updated < ?",
+            (cutoff,),
+        )
+        return cursor.fetchone()[0]
+
     # ── Metadata enrichment ──────────────────────────────────────────────
 
     def upsert_game_metadata(self, app_id: int, **fields: Any) -> None:
@@ -130,17 +165,8 @@ class EnrichmentQueryMixin:
         return [(row[0], row[1]) for row in cursor.fetchall()]
 
     def get_apps_without_hltb(self) -> list[tuple[int, str]]:
-        """Returns game-type apps that have no HLTB data.
-
-        Returns:
-            List of (app_id, name) tuples.
-        """
-        cursor = self.conn.execute("""
-            SELECT g.app_id, g.name FROM games g
-            LEFT JOIN hltb_data h ON g.app_id = h.app_id
-            WHERE h.app_id IS NULL AND g.app_type IN ('game', '')
-            """)
-        return [(row[0], row[1]) for row in cursor.fetchall()]
+        """Returns game-type apps that have no HLTB data."""
+        return self._get_apps_without_join("hltb_data")
 
     # ── HLTB ID cache ────────────────────────────────────────────────────
 
@@ -254,17 +280,8 @@ class EnrichmentQueryMixin:
         )
 
     def get_apps_without_protondb(self) -> list[tuple[int, str]]:
-        """Returns game-type apps that have no ProtonDB rating.
-
-        Returns:
-            List of (app_id, name) tuples.
-        """
-        cursor = self.conn.execute("""
-            SELECT g.app_id, g.name FROM games g
-            LEFT JOIN protondb_ratings p ON g.app_id = p.app_id
-            WHERE p.app_id IS NULL AND g.app_type IN ('game', '')
-            """)
-        return [(row[0], row[1]) for row in cursor.fetchall()]
+        """Returns game-type apps that have no ProtonDB rating."""
+        return self._get_apps_without_join("protondb_ratings")
 
     def get_apps_without_pegi(self) -> list[tuple[int, str]]:
         """Returns game-type apps that have no PEGI age rating.
@@ -355,64 +372,22 @@ class EnrichmentQueryMixin:
         )
 
     def get_apps_without_achievements(self) -> list[tuple[int, str]]:
-        """Returns game-type apps that have no achievement_stats entry.
-
-        Returns:
-            List of (app_id, name) tuples.
-        """
-        cursor = self.conn.execute("""
-            SELECT g.app_id, g.name FROM games g
-            LEFT JOIN achievement_stats a ON g.app_id = a.app_id
-            WHERE a.app_id IS NULL AND g.app_type IN ('game', '')
-            """)
-        return [(row[0], row[1]) for row in cursor.fetchall()]
+        """Returns game-type apps that have no achievement_stats entry."""
+        return self._get_apps_without_join("achievement_stats")
 
     # ── Health check queries ─────────────────────────────────────────────
 
     def get_games_missing_artwork(self) -> list[tuple[int, str]]:
-        """Returns games that have no custom artwork entry.
-
-        Returns:
-            List of (app_id, name) tuples.
-        """
-        cursor = self.conn.execute("""
-            SELECT g.app_id, g.name FROM games g
-            LEFT JOIN custom_artwork ca ON g.app_id = ca.app_id
-            WHERE ca.app_id IS NULL AND g.app_type IN ('game', '')
-        """)
-        return [(row[0], row[1]) for row in cursor.fetchall()]
+        """Returns games that have no custom artwork entry."""
+        return self._get_apps_without_join("custom_artwork")
 
     def get_stale_hltb_count(self, max_age_days: int = 30) -> int:
-        """Counts games with HLTB cache older than max_age_days.
-
-        Args:
-            max_age_days: Maximum cache age in days.
-
-        Returns:
-            Number of games with stale HLTB data.
-        """
-        cutoff = int(time.time()) - (max_age_days * 86400)
-        cursor = self.conn.execute(
-            "SELECT COUNT(*) FROM hltb_data WHERE last_updated < ?",
-            (cutoff,),
-        )
-        return cursor.fetchone()[0]
+        """Counts games with HLTB cache older than max_age_days."""
+        return self._get_stale_count("hltb_data", max_age_days)
 
     def get_stale_protondb_count(self, max_age_days: int = 7) -> int:
-        """Counts games with ProtonDB cache older than max_age_days.
-
-        Args:
-            max_age_days: Maximum cache age in days.
-
-        Returns:
-            Number of games with stale ProtonDB data.
-        """
-        cutoff = int(time.time()) - (max_age_days * 86400)
-        cursor = self.conn.execute(
-            "SELECT COUNT(*) FROM protondb_ratings WHERE last_updated < ?",
-            (cutoff,),
-        )
-        return cursor.fetchone()[0]
+        """Counts games with ProtonDB cache older than max_age_days."""
+        return self._get_stale_count("protondb_ratings", max_age_days)
 
     # ── Import recording ─────────────────────────────────────────────────
 

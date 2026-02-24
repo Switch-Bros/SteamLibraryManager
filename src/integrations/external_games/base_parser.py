@@ -7,6 +7,7 @@ platform_name(), is_available(), and read_games().
 from __future__ import annotations
 
 import logging
+import sqlite3
 from abc import ABC, abstractmethod
 from pathlib import Path
 
@@ -70,3 +71,20 @@ class BaseExternalParser(ABC):
                 logger.debug("Found %s config: %s", self.platform_name(), path)
                 return path
         return None
+
+    def _open_readonly_db(self, db_path: Path) -> sqlite3.Connection | None:
+        """Opens a SQLite database in read-only mode with Row factory.
+
+        Args:
+            db_path: Path to the SQLite database file.
+
+        Returns:
+            Connection with Row factory set, or None on error.
+        """
+        try:
+            conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+            conn.row_factory = sqlite3.Row
+            return conn
+        except sqlite3.Error as e:
+            logger.warning("Failed to open %s database: %s", self.platform_name(), e)
+            return None

@@ -91,11 +91,8 @@ class ItchParser(BaseExternalParser):
         if not db_path.exists():
             return []
 
-        try:
-            conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
-            conn.row_factory = sqlite3.Row
-        except sqlite3.Error as e:
-            logger.warning("Failed to open itch.io database: %s", e)
+        conn = self._open_readonly_db(db_path)
+        if not conn:
             return []
 
         games: list[ExternalGame] = []

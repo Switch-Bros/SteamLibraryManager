@@ -326,13 +326,7 @@ class EnrichAllCoordinator(QObject):
             steam_user_id=self._steam_id,
             force_refresh=True,
         )
-
-        thread.progress.connect(lambda _t, cur, tot: self.track_progress.emit(TRACK_HLTB, cur, tot))
-        thread.finished_enrichment.connect(lambda s, f: self._on_simple_track_done(TRACK_HLTB, s, f))
-        thread.error.connect(lambda msg: self._on_track_error(TRACK_HLTB, msg))
-
-        self._threads[TRACK_HLTB] = thread
-        thread.start()
+        self._wire_and_start_track(TRACK_HLTB, thread)
 
     # -- Track C: ProtonDB --------------------------------------------
 
@@ -348,13 +342,7 @@ class EnrichAllCoordinator(QObject):
             self._db_path,  # type: ignore[arg-type]
             force_refresh=True,
         )
-
-        thread.progress.connect(lambda _t, cur, tot: self.track_progress.emit(TRACK_PROTONDB, cur, tot))
-        thread.finished_enrichment.connect(lambda s, f: self._on_simple_track_done(TRACK_PROTONDB, s, f))
-        thread.error.connect(lambda msg: self._on_track_error(TRACK_PROTONDB, msg))
-
-        self._threads[TRACK_PROTONDB] = thread
-        thread.start()
+        self._wire_and_start_track(TRACK_PROTONDB, thread)
 
     # -- Track D: Deck status -----------------------------------------
 
@@ -370,13 +358,7 @@ class EnrichAllCoordinator(QObject):
             self._cache_dir,  # type: ignore[arg-type]
             force_refresh=True,
         )
-
-        thread.progress.connect(lambda _t, cur, tot: self.track_progress.emit(TRACK_DECK, cur, tot))
-        thread.finished_enrichment.connect(lambda s, f: self._on_simple_track_done(TRACK_DECK, s, f))
-        thread.error.connect(lambda msg: self._on_track_error(TRACK_DECK, msg))
-
-        self._threads[TRACK_DECK] = thread
-        thread.start()
+        self._wire_and_start_track(TRACK_DECK, thread)
 
     # -- Track E: PEGI age ratings --------------------------------------
 
@@ -393,13 +375,31 @@ class EnrichAllCoordinator(QObject):
             language=self._language,
             force_refresh=True,
         )
+        self._wire_and_start_track(TRACK_PEGI, thread)
 
-        thread.progress.connect(lambda _t, cur, tot: self.track_progress.emit(TRACK_PEGI, cur, tot))
-        thread.finished_enrichment.connect(lambda s, f: self._on_simple_track_done(TRACK_PEGI, s, f))
-        thread.error.connect(lambda msg: self._on_track_error(TRACK_PEGI, msg))
+    # ------------------------------------------------------------------
+    # Shared track wiring
+    # ------------------------------------------------------------------
 
-        self._threads[TRACK_PEGI] = thread
-        thread.start()
+    def _wire_and_start_track(self, track_name: str, thread: object) -> None:
+        """Connects standard signals and starts a simple enrichment track.
+
+        Wires progress, finished_enrichment, and error signals to the
+        shared handlers. Only suitable for non-chained tracks (B–E).
+
+        Args:
+            track_name: Track identifier constant.
+            thread: The enrichment thread to wire and start.
+        """
+        thread.progress.connect(  # type: ignore[union-attr]
+            lambda _t, cur, tot: self.track_progress.emit(track_name, cur, tot)
+        )
+        thread.finished_enrichment.connect(  # type: ignore[union-attr]
+            lambda s, f: self._on_simple_track_done(track_name, s, f)
+        )
+        thread.error.connect(lambda msg: self._on_track_error(track_name, msg))  # type: ignore[union-attr]
+        self._threads[track_name] = thread
+        thread.start()  # type: ignore[union-attr]
 
     # ------------------------------------------------------------------
     # Shared completion handlers

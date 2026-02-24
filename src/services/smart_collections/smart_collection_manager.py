@@ -168,23 +168,7 @@ class SmartCollectionManager:
         Returns:
             List of SmartCollection instances.
         """
-        rows = self.database.get_all_smart_collections()
-        collections: list[SmartCollection] = []
-        for row in rows:
-            sc = SmartCollection(
-                collection_id=row["collection_id"],
-                name=row["name"],
-                description=row.get("description", ""),
-                icon=row.get("icon", "\U0001f9e0"),
-                is_active=True,
-                auto_sync=True,
-                created_at=row.get("created_at", 0),
-            )
-            rules_json = row.get("rules", "")
-            if rules_json:
-                collection_from_json(rules_json, sc)
-            collections.append(sc)
-        return collections
+        return [self._hydrate_row(row) for row in self.database.get_all_smart_collections()]
 
     def get_by_name(self, name: str) -> SmartCollection | None:
         """Loads a single smart collection by name.
@@ -196,19 +180,7 @@ class SmartCollectionManager:
             SmartCollection or None if not found.
         """
         row = self.database.get_smart_collection_by_name(name)
-        if not row:
-            return None
-        sc = SmartCollection(
-            collection_id=row["collection_id"],
-            name=row["name"],
-            description=row.get("description", ""),
-            icon=row.get("icon", "\U0001f9e0"),
-            created_at=row.get("created_at", 0),
-        )
-        rules_json = row.get("rules", "")
-        if rules_json:
-            collection_from_json(rules_json, sc)
-        return sc
+        return self._hydrate_row(row) if row else None
 
     # ------------------------------------------------------------------
     # EVALUATION
@@ -311,6 +283,28 @@ class SmartCollectionManager:
     # ------------------------------------------------------------------
     # PRIVATE HELPERS
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _hydrate_row(row: dict) -> SmartCollection:
+        """Creates a SmartCollection from a database row.
+
+        Args:
+            row: Database row dict with collection fields.
+
+        Returns:
+            Hydrated SmartCollection with rules loaded from JSON.
+        """
+        sc = SmartCollection(
+            collection_id=row["collection_id"],
+            name=row["name"],
+            description=row.get("description", ""),
+            icon=row.get("icon", "\U0001f9e0"),
+            created_at=row.get("created_at", 0),
+        )
+        rules_json = row.get("rules", "")
+        if rules_json:
+            collection_from_json(rules_json, sc)
+        return sc
 
     def _remove_from_steam(self, category_name: str) -> None:
         """Removes all games from a Steam category (for deletion cleanup).
