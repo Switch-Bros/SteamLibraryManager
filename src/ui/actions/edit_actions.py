@@ -21,7 +21,8 @@ from src.services.curator_client import CuratorRecommendation
 
 # Dialogs
 from src.ui.dialogs.auto_categorize_dialog import AutoCategorizeDialog
-from src.ui.dialogs.metadata_dialogs import MetadataEditDialog, BulkMetadataEditDialog, MetadataRestoreDialog
+from src.ui.dialogs.metadata_dialogs import BulkMetadataEditDialog, MetadataRestoreDialog
+from src.ui.dialogs.metadata_edit_dialog import MetadataEditDialog
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
