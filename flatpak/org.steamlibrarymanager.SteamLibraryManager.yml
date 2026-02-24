@@ -11,21 +11,40 @@ finish-args:
   - --share=network
   - --filesystem=~/.local/share/Steam:ro
   - --filesystem=~/.steam:ro
-  - --filesystem=~/Games/Steam:ro
+  - --filesystem=xdg-config/steamlibrarymanager
   - --talk-name=org.freedesktop.Secrets
+
 modules:
-  - name: python3-protobuf
+  # ⚠️ CECE: Generiere die Python-Dependencies aus requirements-user.txt!
+  #    Tool: flatpak-pip-generator (oder pip3 install in build-commands)
+  #    KDE Runtime hat Qt6 bereits — PyQt6 NICHT nochmal installieren!
+  #    Beispiel: flatpak-pip-generator requests beautifulsoup4 cryptography keyring pillow vdf protobuf
+  - name: python3-dependencies
     buildsystem: simple
     build-commands:
-      - pip3 install --prefix=/app protobuf==3.20.3
+      - pip3 install --prefix=/app --no-deps
+          protobuf>=3.20.0
+          requests
+          beautifulsoup4
+          cryptography
+          keyring
+          Pillow
+          vdf
+    # ⚠️ CECE: Verifiziere gegen requirements-user.txt! Liste ggf. erweitern.
+
   - name: steam-library-manager
     buildsystem: simple
     build-commands:
       - pip3 install --prefix=/app . --no-build-isolation --no-deps
+      - install -Dm644 org.steamlibrarymanager.desktop /app/share/applications/org.steamlibrarymanager.desktop
+      - install -Dm644 org.steamlibrarymanager.metainfo.xml /app/share/metainfo/org.steamlibrarymanager.metainfo.xml
+      - install -Dm644 org.steamlibrarymanager.svg /app/share/icons/hicolor/scalable/apps/org.steamlibrarymanager.svg
     sources:
       - type: git
         url: https://github.com/Switch-Bros/SteamLibraryManager.git
-        branch: main
+        tag: v1.1.1
+        # ⚠️ CECE: commit Hash MUSS nach dem Tag-Push hier rein!
+        # commit: abc123...
       - type: file
         path: org.steamlibrarymanager.desktop
       - type: file
