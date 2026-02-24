@@ -14,12 +14,16 @@ All actions connect back to MainWindow for state access and UI updates.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from src.core.game import Game
     from src.ui.main_window import MainWindow
 
 
@@ -144,63 +148,40 @@ class FileActions:
 
     def export_csv_simple(self) -> None:
         """Exports the game list as a simple CSV file (Name, App ID, Playtime)."""
-        from PyQt6.QtWidgets import QFileDialog
-
         from src.utils.csv_exporter import CSVExporter
 
-        games = self._get_exportable_games()
-        if not games:
-            return
-
-        file_path, _ = QFileDialog.getSaveFileName(
-            self.mw,
-            t("ui.export.csv_save_title"),
-            "games_simple.csv",
-            t("ui.export.csv_filter"),
+        self._run_export(
+            "ui.export.csv_save_title", "games_simple.csv", "ui.export.csv_filter", CSVExporter.export_simple
         )
-        if not file_path:
-            return
-
-        from pathlib import Path
-
-        try:
-            CSVExporter.export_simple(games, Path(file_path))
-            UIHelper.show_success(self.mw, t("ui.export.success", path=file_path))
-        except OSError as exc:
-            UIHelper.show_warning(self.mw, t("ui.export.error", error=str(exc)))
 
     def export_csv_full(self) -> None:
         """Exports the game list as a full CSV file with all metadata."""
-        from PyQt6.QtWidgets import QFileDialog
-
         from src.utils.csv_exporter import CSVExporter
 
-        games = self._get_exportable_games()
-        if not games:
-            return
-
-        file_path, _ = QFileDialog.getSaveFileName(
-            self.mw,
-            t("ui.export.csv_save_title"),
-            "games_full.csv",
-            t("ui.export.csv_filter"),
-        )
-        if not file_path:
-            return
-
-        from pathlib import Path
-
-        try:
-            CSVExporter.export_full(games, Path(file_path))
-            UIHelper.show_success(self.mw, t("ui.export.success", path=file_path))
-        except OSError as exc:
-            UIHelper.show_warning(self.mw, t("ui.export.error", error=str(exc)))
+        self._run_export("ui.export.csv_save_title", "games_full.csv", "ui.export.csv_filter", CSVExporter.export_full)
 
     def export_json(self) -> None:
         """Exports the game list as a JSON file."""
-        from PyQt6.QtWidgets import QFileDialog
-
         from src.utils.json_exporter import JSONExporter
+
+        self._run_export("ui.export.json_save_title", "games_export.json", "ui.export.json_filter", JSONExporter.export)
+
+    def _run_export(
+        self,
+        title_key: str,
+        default_name: str,
+        filter_key: str,
+        export_fn: Callable[[list[Game], Path], None],
+    ) -> None:
+        """Shared export flow: get games, file dialog, export, show result.
+
+        Args:
+            title_key: i18n key for the file dialog title.
+            default_name: Default filename suggestion.
+            filter_key: i18n key for the file type filter.
+            export_fn: Export function accepting (games, output_path).
+        """
+        from PyQt6.QtWidgets import QFileDialog
 
         games = self._get_exportable_games()
         if not games:
@@ -208,17 +189,15 @@ class FileActions:
 
         file_path, _ = QFileDialog.getSaveFileName(
             self.mw,
-            t("ui.export.json_save_title"),
-            "games_export.json",
-            t("ui.export.json_filter"),
+            t(title_key),
+            default_name,
+            t(filter_key),
         )
         if not file_path:
             return
 
-        from pathlib import Path
-
         try:
-            JSONExporter.export(games, Path(file_path))
+            export_fn(games, Path(file_path))
             UIHelper.show_success(self.mw, t("ui.export.success", path=file_path))
         except OSError as exc:
             UIHelper.show_warning(self.mw, t("ui.export.error", error=str(exc)))
