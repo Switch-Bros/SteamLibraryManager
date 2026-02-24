@@ -10,12 +10,13 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
+from typing import Any
 
 import requests
 
 logger = logging.getLogger("steamlibmgr.protondb_api")
 
-__all__ = ["ProtonDBClient", "ProtonDBResult"]
+__all__ = ["ProtonDBClient", "ProtonDBResult", "fetch_and_persist_protondb"]
 
 
 @dataclass(frozen=True)
@@ -117,3 +118,32 @@ class ProtonDBClient:
                 time.sleep(delay)
 
         return results
+
+
+def fetch_and_persist_protondb(app_id: int, db: Any, client: ProtonDBClient) -> str | None:
+    """Fetches a ProtonDB rating and persists it to the database.
+
+    Shared logic used by both the game detail enricher and the
+    background ProtonDB enrichment thread.
+
+    Args:
+        app_id: Steam app ID.
+        db: Database instance with upsert_protondb() and commit().
+        client: ProtonDBClient instance.
+
+    Returns:
+        The tier string if a rating was found and persisted, None otherwise.
+    """
+    result = client.get_rating(app_id)
+    if result:
+        db.upsert_protondb(
+            app_id,
+            tier=result.tier,
+            confidence=result.confidence,
+            trending_tier=result.trending_tier,
+            score=result.score,
+            best_reported=result.best_reported,
+        )
+        db.commit()
+        return result.tier
+    return None

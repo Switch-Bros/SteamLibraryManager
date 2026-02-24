@@ -100,6 +100,38 @@ class SteamWebAPI(SteamAPIEndpoints):
             raise ValueError("Steam API key must not be empty")
         self.api_key: str = api_key.strip()
 
+    def _request_with_retry(
+        self,
+        url: str,
+        params: dict[str, Any],
+        *,
+        bail_on: frozenset[int] = frozenset(),
+    ) -> requests.Response | None:
+        """Makes a GET request with retry on HTTP 429 and exponential backoff.
+
+        Does NOT catch exceptions — callers handle error recovery.
+
+        Args:
+            url: API endpoint URL.
+            params: Query parameters.
+            bail_on: HTTP status codes that return None immediately.
+
+        Returns:
+            Response on success, None if retries exhausted or bail status hit.
+        """
+        for attempt in range(_MAX_RETRIES):
+            response = requests.get(url, params=params, timeout=30)
+            if response.status_code == 429:
+                delay = _BASE_DELAY * (2**attempt)
+                logger.warning("Rate limited (429), retrying in %.1fs...", delay)
+                time.sleep(delay)
+                continue
+            if response.status_code in bail_on:
+                return None
+            response.raise_for_status()
+            return response
+        return None
+
     def get_app_details_batch(self, app_ids: list[int]) -> dict[int, SteamAppDetails]:
         """Fetches metadata for multiple apps in chunked batches.
 
@@ -174,22 +206,12 @@ class SteamWebAPI(SteamAPIEndpoints):
         if self.api_key:
             params["key"] = self.api_key
 
-        for attempt in range(_MAX_RETRIES):
-            response = requests.get(_API_URL, params=params, timeout=30)
-
-            if response.status_code == 429:
-                delay = _BASE_DELAY * (2**attempt)
-                logger.warning("Rate limited (429), retrying in %.1fs...", delay)
-                time.sleep(delay)
-                continue
-
-            response.raise_for_status()
-            data = response.json()
-            return data.get("response", {}).get("store_items", [])
-
-        # Exhausted retries
-        logger.error("Exhausted retries for batch of %d apps", len(app_ids))
-        return []
+        response = self._request_with_retry(_API_URL, params)
+        if response is None:
+            logger.error("Exhausted retries for batch of %d apps", len(app_ids))
+            return []
+        data = response.json()
+        return data.get("response", {}).get("store_items", [])
 
     # ------------------------------------------------------------------
     # Achievement API endpoints (Phase 5.2)
@@ -210,25 +232,15 @@ class SteamWebAPI(SteamAPIEndpoints):
         url = "https://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v2"
         params = {"appid": app_id, "key": self.api_key}
 
-        for attempt in range(_MAX_RETRIES):
-            try:
-                response = requests.get(url, params=params, timeout=30)
-                if response.status_code == 429:
-                    delay = _BASE_DELAY * (2**attempt)
-                    logger.warning("Rate limited (429), retrying in %.1fs...", delay)
-                    time.sleep(delay)
-                    continue
-                if response.status_code == 400:
-                    # Game has no stats/achievements
-                    return None
-                response.raise_for_status()
-                data = response.json()
-                return data.get("game", {}).get("availableGameStats", {})
-            except requests.RequestException as exc:
-                logger.debug("GetSchemaForGame failed for %d: %s", app_id, exc)
-                if attempt == _MAX_RETRIES - 1:
-                    return None
-        return None
+        try:
+            response = self._request_with_retry(url, params, bail_on=frozenset({400}))
+            if response is None:
+                return None
+            data = response.json()
+            return data.get("game", {}).get("availableGameStats", {})
+        except requests.RequestException as exc:
+            logger.debug("GetSchemaForGame failed for %d: %s", app_id, exc)
+            return None
 
     def get_player_achievements(self, app_id: int, steam_id: str) -> list[dict] | None:
         """Fetches the player's achievement status for a game.
@@ -247,28 +259,18 @@ class SteamWebAPI(SteamAPIEndpoints):
         url = "https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v1"
         params = {"appid": app_id, "steamid": steam_id, "key": self.api_key}
 
-        for attempt in range(_MAX_RETRIES):
-            try:
-                response = requests.get(url, params=params, timeout=30)
-                if response.status_code == 429:
-                    delay = _BASE_DELAY * (2**attempt)
-                    logger.warning("Rate limited (429), retrying in %.1fs...", delay)
-                    time.sleep(delay)
-                    continue
-                if response.status_code == 400:
-                    # Game has no achievements or profile is private
-                    return None
-                response.raise_for_status()
-                data = response.json()
-                playerstats = data.get("playerstats", {})
-                if not playerstats.get("success", False):
-                    return None
-                return playerstats.get("achievements", [])
-            except requests.RequestException as exc:
-                logger.debug("GetPlayerAchievements failed for %d: %s", app_id, exc)
-                if attempt == _MAX_RETRIES - 1:
-                    return None
-        return None
+        try:
+            response = self._request_with_retry(url, params, bail_on=frozenset({400}))
+            if response is None:
+                return None
+            data = response.json()
+            playerstats = data.get("playerstats", {})
+            if not playerstats.get("success", False):
+                return None
+            return playerstats.get("achievements", [])
+        except requests.RequestException as exc:
+            logger.debug("GetPlayerAchievements failed for %d: %s", app_id, exc)
+            return None
 
     @staticmethod
     def get_global_achievement_percentages(app_id: int) -> dict[str, float]:

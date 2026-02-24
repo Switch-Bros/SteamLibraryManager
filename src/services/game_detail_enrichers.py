@@ -17,6 +17,8 @@ from __future__ import annotations
 import json
 import logging
 import time
+from collections.abc import Generator
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -26,6 +28,7 @@ import requests
 from src.core.game import Game
 from src.utils.age_ratings import USK_TO_PEGI
 from src.utils.date_utils import format_timestamp_to_date
+from src.utils.deck_utils import fetch_deck_compatibility
 from src.utils.i18n import t
 
 logger = logging.getLogger("steamlibmgr.game_detail_enrichers")
@@ -136,6 +139,32 @@ def apply_achievement_data(game: Game, data: dict[str, Any]) -> None:
 
 
 # ------------------------------------------------------------------
+# DB helper
+# ------------------------------------------------------------------
+
+
+@contextmanager
+def _open_games_db() -> Generator[Any, None, None]:
+    """Opens the games database, yields it, and closes on exit.
+
+    Yields:
+        Database instance, or None if the database file doesn't exist.
+    """
+    from src.config import config
+    from src.core.database import Database
+
+    db_path = config.DATA_DIR / "games.db"
+    if not db_path.exists():
+        yield None
+        return
+    db = Database(db_path)
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+# ------------------------------------------------------------------
 # Fetch functions (self-contained API calls with caching)
 # ------------------------------------------------------------------
 
@@ -154,51 +183,32 @@ def fetch_proton_rating(game: Game) -> None:
 
     # 1. DB cache lookup (7-day TTL)
     try:
-        from src.config import config
-        from src.core.database import Database
-
-        db_path = config.DATA_DIR / "games.db"
-        if db_path.exists():
-            db = Database(db_path)
-            cached = db.get_cached_protondb(int(app_id))
-            if cached:
-                game.proton_db_rating = cached["tier"]
-                db.close()
-                return
-            db.close()
+        with _open_games_db() as db:
+            if db is not None:
+                cached = db.get_cached_protondb(int(app_id))
+                if cached:
+                    game.proton_db_rating = cached["tier"]
+                    return
     except Exception as exc:
         logger.debug("ProtonDB DB lookup failed for %s: %s", app_id, exc)
 
-    # 2. API call via ProtonDBClient
+    # 2. API call + persist via shared helper
     try:
-        from src.core.database import Database as DB
-        from src.integrations.protondb_api import ProtonDBClient
+        from src.integrations.protondb_api import ProtonDBClient, fetch_and_persist_protondb
 
         client = ProtonDBClient()
+        try:
+            with _open_games_db() as db:
+                if db is not None:
+                    tier = fetch_and_persist_protondb(int(app_id), db, client)
+                    game.proton_db_rating = tier or unknown_status
+                    return
+        except Exception as exc:
+            logger.debug("ProtonDB DB persist failed for %s: %s", app_id, exc)
+
+        # DB unavailable — still try API for in-memory enrichment
         result = client.get_rating(int(app_id))
-
-        if result:
-            game.proton_db_rating = result.tier
-            try:
-                from src.config import config as cfg
-
-                db_path = cfg.DATA_DIR / "games.db"
-                if db_path.exists():
-                    db = DB(db_path)
-                    db.upsert_protondb(
-                        int(app_id),
-                        tier=result.tier,
-                        confidence=result.confidence,
-                        trending_tier=result.trending_tier,
-                        score=result.score,
-                        best_reported=result.best_reported,
-                    )
-                    db.commit()
-                    db.close()
-            except Exception as exc:
-                logger.debug("ProtonDB DB persist failed for %s: %s", app_id, exc)
-        else:
-            game.proton_db_rating = unknown_status
+        game.proton_db_rating = result.tier if result else unknown_status
 
     except Exception:
         game.proton_db_rating = unknown_status
@@ -226,28 +236,10 @@ def fetch_steam_deck_status(game: Game, cache_dir: Path) -> None:
         except (OSError, json.JSONDecodeError):
             pass
 
-    try:
-        url = "https://store.steampowered.com/saleaction/" f"ajaxgetdeckappcompatibilityreport?nAppID={app_id}"
-        headers = {"User-Agent": "SteamLibraryManager/1.0"}
-        response = requests.get(url, timeout=5, headers=headers)
-
-        if response.status_code == 200:
-            data = response.json()
-            results = data.get("results", {})
-            if isinstance(results, list):
-                results = results[0] if results else {}
-            resolved_category = results.get("resolved_category", 0) if isinstance(results, dict) else 0
-            # Steam Deck categories: 0=Unknown, 1=Unsupported, 2=Playable, 3=Verified
-            status_map = {0: "unknown", 1: "unsupported", 2: "playable", 3: "verified"}
-            status = status_map.get(resolved_category, unknown_status)
-            with open(cache_file, "w") as f:
-                json.dump({"status": status, "category": resolved_category}, f)
-            game.steam_deck_status = status
-            return
-
-        game.steam_deck_status = unknown_status
-    except (requests.RequestException, ValueError, KeyError, OSError):
-        game.steam_deck_status = unknown_status
+    # Fetch from API (writes cache file automatically)
+    cache_file.parent.mkdir(parents=True, exist_ok=True)
+    status = fetch_deck_compatibility(app_id, cache_file.parent)
+    game.steam_deck_status = status or unknown_status
 
 
 def fetch_last_update(game: Game, cache_dir: Path) -> None:
@@ -310,23 +302,18 @@ def persist_hltb(app_id: int, main_story: float, main_extras: float, completioni
         completionist: Hours for 100% completion.
     """
     try:
-        from src.config import config
-        from src.core.database import Database
-
-        db_path = config.DATA_DIR / "games.db"
-        if not db_path.exists():
-            return
-        db = Database(db_path)
-        db.conn.execute(
-            """
-            INSERT OR REPLACE INTO hltb_data
-            (app_id, main_story, main_extras, completionist, last_updated)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (app_id, main_story, main_extras, completionist, int(time.time())),
-        )
-        db.conn.commit()
-        db.close()
+        with _open_games_db() as db:
+            if db is None:
+                return
+            db.conn.execute(
+                """
+                INSERT OR REPLACE INTO hltb_data
+                (app_id, main_story, main_extras, completionist, last_updated)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (app_id, main_story, main_extras, completionist, int(time.time())),
+            )
+            db.conn.commit()
     except Exception as exc:
         logger.debug("Failed to persist HLTB data for %d: %s", app_id, exc)
 
@@ -342,16 +329,11 @@ def persist_achievement_stats(app_id: int, total: int, unlocked: int, percentage
         perfect: Whether all achievements are unlocked.
     """
     try:
-        from src.config import config
-        from src.core.database import Database
-
-        db_path = config.DATA_DIR / "games.db"
-        if not db_path.exists():
-            return
-        db = Database(db_path)
-        db.upsert_achievement_stats(app_id, total, unlocked, percentage, perfect)
-        db.commit()
-        db.close()
+        with _open_games_db() as db:
+            if db is None:
+                return
+            db.upsert_achievement_stats(app_id, total, unlocked, percentage, perfect)
+            db.commit()
     except Exception as exc:
         logger.debug("Failed to persist achievement stats for %d: %s", app_id, exc)
 
@@ -364,15 +346,10 @@ def persist_achievements(app_id: int, records: list[dict]) -> None:
         records: List of achievement dicts.
     """
     try:
-        from src.config import config
-        from src.core.database import Database
-
-        db_path = config.DATA_DIR / "games.db"
-        if not db_path.exists():
-            return
-        db = Database(db_path)
-        db.upsert_achievements(app_id, records)
-        db.commit()
-        db.close()
+        with _open_games_db() as db:
+            if db is None:
+                return
+            db.upsert_achievements(app_id, records)
+            db.commit()
     except Exception as exc:
         logger.debug("Failed to persist achievements for %d: %s", app_id, exc)

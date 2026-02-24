@@ -59,10 +59,11 @@ class ProtonDBEnrichmentThread(BaseEnrichmentThread):
     def _setup(self) -> None:
         """Opens DB connection and initializes the ProtonDB client."""
         from src.core.database import Database
-        from src.integrations.protondb_api import ProtonDBClient
+        from src.integrations.protondb_api import ProtonDBClient, fetch_and_persist_protondb
 
         self._db = Database(self._db_path)
         self._client = ProtonDBClient()
+        self._fetch_and_persist = fetch_and_persist_protondb
 
     def _cleanup(self) -> None:
         """Closes the database connection."""
@@ -95,24 +96,14 @@ class ProtonDBEnrichmentThread(BaseEnrichmentThread):
                 logger.debug("ProtonDB cache hit for %d '%s'", app_id, name)
                 return True
 
-        # Fetch from API
-        result = self._client.get_rating(app_id)
-
-        if result:
-            self._db.upsert_protondb(
-                app_id,
-                tier=result.tier,
-                confidence=result.confidence,
-                trending_tier=result.trending_tier,
-                score=result.score,
-                best_reported=result.best_reported,
-            )
-            self._db.conn.commit()
+        # Fetch from API and persist
+        tier = self._fetch_and_persist(app_id, self._db, self._client)
+        if tier:
             return True
 
         # No data — store "unknown" so we don't retry immediately
         self._db.upsert_protondb(app_id, tier="unknown")
-        self._db.conn.commit()
+        self._db.commit()
         logger.info("ProtonDB miss: %d '%s' (marked as unknown)", app_id, name)
         return False
 
