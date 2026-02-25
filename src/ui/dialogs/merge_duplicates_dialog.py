@@ -95,7 +95,10 @@ class MergeDuplicatesDialog(BaseDialog):
                     apps = []
                 game_count = len(apps)
 
-                radio = QRadioButton(t("categories.merge_duplicates_entry", index=idx + 1, game_count=game_count))
+                coll_name = coll.get("name", "")
+                radio = QRadioButton(
+                    t("categories.merge_duplicates_entry_named", name=coll_name, game_count=game_count)
+                )
                 if idx == 0:
                     radio.setChecked(True)
 

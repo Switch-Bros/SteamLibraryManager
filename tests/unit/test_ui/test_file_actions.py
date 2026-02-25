@@ -126,62 +126,14 @@ class TestShowVdfMerger:
 # ==================================================================
 
 
-@pytest.mark.skip(reason="Pre-existing: test needs update to match current source code")
 class TestRemoveDuplicates:
     """Tests for remove_duplicate_collections() method."""
 
-    @patch("src.ui.actions.file_actions.UIHelper")
-    def test_remove_duplicates_finds_and_removes(self, mock_helper, file_actions, mock_main_window):
-        """Should find duplicates in both parsers and remove them."""
-        # Setup - simulate duplicates
-        mock_main_window.vdf_parser.get_all_categories.return_value = ["Action", "RPG", "Action", "Strategy"]
-        mock_main_window.cloud_storage_parser.get_all_categories.return_value = ["Indie", "RPG", "Indie"]
-
-        # Execute
+    def test_remove_duplicates_opens_merge_dialog(self, file_actions, mock_main_window):
+        """Should delegate to show_merge_duplicates_dialog."""
         file_actions.remove_duplicate_collections()
 
-        # Assert - duplicates were removed
-        # VDF: "Action" appears twice
-        mock_main_window.vdf_parser.delete_category.assert_called_with("Action")
-        # Cloud: "Indie" appears twice, "RPG" appears twice
-        assert mock_main_window.cloud_storage_parser.delete_category.call_count >= 1
-
-        # UI was refreshed
-        mock_main_window.save_collections.assert_called_once()
-        mock_main_window.populate_categories.assert_called_once()
-        mock_main_window.update_statistics.assert_called_once()
-
-        # Success message shown
-        mock_helper.show_success.assert_called_once()
-
-    @patch("src.ui.actions.file_actions.UIHelper")
-    def test_remove_duplicates_no_duplicates_found(self, mock_helper, file_actions, mock_main_window):
-        """Should show message when no duplicates exist."""
-        # Setup - no duplicates
-        mock_main_window.vdf_parser.get_all_categories.return_value = ["Action", "RPG", "Strategy"]
-        mock_main_window.cloud_storage_parser.get_all_categories.return_value = ["Indie", "Puzzle"]
-
-        # Execute
-        file_actions.remove_duplicate_collections()
-
-        # Assert - no deletions
-        mock_main_window.vdf_parser.delete_category.assert_not_called()
-        mock_main_window.cloud_storage_parser.delete_category.assert_not_called()
-
-        # Still shows success message
-        mock_helper.show_success.assert_called_once()
-
-    @patch("src.ui.actions.file_actions.UIHelper")
-    def test_remove_duplicates_missing_parser(self, mock_helper, file_actions, mock_main_window):
-        """Should show error when parsers are missing."""
-        # Setup
-        mock_main_window.vdf_parser = None
-
-        # Execute
-        file_actions.remove_duplicate_collections()
-
-        # Assert
-        mock_helper.show_error.assert_called_once()
+        mock_main_window.category_handler.show_merge_duplicates_dialog.assert_called_once()
 
 
 # ==================================================================

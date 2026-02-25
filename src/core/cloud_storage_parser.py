@@ -582,28 +582,58 @@ class CloudStorageParser:
 
         return removed
 
+    @staticmethod
+    def _normalize_collection_name(name: str) -> str:
+        """Normalize a collection name for fuzzy duplicate detection.
+
+        Strips casing, hyphens, spaces, and underscores so that
+        'roguelike', 'ROGUELIKE', 'Rogue-like', 'Rogue Like' all
+        normalize to 'roguelike'.
+
+        Args:
+            name: Raw collection name.
+
+        Returns:
+            Lowercased name with separators removed.
+        """
+        return name.lower().replace("-", "").replace(" ", "").replace("_", "")
+
     def get_duplicate_groups(self) -> dict[str, list[dict]]:
         """Returns collection names that appear more than once.
 
-        Groups collections by name and returns only those with 2+ occurrences.
-        This allows the UI to display each duplicate individually and lets
-        the user choose which one to keep during merging.
+        Groups collections by normalized name (case-insensitive, ignoring
+        hyphens/spaces/underscores) and returns only groups with 2+ members.
+        The group key is the name of the FIRST collection found in that
+        normalized group (preserving the user's original spelling).
 
         Returns:
-            Dict mapping collection name to list of collection dicts
-            for names with 2+ occurrences.
+            Dict mapping representative collection name to list of
+            collection dicts for groups with 2+ occurrences.
         """
         from collections import defaultdict
 
-        groups: defaultdict[str, list[dict]] = defaultdict(list)
+        norm_groups: defaultdict[str, list[dict]] = defaultdict(list)
         for collection in self.collections:
             name = collection.get("name", "")
             if name:
-                groups[name].append(collection)
-        return {name: colls for name, colls in groups.items() if len(colls) >= 2}
+                norm_key = self._normalize_collection_name(name)
+                norm_groups[norm_key].append(collection)
+
+        result: dict[str, list[dict]] = {}
+        for _norm_key, colls in norm_groups.items():
+            if len(colls) >= 2:
+                representative_name = colls[0].get("name", "")
+                result[representative_name] = colls
+
+        return result
 
     def remove_duplicate_collections(self) -> int:
-        """Remove duplicate collections with same name.
+        """Remove duplicate collections with same name WITHOUT merging games.
+
+        WARNING: This silently drops games from duplicate collections! For
+        user-facing operations, use ``CategoryService.merge_duplicate_collections()``
+        with ``MergeDuplicatesDialog`` instead. This method is retained for
+        programmatic/testing use only.
 
         Keeps the first occurrence of each name, removes subsequent duplicates.
 
