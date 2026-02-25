@@ -159,7 +159,7 @@ class EnrichAllProgressDialog(BaseDialog):
 
         if success == -1:
             bar.setValue(0)
-            status.setText(t("emoji.em_dash"))
+            status.setText(t("emoji.dash"))
             status.setStyleSheet("color: gray;")
         elif failed < 0:
             bar.setValue(100)

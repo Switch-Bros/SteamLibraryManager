@@ -534,7 +534,7 @@
       "curator_title": "Curator Recommendations",
       "curator_starting": "Fetching curator recommendations...",
       "curator_progress": "Curator {current}/{total}: {name}",
-      "no_curators": "No curators configured. Add curators via Tools \u2192 Manage Curators."
+      "no_curators": "No curators configured. Add curators via Tools → Manage Curators."
     },
     "curator": {
       "title": "Manage Curators",

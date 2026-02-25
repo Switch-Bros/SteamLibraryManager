@@ -45,7 +45,7 @@
       "limit": "Max. Backups:",
       "files": "Dateien",
       "tooltip": "Anzahl der Backups pro Datei",
-      "explanation": "Anzahl der Sicherungen von cloudstoreage-namepsace-1.json, local- und sharedconfig.vdf && appinfo.vdf, bevor die älteste überschrieben wird."
+      "explanation": "Anzahl der Sicherungen von cloudstorage-namepsace-1.json, local- und sharedconfig.vdf && appinfo.vdf, bevor die älteste überschrieben wird."
     },
     "tags": {
       "title_group": "Tags && Kollektionen",

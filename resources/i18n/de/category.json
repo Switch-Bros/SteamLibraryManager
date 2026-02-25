@@ -114,7 +114,7 @@
     "curator_error_url": "Ungültige Kurator-URL. Bitte gib eine gültige Steam-Kurator-URL ein.",
     "curator_error_fetch": "Kurator-Empfehlungen konnten nicht geladen werden: {error}",
     "curator_include_label": "Empfehlungen einbeziehen:",
-    "curator_info": "Kuratoren werden jetzt \u00fcber Werkzeuge \u2192 Kuratoren verwalten gesteuert. In der Datenbank gespeicherte Empfehlungen werden verwendet, um pro aktivem Kurator eine Sammlung zu erstellen.",
+    "curator_info": "Kuratoren werden jetzt über Werkzeuge → Kuratoren verwalten gesteuert. In der Datenbank gespeicherte Empfehlungen werden verwendet, um pro aktivem Kurator eine Sammlung zu erstellen.",
     "curator_remove": "Kurator entfernen",
     "curator_status": "Lade Kurator: Seite {page}...",
     "preset_save": "Preset speichern",
