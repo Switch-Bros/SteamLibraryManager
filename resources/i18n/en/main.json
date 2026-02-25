@@ -320,7 +320,8 @@
     },
     "status": {
       "no_results": "No images found.",
-      "api_refresh": "Checking for new games..."
+      "api_refresh": "Checking for new games...",
+      "profile_scrape": "Checking Steam profile for missing games..."
     },
     "profile": {
       "dialog_title": "Profile Manager",
