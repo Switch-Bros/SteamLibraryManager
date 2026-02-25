@@ -248,6 +248,13 @@
       "top_curators_fetched": "Fetched {count} top curators from Steam",
       "subscribed_discovered": "Discovered {count} subscribed curators"
     },
+    "license_cache": {
+      "not_found": "licensecache not found at {path} — skipping license-based discovery",
+      "too_small": "licensecache too small ({size} bytes) — possibly corrupted",
+      "parse_error": "Failed to parse licensecache: {error}",
+      "parsed": "Parsed {count} licenses from licensecache",
+      "cross_reference": "licensecache: {packages} owned packages → {apps} AppIDs"
+    },
     "profile_scraper": {
       "request_error": "Profile scrape failed: {error}",
       "parsed_games": "Profile scraper: found {count} games",

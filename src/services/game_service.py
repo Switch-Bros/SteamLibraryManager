@@ -22,6 +22,7 @@ from src.core.database import Database
 from src.core.db.models import DatabaseEntry
 from src.core.database_importer import DatabaseImporter
 from src.core.packageinfo_parser import PackageInfoParser
+from src.utils.license_cache_parser import LicenseCacheParser
 
 logger = logging.getLogger("steamlibmgr.game_service")
 
@@ -241,11 +242,34 @@ class GameService:
             self.appinfo_manager = AppInfoManager(Path(self.steam_path))
         modifications = self.appinfo_manager.load_modifications_only()
 
-        # Step 4: Parse packageinfo.vdf for ownership data
+        # Step 4: Parse packageinfo.vdf + licensecache for ownership data
         if progress_callback:
             progress_callback(t("logs.service.parsing_packages"), 0, 0)
         pkg_parser = PackageInfoParser(Path(self.steam_path))
-        packageinfo_ids = pkg_parser.get_all_app_ids()
+
+        # Step 4.5: Cross-reference with licensecache for definitive ownership
+        from src.config import config as _cfg
+
+        short_id, _ = _cfg.get_detected_user()
+        steam32_id = int(short_id) if short_id else None
+
+        if steam32_id:
+            license_parser = LicenseCacheParser(Path(self.steam_path), steam32_id)
+            owned_packages = license_parser.get_owned_package_ids()
+
+            if owned_packages:
+                packageinfo_ids = pkg_parser.get_app_ids_for_packages(owned_packages)
+                logger.info(
+                    t(
+                        "logs.license_cache.cross_reference",
+                        packages=len(owned_packages),
+                        apps=len(packageinfo_ids),
+                    )
+                )
+            else:
+                packageinfo_ids = pkg_parser.get_all_app_ids()
+        else:
+            packageinfo_ids = pkg_parser.get_all_app_ids()
 
         # Step 5: Discover missing games — DB fast path or binary fallback
         if progress_callback:

@@ -14,15 +14,24 @@ def mock_dependencies():
         patch("src.services.game_service.CloudStorageParser") as mock_csp,
         patch("src.services.game_service.AppInfoManager") as mock_aim,
         patch("src.services.game_service.PackageInfoParser") as mock_pip,
+        patch("src.services.game_service.LicenseCacheParser") as mock_lcp_parser,
+        patch("src.config.config") as mock_cfg,
     ):
         # PackageInfoParser().get_all_app_ids() returns empty set by default
         mock_pip.return_value.get_all_app_ids.return_value = set()
+        mock_pip.return_value.get_app_ids_for_packages.return_value = set()
+        # LicenseCacheParser defaults: no packages found (fallback to get_all_app_ids)
+        mock_lcp_parser.return_value.get_owned_package_ids.return_value = set()
+        # Config: no detected user by default (fallback path)
+        mock_cfg.get_detected_user.return_value = (None, None)
         yield {
             "GameManager": mock_gm,
             "LocalConfigHelper": mock_lcp,
             "CloudStorageParser": mock_csp,
             "AppInfoManager": mock_aim,
             "PackageInfoParser": mock_pip,
+            "LicenseCacheParser": mock_lcp_parser,
+            "config": mock_cfg,
         }
 
 
@@ -290,3 +299,69 @@ class TestGameService:
         # apply_custom_overrides should be called (not apply_metadata_overrides)
         mock_gm.apply_custom_overrides.assert_called_once()
         mock_gm.apply_metadata_overrides.assert_not_called()
+
+    def test_load_and_prepare_uses_licensecache(self, mock_dependencies):
+        """Test that licensecache is used when Steam32 ID is available."""
+        service = GameService("/fake/steam", "fake_api_key", "/fake/cache")
+        service.cloud_storage_parser = Mock()
+
+        mock_gm = mock_dependencies["GameManager"].return_value
+        mock_gm.load_games.return_value = True
+        mock_gm.games = {"123": Mock()}
+        mock_gm.discover_missing_games.return_value = 0
+
+        # Configure config to return a valid Steam32 ID
+        mock_dependencies["config"].get_detected_user.return_value = ("43925226", "76561198004190954")
+
+        # LicenseCacheParser returns owned packages
+        mock_lcp = mock_dependencies["LicenseCacheParser"]
+        mock_lcp.return_value.get_owned_package_ids.return_value = {100, 200, 300}
+
+        # PackageInfoParser filtered method returns app IDs
+        mock_pip = mock_dependencies["PackageInfoParser"]
+        mock_pip.return_value.get_app_ids_for_packages.return_value = {"1000", "2000"}
+
+        result = service.load_and_prepare("76561198004190954")
+
+        assert result is True
+        # get_app_ids_for_packages should be called with owned packages
+        mock_pip.return_value.get_app_ids_for_packages.assert_called_once_with({100, 200, 300})
+        # get_all_app_ids should NOT be called (licensecache path used)
+        mock_pip.return_value.get_all_app_ids.assert_not_called()
+
+    def test_load_and_prepare_fallback_without_licensecache(self, mock_dependencies):
+        """Test fallback to get_all_app_ids when no Steam32 ID available."""
+        service = GameService("/fake/steam", "fake_api_key", "/fake/cache")
+        service.cloud_storage_parser = Mock()
+
+        mock_gm = mock_dependencies["GameManager"].return_value
+        mock_gm.load_games.return_value = True
+        mock_gm.games = {"123": Mock()}
+        mock_gm.discover_missing_games.return_value = 0
+
+        # No detected user → fallback
+        mock_dependencies["config"].get_detected_user.return_value = (None, None)
+
+        mock_pip = mock_dependencies["PackageInfoParser"]
+
+        result = service.load_and_prepare("76561197960287930")
+
+        assert result is True
+        # Fallback: get_all_app_ids should be called
+        mock_pip.return_value.get_all_app_ids.assert_called_once()
+        # Filtered method should NOT be called
+        mock_pip.return_value.get_app_ids_for_packages.assert_not_called()
+
+    def test_load_and_prepare_profile_scraper_disabled(self, mock_dependencies):
+        """Verify _refresh_from_profile is NOT called in pipeline."""
+        service = GameService("/fake/steam", "fake_api_key", "/fake/cache")
+        service.cloud_storage_parser = Mock()
+
+        mock_gm = mock_dependencies["GameManager"].return_value
+        mock_gm.load_games.return_value = True
+        mock_gm.games = {"123": Mock()}
+        mock_gm.discover_missing_games.return_value = 0
+
+        with patch.object(service, "_refresh_from_profile") as mock_profile:
+            service.load_and_prepare("76561197960287930")
+            mock_profile.assert_not_called()
