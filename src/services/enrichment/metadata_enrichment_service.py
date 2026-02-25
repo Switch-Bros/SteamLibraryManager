@@ -13,6 +13,8 @@ import json
 import logging
 from pathlib import Path
 
+from typing import Final
+
 from src.core.database import is_placeholder_name
 from src.core.game import Game
 from src.utils.date_utils import format_timestamp_to_date
@@ -21,6 +23,25 @@ from src.utils.i18n import t
 logger = logging.getLogger("steamlibmgr.metadata_enrichment")
 
 __all__ = ["MetadataEnrichmentService"]
+
+# Language-independent identifiers for system collections.
+# Matches Steam internal IDs + known EN/DE display names.
+# TODO v1.2: Refactor to use ONLY collection IDs for system collection
+# detection. Remove hardcoded name matching once all consumers use IDs.
+FAVORITES_IDENTIFIERS: Final[frozenset[str]] = frozenset(
+    {
+        "favorite",
+        "Favorites",
+        "Favoriten",
+    }
+)
+HIDDEN_IDENTIFIERS: Final[frozenset[str]] = frozenset(
+    {
+        "hidden",
+        "Hidden",
+        "Versteckt",
+    }
+)
 
 
 class MetadataEnrichmentService:
@@ -50,6 +71,7 @@ class MetadataEnrichmentService:
         logger.info(t("logs.manager.merging"))
 
         # Get favorites and hidden from collections (Depressurizer way!)
+        # Display keys use current locale for game.categories labels
         favorites_key = t("categories.favorites")
         hidden_key = t("categories.hidden")
 
@@ -63,12 +85,12 @@ class MetadataEnrichmentService:
                 col_id = collection.get("id", "")
                 added = collection.get("added", [])
 
-                # Check if this is favorites collection
-                if col_id == "favorite" or col_name == favorites_key:
+                # Check if this is favorites collection (language-independent)
+                if col_id in FAVORITES_IDENTIFIERS or col_name in FAVORITES_IDENTIFIERS:
                     favorites_apps.update(str(app_id) for app_id in added)
 
-                # Check if this is hidden collection
-                if col_id == "hidden" or col_name == hidden_key:
+                # Check if this is hidden collection (language-independent)
+                if col_id in HIDDEN_IDENTIFIERS or col_name in HIDDEN_IDENTIFIERS:
                     hidden_apps.update(str(app_id) for app_id in added)
 
         # Also check old hidden flag from localconfig (backwards compatibility)

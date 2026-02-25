@@ -296,6 +296,9 @@ class CategoryService:
             # Remove the non-selected collections from the parser
             for idx, coll in enumerate(colls):
                 if idx != keep_idx and coll in self.cloud_parser.collections:
+                    col_id = coll.get("id", "")
+                    if col_id:
+                        self.cloud_parser._deleted_keys.add(f"user-collections.{col_id}")
                     self.cloud_parser.collections.remove(coll)
 
             self.cloud_parser.modified = True

@@ -58,16 +58,33 @@ class CloudStorageParser:
 
     @staticmethod
     def _get_special_collection_ids() -> dict[str, str]:
-        """Returns a mapping of localised special-collection names to Steam IDs.
+        """Maps ALL known display names to Steam internal IDs.
+
+        Includes hardcoded names for EN/DE plus current locale to ensure
+        collections are recognized regardless of which language created them.
 
         Steam uses 'favorite' and 'hidden' as internal collection IDs.
-        This mapping allows the parser to recognise the localised display
-        name and map it to the correct Steam-internal ID.
+
+        Returns:
+            Dict mapping display name to Steam internal ID.
         """
-        return {
-            t("categories.favorites"): "favorite",
-            t("categories.hidden"): "hidden",
+        # TODO v1.2: Refactor to use ONLY collection IDs for system collection
+        # detection. Remove hardcoded name matching once all consumers use IDs.
+        mapping: dict[str, str] = {
+            # Steam internal
+            "favorite": "favorite",
+            "hidden": "hidden",
+            # English
+            "Favorites": "favorite",
+            "Hidden": "hidden",
+            # German
+            "Favoriten": "favorite",
+            "Versteckt": "hidden",
         }
+        # Current locale (may duplicate, dict handles it)
+        mapping[t("categories.favorites")] = "favorite"
+        mapping[t("categories.hidden")] = "hidden"
+        return mapping
 
     def __init__(self, steam_path: str, user_id: str):
         """
@@ -87,6 +104,8 @@ class CloudStorageParser:
         self.modified = False
         self.had_conflict: bool = False
         self._file_mtime: float = 0.0
+        # Track explicitly deleted collections for delta-merge save
+        self._deleted_keys: set[str] = set()
 
     def load(self) -> bool:
         """
@@ -146,16 +165,34 @@ class CloudStorageParser:
         current_mtime = os.path.getmtime(self.cloud_storage_path)
         return current_mtime != self._file_mtime
 
-    def save(self) -> bool:
+    def mark_all_managed_as_deleted(self) -> None:
+        """Mark all current collections for deletion during next save.
+
+        Used for full replacement operations (e.g. profile restore) where
+        the entire collection set is replaced and old managed collections
+        should not be preserved.
         """
-        Save collections to cloud storage JSON file.
+        for collection in self.collections:
+            col_id = collection.get("id", "")
+            if col_id:
+                self._deleted_keys.add(f"user-collections.{col_id}")
+
+    def save(self) -> bool:
+        """Save collections using delta-merge approach.
+
+        NEVER overwrites the entire file. Instead:
+        1. Builds set of collection-keys this app actively manages
+        2. Removes ONLY managed + explicitly deleted keys from data
+        3. Preserves everything the app didn't touch
+        4. Writes managed collections back
+        5. Size-check as safety net
 
         Sets ``had_conflict`` to True if external changes were detected
         before saving.  The UI layer can inspect this after a successful
         save to inform the user.
 
         Returns:
-            True if successful, False otherwise
+            True if successful, False otherwise.
         """
         try:
             # Check for external modifications and expose to callers
@@ -163,16 +200,40 @@ class CloudStorageParser:
             if self.had_conflict:
                 logger.warning(t("logs.parser.external_change_detected"))
 
-            # Remove all existing collection items
-            self.data = [
-                item
-                for item in self.data
-                if not (
-                    len(item) == 2
-                    and isinstance(item[1], dict)
-                    and item[1].get("key", "").startswith("user-collections.")
+            # === DELTA-MERGE: Build set of keys we actively manage ===
+            managed_keys: set[str] = set()
+            for collection in self.collections:
+                col_id = collection.get("id", "")
+                if col_id:
+                    managed_keys.add(f"user-collections.{col_id}")
+
+            # === Remove ONLY managed + deleted keys (preserve everything else!) ===
+            preserved_items: list = []
+            preserved_collection_count = 0
+
+            for item in self.data:
+                if len(item) == 2 and isinstance(item[1], dict):
+                    key = item[1].get("key", "")
+                    if key.startswith("user-collections."):
+                        if key in managed_keys or key in self._deleted_keys:
+                            continue  # We'll rewrite managed ones below
+                        else:
+                            preserved_collection_count += 1
+                            preserved_items.append(item)  # DON'T TOUCH!
+                            continue
+                preserved_items.append(item)
+
+            self.data = preserved_items
+
+            if preserved_collection_count > 0 or self._deleted_keys:
+                logger.info(
+                    t(
+                        "logs.parser.delta_merge_stats",
+                        managed=len(managed_keys),
+                        deleted=len(self._deleted_keys),
+                        preserved=preserved_collection_count,
+                    )
                 )
-            ]
 
             # Sanitize: 'added' must always be a list of ints.
             # Migrated collections sometimes have 'added': 0 (a bare timestamp).
@@ -240,19 +301,37 @@ class CloudStorageParser:
 
                 self.data.append(item)
 
-            # Create backup before writing
+            # === SIZE-CHECK SAFETY NET ===
+            new_json = json.dumps(self.data, indent=2, ensure_ascii=False)
             cloud_path = Path(self.cloud_storage_path)
+            if cloud_path.exists():
+                old_size = cloud_path.stat().st_size
+                new_size = len(new_json.encode("utf-8"))
+                if old_size > 0:
+                    size_ratio = new_size / old_size
+                    if size_ratio < 0.90:
+                        logger.warning(
+                            t(
+                                "logs.parser.size_shrink_warning",
+                                old_size=old_size,
+                                new_size=new_size,
+                                ratio=f"{size_ratio:.1%}",
+                            )
+                        )
+
+            # Create backup before writing
             if cloud_path.exists():
                 backup_manager = BackupManager()
                 backup_manager.create_backup(cloud_path)
 
             # Write to file
             with open(self.cloud_storage_path, "w", encoding="utf-8") as f:
-                json.dump(self.data, f, indent=2, ensure_ascii=False)
+                f.write(new_json)
 
             # Update recorded mtime so subsequent saves don't false-positive
             self._file_mtime = os.path.getmtime(self.cloud_storage_path)
             self.modified = False
+            self._deleted_keys.clear()  # Reset after successful save
             return True
 
         except OSError as e:
@@ -397,9 +476,17 @@ class CloudStorageParser:
         """
         Delete a category completely.
 
+        Tracks the deleted key for delta-merge so save() removes it from
+        the cloud storage file instead of silently dropping it.
+
         Args:
             category: Category name
         """
+        for collection in self.collections:
+            if collection.get("name") == category:
+                col_id = collection.get("id", "")
+                if col_id:
+                    self._deleted_keys.add(f"user-collections.{col_id}")
         self.collections = [c for c in self.collections if c.get("name") != category]
         self.modified = True
 
@@ -533,8 +620,11 @@ class CloudStorageParser:
             else:
                 seen[name] = collection
 
-        # Remove duplicates
+        # Remove duplicates (track keys for delta-merge)
         for dup in duplicates:
+            col_id = dup.get("id", "")
+            if col_id:
+                self._deleted_keys.add(f"user-collections.{col_id}")
             self.collections.remove(dup)
 
         if duplicates:
