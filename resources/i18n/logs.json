@@ -203,7 +203,9 @@
       "applying_metadata": "Loading metadata...",
       "parsing_packages": "Parsing package data...",
       "discovering_games": "Discovering additional games...",
-      "applying_overrides": "Applying metadata overrides..."
+      "applying_overrides": "Applying metadata overrides...",
+      "profile_discovered": "Profile scrape: discovered {count} new games",
+      "profile_scrape_failed": "Profile scrape failed (non-fatal): {error}"
     },
     "image": {
       "pillow_missing": "Warning: Pillow not installed",
@@ -245,6 +247,11 @@
       "import_complete": "Imported {count} curators from {path}",
       "top_curators_fetched": "Fetched {count} top curators from Steam",
       "subscribed_discovered": "Discovered {count} subscribed curators"
+    },
+    "profile_scraper": {
+      "request_error": "Profile scrape failed: {error}",
+      "parsed_games": "Profile scraper: found {count} games",
+      "no_games_found": "Profile scraper: no games found (profile may be private)"
     }
   },
   "errors": {

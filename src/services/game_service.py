@@ -287,6 +287,17 @@ class GameService:
             if self.database:
                 self._save_new_games_to_db(new_app_ids)
 
+        # Step 5.7: Steam Community Profile scrape (safety net for missing games)
+        # Works even without Steam Client running!
+        if progress_callback:
+            progress_callback(t("ui.status.profile_scrape"), 0, 0)
+        new_from_profile = self._refresh_from_profile(user_id)
+        if new_from_profile:
+            if self.cloud_storage_parser:
+                self.game_manager.merge_with_localconfig(self.cloud_storage_parser)
+            if self.database:
+                self._save_new_games_to_db(new_from_profile)
+
         # Re-enrich ALL games with DB metadata (fixes fallback names from
         # both discover_missing_games and merge_with_localconfig)
         if self.database:
@@ -467,6 +478,55 @@ class GameService:
             CloudStorageParser instance, or None if not initialized.
         """
         return self.cloud_storage_parser  # Only cloud_storage handles categories!
+
+    def _refresh_from_profile(self, steam_user_id: str) -> list[str]:
+        """Scrape game list from Steam Community profile page.
+
+        Catches games that GetOwnedGames API sometimes misses:
+        free-to-play, recently added/gifted, key-redeemed games.
+
+        This is a safety net — runs AFTER the API call. Only adds games
+        that weren't already found by previous pipeline steps.
+
+        Args:
+            steam_user_id: SteamID64 of the user.
+
+        Returns:
+            List of newly discovered app_ids (empty on failure).
+        """
+        if not self.game_manager:
+            return []
+
+        try:
+            from src.integrations.steam_profile_scraper import SteamProfileScraper
+
+            scraper = SteamProfileScraper()
+            profile_games = scraper.fetch_games(steam_user_id)
+
+            if not profile_games:
+                return []
+
+            new_app_ids: list[str] = []
+            for pg in profile_games:
+                app_id = str(pg.app_id)
+                if app_id not in self.game_manager.games:
+                    game = Game(
+                        app_id=app_id,
+                        name=pg.name,
+                        playtime_minutes=pg.playtime_forever,
+                        app_type="game",
+                    )
+                    self.game_manager.games[app_id] = game
+                    new_app_ids.append(app_id)
+
+            if new_app_ids:
+                logger.info(t("logs.service.profile_discovered", count=len(new_app_ids)))
+
+            return new_app_ids
+
+        except Exception as e:
+            logger.warning(t("logs.service.profile_scrape_failed", error=str(e)))
+            return []
 
     def get_load_source_message(self) -> str:
         """Returns a message indicating which parser was used to load games.
