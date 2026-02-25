@@ -287,16 +287,11 @@ class GameService:
             if self.database:
                 self._save_new_games_to_db(new_app_ids)
 
-        # Step 5.7: Steam Community Profile scrape (safety net for missing games)
-        # Works even without Steam Client running!
-        if progress_callback:
-            progress_callback(t("ui.status.profile_scrape"), 0, 0)
-        new_from_profile = self._refresh_from_profile(user_id)
-        if new_from_profile:
-            if self.cloud_storage_parser:
-                self.game_manager.merge_with_localconfig(self.cloud_storage_parser)
-            if self.database:
-                self._save_new_games_to_db(new_from_profile)
+        # Step 5.7: Steam Community Profile scrape — DISABLED
+        # The profile page uses React client-side rendering; a simple
+        # requests.get() only receives a 52KB shell with zero game data.
+        # Revisit in v1.2 with session-cookie auth or Playwright.
+        # See: TASK_ADDENDUM_FIX_C_REPLACEMENT.md for full analysis.
 
         # Re-enrich ALL games with DB metadata (fixes fallback names from
         # both discover_missing_games and merge_with_localconfig)
