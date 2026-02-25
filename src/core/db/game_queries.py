@@ -282,6 +282,15 @@ class GameQueryMixin:
         cursor = self.conn.execute("SELECT COUNT(*) FROM games")
         return cursor.fetchone()[0]
 
+    def update_game_name(self, app_id: int, name: str) -> None:
+        """Updates the name of a game in the database.
+
+        Args:
+            app_id: Steam app ID.
+            name: New name for the game.
+        """
+        self.conn.execute("UPDATE games SET name = ? WHERE app_id = ?", (name, app_id))
+
     def delete_game(self, app_id: int) -> None:
         """Delete a game from database.
 

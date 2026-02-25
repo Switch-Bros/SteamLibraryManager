@@ -205,7 +205,8 @@
       "discovering_games": "Discovering additional games...",
       "applying_overrides": "Applying metadata overrides...",
       "profile_discovered": "Profile scrape: discovered {count} new games",
-      "profile_scrape_failed": "Profile scrape failed (non-fatal): {error}"
+      "profile_scrape_failed": "Profile scrape failed (non-fatal): {error}",
+      "placeholder_names_repaired": "Repaired {count} games with placeholder names from appinfo.vdf"
     },
     "image": {
       "pillow_missing": "Warning: Pillow not installed",

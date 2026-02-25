@@ -229,11 +229,14 @@ class MetadataEnrichmentService:
             return 0
 
         count = 0
+        fallback_ids: set[str] = set()
+
         for app_id in candidates:
             if db_type_lookup is not None:
                 # Fast path: use pre-fetched DB data
                 lookup = db_type_lookup.get(app_id)
                 if not lookup:
+                    fallback_ids.add(app_id)
                     continue
                 app_type = (lookup[0] or "").lower()
                 db_name = lookup[1] or ""
@@ -253,6 +256,22 @@ class MetadataEnrichmentService:
             game = Game(app_id=app_id, name=name, app_type=app_type)
             self._games[app_id] = game
             count += 1
+
+        # Fallback: resolve IDs not in DB via appinfo.vdf binary lookup
+        if fallback_ids and appinfo_manager:
+            if not getattr(appinfo_manager, "appinfo", None):
+                appinfo_manager.load_appinfo()
+            for app_id in fallback_ids:
+                meta = appinfo_manager.get_app_metadata(app_id)
+                app_type = meta.get("type", "").lower()
+                name = meta.get("name", "")
+                if app_type not in self._DISCOVERABLE_TYPES:
+                    continue
+                if not name or is_placeholder_name(name):
+                    name = self._get_cached_name(app_id) or t("ui.game_details.game_fallback", id=app_id)
+                game = Game(app_id=app_id, name=name, app_type=app_type)
+                self._games[app_id] = game
+                count += 1
 
         if count > 0:
             logger.info(t("logs.manager.discovered_missing", count=count))
