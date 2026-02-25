@@ -201,6 +201,110 @@ class TestDiscoverFromDbLookup:
         assert "200" not in games
 
 
+class TestDiscoverFallbackToAppinfo:
+    """Tests for discover_missing_games fallback when ID is not in DB."""
+
+    def test_falls_back_to_appinfo_for_unknown_db_ids(self, tmp_path):
+        """AppIDs not in db_type_lookup are resolved via appinfo_manager."""
+        games: dict[str, Game] = {}
+        service = MetadataEnrichmentService(games, tmp_path)
+
+        localconfig = MagicMock()
+        localconfig.get_all_app_ids.return_value = []
+
+        appinfo = MagicMock()
+        appinfo.appinfo = True  # Simulate already loaded
+        appinfo.get_app_metadata.return_value = {
+            "name": "BROTHER!!! - Hardcore Platformer",
+            "type": "Game",
+        }
+
+        # DB lookup does NOT contain "100"
+        db_lookup = {"200": ("game", "Known Game")}
+
+        count = service.discover_missing_games(
+            localconfig,
+            appinfo,
+            packageinfo_ids={"100", "200"},
+            db_type_lookup=db_lookup,
+        )
+
+        assert count == 2
+        assert "100" in games
+        assert games["100"].name == "BROTHER!!! - Hardcore Platformer"
+        assert games["100"].app_type == "game"
+        # appinfo_manager was called for the fallback ID
+        appinfo.get_app_metadata.assert_called_once_with("100")
+
+    def test_fallback_skips_non_discoverable_types(self, tmp_path):
+        """Fallback path still filters non-discoverable types like DLC."""
+        games: dict[str, Game] = {}
+        service = MetadataEnrichmentService(games, tmp_path)
+
+        localconfig = MagicMock()
+        localconfig.get_all_app_ids.return_value = []
+
+        appinfo = MagicMock()
+        appinfo.appinfo = True
+        appinfo.get_app_metadata.return_value = {"name": "Some DLC", "type": "dlc"}
+
+        count = service.discover_missing_games(
+            localconfig,
+            appinfo,
+            packageinfo_ids={"100"},
+            db_type_lookup={},
+        )
+
+        assert count == 0
+        assert "100" not in games
+
+    def test_fallback_lazy_loads_appinfo(self, tmp_path):
+        """Fallback triggers lazy appinfo.vdf load when not yet loaded."""
+        games: dict[str, Game] = {}
+        service = MetadataEnrichmentService(games, tmp_path)
+
+        localconfig = MagicMock()
+        localconfig.get_all_app_ids.return_value = []
+
+        appinfo = MagicMock()
+        appinfo.appinfo = None  # Not yet loaded
+        appinfo.get_app_metadata.return_value = {"name": "New Game", "type": "game"}
+
+        count = service.discover_missing_games(
+            localconfig,
+            appinfo,
+            packageinfo_ids={"100"},
+            db_type_lookup={},
+        )
+
+        assert count == 1
+        appinfo.load_appinfo.assert_called_once()
+
+    def test_fallback_handles_placeholder_name(self, tmp_path):
+        """Fallback uses cache or fallback name when appinfo has no real name."""
+        games: dict[str, Game] = {}
+        service = MetadataEnrichmentService(games, tmp_path)
+
+        localconfig = MagicMock()
+        localconfig.get_all_app_ids.return_value = []
+
+        appinfo = MagicMock()
+        appinfo.appinfo = True
+        appinfo.get_app_metadata.return_value = {"name": "", "type": "game"}
+
+        count = service.discover_missing_games(
+            localconfig,
+            appinfo,
+            packageinfo_ids={"100"},
+            db_type_lookup={},
+        )
+
+        assert count == 1
+        assert "100" in games
+        # Should have a fallback name (not empty)
+        assert games["100"].name != ""
+
+
 class TestApplyCustomOverrides:
     """Tests for apply_custom_overrides."""
 

@@ -2,6 +2,7 @@
 
 import pytest
 from unittest.mock import Mock, patch
+from src.core.game import Game
 from src.services.game_service import GameService
 
 
@@ -171,7 +172,7 @@ class TestGameService:
 
         mock_gm = mock_dependencies["GameManager"].return_value
         mock_gm.load_games.return_value = True
-        mock_gm.games = {"123": Mock()}
+        mock_gm.games = {"123": Game(app_id="123", name="Test Game")}
         mock_gm.discover_missing_games.return_value = 0
 
         result = service.load_and_prepare("76561197960287930")
@@ -203,7 +204,7 @@ class TestGameService:
 
         mock_gm = mock_dependencies["GameManager"].return_value
         mock_gm.load_games.return_value = True
-        mock_gm.games = {"123": Mock()}
+        mock_gm.games = {"123": Game(app_id="123", name="Test Game")}
         mock_gm.discover_missing_games.return_value = 5  # 5 new games discovered
 
         result = service.load_and_prepare("76561197960287930")
@@ -219,7 +220,7 @@ class TestGameService:
 
         mock_gm = mock_dependencies["GameManager"].return_value
         mock_gm.load_games.return_value = True
-        mock_gm.games = {"123": Mock()}
+        mock_gm.games = {"123": Game(app_id="123", name="Test Game")}
         mock_gm.discover_missing_games.return_value = 0
 
         callback = Mock()
@@ -256,7 +257,7 @@ class TestGameService:
 
         mock_gm = mock_dependencies["GameManager"].return_value
         mock_gm.load_games.return_value = True
-        mock_gm.games = {"123": Mock()}
+        mock_gm.games = {"123": Game(app_id="123", name="Test Game")}
         mock_gm.discover_missing_games.return_value = 0
 
         # Mock _init_database to return a mock DB (avoids filesystem access)
@@ -284,7 +285,7 @@ class TestGameService:
 
         mock_gm = mock_dependencies["GameManager"].return_value
         mock_gm.load_games.return_value = True
-        mock_gm.games = {"123": Mock()}
+        mock_gm.games = {"123": Game(app_id="123", name="Test Game")}
         mock_gm.discover_missing_games.return_value = 0
 
         # Mock _init_database to return a mock DB
@@ -307,7 +308,7 @@ class TestGameService:
 
         mock_gm = mock_dependencies["GameManager"].return_value
         mock_gm.load_games.return_value = True
-        mock_gm.games = {"123": Mock()}
+        mock_gm.games = {"123": Game(app_id="123", name="Test Game")}
         mock_gm.discover_missing_games.return_value = 0
 
         # Configure config to return a valid Steam32 ID
@@ -336,7 +337,7 @@ class TestGameService:
 
         mock_gm = mock_dependencies["GameManager"].return_value
         mock_gm.load_games.return_value = True
-        mock_gm.games = {"123": Mock()}
+        mock_gm.games = {"123": Game(app_id="123", name="Test Game")}
         mock_gm.discover_missing_games.return_value = 0
 
         # No detected user → fallback
@@ -359,9 +360,95 @@ class TestGameService:
 
         mock_gm = mock_dependencies["GameManager"].return_value
         mock_gm.load_games.return_value = True
-        mock_gm.games = {"123": Mock()}
+        mock_gm.games = {"123": Game(app_id="123", name="Test Game")}
         mock_gm.discover_missing_games.return_value = 0
 
         with patch.object(service, "_refresh_from_profile") as mock_profile:
             service.load_and_prepare("76561197960287930")
             mock_profile.assert_not_called()
+
+
+class TestRepairPlaceholderNames:
+    """Tests for _repair_placeholder_names."""
+
+    def test_repairs_placeholder_names_from_appinfo(self):
+        """Games with 'App XXXXX' names get real names from appinfo.vdf."""
+        service = GameService("/fake/steam", "fake_api_key", "/fake/cache")
+
+        # Set up game_manager with a placeholder-named game
+        mock_gm = Mock()
+        game = Game(app_id="12345", name="App 12345")
+        mock_gm.games = {"12345": game}
+        service.game_manager = mock_gm
+
+        # Set up appinfo_manager with the real name
+        mock_aim = Mock()
+        mock_aim.appinfo = True  # Already loaded
+        mock_aim.get_app_metadata.return_value = {"name": "BROTHER!!! - Hardcore Platformer"}
+        service.appinfo_manager = mock_aim
+
+        # Set up database mock
+        mock_db = Mock()
+        service.database = mock_db
+
+        service._repair_placeholder_names()
+
+        assert game.name == "BROTHER!!! - Hardcore Platformer"
+        mock_db.update_game_name.assert_called_once_with(12345, "BROTHER!!! - Hardcore Platformer")
+        mock_db.commit.assert_called_once()
+
+    def test_skips_games_with_real_names(self):
+        """Games that already have real names are not modified."""
+        service = GameService("/fake/steam", "fake_api_key", "/fake/cache")
+
+        mock_gm = Mock()
+        game = Game(app_id="440", name="Team Fortress 2")
+        mock_gm.games = {"440": game}
+        service.game_manager = mock_gm
+        service.appinfo_manager = Mock()
+        service.database = Mock()
+
+        service._repair_placeholder_names()
+
+        assert game.name == "Team Fortress 2"
+        service.appinfo_manager.get_app_metadata.assert_not_called()
+
+    def test_no_repair_when_appinfo_has_no_name(self):
+        """Games keep placeholder name if appinfo has no real name either."""
+        service = GameService("/fake/steam", "fake_api_key", "/fake/cache")
+
+        mock_gm = Mock()
+        game = Game(app_id="12345", name="App 12345")
+        mock_gm.games = {"12345": game}
+        service.game_manager = mock_gm
+
+        mock_aim = Mock()
+        mock_aim.appinfo = True
+        mock_aim.get_app_metadata.return_value = {"name": ""}
+        service.appinfo_manager = mock_aim
+        service.database = Mock()
+
+        service._repair_placeholder_names()
+
+        assert game.name == "App 12345"
+        service.database.update_game_name.assert_not_called()
+
+    def test_lazy_loads_appinfo_when_needed(self):
+        """appinfo.vdf is loaded lazily only when placeholder games exist."""
+        service = GameService("/fake/steam", "fake_api_key", "/fake/cache")
+
+        mock_gm = Mock()
+        game = Game(app_id="12345", name="App 12345")
+        mock_gm.games = {"12345": game}
+        service.game_manager = mock_gm
+
+        mock_aim = Mock()
+        mock_aim.appinfo = None  # Not loaded yet
+        mock_aim.get_app_metadata.return_value = {"name": "Real Game"}
+        service.appinfo_manager = mock_aim
+        service.database = Mock()
+
+        service._repair_placeholder_names()
+
+        mock_aim.load_appinfo.assert_called_once()
+        assert game.name == "Real Game"

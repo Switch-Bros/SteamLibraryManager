@@ -322,6 +322,9 @@ class GameService:
         if self.database:
             self.game_manager.enrich_from_database(self.database)
 
+        # Repair placeholder names ("App XXXXX") from appinfo.vdf
+        self._repair_placeholder_names()
+
         # Step 6: Apply ONLY custom JSON overrides (not full binary metadata)
         if progress_callback:
             progress_callback(t("logs.service.applying_overrides"), 0, 0)
@@ -442,6 +445,48 @@ class GameService:
                 logger.debug("DB insert for %s failed: %s", app_id, e)
 
         self.database.commit()
+
+    def _repair_placeholder_names(self) -> None:
+        """Repairs games with placeholder names by looking up real names in appinfo.vdf.
+
+        Games that ended up with names like "App 12345" (from empty DB entries or
+        missing API data) get their real names from appinfo.vdf.  Updates both
+        the in-memory Game object and the database.
+        """
+        if not self.game_manager or not self.appinfo_manager:
+            return
+
+        from src.core.database import is_placeholder_name
+
+        placeholder_games = [game for game in self.game_manager.games.values() if is_placeholder_name(game.name)]
+
+        if not placeholder_games:
+            return
+
+        # Lazy-load appinfo.vdf only if needed
+        if not getattr(self.appinfo_manager, "appinfo", None):
+            self.appinfo_manager.load_appinfo()
+
+        repaired = 0
+        for game in placeholder_games:
+            meta = self.appinfo_manager.get_app_metadata(game.app_id)
+            real_name = meta.get("name", "")
+
+            if real_name and not is_placeholder_name(real_name):
+                game.name = real_name
+                if not game.name_overridden:
+                    game.sort_name = real_name
+
+                # Also update DB so next startup doesn't repeat the lookup
+                if self.database:
+                    self.database.update_game_name(int(game.app_id), real_name)
+
+                repaired += 1
+
+        if repaired > 0:
+            if self.database:
+                self.database.commit()
+            logger.info(t("logs.service.placeholder_names_repaired", count=repaired))
 
     def merge_with_localconfig(self) -> None:
         """Merges collections from active parser into game_manager.
