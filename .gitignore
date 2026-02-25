@@ -43,6 +43,7 @@ cleanup_dependencies_dev.sh
 *.zip
 /AGENTS.md
 /CLAUDE.md
+/SLM-Dateien.md
 /SLM-Fortschritt.md
 /MASTERPLAN_FINAL.md
 /NEXTCHAT.md
