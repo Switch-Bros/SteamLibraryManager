@@ -99,8 +99,15 @@ class GameQueryService:
         Returns:
             A sorted list of uncategorized games.
         """
+        # Exclude system collections using all known identifiers (language-independent)
         excluded_categories: set[str] = {
-            t("categories.favorites"),
+            "favorite",
+            "hidden",  # Steam internal IDs
+            "Favorites",
+            "Favoriten",  # Known display names EN/DE
+            "Hidden",
+            "Versteckt",
+            t("categories.favorites"),  # Current locale
             t("categories.hidden"),
         }
         if smart_collection_names:

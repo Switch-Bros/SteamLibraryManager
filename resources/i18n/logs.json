@@ -142,7 +142,9 @@
       "cloud_file_not_found": "Cloud storage file not found: {path}",
       "load_error": "Failed to load cloud storage: {error}",
       "error_details": "Error details: {error}",
-      "external_change_detected": "Cloud storage file modified externally since last load"
+      "external_change_detected": "Cloud storage file modified externally since last load",
+      "delta_merge_stats": "Delta-merge: {managed} managed, {deleted} deleted, {preserved} preserved",
+      "size_shrink_warning": "Cloud storage shrunk by {ratio} ({old_size} to {new_size} bytes) — check for data loss"
     },
     "local_loader": {
       "scanning": "Scanning {count} manifest files...",

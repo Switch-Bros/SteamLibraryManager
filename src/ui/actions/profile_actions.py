@@ -204,9 +204,10 @@ class ProfileActions:
         Args:
             profile: The profile to apply.
         """
-        # 1. Restore collections
+        # 1. Restore collections (mark old ones as deleted for delta-merge)
         parser = self.mw.cloud_storage_parser
         if parser and hasattr(parser, "collections"):
+            parser.mark_all_managed_as_deleted()
             parser.collections = list(profile.collections)
             parser.modified = True
 
