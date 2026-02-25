@@ -114,7 +114,7 @@
     "curator_error_url": "Invalid curator URL. Please enter a valid Steam Curator URL.",
     "curator_error_fetch": "Failed to fetch curator recommendations: {error}",
     "curator_include_label": "Include recommendations:",
-    "curator_info": "Curators are now managed via Tools \u2192 Manage Curators. Recommendations stored in the database will be used to create one collection per active curator.",
+    "curator_info": "Curators are now managed via Tools → Manage Curators. Recommendations stored in the database will be used to create one collection per active curator.",
     "curator_remove": "Remove Curator",
     "curator_status": "Fetching curator: page {page}...",
     "preset_save": "Save Preset",
