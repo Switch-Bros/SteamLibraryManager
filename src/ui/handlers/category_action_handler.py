@@ -5,10 +5,10 @@ Handler for all category (collection) actions and context menus.
 
 Extracts the following methods from MainWindow:
   - on_game_right_click / on_category_right_click   (context menus)
-  - remove_duplicate_collections                    (bulk cleanup)
   - rename_category                                  (CRUD)
   - delete_category / delete_multiple_categories    (CRUD)
   - merge_categories                                (CRUD)
+  - show_merge_duplicates_dialog                    (duplicate merging)
 
 All persistence (save / populate / update stats) is delegated back to
 MainWindow via the stored reference so that the rest of the window's
@@ -174,32 +174,6 @@ class CategoryActionHandler:
     # Category CRUD
     # ------------------------------------------------------------------
 
-    def remove_duplicate_collections(self) -> None:
-        """Removes duplicate collections via CategoryService.
-
-        Confirms with the user first.  Shows a success count or an info
-        message when no duplicates were found.
-        """
-        mw = self.mw
-        if not mw.category_service:
-            return
-
-        if not UIHelper.confirm(
-            mw, t("ui.main_window.remove_duplicates_confirm"), t("ui.main_window.remove_duplicates_title")
-        ):
-            return
-
-        try:
-            removed: int = mw.category_service.remove_duplicate_collections()
-
-            if removed > 0:
-                self._flush()
-                UIHelper.show_success(mw, t("ui.main_window.duplicates_removed", count=removed))
-            else:
-                UIHelper.show_info(mw, t("ui.main_window.no_duplicates"))
-        except RuntimeError as e:
-            UIHelper.show_error(mw, str(e))
-
     def rename_category(self, old_name: str) -> None:
         """Prompts the user for a new name and renames the category.
 
@@ -303,15 +277,9 @@ class CategoryActionHandler:
             source_categories: list[str] = [cat for cat in categories if cat != target_category]
 
             if not source_categories:
-                # All categories have the same name → deduplicate instead of merge
-                removed = mw.category_service.remove_duplicate_collections()
-                self._flush()
-                if removed > 0:
-                    UIHelper.show_success(
-                        mw,
-                        t("categories.duplicates_removed", count=removed),
-                        t("categories.merge_title"),
-                    )
+                # All categories have the same name → open merge dialog
+                # (not destructive remove — that would lose games!)
+                self.show_merge_duplicates_dialog(filter_name=target_category)
                 return
 
             success = mw.category_service.merge_categories(categories, target_category)

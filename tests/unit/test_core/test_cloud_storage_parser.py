@@ -344,3 +344,102 @@ class TestCloudStorageCorruptedData:
         assert CloudStorageParser._to_app_id_int(None) is None
         assert CloudStorageParser._to_app_id_int(440) == 440
         assert CloudStorageParser._to_app_id_int("570") == 570
+
+
+class TestNormalizeCollectionName:
+    """Tests for _normalize_collection_name() static method."""
+
+    def test_normalize_lowercase(self):
+        """Uppercase should be lowered."""
+        from src.core.cloud_storage_parser import CloudStorageParser
+
+        assert CloudStorageParser._normalize_collection_name("ROGUELIKE") == "roguelike"
+
+    def test_normalize_hyphens(self):
+        """Hyphens should be stripped."""
+        from src.core.cloud_storage_parser import CloudStorageParser
+
+        assert CloudStorageParser._normalize_collection_name("Rogue-like") == "roguelike"
+
+    def test_normalize_spaces(self):
+        """Spaces should be stripped."""
+        from src.core.cloud_storage_parser import CloudStorageParser
+
+        assert CloudStorageParser._normalize_collection_name("Rogue Like") == "roguelike"
+
+    def test_normalize_underscores(self):
+        """Underscores should be stripped."""
+        from src.core.cloud_storage_parser import CloudStorageParser
+
+        assert CloudStorageParser._normalize_collection_name("rogue_like") == "roguelike"
+
+    def test_normalize_mixed(self):
+        """Mixed casing, hyphens, and spaces should all normalize."""
+        from src.core.cloud_storage_parser import CloudStorageParser
+
+        assert CloudStorageParser._normalize_collection_name("Rogue-Like Games") == "roguelikegames"
+
+
+class TestFuzzyDuplicateGroups:
+    """Tests for fuzzy matching in get_duplicate_groups()."""
+
+    def test_fuzzy_match_case_difference(self):
+        """'roguelike' and 'ROGUELIKE' should be grouped together."""
+        from src.core.cloud_storage_parser import CloudStorageParser
+
+        parser = CloudStorageParser("/tmp/fake", "999")
+        parser.collections = [
+            {"id": "from-tag-roguelike", "name": "roguelike", "added": [100, 200]},
+            {"id": "from-tag-ROGUELIKE", "name": "ROGUELIKE", "added": [300]},
+        ]
+
+        result = parser.get_duplicate_groups()
+
+        assert len(result) == 1
+        group = list(result.values())[0]
+        assert len(group) == 2
+
+    def test_exact_match_still_works(self):
+        """Two identical 'Action' collections should still be detected."""
+        from src.core.cloud_storage_parser import CloudStorageParser
+
+        parser = CloudStorageParser("/tmp/fake", "999")
+        parser.collections = [
+            {"id": "from-tag-Action", "name": "Action", "added": [100]},
+            {"id": "from-tag-Action-2", "name": "Action", "added": [200]},
+        ]
+
+        result = parser.get_duplicate_groups()
+
+        assert "Action" in result
+        assert len(result["Action"]) == 2
+
+    def test_no_false_positives(self):
+        """'Action' and 'Traction' should NOT be grouped."""
+        from src.core.cloud_storage_parser import CloudStorageParser
+
+        parser = CloudStorageParser("/tmp/fake", "999")
+        parser.collections = [
+            {"id": "from-tag-Action", "name": "Action", "added": [100]},
+            {"id": "from-tag-Traction", "name": "Traction", "added": [200]},
+        ]
+
+        result = parser.get_duplicate_groups()
+
+        assert result == {}
+
+    def test_representative_name_is_first(self):
+        """Group key should be the first collection's original name."""
+        from src.core.cloud_storage_parser import CloudStorageParser
+
+        parser = CloudStorageParser("/tmp/fake", "999")
+        parser.collections = [
+            {"id": "from-tag-roguelike", "name": "roguelike", "added": [100]},
+            {"id": "from-tag-ROGUELIKE", "name": "ROGUELIKE", "added": [200]},
+            {"id": "from-tag-Rogue-like", "name": "Rogue-like", "added": [300]},
+        ]
+
+        result = parser.get_duplicate_groups()
+
+        assert "roguelike" in result
+        assert len(result["roguelike"]) == 3

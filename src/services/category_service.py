@@ -230,7 +230,12 @@ class CategoryService:
         return True
 
     def remove_duplicate_collections(self) -> int:
-        """Remove duplicate collections (Cloud Storage only).
+        """Remove duplicate collections WITHOUT merging games (Cloud Storage only).
+
+        WARNING: This silently drops games from duplicate collections! For
+        user-facing operations, use ``merge_duplicate_collections()`` with
+        ``MergeDuplicatesDialog`` instead. This method is retained for
+        programmatic/testing use only.
 
         Identifies collections with identical names, keeping only the first occurrence.
 

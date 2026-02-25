@@ -23,6 +23,7 @@
     "merge_duplicates_info": "Select which collection to keep for each group. Games from all other duplicates will be merged into the selected one.",
     "merge_duplicates_group": "{name} ({count} duplicates)",
     "merge_duplicates_entry": "Collection #{index}: {game_count} games",
+    "merge_duplicates_entry_named": "\"{name}\" ({game_count} games)",
     "merge_duplicates_success": "Successfully merged {count} duplicate groups.",
     "no_duplicates_found": "No duplicate collections found."
   },

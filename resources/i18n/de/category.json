@@ -23,6 +23,7 @@
     "merge_duplicates_info": "Wähle pro Gruppe, welche Kollektion behalten werden soll. Spiele aus allen anderen Duplikaten werden in die ausgewählte übernommen.",
     "merge_duplicates_group": "{name} ({count} Duplikate)",
     "merge_duplicates_entry": "Kollektion #{index}: {game_count} Spiele",
+    "merge_duplicates_entry_named": "\"{name}\" ({game_count} Spiele)",
     "merge_duplicates_success": "{count} Duplikat-Gruppen erfolgreich zusammengeführt.",
     "no_duplicates_found": "Keine doppelten Kollektionen gefunden."
   },
