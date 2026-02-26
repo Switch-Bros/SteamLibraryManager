@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import webbrowser
 from pathlib import Path
+from typing import NamedTuple
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
@@ -24,24 +25,52 @@ from PyQt6.QtWidgets import (
 
 from src.ui.utils.font_helper import FontHelper
 from src.ui.widgets.base_dialog import BaseDialog
-from src.utils.i18n import t
+from src.utils.i18n import get_language, t
 from src.version import __app_name__, __version__, __release_date__, __author__, __license__
 
 __all__ = ["AboutDialog"]
 
 # -- Hardcoded project metadata (NOT i18n — intentional) --------------------
+# These are curated by SwitchBros, not pulled from i18n files.
 
 _GITHUB_URL = "https://github.com/Switch-Bros/SteamLibraryManager"
 
-_DESCRIPTION = (
-    "The ultimate Steam library organizer for Linux.\n"
-    "Manage thousands of games with smart collections,\n"
-    "auto-categorization, and cloud sync."
+
+class AboutTexts(NamedTuple):
+    """Curated About dialog texts — controlled by SwitchBros, not i18n."""
+
+    description: str
+    credits: str
+    built_with: str
+
+
+_ABOUT_EN = AboutTexts(
+    description=(
+        "The ultimate Steam library organizer for Linux.\n"
+        "Manage thousands of games with smart collections,\n"
+        "auto-categorization, and cloud sync."
+    ),
+    credits="Contributors will be listed here.",
+    built_with="Built with Python, PyQt6 & 💛🖤💛",
 )
 
-_CREDITS = "Contributors will be listed here."
+_ABOUT_DE = AboutTexts(
+    description=(
+        "Der ultimative Steam-Bibliotheksmanager für Linux.\n"
+        "Verwalte tausende Spiele mit smarten Kollektionen,\n"
+        "Auto-Kategorisierung und Cloud-Sync."
+    ),
+    credits="Mitwirkende werden hier aufgeführt.",
+    built_with="Erstellt mit Python, PyQt6 & 💛🖤💛",
+)
 
-_BUILT_WITH = "Built with Python, PyQt6 & 💛🖤💛"
+
+def _get_about_texts() -> AboutTexts:
+    """Returns curated About texts — DE or EN (fallback)."""
+    if get_language() == "de":
+        return _ABOUT_DE
+    return _ABOUT_EN
+
 
 # -- Colors -----------------------------------------------------------------
 
@@ -186,7 +215,8 @@ class AboutDialog(BaseDialog):
         col.addSpacing(8)
 
         # Description
-        desc_label = QLabel(_DESCRIPTION)
+        about = _get_about_texts()
+        desc_label = QLabel(about.description)
         desc_label.setWordWrap(True)
         desc_label.setStyleSheet("font-size: 13px;")
         col.addWidget(desc_label)
@@ -199,7 +229,7 @@ class AboutDialog(BaseDialog):
         credits_header.setFont(FontHelper.get_font(11, FontHelper.BOLD))
         col.addWidget(credits_header)
 
-        credits_text = QLabel(_CREDITS)
+        credits_text = QLabel(about.credits)
         credits_text.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 12px;")
         credits_text.setWordWrap(True)
         col.addWidget(credits_text)
@@ -220,7 +250,7 @@ class AboutDialog(BaseDialog):
         col.addStretch()
 
         # Built-with tagline
-        built_label = QLabel(_BUILT_WITH)
+        built_label = QLabel(about.built_with)
         built_label.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 11px;")
         built_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         col.addWidget(built_label)
