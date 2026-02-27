@@ -600,7 +600,7 @@ class MenuBuilder:
             "shortcuts": "KEYBOARD_SHORTCUTS.md",
             "faq": "FAQ.md",
         }
-        docs_base = f"{_GITHUB_URL}/blob/main/docs"
+        docs_base = f"{_GITHUB_URL}/blob/master/docs"
         for key in ("manual", "tips", "shortcuts", "faq"):
             action = QAction(t(f"menu.help.docs.{key}"), mw)
             if key == "manual":
@@ -615,7 +615,6 @@ class MenuBuilder:
         online_urls = {
             "github": _GITHUB_URL,
             "issues": f"{_GITHUB_URL}/issues",
-            "discussions": f"{_GITHUB_URL}/discussions",
             "wiki": f"{_GITHUB_URL}/wiki",
         }
         for key, url in online_urls.items():
@@ -639,9 +638,9 @@ class MenuBuilder:
         # --- Support submenu ---
         support_menu = help_menu.addMenu(t("menu.help.support.root"))
         support_urls = {
-            "paypal": "https://paypal.me/",
+            "kofi": "https://ko-fi.com/S6S51T9G3",
+            "paypal": "https://www.paypal.com/donate/?hosted_button_id=HWPG6YAGXAWJJ",
             "github": "https://github.com/sponsors/Switch-Bros",
-            "kofi": "https://ko-fi.com/",
         }
         for key, url in support_urls.items():
             action = QAction(t(f"menu.help.support.{key}"), mw)
