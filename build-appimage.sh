@@ -24,6 +24,8 @@ mkdir -p AppDir/usr/{bin,share/{applications,icons/hicolor/scalable/apps,metainf
 
 # Copy PyInstaller output
 cp -r dist/SteamLibraryManager/* AppDir/usr/bin/
+# Symlink so linuxdeploy finds the Exec= entry from the desktop file
+ln -sf SteamLibraryManager AppDir/usr/bin/steam-library-manager
 
 # Copy desktop integration files
 cp flatpak/org.steamlibrarymanager.SteamLibraryManager.desktop \
