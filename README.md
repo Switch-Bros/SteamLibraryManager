@@ -1,5 +1,14 @@
 # 🎮 Steam Library Manager
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_header_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_header_light.webp">
+    <img src="resources/images/readme_header_light.webp" alt="" width="800">
+  </picture>
+</p>
+
+
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-FDE100?style=plastic&logo=python&logoColor=FDE100&labelColor=000000)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Steam%20Deck-FDE100?style=plastic&logo=linux&logoColor=FDE100&labelColor=000000)](https://store.steampowered.com/steamdeck)
 [![License](https://img.shields.io/badge/License-MIT-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager/blob/main/LICENSE)
@@ -13,27 +22,14 @@
 > Organize your Steam library, auto-categorize games, edit metadata, and take control of your collection — with features Steam doesn't have.
 
 <p align="center">
-  <a href="README_DE.md"><kbd>🇩🇪 Auf Deutsch lesen</kbd></a>
+  <a href="README_DE.md">
+    <img src="https://img.shields.io/badge/🇩🇪_Auf_Deutsch_lesen-FDE100?style=for-the-badge&labelColor=000000" alt="Auf Deutsch lesen" height="35">
+  </a>
 </p>
 
 <!-- Hero Screenshot -->
 <p align="center">
   <img src="resources/screenshots/01_hero_main_window.webp" alt="Steam Library Manager — Main Window" width="900">
-</p>
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_header_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_header_light.webp">
-    <img src="resources/images/readme_header_light.webp" alt="" width="600">
-  </picture>
-</p>
-
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="500">
-  </picture>
 </p>
 
 
@@ -43,7 +39,7 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
     <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="500">
+    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -71,7 +67,7 @@ One collection. Automatic. Always up to date. **Impossible in Steam.**
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
     <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="500">
+    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -95,7 +91,7 @@ If SLM saves you time organizing your library, consider supporting its developme
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
     <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="500">
+    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -120,7 +116,7 @@ Each rule type has its own configuration — set thresholds, define ignore lists
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
     <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="500">
+    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -145,7 +141,7 @@ Edit game names, sort titles, developers, publishers, and release dates — all 
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
     <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="500">
+    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -169,7 +165,7 @@ Browse and download **covers, heroes, logos, and icons** from [SteamGridDB](http
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
     <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="500">
+    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -198,7 +194,7 @@ Batch-enrich your entire library with data from multiple sources — all cached 
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
     <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="500">
+    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -219,7 +215,7 @@ Batch-enrich your entire library with data from multiple sources — all cached 
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
     <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="500">
+    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -239,7 +235,7 @@ Full **English 🇬🇧** and **German 🇩🇪** interface with **complete i18n
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
     <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="500">
+    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -256,7 +252,7 @@ Developed with **PyQt6** for seamless desktop integration. This is not a Windows
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
     <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="500">
+    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -288,13 +284,6 @@ Got games scattered across Epic, GOG, Amazon, Lutris, Bottles, itch.io, and Flat
   <img src="resources/screenshots/17_external_games.webp" alt="External Games Manager — Scan and Import" width="800">
 </p>
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="500">
-  </picture>
-</p>
 
 ## 📸 More Screenshots
 
@@ -309,13 +298,6 @@ Got games scattered across Epic, GOG, Amazon, Lutris, Bottles, itch.io, and Flat
 
 </details>
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="500">
-  </picture>
-</p>
 
 ## 📦 Download & Install
 
@@ -352,7 +334,7 @@ Requires **Python 3.10+** and a running **Steam client** (not Big Picture).
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
     <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="500">
+    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -391,13 +373,6 @@ This project uses the following services:
 
 </details>
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="500">
-  </picture>
-</p>
 
 ## 🗺️ Roadmap
 
@@ -413,13 +388,6 @@ This project uses the following services:
 | CI/CD pipeline (automated Flatpak/AppImage builds) | 🔄 In progress |
 | Windows support | 📋 Planned |
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="500">
-  </picture>
-</p>
 
 ## 🌍 Translations
 
@@ -438,13 +406,6 @@ Steam Library Manager ships with **English** and **German**. Want to see it in y
 
 The language name must always be in its **own native script** — "Français", not "French".
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="500">
-  </picture>
-</p>
 
 ## 🛡️ Privacy & Security
 
@@ -454,13 +415,6 @@ The language name must always be in its **own native script** — "Français", n
 - **API keys stored locally.** Never transmitted to third parties.
 - **Automatic backups.** Before any write to Steam files, a backup is created.
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="500">
-  </picture>
-</p>
 
 ## 🤝 Contributing
 
@@ -469,13 +423,6 @@ The language name must always be in its **own native script** — "Français", n
 - 🌍 **Speak another language?** → [Help translate!](#-translations)
 - 🔧 **Want to code?** → Check out [`CLAUDE.md`](CLAUDE.md) for architecture & coding guidelines
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="500">
-  </picture>
-</p>
 
 ## 🙏 Acknowledgments
 
@@ -485,13 +432,6 @@ The language name must always be in its **own native script** — "Français", n
 - [SteamKit2](https://github.com/SteamRE/SteamKit) / [ValvePython/steam](https://github.com/solsticegamestudios/steam) — Steam protocol research
 - [steamapi.xpaw.me](https://steamapi.xpaw.me/) — Steam Web API documentation
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="500">
-  </picture>
-</p>
 
 ## ⚖️ Legal Notice
 
@@ -504,13 +444,6 @@ In no event shall the authors or copyright holders be liable for any claim, dama
 - API keys are **stored locally** and **never transmitted** to third parties.
 - Steam Library Manager is **not affiliated with, endorsed by, or associated with Valve Corporation** or any other third-party service.
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="500">
-  </picture>
-</p>
 
 ## 📜 License
 
@@ -520,7 +453,7 @@ In no event shall the authors or copyright holders be liable for any claim, dama
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_footer_dark.webp">
     <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_footer_light.webp">
-    <img src="resources/images/readme_footer_light.webp" alt="" width="600">
+    <img src="resources/images/readme_footer_light.webp" alt="" width="800">
   </picture>
 </p>
 
