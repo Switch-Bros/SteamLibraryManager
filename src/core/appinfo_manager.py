@@ -60,7 +60,9 @@ class AppInfoManager:
                                          If provided, appinfo.vdf will be loaded from
                                          <steam_path>/appcache/appinfo.vdf.
         """
-        self.data_dir = Path(__file__).parent.parent.parent / "data"
+        from src.config import config
+
+        self.data_dir = config.DATA_DIR
         self.metadata_file = self.data_dir / "custom_metadata.json"
 
         # Tracking dictionaries
