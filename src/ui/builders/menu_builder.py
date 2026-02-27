@@ -624,10 +624,16 @@ class MenuBuilder:
 
         # --- Updates submenu ---
         updates_menu = help_menu.addMenu(t("menu.help.updates.root"))
-        for key in ("check", "changelog"):
-            action = QAction(t(f"menu.help.updates.{key}"), mw)
-            action.triggered.connect(lambda checked, k=f"menu.help.updates.{key}": self._not_implemented(k))
-            updates_menu.addAction(action)
+        check_action = QAction(t("menu.help.updates.check"), mw)
+        check_action.triggered.connect(lambda checked: mw.steam_actions.check_for_updates())
+        updates_menu.addAction(check_action)
+        changelog_action = QAction(t("menu.help.updates.changelog"), mw)
+        changelog_action.triggered.connect(
+            lambda checked: self._open_url(
+                "https://github.com/Switch-Bros/SteamLibraryManager/blob/master/CHANGELOG.md"
+            )
+        )
+        updates_menu.addAction(changelog_action)
 
         # --- Support submenu ---
         support_menu = help_menu.addMenu(t("menu.help.support.root"))

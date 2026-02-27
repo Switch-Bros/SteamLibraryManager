@@ -1,4 +1,34 @@
 # pyproject.toml
+
+[project]
+name = "steam-library-manager"
+version = "1.1.1"
+description = "A powerful Steam library organizer for Linux - the modern Depressurizer alternative"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [{ name = "SwitchBros" }]
+keywords = ["steam", "games", "library", "manager", "linux", "pyqt6", "depressurizer"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: X11 Applications :: Qt",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Games/Entertainment",
+]
+
+[project.urls]
+Homepage = "https://github.com/Switch-Bros/SteamLibraryManager"
+Repository = "https://github.com/Switch-Bros/SteamLibraryManager"
+Issues = "https://github.com/Switch-Bros/SteamLibraryManager/issues"
+Changelog = "https://github.com/Switch-Bros/SteamLibraryManager/blob/master/CHANGELOG.md"
+
 [tool.black]
 line-length = 120
 target-version = ["py310", "py311", "py312", "py313"]

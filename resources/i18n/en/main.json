@@ -650,5 +650,33 @@
       "stale_hltb": "{count} games with HLTB data older than 30 days",
       "stale_protondb": "{count} games with ProtonDB data older than 7 days"
     }
+  },
+  "update": {
+    "dialog_title": "Update Available",
+    "current_version": "Current Version: {version}",
+    "new_version": "New Version: {version}",
+    "release_notes": "Release Notes:",
+    "download_size": "Download Size: {size}",
+    "download_install": "Download & Install",
+    "skip_version": "Skip Version",
+    "restart_now": "Restart Now",
+    "downloading": "Downloading... {percent}%",
+    "ready_to_install": "Download complete! Click 'Restart Now' to install.",
+    "check_title": "Update Check",
+    "up_to_date": "You're running the latest version!",
+    "checking": "Checking for updates...",
+    "not_appimage": "Auto-update is only available for AppImage installations. Use your package manager to update.",
+    "no_appimage_asset": "No AppImage found in the latest release.",
+    "confirm_restart": "The update has been downloaded. Restart now to install?\n\nUnsaved changes will be saved automatically.",
+    "install_failed": "Update installation failed. The previous version has been restored.",
+    "settings_title": "Updates",
+    "check_on_startup": "Check for updates on startup",
+    "check_interval": "Auto-check interval:",
+    "interval_never": "Never",
+    "interval_daily": "Daily",
+    "interval_weekly": "Weekly",
+    "interval_monthly": "Monthly",
+    "last_check": "Last update check: {time}",
+    "check_now": "Check for Updates Now"
   }
 }

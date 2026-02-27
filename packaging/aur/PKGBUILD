@@ -1,0 +1,48 @@
+# Maintainer: SwitchBros <switchbros@proton.me>
+pkgname=steam-library-manager
+pkgver=1.1.1
+pkgrel=1
+pkgdesc="A powerful Steam library organizer for Linux - the modern Depressurizer alternative"
+arch=('x86_64')
+url="https://github.com/Switch-Bros/SteamLibraryManager"
+license=('MIT')
+depends=(
+    'python>=3.10'
+    'python-pyqt6'
+    'python-psutil'
+    'python-pillow'
+    'python-opencv'
+    'python-vdf'
+    'python-yaml'
+    'python-beautifulsoup4'
+    'python-lxml'
+    'python-requests'
+    'python-requests-oauthlib'
+    'python-qrcode'
+    'python-steam'
+    'python-protobuf'
+    'python-pywebview'
+    'python-packaging'
+)
+makedepends=('python-build' 'python-installer' 'python-wheel' 'python-setuptools')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+    cd "SteamLibraryManager-$pkgver"
+    python -m build --wheel --no-isolation
+}
+
+package() {
+    cd "SteamLibraryManager-$pkgver"
+    python -m installer --destdir="$pkgdir" dist/*.whl
+
+    install -Dm644 resources/SteamLibraryManager.desktop \
+        "$pkgdir/usr/share/applications/steam-library-manager.desktop"
+    install -Dm644 resources/icon.png \
+        "$pkgdir/usr/share/pixmaps/steam-library-manager.png"
+    install -Dm644 resources/icon.svg \
+        "$pkgdir/usr/share/icons/hicolor/scalable/apps/steam-library-manager.svg"
+    install -Dm644 LICENSE \
+        "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
