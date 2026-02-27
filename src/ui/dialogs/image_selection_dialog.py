@@ -12,8 +12,7 @@ from __future__ import annotations
 
 import logging
 
-from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal, QUrl
-from PyQt6.QtGui import QDesktopServices
+from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
     QDialog,
@@ -32,6 +31,7 @@ from src.integrations.steamgrid_api import SteamGridDB
 from src.ui.utils.font_helper import FontHelper
 from src.ui.widgets.clickable_image import ClickableImage
 from src.utils.i18n import t
+from src.utils.open_url import open_url
 
 logger = logging.getLogger("steamlibmgr.image_dialog")
 
@@ -187,9 +187,7 @@ class ImageSelectionDialog(QDialog):
 
         get_key_btn = QPushButton(t("settings.grid_setup.get_key_btn"))
         get_key_btn.setMinimumHeight(40)
-        get_key_btn.clicked.connect(
-            lambda: QDesktopServices.openUrl(QUrl("https://www.steamgriddb.com/profile/preferences/api"))
-        )
+        get_key_btn.clicked.connect(lambda: open_url("https://www.steamgriddb.com/profile/preferences/api"))
         setup_layout.addWidget(get_key_btn)
 
         input_layout = QHBoxLayout()

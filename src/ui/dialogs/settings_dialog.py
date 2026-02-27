@@ -9,9 +9,7 @@ limits, and API keys.
 
 from __future__ import annotations
 
-from PyQt6.QtCore import QUrl
 from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
@@ -33,6 +31,7 @@ from src.config import config
 from src.ui.widgets.base_dialog import BaseDialog
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
+from src.utils.open_url import open_url
 
 __all__ = ["SettingsDialog"]
 
@@ -236,7 +235,7 @@ class SettingsDialog(BaseDialog):
         self.steam_api_edit.setEchoMode(QLineEdit.EchoMode.Password)
         steam_row.addWidget(self.steam_api_edit)
         btn_steam_key = QPushButton(t("settings.api.steam_get_key"))
-        btn_steam_key.clicked.connect(lambda: QDesktopServices.openUrl(QUrl("https://steamcommunity.com/dev/apikey")))
+        btn_steam_key.clicked.connect(lambda: open_url("https://steamcommunity.com/dev/apikey"))
         steam_row.addWidget(btn_steam_key)
         api_layout.addLayout(steam_row)
 
@@ -248,9 +247,7 @@ class SettingsDialog(BaseDialog):
         self.sgdb_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
         sgdb_row.addWidget(self.sgdb_key_edit)
         btn_sgdb_key = QPushButton(t("settings.api.sgdb_get_key"))
-        btn_sgdb_key.clicked.connect(
-            lambda: QDesktopServices.openUrl(QUrl("https://www.steamgriddb.com/profile/preferences/api"))
-        )
+        btn_sgdb_key.clicked.connect(lambda: open_url("https://www.steamgriddb.com/profile/preferences/api"))
         sgdb_row.addWidget(btn_sgdb_key)
         api_layout.addLayout(sgdb_row)
 

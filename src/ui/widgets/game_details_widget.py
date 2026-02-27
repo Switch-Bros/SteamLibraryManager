@@ -24,6 +24,7 @@ from PyQt6.QtWidgets import (
     QGroupBox,
 )
 
+from src.config import config
 from src.core.game_manager import Game
 from src.core.steam_assets import SteamAssets
 from src.ui.builders.details_ui_builder import build_details_ui
@@ -410,7 +411,7 @@ class GameDetailsWidget(QWidget):
                 game.pegi_rating = fetched_pegi
 
         if pegi_to_display:
-            pegi_path = Path(f"resources/icons/PEGI{pegi_to_display}.png")
+            pegi_path = config.ICONS_DIR / f"PEGI{pegi_to_display}.png"
             self.pegi_image.load_image(str(pegi_path) if pegi_path.exists() else None)
         else:
             self.pegi_image.load_image(None)
@@ -489,6 +490,6 @@ class GameDetailsWidget(QWidget):
     def open_current_store(self) -> None:
         """Opens the Steam Store page in the default browser."""
         if self.current_game:
-            import webbrowser
+            from src.utils.open_url import open_url
 
-            webbrowser.open(f"https://store.steampowered.com/app/{self.current_game.app_id}")
+            open_url(f"https://store.steampowered.com/app/{self.current_game.app_id}")

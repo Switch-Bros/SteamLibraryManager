@@ -12,6 +12,7 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap, QIcon
 from PyQt6.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QGridLayout, QWidget
 
+from src.config import config
 from src.ui.theme import Theme
 from src.ui.widgets.base_dialog import BaseDialog
 from src.utils.i18n import t
@@ -86,7 +87,7 @@ class PEGISelectorDialog(BaseDialog):
         grid.setSpacing(15)
 
         pegi_ratings = ["3", "7", "12", "16", "18"]
-        icons_dir = Path("resources/icons")
+        icons_dir = config.ICONS_DIR
 
         row, col = 0, 0
         for rating in pegi_ratings:

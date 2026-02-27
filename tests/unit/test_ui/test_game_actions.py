@@ -169,7 +169,7 @@ class TestToggleHideGame:
 class TestOpenInStore:
     """Tests for open_in_store() method."""
 
-    @patch("webbrowser.open")
+    @patch("src.ui.actions.game_actions.open_url")
     def test_open_in_store(self, mock_webbrowser, game_actions: GameActions, sample_game: Game):
         """Should open Steam store page in browser."""
         # Execute
@@ -179,7 +179,7 @@ class TestOpenInStore:
         expected_url = "https://store.steampowered.com/app/440"
         mock_webbrowser.assert_called_once_with(expected_url)
 
-    @patch("webbrowser.open")
+    @patch("src.ui.actions.game_actions.open_url")
     def test_open_in_store_different_appid(self, mock_webbrowser, game_actions: GameActions):
         """Should construct correct URL for different app IDs."""
         # Setup
@@ -262,7 +262,7 @@ class TestRemoveFromLocalConfig:
 class TestRemoveFromAccount:
     """Tests for remove_game_from_account() method."""
 
-    @patch("webbrowser.open")
+    @patch("src.ui.actions.game_actions.open_url")
     @patch("src.ui.actions.game_actions.UIHelper")
     def test_remove_from_account_opens_support(
         self, mock_helper, mock_webbrowser, game_actions: GameActions, sample_game: Game
@@ -281,7 +281,7 @@ class TestRemoveFromAccount:
         assert "440" in call_args
         assert "issueid=123" in call_args
 
-    @patch("webbrowser.open")
+    @patch("src.ui.actions.game_actions.open_url")
     @patch("src.ui.actions.game_actions.UIHelper")
     def test_remove_from_account_cancelled(
         self, mock_helper, mock_webbrowser, game_actions: GameActions, sample_game: Game
