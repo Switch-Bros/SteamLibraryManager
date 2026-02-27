@@ -43,10 +43,24 @@ jobs:
 
     - name: Build with PyInstaller
       run: |
-        pyinstaller --onefile --windowed \
+        pyinstaller --windowed --noconfirm \
           --name SteamLibraryManager \
           --add-data "resources:resources" \
+          --add-data "src:src" \
           src/main.py
+
+    - name: Create AppDir structure
+      run: |
+        mkdir -p AppDir/usr/{bin,share/{applications,icons/hicolor/scalable/apps,metainfo}}
+        cp -r dist/SteamLibraryManager/* AppDir/usr/bin/
+        cp flatpak/org.steamlibrarymanager.SteamLibraryManager.desktop \
+            AppDir/usr/share/applications/
+        cp flatpak/org.steamlibrarymanager.svg \
+            AppDir/usr/share/icons/hicolor/scalable/apps/
+        cp resources/org.steamlibrarymanager.metainfo.xml \
+            AppDir/usr/share/metainfo/
+        cp flatpak/org.steamlibrarymanager.SteamLibraryManager.desktop AppDir/
+        cp flatpak/org.steamlibrarymanager.svg AppDir/
 
     - name: Download linuxdeploy
       run: |
@@ -58,10 +72,10 @@ jobs:
         VERSION: ${{ steps.version.outputs.version }}
       run: |
         export OUTPUT="SteamLibraryManager-${VERSION}-x86_64.AppImage"
-        ./linuxdeploy-x86_64.AppImage --appdir AppDir \
-          --executable dist/SteamLibraryManager \
-          --desktop-file resources/SteamLibraryManager.desktop \
-          --icon-file resources/icon.png \
+        ARCH=x86_64 ./linuxdeploy-x86_64.AppImage \
+          --appdir AppDir \
+          --desktop-file AppDir/org.steamlibrarymanager.SteamLibraryManager.desktop \
+          --icon-file AppDir/org.steamlibrarymanager.svg \
           --output appimage
         # Rename if linuxdeploy used a different name
         if [ ! -f "$OUTPUT" ]; then
