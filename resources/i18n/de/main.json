@@ -650,5 +650,33 @@
       "stale_hltb": "{count} Spiele mit HLTB-Daten älter als 30 Tage",
       "stale_protondb": "{count} Spiele mit ProtonDB-Daten älter als 7 Tage"
     }
+  },
+  "update": {
+    "dialog_title": "Update verfügbar",
+    "current_version": "Aktuelle Version: {version}",
+    "new_version": "Neue Version: {version}",
+    "release_notes": "Versionshinweise:",
+    "download_size": "Download-Größe: {size}",
+    "download_install": "Herunterladen & Installieren",
+    "skip_version": "Version überspringen",
+    "restart_now": "Jetzt neu starten",
+    "downloading": "Wird heruntergeladen... {percent}%",
+    "ready_to_install": "Download abgeschlossen! Klicke 'Jetzt neu starten' zum Installieren.",
+    "check_title": "Update-Prüfung",
+    "up_to_date": "Du verwendest die neueste Version!",
+    "checking": "Suche nach Updates...",
+    "not_appimage": "Auto-Update ist nur für AppImage verfügbar. Nutze deinen Paketmanager zum Aktualisieren.",
+    "no_appimage_asset": "Kein AppImage im neuesten Release gefunden.",
+    "confirm_restart": "Das Update wurde heruntergeladen. Jetzt neu starten?\n\nÄnderungen werden automatisch gespeichert.",
+    "install_failed": "Update-Installation fehlgeschlagen. Vorherige Version wiederhergestellt.",
+    "settings_title": "Updates",
+    "check_on_startup": "Beim Start nach Updates suchen",
+    "check_interval": "Automatisches Prüfintervall:",
+    "interval_never": "Nie",
+    "interval_daily": "Täglich",
+    "interval_weekly": "Wöchentlich",
+    "interval_monthly": "Monatlich",
+    "last_check": "Letzte Prüfung: {time}",
+    "check_now": "Jetzt nach Updates suchen"
   }
 }

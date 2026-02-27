@@ -86,17 +86,17 @@
   <url type="homepage">https://github.com/Switch-Bros/SteamLibraryManager</url>
   <url type="bugtracker">https://github.com/Switch-Bros/SteamLibraryManager/issues</url>
 
-  <launchable type="desktop-id">steam-library-manager.desktop</launchable>
+  <launchable type="desktop-id">org.steamlibrarymanager.SteamLibraryManager.desktop</launchable>
 
   <screenshots>
     <screenshot type="default">
       <caption>Main window with category tree and game details</caption>
-      <image>https://raw.githubusercontent.com/Switch-Bros/SteamLibraryManager/main/resources/screenshots/01_hero_main_window.png</image>
+      <image>https://raw.githubusercontent.com/Switch-Bros/SteamLibraryManager/master/resources/screenshots/01_hero_main_window.webp</image>
     </screenshot>
   </screenshots>
 
   <releases>
-    <release version="1.1.1" date="2026-02-XX">
+    <release version="1.1.1" date="2026-XX-XX">
       <description>
         <p>Initial stable release with 17 AutoCat types, Smart Collections,
            8 external game parsers, cloud sync, and full English + German UI.</p>

@@ -266,6 +266,16 @@
     "appinfo": {
       "no_data": "No data provided: either path or data parameter is required",
       "no_output_path": "No output path specified and no file path was set during initialization"
+    },
+    "update": {
+      "not_appimage": "Not running as AppImage - update check skipped",
+      "check_failed": "Update check failed: {error}",
+      "up_to_date": "Already on latest version: {version}",
+      "available": "Update available: {current} -> {new}",
+      "download_complete": "Update downloaded to: {path}",
+      "download_failed": "Update download failed: {error}",
+      "installing": "Installing update from: {path}",
+      "install_failed": "Update install failed: {error} - rolling back"
     }
   }
 }

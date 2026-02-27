@@ -15,39 +15,46 @@ finish-args:
   - --talk-name=org.freedesktop.Secrets
 
 modules:
-  # ⚠️ CECE: Generiere die Python-Dependencies aus requirements-user.txt!
-  #    Tool: flatpak-pip-generator (oder pip3 install in build-commands)
-  #    KDE Runtime hat Qt6 bereits — PyQt6 NICHT nochmal installieren!
-  #    Beispiel: flatpak-pip-generator requests beautifulsoup4 cryptography keyring pillow vdf protobuf
+  # Python dependencies from requirements-user.txt
+  # NOTE: PyQt6 is provided by KDE Runtime — do NOT include it here!
   - name: python3-dependencies
     buildsystem: simple
     build-commands:
       - pip3 install --prefix=/app --no-deps
-          protobuf>=3.20.0
-          requests
-          beautifulsoup4
-          cryptography
-          keyring
-          Pillow
-          vdf
-    # ⚠️ CECE: Verifiziere gegen requirements-user.txt! Liste ggf. erweitern.
+          psutil>=6.1.0
+          Pillow>=11.0.0
+          opencv-python-headless>=4.8.0
+          vdf>=3.4
+          PyYAML>=6.0
+          beautifulsoup4>=4.12.0
+          lxml>=5.0.0
+          requests>=2.32.0
+          requests-oauthlib>=2.0.0
+          qrcode>=8.0
+          steam>=1.4.4
+          protobuf>=4.21.0
+          pywebview>=5.3.2
+          packaging>=23.0
 
   - name: steam-library-manager
     buildsystem: simple
     build-commands:
       - pip3 install --prefix=/app . --no-build-isolation --no-deps
-      - install -Dm644 org.steamlibrarymanager.desktop /app/share/applications/org.steamlibrarymanager.desktop
-      - install -Dm644 org.steamlibrarymanager.metainfo.xml /app/share/metainfo/org.steamlibrarymanager.metainfo.xml
-      - install -Dm644 org.steamlibrarymanager.svg /app/share/icons/hicolor/scalable/apps/org.steamlibrarymanager.svg
+      - install -Dm644 org.steamlibrarymanager.SteamLibraryManager.desktop
+          /app/share/applications/org.steamlibrarymanager.SteamLibraryManager.desktop
+      - install -Dm644 org.steamlibrarymanager.metainfo.xml
+          /app/share/metainfo/org.steamlibrarymanager.metainfo.xml
+      - install -Dm644 org.steamlibrarymanager.svg
+          /app/share/icons/hicolor/scalable/apps/org.steamlibrarymanager.SteamLibraryManager.svg
     sources:
       - type: git
         url: https://github.com/Switch-Bros/SteamLibraryManager.git
         tag: v1.1.1
-        # ⚠️ CECE: commit Hash MUSS nach dem Tag-Push hier rein!
-        # commit: abc123...
+        # commit hash must be added after tag push!
       - type: file
-        path: org.steamlibrarymanager.desktop
+        path: org.steamlibrarymanager.SteamLibraryManager.desktop
       - type: file
-        path: org.steamlibrarymanager.metainfo.xml
+        path: ../resources/org.steamlibrarymanager.metainfo.xml
       - type: file
-        path: org.steamlibrarymanager.svg
+        path: ../resources/icon.svg
+        dest-filename: org.steamlibrarymanager.svg

@@ -1,0 +1,72 @@
+# .github/workflows/publish-release.yml
+#
+# Triggered on version tag push (v*.*.*).
+# Validates version consistency, runs tests, builds AppImage,
+# and creates a GitHub Release with artifacts + checksums.
+name: Publish Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Verify version consistency
+      run: |
+        TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+        PY_VERSION=$(python -c "exec(open('src/version.py').read()); print(__version__)")
+        if [ "$TAG_VERSION" != "$PY_VERSION" ]; then
+          echo "::error::Version mismatch! Tag=$TAG_VERSION, version.py=$PY_VERSION"
+          exit 1
+        fi
+
+    - name: Verify CHANGELOG entry
+      run: |
+        TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+        if ! grep -q "\[$TAG_VERSION\]" CHANGELOG.md; then
+          echo "::error::CHANGELOG.md missing entry for $TAG_VERSION"
+          exit 1
+        fi
+
+  test:
+    needs: validate
+    uses: ./.github/workflows/test.yml
+
+  build-appimage:
+    needs: test
+    uses: ./.github/workflows/build-appimage.yml
+
+  create-release:
+    needs: [build-appimage]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Extract changelog for release notes
+      run: |
+        TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+        awk "/^## \[$TAG_VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" \
+          CHANGELOG.md > release_notes.md
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: SteamLibraryManager-AppImage
+
+    - name: Generate checksums
+      run: sha256sum SteamLibraryManager-*.AppImage > SHA256SUMS.txt
+
+    - uses: softprops/action-gh-release@v2
+      with:
+        body_path: release_notes.md
+        files: |
+          SteamLibraryManager-*.AppImage
+          SHA256SUMS.txt

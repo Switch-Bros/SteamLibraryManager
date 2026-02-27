@@ -63,6 +63,37 @@ class SteamActions:
         dialog = AboutDialog(parent=self.mw)
         dialog.exec()
 
+    def check_for_updates(self) -> None:
+        """Checks for application updates via GitHub Releases API.
+
+        Shows update dialog if a newer version is available,
+        or a brief message if already up to date.
+        """
+        from src.services.update_service import UpdateService
+
+        service = UpdateService(parent=self.mw)
+        service.update_available.connect(self._on_update_available)
+        service.update_not_available.connect(
+            lambda: UIHelper.show_info(self.mw, t("update.up_to_date"), t("update.check_title"))
+        )
+        service.check_failed.connect(lambda msg: UIHelper.show_warning(self.mw, msg, t("update.check_title")))
+        # Keep reference to prevent GC
+        self.mw._update_service = service
+        service.check_for_update()
+
+    def _on_update_available(self, info: object) -> None:
+        """Shows update dialog when a newer version is found."""
+        from src.services.update_service import UpdateInfo
+        from src.ui.dialogs.update_dialog import UpdateDialog
+
+        if not isinstance(info, UpdateInfo):
+            return
+        service = getattr(self.mw, "_update_service", None)
+        if not service:
+            return
+        dialog = UpdateDialog(parent=self.mw, info=info, update_service=service)
+        dialog.exec()
+
     def on_login_success(self, result: dict) -> None:
         """Handles successful Steam authentication.
 

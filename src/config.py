@@ -79,6 +79,12 @@ class Config:
     TAGS_PER_GAME: int = 13
     IGNORE_COMMON_TAGS: bool = True
 
+    # Update Settings
+    UPDATE_CHECK_ON_STARTUP: bool = True
+    UPDATE_CHECK_INTERVAL: str = "weekly"  # "never", "daily", "weekly", "monthly"
+    UPDATE_LAST_CHECK: str = ""  # ISO timestamp
+    UPDATE_SKIPPED_VERSION: str = ""  # User chose to skip this version
+
     def __post_init__(self):
         """Initialize directories and load settings after instantiation."""
         self.DATA_DIR.mkdir(exist_ok=True)
@@ -176,6 +182,12 @@ class Config:
         # Load UI State
         self.EXPANDED_CATEGORIES = data.get("expanded_categories", [])
 
+        # Load Update Settings
+        self.UPDATE_CHECK_ON_STARTUP = data.get("update_check_on_startup", self.UPDATE_CHECK_ON_STARTUP)
+        self.UPDATE_CHECK_INTERVAL = data.get("update_check_interval", self.UPDATE_CHECK_INTERVAL)
+        self.UPDATE_LAST_CHECK = data.get("update_last_check", self.UPDATE_LAST_CHECK)
+        self.UPDATE_SKIPPED_VERSION = data.get("update_skipped_version", self.UPDATE_SKIPPED_VERSION)
+
     def save(self) -> None:
         """Save current configuration to JSON file."""
         data = {
@@ -190,6 +202,10 @@ class Config:
             "steam_libraries": self.STEAM_LIBRARIES,
             "steam_user_id": self.STEAM_USER_ID,
             "expanded_categories": self.EXPANDED_CATEGORIES,
+            "update_check_on_startup": self.UPDATE_CHECK_ON_STARTUP,
+            "update_check_interval": self.UPDATE_CHECK_INTERVAL,
+            "update_last_check": self.UPDATE_LAST_CHECK,
+            "update_skipped_version": self.UPDATE_SKIPPED_VERSION,
         }
 
         save_json(self.SETTINGS_FILE, data)

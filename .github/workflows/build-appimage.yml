@@ -1,0 +1,75 @@
+# .github/workflows/build-appimage.yml
+#
+# Builds a portable AppImage using PyInstaller + linuxdeploy.
+# Can be triggered manually, called by other workflows, or on release.
+name: Build AppImage
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Extract version
+      id: version
+      run: |
+        VERSION=$(python -c "exec(open('src/version.py').read()); print(__version__)")
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libegl1 libxcb-xinerama0 \
+          libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+          libxcb-render-util0 libxcb-shape0 libxcb-sync1 libxcb-xfixes0 \
+          libxcb-xkb1 libxkbcommon-x11-0 libgl1 fuse libfuse2
+
+    - name: Install Python dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements-user.txt
+        pip install pyinstaller==6.10.0
+
+    - name: Build with PyInstaller
+      run: |
+        pyinstaller --onefile --windowed \
+          --name SteamLibraryManager \
+          --add-data "resources:resources" \
+          src/main.py
+
+    - name: Download linuxdeploy
+      run: |
+        wget -q "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
+        chmod +x linuxdeploy-x86_64.AppImage
+
+    - name: Build AppImage
+      env:
+        VERSION: ${{ steps.version.outputs.version }}
+      run: |
+        export OUTPUT="SteamLibraryManager-${VERSION}-x86_64.AppImage"
+        ./linuxdeploy-x86_64.AppImage --appdir AppDir \
+          --executable dist/SteamLibraryManager \
+          --desktop-file resources/SteamLibraryManager.desktop \
+          --icon-file resources/icon.png \
+          --output appimage
+        # Rename if linuxdeploy used a different name
+        if [ ! -f "$OUTPUT" ]; then
+          mv SteamLibraryManager-*.AppImage "$OUTPUT" 2>/dev/null || true
+        fi
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: SteamLibraryManager-AppImage
+        path: SteamLibraryManager-*.AppImage
