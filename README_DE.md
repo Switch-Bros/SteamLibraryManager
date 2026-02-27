@@ -1,5 +1,3 @@
-# 🎮 Steam Library Manager
-
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_header_dark.webp">
@@ -7,6 +5,8 @@
     <img src="resources/images/readme_header_light.webp" alt="" width="800">
   </picture>
 </p>
+
+# 🎮 Steam Library Manager
 
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-FDE100?style=plastic&logo=python&logoColor=FDE100&labelColor=000000)](https://www.python.org/)
