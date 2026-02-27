@@ -9,8 +9,6 @@ intentionally hardcoded (project metadata, not user-facing i18n).
 
 from __future__ import annotations
 
-import webbrowser
-from pathlib import Path
 from typing import NamedTuple
 
 from PyQt6.QtCore import Qt, pyqtSignal
@@ -23,9 +21,11 @@ from PyQt6.QtWidgets import (
     QPushButton,
 )
 
+from src.config import config
 from src.ui.utils.font_helper import FontHelper
 from src.ui.widgets.base_dialog import BaseDialog
 from src.utils.i18n import get_language, t
+from src.utils.open_url import open_url
 from src.version import __app_name__, __version__, __release_date__, __author__, __license__
 
 __all__ = ["AboutDialog"]
@@ -177,7 +177,7 @@ class AboutDialog(BaseDialog):
         logo_label.setCursor(Qt.CursorShape.PointingHandCursor)
         logo_label.setToolTip("SwitchBros")
 
-        logo_path = Path("resources/images/default_icons.png")
+        logo_path = config.RESOURCES_DIR / "images" / "default_icons.png"
         if logo_path.exists():
             pixmap = QPixmap(str(logo_path))
             logo_label.setPixmap(
@@ -289,7 +289,7 @@ class AboutDialog(BaseDialog):
         self._click_count += 1
 
         if self._click_count == 3:
-            webbrowser.open(_GITHUB_URL)
+            open_url(_GITHUB_URL)
 
         elif self._click_count >= 5:
             from src.utils.enigma import load_easter_egg

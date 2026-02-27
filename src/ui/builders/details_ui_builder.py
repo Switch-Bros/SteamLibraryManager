@@ -24,6 +24,7 @@ from PyQt6.QtWidgets import (
     QGroupBox,
 )
 
+from src.config import config
 from src.ui.theme import Theme
 from src.ui.utils.font_helper import FontHelper
 from src.ui.widgets.category_list import HorizontalCategoryList
@@ -156,7 +157,7 @@ def _build_header(w: GameDetailsWidget, main_layout: QVBoxLayout) -> None:
 
     # PEGI Rating Box
     w.pegi_image = ClickableImage(w, 128, 128)
-    w.pegi_image.set_default_image("resources/images/default_icons.png")
+    w.pegi_image.set_default_image(str(config.RESOURCES_DIR / "images" / "default_icons.png"))
     w.pegi_image.clicked.connect(w.on_pegi_clicked)
     w.pegi_image.right_clicked.connect(w.on_pegi_right_click)
     w.pegi_image.setStyleSheet(f"border: 1px solid {Theme.PEGI_HOVER}; background-color: {Theme.BG_PRIMARY};")
@@ -208,7 +209,7 @@ def _build_gallery(w: GameDetailsWidget, header_layout: QHBoxLayout) -> None:
 
     # Grid (Cover)
     w.img_grid = ClickableImage(w, 232, 348)
-    w.img_grid.set_default_image("resources/images/default_grids.png")
+    w.img_grid.set_default_image(str(config.RESOURCES_DIR / "images" / "default_grids.png"))
     w.img_grid.clicked.connect(lambda: w.on_image_click("grids"))
     w.img_grid.right_clicked.connect(lambda: w.on_image_right_click("grids"))
     gallery_layout.addWidget(w.img_grid)
@@ -224,14 +225,14 @@ def _build_gallery(w: GameDetailsWidget, header_layout: QHBoxLayout) -> None:
     top_row.setSpacing(4)
 
     w.img_logo = ClickableImage(w, 264, 184)
-    w.img_logo.set_default_image("resources/images/default_logos.png")
+    w.img_logo.set_default_image(str(config.RESOURCES_DIR / "images" / "default_logos.png"))
     w.img_logo.clicked.connect(lambda: w.on_image_click("logos"))
     w.img_logo.right_clicked.connect(lambda: w.on_image_right_click("logos"))
     w.img_logo.setStyleSheet("background: transparent;")
     top_row.addWidget(w.img_logo)
 
     w.img_icon = ClickableImage(w, 80, 80)
-    w.img_icon.set_default_image("resources/images/default_icons.png")
+    w.img_icon.set_default_image(str(config.RESOURCES_DIR / "images" / "default_icons.png"))
     w.img_icon.clicked.connect(lambda: w.on_image_click("icons"))
     w.img_icon.right_clicked.connect(lambda: w.on_image_right_click("icons"))
     w.img_icon.setStyleSheet("background: transparent;")
@@ -246,7 +247,7 @@ def _build_gallery(w: GameDetailsWidget, header_layout: QHBoxLayout) -> None:
 
     # Hero
     w.img_hero = ClickableImage(w, 348, 160)
-    w.img_hero.set_default_image("resources/images/default_heroes.png")
+    w.img_hero.set_default_image(str(config.RESOURCES_DIR / "images" / "default_heroes.png"))
     w.img_hero.clicked.connect(lambda: w.on_image_click("heroes"))
     w.img_hero.right_clicked.connect(lambda: w.on_image_right_click("heroes"))
     right_stack.addWidget(w.img_hero)

@@ -11,11 +11,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import Qt, QUrl
-from PyQt6.QtGui import QAction, QActionGroup, QDesktopServices, QKeySequence
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QAction, QActionGroup, QKeySequence
 from PyQt6.QtWidgets import QMenuBar, QLabel
 
 from src.utils.i18n import get_language, t
+from src.utils.open_url import open_url
 
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
@@ -87,7 +88,7 @@ class MenuBuilder:
         Args:
             url: The URL to open.
         """
-        QDesktopServices.openUrl(QUrl(url))
+        open_url(url)
 
     def _edit_single_game(self) -> None:
         """Selection guard for single game metadata editing.

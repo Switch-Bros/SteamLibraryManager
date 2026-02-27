@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING
 from src.core.game_manager import Game
 from src.ui.widgets.ui_helper import UIHelper
 from src.utils.i18n import t
+from src.utils.open_url import open_url
 
 if TYPE_CHECKING:
     from src.ui.main_window import MainWindow
@@ -137,9 +138,7 @@ class GameActions:
         Args:
             game: The game to view in the store.
         """
-        import webbrowser
-
-        webbrowser.open(f"https://store.steampowered.com/app/{game.app_id}")
+        open_url(f"https://store.steampowered.com/app/{game.app_id}")
 
     def remove_from_local_config(self, game: Game) -> None:
         """Removes a game entry from the local Steam configuration.
@@ -188,8 +187,6 @@ class GameActions:
             f"{t('emoji.warning')} {t('ui.dialogs.remove_account_warning')}",
             t("ui.dialogs.remove_account_title"),
         ):
-            import webbrowser
-
             # Steam Support URL for removing a game (issueid 123 is "remove from account")
             url = f"https://help.steampowered.com/en/wizard/HelpWithGameIssue/?appid={game.app_id}&issueid=123"
-            webbrowser.open(url)
+            open_url(url)
