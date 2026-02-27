@@ -53,6 +53,8 @@ jobs:
       run: |
         mkdir -p AppDir/usr/{bin,share/{applications,icons/hicolor/scalable/apps,metainfo}}
         cp -r dist/SteamLibraryManager/* AppDir/usr/bin/
+        # Symlink so linuxdeploy finds the Exec= entry from the desktop file
+        ln -sf SteamLibraryManager AppDir/usr/bin/steam-library-manager
         cp flatpak/org.steamlibrarymanager.SteamLibraryManager.desktop \
             AppDir/usr/share/applications/
         cp flatpak/org.steamlibrarymanager.SteamLibraryManager.svg \
