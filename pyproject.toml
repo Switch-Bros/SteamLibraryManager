@@ -29,6 +29,19 @@ Repository = "https://github.com/Switch-Bros/SteamLibraryManager"
 Issues = "https://github.com/Switch-Bros/SteamLibraryManager/issues"
 Changelog = "https://github.com/Switch-Bros/SteamLibraryManager/blob/master/CHANGELOG.md"
 
+[project.gui-scripts]
+steam-library-manager = "src.main:main"
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.json", "*.png", "*.svg", "*.webp", "*.desktop", "*.ttf", "*.otf"]
+
 [tool.black]
 line-length = 120
 target-version = ["py310", "py311", "py312", "py313"]

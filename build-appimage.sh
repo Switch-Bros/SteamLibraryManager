@@ -1,26 +1,57 @@
 #!/bin/bash
-# build-appimage.sh
-set -e
+# build-appimage.sh — Build SLM AppImage
+# Usage: ./build-appimage.sh
+set -euo pipefail
 
 cd "$(dirname "$0")"
-rm -rf AppDir dist SteamLibraryManager-*.AppImage
+echo "Building SteamLibraryManager AppImage..."
 
-# 1. PyInstaller bündelt alles in ein Verzeichnis
-pip install pyinstaller==6.10.0
-pyinstaller --onefile --windowed --name SteamLibraryManager --add-data "resources:resources" src/main.py
+# Clean previous builds
+rm -rf AppDir dist build SteamLibraryManager-*.AppImage
 
-# 2. linuxdeploy + Qt plugin bauen AppImage
-wget -c "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
-chmod +x linuxdeploy-x86_64.AppImage
+# 1. Bundle with PyInstaller (--windowed, NOT --onefile — linuxdeploy needs a directory)
+pip install --break-system-packages pyinstaller 2>/dev/null || pip install pyinstaller
+pyinstaller \
+    --name SteamLibraryManager \
+    --windowed \
+    --noconfirm \
+    --add-data "resources:resources" \
+    --add-data "src:src" \
+    src/main.py
 
-wget -c "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage"
-chmod +x linuxdeploy-plugin-qt-x86_64.AppImage
+# 2. Create AppDir structure
+mkdir -p AppDir/usr/{bin,share/{applications,icons/hicolor/scalable/apps,metainfo}}
 
-./linuxdeploy-x86_64.AppImage --appdir AppDir \
-  --executable dist/SteamLibraryManager \
-  --desktop-file resources/SteamLibraryManager.desktop \
-  --icon-file resources/icon.png \
-  --output appimage \
-  --plugin qt
+# Copy PyInstaller output
+cp -r dist/SteamLibraryManager/* AppDir/usr/bin/
 
-echo "✅ AppImage erstellt: $(ls SteamLibraryManager-*.AppImage)"
+# Copy desktop integration files
+cp flatpak/org.steamlibrarymanager.SteamLibraryManager.desktop \
+    AppDir/usr/share/applications/
+cp flatpak/org.steamlibrarymanager.svg \
+    AppDir/usr/share/icons/hicolor/scalable/apps/
+cp resources/org.steamlibrarymanager.metainfo.xml \
+    AppDir/usr/share/metainfo/
+
+# AppRun needs these at the top level too
+cp flatpak/org.steamlibrarymanager.SteamLibraryManager.desktop AppDir/
+cp flatpak/org.steamlibrarymanager.svg AppDir/
+
+# 3. Download linuxdeploy (if not cached)
+LINUXDEPLOY="linuxdeploy-x86_64.AppImage"
+if [ ! -f "$LINUXDEPLOY" ]; then
+    wget -q "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/${LINUXDEPLOY}"
+    chmod +x "$LINUXDEPLOY"
+fi
+
+# 4. Build AppImage
+ARCH=x86_64 ./"$LINUXDEPLOY" \
+    --appdir AppDir \
+    --desktop-file AppDir/org.steamlibrarymanager.SteamLibraryManager.desktop \
+    --icon-file AppDir/org.steamlibrarymanager.svg \
+    --output appimage
+
+RESULT=$(ls SteamLibraryManager-*.AppImage 2>/dev/null)
+echo ""
+echo "AppImage created: ${RESULT}"
+echo "Test with: ./${RESULT}"
