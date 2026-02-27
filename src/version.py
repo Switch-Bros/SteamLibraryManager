@@ -8,6 +8,6 @@ __all__ = ["__app_name__", "__version__", "__release_date__", "__author__", "__l
 
 __app_name__ = "Steam Library Manager"
 __version__ = "1.1.1"
-__release_date__ = "2026-XX-XX"
+__release_date__ = "2026-02-27"
 __author__ = "SwitchBros"
 __license__ = "MIT"
