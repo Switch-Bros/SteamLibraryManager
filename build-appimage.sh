@@ -28,14 +28,14 @@ cp -r dist/SteamLibraryManager/* AppDir/usr/bin/
 # Copy desktop integration files
 cp flatpak/org.steamlibrarymanager.SteamLibraryManager.desktop \
     AppDir/usr/share/applications/
-cp flatpak/org.steamlibrarymanager.svg \
+cp flatpak/org.steamlibrarymanager.SteamLibraryManager.svg \
     AppDir/usr/share/icons/hicolor/scalable/apps/
 cp resources/org.steamlibrarymanager.metainfo.xml \
     AppDir/usr/share/metainfo/
 
 # AppRun needs these at the top level too
 cp flatpak/org.steamlibrarymanager.SteamLibraryManager.desktop AppDir/
-cp flatpak/org.steamlibrarymanager.svg AppDir/
+cp flatpak/org.steamlibrarymanager.SteamLibraryManager.svg AppDir/
 
 # 3. Download linuxdeploy (if not cached)
 LINUXDEPLOY="linuxdeploy-x86_64.AppImage"
@@ -48,7 +48,7 @@ fi
 ARCH=x86_64 ./"$LINUXDEPLOY" \
     --appdir AppDir \
     --desktop-file AppDir/org.steamlibrarymanager.SteamLibraryManager.desktop \
-    --icon-file AppDir/org.steamlibrarymanager.svg \
+    --icon-file AppDir/org.steamlibrarymanager.SteamLibraryManager.svg \
     --output appimage
 
 RESULT=$(ls SteamLibraryManager-*.AppImage 2>/dev/null)
