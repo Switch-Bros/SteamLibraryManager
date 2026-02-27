@@ -48,11 +48,16 @@ class Config:
     """
 
     APP_DIR: Path = Path(__file__).parent.parent
-    DATA_DIR: Path = APP_DIR / "data"
-    CACHE_DIR: Path = DATA_DIR / "cache"
     RESOURCES_DIR: Path = APP_DIR / "resources"
     ICONS_DIR: Path = RESOURCES_DIR / "icons"
 
+    # DATA_DIR must be writable — use XDG on AppImage/Flatpak, local otherwise
+    DATA_DIR: Path = (
+        Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share")) / "steamlibrarymanager"
+        if os.environ.get("APPIMAGE") or os.environ.get("FLATPAK_ID")
+        else APP_DIR / "data"
+    )
+    CACHE_DIR: Path = DATA_DIR / "cache"
     SETTINGS_FILE: Path = DATA_DIR / "settings.json"
 
     # Default values
