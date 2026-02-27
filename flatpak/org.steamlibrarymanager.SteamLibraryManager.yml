@@ -44,16 +44,16 @@ modules:
           /app/share/applications/org.steamlibrarymanager.SteamLibraryManager.desktop
       - install -Dm644 org.steamlibrarymanager.metainfo.xml
           /app/share/metainfo/org.steamlibrarymanager.metainfo.xml
-      - install -Dm644 org.steamlibrarymanager.svg
+      - install -Dm644 org.steamlibrarymanager.SteamLibraryManager.svg
           /app/share/icons/hicolor/scalable/apps/org.steamlibrarymanager.SteamLibraryManager.svg
     sources:
       - type: git
         url: https://github.com/Switch-Bros/SteamLibraryManager.git
         tag: v1.1.1
-        commit: 11643e62e348310c23fdc7a338a8e67ad765b37b
+        commit: 32529c0798ab2c6f35dea5f6698fb0cb42d38ae6
       - type: file
         path: org.steamlibrarymanager.SteamLibraryManager.desktop
       - type: file
         path: ../resources/org.steamlibrarymanager.metainfo.xml
       - type: file
-        path: org.steamlibrarymanager.svg
+        path: org.steamlibrarymanager.SteamLibraryManager.svg
