@@ -56,5 +56,4 @@ modules:
       - type: file
         path: ../resources/org.steamlibrarymanager.metainfo.xml
       - type: file
-        path: ../resources/icon.svg
-        dest-filename: org.steamlibrarymanager.svg
+        path: org.steamlibrarymanager.svg
