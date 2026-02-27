@@ -50,7 +50,7 @@ modules:
       - type: git
         url: https://github.com/Switch-Bros/SteamLibraryManager.git
         tag: v1.1.1
-        # commit hash must be added after tag push!
+        commit: 11643e62e348310c23fdc7a338a8e67ad765b37b
       - type: file
         path: org.steamlibrarymanager.SteamLibraryManager.desktop
       - type: file
