@@ -23,6 +23,7 @@ from src.ui.utils.font_helper import FontHelper
 from src.ui.main_window import MainWindow
 
 # PyQt6 imports
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication, QMessageBox
 
 __all__ = ["main"]
@@ -82,8 +83,50 @@ def load_steam_file(file_path: Path) -> Any:
     return None
 
 
+def _handle_desktop_integration(*, install: bool) -> int:
+    """Handle --install/--uninstall CLI commands for AppImage desktop integration.
+
+    Args:
+        install: True to install, False to uninstall.
+
+    Returns:
+        Exit code (0 = success, 1 = failure).
+    """
+    from src.utils.desktop_integration import (
+        install_desktop_entry,
+        is_appimage,
+        is_desktop_entry_installed,
+        uninstall_desktop_entry,
+    )
+
+    if not is_appimage():
+        print(t("cli.not_appimage"))
+        return 1
+
+    if install:
+        if is_desktop_entry_installed():
+            print(t("cli.install.already_exists"))
+        ok = install_desktop_entry()
+        print(t("cli.install.success") if ok else t("cli.install.error"))
+    else:
+        if not is_desktop_entry_installed():
+            print(t("cli.uninstall.not_found"))
+        ok = uninstall_desktop_entry()
+        print(t("cli.uninstall.success") if ok else t("cli.uninstall.error"))
+
+    return 0 if ok else 1
+
+
 def main() -> None:
     """Main application execution flow."""
+    # 0. Handle desktop integration CLI commands (no GUI needed)
+    if "--install" in sys.argv:
+        init_i18n(config.UI_LANGUAGE)
+        sys.exit(_handle_desktop_integration(install=True))
+    if "--uninstall" in sys.argv:
+        init_i18n(config.UI_LANGUAGE)
+        sys.exit(_handle_desktop_integration(install=False))
+
     # 1. Initialize language (BEFORE creating UI elements)
     init_i18n(config.UI_LANGUAGE)
 
@@ -93,6 +136,12 @@ def main() -> None:
     # 3. Create QApplication
     app = QApplication(sys.argv)
     app.setApplicationName("Steam Library Manager")
+    app.setDesktopFileName("io.github.switch_bros.SteamLibraryManager")
+
+    # Set application icon for taskbar/dock display
+    icon_path = config.RESOURCES_DIR / "icon.png"
+    if icon_path.exists():
+        app.setWindowIcon(QIcon(str(icon_path)))
 
     # 4. Load and set Inter font
     FontHelper.set_app_font(app, size=10)  # ← NEU!

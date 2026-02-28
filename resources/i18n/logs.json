@@ -260,6 +260,13 @@
       "request_error": "Profile scrape failed: {error}",
       "parsed_games": "Profile scraper: found {count} games",
       "no_games_found": "Profile scraper: no games found (profile may be private)"
+    },
+    "cli": {
+      "install_start": "Installing desktop integration...",
+      "desktop_written": "Desktop file written: {path}",
+      "icon_copied": "Icon copied: {path}",
+      "uninstall_start": "Removing desktop integration...",
+      "file_removed": "Removed: {path}"
     }
   },
   "errors": {

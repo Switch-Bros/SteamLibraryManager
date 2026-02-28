@@ -25,6 +25,6 @@ pkgbase = steam-library-manager
 	optdepends = python-keyring: secure token storage via system keyring
 	optdepends = python-steamgriddb: artwork browsing via SteamGridDB
 	source = steam-library-manager-1.1.1.tar.gz::https://github.com/Switch-Bros/SteamLibraryManager/archive/v1.1.1.tar.gz
-	sha256sums = 8b2c3a6cc9c0132d2a8a016f4254df21cce464c70201bfb0a57d2366b40194c1
+	sha256sums = a269abf498b469ac28ae4b1be8462f3ec5f1602340b0bc43998cc6a03c92546a
 
 pkgname = steam-library-manager
