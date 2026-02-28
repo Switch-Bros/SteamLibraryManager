@@ -6,13 +6,13 @@
   </picture>
 </p>
 
-# 🎮 Steam Library Manager
+<h1 align="center">🎮 Steam Library Manager</h1>
 
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-FDE100?style=plastic&logo=python&logoColor=FDE100&labelColor=000000)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Steam%20Deck-FDE100?style=plastic&logo=linux&logoColor=FDE100&labelColor=000000)](https://store.steampowered.com/steamdeck)
 [![License](https://img.shields.io/badge/License-MIT-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager/blob/main/LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-1567%20passed-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
+[![Tests](https://img.shields.io/badge/Tests-1577%20passed-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
 [![Steam API](https://img.shields.io/badge/Steam%20API-Optional-FDE100?style=plastic&logo=steam&logoColor=FDE100&labelColor=000000)](https://steamcommunity.com/dev/apikey)
 [![SteamGridDB](https://img.shields.io/badge/SteamGridDB-Required-FDE100?style=plastic&logoColor=FDE100&labelColor=000000)](https://www.steamgriddb.com/api)
 [![i18n](https://img.shields.io/badge/i18n-🇬🇧%20🇩🇪-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
@@ -33,7 +33,7 @@
 </p>
 
 
-## ✨ Features
+<h2 align="center">✨ Features</h2>
 
 <p align="center">
   <picture>
@@ -43,7 +43,7 @@
   </picture>
 </p>
 
-### 🧠 Smart Collections — *Better Than Steam's Own Dynamic Collections*
+<h3 align="center">🧠 Smart Collections — <i>Better Than Steam's Own Dynamic Collections</i></h3>
 
 Steam has dynamic collections — but they've been **AND-only since launch**. Want games that are *either* "Platinum on ProtonDB" *or* "Native Linux"? Impossible in Steam. You can only narrow down, never combine alternatives.
 
@@ -71,7 +71,7 @@ One collection. Automatic. Always up to date. **Impossible in Steam.**
   </picture>
 </p>
 
-### 💛 Support This Project
+<h3 align="center">💛 Support This Project</h3>
 
 If SLM saves you time organizing your library, consider supporting its development. Every contribution — no matter how small — helps keep this project alive and growing.
 
@@ -95,7 +95,7 @@ If SLM saves you time organizing your library, consider supporting its developme
   </picture>
 </p>
 
-### 🏷️ Auto-Categorization — *16 Rule Types, Infinite Possibilities*
+<h3 align="center">🏷️ Auto-Categorization — <i>16 Rule Types, Infinite Possibilities</i></h3>
 
 Automatically organize your entire library into meaningful collections with **16 different AutoCat rule types**:
 
@@ -120,7 +120,7 @@ Each rule type has its own configuration — set thresholds, define ignore lists
   </picture>
 </p>
 
-### ✏️ Metadata Editor — *Your Changes Survive Steam Updates*
+<h3 align="center">✏️ Metadata Editor — <i>Your Changes Survive Steam Updates</i></h3>
 
 Edit game names, sort titles, developers, publishers, and release dates — all stored locally. What makes this special:
 
@@ -145,7 +145,7 @@ Edit game names, sort titles, developers, publishers, and release dates — all 
   </picture>
 </p>
 
-### 🖼️ Artwork Manager — *SteamGridDB at Your Fingertips*
+<h3 align="center">🖼️ Artwork Manager — <i>SteamGridDB at Your Fingertips</i></h3>
 
 Browse and download **covers, heroes, logos, and icons** from [SteamGridDB](https://www.steamgriddb.com/) — the largest community-driven game artwork database.
 
@@ -169,7 +169,7 @@ Browse and download **covers, heroes, logos, and icons** from [SteamGridDB](http
   </picture>
 </p>
 
-### 📊 Data Enrichment — *Know Everything About Your Games*
+<h3 align="center">📊 Data Enrichment — <i>Know Everything About Your Games</i></h3>
 
 Batch-enrich your entire library with data from multiple sources — all cached locally in SQLite for instant access:
 
@@ -198,7 +198,7 @@ Batch-enrich your entire library with data from multiple sources — all cached 
   </picture>
 </p>
 
-### 🔒 Secure by Design — *No Copy-Paste, No Plain Text*
+<h3 align="center">🔒 Secure by Design — <i>No Copy-Paste, No Plain Text</i></h3>
 
 - **QR code login** or password login via Steam's official **OAuth2** (`IAuthenticationService`)
 - Tokens stored **encrypted** (AES-GCM) with machine-derived keys, or in your **system keyring**
@@ -219,7 +219,7 @@ Batch-enrich your entire library with data from multiple sources — all cached 
   </picture>
 </p>
 
-### 🌍 Multilingual — *Your Language, Your Way*
+<h3 align="center">🌍 Multilingual — <i>Your Language, Your Way</i></h3>
 
 Full **English 🇬🇧** and **German 🇩🇪** interface with **complete i18n** — zero hardcoded strings in the entire codebase.
 
@@ -239,7 +239,7 @@ Full **English 🇬🇧** and **German 🇩🇪** interface with **complete i18n
   </picture>
 </p>
 
-### 🐧 Linux Native — *Built Here, For Here*
+<h3 align="center">🐧 Linux Native — <i>Built Here, For Here</i></h3>
 
 Developed with **PyQt6** for seamless desktop integration. This is not a Windows app with a Linux port bolted on — it's **built on Linux, for Linux**, from day one.
 
@@ -256,7 +256,7 @@ Developed with **PyQt6** for seamless desktop integration. This is not a Windows
   </picture>
 </p>
 
-### 🎮 External Games — *One Library to Rule Them All*
+<h3 align="center">🎮 External Games — <i>One Library to Rule Them All</i></h3>
 
 Got games scattered across Epic, GOG, Amazon, Lutris, Bottles, itch.io, and Flatpak? **SLM finds them all** — and adds them to Steam as Non-Steam shortcuts in one go.
 
@@ -285,7 +285,7 @@ Got games scattered across Epic, GOG, Amazon, Lutris, Bottles, itch.io, and Flat
 </p>
 
 
-## 📸 More Screenshots
+<h2 align="center">📸 More Screenshots</h2>
 
 <details>
 <summary>Click to expand — Additional Views</summary>
@@ -299,7 +299,7 @@ Got games scattered across Epic, GOG, Amazon, Lutris, Bottles, itch.io, and Flat
 </details>
 
 
-## 📦 Download & Install
+<h2 align="center">📦 Download & Install</h2>
 
 | Format | Download | Notes |
 |--------|----------|-------|
@@ -343,7 +343,7 @@ Requires **Python 3.10+** and a running **Steam client** (not Big Picture).
 
 This project uses the following services:
 
-### **1. Steam Authentication (OAuth2)**
+<h3 align="center">1. Steam Authentication (OAuth2)</h3>
 - **Purpose:** Log in with your Steam account to access your library and display your profile name.
 - **How it works:**
   - Uses Steam's official **OAuth2** via `IAuthenticationService` (QR code or password login).
@@ -352,7 +352,7 @@ This project uses the following services:
   - You can add your API key directly in the app under **Settings → Steam Web API Key**.
   - Get your key here: [Steam Web API Key](https://steamcommunity.com/dev/apikey)
 
-### **2. SteamGridDB**
+<h3 align="center">2. SteamGridDB</h3>
 - **Required for:** Customizing game covers, heroes, logos, and icons.
 - **How to get the API key:**
   - The app **automatically prompts** for the SteamGridDB API key when you click on a game cover for the first time.
@@ -362,19 +362,19 @@ This project uses the following services:
     3. Click **OK** – the key is saved locally, and covers are ready to use!
   - **Note:** Users must comply with [SteamGridDB's Terms of Service](https://www.steamgriddb.com/terms).
 
-### **3. HowLongToBeat (HLTB)**
+<h3 align="center">3. HowLongToBeat (HLTB)</h3>
 - **Included for:** Displaying game completion times and auto-categorization by playtime ranges.
 - **No API key required.** Data is fetched automatically and cached locally.
 - **Note:** HLTB does not officially provide a public API. Integration respects their [terms](https://howlongtobeat.com/).
 
-### **4. ProtonDB**
+<h3 align="center">4. ProtonDB</h3>
 - **Included for:** Checking Linux/Proton compatibility ratings for games.
 - **No API key required.** Read-only access, cached locally with 7-day TTL.
 
 </details>
 
 
-## 🗺️ Roadmap
+<h2 align="center">🗺️ Roadmap</h2>
 
 | Milestone | Status |
 |-----------|--------|
@@ -389,7 +389,7 @@ This project uses the following services:
 | Windows support | 📋 Planned |
 
 
-## 🌍 Translations
+<h2 align="center">🌍 Translations</h2>
 
 Steam Library Manager ships with **English** and **German**. Want to see it in your language?
 
@@ -407,7 +407,7 @@ Steam Library Manager ships with **English** and **German**. Want to see it in y
 The language name must always be in its **own native script** — "Français", not "French".
 
 
-## 🛡️ Privacy & Security
+<h2 align="center">🛡️ Privacy & Security</h2>
 
 - **No telemetry.** Steam Library Manager does not phone home.
 - **No data collection.** Your library, your data, your machine.
@@ -416,7 +416,7 @@ The language name must always be in its **own native script** — "Français", n
 - **Automatic backups.** Before any write to Steam files, a backup is created.
 
 
-## 🤝 Contributing
+<h2 align="center">🤝 Contributing</h2>
 
 - 🐛 **Found a bug?** → [Open an Issue](https://github.com/Switch-Bros/SteamLibraryManager/issues)
 - 💡 **Have an idea?** → [Start a Discussion](https://github.com/Switch-Bros/SteamLibraryManager/discussions)
@@ -424,7 +424,7 @@ The language name must always be in its **own native script** — "Français", n
 - 🔧 **Want to code?** → Check out [`CLAUDE.md`](CLAUDE.md) for architecture & coding guidelines
 
 
-## 🙏 Acknowledgments
+<h2 align="center">🙏 Acknowledgments</h2>
 
 - [SteamGridDB](https://www.steamgriddb.com/) — Game artwork
 - [HowLongToBeat](https://howlongtobeat.com/) — Playtime data
@@ -433,7 +433,7 @@ The language name must always be in its **own native script** — "Français", n
 - [steamapi.xpaw.me](https://steamapi.xpaw.me/) — Steam Web API documentation
 
 
-## ⚖️ Legal Notice
+<h2 align="center">⚖️ Legal Notice</h2>
 
 This software is provided **"AS IS"**, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement.
 
@@ -445,7 +445,7 @@ In no event shall the authors or copyright holders be liable for any claim, dama
 - Steam Library Manager is **not affiliated with, endorsed by, or associated with Valve Corporation** or any other third-party service.
 
 
-## 📜 License
+<h2 align="center">📜 License</h2>
 
 [MIT License](LICENSE) — Copyright © 2026 Switch Bros.
 
