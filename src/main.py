@@ -117,6 +117,24 @@ def _handle_desktop_integration(*, install: bool) -> int:
     return 0 if ok else 1
 
 
+def _auto_register_desktop_entry() -> None:
+    """Silently register desktop entry when running as AppImage.
+
+    Called once on every AppImage startup. If the entry already exists,
+    it gets updated (in case the AppImage was moved to a new path).
+    Failures are logged but never interrupt the user.
+    """
+    try:
+        from src.utils.desktop_integration import install_desktop_entry, is_appimage
+
+        if not is_appimage():
+            return
+
+        install_desktop_entry()
+    except Exception as e:
+        logger.debug("Desktop entry auto-register failed: %s", e)
+
+
 def main() -> None:
     """Main application execution flow."""
     # 0. Handle desktop integration CLI commands (no GUI needed)
@@ -142,6 +160,9 @@ def main() -> None:
     icon_path = config.RESOURCES_DIR / "icon.png"
     if icon_path.exists():
         app.setWindowIcon(QIcon(str(icon_path)))
+
+    # 3b. Auto-register desktop entry for AppImage (silent, background)
+    _auto_register_desktop_entry()
 
     # 4. Load and set Inter font
     FontHelper.set_app_font(app, size=10)  # ← NEU!
