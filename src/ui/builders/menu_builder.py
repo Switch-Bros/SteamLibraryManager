@@ -638,7 +638,7 @@ class MenuBuilder:
         # --- Support submenu ---
         support_menu = help_menu.addMenu(t("menu.help.support.root"))
         support_urls = {
-            "kofi": "https://ko-fi.com/S6S51T9G3",
+            "kofi": "https://ko-fi.com/S6S51T9G3Y",
             "paypal": "https://www.paypal.com/donate/?hosted_button_id=HWPG6YAGXAWJJ",
             "github": "https://github.com/sponsors/Switch-Bros",
         }
