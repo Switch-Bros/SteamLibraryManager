@@ -678,5 +678,18 @@
     "interval_monthly": "Monatlich",
     "last_check": "Letzte Prüfung: {time}",
     "check_now": "Jetzt nach Updates suchen"
+  },
+  "cli": {
+    "not_appimage": "Desktop-Integration ist nur für AppImage-Installationen verfügbar.",
+    "install": {
+      "success": "Desktop-Integration installiert! Die App erscheint jetzt im Anwendungsmenü.",
+      "error": "Desktop-Integration konnte nicht installiert werden.",
+      "already_exists": "Desktop-Integration ist bereits installiert. Wird neu installiert..."
+    },
+    "uninstall": {
+      "success": "Desktop-Integration entfernt. Die App erscheint nicht mehr im Anwendungsmenü.",
+      "error": "Desktop-Integration konnte nicht entfernt werden.",
+      "not_found": "Keine Desktop-Integration zum Entfernen gefunden."
+    }
   }
 }

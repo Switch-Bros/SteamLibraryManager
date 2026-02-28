@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 
-from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
+from PyQt6.QtCore import QPoint, Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
     QDialog,
@@ -136,6 +136,19 @@ class ImageSelectionDialog(QDialog):
         self._MAX_CONCURRENT_ANIMATED: int = 3
         self._ANIMATED_DELAY_MS: int = 150
 
+        # Throttling for static image loading
+        self._static_load_queue: list[tuple] = []
+        self._static_loading_count: int = 0
+        self._MAX_CONCURRENT_STATIC: int = 8
+
+        # Lazy viewport loading: only load images visible in scroll area
+        # Each entry: [container, img_widget, url, is_animated, loaded]
+        self._lazy_items: list[list] = []
+        self._scroll_timer: QTimer = QTimer()
+        self._scroll_timer.setSingleShot(True)
+        self._scroll_timer.setInterval(50)
+        self._scroll_timer.timeout.connect(self._load_visible_images)
+
         self._create_ui()
         self._check_api_and_start()
 
@@ -158,6 +171,7 @@ class ImageSelectionDialog(QDialog):
         self.grid_layout.setSpacing(15)
         self.grid_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.scroll.setWidget(self.grid_widget)
+        self.scroll.verticalScrollBar().valueChanged.connect(self._on_scroll)
 
         self.main_layout.addWidget(self.scroll)
 
@@ -254,9 +268,12 @@ class ImageSelectionDialog(QDialog):
         self._grid_col = 0
         self._total_images = 0
 
-        # Reset animated loading queue
+        # Reset loading queues
         self._animated_load_queue.clear()
         self._animated_loading_count = 0
+        self._static_load_queue.clear()
+        self._static_loading_count = 0
+        self._lazy_items.clear()
 
         # Clear existing grid
         while self.grid_layout.count():
@@ -305,6 +322,9 @@ class ImageSelectionDialog(QDialog):
         # Append images to grid
         self._append_images_to_grid(items)
         self._total_images += len(items)
+
+        # Trigger lazy loading for newly added images that are already visible
+        QTimer.singleShot(50, self._load_visible_images)
 
         if has_more:
             self._current_page += 1
@@ -441,12 +461,10 @@ class ImageSelectionDialog(QDialog):
                 container.enterEvent = enter_handler
                 container.leaveEvent = leave_handler
 
-            # Smart loading: FULL for animated (WEBM, WEBP, GIF), thumbnail for static
-            # Animated images use throttled loading to prevent UI freezes
-            if is_animated:
-                self._queue_animated_load(img_widget, item["url"])
-            else:
-                img_widget.load_image(item["thumb"])  # Thumbnail — instant, no throttle
+            # Lazy viewport loading: defer actual loading until visible in scroll area
+            # Animated images MUST use full URL (thumbnails don't work for animated!)
+            load_url = item["url"] if is_animated else item["thumb"]
+            self._lazy_items.append([container, img_widget, load_url, is_animated, False])
 
             # When user clicks, select the full URL and convert WEBM to PNG if needed
             def make_click_handler(url, mime_type, tag_list):
@@ -535,3 +553,70 @@ class ImageSelectionDialog(QDialog):
         """
         self._animated_loading_count = max(0, self._animated_loading_count - 1)
         QTimer.singleShot(self._ANIMATED_DELAY_MS, self._process_animated_queue)
+
+    # ── Static image throttling ───────────────────────────────────
+
+    def _queue_static_load(self, widget: ClickableImage, url: str) -> None:
+        """Queue a static image for throttled loading.
+
+        Args:
+            widget: The ClickableImage widget to load the image into.
+            url: The thumbnail URL to load.
+        """
+        self._static_load_queue.append((widget, url))
+        self._process_static_queue()
+
+    def _process_static_queue(self) -> None:
+        """Process the static load queue up to the concurrency limit."""
+        while self._static_load_queue and self._static_loading_count < self._MAX_CONCURRENT_STATIC:
+            widget, url = self._static_load_queue.pop(0)
+            self._static_loading_count += 1
+            widget.load_finished.connect(self._on_static_load_finished)
+            widget.load_image(url)
+
+    def _on_static_load_finished(self) -> None:
+        """Handle completion of a static image load."""
+        self._static_loading_count = max(0, self._static_loading_count - 1)
+        self._process_static_queue()
+
+    # ── Lazy viewport loading ─────────────────────────────────────
+
+    def _on_scroll(self) -> None:
+        """Handle scroll events with debounce to trigger lazy loading."""
+        self._scroll_timer.start()
+
+    def _load_visible_images(self) -> None:
+        """Load images that are currently visible in the scroll viewport.
+
+        Checks each unloaded lazy item against the viewport rect (with margin)
+        and starts loading visible ones via the appropriate throttled queue.
+        """
+        viewport = self.scroll.viewport()
+        if viewport is None:
+            return
+
+        viewport_height = viewport.height()
+        # Pre-load margin: load images slightly before they become visible
+        margin = 200
+
+        for entry in self._lazy_items:
+            container, img_widget, url, is_animated, loaded = entry
+            if loaded:
+                continue
+
+            # Map the container's position to the scroll viewport coordinate system
+            pos = container.mapTo(viewport, QPoint(0, 0))
+            container_top = pos.y()
+            container_bottom = container_top + container.height()
+
+            # Check if the container is within the visible range (with margin)
+            if container_bottom < -margin or container_top > viewport_height + margin:
+                continue
+
+            # Mark as loaded so we don't queue it again
+            entry[4] = True
+
+            if is_animated:
+                self._queue_animated_load(img_widget, url)
+            else:
+                self._queue_static_load(img_widget, url)

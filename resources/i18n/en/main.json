@@ -678,5 +678,18 @@
     "interval_monthly": "Monthly",
     "last_check": "Last update check: {time}",
     "check_now": "Check for Updates Now"
+  },
+  "cli": {
+    "not_appimage": "Desktop integration is only available for AppImage installations.",
+    "install": {
+      "success": "Desktop integration installed! The app now appears in your application menu.",
+      "error": "Failed to install desktop integration.",
+      "already_exists": "Desktop integration is already installed. Re-installing..."
+    },
+    "uninstall": {
+      "success": "Desktop integration removed. The app no longer appears in your application menu.",
+      "error": "Failed to remove desktop integration.",
+      "not_found": "No desktop integration found to remove."
+    }
   }
 }
