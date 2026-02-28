@@ -22,6 +22,7 @@ from src.services.update_service import UpdateInfo, UpdateService
 from src.ui.widgets.ui_helper import UIHelper
 from src.ui.widgets.base_dialog import BaseDialog
 from src.utils.i18n import t
+from src.utils.open_url import open_url
 from src.version import __version__
 
 __all__ = ["UpdateDialog"]
@@ -78,7 +79,8 @@ class UpdateDialog(BaseDialog):
         self._notes_browser = QTextBrowser()
         self._notes_browser.setMarkdown(self._info.release_notes)
         self._notes_browser.setMinimumHeight(200)
-        self._notes_browser.setOpenExternalLinks(True)
+        self._notes_browser.setOpenExternalLinks(False)
+        self._notes_browser.anchorClicked.connect(lambda url: open_url(url.toString()))
         content_area.addWidget(self._notes_browser)
 
         # Progress bar (hidden initially)

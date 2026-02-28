@@ -243,7 +243,8 @@ class AboutDialog(BaseDialog):
 
         github_label = QLabel(f'GitHub: <a href="{_GITHUB_URL}" style="color: {_TEXT_LINK};">{_GITHUB_URL}</a>')
         github_label.setTextFormat(Qt.TextFormat.RichText)
-        github_label.setOpenExternalLinks(True)
+        github_label.setCursor(Qt.CursorShape.PointingHandCursor)
+        github_label.linkActivated.connect(lambda url: open_url(url))
         github_label.setStyleSheet("font-size: 12px;")
         col.addWidget(github_label)
 
