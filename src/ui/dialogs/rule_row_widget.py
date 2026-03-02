@@ -11,6 +11,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from src.config import config
+
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QStandardItemModel
 from PyQt6.QtWidgets import (
@@ -243,25 +245,15 @@ class RuleRowWidget(QWidget):
             resolver = getattr(widget, "tag_resolver", None)
             if resolver:
                 if field == FilterField.GENRE:
-                    return resolver.get_genre_names(self._get_app_language(widget))
-                return resolver.get_all_tag_names(self._get_app_language(widget))
+                    return resolver.get_genre_names(self._get_tag_language())
+                return resolver.get_all_tag_names(self._get_tag_language())
             widget = getattr(widget, "parent", lambda: None)()
         return []
 
     @staticmethod
-    def _get_app_language(widget: QWidget) -> str:
-        """Extracts the app language from a main window widget.
-
-        Args:
-            widget: A widget that may have an _i18n attribute.
-
-        Returns:
-            Language code string, defaults to 'en'.
-        """
-        i18n = getattr(widget, "_i18n", None)
-        if i18n and hasattr(i18n, "locale"):
-            return i18n.locale
-        return "en"
+    def _get_tag_language() -> str:
+        """Returns the configured tag language from settings."""
+        return config.TAGS_LANGUAGE
 
     def _update_between_visibility(self) -> None:
         """Shows or hides the max value input based on operator selection."""

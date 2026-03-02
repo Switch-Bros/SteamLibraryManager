@@ -365,11 +365,7 @@ class EnrichmentStarters:
                 ):
                     return
 
-        language = "en"
-        if hasattr(self.mw, "tag_resolver") and self.mw.tag_resolver:
-            i18n = getattr(self.mw, "_i18n", None)
-            if i18n:
-                language = i18n.locale
+        language = config.TAGS_LANGUAGE
 
         thread = TagImportThread(self.mw)
         thread.configure(steam_path, db_path, language)
