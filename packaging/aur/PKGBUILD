@@ -29,7 +29,7 @@ optdepends=(
     'python-steamgriddb: artwork browsing via SteamGridDB'
 )
 source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
-sha256sums=('5bc98c7a48a8251a0405dbf07196e00fd3ebd64335642fe8a206be4f0deec765')
+sha256sums=('0eac51a054811864d319a964eab801ca1f99716cad8b9001c2ef106c538bacfd')
 
 package() {
     cd "SteamLibraryManager-$pkgver"
