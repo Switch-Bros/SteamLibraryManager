@@ -10,7 +10,7 @@ Steam Library Manager (SLM) ist ein Linux-natives Werkzeug zur Organisation gro�
 
 ### Ist SLM ein Ersatz für Depressurizer?
 
-Ja. SLM hat volle Depressurizer-Feature-Parität (alle 15 AutoCat-Typen, Profile, Filter) plus Features, die Depressurizer nicht hat: Smart Collections mit ODER-Logik, ProtonDB-Integration, HLTB-Daten, Steam-Deck-Status, externe Spiele von 8 Plattformen und eine schnelle SQLite-Datenbank.
+Ja. SLM hat volle Depressurizer-Feature-Parität (alle 17 AutoCat-Typen, Profile, Filter) plus Features, die Depressurizer nicht hat: Smart Collections mit ODER-Logik, ProtonDB-Integration, HLTB-Daten, Steam-Deck-Status, externe Spiele von 8 Plattformen und eine schnelle SQLite-Datenbank.
 
 ### Funktioniert SLM unter Windows?
 
@@ -46,6 +46,45 @@ Ja, aber mit Vorsicht. Wenn du Sammlungen gleichzeitig in SLM und Steam änderst
 ### Mein Steam ist an einem nicht-standardmäßigen Ort installiert
 
 Gehe zu Einstellungen (`Strg+P`) → Allgemein → Steam-Pfad und setze den korrekten Pfad. SLM erkennt `~/.steam` und `~/.local/share/Steam` automatisch, unterstützt aber jeden Ort.
+
+---
+
+## Sicherheit & Datenschutz
+
+### Ist es sicher, sich über SLM bei Steam einzuloggen?
+
+Ja. SLM nutzt Steams offizielle OAuth2-API (`IAuthenticationService`) — dasselbe Authentifizierungssystem, das auch der Steam Desktop Client verwendet. Beim QR-Code-Login (empfohlen) sieht SLM dein Passwort nicht einmal. Beim Passwort-Login wird dein Passwort mit Steams RSA Public Key verschlüsselt, bevor es dein System verlässt.
+
+### Kann SLM mein Inventar stehlen oder meine Items handeln?
+
+Nein. Das ist technisch unmöglich. SLM hat keine Trade-Endpunkte implementiert, und die OAuth-Token-Scopes erlauben weder Trades noch Käufe. Steam verlangt für alle Trades zusätzlich eine Mobile-Bestätigung, die SLM nicht auslösen kann.
+
+### Was kann SLM tatsächlich mit meinem Account machen?
+
+SLMs Zugriff ist beschränkt auf: Spieleliste lesen, Sammlungen lesen und schreiben, und Steam-Store-Metadaten abrufen. Es kann weder dein Passwort ändern, noch deine E-Mail ändern, Steam Guard deaktivieren, Käufe tätigen oder auf dein Inventar zugreifen.
+
+### Wie werden meine Login-Tokens gespeichert?
+
+Tokens werden über deinen System-Keyring gespeichert (KWallet bei KDE, GNOME Keyring, etc.) — derselbe sichere Speicher, den auch dein Browser für Passwörter nutzt. Falls kein Keyring verfügbar ist, nutzt SLM AES-GCM-verschlüsselte Dateien, deren Schlüssel über PBKDF2 aus deiner Machine-ID abgeleitet wird. Tokens werden niemals im Klartext gespeichert.
+
+### Brauche ich einen Steam-API-Key?
+
+Nein. Der Steam-API-Key ist optional. SLMs primäre Methode liest deine Spiele direkt aus lokalen Steam-Dateien (licensecache, packageinfo.vdf). Der API-Key ermöglicht nur einige zusätzliche Metadaten-Abfragen und wird lokal in deiner Konfiguration gespeichert — nie an Dritte übertragen.
+
+### Sammelt SLM irgendwelche Daten oder telefoniert nach Hause?
+
+Nein. SLM hat keinerlei Telemetrie und macht keine Netzwerkaufrufe außer an Steams API, SteamGridDB, HowLongToBeat und ProtonDB. Du kannst das selbst überprüfen:
+```bash
+grep -r "requests\.\(get\|post\)" src/ | grep -v test | grep -v __pycache__
+```
+
+### Wie widerrufe ich SLMs Zugriff auf meinen Account?
+
+Drei Möglichkeiten: Einstellungen → Logout in SLM (löscht alle lokalen Tokens), https://store.steampowered.com/twofactor/manage besuchen um alle Geräte zu deautorisieren, oder einfach `~/.config/SteamLibraryManager/tokens.enc` löschen.
+
+### Ich habe ein teures Inventar. Sollte ich mir Sorgen machen?
+
+Nein. Selbst im schlimmsten Fall, wenn jemand deinen Token stehlen würde, könnte er nur deine Spieleliste lesen — keine Items handeln, keine Käufe tätigen und keine Account-Einstellungen ändern. Mit aktivem 2FA bleibt dein Account in jedem Fall sicher.
 
 ---
 
