@@ -9,10 +9,9 @@ finish-args:
   - --socket=wayland
   - --device=dri
   - --share=network
-  - --filesystem=~/.local/share/Steam:ro
+  - --filesystem=xdg-data/Steam:ro
   - --filesystem=~/.steam:ro
-  - --filesystem=xdg-config/steamlibrarymanager
-  - --talk-name=org.freedesktop.Secrets
+  - --filesystem=~/.var/app/com.valvesoftware.Steam/data/Steam:ro
   - --env=QT_PLUGIN_PATH=/usr/lib/plugins
 
 modules:
@@ -22,7 +21,6 @@ modules:
     buildsystem: simple
     build-commands:
       - pip3 install --prefix=/app . --no-build-isolation --no-deps
-      - cp -r resources /app/lib/python3.12/site-packages/resources
       - install -Dm644 flatpak/io.github.switch_bros.SteamLibraryManager.desktop
           /app/share/applications/io.github.switch_bros.SteamLibraryManager.desktop
       - install -Dm644 flatpak/io.github.switch_bros.SteamLibraryManager.metainfo.xml
@@ -35,4 +33,4 @@ modules:
       - type: git
         url: https://github.com/Switch-Bros/SteamLibraryManager.git
         tag: v1.1.1
-        commit: a59e5284b37c17473296ca0934326c27cd1b1b0b
+        commit: PLACEHOLDER_WILL_UPDATE_AFTER_RETAG

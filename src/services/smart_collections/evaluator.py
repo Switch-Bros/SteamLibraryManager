@@ -127,6 +127,13 @@ class SmartCollectionEvaluator:
         Returns:
             True if the game's field value matches the rule's operator and value.
         """
+        # Fast path: TAG + EQUALS with tag_id -> language-independent ID comparison
+        if rule.field == FilterField.TAG and rule.operator == Operator.EQUALS and rule.tag_id is not None:
+            game_tag_ids = getattr(game, "tag_ids", None)
+            if game_tag_ids:
+                return rule.tag_id in game_tag_ids
+            # Fallback to string comparison if game has no tag_ids
+
         field_value = self._get_field_value(game, rule.field)
 
         if rule.field in _TEXT_LIST_FIELDS:

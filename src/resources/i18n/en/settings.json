@@ -1,0 +1,56 @@
+{
+  "settings": {
+    "title": "Settings",
+    "saved": "Settings saved.",
+    "applied": "Settings applied.",
+    "tabs": {
+      "general": "General",
+      "other": "Other"
+    },
+    "libraries": {
+      "title": "Steam Library Folders",
+      "confirm_remove": "Remove Library",
+      "confirm_msg": "Do you really want to remove this library path?"
+    },
+    "api": {
+      "title_group": "API && Integrations",
+      "steam_label": "Steam Web API Key (Optional)",
+      "sgdb_label": "SteamGridDB API Key (Covers/Icons)",
+      "steam_get_key": "Get Steam API Key",
+      "sgdb_get_key": "Get SteamGridDB API Key",
+      "placeholder": "Paste key here...",
+      "help_text": "These keys enable features like metadata enrichment and cover downloads.",
+      "warning": "Never share your API keys!",
+      "info_optional": "Optional: Enables batch metadata enrichment (developer, genres, etc.)."
+    },
+    "grid_setup": {
+      "title": "Setup SteamGridDB",
+      "info": "To download covers, you need a free API Key.",
+      "step_1": "1. Login to SteamGridDB",
+      "step_2": "2. Generate/Copy API Key",
+      "step_3": "3. Paste Key below",
+      "get_key_btn": "Get API Key (Open Browser)",
+      "key_placeholder": "Paste API Key here..."
+    },
+    "general": {
+      "steam_path": "Steam Installation Path",
+      "browse": "Browse...",
+      "language": "Language",
+      "ui_language": "User Interface",
+      "tag_language": "Tags Language",
+      "restart_required": "Changes take effect immediately. A restart is recommended for full consistency."
+    },
+    "backup": {
+      "title_group": "Backup",
+      "limit": "Max. Backups:",
+      "files": "files",
+      "tooltip": "Number of backups per file",
+      "explanation": "Number of backups for localconfig.vdf, sharedconfig.vdf && appinfo.vdf kept before the oldest is overwritten."
+    },
+    "tags": {
+      "title_group": "Tags && Collections",
+      "count": "Tags per Game:",
+      "ignore_common": "Ignore common tags"
+    }
+  }
+}

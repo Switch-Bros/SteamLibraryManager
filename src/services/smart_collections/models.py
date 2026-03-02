@@ -243,6 +243,7 @@ class SmartCollectionRule:
     value: str = ""
     value_max: str = ""
     negated: bool = False
+    tag_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -313,13 +314,16 @@ def rule_to_dict(rule: SmartCollectionRule) -> dict:
     Returns:
         Dict with field, operator, value, value_max, negated.
     """
-    return {
+    d: dict = {
         "field": rule.field.value,
         "operator": rule.operator.value,
         "value": rule.value,
         "value_max": rule.value_max,
         "negated": rule.negated,
     }
+    if rule.tag_id is not None:
+        d["tag_id"] = rule.tag_id
+    return d
 
 
 def rule_from_dict(data: dict) -> SmartCollectionRule:
@@ -340,6 +344,7 @@ def rule_from_dict(data: dict) -> SmartCollectionRule:
         value=data.get("value", ""),
         value_max=data.get("value_max", ""),
         negated=data.get("negated", False),
+        tag_id=data.get("tag_id"),
     )
 
 

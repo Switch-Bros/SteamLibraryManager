@@ -45,7 +45,6 @@ jobs:
       run: |
         pyinstaller --windowed --noconfirm \
           --name SteamLibraryManager \
-          --add-data "resources:resources" \
           --add-data "src:src" \
           src/main.py
 
@@ -59,7 +58,7 @@ jobs:
             AppDir/usr/share/applications/
         cp flatpak/io.github.switch_bros.SteamLibraryManager.svg \
             AppDir/usr/share/icons/hicolor/scalable/apps/
-        cp resources/io.github.switch_bros.SteamLibraryManager.metainfo.xml \
+        cp src/resources/io.github.switch_bros.SteamLibraryManager.metainfo.xml \
             AppDir/usr/share/metainfo/
         cp flatpak/io.github.switch_bros.SteamLibraryManager.desktop AppDir/
         cp flatpak/io.github.switch_bros.SteamLibraryManager.svg AppDir/

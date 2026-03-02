@@ -9,7 +9,6 @@ pkgbase = steam-library-manager
 	depends = python-pyqt6
 	depends = python-psutil
 	depends = python-pillow
-	depends = python-opencv
 	depends = python-vdf
 	depends = python-yaml
 	depends = python-beautifulsoup4

@@ -1,0 +1,56 @@
+{
+  "settings": {
+    "title": "Einstellungen",
+    "saved": "Einstellungen gespeichert.",
+    "applied": "Einstellungen übernommen.",
+    "tabs": {
+      "general": "Allgemein",
+      "other": "Weitere"
+    },
+    "libraries": {
+      "title": "Steam Bibliotheks-Ordner",
+      "confirm_remove": "Bibliothek entfernen",
+      "confirm_msg": "Möchtest du diesen Bibliotheks-Pfad wirklich entfernen?"
+    },
+    "api": {
+      "title_group": "API && Integrationen",
+      "steam_label": "Steam Web API Schlüssel (Optional)",
+      "sgdb_label": "SteamGridDB API Schlüssel (Cover/Icons)",
+      "steam_get_key": "Steam API Key holen",
+      "sgdb_get_key": "SteamGridDB API Key holen",
+      "placeholder": "Schlüssel hier einfügen...",
+      "help_text": "Diese Schlüssel ermöglichen Features wie Metadaten-Anreicherung und Cover-Downloads.",
+      "warning": "Teile deine API-Schlüssel niemals mit anderen!",
+      "info_optional": "Optional: Ermöglicht Batch-Metadaten-Anreicherung (Entwickler, Genres, usw.)."
+    },
+    "grid_setup": {
+      "title": "SteamGridDB Einrichtung",
+      "info": "Für Cover-Bilder benötigst du einen kostenlosen API Key.",
+      "step_1": "1. Bei SteamGridDB anmelden",
+      "step_2": "2. API Key generieren/kopieren",
+      "step_3": "3. Key hier einfügen",
+      "get_key_btn": "Key holen (Browser öffnen)",
+      "key_placeholder": "API Key hier einfügen..."
+    },
+    "general": {
+      "steam_path": "Steam Pfad",
+      "browse": "Durchsuchen...",
+      "language": "Sprache",
+      "ui_language": "Benutzeroberfläche",
+      "tag_language": "Tag Sprache",
+      "restart_required": "Änderung wird sofort wirksam. Ein Neustart wird für vollständige Konsistenz empfohlen."
+    },
+    "backup": {
+      "title_group": "Backup",
+      "limit": "Max. Backups:",
+      "files": "Dateien",
+      "tooltip": "Anzahl der Backups pro Datei",
+      "explanation": "Anzahl der Sicherungen von cloudstorage-namepsace-1.json, local- und sharedconfig.vdf && appinfo.vdf, bevor die älteste überschrieben wird."
+    },
+    "tags": {
+      "title_group": "Tags && Kollektionen",
+      "count": "Tags pro Spiel:",
+      "ignore_common": "Häufige Tags ignorieren (Indie, Singleplayer...)"
+    }
+  }
+}

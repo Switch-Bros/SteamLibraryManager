@@ -391,7 +391,6 @@ class ModernSteamLoginDialog(QDialog):
         try:
             import qrcode
             from io import BytesIO
-            from pathlib import Path
 
             from PIL import Image
 
@@ -419,7 +418,9 @@ class ModernSteamLoginDialog(QDialog):
                 img = qr.make_image(fill_color="black", back_color="white").convert("RGBA")
 
             # Try to overlay custom logo from resources
-            logo_path = Path(__file__).parent.parent.parent.parent / "resources" / "icons" / "qr_login.png"
+            from src.utils.paths import get_resources_dir
+
+            logo_path = get_resources_dir() / "icons" / "qr_login.png"
             if logo_path.exists():
                 try:
                     logo_img = Image.open(logo_path).convert("RGBA")

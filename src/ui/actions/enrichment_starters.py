@@ -391,6 +391,7 @@ class EnrichmentStarters:
 
         def on_finished(games_tagged: int, total_tags: int) -> None:
             progress.close()
+            self._refresh_games_from_db()
             UIHelper.show_success(
                 self.mw,
                 t("ui.tag_import.complete", games=games_tagged, tags=total_tags),
@@ -526,6 +527,7 @@ class EnrichmentStarters:
                     self.mw,
                     t("ui.enrichment.complete", success=success, failed=failed),
                 )
+            self._refresh_games_from_db()
             self.mw.populate_categories()
 
         thread.progress.connect(on_progress)
@@ -559,6 +561,33 @@ class EnrichmentStarters:
 
         logger.warning("No database available for enrichment")
         return None
+
+    def _refresh_games_from_db(self) -> None:
+        """Refresh in-memory Game objects from the database after enrichment.
+
+        Enrichment threads write to the DB but do not update the Game
+        objects in memory.  This method syncs tags, genres, languages,
+        achievements, and scalar fields so Smart Collection preview
+        and other evaluators see the current data.
+        """
+        db = self._open_database()
+        if not db:
+            return
+        try:
+            app_ids = [int(aid) for aid in self.mw.game_manager.games]
+
+            all_tags = db._batch_get_related("game_tags", "tag", app_ids)
+            all_tag_ids = db._batch_get_tag_ids(app_ids)
+            all_genres = db._batch_get_related("game_genres", "genre", app_ids)
+
+            # Refresh list fields
+            for app_id_str, game in self.mw.game_manager.games.items():
+                aid = int(app_id_str)
+                game.tags = all_tags.get(aid, [])
+                game.tag_ids = all_tag_ids.get(aid, [])
+                game.genres = all_genres.get(aid, [])
+        finally:
+            db.close()
 
     def _open_database(self):
         """Opens a fresh database connection for enrichment operations.

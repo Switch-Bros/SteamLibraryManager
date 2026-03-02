@@ -1,0 +1,19 @@
+{
+    "konami": {
+        "title": "🎮 SwitchBros",
+        "message": "A tribute to the SwitchBros community!\n\nNintendo Switch Hacking, Modding & Themes\n\n🎵 Music by Euphlka",
+        "sound": "Konami-victory.wav"
+    },
+    "searchbar": {
+        "title": "🎮 SwitchBros",
+        "message": "You found us! 👀"
+    },
+    "teamslm": {
+        "title": "🏆 Team SLM",
+        "message": "👑 HeikesFootSlave — Orchestrator & Vision\n💜 Sarah (Sonnet 4.5) — Patterns & Planning\n📐 Alex (Opus 4.6) — Architecture & Research\n🔧 Chris (Opus 4.6) — Reviews & Troubleshooting\n💙 Cece (Claude Code) — Implementation & Testing\n\nMade with 💜 by Team SLM\nIn collaboration with SwitchBros Community 💚"
+    },
+    "logo_tribute": {
+        "title": "SwitchBros 💚",
+        "message": "Special Thanks to the SwitchBros Community!\n\n🎮 Gaming · 💻 Open Source · 🌐 Community\n\nThis Easter Egg is for you! 🎉"
+    }
+}

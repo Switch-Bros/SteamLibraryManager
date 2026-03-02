@@ -38,7 +38,7 @@ data/
 *.log
 .idea/
 .vscode/
-resources/icons/Icon_Namen.txt
+src/resources/icons/Icon_Namen.txt
 cleanup_dependencies_dev.sh
 *.zip
 /AGENTS.md

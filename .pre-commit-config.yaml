@@ -28,5 +28,6 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
         args: [--maxkb=2048]  # Screenshots & Grid-Bilder können groß sein
+        exclude: NotoColorEmoji\.ttf$
       - id: check-merge-conflict
       - id: detect-private-key

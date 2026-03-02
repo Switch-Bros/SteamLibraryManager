@@ -36,9 +36,9 @@ class I18n:
         self.translations: dict[str, Any] = {}
         self.fallback_translations: dict[str, Any] = {}
 
-        current_file = Path(__file__).resolve()
-        project_root = current_file.parent.parent.parent
-        self.i18n_root = project_root / "resources" / "i18n"
+        from src.utils.paths import get_resources_dir
+
+        self.i18n_root = get_resources_dir() / "i18n"
 
         self._load_translations()
 

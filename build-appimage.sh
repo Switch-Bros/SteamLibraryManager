@@ -15,7 +15,6 @@ pyinstaller \
     --name SteamLibraryManager \
     --windowed \
     --noconfirm \
-    --add-data "resources:resources" \
     --add-data "src:src" \
     src/main.py
 
@@ -32,7 +31,7 @@ cp flatpak/io.github.switch_bros.SteamLibraryManager.desktop \
     AppDir/usr/share/applications/
 cp flatpak/io.github.switch_bros.SteamLibraryManager.svg \
     AppDir/usr/share/icons/hicolor/scalable/apps/
-cp resources/io.github.switch_bros.SteamLibraryManager.metainfo.xml \
+cp src/resources/io.github.switch_bros.SteamLibraryManager.metainfo.xml \
     AppDir/usr/share/metainfo/
 
 # AppRun needs these at the top level too
