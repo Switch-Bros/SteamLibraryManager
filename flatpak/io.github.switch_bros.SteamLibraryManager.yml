@@ -33,4 +33,4 @@ modules:
       - type: git
         url: https://github.com/Switch-Bros/SteamLibraryManager.git
         tag: v1.1.1
-        commit: PLACEHOLDER_WILL_UPDATE_AFTER_RETAG
+        commit: bd5ab07a2b7c55f26e8eed288a39f88f3c6f9280
