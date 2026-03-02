@@ -92,6 +92,7 @@ class DatabaseEntry:
     # Multi-value fields
     genres: list[str] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
+    tag_ids: list[int] = field(default_factory=list)
     franchises: list[str] = field(default_factory=list)
     languages: dict[str, dict[str, bool]] = field(default_factory=dict)
 
@@ -140,6 +141,7 @@ def database_entry_to_game(entry: DatabaseEntry) -> Game:
         release_year=release_year,
         genres=list(entry.genres),
         tags=list(entry.tags),
+        tag_ids=list(entry.tag_ids),
         platforms=list(entry.platforms),
         languages=interface_languages,
         review_score=str(entry.review_score) if entry.review_score is not None else "",

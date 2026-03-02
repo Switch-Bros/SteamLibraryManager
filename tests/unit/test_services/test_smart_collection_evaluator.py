@@ -38,6 +38,7 @@ def game_lego() -> Game:
         app_id="100",
         name="LEGO Star Wars: The Complete Saga",
         tags=["LEGO", "Action", "Adventure", "Sci-Fi"],
+        tag_ids=[1234, 19, 21, 1684],
         genres=["Action", "Adventure"],
         platforms=["windows", "linux"],
         developer="Traveller's Tales",
@@ -68,6 +69,7 @@ def game_horror() -> Game:
         app_id="200",
         name="Resident Evil Village",
         tags=["Horror", "Action", "Shooter", "Survival"],
+        tag_ids=[1667, 19, 1774, 1662],
         genres=["Action", "Horror"],
         platforms=["windows"],
         developer="Capcom",
@@ -655,3 +657,106 @@ class TestBatchAndEdgeCases:
         rule = SmartCollectionRule(FilterField.RELEASE_YEAR, Operator.BETWEEN, "2000", "not_a_number")
         collection = SmartCollection(rules=[rule])
         assert evaluator.evaluate(game_lego, collection) is False
+
+
+# ========================================================================
+# TESTS: EVALUATOR — TAG ID MATCHING
+# ========================================================================
+
+
+class TestTagIdMatching:
+    """Tests for TagID-based matching on TAG EQUALS rules."""
+
+    def test_tag_equals_by_id_matches(self, evaluator: SmartCollectionEvaluator, game_lego: Game) -> None:
+        """TAG EQUALS with tag_id uses ID-based comparison."""
+        rule = SmartCollectionRule(FilterField.TAG, Operator.EQUALS, "Action", tag_id=19)
+        collection = SmartCollection(rules=[rule])
+        assert evaluator.evaluate(game_lego, collection) is True
+
+    def test_tag_equals_by_id_no_match(self, evaluator: SmartCollectionEvaluator, game_lego: Game) -> None:
+        """TAG EQUALS with tag_id that game doesn't have."""
+        rule = SmartCollectionRule(FilterField.TAG, Operator.EQUALS, "Horror", tag_id=1667)
+        collection = SmartCollection(rules=[rule])
+        assert evaluator.evaluate(game_lego, collection) is False
+
+    def test_tag_equals_by_id_language_independent(self, evaluator: SmartCollectionEvaluator) -> None:
+        """TAG EQUALS with tag_id works regardless of tag name language."""
+        game = Game(
+            app_id="400",
+            name="Puzzle Game",
+            tags=["3-Gewinnt"],
+            tag_ids=[1230],
+        )
+        # Rule saved with English name but has the same tag_id
+        rule = SmartCollectionRule(FilterField.TAG, Operator.EQUALS, "Match-3", tag_id=1230)
+        collection = SmartCollection(rules=[rule])
+        assert evaluator.evaluate(game, collection) is True
+
+    def test_tag_equals_fallback_no_tag_ids(self, evaluator: SmartCollectionEvaluator) -> None:
+        """TAG EQUALS falls back to string comparison when game has no tag_ids."""
+        game = Game(app_id="500", name="Old Game", tags=["Action"])
+        rule = SmartCollectionRule(FilterField.TAG, Operator.EQUALS, "Action", tag_id=19)
+        collection = SmartCollection(rules=[rule])
+        assert evaluator.evaluate(game, collection) is True
+
+    def test_tag_equals_fallback_no_rule_tag_id(self, evaluator: SmartCollectionEvaluator, game_lego: Game) -> None:
+        """TAG EQUALS without tag_id uses string comparison (backward compat)."""
+        rule = SmartCollectionRule(FilterField.TAG, Operator.EQUALS, "Action")
+        collection = SmartCollection(rules=[rule])
+        assert evaluator.evaluate(game_lego, collection) is True
+
+    def test_tag_contains_ignores_tag_id(self, evaluator: SmartCollectionEvaluator, game_lego: Game) -> None:
+        """TAG CONTAINS always uses string comparison regardless of tag_id presence."""
+        rule = SmartCollectionRule(FilterField.TAG, Operator.CONTAINS, "LEG")
+        collection = SmartCollection(rules=[rule])
+        assert evaluator.evaluate(game_lego, collection) is True
+
+    def test_tag_id_negated(self, evaluator: SmartCollectionEvaluator, game_lego: Game) -> None:
+        """TAG EQUALS with tag_id respects negation (NOT)."""
+        rule = SmartCollectionRule(FilterField.TAG, Operator.EQUALS, "Horror", tag_id=1667, negated=True)
+        collection = SmartCollection(rules=[rule])
+        assert evaluator.evaluate(game_lego, collection) is True  # NOT Horror -> True
+
+
+# ========================================================================
+# TESTS: MODELS — TAG ID SERIALIZATION
+# ========================================================================
+
+
+class TestTagIdSerialization:
+    """Tests for tag_id serialization in rules."""
+
+    def test_rule_to_dict_includes_tag_id(self) -> None:
+        """rule_to_dict includes tag_id when present."""
+        rule = SmartCollectionRule(FilterField.TAG, Operator.EQUALS, "Action", tag_id=19)
+        data = rule_to_dict(rule)
+        assert data["tag_id"] == 19
+        assert data["value"] == "Action"
+
+    def test_rule_to_dict_omits_tag_id_when_none(self) -> None:
+        """rule_to_dict omits tag_id when None."""
+        rule = SmartCollectionRule(FilterField.TAG, Operator.CONTAINS, "Action")
+        data = rule_to_dict(rule)
+        assert "tag_id" not in data
+
+    def test_rule_from_dict_with_tag_id(self) -> None:
+        """rule_from_dict reads tag_id when present."""
+        data = {"field": "tag", "operator": "equals", "value": "Action", "tag_id": 19}
+        rule = rule_from_dict(data)
+        assert rule.tag_id == 19
+        assert rule.value == "Action"
+
+    def test_rule_from_dict_without_tag_id(self) -> None:
+        """rule_from_dict returns tag_id=None for old data without tag_id."""
+        data = {"field": "tag", "operator": "equals", "value": "Action"}
+        rule = rule_from_dict(data)
+        assert rule.tag_id is None
+
+    def test_rule_roundtrip_with_tag_id(self) -> None:
+        """Full roundtrip: rule -> dict -> rule preserves tag_id."""
+        original = SmartCollectionRule(FilterField.TAG, Operator.EQUALS, "Action", tag_id=19)
+        restored = rule_from_dict(rule_to_dict(original))
+        assert restored.tag_id == 19
+        assert restored.value == "Action"
+        assert restored.field == FilterField.TAG
+        assert restored.operator == Operator.EQUALS

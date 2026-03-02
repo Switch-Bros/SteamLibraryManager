@@ -69,6 +69,7 @@ class GameBatchQueryMixin:
         # Batch load all related data
         all_genres = self._batch_get_related("game_genres", "genre", app_ids)
         all_tags = self._batch_get_related("game_tags", "tag", app_ids)
+        all_tag_ids = self._batch_get_tag_ids(app_ids)
         all_franchises = self._batch_get_related("game_franchises", "franchise", app_ids)
         all_languages = self._batch_get_languages(app_ids)
         all_custom_meta = self._batch_get_custom_meta(app_ids)
@@ -81,6 +82,7 @@ class GameBatchQueryMixin:
 
             game_data["genres"] = all_genres.get(aid, [])
             game_data["tags"] = all_tags.get(aid, [])
+            game_data["tag_ids"] = all_tag_ids.get(aid, [])
             game_data["franchises"] = all_franchises.get(aid, [])
             game_data["languages"] = all_languages.get(aid, {})
             game_data["custom_meta"] = all_custom_meta.get(aid, {})
@@ -100,6 +102,28 @@ class GameBatchQueryMixin:
             games.append(DatabaseEntry(**game_data))
 
         return games
+
+    def _batch_get_tag_ids(self, app_ids: list[int]) -> dict[int, list[int]]:
+        """Batch load numeric tag IDs for multiple app_ids from game_tags.
+
+        Args:
+            app_ids: List of app IDs.
+
+        Returns:
+            Dict mapping app_id to list of tag IDs.
+        """
+        if not app_ids:
+            return {}
+
+        placeholders = ",".join("?" * len(app_ids))
+        cursor = self.conn.execute(
+            f"SELECT app_id, tag_id FROM game_tags WHERE app_id IN ({placeholders}) AND tag_id IS NOT NULL",
+            app_ids,
+        )
+        result: dict[int, list[int]] = {}
+        for row in cursor.fetchall():
+            result.setdefault(row[0], []).append(row[1])
+        return result
 
     def _batch_get_related(self, table: str, column: str, app_ids: list[int]) -> dict[int, list[str]]:
         """Batch load a single-column related table for multiple app_ids.

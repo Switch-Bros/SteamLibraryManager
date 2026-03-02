@@ -21,6 +21,7 @@ from pathlib import Path
 
 from src.utils.i18n import t
 from src.utils.json_utils import load_json, save_json
+from src.utils.paths import get_resources_dir
 
 # Load environment variables silently
 try:
@@ -48,7 +49,7 @@ class Config:
     """
 
     APP_DIR: Path = Path(__file__).parent.parent
-    RESOURCES_DIR: Path = APP_DIR / "resources"
+    RESOURCES_DIR: Path = get_resources_dir()
     ICONS_DIR: Path = RESOURCES_DIR / "icons"
 
     # DATA_DIR must be writable — use XDG on AppImage/Flatpak, local otherwise

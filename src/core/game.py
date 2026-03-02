@@ -48,6 +48,7 @@ class Game:
     release_year: str = ""
     genres: list[str] = None
     tags: list[str] = None
+    tag_ids: list[int] = None
 
     # Sorting
     sort_name: str = ""
@@ -119,6 +120,8 @@ class Game:
             self.genres = []
         if self.tags is None:
             self.tags = []
+        if self.tag_ids is None:
+            self.tag_ids = []
         if self.platforms is None:
             self.platforms = []
         if self.languages is None:

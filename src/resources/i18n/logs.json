@@ -1,0 +1,288 @@
+{
+  "logs": {
+    "main": {
+      "initializing": "Initializing...",
+      "steam_found": "Steam found at: {path}",
+      "steam_not_found": "Steam installation not found",
+      "steam_running_exit": "Steam is running - exiting application",
+      "psutil_missing": "Warning: psutil not installed, skipping Steam check",
+      "file_load_error": "Error loading file {file}: {error}",
+      "profile_setup_required": "No user profile configured. Starting setup...",
+      "profile_configured": "Profile configured: {name} (SteamID64: {id})",
+      "setup_cancelled": "Profile setup cancelled. Exiting application.",
+      "steam_check_error": "Error checking Steam processes: {error}"
+    },
+    "config": {
+      "loaded": "Settings loaded",
+      "save_error": "Error saving configuration: {error}",
+      "load_error": "Error loading configuration: {error}",
+      "library_read_error": "Error reading libraries: {error}",
+      "auto_detected": "Auto-detected Steam: {path} ({type})",
+      "found_via_registry": "Found Steam via Registry: {path}",
+      "found_at": "Found Steam at: {path}",
+      "found_flatpak": "Found Flatpak Steam: {path}",
+      "found_native": "Found Native Steam: {path}",
+      "not_found": "Steam installation not found!",
+      "library_folders_detected": "Detected {count} library folders"
+    },
+    "data_load": {
+      "game_service_not_initialized": "GameService not initialized, cannot load games"
+    },
+    "manager": {
+      "api_trying": "Trying Steam Web API...",
+      "local_loading": "Loading from local files...",
+      "loaded_local": "{count} games loaded",
+      "loaded_api": "Loaded {count} games from API",
+      "loaded_mixed": "Loaded {count} games (Steam API + local files)",
+      "merging": "Merging Collections...",
+      "applied_overrides": "Applied metadata overrides to {count} games",
+      "error_api": "Steam API error: {error}",
+      "error_local": "Error loading local files: {error}",
+      "no_api_key": "No API Key or Access Token configured",
+      "using_oauth": "Using OAuth2 Access Token for Steam API",
+      "using_api_key": "Using API Key for Steam API",
+      "discovered_missing": "Discovered {count} additional games from local data",
+      "packageinfo_not_found": "packageinfo.vdf not found, skipping package-based discovery"
+    },
+    "auth": {
+      "starting": "Starting Steam OAuth process...",
+      "login_success": "Login Success! SteamID: {id}",
+      "error": "Auth Error: {error}",
+      "profile_error": "Error loading profile name: {error}",
+      "qr_challenge_approved": "QR code challenge approved by mobile app",
+      "could_not_resolve_steamid": "Could not resolve SteamID64 from access token",
+      "steamid_resolved": "SteamID64 successfully resolved",
+      "steamid_missing": "Warning: steamid field missing in API response",
+      "get_owned_games_status": "GetOwnedGames API returned status: {status}",
+      "steamid_from_token_error": "Error extracting SteamID from token: {error}",
+      "account_name_resolved": "Account name resolved: {name}",
+      "account_name_resolve_error": "Failed to resolve account name: {error}",
+      "steamid_from_jwt": "SteamID64 extracted from JWT token",
+      "jwt_decode_failed": "Failed to decode JWT token: {error}",
+      "qr_login_success": "QR login successful",
+      "password_login_success": "Password login successful",
+      "load_games_error": "Error loading games after login: {error}",
+      "data_load_handler_missing": "DataLoadHandler not available",
+      "loading_games_after_login": "Loading games after login...",
+      "auth_mode_token": "Auth mode: Access Token",
+      "auth_mode_session": "Auth mode: Session",
+      "unexpected_profile_error": "Unexpected error loading profile: {error}",
+      "steamid_conversion_error": "Failed to convert steam_id to int: {value}, error: {error}",
+      "qr_logo_error": "Could not add logo to QR code: {error}",
+      "token_saved": "Authentication tokens saved securely",
+      "token_loaded": "Authentication tokens loaded from storage",
+      "token_cleared": "Authentication tokens cleared",
+      "token_save_failed": "Failed to save authentication tokens: {error}",
+      "token_load_failed": "Failed to load authentication tokens: {error}",
+      "token_clear_failed": "Failed to clear authentication tokens: {error}",
+      "token_refresh_success": "Access token refreshed successfully",
+      "token_refresh_failed": "Failed to refresh access token: {error}",
+      "token_refresh_retry": "Token refresh attempt {attempt}/{max_attempts} failed, retrying...",
+      "token_validation_ok": "Stored access token is still valid",
+      "token_validation_failed": "Stored access token is expired or invalid",
+      "token_age_info": "Token age: {hours}h (stored {timestamp})",
+      "rsa_key_fetched": "RSA public key fetched for password encryption",
+      "rsa_key_error": "Failed to fetch RSA public key: {error}",
+      "token_revoke_success": "Access token revoked on Steam servers",
+      "token_revoke_failed": "Failed to revoke access token: {error}",
+      "token_revoke_skipped": "Token revoke skipped (no token available)"
+    },
+    "steam_store": {
+      "fetch_error": "Store error for app {app_id}: {error}",
+      "api_fetch_failed": "Steam API fetch failed for {app_id}: {error}",
+      "html_scrape_failed": "HTML scraping failed for {app_id}: {error}"
+    },
+    "steamgrid": {
+      "saved": "Image saved: {type} for App {app_id}",
+      "missing_key": "Missing API Key",
+      "api_error": "API Error {code}",
+      "found": "Images found: {count}",
+      "save_error": "Error saving image: {error}",
+      "deleted": "Deleted custom image: {path}",
+      "delete_error": "Error deleting image: {error}",
+      "exception": "SteamGridDB exception: {error}"
+    },
+    "backup": {
+      "created": "Backup created: {name}",
+      "failed": "Backup failed: {error}",
+      "rotated": "Rotated backup: {name}",
+      "delete_error": "Error deleting old backup {name}: {error}",
+      "restore_success": "Backup restored: {name}",
+      "restore_failed": "Backup restore failed: {error}"
+    },
+    "appinfo": {
+      "loaded": "Loaded {count} saved modifications",
+      "saved_vdf": "appinfo.vdf saved",
+      "restored": "Restored {count} modifications",
+      "parse_error": "Warning: Failed to parse app {app_id}: {error}",
+      "loaded_binary": "Loaded {count} apps from binary appinfo.vdf",
+      "incompatible_version": "Incompatible appinfo.vdf version: {version}",
+      "binary_error": "Error loading binary appinfo.vdf: {error}",
+      "error": "AppInfo Error: {error}",
+      "set_error": "Error setting metadata for {app_id}: {error}",
+      "saved_mods": "Saved {count} modifications to JSON",
+      "not_loaded": "Binary appinfo.vdf not loaded",
+      "backup_created": "Backup created: {path}",
+      "backup_failed": "Backup failed: {error}",
+      "write_error": "Error writing appinfo.vdf: {error}",
+      "unknown_type": "Warning: Unknown VDF type {type}",
+      "string_index_out_of_range": "Warning: String index out of range at offset {offset}",
+      "unknown_vdf_type": "Unknown VDF type {type}, skipping",
+      "string_index_warning": "String index {index} out of range (table size: {size})",
+      "write_error_detail": "Error writing appinfo.vdf: {error}"
+    },
+    "parser": {
+      "apps_not_found": "Apps section not found in localconfig.vdf",
+      "file_not_found": "localconfig.vdf not found at: {path}",
+      "hidden_error": "Error setting hidden status: {error}",
+      "save_collection_error": "ERROR saving collection {e}",
+      "save_cloud_error": "ERROR saving cloud storage {e}",
+      "not_a_list": "Cloud storage data is not a list",
+      "parse_failed": "Failed to parse collection: {key}",
+      "cloud_file_not_found": "Cloud storage file not found: {path}",
+      "load_error": "Failed to load cloud storage: {error}",
+      "error_details": "Error details: {error}",
+      "external_change_detected": "Cloud storage file modified externally since last load",
+      "delta_merge_stats": "Delta-merge: {managed} managed, {deleted} deleted, {preserved} preserved",
+      "size_shrink_warning": "Cloud storage shrunk by {ratio} ({old_size} to {new_size} bytes) — check for data loss"
+    },
+    "local_loader": {
+      "scanning": "Scanning {count} manifest files...",
+      "scanning_libraries": "Scanning {count} library folders...",
+      "found_manifests": "  -> {path}: Found {count} manifests",
+      "found_manifests_in_path": "  -> {path}: Found {count} manifests",
+      "library_error": "Error reading library folders: {error}",
+      "loaded_total": "Loaded {count} games from local files",
+      "no_library_file": "libraryfolders.vdf not found, scanning default steamapps",
+      "path_not_exists": "Library path does not exist: {path}"
+    },
+    "merger": {
+      "source_missing": "Source file not found: {path}",
+      "target_missing": "Target file not found: {path}",
+      "load_error_source": "Error loading source file",
+      "load_error_target": "Error loading target file",
+      "no_apps_section": "No apps section found in {file}",
+      "no_changes": "No changes needed - Collections are already in sync",
+      "dry_run_complete": "Dry run complete: {count} games would be updated ({changes} changes)",
+      "backup_failed": "Backup creation failed - aborting for safety",
+      "success": "Successfully merged {count} games to {path} (Strategy: {strategy})",
+      "save_error": "Error saving target file"
+    },
+    "scanner": {
+      "warning_fetch_name": "Warning: Could not fetch display name for {steam_id}: {error}",
+      "error_fetch_name": "Unexpected error fetching Steam display name: {error}",
+      "warning_no_userdata": "Warning: userdata directory not found: {path}",
+      "scanning_accounts": "Scanning Steam accounts in: {path}",
+      "found_account": "Found account: {account_id} → SteamID64: {steam_id}",
+      "display_name_found": "  → Display name: {name}",
+      "warning_invalid_dir": "Warning: Invalid account directory name: {name}",
+      "error_processing": "Error processing account {name}: {error}",
+      "total_found": "Total accounts found: {count}",
+      "warning_no_psutil": "Warning: psutil not installed, cannot check if Steam is running",
+      "error_check_steam": "Error checking if Steam is running: {error}",
+      "killing_steam": "Killing Steam process (PID: {pid})",
+      "steam_closed": "Steam successfully closed",
+      "steam_still_running": "Steam process still running after kill attempt",
+      "no_steam_process": "No Steam process found to kill",
+      "error_no_psutil_kill": "Error: psutil not installed, cannot kill Steam process",
+      "error_kill_steam": "Error killing Steam process: {error}"
+    },
+    "assets": {
+      "unknown_type": "Unknown asset type: {type}",
+      "saved_to": "Saved to: {path}"
+    },
+    "localconfig": {
+      "not_found": "LocalConfig file not found: {path}",
+      "load_error": "Failed to load localconfig.vdf: {error}",
+      "save_error": "Failed to save localconfig.vdf: {error}"
+    },
+    "service": {
+      "localconfig_init_error": "Failed to init localconfig helper: {error}",
+      "cloud_parser_init_error": "Failed to init Cloud Storage parser: {error}",
+      "no_games_loaded": "No games loaded",
+      "applying_metadata": "Loading metadata...",
+      "parsing_packages": "Parsing package data...",
+      "discovering_games": "Discovering additional games...",
+      "applying_overrides": "Applying metadata overrides...",
+      "profile_discovered": "Profile scrape: discovered {count} new games",
+      "profile_scrape_failed": "Profile scrape failed (non-fatal): {error}",
+      "placeholder_names_repaired": "Repaired {count} games with placeholder names from appinfo.vdf"
+    },
+    "image": {
+      "pillow_missing": "Warning: Pillow not installed",
+      "pillow_fallback": "Pillow load failed, falling back to Qt: {error}",
+      "webm_load_failed": "Failed to load WEBM: {error}"
+    },
+    "db": {
+      "initializing": "Initializing database...",
+      "schema_created": "Database schema created",
+      "import_started": "Starting initial import from appinfo.vdf...",
+      "import_one_time": "This is a one-time operation (~30 seconds)",
+      "parsing": "Parsing appinfo.vdf...",
+      "found_apps": "Found {count} apps in appinfo.vdf",
+      "importing_batch": "Importing batch {current}/{total}...",
+      "import_failed_app": "Failed to import app {app_id}: {error}",
+      "import_complete": "Import complete: {imported} imported, {updated} updated, {failed} failed",
+      "import_duration": "Import duration: {duration}s",
+      "loaded_from_cache": "Loaded {count} games from database in {duration}s",
+      "update_started": "Updating {count} changed games...",
+      "update_complete": "Update complete in {duration}s",
+      "unknown_app": "App {app_id}",
+      "already_initialized": "Database already initialized",
+      "repaired_placeholders": "Cleaned {count} placeholder names from database",
+      "ready": "Database ready ({count} games, {duration}s)",
+      "schema_error": "Failed to create database schema: {error}",
+      "schema_not_found": "Database schema file not found: {path}"
+    },
+    "font": {
+      "loaded": "Loaded embedded font: {family}",
+      "file_not_found": "Font file not found: {path}",
+      "load_failed": "Failed to load font from {path}",
+      "app_font_set": "Set application-wide font: {name} {size}pt"
+    },
+    "curator": {
+      "fetch_success": "Curator '{name}': {count} recommendations fetched",
+      "fetch_failed": "Failed to fetch curator '{name}': {error}",
+      "enrichment_complete": "Curator enrichment: {success} updated, {failed} failed",
+      "export_complete": "Exported {count} curators to {path}",
+      "import_complete": "Imported {count} curators from {path}",
+      "top_curators_fetched": "Fetched {count} top curators from Steam",
+      "subscribed_discovered": "Discovered {count} subscribed curators"
+    },
+    "license_cache": {
+      "not_found": "licensecache not found at {path} — skipping license-based discovery",
+      "too_small": "licensecache too small ({size} bytes) — possibly corrupted",
+      "parse_error": "Failed to parse licensecache: {error}",
+      "parsed": "Parsed {count} licenses from licensecache",
+      "cross_reference": "licensecache: {packages} owned packages → {apps} AppIDs"
+    },
+    "profile_scraper": {
+      "request_error": "Profile scrape failed: {error}",
+      "parsed_games": "Profile scraper: found {count} games",
+      "no_games_found": "Profile scraper: no games found (profile may be private)"
+    },
+    "cli": {
+      "install_start": "Installing desktop integration...",
+      "desktop_written": "Desktop file written: {path}",
+      "icon_copied": "Icon copied: {path}",
+      "uninstall_start": "Removing desktop integration...",
+      "file_removed": "Removed: {path}"
+    }
+  },
+  "errors": {
+    "appinfo": {
+      "no_data": "No data provided: either path or data parameter is required",
+      "no_output_path": "No output path specified and no file path was set during initialization"
+    },
+    "update": {
+      "not_appimage": "Not running as AppImage - update check skipped",
+      "check_failed": "Update check failed: {error}",
+      "up_to_date": "Already on latest version: {version}",
+      "available": "Update available: {current} -> {new}",
+      "download_complete": "Update downloaded to: {path}",
+      "download_failed": "Update download failed: {error}",
+      "installing": "Installing update from: {path}",
+      "install_failed": "Update install failed: {error} - rolling back"
+    }
+  }
+}

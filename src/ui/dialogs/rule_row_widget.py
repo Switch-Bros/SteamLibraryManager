@@ -255,6 +255,43 @@ class RuleRowWidget(QWidget):
         """Returns the configured tag language from settings."""
         return config.TAGS_LANGUAGE
 
+    def _resolve_tag_id(self, tag_name: str) -> int | None:
+        """Resolves a tag name to its numeric TagID via the tag_resolver.
+
+        Args:
+            tag_name: The tag name to resolve.
+
+        Returns:
+            TagID or None if not found.
+        """
+        widget = self.parent()
+        while widget is not None:
+            resolver = getattr(widget, "tag_resolver", None)
+            if resolver:
+                db = getattr(resolver, "database", None)
+                if db:
+                    return db.get_tag_id_by_name(tag_name, self._get_tag_language())
+                return None
+            widget = getattr(widget, "parent", lambda: None)()
+        return None
+
+    def _resolve_tag_name(self, tag_id: int) -> str | None:
+        """Resolves a numeric TagID to its localized name via the tag_resolver.
+
+        Args:
+            tag_id: The numeric tag ID.
+
+        Returns:
+            Localized tag name or None if not found.
+        """
+        widget = self.parent()
+        while widget is not None:
+            resolver = getattr(widget, "tag_resolver", None)
+            if resolver:
+                return resolver.resolve_tag_id(tag_id, self._get_tag_language())
+            widget = getattr(widget, "parent", lambda: None)()
+        return None
+
     def _update_between_visibility(self) -> None:
         """Shows or hides the max value input based on operator selection."""
         op = self._get_selected_operator()
@@ -300,7 +337,14 @@ class RuleRowWidget(QWidget):
                 self._operator_combo.setCurrentIndex(i)
                 break
 
-        self._value_input.setText(rule.value)
+        # For TAG rules with tag_id, resolve to current language name
+        display_value = rule.value
+        if rule.field == FilterField.TAG and rule.tag_id is not None:
+            resolved = self._resolve_tag_name(rule.tag_id)
+            if resolved:
+                display_value = resolved
+
+        self._value_input.setText(display_value)
         self._value_max_input.setText(rule.value_max)
 
     def get_rule(self) -> SmartCollectionRule | None:
@@ -314,10 +358,18 @@ class RuleRowWidget(QWidget):
         if not field or not operator:
             return None
 
+        value = self._value_input.text().strip()
+        tag_id = None
+
+        # Resolve tag_id for TAG + EQUALS (language-independent matching)
+        if field == FilterField.TAG and operator == Operator.EQUALS and value:
+            tag_id = self._resolve_tag_id(value)
+
         return SmartCollectionRule(
             field=field,
             operator=operator,
-            value=self._value_input.text().strip(),
+            value=value,
             value_max=self._value_max_input.text().strip(),
             negated=self._negated_cb.isChecked(),
+            tag_id=tag_id,
         )

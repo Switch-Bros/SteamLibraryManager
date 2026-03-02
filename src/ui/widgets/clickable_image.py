@@ -21,7 +21,6 @@ from PyQt6.QtCore import QByteArray, Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import QCursor, QImage, QPixmap
 from PyQt6.QtWidgets import QLabel, QWidget
 
-os.environ["OPENCV_LOG_LEVEL"] = "SILENT"
 from src.ui.theme import Theme
 from src.ui.widgets.image_badge_overlay import ImageBadgeOverlay
 from src.utils.i18n import t
@@ -37,16 +36,6 @@ except ImportError:
     ImageSequence = None
     HAS_PILLOW = False
     logger.info(t("logs.image.pillow_missing"))
-
-try:
-    import cv2
-    import numpy as np
-
-    HAS_OPENCV = True
-except ImportError:
-    cv2 = None
-    np = None
-    HAS_OPENCV = False
 
 
 class ImageLoader(QThread):
@@ -161,12 +150,6 @@ class ClickableImage(QWidget):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._next_frame)
 
-        # WEBM video playback with OpenCV
-        self.video_cap = None  # cv2.VideoCapture object
-        self.video_timer = QTimer(self)
-        self.video_timer.timeout.connect(self._next_video_frame)
-        self.is_playing_video = False
-
         # PERFORMANCE: Cache for loaded pixmaps
         self._pixmap_cache = {}  # {path: QPixmap}
 
@@ -221,7 +204,8 @@ class ClickableImage(QWidget):
     def load_image(self, url_or_path: str | None, metadata: dict = None):
         """Starts loading an image from a URL or local path.
 
-        Supports images (PNG, JPG, GIF, WEBP, APNG) and videos (WEBM via OpenCV).
+        Supports images (PNG, JPG, GIF, WEBP, APNG). Animated formats are
+        handled via Pillow. WEBM videos show the default placeholder.
 
         Args:
             url_or_path (str | None): The URL or file path of the image to load, or None to clear.
@@ -233,15 +217,8 @@ class ClickableImage(QWidget):
         self.current_path = url_or_path
         self._load_generation += 1
         self.timer.stop()
-        self.video_timer.stop()
         self.frames = []
         self._clear_badges()
-
-        # Stop any playing video
-        if self.video_cap:
-            self.video_cap.release()
-            self.video_cap = None
-        self.is_playing_video = False
 
         # If url_or_path is None, load default image immediately without showing loading text
         if url_or_path is None:
@@ -249,14 +226,14 @@ class ClickableImage(QWidget):
                 self._load_local_image(self.default_image)
             return
 
-        # Check if this is a WEBM video
+        # WEBM videos can't be displayed as images — show default
         if url_or_path and url_or_path.lower().endswith(".webm"):
-            if HAS_OPENCV:
-                self._load_webm_video(url_or_path)
-                return
+            if self.default_image:
+                self._load_local_image(self.default_image)
             else:
-                # Fallback: try to load as image
-                pass
+                self.image_label.setText(t("emoji.no_image"))
+            self.load_finished.emit()
+            return
 
         # PERFORMANCE: Check cache first
         if url_or_path and url_or_path in self._pixmap_cache:
@@ -369,73 +346,6 @@ class ClickableImage(QWidget):
         """Displays a specific frame of the animation."""
         if 0 <= index < len(self.frames):
             self._apply_pixmap(self.frames[index])
-
-    def _load_webm_video(self, url: str):
-        """Loads and plays a WEBM video using OpenCV.
-
-        Args:
-            url (str): The URL of the WEBM video to load.
-        """
-        if not HAS_OPENCV:
-            self.image_label.setText(t("emoji.error"))
-            return
-
-        try:
-            self.video_cap = cv2.VideoCapture(url)
-            if not self.video_cap.isOpened():
-                raise Exception("Failed to open video")
-
-            # Get FPS for timer interval
-            fps = self.video_cap.get(cv2.CAP_PROP_FPS)
-            if fps <= 0:
-                fps = 30  # Default to 30 FPS
-
-            interval_ms = int(1000 / fps)
-
-            self.is_playing_video = True
-            self.video_timer.start(interval_ms)
-
-            # Create animated badge for WEBM
-            self._create_badges(is_animated=True)
-            self.load_finished.emit()
-
-        except Exception as e:
-            logger.error(t("logs.image.webm_load_failed", error=e))
-            self.image_label.setText(t("emoji.error"))
-            if self.video_cap:
-                self.video_cap.release()
-                self.video_cap = None
-            self.load_finished.emit()
-
-    def _next_video_frame(self):
-        """Reads and displays the next frame from the WEBM video."""
-        if not self.video_cap or not self.is_playing_video:
-            return
-
-        ret, frame = self.video_cap.read()
-
-        if not ret:
-            # Loop video
-            self.video_cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            ret, frame = self.video_cap.read()
-
-            if not ret:
-                # Failed to loop, stop playback
-                self.video_timer.stop()
-                self.is_playing_video = False
-                return
-
-        # Convert BGR to RGB
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-        # Convert to QImage
-        h, w, ch = frame_rgb.shape
-        bytes_per_line = ch * w
-        qt_image = QImage(frame_rgb.tobytes(), w, h, bytes_per_line, QImage.Format.Format_RGB888)
-
-        # Convert to QPixmap and display
-        pixmap = QPixmap.fromImage(qt_image)
-        self._apply_pixmap(pixmap)
 
     def _apply_pixmap(self, pixmap: QPixmap):
         """Scales and sets the pixmap on the label."""

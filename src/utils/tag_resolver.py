@@ -82,9 +82,9 @@ class TagResolver:
         Returns:
             Path to the steamtags directory.
         """
-        current = Path(__file__).resolve()
-        project_root = current.parent.parent.parent
-        return project_root / "resources" / "steamtags"
+        from src.utils.paths import get_resources_dir
+
+        return get_resources_dir() / "steamtags"
 
     def ensure_loaded(self) -> int:
         """Ensure tag definitions are loaded into the database.

@@ -7,7 +7,6 @@ across all platforms.
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 
 from PyQt6.QtGui import QFont, QFontDatabase
 from PyQt6.QtWidgets import QApplication, QWidget
@@ -33,13 +32,15 @@ class FontHelper:
     _font_loaded: bool = False
     FONT_NAME: str = "Inter"
     FONT_FILE: str = "InterVariable.ttf"
+    EMOJI_FONT_FILE: str = "NotoColorEmoji.ttf"
     BOLD: QFont.Weight = QFont.Weight.Bold
 
     @classmethod
     def load_font(cls) -> None:
-        """Load the embedded Inter variable font.
+        """Load the embedded Inter variable font and Noto Color Emoji.
 
-        Loads InterVariable.ttf from resources/fonts/ into Qt's font database.
+        Loads InterVariable.ttf and optionally NotoColorEmoji.ttf from
+        resources/fonts/ into Qt's font database.
         This method is idempotent - calling it multiple times has no effect.
 
         Raises:
@@ -48,24 +49,33 @@ class FontHelper:
         if cls._font_loaded:
             return
 
-        # Get path to embedded font
-        font_path = Path(__file__).parent.parent.parent.parent / "resources" / "fonts" / cls.FONT_FILE
+        from src.utils.paths import get_resources_dir
 
-        if not font_path.exists():
-            logger.error(t("logs.font.file_not_found", path=str(font_path)))
-            raise FileNotFoundError(f"Inter font not found at {font_path}")
+        font_dir = get_resources_dir() / "fonts"
 
-        # Load font into Qt font database
-        font_id = QFontDatabase.addApplicationFont(str(font_path))
+        # Load Inter (required)
+        inter_path = font_dir / cls.FONT_FILE
+        if not inter_path.exists():
+            logger.error(t("logs.font.file_not_found", path=str(inter_path)))
+            raise FileNotFoundError(f"Inter font not found at {inter_path}")
 
+        font_id = QFontDatabase.addApplicationFont(str(inter_path))
         if font_id == -1:
-            logger.error(t("logs.font.load_failed", path=str(font_path)))
-            raise RuntimeError(f"Failed to load Inter font from {font_path}")
+            logger.error(t("logs.font.load_failed", path=str(inter_path)))
+            raise RuntimeError(f"Failed to load Inter font from {inter_path}")
 
-        # Get loaded font families for logging
         families = QFontDatabase.applicationFontFamilies(font_id)
-        family_name = families[0] if families else "Unknown"
-        logger.info(t("logs.font.loaded", family=family_name))
+        logger.info(t("logs.font.loaded", family=families[0] if families else "Unknown"))
+
+        # Load Noto Color Emoji (optional — graceful fallback if missing)
+        emoji_path = font_dir / cls.EMOJI_FONT_FILE
+        if emoji_path.exists():
+            emoji_id = QFontDatabase.addApplicationFont(str(emoji_path))
+            if emoji_id != -1:
+                emoji_families = QFontDatabase.applicationFontFamilies(emoji_id)
+                logger.info(t("logs.font.loaded", family=emoji_families[0] if emoji_families else "Emoji"))
+            else:
+                logger.warning(t("logs.font.load_failed", path=str(emoji_path)))
 
         cls._font_loaded = True
 

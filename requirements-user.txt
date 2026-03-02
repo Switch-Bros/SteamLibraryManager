@@ -11,7 +11,6 @@ psutil>=6.1.0
 
 # ===== Image Processing =====
 Pillow>=11.0.0
-opencv-python-headless>=4.8.0
 
 # ===== Steam File Parsing =====
 vdf>=3.4
