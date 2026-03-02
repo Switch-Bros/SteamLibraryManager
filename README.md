@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_header_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_header_light.webp">
-    <img src="resources/images/readme_header_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_header_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_header_light.webp">
+    <img src="src/resources/images/readme_header_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -16,7 +16,7 @@
 [![Steam API](https://img.shields.io/badge/Steam%20API-Optional-FDE100?style=plastic&logo=steam&logoColor=FDE100&labelColor=000000)](https://steamcommunity.com/dev/apikey)
 [![SteamGridDB](https://img.shields.io/badge/SteamGridDB-Required-FDE100?style=plastic&logoColor=FDE100&labelColor=000000)](https://www.steamgriddb.com/api)
 [![i18n](https://img.shields.io/badge/i18n-🇬🇧%20🇩🇪-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
-[![Downloads](https://img.shields.io/badge/Downloads-Coming%20Soon-FDE100?style=plastic&logo=github&logoColor=FDE100&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager/releases)
+[![Downloads](https://img.shields.io/github/downloads/Switch-Bros/SteamLibraryManager/total?style=plastic&color=FDE100&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager/releases)
 
 > **The Depressurizer alternative for Linux.**
 > Organize your Steam library, auto-categorize games, edit metadata, and take control of your collection — with features Steam doesn't have.
@@ -29,7 +29,7 @@
 
 <!-- Hero Screenshot -->
 <p align="center">
-  <img src="resources/screenshots/01_hero_main_window.webp" alt="Steam Library Manager — Main Window" width="900">
+  <img src="src/resources/screenshots/01_hero_main_window.webp" alt="Steam Library Manager — Main Window" width="900">
 </p>
 
 
@@ -37,37 +37,40 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
-<h3 align="center">🧠 Smart Collections — <i>Better Than Steam's Own Dynamic Collections</i></h3>
+<h3 align="center">🧠 Smart Collections — <i>A Full Rule Engine That Steam Will Never Have</i></h3>
 
-Steam has dynamic collections — but they've been **AND-only since launch**. Want games that are *either* "Platinum on ProtonDB" *or* "Native Linux"? Impossible in Steam. You can only narrow down, never combine alternatives.
+Steam has dynamic collections — but they've been **AND-only since launch**, with a handful of basic filters. Want games that are *either* "Platinum on ProtonDB" *or* "Native Linux"? Impossible in Steam. You can only narrow down, never combine alternatives.
 
-Our Smart Collections blow past that limitation with full **boolean logic**:
+Our Smart Collections are a **full-blown rule engine** with capabilities Steam will never match:
 
-- **AND / OR / NOT** operators with **nested rule groups** — combine as many conditions as you want
-- Filter by **playtime ranges**, **review scores**, **Steam Deck compatibility**, **ProtonDB ratings**, **achievement completion**, **HowLongToBeat times**, **tags**, **genres**, and more
-- Collections **update themselves** whenever your library data changes
-- **Import & Export** collections as JSON — share your setups with friends or back them up
+- **AND / OR / NOT** operators with **nested rule groups** — build complex logic like *(Genre = RPG AND ProtonDB = Platinum) OR (Genre = Strategy AND Deck = Verified)*. Groups let you combine conditions however you want — no limits, no workarounds
+- **21 filter fields** across every dimension of your library: playtime, review scores, Steam Deck status, ProtonDB ratings, achievement completion, HowLongToBeat times, tags, genres, release year, developer, publisher, platforms, languages, app type, and more
+- **12 operators** including range queries — filter games between 10-50 hours playtime, or review scores above 90%, or tags matching a regex pattern
+- **Language-independent tag matching** — switch your Steam tags from English to German (or any language), and your rules keep working. We match by Steam's internal Tag IDs, not by localized names
+- **12 ready-made templates** to get started: "Unplayed gems", "100h+ club", "Deck verified", "Quick play (<5h)", "Almost done (75%+ achievements)", and more
+- **Live preview** — see matching games update in real-time as you build your rules
+- **Import & Export** as JSON — share your setups with friends or back them up
 
 The clever part: In the Steam client, our Smart Collections appear as **regular static collections** — Steam doesn't even know the difference. But in SLM, they're fully dynamic and infinitely more powerful than anything Steam offers.
 
-*Example: "Show me all games rated 'Platinum' on ProtonDB, with more than 20 hours playtime, that I haven't 100%'d yet — but exclude anything tagged 'Visual Novel'."*
-One collection. Automatic. Always up to date. **Impossible in Steam.**
+*Example: "Show me all RPGs rated 'Platinum' on ProtonDB with more than 20 hours playtime that I haven't 100%'d yet — OR any Strategy game verified for Steam Deck — but exclude anything tagged 'Visual Novel'."*
+One collection. Two rule groups. Automatic. Always up to date. **Impossible in Steam.**
 
 <p align="center">
-  <img src="resources/screenshots/02_smart_collections_editor.webp" alt="Smart Collections Editor" width="800">
+  <img src="src/resources/screenshots/02_smart_collections_editor.webp" alt="Smart Collections Editor" width="800">
 </p>
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -77,11 +80,11 @@ If SLM saves you time organizing your library, consider supporting its developme
 
 <p align="center">
   <a href="https://www.paypal.com/donate/?hosted_button_id=HWPG6YAGXAWJJ">
-    <img src="resources/images/paypal.webp" alt="Support us on PayPal" height="80">
+    <img src="src/resources/images/paypal.webp" alt="Support us on PayPal" height="80">
   </a>
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://ko-fi.com/S6S51T9G3Y">
-    <img src="resources/images/ko-fi.webp" alt="Support us on Ko-fi" height="80">
+    <img src="src/resources/images/ko-fi.webp" alt="Support us on Ko-fi" height="80">
   </a>
 </p>
 
@@ -89,34 +92,34 @@ If SLM saves you time organizing your library, consider supporting its developme
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
-<h3 align="center">🏷️ Auto-Categorization — <i>16 Rule Types, Infinite Possibilities</i></h3>
+<h3 align="center">🏷️ Auto-Categorization — <i>17 Rule Types, Infinite Possibilities</i></h3>
 
-Automatically organize your entire library into meaningful collections with **16 different AutoCat rule types**:
+Automatically organize your entire library into meaningful collections with **17 different AutoCat rule types**:
 
-**Tags** · **Genres** · **Publishers** · **Developers** · **Franchises** · **Flags** · **User Score** · **HowLongToBeat** · **Name** · **VR Support** · **Language** · **Curator** · **Platform** · **Hours Played** · **Manual** · **Group**
+**Tags** · **Genres** · **Publishers** · **Developers** · **Franchises** · **Flags** · **User Score** · **HowLongToBeat** · **Year** · **VR Support** · **Language** · **Curator** · **Platform** · **Hours Played** · **Deck Status** · **Achievements** · **PEGI Rating**
 
 Each rule type has its own configuration — set thresholds, define ignore lists, choose prefix/suffix patterns, and combine multiple rules into powerful categorization profiles. Smart ignore lists filter out generic tags like "Singleplayer" so your categories stay meaningful.
 
 *Got 500+ games? Hit "Auto-Categorize" and watch them sort themselves into clean, logical collections in seconds.*
 
 <p align="center">
-  <img src="resources/screenshots/04_autocat_dialog.webp" alt="Auto-Categorization Dialog" width="800">
+  <img src="src/resources/screenshots/04_autocat_dialog.webp" alt="Auto-Categorization Dialog" width="800">
 </p>
 <p align="center">
-  <img src="resources/screenshots/05_autocat_results.webp" alt="Auto-Categorization — Before/After" width="800">
+  <img src="src/resources/screenshots/05_autocat_results.webp" alt="Auto-Categorization — Before/After" width="800">
 </p>
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -131,17 +134,17 @@ Edit game names, sort titles, developers, publishers, and release dates — all 
 *No other Steam library tool does this. Depressurizer loses your changes when Steam updates. We don't.*
 
 <p align="center">
-  <img src="resources/screenshots/06_metadata_editor.webp" alt="Metadata Editor" width="800">
+  <img src="src/resources/screenshots/06_metadata_editor.webp" alt="Metadata Editor" width="800">
 </p>
 <p align="center">
-  <img src="resources/screenshots/07_bulk_edit.webp" alt="Bulk Edit — Multiple Games Selected" width="800">
+  <img src="src/resources/screenshots/07_bulk_edit.webp" alt="Bulk Edit — Multiple Games Selected" width="800">
 </p>
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -155,17 +158,17 @@ Browse and download **covers, heroes, logos, and icons** from [SteamGridDB](http
 - **One click to apply** — artwork is downloaded and set as your game's cover instantly
 
 <p align="center">
-  <img src="resources/screenshots/08_artwork_browser.webp" alt="Artwork Browser — SteamGridDB Covers" width="800">
+  <img src="src/resources/screenshots/08_artwork_browser.webp" alt="Artwork Browser — SteamGridDB Covers" width="800">
 </p>
 <p align="center">
-  <img src="resources/screenshots/09_artwork_badges.webp" alt="Artwork Badges — NSFW, Animated, Humor Indicators" width="800">
+  <img src="src/resources/screenshots/09_artwork_badges.webp" alt="Artwork Badges — NSFW, Animated, Humor Indicators" width="800">
 </p>
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -184,17 +187,17 @@ Batch-enrich your entire library with data from multiple sources — all cached 
 *Hit "Enrich All" and grab a coffee. When you come back, every game in your library has full metadata.*
 
 <p align="center">
-  <img src="resources/screenshots/10_enrichment_progress.webp" alt="Batch Enrichment — Progress Dialog" width="800">
+  <img src="src/resources/screenshots/10_enrichment_progress.webp" alt="Batch Enrichment — Progress Dialog" width="800">
 </p>
 <p align="center">
-  <img src="resources/screenshots/11_game_detail_panel.webp" alt="Game Detail Panel — All Enriched Data" width="800">
+  <img src="src/resources/screenshots/11_game_detail_panel.webp" alt="Game Detail Panel — All Enriched Data" width="800">
 </p>
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -208,14 +211,14 @@ Batch-enrich your entire library with data from multiple sources — all cached 
 *No sketchy browser session tokens. No API keys in plain text config files. Just scan, login, done.*
 
 <p align="center">
-  <img src="resources/screenshots/12_qr_login.webp" alt="Steam QR Code Login" width="500">
+  <img src="src/resources/screenshots/12_qr_login.webp" alt="Steam QR Code Login" width="500">
 </p>
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -228,14 +231,14 @@ Full **English 🇬🇧** and **German 🇩🇪** interface with **complete i18n
 - **Community translations welcome** — contributing is easy, no coding required ([see below](#-translations))
 
 <p align="center">
-  <img src="resources/screenshots/13_language_settings.webp" alt="Language Settings — UI and Tag Language" width="600">
+  <img src="src/resources/screenshots/13_language_settings.webp" alt="Language Settings — UI and Tag Language" width="600">
 </p>
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -245,14 +248,14 @@ Developed with **PyQt6** for seamless desktop integration. This is not a Windows
 
 - **Steam Deck compatible** — works in Desktop Mode
 - **Wayland & X11** supported
-- **Flatpak & AppImage** packaging (AUR coming soon)
+- **AppImage, Flatpak & AUR** packaging available
 - Windows support is planned — but Linux always comes first
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -281,7 +284,7 @@ Got games scattered across Epic, GOG, Amazon, Lutris, Bottles, itch.io, and Flat
 *Steam's own "Add a Non-Steam Game" dialog can select multiple apps — but it only sees what's in your PATH, not your actual game libraries. SLM scans Heroic, Lutris, Bottles, and more directly, knows exactly what's installed, and organizes everything into clean collections automatically.*
 
 <p align="center">
-  <img src="resources/screenshots/17_external_games.webp" alt="External Games Manager — Scan and Import" width="800">
+  <img src="src/resources/screenshots/17_external_games.webp" alt="External Games Manager — Scan and Import" width="800">
 </p>
 
 
@@ -292,9 +295,9 @@ Got games scattered across Epic, GOG, Amazon, Lutris, Bottles, itch.io, and Flat
 
 | Screenshot | Description |
 |-----------|-------------|
-| ![Context Menu](resources/screenshots/14_context_menu.webp) | Right-click context menu — quick access to all actions |
-| ![Export](resources/screenshots/15_export_dialog.webp) | Export dialog — CSV, JSON, VDF, Database Backup |
-| ![About](resources/screenshots/16_about_dialog.webp) | About dialog with version & system info |
+| ![Context Menu](src/resources/screenshots/14_context_menu.webp) | Right-click context menu — quick access to all actions |
+| ![Export](src/resources/screenshots/15_export_dialog.webp) | Export dialog — CSV, JSON, VDF, Database Backup |
+| ![About](src/resources/screenshots/16_about_dialog.webp) | About dialog with version & system info |
 
 </details>
 
@@ -304,8 +307,8 @@ Got games scattered across Epic, GOG, Amazon, Lutris, Bottles, itch.io, and Flat
 | Format | Download | Notes |
 |--------|----------|-------|
 | 🐧 **AppImage** | [Download latest](https://github.com/Switch-Bros/SteamLibraryManager/releases) | Works on any distro — download, chmod +x, run |
-| 📦 **Flatpak** | *Coming soon* | Sandboxed, auto-updates |
-| 🏗️ **AUR** | *Coming soon* | Arch / Manjaro / CachyOS / EndeavourOS |
+| 📦 **Flatpak** | *Pending Flathub review* | Sandboxed, auto-updates |
+| 🏗️ **AUR** | `yay -S steam-library-manager` | Arch / Manjaro / CachyOS / EndeavourOS |
 
 <details>
 <summary>🔧 Build from source (for developers)</summary>
@@ -332,9 +335,9 @@ Requires **Python 3.10+** and a running **Steam client** (not Big Picture).
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -380,12 +383,12 @@ This project uses the following services:
 |-----------|--------|
 | Core engine, database, cloud sync, auth | ✅ Complete |
 | Architecture refactoring, menu redesign | ✅ Complete |
-| Depressurizer feature parity (16 AutoCat types) | ✅ Complete |
+| Depressurizer feature parity (17 AutoCat types) | ✅ Complete |
 | Smart Collections, Steam Deck Optimizer, HLTB | ✅ Complete |
 | External Games (8 parsers), ProtonDB, Curators | ✅ Complete |
 | UI polish, keyboard shortcuts, documentation | ✅ Complete |
-| **First public release** | 🔜 **Coming soon** |
-| CI/CD pipeline (automated Flatpak/AppImage builds) | 🔄 In progress |
+| **v1.1.1 — First public release** | ✅ **Released** |
+| Packaging (AppImage, AUR, Flatpak) | 🔄 Flatpak pending review |
 | Windows support | 📋 Planned |
 
 
@@ -395,10 +398,10 @@ Steam Library Manager ships with **English** and **German**. Want to see it in y
 
 **Contributing a translation is easy — no coding required!**
 
-1. Copy any JSON file from `resources/i18n/en/` as your template
+1. Copy any JSON file from `src/resources/i18n/en/` as your template
 2. Translate the values (never change the keys!)
 3. Keep placeholders like `{count}` and `{name}` untouched
-4. Add your language to `resources/i18n/languages.json`:
+4. Add your language to `src/resources/i18n/languages.json`:
    ```json
    "fr": "🇫🇷  Français"
    ```
@@ -451,9 +454,9 @@ In no event shall the authors or copyright holders be liable for any claim, dama
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_footer_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_footer_light.webp">
-    <img src="resources/images/readme_footer_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_footer_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_footer_light.webp">
+    <img src="src/resources/images/readme_footer_light.webp" alt="" width="800">
   </picture>
 </p>
 

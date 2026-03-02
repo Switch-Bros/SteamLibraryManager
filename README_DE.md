@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_header_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_header_light.webp">
-    <img src="resources/images/readme_header_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_header_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_header_light.webp">
+    <img src="src/resources/images/readme_header_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -16,7 +16,7 @@
 [![Steam API](https://img.shields.io/badge/Steam%20API-Optional-FDE100?style=plastic&logo=steam&logoColor=FDE100&labelColor=000000)](https://steamcommunity.com/dev/apikey)
 [![SteamGridDB](https://img.shields.io/badge/SteamGridDB-Required-FDE100?style=plastic&logoColor=FDE100&labelColor=000000)](https://www.steamgriddb.com/api)
 [![i18n](https://img.shields.io/badge/i18n-🇬🇧%20🇩🇪-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
-[![Downloads](https://img.shields.io/badge/Downloads-Coming%20Soon-FDE100?style=plastic&logo=github&logoColor=FDE100&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager/releases)
+[![Downloads](https://img.shields.io/github/downloads/Switch-Bros/SteamLibraryManager/total?style=plastic&color=FDE100&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager/releases)
 
 > **Die Depressurizer-Alternative für Linux.**
 > Organisiere deine Steam-Bibliothek, kategorisiere Spiele automatisch, bearbeite Metadaten und behalte die Kontrolle über deine Sammlung — mit Features, die Steam nicht hat.
@@ -29,7 +29,7 @@
 
 <!-- Hero Screenshot -->
 <p align="center">
-  <img src="resources/screenshots/de_01_hero_main_window.webp" alt="Steam Library Manager — Hauptfenster (Deutsch)" width="900">
+  <img src="src/resources/screenshots/01_de_hero_main_window.webp" alt="Steam Library Manager — Hauptfenster (Deutsch)" width="900">
 </p>
 
 
@@ -37,37 +37,40 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
-<h3 align="center">🧠 Smart Collections — <i>Besser als Steams eigene dynamische Kollektionen</i></h3>
+<h3 align="center">🧠 Smart Collections — <i>Eine vollwertige Rule Engine, die Steam nie haben wird</i></h3>
 
-Steam hat dynamische Kollektionen — aber die haben **seit ihrer Einführung nur UND-Logik**. Spiele die *entweder* "Platinum auf ProtonDB" *oder* "Native Linux" sind anzeigen? Geht nicht in Steam. Du kannst nur einschränken, nie Alternativen kombinieren.
+Steam hat dynamische Kollektionen — aber die haben **seit ihrer Einführung nur UND-Logik** mit einer Handvoll einfacher Filter. Spiele die *entweder* "Platinum auf ProtonDB" *oder* "Native Linux" sind anzeigen? Geht nicht in Steam. Du kannst nur einschränken, nie Alternativen kombinieren.
 
-Unsere Smart Collections sprengen diese Limitierung mit vollständiger **boolescher Logik**:
+Unsere Smart Collections sind eine **vollwertige Rule Engine** mit Möglichkeiten, die Steam nie haben wird:
 
-- **UND / ODER / NICHT** Operatoren mit **verschachtelten Regelgruppen** — kombiniere beliebig viele Bedingungen
-- Filtere nach **Spielzeitbereichen**, **Bewertungen**, **Steam Deck-Kompatibilität**, **ProtonDB-Ratings**, **Achievement-Fortschritt**, **HowLongToBeat-Zeiten**, **Tags**, **Genres** und mehr
-- Kollektionen **aktualisieren sich selbst** sobald sich deine Bibliotheksdaten ändern
+- **UND / ODER / NICHT** Operatoren mit **verschachtelten Regelgruppen** — baue komplexe Logik wie *(Genre = RPG UND ProtonDB = Platinum) ODER (Genre = Strategie UND Deck = Verified)*. Gruppen erlauben beliebige Kombinationen — keine Limits, keine Workarounds
+- **21 Filterfelder** über jede Dimension deiner Bibliothek: Spielzeit, Bewertungen, Steam Deck-Status, ProtonDB-Ratings, Achievement-Fortschritt, HowLongToBeat-Zeiten, Tags, Genres, Erscheinungsjahr, Entwickler, Publisher, Plattformen, Sprachen, App-Typ und mehr
+- **12 Operatoren** inklusive Bereichsabfragen — filtere Spiele zwischen 10-50 Stunden Spielzeit, oder Bewertungen über 90%, oder Tags die einem Regex-Muster entsprechen
+- **Sprachunabhängiges Tag-Matching** — wechsle deine Steam-Tags von Deutsch auf Englisch (oder jede andere Sprache), und deine Regeln funktionieren weiterhin. Wir matchen über Steams interne Tag-IDs, nicht über lokalisierte Namen
+- **12 fertige Vorlagen** zum Sofort-Loslegen: "Ungespielt", "100h+ Club", "Deck Verified", "Kurz (<5h)", "Fast geschafft (75%+ Achievements)" und mehr
+- **Live-Vorschau** — sieh passende Spiele in Echtzeit während du Regeln baust
 - **Import & Export** als JSON — teile deine Setups mit Freunden oder sichere sie
 
 Der Clou: Im Steam Client erscheinen unsere Smart Collections als **ganz normale statische Kollektionen** — Steam merkt keinen Unterschied. Aber in SLM sind sie volldynamisch und unendlich mächtiger als alles was Steam bietet.
 
-*Beispiel: "Zeige mir alle Spiele mit 'Platinum' auf ProtonDB, über 20 Stunden Spielzeit, die ich noch nicht zu 100% abgeschlossen habe — aber ohne 'Visual Novels'."*
-Eine Kollektion. Automatisch. Immer aktuell. **In Steam unmöglich.**
+*Beispiel: "Zeige mir alle RPGs mit 'Platinum' auf ProtonDB und über 20 Stunden Spielzeit, die ich noch nicht zu 100% abgeschlossen habe — ODER jedes Strategiespiel das für Steam Deck verifiziert ist — aber ohne 'Visual Novels'."*
+Eine Kollektion. Zwei Regelgruppen. Automatisch. Immer aktuell. **In Steam unmöglich.**
 
 <p align="center">
-  <img src="resources/screenshots/de_02_smart_collections_editor.webp" alt="Smart Collections Editor (Deutsch)" width="800">
+  <img src="src/resources/screenshots/02_de_smart_collections_editor.webp" alt="Smart Collections Editor (Deutsch)" width="800">
 </p>
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -77,11 +80,11 @@ Wenn SLM dir hilft deine Bibliothek zu organisieren, denk darüber nach die Entw
 
 <p align="center">
   <a href="https://www.paypal.com/donate/?hosted_button_id=HWPG6YAGXAWJJ">
-    <img src="resources/images/paypal_de.webp" alt="Unterstütze uns auf PayPal" height="80">
+    <img src="src/resources/images/paypal_de.webp" alt="Unterstütze uns auf PayPal" height="80">
   </a>
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://ko-fi.com/S6S51T9G3Y">
-    <img src="resources/images/ko-fi_de.webp" alt="Unterstütze uns auf Ko-fi" height="80">
+    <img src="src/resources/images/ko-fi_de.webp" alt="Unterstütze uns auf Ko-fi" height="80">
   </a>
 </p>
 
@@ -89,27 +92,34 @@ Wenn SLM dir hilft deine Bibliothek zu organisieren, denk darüber nach die Entw
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
-<h3 align="center">🏷️ Auto-Kategorisierung — <i>16 Regeltypen, unendliche Möglichkeiten</i></h3>
+<h3 align="center">🏷️ Auto-Kategorisierung — <i>17 Regeltypen, unendliche Möglichkeiten</i></h3>
 
-Organisiere deine gesamte Bibliothek automatisch in sinnvolle Kollektionen mit **16 verschiedenen AutoCat-Regeltypen**:
+Organisiere deine gesamte Bibliothek automatisch in sinnvolle Kollektionen mit **17 verschiedenen AutoCat-Regeltypen**:
 
-**Tags** · **Genres** · **Publisher** · **Entwickler** · **Franchises** · **Flags** · **User Score** · **HowLongToBeat** · **Name** · **VR-Unterstützung** · **Sprache** · **Kurator** · **Plattform** · **Spielstunden** · **Manuell** · **Gruppe**
+**Tags** · **Genres** · **Publisher** · **Entwickler** · **Franchises** · **Flags** · **User Score** · **HowLongToBeat** · **Jahr** · **VR-Unterstützung** · **Sprache** · **Kurator** · **Plattform** · **Spielstunden** · **Deck-Status** · **Achievements** · **PEGI-Bewertung**
 
 Jeder Regeltyp hat eigene Konfigurationsmöglichkeiten — Schwellenwerte, Ignorier-Listen, Präfix/Suffix-Muster und die Kombination mehrerer Regeln zu leistungsstarken Kategorisierungsprofilen. Intelligente Ignorier-Listen filtern generische Tags wie "Singleplayer" heraus.
 
 *500+ Spiele? Klick auf "Auto-Kategorisieren" und schau zu wie sie sich in Sekunden in saubere, logische Kollektionen sortieren.*
 
 <p align="center">
+  <img src="src/resources/screenshots/04_de_autocat_dialog.webp" alt="Auto-Kategorisierung (Deutsch)" width="800">
+</p>
+<p align="center">
+  <img src="src/resources/screenshots/05_de_autocat_results.webp" alt="Auto-Kategorisierung — Vorher/Nachher (Deutsch)" width="800">
+</p>
+
+<p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -124,14 +134,17 @@ Bearbeite Spielnamen, Sortiertitel, Entwickler, Publisher und Erscheinungsdaten 
 *Kein anderes Steam-Library-Tool kann das. Depressurizer verliert deine Änderungen bei Steam-Updates. Wir nicht.*
 
 <p align="center">
-  <img src="resources/screenshots/de_06_metadata_editor.webp" alt="Metadaten-Editor (Deutsch)" width="800">
+  <img src="src/resources/screenshots/06_de_metadata_editor.webp" alt="Metadaten-Editor (Deutsch)" width="800">
+</p>
+<p align="center">
+  <img src="src/resources/screenshots/07_de_bulk_edit.webp" alt="Bulk-Edit — Mehrere Spiele (Deutsch)" width="800">
 </p>
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -145,10 +158,17 @@ Durchsuche und lade **Cover, Heroes, Logos und Icons** von [SteamGridDB](https:/
 - **Ein Klick zum Anwenden** — Artwork wird heruntergeladen und sofort als Cover gesetzt
 
 <p align="center">
+  <img src="src/resources/screenshots/08_de_artwork_browser.webp" alt="Artwork-Browser (Deutsch)" width="800">
+</p>
+<p align="center">
+  <img src="src/resources/screenshots/09_de_artwork_badges.webp" alt="Artwork-Badges — NSFW, Animiert, Humor (Deutsch)" width="800">
+</p>
+
+<p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -167,14 +187,17 @@ Reichere deine gesamte Bibliothek im Batch mit Daten aus mehreren Quellen an —
 *Klick auf "Alle anreichern" und hol dir einen Kaffee. Wenn du zurückkommst hat jedes Spiel vollständige Metadaten.*
 
 <p align="center">
-  <img src="resources/screenshots/de_11_game_detail_panel.webp" alt="Spiel-Detailansicht mit allen Daten (Deutsch)" width="800">
+  <img src="src/resources/screenshots/10_de_enrichment_progress.webp" alt="Batch-Anreicherung — Fortschritt (Deutsch)" width="800">
+</p>
+<p align="center">
+  <img src="src/resources/screenshots/11_de_game_detail_panel.webp" alt="Spiel-Detailansicht mit allen Daten (Deutsch)" width="800">
 </p>
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -188,10 +211,14 @@ Reichere deine gesamte Bibliothek im Batch mit Daten aus mehreren Quellen an —
 *Keine dubiosen Browser-Session-Tokens. Keine API-Keys in Klartext-Konfigdateien. Einfach scannen, einloggen, fertig.*
 
 <p align="center">
+  <img src="src/resources/screenshots/12_de_qr_login.webp" alt="Steam QR-Code Login (Deutsch)" width="500">
+</p>
+
+<p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -204,10 +231,14 @@ Vollständige **Englisch 🇬🇧** und **Deutsch 🇩🇪** Oberfläche mit **k
 - **Community-Übersetzungen willkommen** — Beitragen ist einfach, keine Programmierkenntnisse nötig ([siehe unten](#-übersetzungen))
 
 <p align="center">
+  <img src="src/resources/screenshots/13_de_language_settings.webp" alt="Spracheinstellungen (Deutsch)" width="600">
+</p>
+
+<p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -217,14 +248,14 @@ Entwickelt mit **PyQt6** für nahtlose Desktop-Integration. Das ist keine Window
 
 - **Steam Deck kompatibel** — funktioniert im Desktop-Modus
 - **Wayland & X11** unterstützt
-- **Flatpak & AppImage** Pakete (AUR kommt bald)
+- **AppImage, Flatpak & AUR** Pakete verfügbar
 - Windows-Unterstützung ist geplant — aber Linux hat immer Vorrang
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -233,7 +264,7 @@ Entwickelt mit **PyQt6** für nahtlose Desktop-Integration. Das ist keine Window
 Spiele verstreut über Epic, GOG, Amazon, Lutris, Bottles, itch.io und Flatpak? **SLM findet sie alle** — und fügt sie in einem Rutsch als Non-Steam-Shortcuts zu Steam hinzu.
 
 - **8 Plattform-Parser** — Heroic (Epic/GOG/Amazon), Lutris, Bottles, itch.io, Flatpak und bestehende shortcuts.vdf
-- **Auto-Erkennung** — SLM scannt nach installierten Launchern (nativ und Flatpak) und liest deren Spielebibliotheken direkt aus. Steams „Steam fremdes Spiel hinzufügen"-Dialog sieht nur Programme in deinem PATH — er hat keine Ahnung was Heroic, Lutris oder Bottles installiert haben
+- **Auto-Erkennung** — SLM scannt nach installierten Launchern (nativ und Flatpak) und liest deren Spielebibliotheken direkt aus. Steams "Steam fremdes Spiel hinzufügen"-Dialog sieht nur Programme in deinem PATH — er hat keine Ahnung was Heroic, Lutris oder Bottles installiert haben
 - **Duplikat-Schutz** — bereits in Steam vorhandene Spiele werden erkannt und übersprungen
 - **Plattform-Kollektionen** — importierte Spiele werden automatisch nach Plattform in Steam-Kollektionen einsortiert. In SLMs Seitenleiste bekommt jede Kollektion einen visuellen Emoji-Indikator zur sofortigen Erkennung:
 
@@ -250,11 +281,25 @@ Spiele verstreut über Epic, GOG, Amazon, Lutris, Bottles, itch.io und Flatpak? 
 - **Binärer VDF-Parser** — liest und schreibt Steams `shortcuts.vdf`-Format mit Byte-genauer Präzision
 - **Batch-Import** — alle Plattformen auf einmal scannen, auswählen, alle mit Fortschrittsanzeige hinzufügen
 
-*Steams eigener „Steam fremdes Spiel hinzufügen"-Dialog kann zwar mehrere Apps markieren — aber er sieht nur was in deinem PATH liegt, nicht deine tatsächlichen Spielebibliotheken. SLM scannt Heroic, Lutris, Bottles und mehr direkt, weiß genau was installiert ist, und organisiert alles automatisch in saubere Kollektionen.*
+*Steams eigener "Steam fremdes Spiel hinzufügen"-Dialog kann zwar mehrere Apps markieren — aber er sieht nur was in deinem PATH liegt, nicht deine tatsächlichen Spielebibliotheken. SLM scannt Heroic, Lutris, Bottles und mehr direkt, weiß genau was installiert ist, und organisiert alles automatisch in saubere Kollektionen.*
 
 <p align="center">
-  <img src="resources/screenshots/17_external_games.webp" alt="External Games Manager — Scannen und Importieren" width="800">
+  <img src="src/resources/screenshots/17_de_external_games.webp" alt="Externe Spiele — Scannen und Importieren (Deutsch)" width="800">
 </p>
+
+
+<h2 align="center">📸 Weitere Screenshots</h2>
+
+<details>
+<summary>Klicken zum Aufklappen — Zusätzliche Ansichten</summary>
+
+| Screenshot | Beschreibung |
+|-----------|-------------|
+| ![Kontextmenü](src/resources/screenshots/14_de_context_menu.webp) | Rechtsklick-Kontextmenü — Schnellzugriff auf alle Aktionen |
+| ![Export](src/resources/screenshots/15_de_export_dialog.webp) | Export-Dialog — CSV, JSON, VDF, Datenbank-Backup |
+| ![Über](src/resources/screenshots/16_de_about_dialog.webp) | Über-Dialog mit Versions- & Systeminfo |
+
+</details>
 
 
 <h2 align="center">📦 Download & Installation</h2>
@@ -262,8 +307,8 @@ Spiele verstreut über Epic, GOG, Amazon, Lutris, Bottles, itch.io und Flatpak? 
 | Format | Download | Hinweise |
 |--------|----------|----------|
 | 🐧 **AppImage** | [Neueste Version](https://github.com/Switch-Bros/SteamLibraryManager/releases) | Funktioniert auf jeder Distro — herunterladen, chmod +x, starten |
-| 📦 **Flatpak** | *Kommt bald* | Sandboxed, Auto-Updates |
-| 🏗️ **AUR** | *Kommt bald* | Arch / Manjaro / CachyOS / EndeavourOS |
+| 📦 **Flatpak** | *Flathub-Review ausstehend* | Sandboxed, Auto-Updates |
+| 🏗️ **AUR** | `yay -S steam-library-manager` | Arch / Manjaro / CachyOS / EndeavourOS |
 
 <details>
 <summary>🔧 Aus Quellcode bauen (für Entwickler)</summary>
@@ -290,9 +335,9 @@ Benötigt **Python 3.10+** und einen laufenden **Steam Client** (nicht Big Pictu
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_divider_light.webp">
-    <img src="resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
+    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -338,12 +383,12 @@ Dieses Projekt nutzt folgende Dienste:
 |-------------|--------|
 | Core-Engine, Datenbank, Cloud Sync, Auth | ✅ Fertig |
 | Architektur-Refactoring, Menü-Redesign | ✅ Fertig |
-| Depressurizer Feature-Parität (16 AutoCat-Typen) | ✅ Fertig |
+| Depressurizer Feature-Parität (17 AutoCat-Typen) | ✅ Fertig |
 | Smart Collections, Steam Deck Optimizer, HLTB | ✅ Fertig |
 | Externe Spiele (8 Parser), ProtonDB, Kuratoren | ✅ Fertig |
 | UI-Polish, Keyboard Shortcuts, Dokumentation | ✅ Fertig |
-| **Erste öffentliche Veröffentlichung** | 🔜 **Kommt bald** |
-| CI/CD-Pipeline (automatisierte Flatpak/AppImage Builds) | 🔄 In Arbeit |
+| **v1.1.1 — Erste öffentliche Veröffentlichung** | ✅ **Veröffentlicht** |
+| Packaging (AppImage, AUR, Flatpak) | 🔄 Flatpak-Review ausstehend |
 | Windows-Unterstützung | 📋 Geplant |
 
 
@@ -353,10 +398,10 @@ Steam Library Manager kommt mit **Englisch** und **Deutsch**. Du willst es in de
 
 **Eine Übersetzung beizutragen ist einfach — keine Programmierkenntnisse nötig!**
 
-1. Kopiere eine beliebige JSON-Datei aus `resources/i18n/en/` als Vorlage
+1. Kopiere eine beliebige JSON-Datei aus `src/resources/i18n/en/` als Vorlage
 2. Übersetze die Werte (niemals die Keys ändern!)
 3. Platzhalter wie `{count}` und `{name}` unverändert lassen
-4. Deine Sprache in `resources/i18n/languages.json` eintragen:
+4. Deine Sprache in `src/resources/i18n/languages.json` eintragen:
    ```json
    "tr": "🇹🇷  Türkçe"
    ```
@@ -393,7 +438,7 @@ Der Sprachname muss immer in der **eigenen Originalschrift** stehen — "Türkç
 
 <h2 align="center">⚖️ Rechtlicher Hinweis</h2>
 
-Diese Software wird **„WIE SIE IST"** bereitgestellt, ohne jegliche ausdrückliche oder stillschweigende Gewährleistung, einschließlich, aber nicht beschränkt auf die Gewährleistung der Marktgängigkeit, der Eignung für einen bestimmten Zweck und der Nichtverletzung von Rechten Dritter.
+Diese Software wird **"WIE SIE IST"** bereitgestellt, ohne jegliche ausdrückliche oder stillschweigende Gewährleistung, einschließlich, aber nicht beschränkt auf die Gewährleistung der Marktgängigkeit, der Eignung für einen bestimmten Zweck und der Nichtverletzung von Rechten Dritter.
 
 In keinem Fall haften die Autoren oder Urheberrechtsinhaber für Ansprüche, Schäden oder sonstige Haftung, ob aus Vertrag, unerlaubter Handlung oder anderweitig, die sich aus der Software oder der Nutzung der Software oder dem sonstigen Umgang mit der Software ergeben.
 
@@ -409,9 +454,9 @@ In keinem Fall haften die Autoren oder Urheberrechtsinhaber für Ansprüche, Sch
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/images/readme_footer_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="resources/images/readme_footer_light.webp">
-    <img src="resources/images/readme_footer_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_footer_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_footer_light.webp">
+    <img src="src/resources/images/readme_footer_light.webp" alt="" width="800">
   </picture>
 </p>
 
