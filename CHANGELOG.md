@@ -5,6 +5,19 @@ All notable changes to Steam Library Manager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-03-04
+
+### Changed
+- **Module Rename:** `src/` renamed to `steam_library_manager/` for PEP 423 compliance.
+  The generic module name `src` conflicts with other packages when installed system-wide.
+  `steam_library_manager` is globally unique and enables proper Python packaging.
+  (Requested by AUR user yochananmarqos)
+
+### Fixed
+- **AUR:** DATA_DIR now uses XDG_DATA_HOME for all install types (fixes PermissionError crash)
+- **AUR:** Icons use correct reverse-DNS names (io.github.switch_bros.SteamLibraryManager)
+- **Images:** All PEGI icons, default placeholders, and QR login converted from PNG to WebP
+
 ## [1.1.1] - 2026-02-27
 
 ### Added
