@@ -91,7 +91,7 @@ class PEGISelectorDialog(BaseDialog):
 
         row, col = 0, 0
         for rating in pegi_ratings:
-            icon_path = icons_dir / f"PEGI{rating}.png"
+            icon_path = icons_dir / f"PEGI{rating}.webp"
             btn = PEGIIconButton(rating, icon_path, self)
             btn.clicked.connect(lambda _checked=False, r=rating: self._on_rating_clicked(r))
 

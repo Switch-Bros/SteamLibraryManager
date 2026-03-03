@@ -52,12 +52,9 @@ class Config:
     RESOURCES_DIR: Path = get_resources_dir()
     ICONS_DIR: Path = RESOURCES_DIR / "icons"
 
-    # DATA_DIR must be writable — use XDG on AppImage/Flatpak, local otherwise
-    DATA_DIR: Path = (
-        Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share")) / "steamlibrarymanager"
-        if os.environ.get("APPIMAGE") or os.environ.get("FLATPAK_ID")
-        else APP_DIR / "data"
-    )
+    # DATA_DIR must be writable — XDG Base Directory Specification
+    # Works for all installation types: AUR/native, Flatpak (remaps XDG), AppImage
+    DATA_DIR: Path = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share")) / "steamlibrarymanager"
     CACHE_DIR: Path = DATA_DIR / "cache"
     SETTINGS_FILE: Path = DATA_DIR / "settings.json"
 
@@ -93,8 +90,9 @@ class Config:
 
     def __post_init__(self):
         """Initialize directories and load settings after instantiation."""
-        self.DATA_DIR.mkdir(exist_ok=True)
-        self.CACHE_DIR.mkdir(exist_ok=True)
+        self._migrate_legacy_data_dir()
+        self.DATA_DIR.mkdir(parents=True, exist_ok=True)
+        self.CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
         if self.STEAM_LIBRARIES is None:
             self.STEAM_LIBRARIES = []
@@ -163,6 +161,22 @@ class Config:
         grid_path.mkdir(parents=True, exist_ok=True)
 
         return grid_path
+
+    def _migrate_legacy_data_dir(self) -> None:
+        """Migrate data from legacy location (relative to install dir) to XDG path.
+
+        Before v1.2, DATA_DIR was set to APP_DIR/data for non-AppImage/Flatpak
+        installs. This migrates any existing data to the XDG-compliant location.
+        Only runs if old path exists and new path does not.
+        """
+        legacy_data_dir = Path(__file__).resolve().parent.parent / "data"
+        if legacy_data_dir.is_dir() and not self.DATA_DIR.is_dir():
+            import shutil
+
+            logger.info("Migrating data from %s to %s", legacy_data_dir, self.DATA_DIR)
+            self.DATA_DIR.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(legacy_data_dir, self.DATA_DIR, dirs_exist_ok=True)
+            logger.info("Data migration complete")
 
     def _load_settings(self) -> None:
         """Load settings from JSON file."""

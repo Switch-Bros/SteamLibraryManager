@@ -420,7 +420,7 @@ class ModernSteamLoginDialog(QDialog):
             # Try to overlay custom logo from resources
             from src.utils.paths import get_resources_dir
 
-            logo_path = get_resources_dir() / "icons" / "qr_login.png"
+            logo_path = get_resources_dir() / "icons" / "qr_login.webp"
             if logo_path.exists():
                 try:
                     logo_img = Image.open(logo_path).convert("RGBA")

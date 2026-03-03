@@ -13,7 +13,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QToolBar, QWidget, QSizePolicy
 
 from src.config import config
@@ -161,11 +161,6 @@ class ToolbarBuilder:
         # Show info on click with logout option
         user_action.triggered.connect(lambda: ToolbarBuilder._show_user_dialog(mw))
 
-        # Steam login icon (if available, set as QIcon alongside text)
-        icon_path = config.ICONS_DIR / "steam_login.png"
-        if icon_path.exists():
-            user_action.setIcon(QIcon(str(icon_path)))
-
         toolbar.addAction(user_action)
 
     def _add_login_action(self, toolbar: QToolBar) -> None:
@@ -181,10 +176,6 @@ class ToolbarBuilder:
         action_text = f"{t('emoji.login')} {t('steam.login.button')}"
         login_action = QAction(action_text, mw)
         login_action.setToolTip(t("steam.login.button"))
-
-        icon_path = config.ICONS_DIR / "steam_login.png"
-        if icon_path.exists():
-            login_action.setIcon(QIcon(str(icon_path)))
 
         # Use SteamActions instead of MainWindow method
         login_action.triggered.connect(mw.steam_actions.start_steam_login)

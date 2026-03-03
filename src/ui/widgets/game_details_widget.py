@@ -411,7 +411,7 @@ class GameDetailsWidget(QWidget):
                 game.pegi_rating = fetched_pegi
 
         if pegi_to_display:
-            pegi_path = config.ICONS_DIR / f"PEGI{pegi_to_display}.png"
+            pegi_path = config.ICONS_DIR / f"PEGI{pegi_to_display}.webp"
             self.pegi_image.load_image(str(pegi_path) if pegi_path.exists() else None)
         else:
             self.pegi_image.load_image(None)

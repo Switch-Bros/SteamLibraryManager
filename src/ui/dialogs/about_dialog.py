@@ -177,7 +177,7 @@ class AboutDialog(BaseDialog):
         logo_label.setCursor(Qt.CursorShape.PointingHandCursor)
         logo_label.setToolTip("SwitchBros")
 
-        logo_path = config.RESOURCES_DIR / "images" / "default_icons.png"
+        logo_path = config.RESOURCES_DIR / "images" / "default_icons.webp"
         if logo_path.exists():
             pixmap = QPixmap(str(logo_path))
             logo_label.setPixmap(
