@@ -8,15 +8,15 @@ from unittest.mock import Mock
 
 import pytest
 
-from src.core.game import Game
-from src.services.smart_collections.models import (
+from steam_library_manager.core.game import Game
+from steam_library_manager.services.smart_collections.models import (
     FilterField,
     LogicOperator,
     Operator,
     SmartCollection,
     SmartCollectionRule,
 )
-from src.services.smart_collections.smart_collection_manager import SmartCollectionManager
+from steam_library_manager.services.smart_collections.smart_collection_manager import SmartCollectionManager
 
 # ========================================================================
 # FIXTURES

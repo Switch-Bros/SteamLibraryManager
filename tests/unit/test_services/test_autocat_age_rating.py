@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from src.core.game import Game
+from steam_library_manager.core.game import Game
 
 
 def _make_game(app_id: str = "1", name: str = "Test", pegi: str = "") -> Game:
@@ -20,7 +20,7 @@ def _make_game(app_id: str = "1", name: str = "Test", pegi: str = "") -> Game:
 
 def _make_service():
     """Creates a real AutoCategorizeService with mocked dependencies."""
-    from src.services.autocategorize_service import AutoCategorizeService
+    from steam_library_manager.services.autocategorize_service import AutoCategorizeService
 
     service = AutoCategorizeService.__new__(AutoCategorizeService)
     service.category_service = MagicMock()

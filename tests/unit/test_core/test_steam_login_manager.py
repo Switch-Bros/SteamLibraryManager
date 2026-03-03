@@ -8,10 +8,10 @@ from unittest.mock import MagicMock, patch
 class TestQRCodeLoginThread:
     """Tests for QRCodeLoginThread."""
 
-    @patch("src.core.steam_login_manager.requests.post")
+    @patch("steam_library_manager.core.steam_login_manager.requests.post")
     def test_start_qr_session_success(self, mock_post: MagicMock):
         """Successful QR session start should return challenge URL and IDs."""
-        from src.core.steam_login_manager import QRCodeLoginThread
+        from steam_library_manager.core.steam_login_manager import QRCodeLoginThread
 
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -34,12 +34,12 @@ class TestQRCodeLoginThread:
         assert challenge_url == "https://s.team/q/1/2"
         assert interval == 5.0
 
-    @patch("src.core.steam_login_manager.requests.post")
+    @patch("steam_library_manager.core.steam_login_manager.requests.post")
     def test_start_qr_session_network_error(self, mock_post: MagicMock):
         """Network error should return None tuple."""
         import requests as req
 
-        from src.core.steam_login_manager import QRCodeLoginThread
+        from steam_library_manager.core.steam_login_manager import QRCodeLoginThread
 
         mock_post.side_effect = req.RequestException("offline")
 
@@ -53,11 +53,11 @@ class TestQRCodeLoginThread:
 class TestPollAuthSession:
     """Tests for the shared _poll_auth_session helper."""
 
-    @patch("src.core.steam_login_manager.time.sleep")
-    @patch("src.core.steam_login_manager.requests.post")
+    @patch("steam_library_manager.core.steam_login_manager.time.sleep")
+    @patch("steam_library_manager.core.steam_login_manager.requests.post")
     def test_poll_success(self, mock_post: MagicMock, mock_sleep: MagicMock):
         """Successful poll should return token dict with steam_id."""
-        from src.core.steam_login_manager import _poll_auth_session
+        from steam_library_manager.core.steam_login_manager import _poll_auth_session
 
         # First poll: no token yet. Second poll: success
         no_token = MagicMock()
@@ -78,18 +78,21 @@ class TestPollAuthSession:
 
         mock_post.side_effect = [no_token, with_token]
 
-        with patch("src.core.steam_login_manager.TokenStore.get_steamid_from_token", return_value="76561198000000000"):
+        with patch(
+            "steam_library_manager.core.steam_login_manager.TokenStore.get_steamid_from_token",
+            return_value="76561198000000000",
+        ):
             result = _poll_auth_session("client1", "req1", 0.01, 5.0, stop_check=lambda: False)
 
         assert result is not None
         assert result["access_token"] == "at_123"
         assert result["steam_id"] == "76561198000000000"
 
-    @patch("src.core.steam_login_manager.time.sleep")
-    @patch("src.core.steam_login_manager.requests.post")
+    @patch("steam_library_manager.core.steam_login_manager.time.sleep")
+    @patch("steam_library_manager.core.steam_login_manager.requests.post")
     def test_poll_timeout(self, mock_post: MagicMock, mock_sleep: MagicMock):
         """Polling past timeout should return None."""
-        from src.core.steam_login_manager import _poll_auth_session
+        from steam_library_manager.core.steam_login_manager import _poll_auth_session
 
         no_token = MagicMock()
         no_token.status_code = 200
@@ -101,11 +104,11 @@ class TestPollAuthSession:
 
         assert result is None
 
-    @patch("src.core.steam_login_manager.time.sleep")
-    @patch("src.core.steam_login_manager.requests.post")
+    @patch("steam_library_manager.core.steam_login_manager.time.sleep")
+    @patch("steam_library_manager.core.steam_login_manager.requests.post")
     def test_poll_stop_requested(self, mock_post: MagicMock, mock_sleep: MagicMock):
         """stop_check returning True should abort polling."""
-        from src.core.steam_login_manager import _poll_auth_session
+        from steam_library_manager.core.steam_login_manager import _poll_auth_session
 
         no_token = MagicMock()
         no_token.status_code = 200
@@ -117,11 +120,11 @@ class TestPollAuthSession:
 
         assert result is None
 
-    @patch("src.core.steam_login_manager.time.sleep")
-    @patch("src.core.steam_login_manager.requests.post")
+    @patch("steam_library_manager.core.steam_login_manager.time.sleep")
+    @patch("steam_library_manager.core.steam_login_manager.requests.post")
     def test_poll_no_steamid_returns_none(self, mock_post: MagicMock, mock_sleep: MagicMock):
         """Token received but no SteamID resolvable should return None."""
-        from src.core.steam_login_manager import _poll_auth_session
+        from steam_library_manager.core.steam_login_manager import _poll_auth_session
 
         with_token = MagicMock()
         with_token.status_code = 200
@@ -134,16 +137,18 @@ class TestPollAuthSession:
         with_token.raise_for_status = MagicMock()
         mock_post.return_value = with_token
 
-        with patch("src.core.steam_login_manager.TokenStore.get_steamid_from_token", return_value=None):
+        with patch(
+            "steam_library_manager.core.steam_login_manager.TokenStore.get_steamid_from_token", return_value=None
+        ):
             result = _poll_auth_session("client1", "req1", 0.01, 5.0, stop_check=lambda: False)
 
         assert result is None
 
-    @patch("src.core.steam_login_manager.time.sleep")
-    @patch("src.core.steam_login_manager.requests.post")
+    @patch("steam_library_manager.core.steam_login_manager.time.sleep")
+    @patch("steam_library_manager.core.steam_login_manager.requests.post")
     def test_poll_on_interaction_callback(self, mock_post: MagicMock, mock_sleep: MagicMock):
         """on_interaction callback should fire once when remote interaction is detected."""
-        from src.core.steam_login_manager import _poll_auth_session
+        from steam_library_manager.core.steam_login_manager import _poll_auth_session
 
         interaction = MagicMock()
         interaction.json.return_value = {"response": {"had_remote_interaction": True}}
@@ -168,11 +173,11 @@ class TestPollAuthSession:
         assert result is not None
         callback.assert_called_once()
 
-    @patch("src.core.steam_login_manager.time.sleep")
-    @patch("src.core.steam_login_manager.requests.post")
+    @patch("steam_library_manager.core.steam_login_manager.time.sleep")
+    @patch("steam_library_manager.core.steam_login_manager.requests.post")
     def test_poll_steamid_from_response(self, mock_post: MagicMock, mock_sleep: MagicMock):
         """steamid directly in response should be used without TokenStore fallback."""
-        from src.core.steam_login_manager import _poll_auth_session
+        from steam_library_manager.core.steam_login_manager import _poll_auth_session
 
         with_token = MagicMock()
         with_token.json.return_value = {
@@ -185,7 +190,7 @@ class TestPollAuthSession:
         with_token.raise_for_status = MagicMock()
         mock_post.return_value = with_token
 
-        with patch("src.core.steam_login_manager.TokenStore.get_steamid_from_token") as mock_resolve:
+        with patch("steam_library_manager.core.steam_login_manager.TokenStore.get_steamid_from_token") as mock_resolve:
             result = _poll_auth_session("client1", "req1", 0.01, 5.0, stop_check=lambda: False)
 
         assert result is not None
@@ -196,11 +201,11 @@ class TestPollAuthSession:
 class TestUsernamePasswordLoginThread:
     """Tests for UsernamePasswordLoginThread."""
 
-    @patch("src.core.steam_login_manager.requests.post")
-    @patch("src.core.steam_login_manager.requests.get")
+    @patch("steam_library_manager.core.steam_login_manager.requests.post")
+    @patch("steam_library_manager.core.steam_login_manager.requests.get")
     def test_fetch_rsa_key_success(self, mock_get: MagicMock, mock_post: MagicMock):
         """Successful RSA key fetch returns (mod, exp, timestamp)."""
-        from src.core.steam_login_manager import UsernamePasswordLoginThread
+        from steam_library_manager.core.steam_login_manager import UsernamePasswordLoginThread
 
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -222,12 +227,12 @@ class TestUsernamePasswordLoginThread:
         assert exp == "010001"
         assert ts == "1234567890"
 
-    @patch("src.core.steam_login_manager.requests.get")
+    @patch("steam_library_manager.core.steam_login_manager.requests.get")
     def test_fetch_rsa_key_network_error(self, mock_get: MagicMock):
         """Network error during RSA fetch should return None."""
         import requests as req
 
-        from src.core.steam_login_manager import UsernamePasswordLoginThread
+        from steam_library_manager.core.steam_login_manager import UsernamePasswordLoginThread
 
         mock_get.side_effect = req.RequestException("offline")
 
@@ -235,10 +240,10 @@ class TestUsernamePasswordLoginThread:
 
         assert result is None
 
-    @patch("src.core.steam_login_manager.requests.get")
+    @patch("steam_library_manager.core.steam_login_manager.requests.get")
     def test_fetch_rsa_key_incomplete_response(self, mock_get: MagicMock):
         """Incomplete RSA response (missing fields) should return None."""
-        from src.core.steam_login_manager import UsernamePasswordLoginThread
+        from steam_library_manager.core.steam_login_manager import UsernamePasswordLoginThread
 
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -256,14 +261,14 @@ class TestSteamLoginManager:
 
     def test_cancel_login_no_threads(self):
         """Cancelling when no threads are running should not crash."""
-        from src.core.steam_login_manager import SteamLoginManager
+        from steam_library_manager.core.steam_login_manager import SteamLoginManager
 
         manager = SteamLoginManager()
         manager.cancel_login()  # Should not raise
 
     def test_on_login_success_qr(self, qtbot):
         """Unified success handler should emit login_success with method=qr."""
-        from src.core.steam_login_manager import SteamLoginManager
+        from steam_library_manager.core.steam_login_manager import SteamLoginManager
 
         manager = SteamLoginManager()
         received = []
@@ -286,7 +291,7 @@ class TestSteamLoginManager:
 
     def test_on_login_success_password(self, qtbot):
         """Unified success handler should emit login_success with method=password."""
-        from src.core.steam_login_manager import SteamLoginManager
+        from steam_library_manager.core.steam_login_manager import SteamLoginManager
 
         manager = SteamLoginManager()
         received = []

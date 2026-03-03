@@ -10,7 +10,7 @@ class TestGameLoadWorker:
 
     def test_constructor_stores_params(self):
         """Worker should store game_service and user_id."""
-        from src.ui.workers.game_load_worker import GameLoadWorker
+        from steam_library_manager.ui.workers.game_load_worker import GameLoadWorker
 
         mock_service = MagicMock()
         worker = GameLoadWorker(mock_service, "76561198000000000")
@@ -20,7 +20,7 @@ class TestGameLoadWorker:
 
     def test_run_calls_load_and_prepare(self, qtbot):
         """run() should call game_service.load_and_prepare with callback."""
-        from src.ui.workers.game_load_worker import GameLoadWorker
+        from steam_library_manager.ui.workers.game_load_worker import GameLoadWorker
 
         mock_service = MagicMock()
         mock_service.load_and_prepare.return_value = True
@@ -40,7 +40,7 @@ class TestGameLoadWorker:
 
     def test_run_emits_false_on_failure(self, qtbot):
         """run() should emit finished(False) when loading fails."""
-        from src.ui.workers.game_load_worker import GameLoadWorker
+        from steam_library_manager.ui.workers.game_load_worker import GameLoadWorker
 
         mock_service = MagicMock()
         mock_service.load_and_prepare.return_value = False
@@ -55,7 +55,7 @@ class TestGameLoadWorker:
 
     def test_run_forwards_progress(self, qtbot):
         """run() should forward progress callbacks to signal."""
-        from src.ui.workers.game_load_worker import GameLoadWorker
+        from steam_library_manager.ui.workers.game_load_worker import GameLoadWorker
 
         mock_service = MagicMock()
 
@@ -81,7 +81,7 @@ class TestSessionRestoreResult:
 
     def test_default_values(self):
         """SessionRestoreResult should have sensible defaults."""
-        from src.ui.workers.session_restore_worker import SessionRestoreResult
+        from steam_library_manager.ui.workers.session_restore_worker import SessionRestoreResult
 
         result = SessionRestoreResult(success=False)
 
@@ -94,7 +94,7 @@ class TestSessionRestoreResult:
     def test_frozen_immutability(self):
         """SessionRestoreResult should be frozen (immutable)."""
         import pytest
-        from src.ui.workers.session_restore_worker import SessionRestoreResult
+        from steam_library_manager.ui.workers.session_restore_worker import SessionRestoreResult
 
         result = SessionRestoreResult(success=True, access_token="abc")
 
@@ -103,7 +103,7 @@ class TestSessionRestoreResult:
 
     def test_full_construction(self):
         """SessionRestoreResult should store all fields correctly."""
-        from src.ui.workers.session_restore_worker import SessionRestoreResult
+        from steam_library_manager.ui.workers.session_restore_worker import SessionRestoreResult
 
         result = SessionRestoreResult(
             success=True,
@@ -122,15 +122,15 @@ class TestSessionRestoreWorker:
     """Tests for SessionRestoreWorker thread.
 
     Notes on patch paths: SessionRestoreWorker imports TokenStore and
-    requests locally inside methods (``from src.core.token_store import
+    requests locally inside methods (``from steam_library_manager.core.token_store import
     TokenStore`` and ``import requests``).  We therefore patch at the
     *source* module rather than the worker module.
     """
 
-    @patch("src.core.token_store.TokenStore")
+    @patch("steam_library_manager.core.token_store.TokenStore")
     def test_run_no_stored_tokens_emits_failure(self, mock_store_cls, qtbot):
         """No stored tokens should emit SessionRestoreResult(success=False)."""
-        from src.ui.workers.session_restore_worker import SessionRestoreWorker
+        from steam_library_manager.ui.workers.session_restore_worker import SessionRestoreWorker
 
         mock_store = MagicMock()
         mock_store.load_tokens.return_value = None
@@ -145,10 +145,10 @@ class TestSessionRestoreWorker:
         assert len(results) == 1
         assert results[0].success is False
 
-    @patch("src.core.token_store.TokenStore")
+    @patch("steam_library_manager.core.token_store.TokenStore")
     def test_run_refresh_success_emits_new_token(self, mock_store_cls, qtbot):
         """Successful refresh should emit result with new access_token."""
-        from src.ui.workers.session_restore_worker import SessionRestoreWorker
+        from steam_library_manager.ui.workers.session_restore_worker import SessionRestoreWorker
 
         mock_stored = MagicMock()
         mock_stored.access_token = "old_token"
@@ -173,10 +173,10 @@ class TestSessionRestoreWorker:
         assert results[0].access_token == "fresh_token"
         assert results[0].persona_name == "TestPlayer"
 
-    @patch("src.core.token_store.TokenStore")
+    @patch("steam_library_manager.core.token_store.TokenStore")
     def test_run_refresh_and_validate_fail_emits_failure(self, mock_store_cls, qtbot):
         """Both refresh and validate failing should emit failure."""
-        from src.ui.workers.session_restore_worker import SessionRestoreWorker
+        from steam_library_manager.ui.workers.session_restore_worker import SessionRestoreWorker
 
         mock_stored = MagicMock()
         mock_stored.access_token = "expired_token"
@@ -202,7 +202,7 @@ class TestSessionRestoreWorker:
     @patch("requests.get")
     def test_fetch_persona_name_success(self, mock_get):
         """Should extract persona name from Steam XML response."""
-        from src.ui.workers.session_restore_worker import SessionRestoreWorker
+        from steam_library_manager.ui.workers.session_restore_worker import SessionRestoreWorker
 
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -224,7 +224,7 @@ class TestSessionRestoreWorker:
 
         mock_get.side_effect = req.RequestException("offline")
 
-        from src.ui.workers.session_restore_worker import SessionRestoreWorker
+        from steam_library_manager.ui.workers.session_restore_worker import SessionRestoreWorker
 
         result = SessionRestoreWorker.fetch_steam_persona_name("76561198000000000")
 

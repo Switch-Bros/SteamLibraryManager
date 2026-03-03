@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from src.services.enrichment.curator_enrichment_service import CuratorEnrichmentThread
+from steam_library_manager.services.enrichment.curator_enrichment_service import CuratorEnrichmentThread
 
 
 class TestCuratorEnrichmentThread:
@@ -45,7 +45,7 @@ class TestCuratorEnrichmentThread:
 
     def test_process_item_filters_recommended_only(self) -> None:
         """_process_item should filter for RECOMMENDED only."""
-        from src.services.curator_client import CuratorRecommendation
+        from steam_library_manager.services.curator_client import CuratorRecommendation
 
         mock_db = MagicMock()
         mock_client = MagicMock()

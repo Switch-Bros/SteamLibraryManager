@@ -10,9 +10,9 @@ from __future__ import annotations
 
 import pytest
 
-from src.core.game import Game
-from src.services.enrichment.metadata_enrichment_service import MetadataEnrichmentService
-from src.services.game_query_service import GameQueryService
+from steam_library_manager.core.game import Game
+from steam_library_manager.services.enrichment.metadata_enrichment_service import MetadataEnrichmentService
+from steam_library_manager.services.game_query_service import GameQueryService
 
 
 def _make_game(

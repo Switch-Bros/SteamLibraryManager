@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
-from src.services.curator_client import CuratorClient, CuratorRecommendation
+from steam_library_manager.services.curator_client import CuratorClient, CuratorRecommendation
 
 
 class TestCuratorClientURLParsing:
@@ -169,7 +169,7 @@ class TestCuratorClientFetch:
         with pytest.raises(ValueError, match="Invalid curator URL"):
             client.fetch_recommendations("not-a-url")
 
-    @patch("src.services.curator_client.urlopen")
+    @patch("steam_library_manager.services.curator_client.urlopen")
     def test_fetch_single_page(self, mock_urlopen: MagicMock) -> None:
         """Test fetching recommendations with a single page of results."""
         import json
@@ -194,7 +194,7 @@ class TestCuratorClientFetch:
         assert result[440] == CuratorRecommendation.RECOMMENDED
         assert result[730] == CuratorRecommendation.NOT_RECOMMENDED
 
-    @patch("src.services.curator_client.urlopen")
+    @patch("steam_library_manager.services.curator_client.urlopen")
     def test_fetch_with_progress_callback(self, mock_urlopen: MagicMock) -> None:
         """Test that progress callback is called during fetch."""
         import json
@@ -217,7 +217,7 @@ class TestCuratorClientFetch:
 
         callback.assert_called_with(1)
 
-    @patch("src.services.curator_client.urlopen")
+    @patch("steam_library_manager.services.curator_client.urlopen")
     def test_fetch_empty_results_stops_pagination(self, mock_urlopen: MagicMock) -> None:
         """Test that empty results stop pagination."""
         import json
@@ -239,7 +239,7 @@ class TestCuratorClientFetch:
 
         assert result == {}
 
-    @patch("src.services.curator_client.urlopen")
+    @patch("steam_library_manager.services.curator_client.urlopen")
     def test_fetch_connection_error_raises(self, mock_urlopen: MagicMock) -> None:
         """Test that connection errors are properly raised."""
         from urllib.error import URLError

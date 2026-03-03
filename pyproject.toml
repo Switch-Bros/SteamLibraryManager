@@ -2,7 +2,7 @@
 
 [project]
 name = "steam-library-manager"
-version = "1.1.1"
+version = "1.2.0"
 description = "A powerful Steam library organizer for Linux - the modern Depressurizer alternative"
 readme = "README.md"
 license = {text = "MIT"}
@@ -30,17 +30,17 @@ Issues = "https://github.com/Switch-Bros/SteamLibraryManager/issues"
 Changelog = "https://github.com/Switch-Bros/SteamLibraryManager/blob/master/CHANGELOG.md"
 
 [project.gui-scripts]
-steam-library-manager = "src.main:main"
+steam-library-manager = "steam_library_manager.main:main"
 
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["src*"]
+include = ["steam_library_manager*"]
 
 [tool.setuptools.package-data]
-"src" = [
+"steam_library_manager" = [
     "resources/**/*.json",
     "resources/**/*.png",
     "resources/**/*.svg",
@@ -116,11 +116,11 @@ python_classes = "Test*"
 python_functions = "test_*"
 
 [tool.coverage.run]
-source = ["src"]
+source = ["steam_library_manager"]
 omit = [
     "*/tests/*",
     "*/__pycache__/*",
-    "src/main.py",
+    "steam_library_manager/main.py",
 ]
 
 [tool.coverage.report]

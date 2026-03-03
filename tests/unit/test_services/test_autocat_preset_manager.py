@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from src.services.autocat_preset_manager import AutoCatPreset, AutoCatPresetManager
+from steam_library_manager.services.autocat_preset_manager import AutoCatPreset, AutoCatPresetManager
 
 
 class TestAutoCatPreset:

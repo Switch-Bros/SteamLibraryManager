@@ -6,7 +6,7 @@ import sqlite3
 from pathlib import Path
 from unittest.mock import patch
 
-from src.integrations.external_games.itch_parser import ItchParser
+from steam_library_manager.integrations.external_games.itch_parser import ItchParser
 
 
 class TestItchParser:
@@ -75,7 +75,7 @@ class TestItchParser:
         self._insert_game(db_path, 1, "Cool Game", "c1")
 
         parser = ItchParser()
-        with patch("src.integrations.external_games.itch_parser._get_db_path", return_value=db_path):
+        with patch("steam_library_manager.integrations.external_games.itch_parser._get_db_path", return_value=db_path):
             games = parser.read_games()
 
         assert len(games) == 1
@@ -92,7 +92,7 @@ class TestItchParser:
         self._insert_game(db_path, 4, "A Tool", "c4", classification="tool")
 
         parser = ItchParser()
-        with patch("src.integrations.external_games.itch_parser._get_db_path", return_value=db_path):
+        with patch("steam_library_manager.integrations.external_games.itch_parser._get_db_path", return_value=db_path):
             games = parser.read_games()
 
         assert len(games) == 2
@@ -103,7 +103,7 @@ class TestItchParser:
         """Returns empty list when butler.db doesn't exist."""
         parser = ItchParser()
         with patch(
-            "src.integrations.external_games.itch_parser._get_db_path",
+            "steam_library_manager.integrations.external_games.itch_parser._get_db_path",
             return_value=tmp_path / "nonexistent.db",
         ):
             assert parser.read_games() == []
@@ -121,7 +121,7 @@ class TestItchParser:
         conn.close()
 
         parser = ItchParser()
-        with patch("src.integrations.external_games.itch_parser._get_db_path", return_value=db_path):
+        with patch("steam_library_manager.integrations.external_games.itch_parser._get_db_path", return_value=db_path):
             games = parser.read_games()
 
         assert games[0].install_path == Path("/custom/path")

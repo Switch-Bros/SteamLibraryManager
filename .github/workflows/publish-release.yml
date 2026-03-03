@@ -21,7 +21,7 @@ jobs:
     - name: Verify version consistency
       run: |
         TAG_VERSION="${GITHUB_REF#refs/tags/v}"
-        PY_VERSION=$(python -c "exec(open('src/version.py').read()); print(__version__)")
+        PY_VERSION=$(python -c "exec(open('steam_library_manager/version.py').read()); print(__version__)")
         if [ "$TAG_VERSION" != "$PY_VERSION" ]; then
           echo "::error::Version mismatch! Tag=$TAG_VERSION, version.py=$PY_VERSION"
           exit 1

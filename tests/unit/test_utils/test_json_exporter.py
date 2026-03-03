@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from src.core.game import Game
-from src.utils.json_exporter import JSONExporter
+from steam_library_manager.core.game import Game
+from steam_library_manager.utils.json_exporter import JSONExporter
 
 # ---------------------------------------------------------------------------
 # Fixtures

@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from src.integrations.steamgrid_api import SteamGridDB
+from steam_library_manager.integrations.steamgrid_api import SteamGridDB
 
 
 class TestGetImagesByTypePaged:
     """Tests for SteamGridDB.get_images_by_type_paged()."""
 
     @patch.object(SteamGridDB, "_get_game_id", return_value=12345)
-    @patch("src.integrations.steamgrid_api.requests.get")
+    @patch("steam_library_manager.integrations.steamgrid_api.requests.get")
     def test_returns_single_page(self, mock_get: MagicMock, mock_game_id: MagicMock) -> None:
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -29,7 +29,7 @@ class TestGetImagesByTypePaged:
         assert result[0]["id"] == 0
 
     @patch.object(SteamGridDB, "_get_game_id", return_value=12345)
-    @patch("src.integrations.steamgrid_api.requests.get")
+    @patch("steam_library_manager.integrations.steamgrid_api.requests.get")
     def test_empty_result(self, mock_get: MagicMock, mock_game_id: MagicMock) -> None:
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -43,7 +43,7 @@ class TestGetImagesByTypePaged:
         assert result == []
 
     @patch.object(SteamGridDB, "_get_game_id", return_value=12345)
-    @patch("src.integrations.steamgrid_api.requests.get")
+    @patch("steam_library_manager.integrations.steamgrid_api.requests.get")
     def test_api_error_returns_empty(self, mock_get: MagicMock, mock_game_id: MagicMock) -> None:
         mock_response = MagicMock()
         mock_response.status_code = 500
@@ -71,7 +71,7 @@ class TestGetImagesByTypePaged:
         assert result == []
 
     @patch.object(SteamGridDB, "_get_game_id", return_value=12345)
-    @patch("src.integrations.steamgrid_api.requests.get")
+    @patch("steam_library_manager.integrations.steamgrid_api.requests.get")
     def test_page_parameter_passed(self, mock_get: MagicMock, mock_game_id: MagicMock) -> None:
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -88,7 +88,7 @@ class TestGetImagesByTypePaged:
         assert params["limit"] == 24
 
     @patch.object(SteamGridDB, "_get_game_id", return_value=12345)
-    @patch("src.integrations.steamgrid_api.requests.get")
+    @patch("steam_library_manager.integrations.steamgrid_api.requests.get")
     def test_grids_include_dimensions(self, mock_get: MagicMock, mock_game_id: MagicMock) -> None:
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -104,7 +104,7 @@ class TestGetImagesByTypePaged:
         assert "dimensions" in params
 
     @patch.object(SteamGridDB, "_get_game_id", return_value=12345)
-    @patch("src.integrations.steamgrid_api.requests.get")
+    @patch("steam_library_manager.integrations.steamgrid_api.requests.get")
     def test_detect_last_page(self, mock_get: MagicMock, mock_game_id: MagicMock) -> None:
         """If results < limit, this is the last page."""
         mock_response = MagicMock()

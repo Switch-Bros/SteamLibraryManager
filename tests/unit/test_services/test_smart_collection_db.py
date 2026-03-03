@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from src.core.database import Database
+from steam_library_manager.core.database import Database
 
 
 @pytest.fixture

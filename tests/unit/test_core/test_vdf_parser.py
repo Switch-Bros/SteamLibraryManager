@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from src.core.vdf_parser import (
+from steam_library_manager.core.vdf_parser import (
     BIN_END,
     BIN_INT32,
     BIN_NONE,

@@ -75,7 +75,7 @@ Nein. Der Steam-API-Key ist optional. SLMs primäre Methode liest deine Spiele d
 
 Nein. SLM hat keinerlei Telemetrie und macht keine Netzwerkaufrufe außer an Steams API, SteamGridDB, HowLongToBeat und ProtonDB. Du kannst das selbst überprüfen:
 ```bash
-grep -r "requests\.\(get\|post\)" src/ | grep -v test | grep -v __pycache__
+grep -r "requests\.\(get\|post\)" steam_library_manager/ | grep -v test | grep -v __pycache__
 ```
 
 ### Wie widerrufe ich SLMs Zugriff auf meinen Account?

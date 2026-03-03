@@ -15,9 +15,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.core.database import Database
-from src.core.game import Game
-from src.services.autocategorize_service import AutoCategorizeService
+from steam_library_manager.core.database import Database
+from steam_library_manager.core.game import Game
+from steam_library_manager.services.autocategorize_service import AutoCategorizeService
 
 
 @pytest.fixture

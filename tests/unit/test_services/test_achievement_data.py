@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from src.core.database import Database, DatabaseEntry, database_entry_to_game
-from src.core.game import Game
+from steam_library_manager.core.database import Database, DatabaseEntry, database_entry_to_game
+from steam_library_manager.core.game import Game
 
 # ---------------------------------------------------------------------------
 # Fixtures

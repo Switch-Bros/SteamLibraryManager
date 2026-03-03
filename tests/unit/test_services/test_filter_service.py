@@ -8,8 +8,8 @@ from unittest.mock import patch
 
 import pytest
 
-from src.core.game import Game
-from src.services.filter_service import (
+from steam_library_manager.core.game import Game
+from steam_library_manager.services.filter_service import (
     ALL_PLATFORM_KEYS,
     ALL_TYPE_KEYS,
     FilterService,
@@ -288,7 +288,7 @@ class TestApplyStatusFilter:
         result = service.apply(mixed_games)
         assert all(g.hidden for g in result)
 
-    @patch("src.core.game.t", return_value="Favorites")
+    @patch("steam_library_manager.core.game.t", return_value="Favorites")
     def test_favorites_status(self, mock_t: object, service: FilterService) -> None:
         fav_game = _make_game("1", "Fav", categories=["Favorites"])
         nonfav_game = _make_game("2", "NonFav", categories=["Action"])

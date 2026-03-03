@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from PyQt6.QtCore import Qt
 
-from src.utils.enigma import KeySequenceEgg
+from steam_library_manager.utils.enigma import KeySequenceEgg
 
 
 class TestKeySequenceEgg:

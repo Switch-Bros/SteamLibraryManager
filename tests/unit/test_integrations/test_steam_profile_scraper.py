@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.integrations.steam_profile_scraper import ProfileGame, SteamProfileScraper
+from steam_library_manager.integrations.steam_profile_scraper import ProfileGame, SteamProfileScraper
 
 # ---------------------------------------------------------------------------
 # Mock HTML snippets
@@ -152,7 +152,7 @@ class TestProfileGameDataclass:
 class TestFetchErrorHandling:
     """Tests for network error handling in fetch methods."""
 
-    @patch("src.integrations.steam_profile_scraper.requests.Session")
+    @patch("steam_library_manager.integrations.steam_profile_scraper.requests.Session")
     def test_timeout_returns_empty(self, mock_session_cls) -> None:
         """Timeout returns empty list, no exception."""
         import requests as req
@@ -166,7 +166,7 @@ class TestFetchErrorHandling:
         games = scraper.fetch_games("76561198000000000")
         assert games == []
 
-    @patch("src.integrations.steam_profile_scraper.requests.Session")
+    @patch("steam_library_manager.integrations.steam_profile_scraper.requests.Session")
     def test_403_returns_empty(self, mock_session_cls) -> None:
         """403 Forbidden (private profile) returns empty list."""
         import requests as req
@@ -182,7 +182,7 @@ class TestFetchErrorHandling:
         games = scraper.fetch_games("76561198000000000")
         assert games == []
 
-    @patch("src.integrations.steam_profile_scraper.requests.Session")
+    @patch("steam_library_manager.integrations.steam_profile_scraper.requests.Session")
     def test_connection_error_returns_empty(self, mock_session_cls) -> None:
         """Connection error returns empty list."""
         import requests as req
@@ -223,8 +223,8 @@ class TestPipelineIntegration:
 
     def test_refresh_adds_new_games(self) -> None:
         """Games not in game_manager are added."""
-        from src.core.game import Game
-        from src.services.game_service import GameService
+        from steam_library_manager.core.game import Game
+        from steam_library_manager.services.game_service import GameService
 
         service = GameService("/tmp/steam", "api_key", "/tmp/cache")
         service.game_manager = MagicMock()
@@ -235,7 +235,7 @@ class TestPipelineIntegration:
             ProfileGame(app_id=200, name="NewGame", playtime_forever=100),
         ]
 
-        with patch("src.integrations.steam_profile_scraper.SteamProfileScraper") as mock_scraper_cls:
+        with patch("steam_library_manager.integrations.steam_profile_scraper.SteamProfileScraper") as mock_scraper_cls:
             mock_scraper = MagicMock()
             mock_scraper.fetch_games.return_value = mock_profile_games
             mock_scraper_cls.return_value = mock_scraper
@@ -247,8 +247,8 @@ class TestPipelineIntegration:
 
     def test_refresh_skips_existing_games(self) -> None:
         """Games already in game_manager are not duplicated."""
-        from src.core.game import Game
-        from src.services.game_service import GameService
+        from steam_library_manager.core.game import Game
+        from steam_library_manager.services.game_service import GameService
 
         service = GameService("/tmp/steam", "api_key", "/tmp/cache")
         service.game_manager = MagicMock()
@@ -262,7 +262,7 @@ class TestPipelineIntegration:
             ProfileGame(app_id=200, name="Game2"),
         ]
 
-        with patch("src.integrations.steam_profile_scraper.SteamProfileScraper") as mock_scraper_cls:
+        with patch("steam_library_manager.integrations.steam_profile_scraper.SteamProfileScraper") as mock_scraper_cls:
             mock_scraper = MagicMock()
             mock_scraper.fetch_games.return_value = mock_profile_games
             mock_scraper_cls.return_value = mock_scraper
@@ -273,13 +273,13 @@ class TestPipelineIntegration:
 
     def test_refresh_non_fatal_on_error(self) -> None:
         """Network errors don't crash the pipeline."""
-        from src.services.game_service import GameService
+        from steam_library_manager.services.game_service import GameService
 
         service = GameService("/tmp/steam", "api_key", "/tmp/cache")
         service.game_manager = MagicMock()
         service.game_manager.games = {}
 
-        with patch("src.integrations.steam_profile_scraper.SteamProfileScraper") as mock_scraper_cls:
+        with patch("steam_library_manager.integrations.steam_profile_scraper.SteamProfileScraper") as mock_scraper_cls:
             mock_scraper_cls.side_effect = Exception("Network error")
 
             new_ids = service._refresh_from_profile("76561198000000000")
@@ -288,7 +288,7 @@ class TestPipelineIntegration:
 
     def test_refresh_returns_empty_without_game_manager(self) -> None:
         """Returns empty when game_manager is not initialized."""
-        from src.services.game_service import GameService
+        from steam_library_manager.services.game_service import GameService
 
         service = GameService("/tmp/steam", "api_key", "/tmp/cache")
         service.game_manager = None

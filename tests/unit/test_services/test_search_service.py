@@ -8,7 +8,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from src.services.search_service import SearchService
+from steam_library_manager.services.search_service import SearchService
 
 # ---------------------------------------------------------------------------
 # Fixtures

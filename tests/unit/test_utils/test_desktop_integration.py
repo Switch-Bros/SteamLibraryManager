@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
-from src.utils.desktop_integration import (
+from steam_library_manager.utils.desktop_integration import (
     DESKTOP_ID,
     get_appimage_path,
     install_desktop_entry,
@@ -66,10 +66,10 @@ class TestInstallDesktopEntry:
 
         with (
             patch.dict("os.environ", {"APPIMAGE": appimage_path}),
-            patch("src.utils.desktop_integration._apps_dir", return_value=apps_dir),
-            patch("src.utils.desktop_integration._icons_dir", return_value=icons_dir),
-            patch("src.utils.desktop_integration.config") as mock_config,
-            patch("src.utils.desktop_integration._update_desktop_database"),
+            patch("steam_library_manager.utils.desktop_integration._apps_dir", return_value=apps_dir),
+            patch("steam_library_manager.utils.desktop_integration._icons_dir", return_value=icons_dir),
+            patch("steam_library_manager.utils.desktop_integration.config") as mock_config,
+            patch("steam_library_manager.utils.desktop_integration._update_desktop_database"),
         ):
             mock_config.RESOURCES_DIR = resources_dir
 
@@ -91,10 +91,10 @@ class TestInstallDesktopEntry:
 
         with (
             patch.dict("os.environ", {"APPIMAGE": appimage_path}),
-            patch("src.utils.desktop_integration._apps_dir", return_value=apps_dir),
-            patch("src.utils.desktop_integration._icons_dir", return_value=icons_dir),
-            patch("src.utils.desktop_integration.config") as mock_config,
-            patch("src.utils.desktop_integration._update_desktop_database"),
+            patch("steam_library_manager.utils.desktop_integration._apps_dir", return_value=apps_dir),
+            patch("steam_library_manager.utils.desktop_integration._icons_dir", return_value=icons_dir),
+            patch("steam_library_manager.utils.desktop_integration.config") as mock_config,
+            patch("steam_library_manager.utils.desktop_integration._update_desktop_database"),
         ):
             mock_config.RESOURCES_DIR = resources_dir
             install_desktop_entry()
@@ -113,10 +113,10 @@ class TestInstallDesktopEntry:
 
         with (
             patch.dict("os.environ", {"APPIMAGE": "/app.AppImage"}),
-            patch("src.utils.desktop_integration._apps_dir", return_value=apps_dir),
-            patch("src.utils.desktop_integration._icons_dir", return_value=icons_dir),
-            patch("src.utils.desktop_integration.config") as mock_config,
-            patch("src.utils.desktop_integration._update_desktop_database"),
+            patch("steam_library_manager.utils.desktop_integration._apps_dir", return_value=apps_dir),
+            patch("steam_library_manager.utils.desktop_integration._icons_dir", return_value=icons_dir),
+            patch("steam_library_manager.utils.desktop_integration.config") as mock_config,
+            patch("steam_library_manager.utils.desktop_integration._update_desktop_database"),
         ):
             mock_config.RESOURCES_DIR = resources_dir
             install_desktop_entry()
@@ -141,10 +141,10 @@ class TestInstallDesktopEntry:
 
         with (
             patch.dict("os.environ", {"APPIMAGE": "/app.AppImage"}),
-            patch("src.utils.desktop_integration._apps_dir", return_value=apps_dir),
-            patch("src.utils.desktop_integration._icons_dir", return_value=icons_dir),
-            patch("src.utils.desktop_integration.config") as mock_config,
-            patch("src.utils.desktop_integration._update_desktop_database"),
+            patch("steam_library_manager.utils.desktop_integration._apps_dir", return_value=apps_dir),
+            patch("steam_library_manager.utils.desktop_integration._icons_dir", return_value=icons_dir),
+            patch("steam_library_manager.utils.desktop_integration.config") as mock_config,
+            patch("steam_library_manager.utils.desktop_integration._update_desktop_database"),
         ):
             mock_config.RESOURCES_DIR = resources_dir
             install_desktop_entry()
@@ -174,9 +174,9 @@ class TestUninstallDesktopEntry:
         icon_file.write_text("<svg/>")
 
         with (
-            patch("src.utils.desktop_integration._apps_dir", return_value=apps_dir),
-            patch("src.utils.desktop_integration._icons_dir", return_value=icons_dir),
-            patch("src.utils.desktop_integration._update_desktop_database"),
+            patch("steam_library_manager.utils.desktop_integration._apps_dir", return_value=apps_dir),
+            patch("steam_library_manager.utils.desktop_integration._icons_dir", return_value=icons_dir),
+            patch("steam_library_manager.utils.desktop_integration._update_desktop_database"),
         ):
             result = uninstall_desktop_entry()
 
@@ -192,9 +192,9 @@ class TestUninstallDesktopEntry:
         icons_dir.mkdir(parents=True)
 
         with (
-            patch("src.utils.desktop_integration._apps_dir", return_value=apps_dir),
-            patch("src.utils.desktop_integration._icons_dir", return_value=icons_dir),
-            patch("src.utils.desktop_integration._update_desktop_database"),
+            patch("steam_library_manager.utils.desktop_integration._apps_dir", return_value=apps_dir),
+            patch("steam_library_manager.utils.desktop_integration._icons_dir", return_value=icons_dir),
+            patch("steam_library_manager.utils.desktop_integration._update_desktop_database"),
         ):
             result = uninstall_desktop_entry()
 
@@ -210,12 +210,12 @@ class TestIsDesktopEntryInstalled:
         apps_dir.mkdir(parents=True)
         (apps_dir / f"{DESKTOP_ID}.desktop").write_text("[Desktop Entry]")
 
-        with patch("src.utils.desktop_integration._apps_dir", return_value=apps_dir):
+        with patch("steam_library_manager.utils.desktop_integration._apps_dir", return_value=apps_dir):
             assert is_desktop_entry_installed() is True
 
     def test_returns_false_when_missing(self, tmp_path):
         """Returns False when .desktop file does not exist."""
         apps_dir = tmp_path / "nonexistent"
 
-        with patch("src.utils.desktop_integration._apps_dir", return_value=apps_dir):
+        with patch("steam_library_manager.utils.desktop_integration._apps_dir", return_value=apps_dir):
             assert is_desktop_entry_installed() is False

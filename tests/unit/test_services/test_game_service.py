@@ -2,21 +2,21 @@
 
 import pytest
 from unittest.mock import Mock, patch
-from src.core.game import Game
-from src.services.game_service import GameService
+from steam_library_manager.core.game import Game
+from steam_library_manager.services.game_service import GameService
 
 
 @pytest.fixture
 def mock_dependencies():
     """Mocks all dependencies for GameService."""
     with (
-        patch("src.services.game_service.GameManager") as mock_gm,
-        patch("src.services.game_service.LocalConfigHelper") as mock_lcp,
-        patch("src.services.game_service.CloudStorageParser") as mock_csp,
-        patch("src.services.game_service.AppInfoManager") as mock_aim,
-        patch("src.services.game_service.PackageInfoParser") as mock_pip,
-        patch("src.services.game_service.LicenseCacheParser") as mock_lcp_parser,
-        patch("src.config.config") as mock_cfg,
+        patch("steam_library_manager.services.game_service.GameManager") as mock_gm,
+        patch("steam_library_manager.services.game_service.LocalConfigHelper") as mock_lcp,
+        patch("steam_library_manager.services.game_service.CloudStorageParser") as mock_csp,
+        patch("steam_library_manager.services.game_service.AppInfoManager") as mock_aim,
+        patch("steam_library_manager.services.game_service.PackageInfoParser") as mock_pip,
+        patch("steam_library_manager.services.game_service.LicenseCacheParser") as mock_lcp_parser,
+        patch("steam_library_manager.config.config") as mock_cfg,
     ):
         # PackageInfoParser().get_all_app_ids() returns empty set by default
         mock_pip.return_value.get_all_app_ids.return_value = set()

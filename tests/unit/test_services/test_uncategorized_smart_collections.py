@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from src.core.game import Game
-from src.services.game_query_service import GameQueryService
+from steam_library_manager.core.game import Game
+from steam_library_manager.services.game_query_service import GameQueryService
 
 
 def _make_game(app_id: str, name: str, categories: list[str] | None = None) -> Game:

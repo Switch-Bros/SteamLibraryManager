@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from src.services.curator_client import CuratorClient
+from steam_library_manager.services.curator_client import CuratorClient
 
 
 class TestFetchTopCurators:
     """Tests for CuratorClient.fetch_top_curators()."""
 
-    @patch("src.services.curator_client.urlopen")
+    @patch("steam_library_manager.services.curator_client.urlopen")
     def test_parses_html_with_curators(self, mock_urlopen: MagicMock) -> None:
         """Should extract curator_id and name from response HTML."""
         import json
@@ -34,7 +34,7 @@ class TestFetchTopCurators:
         assert result[0]["name"] == "TestCurator"
         assert result[1]["curator_id"] == 67890
 
-    @patch("src.services.curator_client.urlopen")
+    @patch("steam_library_manager.services.curator_client.urlopen")
     def test_empty_html_returns_empty(self, mock_urlopen: MagicMock) -> None:
         """Should return empty list when no HTML in response."""
         import json
@@ -53,7 +53,7 @@ class TestFetchTopCurators:
 class TestDiscoverSubscribedCurators:
     """Tests for CuratorClient.discover_subscribed_curators()."""
 
-    @patch("src.services.curator_client.urlopen")
+    @patch("steam_library_manager.services.curator_client.urlopen")
     def test_parses_followed_ids(self, mock_urlopen: MagicMock) -> None:
         """Should extract curator IDs from gFollowedCuratorIDs."""
         html = (
@@ -77,7 +77,7 @@ class TestDiscoverSubscribedCurators:
         assert name_map[222] == "Curator B"
         assert name_map[333] == ""  # No HTML block for this one
 
-    @patch("src.services.curator_client.urlopen")
+    @patch("steam_library_manager.services.curator_client.urlopen")
     def test_no_followed_ids_returns_empty(self, mock_urlopen: MagicMock) -> None:
         """Should return empty list when gFollowedCuratorIDs is not found."""
         html = "<html><body>No curator data here</body></html>"
@@ -90,7 +90,7 @@ class TestDiscoverSubscribedCurators:
         result = CuratorClient.discover_subscribed_curators("steamLoginSecure=xyz")
         assert result == []
 
-    @patch("src.services.curator_client.urlopen")
+    @patch("steam_library_manager.services.curator_client.urlopen")
     def test_empty_followed_ids_returns_empty(self, mock_urlopen: MagicMock) -> None:
         """Should return empty list when gFollowedCuratorIDs is empty array."""
         html = "<script>var gFollowedCuratorIDs = [];</script>"

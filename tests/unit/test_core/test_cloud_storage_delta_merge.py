@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from src.core.cloud_storage_parser import CloudStorageParser
+from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
 
 @pytest.fixture()

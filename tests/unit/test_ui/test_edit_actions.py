@@ -5,9 +5,9 @@ and MetadataActions (metadata editing, PEGI overrides, restoration).
 
 import pytest
 from unittest.mock import MagicMock, patch
-from src.ui.actions.edit_actions import EditActions
-from src.ui.actions.metadata_actions import MetadataActions
-from src.core.game_manager import Game
+from steam_library_manager.ui.actions.edit_actions import EditActions
+from steam_library_manager.ui.actions.metadata_actions import MetadataActions
+from steam_library_manager.core.game_manager import Game
 
 
 @pytest.fixture
@@ -43,7 +43,7 @@ def metadata_actions(mock_mainwindow):
     return MetadataActions(mock_mainwindow)
 
 
-@patch("src.ui.actions.metadata_actions.UIHelper")
+@patch("steam_library_manager.ui.actions.metadata_actions.UIHelper")
 def test_edit_game_metadata_opens_dialog(mock_ui_helper, metadata_actions, mock_mainwindow):
     """Test that edit_game_metadata prepares data and opens dialog."""
     # Setup
@@ -52,7 +52,7 @@ def test_edit_game_metadata_opens_dialog(mock_ui_helper, metadata_actions, mock_
     mock_mainwindow.metadata_service.get_original_metadata.return_value = {}
 
     # Mock the Dialog class specifically inside the module
-    with patch("src.ui.actions.metadata_actions.MetadataEditDialog") as MockDialog:
+    with patch("steam_library_manager.ui.actions.metadata_actions.MetadataEditDialog") as MockDialog:
         instance = MockDialog.return_value
         instance.exec.return_value = True  # Simulate user clicking OK
         instance.get_metadata.return_value = {"name": "New Name", "developer": "Dev"}
@@ -73,7 +73,7 @@ def test_edit_game_metadata_opens_dialog(mock_ui_helper, metadata_actions, mock_
         mock_ui_helper.show_success.assert_called()
 
 
-@patch("src.ui.actions.metadata_actions.UIHelper")
+@patch("steam_library_manager.ui.actions.metadata_actions.UIHelper")
 def test_pegi_override_saves(mock_ui_helper, metadata_actions, mock_mainwindow):
     """Test that PEGI override triggers appinfo manager."""
     # Execute

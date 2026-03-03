@@ -24,7 +24,7 @@ jobs:
     - name: Extract version
       id: version
       run: |
-        VERSION=$(python -c "exec(open('src/version.py').read()); print(__version__)")
+        VERSION=$(python -c "exec(open('steam_library_manager/version.py').read()); print(__version__)")
         echo "version=$VERSION" >> $GITHUB_OUTPUT
 
     - name: Install system dependencies
@@ -45,8 +45,8 @@ jobs:
       run: |
         pyinstaller --windowed --noconfirm \
           --name SteamLibraryManager \
-          --add-data "src:src" \
-          src/main.py
+          --add-data "steam_library_manager:steam_library_manager" \
+          steam_library_manager/main.py
 
     - name: Create AppDir structure
       run: |
@@ -58,7 +58,7 @@ jobs:
             AppDir/usr/share/applications/
         cp flatpak/io.github.switch_bros.SteamLibraryManager.svg \
             AppDir/usr/share/icons/hicolor/scalable/apps/
-        cp src/resources/io.github.switch_bros.SteamLibraryManager.metainfo.xml \
+        cp steam_library_manager/resources/io.github.switch_bros.SteamLibraryManager.metainfo.xml \
             AppDir/usr/share/metainfo/
         cp flatpak/io.github.switch_bros.SteamLibraryManager.desktop AppDir/
         cp flatpak/io.github.switch_bros.SteamLibraryManager.svg AppDir/

@@ -26,13 +26,13 @@ jobs:
         pip install black flake8 mypy
 
     - name: Check formatting with black
-      run: black --check --diff src tests
+      run: black --check --diff steam_library_manager tests
 
     - name: Lint with flake8
-      run: flake8 src tests
+      run: flake8 steam_library_manager tests
 
     - name: Type check with mypy
-      run: mypy src
+      run: mypy steam_library_manager
 
     - name: Validate i18n locale files
       run: python scripts/validate_i18n.py
@@ -67,7 +67,7 @@ jobs:
         pip install -r requirements-dev.txt
 
     - name: Test with pytest
-      run: pytest tests/ -v --cov=src --cov-report=xml --cov-report=term
+      run: pytest tests/ -v --cov=steam_library_manager --cov-report=xml --cov-report=term
 
     - name: Upload coverage to Codecov
       if: matrix.python-version == '3.12'

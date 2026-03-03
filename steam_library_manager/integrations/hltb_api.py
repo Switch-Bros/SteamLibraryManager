@@ -1,0 +1,511 @@
+"""HowLongToBeat API client for game completion time data.
+
+Queries the HLTB search API directly with automatic endpoint
+discovery and auth-token handling. Matches results by exact name
+or fuzzy name similarity using Levenshtein distance.
+No external library dependency required.
+
+Data models and name processing logic live in hltb_models.py.
+"""
+
+from __future__ import annotations
+
+import logging
+import random
+import re
+import time
+
+import requests
+from bs4 import BeautifulSoup
+
+from steam_library_manager.integrations.hltb_models import (
+    HLTBResult,
+    find_best_match,
+    normalize_name,
+    simplify_name,
+    to_result,
+)
+
+logger = logging.getLogger("steamlibmgr.hltb_api")
+
+__all__ = ["HLTBClient", "HLTBResult"]
+
+_HLTB_BASE = "https://howlongtobeat.com"
+
+# Realistic browser User-Agents for rotation
+_USER_AGENTS = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+    " (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:134.0) Gecko/20100101 Firefox/134.0",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15"
+    " (KHTML, like Gecko) Version/18.2 Safari/605.1.15",
+)
+
+# Browser-like headers required to avoid 403 from HLTB's bot protection
+_BROWSER_HEADERS: dict[str, str] = {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Upgrade-Insecure-Requests": "1",
+}
+
+# Regex: fetch(`/api/<path>/init?...`)  — to identify the init+search pair
+_INIT_PATTERN = re.compile(r"""/api/(\w+)/init""")
+
+# Retry threshold: retry with simplified name if Levenshtein distance
+# exceeds 20% of name length (minimum 5 edits)
+_RETRY_DISTANCE_RATIO = 0.2
+_RETRY_DISTANCE_MIN = 5
+
+# Cache TTL for discovered endpoint and auth token (5 minutes, like Millennium plugin)
+_CACHE_TTL = 300
+
+
+class HLTBClient:
+    """Client for searching HowLongToBeat game data.
+
+    Automatically discovers the current API endpoint and obtains
+    auth tokens. Matches search results by exact name first,
+    then by Levenshtein distance with popularity tiebreaker.
+
+    Supports Steam Import API for bulk ID mapping (steam_app_id → hltb_game_id)
+    and direct game-by-ID fetching via Next.js data routes.
+    """
+
+    def __init__(self) -> None:
+        """Initializes the HLTBClient with empty endpoint cache."""
+        self._session = requests.Session()
+        self._session.headers.update(_BROWSER_HEADERS)
+        self._api_path: str = ""
+        self._auth_token: str = ""
+        self._build_id: str = ""
+        self._cache_time: float = 0.0
+        self._id_cache: dict[int, int] = {}  # steam_app_id → hltb_game_id
+
+    @staticmethod
+    def is_available() -> bool:
+        """Always available — uses direct HTTP API, no external library needed.
+
+        Returns:
+            True always.
+        """
+        return True
+
+    def set_id_cache(self, mappings: dict[int, int]) -> None:
+        """Populates the steam_app_id → hltb_game_id cache.
+
+        Called by the enrichment service after loading from DB + API.
+
+        Args:
+            mappings: Dict mapping Steam app IDs to HLTB game IDs.
+        """
+        self._id_cache = dict(mappings)
+        logger.info("HLTB ID cache loaded with %d mappings", len(self._id_cache))
+
+    def get_id_cache(self) -> dict[int, int]:
+        """Returns the current steam_app_id → hltb_game_id cache.
+
+        Returns:
+            Copy of the ID cache dict.
+        """
+        return dict(self._id_cache)
+
+    def fetch_steam_import(self, steam_user_id: str) -> dict[int, int]:
+        """Fetches HLTB game ID mappings for a Steam user's entire library.
+
+        Uses the HLTB Steam Import endpoint to get a bulk mapping of
+        steam_app_id → hltb_game_id for all games the user owns.
+
+        Args:
+            steam_user_id: 64-bit Steam ID as string.
+
+        Returns:
+            Dict mapping steam_app_id to hltb_game_id.
+        """
+        if not self._ensure_api_ready():
+            return {}
+
+        url = f"{_HLTB_BASE}/api/steam/getSteamImportData"
+
+        try:
+            resp = self._session.post(
+                url,
+                json={
+                    "steamUserId": steam_user_id,
+                    "steamOmitData": 0,
+                },
+                headers={
+                    "Content-Type": "application/json",
+                    "Origin": _HLTB_BASE,
+                    "Referer": f"{_HLTB_BASE}/",
+                },
+                timeout=30,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as exc:
+            logger.warning("HLTB Steam Import failed: %s", exc)
+            return {}
+
+        games = data.get("games", [])
+        mappings: dict[int, int] = {}
+        for entry in games:
+            steam_id = entry.get("steam_id")
+            hltb_id = entry.get("hltb_id")
+            if steam_id and hltb_id:
+                mappings[int(steam_id)] = int(hltb_id)
+
+        logger.info("HLTB Steam Import: %d mappings from %d entries", len(mappings), len(games))
+        return mappings
+
+    def fetch_game_by_id(self, hltb_game_id: int) -> HLTBResult | None:
+        """Fetches HLTB completion times for a game by its HLTB game ID.
+
+        Uses the Next.js data route to get game details directly,
+        bypassing the search API entirely.
+
+        Args:
+            hltb_game_id: The HLTB game ID.
+
+        Returns:
+            HLTBResult with completion times, or None on failure.
+        """
+        if not self._ensure_api_ready():
+            return None
+
+        if not self._build_id:
+            logger.warning("No buildId available for HLTB game-by-ID fetch")
+            return None
+
+        url = f"{_HLTB_BASE}/_next/data/{self._build_id}/game/{hltb_game_id}.json"
+
+        try:
+            resp = self._session.get(
+                url,
+                headers={
+                    "Referer": f"{_HLTB_BASE}/",
+                },
+                timeout=15,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as exc:
+            logger.warning("HLTB game-by-ID fetch failed for %d: %s", hltb_game_id, exc)
+            return None
+
+        # Navigate: pageProps.game.data.game[0]
+        try:
+            game_list = data["pageProps"]["game"]["data"]["game"]
+            if not game_list:
+                return None
+            game_data = game_list[0]
+        except (KeyError, IndexError, TypeError):
+            logger.warning("HLTB game-by-ID: unexpected response structure for %d", hltb_game_id)
+            return None
+
+        return to_result(game_data)
+
+    def search_game(self, name: str, app_id: int = 0) -> HLTBResult | None:
+        """Searches HLTB for a game and returns the best match.
+
+        Uses a three-level strategy:
+        1. ID cache lookup (steam_app_id → hltb_game_id → fetch by ID).
+        2. Name search with the full sanitized name.
+        3. If match is poor or missing, retry with edition suffixes stripped.
+
+        Matching priority per name search pass:
+        1. Exact sanitized name match.
+        2. Levenshtein distance (sorted by distance, then popularity).
+
+        Args:
+            name: Game name to search for.
+            app_id: Steam AppID for cache lookup (0 to skip).
+
+        Returns:
+            HLTBResult with completion times, or None if not found.
+        """
+        # Level 1: ID cache lookup
+        if app_id and app_id in self._id_cache:
+            hltb_id = self._id_cache[app_id]
+            result = self.fetch_game_by_id(hltb_id)
+            if result:
+                logger.debug("HLTB cache hit: app_id=%d → hltb_id=%d", app_id, hltb_id)
+                return result
+            logger.debug("HLTB cache hit but fetch failed: app_id=%d → hltb_id=%d", app_id, hltb_id)
+
+        sanitized = normalize_name(name)
+        if not sanitized:
+            return None
+
+        if not self._ensure_api_ready():
+            return None
+
+        # Level 2: search with full sanitized name
+        match, distance = self._search_and_find(sanitized)
+        if match is not None and distance == 0:
+            return to_result(match)
+
+        # Level 3: retry with simplified name
+        simplified = simplify_name(sanitized)
+        threshold = max(_RETRY_DISTANCE_MIN, int(len(sanitized) * _RETRY_DISTANCE_RATIO))
+        should_retry = simplified != sanitized and (match is None or distance > threshold)
+
+        if should_retry:
+            logger.debug("HLTB fallback search: '%s' → '%s'", sanitized, simplified)
+            retry_match, retry_distance = self._search_and_find(simplified)
+            if retry_match is not None and (match is None or retry_distance < distance):
+                match = retry_match
+
+        if match is not None:
+            return to_result(match)
+        return None
+
+    def _post_search(self, payload: dict) -> requests.Response:
+        """Sends a search POST request to the HLTB API.
+
+        Args:
+            payload: JSON payload for the search.
+
+        Returns:
+            Response object from the API.
+        """
+        return self._session.post(
+            f"{_HLTB_BASE}/api/{self._api_path}",
+            json=payload,
+            headers={
+                "Content-Type": "application/json",
+                "Origin": _HLTB_BASE,
+                "Referer": f"{_HLTB_BASE}/",
+                "x-auth-token": self._auth_token,
+            },
+            timeout=15,
+        )
+
+    def _search_and_find(self, search_name: str) -> tuple[dict | None, int]:
+        """Performs an HLTB API search and returns the best match with distance.
+
+        Args:
+            search_name: Cleaned game name to search for.
+
+        Returns:
+            Tuple of (best_match_dict, levenshtein_distance) or (None, 0).
+        """
+        payload = {
+            "searchType": "games",
+            "searchTerms": search_name.split(),
+            "searchPage": 1,
+            "size": 20,
+            "searchOptions": {
+                "games": {
+                    "userId": 0,
+                    "platform": "",
+                    "sortCategory": "popular",
+                    "rangeCategory": "main",
+                    "rangeTime": {"min": 0, "max": 0},
+                    "gameplay": {
+                        "perspective": "",
+                        "flow": "",
+                        "genre": "",
+                        "difficulty": "",
+                    },
+                    "rangeYear": {"max": "", "min": ""},
+                    "modifier": "hide_dlc",
+                },
+                "users": {"sortCategory": "postcount"},
+                "lists": {"sortCategory": "follows"},
+                "filter": "",
+                "sort": 0,
+                "randomizer": 0,
+            },
+            "useCache": True,
+        }
+
+        try:
+            resp = self._post_search(payload)
+            # If 404 or 403, invalidate cache and retry once
+            if resp.status_code in (403, 404):
+                logger.info("HLTB endpoint returned %d, refreshing...", resp.status_code)
+                self._cache_time = 0.0
+                if not self._ensure_api_ready():
+                    return None, 0
+                resp = self._post_search(payload)
+
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as exc:
+            logger.warning("HLTB search failed for '%s': %s", search_name, exc)
+            return None, 0
+
+        results = data.get("data", [])
+        if not results:
+            return None, 0
+
+        return find_best_match(results, search_name)
+
+    def _ensure_api_ready(self) -> bool:
+        """Discovers the API endpoint and obtains an auth token if needed.
+
+        Also extracts the Next.js buildId for game-by-ID fetching.
+
+        Returns:
+            True if the API endpoint and token are ready.
+        """
+        now = time.time()
+        if self._api_path and self._auth_token and (now - self._cache_time) < _CACHE_TTL:
+            return True
+
+        # Rotate User-Agent
+        self._session.headers["User-Agent"] = random.choice(_USER_AGENTS)
+
+        try:
+            homepage_html = self._fetch_homepage()
+            if not homepage_html:
+                return False
+
+            api_path = self._discover_endpoint(homepage_html)
+            if not api_path:
+                logger.error("Failed to discover HLTB API endpoint")
+                return False
+
+            auth_token = self._get_auth_token(api_path)
+            if not auth_token:
+                logger.error("Failed to obtain HLTB auth token")
+                return False
+
+            build_id = self._discover_build_id(homepage_html)
+
+            self._api_path = api_path
+            self._auth_token = auth_token
+            self._build_id = build_id
+            self._cache_time = now
+            logger.info("HLTB API ready: /api/%s (buildId=%s)", api_path, build_id or "N/A")
+            return True
+
+        except Exception as exc:
+            logger.error("HLTB API initialization failed: %s", exc)
+            return False
+
+    def _fetch_homepage(self) -> str:
+        """Fetches the HLTB homepage HTML.
+
+        Returns:
+            Homepage HTML string, or empty string on failure.
+        """
+        try:
+            resp = self._session.get(f"{_HLTB_BASE}/", timeout=15)
+            resp.raise_for_status()
+            return resp.text
+        except Exception as exc:
+            logger.warning("Failed to fetch HLTB homepage: %s", exc)
+            return ""
+
+    def _discover_endpoint(self, homepage_html: str) -> str:
+        """Discovers the current HLTB search API path from the website JS.
+
+        Scans all JS chunks for fetch("/api/<path>/init") patterns
+        to find the search endpoint.
+
+        Args:
+            homepage_html: The HLTB homepage HTML.
+
+        Returns:
+            The API path suffix (e.g. 'finder'), or empty string on failure.
+        """
+        soup = BeautifulSoup(homepage_html, "html.parser")
+        scripts = soup.find_all("script", src=True)
+
+        # Collect all _next/static/chunks/*.js URLs
+        chunk_urls: list[str] = []
+        for tag in scripts:
+            src = str(tag.get("src", ""))
+            if "/_next/static/chunks/" in src and not src.endswith("Manifest.js"):
+                url = src if src.startswith("http") else f"{_HLTB_BASE}{src}"
+                chunk_urls.append(url)
+
+        for url in chunk_urls:
+            try:
+                js_resp = self._session.get(url, timeout=15)
+                js_resp.raise_for_status()
+                js_text = js_resp.text
+            except Exception:
+                continue
+
+            # Look for /api/<path>/init pattern — this identifies the search endpoint
+            for match in _INIT_PATTERN.finditer(js_text):
+                path = match.group(1)
+                # Skip non-search endpoints
+                if path in ("user", "logout", "error", "game", "find"):
+                    continue
+                logger.debug("Found HLTB endpoint via init pattern: /api/%s", path)
+                return path
+
+        logger.warning("Could not discover HLTB endpoint from JS bundles")
+        return ""
+
+    @staticmethod
+    def _discover_build_id(homepage_html: str) -> str:
+        """Extracts the Next.js buildId from the homepage HTML.
+
+        Looks for the _buildManifest.js script tag which contains
+        the buildId in its URL path.
+
+        Args:
+            homepage_html: The HLTB homepage HTML.
+
+        Returns:
+            Build ID string, or empty string if not found.
+        """
+        soup = BeautifulSoup(homepage_html, "html.parser")
+        for tag in soup.find_all("script", src=True):
+            src = str(tag.get("src", ""))
+            if "_buildManifest.js" in src:
+                # URL format: /_next/static/<buildId>/_buildManifest.js
+                parts = src.split("/")
+                try:
+                    manifest_idx = parts.index("_buildManifest.js")
+                    if manifest_idx >= 1:
+                        build_id = parts[manifest_idx - 1]
+                        logger.debug("Discovered HLTB buildId: %s", build_id)
+                        return build_id
+                except (ValueError, IndexError):
+                    pass
+        logger.debug("Could not discover HLTB buildId from homepage")
+        return ""
+
+    def _get_auth_token(self, api_path: str) -> str:
+        """Obtains an auth token from the HLTB init endpoint.
+
+        Args:
+            api_path: The discovered API path suffix.
+
+        Returns:
+            Auth token string, or empty string on failure.
+        """
+        timestamp_ms = int(time.time() * 1000)
+        init_url = f"{_HLTB_BASE}/api/{api_path}/init?t={timestamp_ms}"
+
+        try:
+            resp = self._session.get(
+                init_url,
+                headers={
+                    "Referer": f"{_HLTB_BASE}/",
+                    "Origin": _HLTB_BASE,
+                },
+                timeout=15,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            token = data.get("token", "")
+            if token:
+                logger.debug("Obtained HLTB auth token")
+            return token
+        except Exception as exc:
+            logger.warning("Failed to get HLTB auth token: %s", exc)
+            return ""

@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from src.ui.actions.steam_actions import SteamActions
+from steam_library_manager.ui.actions.steam_actions import SteamActions
 
 
 @pytest.fixture
@@ -67,7 +67,7 @@ class TestStartSteamLogin:
 class TestShowAbout:
     """Tests for show_about() method."""
 
-    @patch("src.ui.dialogs.about_dialog.AboutDialog")
+    @patch("steam_library_manager.ui.dialogs.about_dialog.AboutDialog")
     def test_show_about_opens_about_dialog(self, mock_dialog_cls, steam_actions):
         """Should create and exec an AboutDialog."""
         mock_instance = MagicMock()
@@ -102,7 +102,7 @@ class TestIntegration:
         assert callable(steam_actions.start_steam_login)
         assert callable(steam_actions.show_about)
 
-    @patch("src.ui.actions.steam_actions.QMessageBox")
+    @patch("steam_library_manager.ui.actions.steam_actions.QMessageBox")
     def test_can_call_methods_without_crash(self, _mock_qmessagebox, steam_actions):
         """Should be able to call all methods without crashing."""
         # Execute - all methods should run without exception

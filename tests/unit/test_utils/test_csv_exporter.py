@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from src.core.game import Game
-from src.utils.csv_exporter import CSVExporter
+from steam_library_manager.core.game import Game
+from steam_library_manager.utils.csv_exporter import CSVExporter
 
 # ---------------------------------------------------------------------------
 # Fixtures

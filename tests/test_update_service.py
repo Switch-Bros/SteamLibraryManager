@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.services.update_service import UpdateInfo, UpdateService
+from steam_library_manager.services.update_service import UpdateInfo, UpdateService
 
 
 class TestUpdateInfo:
@@ -78,7 +78,7 @@ class TestIsNewer:
 
     def test_same_version(self) -> None:
         """Same version is not newer."""
-        from src.version import __version__
+        from steam_library_manager.version import __version__
 
         assert UpdateService._is_newer(__version__) is False
 
@@ -88,7 +88,7 @@ class TestIsNewer:
 
     def test_invalid_version_fallback(self) -> None:
         """Invalid version falls back to string comparison."""
-        from src.version import __version__
+        from steam_library_manager.version import __version__
 
         # Same as current — not newer
         assert UpdateService._is_newer(__version__) is False
@@ -97,7 +97,7 @@ class TestIsNewer:
 
     def test_prerelease_not_newer(self) -> None:
         """Pre-release of same version is not newer."""
-        from src.version import __version__
+        from steam_library_manager.version import __version__
 
         assert UpdateService._is_newer(f"{__version__}rc1") is False
 

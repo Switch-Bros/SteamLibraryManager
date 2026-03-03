@@ -9,7 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from src.services.enrichment.enrich_all_coordinator import (
+from steam_library_manager.services.enrichment.enrich_all_coordinator import (
     TRACK_DECK,
     TRACK_HLTB,
     TRACK_PROTONDB,
@@ -205,8 +205,8 @@ class TestEnrichAllCoordinator:
 class TestEnrichAllConfirmFlow:
     """Tests for the start_enrich_all confirmation flow."""
 
-    @patch("src.config.config")
-    @patch("src.ui.actions.enrichment_actions.UIHelper")
+    @patch("steam_library_manager.config.config")
+    @patch("steam_library_manager.ui.actions.enrichment_actions.UIHelper")
     def test_enrich_all_confirm_cancelled(
         self,
         mock_helper: MagicMock,
@@ -223,7 +223,7 @@ class TestEnrichAllConfirmFlow:
         mock_db = MagicMock()
         mock_db.get_all_game_ids.return_value = [(1, "Game")]
 
-        from src.ui.actions.enrichment_actions import EnrichmentActions
+        from steam_library_manager.ui.actions.enrichment_actions import EnrichmentActions
 
         actions = EnrichmentActions(mock_mw)
 
@@ -232,8 +232,8 @@ class TestEnrichAllConfirmFlow:
 
         mock_helper.confirm.assert_called_once()
 
-    @patch("src.config.config")
-    @patch("src.ui.actions.enrichment_actions.UIHelper")
+    @patch("steam_library_manager.config.config")
+    @patch("steam_library_manager.ui.actions.enrichment_actions.UIHelper")
     def test_enrich_all_no_api_key(
         self,
         mock_helper: MagicMock,
@@ -245,7 +245,7 @@ class TestEnrichAllConfirmFlow:
         mock_mw = MagicMock()
         mock_mw.game_manager = MagicMock()
 
-        from src.ui.actions.enrichment_actions import EnrichmentActions
+        from steam_library_manager.ui.actions.enrichment_actions import EnrichmentActions
 
         actions = EnrichmentActions(mock_mw)
 

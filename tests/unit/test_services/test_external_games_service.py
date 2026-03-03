@@ -5,9 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from src.core.shortcuts_manager import ShortcutsManager
-from src.integrations.external_games.models import ExternalGame
-from src.services.external_games_service import ExternalGamesService
+from steam_library_manager.core.shortcuts_manager import ShortcutsManager
+from steam_library_manager.integrations.external_games.models import ExternalGame
+from steam_library_manager.services.external_games_service import ExternalGamesService
 
 
 def _make_game(name: str, platform: str = "Heroic (Epic)") -> ExternalGame:

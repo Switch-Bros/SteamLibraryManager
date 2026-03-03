@@ -14,7 +14,7 @@ def _make_dialog_stub():
     a QApplication), we bind the throttling methods to a simple namespace
     that carries the same attributes.
     """
-    from src.ui.dialogs.image_selection_dialog import ImageSelectionDialog
+    from steam_library_manager.ui.dialogs.image_selection_dialog import ImageSelectionDialog
 
     stub = MagicMock()
     stub._animated_load_queue = []
@@ -110,7 +110,7 @@ class TestImageBrowserThrottling:
         """_on_animated_load_finished should decrement counter (min 0)."""
         dialog._animated_loading_count = 2
 
-        with patch("src.ui.dialogs.image_selection_dialog.QTimer") as mock_timer:
+        with patch("steam_library_manager.ui.dialogs.image_selection_dialog.QTimer") as mock_timer:
             dialog._on_animated_load_finished()
 
         assert dialog._animated_loading_count == 1
@@ -120,7 +120,7 @@ class TestImageBrowserThrottling:
         """Counter should never go below zero."""
         dialog._animated_loading_count = 0
 
-        with patch("src.ui.dialogs.image_selection_dialog.QTimer"):
+        with patch("steam_library_manager.ui.dialogs.image_selection_dialog.QTimer"):
             dialog._on_animated_load_finished()
 
         assert dialog._animated_loading_count == 0

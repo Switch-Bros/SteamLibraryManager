@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from src.utils.vdf_importer import VDFImporter
+from steam_library_manager.utils.vdf_importer import VDFImporter
 
 # ---------------------------------------------------------------------------
 # Fixtures

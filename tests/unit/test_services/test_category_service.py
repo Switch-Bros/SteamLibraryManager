@@ -4,8 +4,8 @@
 
 import pytest
 from pathlib import Path
-from src.services.category_service import CategoryService
-from src.core.game_manager import GameManager, Game
+from steam_library_manager.services.category_service import CategoryService
+from steam_library_manager.core.game_manager import GameManager, Game
 
 
 class TestCategoryService:
@@ -167,7 +167,7 @@ class TestMergeDuplicateCollections:
     @pytest.fixture
     def cloud_parser_with_duplicates(self):
         """Create a real CloudStorageParser with duplicate collections."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         parser = CloudStorageParser("/tmp/fake", "999")
         parser.collections = [

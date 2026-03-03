@@ -13,8 +13,8 @@ class TestKeyboardHandlerKeyPress:
 
     def _make_handler(self):
         """Creates a KeyboardHandler with a mocked MainWindow."""
-        with patch("src.ui.handlers.keyboard_handler.EasterEggManager"):
-            from src.ui.handlers.keyboard_handler import KeyboardHandler
+        with patch("steam_library_manager.ui.handlers.keyboard_handler.EasterEggManager"):
+            from steam_library_manager.ui.handlers.keyboard_handler import KeyboardHandler
 
             mw = MagicMock()
             mw.search_entry.text.return_value = ""

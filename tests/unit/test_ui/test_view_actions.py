@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import Mock
-from src.ui.actions.view_actions import ViewActions
+from steam_library_manager.ui.actions.view_actions import ViewActions
 
 
 @pytest.fixture

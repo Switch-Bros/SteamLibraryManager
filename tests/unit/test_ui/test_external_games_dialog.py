@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from src.integrations.external_games.models import ExternalGame
+from steam_library_manager.integrations.external_games.models import ExternalGame
 
 
 def _make_game(name: str, platform: str = "Heroic (Epic)") -> ExternalGame:

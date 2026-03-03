@@ -11,7 +11,7 @@ class TestBackupManagerListBackups:
 
     def test_list_backups_returns_empty_for_no_backups(self, tmp_path: Path):
         """No backups exist yet — expect empty list."""
-        from src.core.backup_manager import BackupManager
+        from steam_library_manager.core.backup_manager import BackupManager
 
         original = tmp_path / "test.json"
         original.write_text("{}")
@@ -23,7 +23,7 @@ class TestBackupManagerListBackups:
 
     def test_list_backups_returns_sorted_newest_first(self, tmp_path: Path):
         """Multiple backups should be returned newest-first by mtime."""
-        from src.core.backup_manager import BackupManager
+        from steam_library_manager.core.backup_manager import BackupManager
 
         original = tmp_path / "test.json"
         original.write_text("{}")
@@ -50,7 +50,7 @@ class TestBackupManagerListBackups:
 
     def test_list_backups_only_matches_same_stem(self, tmp_path: Path):
         """Backups for other files should not appear."""
-        from src.core.backup_manager import BackupManager
+        from steam_library_manager.core.backup_manager import BackupManager
 
         original = tmp_path / "test.json"
         original.write_text("{}")
@@ -74,7 +74,7 @@ class TestBackupManagerRestoreBackup:
 
     def test_restore_backup_copies_content(self, tmp_path: Path):
         """Restored file should have backup's content."""
-        from src.core.backup_manager import BackupManager
+        from steam_library_manager.core.backup_manager import BackupManager
 
         original = tmp_path / "test.json"
         original.write_text("original content")
@@ -90,7 +90,7 @@ class TestBackupManagerRestoreBackup:
 
     def test_restore_backup_creates_safety_backup(self, tmp_path: Path):
         """A safety backup of the current state should be created before restore."""
-        from src.core.backup_manager import BackupManager
+        from steam_library_manager.core.backup_manager import BackupManager
 
         original = tmp_path / "test.json"
         original.write_text("current state")
@@ -107,7 +107,7 @@ class TestBackupManagerRestoreBackup:
 
     def test_restore_backup_nonexistent_backup_returns_false(self, tmp_path: Path):
         """Restoring from a nonexistent backup should fail gracefully."""
-        from src.core.backup_manager import BackupManager
+        from steam_library_manager.core.backup_manager import BackupManager
 
         original = tmp_path / "test.json"
         original.write_text("content")
@@ -122,7 +122,7 @@ class TestBackupManagerRestoreBackup:
 
     def test_restore_backup_to_nonexistent_original(self, tmp_path: Path):
         """Restoring when the original doesn't exist should still work."""
-        from src.core.backup_manager import BackupManager
+        from steam_library_manager.core.backup_manager import BackupManager
 
         original = tmp_path / "new_file.json"
         backup = tmp_path / "new_file_1000000.json"

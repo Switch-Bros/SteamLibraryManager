@@ -15,8 +15,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-from src.core.database import Database, DatabaseEntry, ImportStats, database_entry_to_game
-from src.core.database_importer import DatabaseImporter
+from steam_library_manager.core.database import Database, DatabaseEntry, ImportStats, database_entry_to_game
+from steam_library_manager.core.database_importer import DatabaseImporter
 
 # ========================================================================
 # Database class tests
@@ -332,7 +332,7 @@ class TestDatabaseImporter:
 
     def test_extract_associations_developer(self) -> None:
         """extract_associations should extract developer names."""
-        from src.core.appinfo_manager import extract_associations
+        from steam_library_manager.core.appinfo_manager import extract_associations
 
         associations = {
             "0": {"type": "developer", "name": "Valve"},
@@ -343,7 +343,7 @@ class TestDatabaseImporter:
 
     def test_extract_associations_empty(self) -> None:
         """extract_associations returns empty list when no associations."""
-        from src.core.appinfo_manager import extract_associations
+        from steam_library_manager.core.appinfo_manager import extract_associations
 
         assert extract_associations({}, "developer") == []
 

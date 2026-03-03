@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
-from src.integrations.external_games.heroic_epic_parser import HeroicEpicParser
+from steam_library_manager.integrations.external_games.heroic_epic_parser import HeroicEpicParser
 
 
 class TestHeroicEpicParser:
@@ -99,7 +99,7 @@ class TestHeroicEpicParser:
         parser = HeroicEpicParser()
         with (
             patch.object(parser, "get_config_paths", return_value=[config]),
-            patch("src.integrations.external_games.heroic_epic_parser.Path") as mock_path,
+            patch("steam_library_manager.integrations.external_games.heroic_epic_parser.Path") as mock_path,
         ):
             mock_path.home.return_value = tmp_path
             games = parser.read_games()

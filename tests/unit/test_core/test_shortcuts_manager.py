@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from src.core.shortcuts_manager import (
+from steam_library_manager.core.shortcuts_manager import (
     ShortcutsManager,
     SteamShortcut,
     generate_app_id,
@@ -72,7 +72,7 @@ class TestAppIDCalculation:
 
     def test_shortcut_id_roundtrip_via_vdf(self, tmp_path: Path) -> None:
         """Generated ID survives write → read cycle in VDF."""
-        from src.core.shortcuts_manager import ShortcutsManager, SteamShortcut
+        from steam_library_manager.core.shortcuts_manager import ShortcutsManager, SteamShortcut
 
         exe = '"/opt/Heroic/heroic"'
         name = "TestGame"

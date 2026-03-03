@@ -6,7 +6,7 @@ import sqlite3
 from pathlib import Path
 from unittest.mock import patch
 
-from src.integrations.external_games.lutris_parser import LutrisParser
+from steam_library_manager.integrations.external_games.lutris_parser import LutrisParser
 
 
 class TestLutrisParser:

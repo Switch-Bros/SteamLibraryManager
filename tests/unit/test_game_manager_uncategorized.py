@@ -13,14 +13,17 @@ from unittest.mock import patch
 
 import pytest
 
-from src.core.game_manager import GameManager, Game
+from steam_library_manager.core.game_manager import GameManager, Game
 
 
 @pytest.fixture
 def game_manager():
     """Create a minimal GameManager instance for testing."""
     # Mock dependencies to avoid real API calls / file I/O
-    with patch("src.core.game_manager.MetadataEnrichmentService"), patch("src.core.game_manager.GameDetailService"):
+    with (
+        patch("steam_library_manager.core.game_manager.MetadataEnrichmentService"),
+        patch("steam_library_manager.core.game_manager.GameDetailService"),
+    ):
         manager = GameManager(steam_api_key=None, cache_dir=Path("/tmp/test_cache"), steam_path=Path("/tmp/test_steam"))
 
         # Disable NON_GAME filtering for tests (we want all games)
@@ -85,7 +88,7 @@ def sample_games(game_manager):
 # ==================================================================
 
 
-@patch("src.core.game_manager.t")
+@patch("steam_library_manager.core.game_manager.t")
 def test_uncategorized_no_categories(mock_t, game_manager, sample_games):
     """Test: Game with NO categories is uncategorized."""
     # Setup i18n mock
@@ -98,7 +101,7 @@ def test_uncategorized_no_categories(mock_t, game_manager, sample_games):
     assert sample_games["no_categories"] in uncategorized
 
 
-@patch("src.core.game_manager.t")
+@patch("steam_library_manager.core.game_manager.t")
 def test_uncategorized_only_favorites(mock_t, game_manager, sample_games):
     """Test: Game with ONLY Favorites is still uncategorized (Favorites is a system category)."""
     # Setup i18n mock
@@ -111,7 +114,7 @@ def test_uncategorized_only_favorites(mock_t, game_manager, sample_games):
     assert sample_games["only_favorites"] in uncategorized
 
 
-@patch("src.core.game_manager.t")
+@patch("steam_library_manager.core.game_manager.t")
 def test_uncategorized_only_hidden(mock_t, game_manager, sample_games):
     """Test: Game with ONLY Hidden is still uncategorized (Hidden is a system category).
 
@@ -129,7 +132,7 @@ def test_uncategorized_only_hidden(mock_t, game_manager, sample_games):
     ), "CRITICAL BUG: Games with ONLY 'Hidden' should be uncategorized!"
 
 
-@patch("src.core.game_manager.t")
+@patch("steam_library_manager.core.game_manager.t")
 def test_uncategorized_favorites_and_hidden(mock_t, game_manager, sample_games):
     """Test: Game with Favorites AND Hidden is still uncategorized (both are system categories).
 
@@ -147,7 +150,7 @@ def test_uncategorized_favorites_and_hidden(mock_t, game_manager, sample_games):
     ), "CRITICAL BUG: Games with ONLY system categories should be uncategorized!"
 
 
-@patch("src.core.game_manager.t")
+@patch("steam_library_manager.core.game_manager.t")
 def test_not_uncategorized_with_user_category(mock_t, game_manager, sample_games):
     """Test: Game with a user category is NOT uncategorized."""
     # Setup i18n mock
@@ -160,7 +163,7 @@ def test_not_uncategorized_with_user_category(mock_t, game_manager, sample_games
     assert sample_games["action"] not in uncategorized
 
 
-@patch("src.core.game_manager.t")
+@patch("steam_library_manager.core.game_manager.t")
 def test_not_uncategorized_favorites_plus_user_category(mock_t, game_manager, sample_games):
     """Test: Game with Favorites + user category is NOT uncategorized."""
     # Setup i18n mock
@@ -173,7 +176,7 @@ def test_not_uncategorized_favorites_plus_user_category(mock_t, game_manager, sa
     assert sample_games["favorites_and_action"] not in uncategorized
 
 
-@patch("src.core.game_manager.t")
+@patch("steam_library_manager.core.game_manager.t")
 def test_not_uncategorized_hidden_plus_user_category(mock_t, game_manager, sample_games):
     """Test: Game with Hidden + user category is NOT uncategorized."""
     # Setup i18n mock
@@ -186,7 +189,7 @@ def test_not_uncategorized_hidden_plus_user_category(mock_t, game_manager, sampl
     assert sample_games["hidden_and_rpg"] not in uncategorized
 
 
-@patch("src.core.game_manager.t")
+@patch("steam_library_manager.core.game_manager.t")
 def test_not_uncategorized_all_categories(mock_t, game_manager, sample_games):
     """Test: Game with system categories + user category is NOT uncategorized."""
     # Setup i18n mock
@@ -204,7 +207,7 @@ def test_not_uncategorized_all_categories(mock_t, game_manager, sample_games):
 # ==================================================================
 
 
-@patch("src.core.game_manager.t")
+@patch("steam_library_manager.core.game_manager.t")
 def test_uncategorized_comprehensive_count(mock_t, game_manager, sample_games):
     """Test: Verify the EXACT count of uncategorized games.
 
@@ -231,7 +234,7 @@ def test_uncategorized_comprehensive_count(mock_t, game_manager, sample_games):
 # ==================================================================
 
 
-@patch("src.core.game_manager.t")
+@patch("steam_library_manager.core.game_manager.t")
 def test_uncategorized_sorted_by_sort_name(mock_t, game_manager, sample_games):
     """Test: Uncategorized games are sorted by sort_name (lowercase)."""
     # Setup i18n mock
@@ -250,7 +253,7 @@ def test_uncategorized_sorted_by_sort_name(mock_t, game_manager, sample_games):
 # ==================================================================
 
 
-@patch("src.core.game_manager.t")
+@patch("steam_library_manager.core.game_manager.t")
 def test_uncategorized_empty_library(mock_t, game_manager):
     """Test: Empty game library returns empty uncategorized list."""
     # Setup i18n mock
@@ -271,7 +274,7 @@ def test_uncategorized_empty_library(mock_t, game_manager):
 # ==================================================================
 
 
-@patch("src.core.game_manager.t")
+@patch("steam_library_manager.core.game_manager.t")
 def test_regression_old_logic_would_fail(mock_t, game_manager, sample_games):
     """Regression test: Verify the old logic would have FAILED this test.
 

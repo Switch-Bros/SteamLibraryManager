@@ -4,9 +4,9 @@
 
 from unittest.mock import patch
 
-from src.core.game import Game
-from src.services.game_detail_enrichers import apply_review_data, apply_store_data
-from src.services.game_detail_service import GameDetailService
+from steam_library_manager.core.game import Game
+from steam_library_manager.services.game_detail_enrichers import apply_review_data, apply_store_data
+from steam_library_manager.services.game_detail_service import GameDetailService
 
 
 class TestGameDetailServiceInit:
@@ -36,8 +36,8 @@ class TestFetchGameDetails:
         service = GameDetailService(games, tmp_path)
         assert service.fetch_game_details("999") is False
 
-    @patch("src.services.game_detail_enrichers.requests.get")
-    @patch("src.services.game_detail_service.requests.get")
+    @patch("steam_library_manager.services.game_detail_enrichers.requests.get")
+    @patch("steam_library_manager.services.game_detail_service.requests.get")
     def test_returns_true_for_existing_game(self, mock_svc_get, mock_enr_get, tmp_path):
         """Test that fetching details for known app_id returns True."""
         import requests as req_mod

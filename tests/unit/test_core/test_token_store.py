@@ -14,7 +14,7 @@ class TestStoredTokens:
 
     def test_stored_tokens_creation(self):
         """StoredTokens should be creatable with all required fields."""
-        from src.core.token_store import StoredTokens
+        from steam_library_manager.core.token_store import StoredTokens
 
         tokens = StoredTokens(
             access_token="access_123",
@@ -30,7 +30,7 @@ class TestStoredTokens:
 
     def test_stored_tokens_is_frozen(self):
         """StoredTokens should be immutable."""
-        from src.core.token_store import StoredTokens
+        from steam_library_manager.core.token_store import StoredTokens
 
         tokens = StoredTokens(
             access_token="a",
@@ -48,7 +48,7 @@ class TestTokenStoreFileBased:
 
     def test_save_and_load_roundtrip(self, tmp_path: Path):
         """Tokens saved to file should be loadable and identical."""
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         store = TokenStore(data_dir=tmp_path)
         # Force file-based backend
@@ -65,7 +65,7 @@ class TestTokenStoreFileBased:
 
     def test_load_tokens_returns_none_when_no_file(self, tmp_path: Path):
         """Loading when no token file exists should return None."""
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         store = TokenStore(data_dir=tmp_path)
         store._keyring_available = False
@@ -75,7 +75,7 @@ class TestTokenStoreFileBased:
 
     def test_clear_tokens_removes_file(self, tmp_path: Path):
         """Clearing tokens should delete the encrypted file."""
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         store = TokenStore(data_dir=tmp_path)
         store._keyring_available = False
@@ -88,7 +88,7 @@ class TestTokenStoreFileBased:
 
     def test_clear_tokens_no_file_no_error(self, tmp_path: Path):
         """Clearing when no file exists should not raise."""
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         store = TokenStore(data_dir=tmp_path)
         store._keyring_available = False
@@ -97,7 +97,7 @@ class TestTokenStoreFileBased:
 
     def test_encrypted_file_is_not_plaintext(self, tmp_path: Path):
         """The token file should not contain plaintext tokens."""
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         store = TokenStore(data_dir=tmp_path)
         store._keyring_available = False
@@ -110,7 +110,7 @@ class TestTokenStoreFileBased:
 
     def test_tampered_file_fails_to_load(self, tmp_path: Path):
         """A modified encrypted file should fail authentication."""
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         store = TokenStore(data_dir=tmp_path)
         store._keyring_available = False
@@ -131,10 +131,10 @@ class TestTokenStoreFileBased:
 class TestTokenStoreRefresh:
     """Tests for TokenStore.refresh_access_token()."""
 
-    @patch("src.core.token_store.requests.post")
+    @patch("steam_library_manager.core.token_store.requests.post")
     def test_refresh_success_json_response(self, mock_post: MagicMock):
         """Successful refresh with JSON response should return new access token."""
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -152,10 +152,10 @@ class TestTokenStoreRefresh:
         call_kwargs = mock_post.call_args
         assert "input_protobuf_encoded" in call_kwargs.kwargs.get("data", call_kwargs[1].get("data", {}))
 
-    @patch("src.core.token_store.requests.post")
+    @patch("steam_library_manager.core.token_store.requests.post")
     def test_refresh_success_protobuf_response(self, mock_post: MagicMock):
         """Successful refresh with protobuf response should decode access token."""
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         # Build a minimal protobuf response: field 1 (string) = "fresh_token"
         token_bytes = b"fresh_token"
@@ -173,10 +173,10 @@ class TestTokenStoreRefresh:
 
         assert result == "fresh_token"
 
-    @patch("src.core.token_store.requests.post")
+    @patch("steam_library_manager.core.token_store.requests.post")
     def test_refresh_no_new_token_returns_sentinel(self, mock_post: MagicMock):
         """When Steam returns 200 but no new token, return sentinel (not None)."""
-        from src.core.token_store import TokenStore, _REFRESH_NOT_NEEDED
+        from steam_library_manager.core.token_store import TokenStore, _REFRESH_NOT_NEEDED
 
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -190,12 +190,12 @@ class TestTokenStoreRefresh:
 
         assert result == _REFRESH_NOT_NEEDED
 
-    @patch("src.core.token_store.requests.post")
+    @patch("steam_library_manager.core.token_store.requests.post")
     def test_refresh_failure_returns_none(self, mock_post: MagicMock):
         """Failed refresh (network error) should return None."""
         import requests as req
 
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         mock_post.side_effect = req.RequestException("Network error")
 
@@ -205,19 +205,19 @@ class TestTokenStoreRefresh:
 
     def test_refresh_without_steam_id_returns_none(self):
         """Refresh without steam_id should return None immediately."""
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         result = TokenStore.refresh_access_token("some_refresh", "")
 
         assert result is None
 
-    @patch("src.core.token_store.time.sleep")
-    @patch("src.core.token_store.requests.post")
+    @patch("steam_library_manager.core.token_store.time.sleep")
+    @patch("steam_library_manager.core.token_store.requests.post")
     def test_refresh_retries_on_network_error(self, mock_post: MagicMock, mock_sleep: MagicMock):
         """Refresh should retry on transient network errors."""
         import requests as req
 
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         # First two calls fail, third succeeds
         mock_success = MagicMock()
@@ -239,13 +239,13 @@ class TestTokenStoreRefresh:
         assert mock_post.call_count == 3
         assert mock_sleep.call_count == 2  # 2 retries with sleep
 
-    @patch("src.core.token_store.time.sleep")
-    @patch("src.core.token_store.requests.post")
+    @patch("steam_library_manager.core.token_store.time.sleep")
+    @patch("steam_library_manager.core.token_store.requests.post")
     def test_refresh_exhausts_retries(self, mock_post: MagicMock, mock_sleep: MagicMock):
         """Refresh should return None after exhausting all retries."""
         import requests as req
 
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         mock_post.side_effect = req.RequestException("persistent failure")
 
@@ -255,30 +255,30 @@ class TestTokenStoreRefresh:
         assert mock_post.call_count == 2
         assert mock_sleep.call_count == 1  # Only between attempts
 
-    @patch("src.core.token_store.requests.get")
+    @patch("steam_library_manager.core.token_store.requests.get")
     def test_validate_access_token_valid(self, mock_get: MagicMock):
         """Valid token should return True."""
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         mock_get.return_value = MagicMock(status_code=200)
 
         assert TokenStore.validate_access_token("valid_token") is True
 
-    @patch("src.core.token_store.requests.get")
+    @patch("steam_library_manager.core.token_store.requests.get")
     def test_validate_access_token_expired(self, mock_get: MagicMock):
         """Expired token should return False (HTTP 401)."""
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         mock_get.return_value = MagicMock(status_code=401)
 
         assert TokenStore.validate_access_token("expired_token") is False
 
-    @patch("src.core.token_store.requests.get")
+    @patch("steam_library_manager.core.token_store.requests.get")
     def test_validate_access_token_network_error(self, mock_get: MagicMock):
         """Network error during validation should return False."""
         import requests as req
 
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         mock_get.side_effect = req.RequestException("offline")
 
@@ -290,7 +290,7 @@ class TestProtobufHelpers:
 
     def test_encode_refresh_proto_with_steamid(self):
         """Encoding should produce valid protobuf with refresh_token and steamid."""
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         result = TokenStore._encode_refresh_proto("mytoken", "76561198000000000")
 
@@ -302,7 +302,7 @@ class TestProtobufHelpers:
 
     def test_encode_refresh_proto_without_steamid(self):
         """Encoding without steamid should only include refresh_token field."""
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         result = TokenStore._encode_refresh_proto("mytoken", "")
 
@@ -312,7 +312,7 @@ class TestProtobufHelpers:
 
     def test_decode_string_field_roundtrip(self):
         """Decoding should extract the string encoded by our encoder."""
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         # Encode a simple protobuf with field 1 = "hello"
         buf = bytearray()
@@ -325,7 +325,7 @@ class TestProtobufHelpers:
 
     def test_decode_string_field_not_found(self):
         """Decoding a non-existent field should return None."""
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         buf = bytearray()
         buf.append(0x0A)  # field 1, wire type 2
@@ -339,10 +339,10 @@ class TestProtobufHelpers:
 class TestTokenStoreGetSteamId:
     """Tests for TokenStore.get_steamid_from_token()."""
 
-    @patch("src.core.token_store.requests.get")
+    @patch("steam_library_manager.core.token_store.requests.get")
     def test_steamid_from_api(self, mock_get: MagicMock):
         """Should extract SteamID from GetOwnedGames API response."""
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -353,12 +353,12 @@ class TestTokenStoreGetSteamId:
 
         assert result == "76561198000000000"
 
-    @patch("src.core.token_store.requests.get")
+    @patch("steam_library_manager.core.token_store.requests.get")
     def test_steamid_from_jwt_fallback(self, mock_get: MagicMock):
         """Should fall back to JWT decode when API fails."""
         import base64
 
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         # Mock API failure
         mock_get.side_effect = Exception("API down")
@@ -372,10 +372,10 @@ class TestTokenStoreGetSteamId:
 
         assert result == "76561198000000001"
 
-    @patch("src.core.token_store.requests.get")
+    @patch("steam_library_manager.core.token_store.requests.get")
     def test_invalid_token_returns_none(self, mock_get: MagicMock):
         """Completely invalid token should return None."""
-        from src.core.token_store import TokenStore
+        from steam_library_manager.core.token_store import TokenStore
 
         mock_get.side_effect = Exception("API error")
 

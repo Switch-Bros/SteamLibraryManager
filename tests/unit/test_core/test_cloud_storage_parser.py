@@ -14,7 +14,7 @@ class TestCloudStorageParser:
 
     def test_load_collections(self, mock_cloud_storage_file):
         """Test loading collections from cloud storage file."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         steam_path, user_id = mock_cloud_storage_file
         parser = CloudStorageParser(str(steam_path), user_id)
@@ -26,7 +26,7 @@ class TestCloudStorageParser:
 
     def test_get_app_categories(self, mock_cloud_storage_file):
         """Test getting categories for a specific app."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         steam_path, user_id = mock_cloud_storage_file
         parser = CloudStorageParser(str(steam_path), user_id)
@@ -39,7 +39,7 @@ class TestCloudStorageParser:
 
     def test_add_app_category(self, mock_cloud_storage_file):
         """Test adding a category to an app."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         steam_path, user_id = mock_cloud_storage_file
         parser = CloudStorageParser(str(steam_path), user_id)
@@ -53,7 +53,7 @@ class TestCloudStorageParser:
 
     def test_get_duplicate_groups_no_duplicates(self, mock_cloud_storage_file):
         """Test that no duplicates returns empty dict."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         steam_path, user_id = mock_cloud_storage_file
         parser = CloudStorageParser(str(steam_path), user_id)
@@ -65,7 +65,7 @@ class TestCloudStorageParser:
 
     def test_get_duplicate_groups_with_duplicates(self):
         """Test detection of duplicate collection names."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         parser = CloudStorageParser("/tmp/fake", "999")
         parser.collections = [
@@ -82,7 +82,7 @@ class TestCloudStorageParser:
 
     def test_get_duplicate_groups_empty_collections(self):
         """Test with empty collections list."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         parser = CloudStorageParser("/tmp/fake", "999")
         parser.collections = []
@@ -97,7 +97,7 @@ class TestCloudStorageConflictDetection:
 
     def test_has_external_changes_true(self, mock_cloud_storage_file):
         """Detect external modifications after load by comparing mtime."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         steam_path, user_id = mock_cloud_storage_file
         parser = CloudStorageParser(str(steam_path), user_id)
@@ -112,7 +112,7 @@ class TestCloudStorageConflictDetection:
 
     def test_has_external_changes_false(self, mock_cloud_storage_file):
         """No external changes when file is untouched since load."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         steam_path, user_id = mock_cloud_storage_file
         parser = CloudStorageParser(str(steam_path), user_id)
@@ -122,7 +122,7 @@ class TestCloudStorageConflictDetection:
 
     def test_has_external_changes_no_file(self):
         """Non-existent file should return False (not crash)."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         parser = CloudStorageParser("/tmp/nonexistent", "999")
 
@@ -130,7 +130,7 @@ class TestCloudStorageConflictDetection:
 
     def test_save_with_conflict_sets_flag(self, mock_cloud_storage_file):
         """Saving after external change should set had_conflict flag."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         steam_path, user_id = mock_cloud_storage_file
         parser = CloudStorageParser(str(steam_path), user_id)
@@ -147,7 +147,7 @@ class TestCloudStorageConflictDetection:
 
     def test_save_without_conflict_clears_flag(self, mock_cloud_storage_file):
         """Saving without external changes should not set had_conflict."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         steam_path, user_id = mock_cloud_storage_file
         parser = CloudStorageParser(str(steam_path), user_id)
@@ -157,10 +157,10 @@ class TestCloudStorageConflictDetection:
 
         assert parser.had_conflict is False
 
-    @patch("src.core.cloud_storage_parser.BackupManager")
+    @patch("steam_library_manager.core.cloud_storage_parser.BackupManager")
     def test_save_creates_backup(self, mock_backup_cls, mock_cloud_storage_file):
         """Save should create a backup of the existing file."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         steam_path, user_id = mock_cloud_storage_file
         parser = CloudStorageParser(str(steam_path), user_id)
@@ -176,7 +176,7 @@ class TestCloudStorageVirtualCategories:
 
     def test_virtual_categories_not_saved(self, mock_cloud_storage_file):
         """Virtual UI categories should be stripped during save."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         steam_path, user_id = mock_cloud_storage_file
         parser = CloudStorageParser(str(steam_path), user_id)
@@ -199,7 +199,7 @@ class TestCloudStorageVirtualCategories:
 
     def test_special_collections_use_steam_ids(self, mock_cloud_storage_file):
         """Favorites and Hidden should be saved with Steam-internal IDs."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         steam_path, user_id = mock_cloud_storage_file
         parser = CloudStorageParser(str(steam_path), user_id)
@@ -226,7 +226,7 @@ class TestCloudStorageVirtualCategories:
 
     def test_empty_special_collections_not_saved(self, mock_cloud_storage_file):
         """Empty favorites/hidden should be omitted from save."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         steam_path, user_id = mock_cloud_storage_file
         parser = CloudStorageParser(str(steam_path), user_id)
@@ -255,7 +255,7 @@ class TestCloudStorageFilterSpec:
 
     def test_filterspec_preserved_on_save(self, mock_cloud_storage_file):
         """Dynamic collection filterSpec should survive save/load round-trip."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         steam_path, user_id = mock_cloud_storage_file
         parser = CloudStorageParser(str(steam_path), user_id)
@@ -288,7 +288,7 @@ class TestCloudStorageCorruptedData:
 
     def test_corrupted_json_returns_false(self, tmp_path):
         """Corrupted JSON file should fail gracefully."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         user_id = "12345678"
         cloud_dir = tmp_path / "userdata" / user_id / "config" / "cloudstorage"
@@ -304,7 +304,7 @@ class TestCloudStorageCorruptedData:
 
     def test_non_list_data_returns_false(self, tmp_path):
         """Root-level non-list JSON should fail gracefully."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         user_id = "12345678"
         cloud_dir = tmp_path / "userdata" / user_id / "config" / "cloudstorage"
@@ -319,7 +319,7 @@ class TestCloudStorageCorruptedData:
 
     def test_bare_timestamp_in_added_field(self, mock_cloud_storage_file):
         """Migrated collection with 'added': 0 (bare timestamp) should not crash."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         steam_path, user_id = mock_cloud_storage_file
         parser = CloudStorageParser(str(steam_path), user_id)
@@ -337,7 +337,7 @@ class TestCloudStorageCorruptedData:
 
     def test_to_app_id_int_invalid_values(self):
         """Invalid app_id values should return None."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         assert CloudStorageParser._to_app_id_int("abc") is None
         assert CloudStorageParser._to_app_id_int("") is None
@@ -351,31 +351,31 @@ class TestNormalizeCollectionName:
 
     def test_normalize_lowercase(self):
         """Uppercase should be lowered."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         assert CloudStorageParser._normalize_collection_name("ROGUELIKE") == "roguelike"
 
     def test_normalize_hyphens(self):
         """Hyphens should be stripped."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         assert CloudStorageParser._normalize_collection_name("Rogue-like") == "roguelike"
 
     def test_normalize_spaces(self):
         """Spaces should be stripped."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         assert CloudStorageParser._normalize_collection_name("Rogue Like") == "roguelike"
 
     def test_normalize_underscores(self):
         """Underscores should be stripped."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         assert CloudStorageParser._normalize_collection_name("rogue_like") == "roguelike"
 
     def test_normalize_mixed(self):
         """Mixed casing, hyphens, and spaces should all normalize."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         assert CloudStorageParser._normalize_collection_name("Rogue-Like Games") == "roguelikegames"
 
@@ -385,7 +385,7 @@ class TestFuzzyDuplicateGroups:
 
     def test_fuzzy_match_case_difference(self):
         """'roguelike' and 'ROGUELIKE' should be grouped together."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         parser = CloudStorageParser("/tmp/fake", "999")
         parser.collections = [
@@ -401,7 +401,7 @@ class TestFuzzyDuplicateGroups:
 
     def test_exact_match_still_works(self):
         """Two identical 'Action' collections should still be detected."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         parser = CloudStorageParser("/tmp/fake", "999")
         parser.collections = [
@@ -416,7 +416,7 @@ class TestFuzzyDuplicateGroups:
 
     def test_no_false_positives(self):
         """'Action' and 'Traction' should NOT be grouped."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         parser = CloudStorageParser("/tmp/fake", "999")
         parser.collections = [
@@ -430,7 +430,7 @@ class TestFuzzyDuplicateGroups:
 
     def test_representative_name_is_first(self):
         """Group key should be the first collection's original name."""
-        from src.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 
         parser = CloudStorageParser("/tmp/fake", "999")
         parser.collections = [

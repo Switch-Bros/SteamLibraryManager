@@ -6,9 +6,9 @@ from __future__ import annotations
 
 import pytest
 
-from src.core.game import Game
-from src.services.smart_collections.evaluator import SmartCollectionEvaluator
-from src.services.smart_collections.templates import (
+from steam_library_manager.core.game import Game
+from steam_library_manager.services.smart_collections.evaluator import SmartCollectionEvaluator
+from steam_library_manager.services.smart_collections.templates import (
     TEMPLATE_CATEGORIES,
     SmartCollectionTemplate,
     get_all_templates,

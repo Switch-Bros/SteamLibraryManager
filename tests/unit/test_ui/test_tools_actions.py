@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import Mock, patch
-from src.ui.actions.tools_actions import ToolsActions
+from steam_library_manager.ui.actions.tools_actions import ToolsActions
 
 
 @pytest.fixture
@@ -24,7 +24,7 @@ def test_find_missing_metadata_none_found(mock_main_window):
     actions = ToolsActions(mock_main_window)
     mock_main_window.metadata_service.find_missing_metadata.return_value = []
 
-    with patch("src.ui.actions.tools_actions.UIHelper") as mock_helper:
+    with patch("steam_library_manager.ui.actions.tools_actions.UIHelper") as mock_helper:
         actions.find_missing_metadata()
         mock_helper.show_success.assert_called_once()
 
@@ -34,7 +34,7 @@ def test_find_missing_metadata_found(mock_main_window):
     actions = ToolsActions(mock_main_window)
     mock_main_window.metadata_service.find_missing_metadata.return_value = ["Game 1"]
 
-    with patch("src.ui.actions.tools_actions.MissingMetadataDialog") as mock_dialog_cls:
+    with patch("steam_library_manager.ui.actions.tools_actions.MissingMetadataDialog") as mock_dialog_cls:
         mock_dialog = Mock()
         mock_dialog_cls.return_value = mock_dialog
 
@@ -53,8 +53,8 @@ def test_check_store_availability_starts_thread(mock_main_window):
 
     # Mock UIHelper.create_progress_dialog and StoreCheckThread
     with (
-        patch("src.ui.actions.tools_actions.UIHelper") as mock_helper,
-        patch("src.ui.actions.tools_actions.StoreCheckThread") as mock_thread_cls,
+        patch("steam_library_manager.ui.actions.tools_actions.UIHelper") as mock_helper,
+        patch("steam_library_manager.ui.actions.tools_actions.StoreCheckThread") as mock_thread_cls,
     ):
         mock_progress = Mock()
         mock_helper.create_progress_dialog.return_value = mock_progress

@@ -2,20 +2,20 @@
 
 import pytest
 from unittest.mock import Mock, patch
-from src.services.asset_service import AssetService
+from steam_library_manager.services.asset_service import AssetService
 
 
 @pytest.fixture
 def mock_steam_assets():
     """Mocks SteamAssets static methods."""
-    with patch("src.services.asset_service.SteamAssets") as mock_sa:
+    with patch("steam_library_manager.services.asset_service.SteamAssets") as mock_sa:
         yield mock_sa
 
 
 @pytest.fixture
 def mock_steamgrid():
     """Mocks SteamGridDB."""
-    with patch("src.services.asset_service.SteamGridDB") as mock_sg:
+    with patch("steam_library_manager.services.asset_service.SteamGridDB") as mock_sg:
         yield mock_sg
 
 

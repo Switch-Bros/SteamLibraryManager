@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from src.services.autocategorize_service import AutoCategorizeService
+from steam_library_manager.services.autocategorize_service import AutoCategorizeService
 
 
 class TestAutoCategorizeService:
@@ -36,7 +36,7 @@ class TestAutoCategorizeService:
     @pytest.fixture
     def mock_game(self):
         """Create a mock Game."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Team Fortress 2")
         game.publisher = "Valve"
@@ -107,7 +107,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_publisher_no_publisher(self, service):
         """Test categorizing games without publisher."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Test Game")
         game.publisher = None  # type: ignore[assignment]
@@ -125,7 +125,7 @@ class TestAutoCategorizeService:
     @pytest.mark.skip(reason="Pre-existing: test needs update to match current source code")
     def test_categorize_by_franchise_success(self, service):
         """Test categorizing games by franchise."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="LEGO Star Wars")
         game.categories = []
@@ -140,7 +140,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_franchise_no_franchise(self, service):
         """Test categorizing games with no detectable franchise."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Random Game XYZ")
         game.categories = []
@@ -168,7 +168,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_genre_no_genres(self, service):
         """Test categorizing games without genres."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Test Game")
         game.genres = []
@@ -215,7 +215,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_developer_success(self, service):
         """Test categorizing games by developer."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Team Fortress 2")
         game.developer = "Valve"
@@ -230,7 +230,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_developer_no_developer(self, service):
         """Test categorizing games without developer."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Test Game")
         game.developer = ""
@@ -246,7 +246,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_platform_success(self, service):
         """Test categorizing games by platform."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Team Fortress 2")
         game.platforms = ["windows", "linux"]
@@ -261,7 +261,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_platform_no_platforms(self, service):
         """Test categorizing games without platforms."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Test Game")
         game.platforms = []
@@ -277,7 +277,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_user_score_success(self, service):
         """Test categorizing games with a review score."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Team Fortress 2")
         game.review_percentage = 92
@@ -292,7 +292,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_user_score_no_score(self, service):
         """Test categorizing games without review score."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Test Game")
         game.review_percentage = 0
@@ -308,7 +308,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_hours_played_success(self, service):
         """Test categorizing games with playtime."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Team Fortress 2")
         game.playtime_minutes = 500
@@ -323,7 +323,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_hours_played_never_played(self, service):
         """Test categorizing games with zero playtime."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Test Game")
         game.playtime_minutes = 0
@@ -340,7 +340,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_flags_free_game(self, service):
         """Test categorizing a free-to-play game by flags."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Team Fortress 2")
         game.is_free = True  # type: ignore[attr-defined]
@@ -354,7 +354,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_flags_no_flags(self, service):
         """Test categorizing games with no detectable flags."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Test Game")
         game.categories = []
@@ -369,7 +369,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_vr_required(self, service):
         """Test categorizing a VR-required game."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Half-Life: Alyx")
         game.vr_support = "required"  # type: ignore[attr-defined]
@@ -383,7 +383,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_vr_no_vr(self, service):
         """Test categorizing games without VR support."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Test Game")
         game.categories = []
@@ -398,7 +398,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_year_success(self, service):
         """Test categorizing games with a release year."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Team Fortress 2")
         game.release_year = "2007"
@@ -413,7 +413,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_year_no_year(self, service):
         """Test categorizing games without release year."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Test Game")
         game.release_year = ""
@@ -429,7 +429,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_hltb_success(self, service):
         """Test categorizing games with HLTB data."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Team Fortress 2")
         game.hltb_main_story = 12.5
@@ -444,7 +444,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_hltb_no_data(self, service):
         """Test categorizing games without HLTB data."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Test Game")
         game.hltb_main_story = 0.0
@@ -458,7 +458,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_hltb_edge_boundary(self, service):
         """Test HLTB categorization at range boundary (exactly 5h)."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Short Game")
         game.hltb_main_story = 5.0
@@ -475,7 +475,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_language_success(self, service):
         """Test categorizing games with language data."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Team Fortress 2")
         game.languages = ["English", "German"]
@@ -490,7 +490,7 @@ class TestAutoCategorizeService:
 
     def test_categorize_by_language_no_languages(self, service):
         """Test categorizing games without language data."""
-        from src.core.game_manager import Game
+        from steam_library_manager.core.game_manager import Game
 
         game = Game(app_id="440", name="Test Game")
         game.languages = []

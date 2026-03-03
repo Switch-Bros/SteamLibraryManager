@@ -9,14 +9,14 @@ from pathlib import Path
 
 import pytest
 
-from src.core.profile_manager import (
+from steam_library_manager.core.profile_manager import (
     Profile,
     ProfileManager,
     _deserialize_profile,
     _sanitize_filename,
     _serialize_profile,
 )
-from src.services.filter_service import ALL_PLATFORM_KEYS, ALL_TYPE_KEYS
+from steam_library_manager.services.filter_service import ALL_PLATFORM_KEYS, ALL_TYPE_KEYS
 
 # ---------------------------------------------------------------------------
 # Profile Dataclass

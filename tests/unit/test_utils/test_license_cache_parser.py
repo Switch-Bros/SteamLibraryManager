@@ -2,7 +2,7 @@
 
 import struct
 
-from src.utils.license_cache_parser import (
+from steam_library_manager.utils.license_cache_parser import (
     LicenseCacheParser,
     LicenseInfo,
     _RandomStream,
@@ -24,7 +24,7 @@ def _make_encrypted_licensecache(steam32_id: int, package_ids: list[int]) -> byt
     Returns:
         Encrypted bytes (ready to write to file).
     """
-    from src.utils.licensecache_pb2 import CMsgClientLicenseList
+    from steam_library_manager.utils.licensecache_pb2 import CMsgClientLicenseList
 
     msg = CMsgClientLicenseList()
     msg.eresult = 1
@@ -193,7 +193,7 @@ class TestPackageInfoParserFiltered:
 
     def test_get_app_ids_for_packages_empty_set(self, tmp_path):
         """Empty owned_packages returns empty result."""
-        from src.core.packageinfo_parser import PackageInfoParser
+        from steam_library_manager.core.packageinfo_parser import PackageInfoParser
 
         parser = PackageInfoParser(tmp_path)
         result = parser.get_app_ids_for_packages(set())
@@ -201,7 +201,7 @@ class TestPackageInfoParserFiltered:
 
     def test_get_app_ids_for_packages_file_not_found(self, tmp_path):
         """Missing file returns empty set, no crash."""
-        from src.core.packageinfo_parser import PackageInfoParser
+        from steam_library_manager.core.packageinfo_parser import PackageInfoParser
 
         parser = PackageInfoParser(tmp_path / "nonexistent")
         result = parser.get_app_ids_for_packages({1, 2, 3})
@@ -209,7 +209,7 @@ class TestPackageInfoParserFiltered:
 
     def test_get_app_ids_for_packages_filters_correctly(self, tmp_path):
         """Only returns AppIDs from specified packages."""
-        from src.core.packageinfo_parser import PackageInfoParser
+        from steam_library_manager.core.packageinfo_parser import PackageInfoParser
 
         # Build a minimal binary packageinfo.vdf
         pkg_data = _build_minimal_packageinfo(

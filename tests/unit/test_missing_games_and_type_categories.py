@@ -4,8 +4,8 @@
 
 from unittest.mock import MagicMock
 
-from src.core.game import Game, is_real_game
-from src.services.enrichment.metadata_enrichment_service import MetadataEnrichmentService
+from steam_library_manager.core.game import Game, is_real_game
+from steam_library_manager.services.enrichment.metadata_enrichment_service import MetadataEnrichmentService
 
 
 class TestIsRealGameWithAppType:
@@ -77,7 +77,7 @@ class TestGetAllAppIds:
 
     def test_returns_all_keys(self):
         """Test that get_all_app_ids returns all keys from apps dict."""
-        from src.core.localconfig_helper import LocalConfigHelper
+        from steam_library_manager.core.localconfig_helper import LocalConfigHelper
 
         helper = LocalConfigHelper("/nonexistent/path")
         helper.apps = {"440": {}, "570": {}, "730": {"hidden": "1"}}
@@ -86,7 +86,7 @@ class TestGetAllAppIds:
 
     def test_returns_empty_for_empty_apps(self):
         """Test that get_all_app_ids returns empty list when no apps."""
-        from src.core.localconfig_helper import LocalConfigHelper
+        from steam_library_manager.core.localconfig_helper import LocalConfigHelper
 
         helper = LocalConfigHelper("/nonexistent/path")
         helper.apps = {}
@@ -325,7 +325,7 @@ class TestTypeCategoriesGrouping:
 
     def test_groups_by_type(self):
         """Test that apps are grouped into correct type categories."""
-        from src.ui.handlers.category_populator import CategoryPopulator
+        from steam_library_manager.ui.handlers.category_populator import CategoryPopulator
 
         apps = [
             Game(app_id="1", name="Cool Game", app_type="game"),
@@ -341,7 +341,7 @@ class TestTypeCategoriesGrouping:
         assert len(result) == 4
 
         # Verify each type is mapped correctly
-        from src.utils.i18n import t
+        from steam_library_manager.utils.i18n import t
 
         assert t("categories.soundtracks") in result
         assert t("categories.tools") in result
@@ -350,7 +350,7 @@ class TestTypeCategoriesGrouping:
 
     def test_excludes_hidden_apps(self):
         """Test that hidden apps are excluded from type categories."""
-        from src.ui.handlers.category_populator import CategoryPopulator
+        from steam_library_manager.ui.handlers.category_populator import CategoryPopulator
 
         apps = [
             Game(app_id="1", name="Game OST", app_type="music"),
@@ -358,7 +358,7 @@ class TestTypeCategoriesGrouping:
         ]
 
         result = CategoryPopulator._get_type_categories(apps)
-        from src.utils.i18n import t
+        from steam_library_manager.utils.i18n import t
 
         soundtracks = result.get(t("categories.soundtracks"), [])
         assert len(soundtracks) == 1
@@ -366,7 +366,7 @@ class TestTypeCategoriesGrouping:
 
     def test_empty_for_games_only(self):
         """Test that no type categories are created for game-only lists."""
-        from src.ui.handlers.category_populator import CategoryPopulator
+        from steam_library_manager.ui.handlers.category_populator import CategoryPopulator
 
         apps = [
             Game(app_id="1", name="Game A", app_type="game"),
@@ -378,7 +378,7 @@ class TestTypeCategoriesGrouping:
 
     def test_empty_for_unknown_type(self):
         """Test that apps with empty app_type don't create categories."""
-        from src.ui.handlers.category_populator import CategoryPopulator
+        from steam_library_manager.ui.handlers.category_populator import CategoryPopulator
 
         apps = [
             Game(app_id="1", name="Unknown App", app_type=""),
@@ -399,9 +399,12 @@ class TestUncategorizedOnlyGames:
         """Test that a game without user collections IS uncategorized."""
         from unittest.mock import patch
 
-        from src.core.game_manager import GameManager
+        from steam_library_manager.core.game_manager import GameManager
 
-        with patch("src.core.game_manager.MetadataEnrichmentService"), patch("src.core.game_manager.GameDetailService"):
+        with (
+            patch("steam_library_manager.core.game_manager.MetadataEnrichmentService"),
+            patch("steam_library_manager.core.game_manager.GameDetailService"),
+        ):
             manager = GameManager(
                 steam_api_key=None,
                 cache_dir=tmp_path,
@@ -418,9 +421,12 @@ class TestUncategorizedOnlyGames:
         """Test that music/tool/application/video are NOT uncategorized."""
         from unittest.mock import patch
 
-        from src.core.game_manager import GameManager
+        from steam_library_manager.core.game_manager import GameManager
 
-        with patch("src.core.game_manager.MetadataEnrichmentService"), patch("src.core.game_manager.GameDetailService"):
+        with (
+            patch("steam_library_manager.core.game_manager.MetadataEnrichmentService"),
+            patch("steam_library_manager.core.game_manager.GameDetailService"),
+        ):
             manager = GameManager(
                 steam_api_key=None,
                 cache_dir=tmp_path,
@@ -439,9 +445,12 @@ class TestUncategorizedOnlyGames:
         """Test that DLC is excluded from uncategorized."""
         from unittest.mock import patch
 
-        from src.core.game_manager import GameManager
+        from steam_library_manager.core.game_manager import GameManager
 
-        with patch("src.core.game_manager.MetadataEnrichmentService"), patch("src.core.game_manager.GameDetailService"):
+        with (
+            patch("steam_library_manager.core.game_manager.MetadataEnrichmentService"),
+            patch("steam_library_manager.core.game_manager.GameDetailService"),
+        ):
             manager = GameManager(
                 steam_api_key=None,
                 cache_dir=tmp_path,
@@ -457,9 +466,12 @@ class TestUncategorizedOnlyGames:
         """Test that a game WITH a user collection is NOT uncategorized."""
         from unittest.mock import patch
 
-        from src.core.game_manager import GameManager
+        from steam_library_manager.core.game_manager import GameManager
 
-        with patch("src.core.game_manager.MetadataEnrichmentService"), patch("src.core.game_manager.GameDetailService"):
+        with (
+            patch("steam_library_manager.core.game_manager.MetadataEnrichmentService"),
+            patch("steam_library_manager.core.game_manager.GameDetailService"),
+        ):
             manager = GameManager(
                 steam_api_key=None,
                 cache_dir=tmp_path,
@@ -479,8 +491,8 @@ class TestVirtualCategoriesNotSaved:
 
     def test_type_categories_are_virtual(self, mock_cloud_storage_file):
         """Test that all 4 type category names are in _get_virtual_categories."""
-        from src.core.cloud_storage_parser import CloudStorageParser
-        from src.utils.i18n import t
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.utils.i18n import t
 
         virtual = CloudStorageParser._get_virtual_categories()
 
@@ -491,8 +503,8 @@ class TestVirtualCategoriesNotSaved:
 
     def test_uncategorized_still_virtual(self, mock_cloud_storage_file):
         """Test that the original virtual categories are still present."""
-        from src.core.cloud_storage_parser import CloudStorageParser
-        from src.utils.i18n import t
+        from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
+        from steam_library_manager.utils.i18n import t
 
         virtual = CloudStorageParser._get_virtual_categories()
 

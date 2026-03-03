@@ -11,7 +11,7 @@ class TestSteamStoreCacheCoverage:
 
     def test_get_cache_coverage_no_cache(self, tmp_path):
         """Test cache coverage when no cache exists."""
-        from src.integrations.steam_store import SteamStoreScraper
+        from steam_library_manager.integrations.steam_store import SteamStoreScraper
 
         scraper = SteamStoreScraper(tmp_path, "en")
         app_ids = ["440", "730", "570"]
@@ -25,7 +25,7 @@ class TestSteamStoreCacheCoverage:
 
     def test_get_cache_coverage_full_cache(self, tmp_path):
         """Test cache coverage when all games are cached."""
-        from src.integrations.steam_store import SteamStoreScraper
+        from steam_library_manager.integrations.steam_store import SteamStoreScraper
 
         scraper = SteamStoreScraper(tmp_path, "en")
         cache_dir = tmp_path / "store_tags"
@@ -47,7 +47,7 @@ class TestSteamStoreCacheCoverage:
 
     def test_get_cache_coverage_partial_cache(self, tmp_path):
         """Test cache coverage when some games are cached."""
-        from src.integrations.steam_store import SteamStoreScraper
+        from steam_library_manager.integrations.steam_store import SteamStoreScraper
 
         scraper = SteamStoreScraper(tmp_path, "en")
         cache_dir = tmp_path / "store_tags"
@@ -69,7 +69,7 @@ class TestSteamStoreCacheCoverage:
 
     def test_get_cache_coverage_expired_cache(self, tmp_path):
         """Test that expired cache (>30 days) is not counted."""
-        from src.integrations.steam_store import SteamStoreScraper
+        from steam_library_manager.integrations.steam_store import SteamStoreScraper
 
         scraper = SteamStoreScraper(tmp_path, "en")
         cache_dir = tmp_path / "store_tags"
@@ -94,7 +94,7 @@ class TestSteamStoreCacheCoverage:
 
     def test_get_cache_coverage_different_language(self, tmp_path):
         """Test that cache is language-specific."""
-        from src.integrations.steam_store import SteamStoreScraper
+        from steam_library_manager.integrations.steam_store import SteamStoreScraper
 
         cache_dir = tmp_path / "store_tags"
         cache_dir.mkdir(parents=True, exist_ok=True)
@@ -114,7 +114,7 @@ class TestSteamStoreCacheCoverage:
 
     def test_get_cache_coverage_empty_list(self, tmp_path):
         """Test cache coverage with empty app_ids list."""
-        from src.integrations.steam_store import SteamStoreScraper
+        from steam_library_manager.integrations.steam_store import SteamStoreScraper
 
         scraper = SteamStoreScraper(tmp_path, "en")
         coverage = scraper.get_cache_coverage([])

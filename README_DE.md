@@ -1,8 +1,8 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_header_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_header_light.webp">
-    <img src="src/resources/images/readme_header_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_header_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_header_light.webp">
+    <img src="steam_library_manager/resources/images/readme_header_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -29,7 +29,7 @@
 
 <!-- Hero Screenshot -->
 <p align="center">
-  <img src="src/resources/screenshots/01_de_hero_main_window.webp" alt="Steam Library Manager — Hauptfenster (Deutsch)" width="900">
+  <img src="steam_library_manager/resources/screenshots/01_de_hero_main_window.webp" alt="Steam Library Manager — Hauptfenster (Deutsch)" width="900">
 </p>
 
 
@@ -37,9 +37,9 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
-    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_divider_light.webp">
+    <img src="steam_library_manager/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -63,14 +63,14 @@ Der Clou: Im Steam Client erscheinen unsere Smart Collections als **ganz normale
 Eine Kollektion. Zwei Regelgruppen. Automatisch. Immer aktuell. **In Steam unmöglich.**
 
 <p align="center">
-  <img src="src/resources/screenshots/02_de_smart_collections_editor.webp" alt="Smart Collections Editor (Deutsch)" width="800">
+  <img src="steam_library_manager/resources/screenshots/02_de_smart_collections_editor.webp" alt="Smart Collections Editor (Deutsch)" width="800">
 </p>
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
-    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_divider_light.webp">
+    <img src="steam_library_manager/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -80,11 +80,11 @@ Wenn SLM dir hilft deine Bibliothek zu organisieren, denk darüber nach die Entw
 
 <p align="center">
   <a href="https://www.paypal.com/donate/?hosted_button_id=HWPG6YAGXAWJJ">
-    <img src="src/resources/images/paypal_de.webp" alt="Unterstütze uns auf PayPal" height="80">
+    <img src="steam_library_manager/resources/images/paypal_de.webp" alt="Unterstütze uns auf PayPal" height="80">
   </a>
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://ko-fi.com/S6S51T9G3Y">
-    <img src="src/resources/images/ko-fi_de.webp" alt="Unterstütze uns auf Ko-fi" height="80">
+    <img src="steam_library_manager/resources/images/ko-fi_de.webp" alt="Unterstütze uns auf Ko-fi" height="80">
   </a>
 </p>
 
@@ -92,9 +92,9 @@ Wenn SLM dir hilft deine Bibliothek zu organisieren, denk darüber nach die Entw
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
-    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_divider_light.webp">
+    <img src="steam_library_manager/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -109,17 +109,17 @@ Jeder Regeltyp hat eigene Konfigurationsmöglichkeiten — Schwellenwerte, Ignor
 *500+ Spiele? Klick auf "Auto-Kategorisieren" und schau zu wie sie sich in Sekunden in saubere, logische Kollektionen sortieren.*
 
 <p align="center">
-  <img src="src/resources/screenshots/04_de_autocat_dialog.webp" alt="Auto-Kategorisierung (Deutsch)" width="800">
+  <img src="steam_library_manager/resources/screenshots/04_de_autocat_dialog.webp" alt="Auto-Kategorisierung (Deutsch)" width="800">
 </p>
 <p align="center">
-  <img src="src/resources/screenshots/05_de_autocat_results.webp" alt="Auto-Kategorisierung — Vorher/Nachher (Deutsch)" width="800">
+  <img src="steam_library_manager/resources/screenshots/05_de_autocat_results.webp" alt="Auto-Kategorisierung — Vorher/Nachher (Deutsch)" width="800">
 </p>
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
-    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_divider_light.webp">
+    <img src="steam_library_manager/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -134,17 +134,17 @@ Bearbeite Spielnamen, Sortiertitel, Entwickler, Publisher und Erscheinungsdaten 
 *Kein anderes Steam-Library-Tool kann das. Depressurizer verliert deine Änderungen bei Steam-Updates. Wir nicht.*
 
 <p align="center">
-  <img src="src/resources/screenshots/06_de_metadata_editor.webp" alt="Metadaten-Editor (Deutsch)" width="800">
+  <img src="steam_library_manager/resources/screenshots/06_de_metadata_editor.webp" alt="Metadaten-Editor (Deutsch)" width="800">
 </p>
 <p align="center">
-  <img src="src/resources/screenshots/07_de_bulk_edit.webp" alt="Bulk-Edit — Mehrere Spiele (Deutsch)" width="800">
+  <img src="steam_library_manager/resources/screenshots/07_de_bulk_edit.webp" alt="Bulk-Edit — Mehrere Spiele (Deutsch)" width="800">
 </p>
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
-    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_divider_light.webp">
+    <img src="steam_library_manager/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -158,17 +158,17 @@ Durchsuche und lade **Cover, Heroes, Logos und Icons** von [SteamGridDB](https:/
 - **Ein Klick zum Anwenden** — Artwork wird heruntergeladen und sofort als Cover gesetzt
 
 <p align="center">
-  <img src="src/resources/screenshots/08_de_artwork_browser.webp" alt="Artwork-Browser (Deutsch)" width="800">
+  <img src="steam_library_manager/resources/screenshots/08_de_artwork_browser.webp" alt="Artwork-Browser (Deutsch)" width="800">
 </p>
 <p align="center">
-  <img src="src/resources/screenshots/09_de_artwork_badges.webp" alt="Artwork-Badges — NSFW, Animiert, Humor (Deutsch)" width="800">
+  <img src="steam_library_manager/resources/screenshots/09_de_artwork_badges.webp" alt="Artwork-Badges — NSFW, Animiert, Humor (Deutsch)" width="800">
 </p>
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
-    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_divider_light.webp">
+    <img src="steam_library_manager/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -187,17 +187,17 @@ Reichere deine gesamte Bibliothek im Batch mit Daten aus mehreren Quellen an —
 *Klick auf "Alle anreichern" und hol dir einen Kaffee. Wenn du zurückkommst hat jedes Spiel vollständige Metadaten.*
 
 <p align="center">
-  <img src="src/resources/screenshots/10_de_enrichment_progress.webp" alt="Batch-Anreicherung — Fortschritt (Deutsch)" width="800">
+  <img src="steam_library_manager/resources/screenshots/10_de_enrichment_progress.webp" alt="Batch-Anreicherung — Fortschritt (Deutsch)" width="800">
 </p>
 <p align="center">
-  <img src="src/resources/screenshots/11_de_game_detail_panel.webp" alt="Spiel-Detailansicht mit allen Daten (Deutsch)" width="800">
+  <img src="steam_library_manager/resources/screenshots/11_de_game_detail_panel.webp" alt="Spiel-Detailansicht mit allen Daten (Deutsch)" width="800">
 </p>
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
-    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_divider_light.webp">
+    <img src="steam_library_manager/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -211,14 +211,14 @@ Reichere deine gesamte Bibliothek im Batch mit Daten aus mehreren Quellen an —
 *Keine dubiosen Browser-Session-Tokens. Keine API-Keys in Klartext-Konfigdateien. Einfach scannen, einloggen, fertig.*
 
 <p align="center">
-  <img src="src/resources/screenshots/12_de_qr_login.webp" alt="Steam QR-Code Login (Deutsch)" width="500">
+  <img src="steam_library_manager/resources/screenshots/12_de_qr_login.webp" alt="Steam QR-Code Login (Deutsch)" width="500">
 </p>
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
-    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_divider_light.webp">
+    <img src="steam_library_manager/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -231,14 +231,14 @@ Vollständige **Englisch 🇬🇧** und **Deutsch 🇩🇪** Oberfläche mit **k
 - **Community-Übersetzungen willkommen** — Beitragen ist einfach, keine Programmierkenntnisse nötig ([siehe unten](#-übersetzungen))
 
 <p align="center">
-  <img src="src/resources/screenshots/13_de_language_settings.webp" alt="Spracheinstellungen (Deutsch)" width="600">
+  <img src="steam_library_manager/resources/screenshots/13_de_language_settings.webp" alt="Spracheinstellungen (Deutsch)" width="600">
 </p>
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
-    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_divider_light.webp">
+    <img src="steam_library_manager/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -253,9 +253,9 @@ Entwickelt mit **PyQt6** für nahtlose Desktop-Integration. Das ist keine Window
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
-    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_divider_light.webp">
+    <img src="steam_library_manager/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -284,7 +284,7 @@ Spiele verstreut über Epic, GOG, Amazon, Lutris, Bottles, itch.io und Flatpak? 
 *Steams eigener "Steam fremdes Spiel hinzufügen"-Dialog kann zwar mehrere Apps markieren — aber er sieht nur was in deinem PATH liegt, nicht deine tatsächlichen Spielebibliotheken. SLM scannt Heroic, Lutris, Bottles und mehr direkt, weiß genau was installiert ist, und organisiert alles automatisch in saubere Kollektionen.*
 
 <p align="center">
-  <img src="src/resources/screenshots/17_de_external_games.webp" alt="Externe Spiele — Scannen und Importieren (Deutsch)" width="800">
+  <img src="steam_library_manager/resources/screenshots/17_de_external_games.webp" alt="Externe Spiele — Scannen und Importieren (Deutsch)" width="800">
 </p>
 
 
@@ -295,9 +295,9 @@ Spiele verstreut über Epic, GOG, Amazon, Lutris, Bottles, itch.io und Flatpak? 
 
 | Screenshot | Beschreibung |
 |-----------|-------------|
-| ![Kontextmenü](src/resources/screenshots/14_de_context_menu.webp) | Rechtsklick-Kontextmenü — Schnellzugriff auf alle Aktionen |
-| ![Export](src/resources/screenshots/15_de_export_dialog.webp) | Export-Dialog — CSV, JSON, VDF, Datenbank-Backup |
-| ![Über](src/resources/screenshots/16_de_about_dialog.webp) | Über-Dialog mit Versions- & Systeminfo |
+| ![Kontextmenü](steam_library_manager/resources/screenshots/14_de_context_menu.webp) | Rechtsklick-Kontextmenü — Schnellzugriff auf alle Aktionen |
+| ![Export](steam_library_manager/resources/screenshots/15_de_export_dialog.webp) | Export-Dialog — CSV, JSON, VDF, Datenbank-Backup |
+| ![Über](steam_library_manager/resources/screenshots/16_de_about_dialog.webp) | Über-Dialog mit Versions- & Systeminfo |
 
 </details>
 
@@ -326,7 +326,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 
 # Starten
-python src/main.py
+python steam_library_manager/main.py
 ```
 
 Benötigt **Python 3.10+** und einen laufenden **Steam Client** (nicht Big Picture).
@@ -335,9 +335,9 @@ Benötigt **Python 3.10+** und einen laufenden **Steam Client** (nicht Big Pictu
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_divider_light.webp">
-    <img src="src/resources/images/readme_divider_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_divider_light.webp">
+    <img src="steam_library_manager/resources/images/readme_divider_light.webp" alt="" width="800">
   </picture>
 </p>
 
@@ -398,10 +398,10 @@ Steam Library Manager kommt mit **Englisch** und **Deutsch**. Du willst es in de
 
 **Eine Übersetzung beizutragen ist einfach — keine Programmierkenntnisse nötig!**
 
-1. Kopiere eine beliebige JSON-Datei aus `src/resources/i18n/en/` als Vorlage
+1. Kopiere eine beliebige JSON-Datei aus `steam_library_manager/resources/i18n/en/` als Vorlage
 2. Übersetze die Werte (niemals die Keys ändern!)
 3. Platzhalter wie `{count}` und `{name}` unverändert lassen
-4. Deine Sprache in `src/resources/i18n/languages.json` eintragen:
+4. Deine Sprache in `steam_library_manager/resources/i18n/languages.json` eintragen:
    ```json
    "tr": "🇹🇷  Türkçe"
    ```
@@ -454,9 +454,9 @@ In keinem Fall haften die Autoren oder Urheberrechtsinhaber für Ansprüche, Sch
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="src/resources/images/readme_footer_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="src/resources/images/readme_footer_light.webp">
-    <img src="src/resources/images/readme_footer_light.webp" alt="" width="800">
+    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_footer_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_footer_light.webp">
+    <img src="steam_library_manager/resources/images/readme_footer_light.webp" alt="" width="800">
   </picture>
 </p>
 

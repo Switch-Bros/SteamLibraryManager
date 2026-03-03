@@ -5,8 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from src.core.game import Game
-from src.services.game_service import GameService
+from steam_library_manager.core.game import Game
+from steam_library_manager.services.game_service import GameService
 
 
 class TestApiRefresh:
@@ -23,7 +23,7 @@ class TestApiRefresh:
         svc.game_manager.games = {}
         return svc
 
-    @patch("src.services.game_service.requests.get")
+    @patch("steam_library_manager.services.game_service.requests.get")
     def test_discovers_new_games(self, mock_get: MagicMock, tmp_path: Path) -> None:
         """API refresh adds games not already in game_manager.games."""
         svc = self._make_service(tmp_path)
@@ -49,7 +49,7 @@ class TestApiRefresh:
         assert svc.game_manager.games["730"].name == "CS2"
         assert svc.game_manager.games["730"].playtime_minutes == 50
 
-    @patch("src.services.game_service.requests.get")
+    @patch("steam_library_manager.services.game_service.requests.get")
     def test_no_duplicates(self, mock_get: MagicMock, tmp_path: Path) -> None:
         """API refresh does not duplicate existing games."""
         svc = self._make_service(tmp_path)
@@ -71,7 +71,7 @@ class TestApiRefresh:
         assert new_ids == []
         assert len(svc.game_manager.games) == 1
 
-    @patch("src.services.game_service.requests.get")
+    @patch("steam_library_manager.services.game_service.requests.get")
     def test_failure_is_nonfatal(self, mock_get: MagicMock, tmp_path: Path) -> None:
         """API failure returns empty list, does not crash."""
         import requests

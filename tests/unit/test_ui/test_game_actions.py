@@ -11,8 +11,8 @@ Tests the Game context menu action handler that manages:
 
 import pytest
 from unittest.mock import Mock, patch
-from src.ui.actions.game_actions import GameActions
-from src.core.game_manager import Game
+from steam_library_manager.ui.actions.game_actions import GameActions
+from steam_library_manager.core.game_manager import Game
 
 
 @pytest.fixture
@@ -110,7 +110,7 @@ class TestToggleFavorite:
 class TestToggleHideGame:
     """Tests for toggle_hide_game() method."""
 
-    @patch("src.ui.actions.game_actions.UIHelper")
+    @patch("steam_library_manager.ui.actions.game_actions.UIHelper")
     def test_toggle_hide_game_hides(
         self, mock_helper, game_actions: GameActions, mock_main_window: Mock, sample_game: Game
     ):
@@ -125,7 +125,7 @@ class TestToggleHideGame:
         mock_helper.show_success.assert_called_once()
         assert sample_game.hidden is True
 
-    @patch("src.ui.actions.game_actions.UIHelper")
+    @patch("steam_library_manager.ui.actions.game_actions.UIHelper")
     def test_toggle_hide_game_unhides(
         self, mock_helper, game_actions: GameActions, mock_main_window: Mock, sample_game: Game
     ):
@@ -149,7 +149,7 @@ class TestToggleHideGame:
         # Assert
         mock_main_window._save_collections.assert_not_called()
 
-    @patch("src.ui.actions.game_actions.UIHelper")
+    @patch("steam_library_manager.ui.actions.game_actions.UIHelper")
     def test_toggle_hide_game_shows_success(
         self, mock_helper, game_actions: GameActions, mock_main_window: Mock, sample_game: Game
     ):
@@ -169,7 +169,7 @@ class TestToggleHideGame:
 class TestOpenInStore:
     """Tests for open_in_store() method."""
 
-    @patch("src.ui.actions.game_actions.open_url")
+    @patch("steam_library_manager.ui.actions.game_actions.open_url")
     def test_open_in_store(self, mock_webbrowser, game_actions: GameActions, sample_game: Game):
         """Should open Steam store page in browser."""
         # Execute
@@ -179,7 +179,7 @@ class TestOpenInStore:
         expected_url = "https://store.steampowered.com/app/440"
         mock_webbrowser.assert_called_once_with(expected_url)
 
-    @patch("src.ui.actions.game_actions.open_url")
+    @patch("steam_library_manager.ui.actions.game_actions.open_url")
     def test_open_in_store_different_appid(self, mock_webbrowser, game_actions: GameActions):
         """Should construct correct URL for different app IDs."""
         # Setup
@@ -202,7 +202,7 @@ class TestOpenInStore:
 class TestRemoveFromLocalConfig:
     """Tests for remove_from_local_config() method."""
 
-    @patch("src.ui.actions.game_actions.UIHelper")
+    @patch("steam_library_manager.ui.actions.game_actions.UIHelper")
     def test_remove_from_local_config_success(
         self, mock_helper, game_actions: GameActions, mock_main_window: Mock, sample_game: Game
     ):
@@ -223,7 +223,7 @@ class TestRemoveFromLocalConfig:
         mock_helper.show_success.assert_called_once()
         assert "440" not in mock_main_window.game_manager.games
 
-    @patch("src.ui.actions.game_actions.UIHelper")
+    @patch("steam_library_manager.ui.actions.game_actions.UIHelper")
     def test_remove_from_local_config_cancelled(
         self, mock_helper, game_actions: GameActions, mock_main_window: Mock, sample_game: Game
     ):
@@ -238,7 +238,7 @@ class TestRemoveFromLocalConfig:
         mock_helper.confirm.assert_called_once()
         mock_main_window.vdf_parser.remove_app.assert_not_called()
 
-    @patch("src.ui.actions.game_actions.UIHelper")
+    @patch("steam_library_manager.ui.actions.game_actions.UIHelper")
     def test_remove_from_local_config_fails(
         self, mock_helper, game_actions: GameActions, mock_main_window: Mock, sample_game: Game
     ):
@@ -262,8 +262,8 @@ class TestRemoveFromLocalConfig:
 class TestRemoveFromAccount:
     """Tests for remove_game_from_account() method."""
 
-    @patch("src.ui.actions.game_actions.open_url")
-    @patch("src.ui.actions.game_actions.UIHelper")
+    @patch("steam_library_manager.ui.actions.game_actions.open_url")
+    @patch("steam_library_manager.ui.actions.game_actions.UIHelper")
     def test_remove_from_account_opens_support(
         self, mock_helper, mock_webbrowser, game_actions: GameActions, sample_game: Game
     ):
@@ -281,8 +281,8 @@ class TestRemoveFromAccount:
         assert "440" in call_args
         assert "issueid=123" in call_args
 
-    @patch("src.ui.actions.game_actions.open_url")
-    @patch("src.ui.actions.game_actions.UIHelper")
+    @patch("steam_library_manager.ui.actions.game_actions.open_url")
+    @patch("steam_library_manager.ui.actions.game_actions.UIHelper")
     def test_remove_from_account_cancelled(
         self, mock_helper, mock_webbrowser, game_actions: GameActions, sample_game: Game
     ):

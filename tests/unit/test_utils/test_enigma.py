@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from src.utils.enigma import load_easter_egg, play_easter_egg_sound
+from steam_library_manager.utils.enigma import load_easter_egg, play_easter_egg_sound
 
 
 class TestLoadEasterEgg:
@@ -32,7 +32,7 @@ class TestLoadEasterEgg:
         mock_config = MagicMock()
         mock_config.RESOURCES_DIR = tmp_path
 
-        with patch("src.utils.enigma.config", mock_config):
+        with patch("steam_library_manager.utils.enigma.config", mock_config):
             egg = load_easter_egg("konami")
 
         assert egg["title"] == "T"
@@ -44,7 +44,7 @@ class TestLoadEasterEgg:
         mock_config = MagicMock()
         mock_config.RESOURCES_DIR = tmp_path / "nonexistent"
 
-        with patch("src.utils.enigma.config", mock_config):
+        with patch("steam_library_manager.utils.enigma.config", mock_config):
             result = load_easter_egg("konami")
 
         assert result == {}
@@ -57,7 +57,7 @@ class TestLoadEasterEgg:
         mock_config = MagicMock()
         mock_config.RESOURCES_DIR = tmp_path
 
-        with patch("src.utils.enigma.config", mock_config):
+        with patch("steam_library_manager.utils.enigma.config", mock_config):
             result = load_easter_egg("nonexistent")
 
         assert result == {}
@@ -70,7 +70,7 @@ class TestLoadEasterEgg:
         mock_config = MagicMock()
         mock_config.RESOURCES_DIR = tmp_path
 
-        with patch("src.utils.enigma.config", mock_config):
+        with patch("steam_library_manager.utils.enigma.config", mock_config):
             result = load_easter_egg("konami")
 
         assert result == {}
@@ -92,7 +92,7 @@ class TestLoadEasterEgg:
         mock_config = MagicMock()
         mock_config.RESOURCES_DIR = tmp_path
 
-        with patch("src.utils.enigma.config", mock_config):
+        with patch("steam_library_manager.utils.enigma.config", mock_config):
             egg = load_easter_egg("searchbar")
 
         assert egg["title"] == "Hello"
@@ -114,8 +114,8 @@ class TestPlayEasterEggSound:
         mock_config.RESOURCES_DIR = tmp_path
 
         with (
-            patch("src.utils.enigma.config", mock_config),
-            patch("src.utils.enigma.subprocess.Popen") as mock_popen,
+            patch("steam_library_manager.utils.enigma.config", mock_config),
+            patch("steam_library_manager.utils.enigma.subprocess.Popen") as mock_popen,
         ):
             play_easter_egg_sound("test.wav")
 
@@ -130,8 +130,8 @@ class TestPlayEasterEggSound:
         mock_config.RESOURCES_DIR = tmp_path
 
         with (
-            patch("src.utils.enigma.config", mock_config),
-            patch("src.utils.enigma.subprocess.Popen") as mock_popen,
+            patch("steam_library_manager.utils.enigma.config", mock_config),
+            patch("steam_library_manager.utils.enigma.subprocess.Popen") as mock_popen,
         ):
             play_easter_egg_sound("nonexistent.wav")
 
@@ -148,9 +148,9 @@ class TestPlayEasterEggSound:
         mock_config.RESOURCES_DIR = tmp_path
 
         with (
-            patch("src.utils.enigma.config", mock_config),
+            patch("steam_library_manager.utils.enigma.config", mock_config),
             patch(
-                "src.utils.enigma.subprocess.Popen",
+                "steam_library_manager.utils.enigma.subprocess.Popen",
                 side_effect=FileNotFoundError("paplay not found"),
             ),
         ):

@@ -7,8 +7,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.integrations.hltb_api import HLTBResult
-from src.services.enrichment.enrichment_service import EnrichmentThread
+from steam_library_manager.integrations.hltb_api import HLTBResult
+from steam_library_manager.services.enrichment.enrichment_service import EnrichmentThread
 
 
 @pytest.fixture
@@ -16,7 +16,7 @@ def enrichment_db(tmp_path: Path):
     """Creates a minimal database with required tables."""
     db_path = tmp_path / "enrichment_test.db"
 
-    from src.core.database import Database
+    from steam_library_manager.core.database import Database
 
     db = Database(db_path)
 
@@ -55,7 +55,7 @@ class TestHLTBEnrichment:
         thread.run()
 
         # Re-read from the same DB file to verify
-        from src.core.database import Database
+        from steam_library_manager.core.database import Database
 
         verify_db = Database(enrichment_db.db_path)
         cursor = verify_db.conn.execute("SELECT COUNT(*) FROM hltb_data")
@@ -110,7 +110,7 @@ class TestHLTBEnrichment:
 class TestSteamAPIEnrichment:
     """Tests for Steam API enrichment via EnrichmentThread."""
 
-    @patch("src.integrations.steam_web_api.requests.get")
+    @patch("steam_library_manager.integrations.steam_web_api.requests.get")
     def test_steam_api_enrichment_batches_correctly(self, mock_get: MagicMock, enrichment_db) -> None:
         """Steam API enrichment processes games in batches."""
         mock_response = MagicMock()

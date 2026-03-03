@@ -6,8 +6,8 @@ from __future__ import annotations
 
 import pytest
 
-from src.core.game import Game
-from src.services.filter_service import (
+from steam_library_manager.core.game import Game
+from steam_library_manager.services.filter_service import (
     ALL_ACHIEVEMENT_KEYS,
     FilterService,
     FilterState,

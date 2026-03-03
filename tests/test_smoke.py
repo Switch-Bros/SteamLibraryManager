@@ -17,101 +17,101 @@ import pytest
 # ---------------------------------------------------------------------------
 
 CORE_MODULES: list[str] = [
-    "src.core.appinfo_manager",
-    "src.core.backup_manager",
-    "src.core.cloud_storage_parser",
-    "src.core.database",
-    "src.core.database_importer",
-    "src.core.game",
-    "src.core.game_manager",
-    "src.core.local_games_loader",
-    "src.core.localconfig_helper",
-    "src.core.logging",
-    "src.core.packageinfo_parser",
-    "src.core.steam_account",
-    "src.core.steam_account_scanner",
-    "src.core.steam_assets",
-    "src.core.steam_login_manager",
-    "src.core.token_store",
-    "src.core.profile_manager",
+    "steam_library_manager.core.appinfo_manager",
+    "steam_library_manager.core.backup_manager",
+    "steam_library_manager.core.cloud_storage_parser",
+    "steam_library_manager.core.database",
+    "steam_library_manager.core.database_importer",
+    "steam_library_manager.core.game",
+    "steam_library_manager.core.game_manager",
+    "steam_library_manager.core.local_games_loader",
+    "steam_library_manager.core.localconfig_helper",
+    "steam_library_manager.core.logging",
+    "steam_library_manager.core.packageinfo_parser",
+    "steam_library_manager.core.steam_account",
+    "steam_library_manager.core.steam_account_scanner",
+    "steam_library_manager.core.steam_assets",
+    "steam_library_manager.core.steam_login_manager",
+    "steam_library_manager.core.token_store",
+    "steam_library_manager.core.profile_manager",
 ]
 
 SERVICE_MODULES: list[str] = [
-    "src.services.asset_service",
-    "src.services.autocategorize_service",
-    "src.services.bootstrap_service",
-    "src.services.category_service",
-    "src.services.filter_service",
-    "src.services.game_detail_service",
-    "src.services.game_query_service",
-    "src.services.game_service",
-    "src.services.enrichment",
-    "src.services.enrichment.enrichment_service",
-    "src.services.enrichment.metadata_enrichment_service",
-    "src.services.metadata_service",
-    "src.services.search_service",
+    "steam_library_manager.services.asset_service",
+    "steam_library_manager.services.autocategorize_service",
+    "steam_library_manager.services.bootstrap_service",
+    "steam_library_manager.services.category_service",
+    "steam_library_manager.services.filter_service",
+    "steam_library_manager.services.game_detail_service",
+    "steam_library_manager.services.game_query_service",
+    "steam_library_manager.services.game_service",
+    "steam_library_manager.services.enrichment",
+    "steam_library_manager.services.enrichment.enrichment_service",
+    "steam_library_manager.services.enrichment.metadata_enrichment_service",
+    "steam_library_manager.services.metadata_service",
+    "steam_library_manager.services.search_service",
 ]
 
 UTILS_MODULES: list[str] = [
-    "src.utils.acf",
-    "src.utils.appinfo",
-    "src.utils.date_utils",
-    "src.utils.i18n",
-    "src.utils.manifest",
+    "steam_library_manager.utils.acf",
+    "steam_library_manager.utils.appinfo",
+    "steam_library_manager.utils.date_utils",
+    "steam_library_manager.utils.i18n",
+    "steam_library_manager.utils.manifest",
 ]
 
 INTEGRATION_MODULES: list[str] = [
-    "src.integrations.steam_store",
-    "src.integrations.steamgrid_api",
+    "steam_library_manager.integrations.steam_store",
+    "steam_library_manager.integrations.steamgrid_api",
 ]
 
 TOP_LEVEL_MODULES: list[str] = [
-    "src.config",
-    "src.version",
+    "steam_library_manager.config",
+    "steam_library_manager.version",
 ]
 
 # UI modules require PyQt6 at import time
 _HAS_QT = importlib.util.find_spec("PyQt6") is not None
 
 UI_MODULES: list[str] = [
-    "src.ui.main_window",
-    "src.ui.actions.edit_actions",
-    "src.ui.actions.file_actions",
-    "src.ui.actions.game_actions",
-    "src.ui.actions.settings_actions",
-    "src.ui.actions.steam_actions",
-    "src.ui.actions.tools_actions",
-    "src.ui.actions.profile_actions",
-    "src.ui.actions.view_actions",
-    "src.ui.builders.central_widget_builder",
-    "src.ui.builders.menu_builder",
-    "src.ui.builders.statusbar_builder",
-    "src.ui.builders.toolbar_builder",
-    "src.ui.dialogs.auto_categorize_dialog",
-    "src.ui.dialogs.image_selection_dialog",
-    "src.ui.dialogs.merge_duplicates_dialog",
-    "src.ui.dialogs.metadata_dialogs",
-    "src.ui.dialogs.missing_metadata_dialog",
-    "src.ui.dialogs.pegi_selector_dialog",
-    "src.ui.dialogs.profile_dialog",
-    "src.ui.dialogs.profile_setup_dialog",
-    "src.ui.dialogs.settings_dialog",
-    "src.ui.dialogs.steam_modern_login_dialog",
-    "src.ui.dialogs.steam_running_dialog",
-    "src.ui.handlers.category_action_handler",
-    "src.ui.handlers.category_change_handler",
-    "src.ui.handlers.category_populator",
-    "src.ui.handlers.data_load_handler",
-    "src.ui.handlers.empty_collection_handler",
-    "src.ui.handlers.selection_handler",
-    "src.ui.utils.font_helper",
-    "src.ui.utils.qt_utils",
-    "src.ui.widgets.category_tree",
-    "src.ui.widgets.clickable_image",
-    "src.ui.widgets.game_details_widget",
-    "src.ui.widgets.ui_helper",
-    "src.ui.workers.game_load_worker",
-    "src.ui.workers.session_restore_worker",
+    "steam_library_manager.ui.main_window",
+    "steam_library_manager.ui.actions.edit_actions",
+    "steam_library_manager.ui.actions.file_actions",
+    "steam_library_manager.ui.actions.game_actions",
+    "steam_library_manager.ui.actions.settings_actions",
+    "steam_library_manager.ui.actions.steam_actions",
+    "steam_library_manager.ui.actions.tools_actions",
+    "steam_library_manager.ui.actions.profile_actions",
+    "steam_library_manager.ui.actions.view_actions",
+    "steam_library_manager.ui.builders.central_widget_builder",
+    "steam_library_manager.ui.builders.menu_builder",
+    "steam_library_manager.ui.builders.statusbar_builder",
+    "steam_library_manager.ui.builders.toolbar_builder",
+    "steam_library_manager.ui.dialogs.auto_categorize_dialog",
+    "steam_library_manager.ui.dialogs.image_selection_dialog",
+    "steam_library_manager.ui.dialogs.merge_duplicates_dialog",
+    "steam_library_manager.ui.dialogs.metadata_dialogs",
+    "steam_library_manager.ui.dialogs.missing_metadata_dialog",
+    "steam_library_manager.ui.dialogs.pegi_selector_dialog",
+    "steam_library_manager.ui.dialogs.profile_dialog",
+    "steam_library_manager.ui.dialogs.profile_setup_dialog",
+    "steam_library_manager.ui.dialogs.settings_dialog",
+    "steam_library_manager.ui.dialogs.steam_modern_login_dialog",
+    "steam_library_manager.ui.dialogs.steam_running_dialog",
+    "steam_library_manager.ui.handlers.category_action_handler",
+    "steam_library_manager.ui.handlers.category_change_handler",
+    "steam_library_manager.ui.handlers.category_populator",
+    "steam_library_manager.ui.handlers.data_load_handler",
+    "steam_library_manager.ui.handlers.empty_collection_handler",
+    "steam_library_manager.ui.handlers.selection_handler",
+    "steam_library_manager.ui.utils.font_helper",
+    "steam_library_manager.ui.utils.qt_utils",
+    "steam_library_manager.ui.widgets.category_tree",
+    "steam_library_manager.ui.widgets.clickable_image",
+    "steam_library_manager.ui.widgets.game_details_widget",
+    "steam_library_manager.ui.widgets.ui_helper",
+    "steam_library_manager.ui.workers.game_load_worker",
+    "steam_library_manager.ui.workers.session_restore_worker",
 ]
 
 
@@ -192,7 +192,7 @@ def test_no_circular_imports() -> None:
 
 def test_i18n_loads() -> None:
     """The t() function returns a real translation for a known key."""
-    from src.utils.i18n import init_i18n, t
+    from steam_library_manager.utils.i18n import init_i18n, t
 
     init_i18n("en")
     result = t("common.ok")
@@ -203,7 +203,7 @@ def test_i18n_loads() -> None:
 
 def test_i18n_fallback() -> None:
     """Unknown keys return the bracket-wrapped key as fallback."""
-    from src.utils.i18n import init_i18n, t
+    from steam_library_manager.utils.i18n import init_i18n, t
 
     init_i18n("en")
     result = t("this.key.does.not.exist")

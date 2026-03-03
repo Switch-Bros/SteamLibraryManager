@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.utils.vdf_exporter import VDFTextExporter
+from steam_library_manager.utils.vdf_exporter import VDFTextExporter
 
 
 class TestVDFTextExporter:

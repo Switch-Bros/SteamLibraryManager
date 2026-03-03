@@ -120,7 +120,7 @@ def mock_cloud_storage_file(tmp_path):
 @pytest.fixture
 def database(tmp_path):
     """In-memory-style Database using a temp file (schema loaded from SQL)."""
-    from src.core.database import Database
+    from steam_library_manager.core.database import Database
 
     db_path = tmp_path / "test_metadata.db"
     db = Database(db_path)
@@ -131,7 +131,7 @@ def database(tmp_path):
 @pytest.fixture
 def sample_database_entries():
     """Sample DatabaseEntry objects for testing."""
-    from src.core.database import DatabaseEntry
+    from steam_library_manager.core.database import DatabaseEntry
 
     return [
         DatabaseEntry(
@@ -176,15 +176,15 @@ def sample_database_entries():
 
 @pytest.fixture
 def mock_config():
-    """Mock the global config object from src.config.
+    """Mock the global config object from steam_library_manager.config.
 
     Provides a MagicMock that stands in for the Config singleton so that
     tests which instantiate GameManager (or other classes that import
-    ``src.config.config`` at runtime) do not depend on a real Steam
+    ``steam_library_manager.config.config`` at runtime) do not depend on a real Steam
     installation or settings file.
     """
     fake_config = MagicMock()
     fake_config.get_detected_user.return_value = (None, None)
     fake_config.STEAM_ACCESS_TOKEN = None
-    with patch("src.config.config", fake_config):
+    with patch("steam_library_manager.config.config", fake_config):
         yield fake_config

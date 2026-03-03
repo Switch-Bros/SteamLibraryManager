@@ -11,9 +11,9 @@ Tests cover:
 import pytest
 from unittest.mock import Mock
 
-from src.services.metadata_service import MetadataService
-from src.core.game_manager import Game, GameManager
-from src.core.appinfo_manager import AppInfoManager
+from steam_library_manager.services.metadata_service import MetadataService
+from steam_library_manager.core.game_manager import Game, GameManager
+from steam_library_manager.core.appinfo_manager import AppInfoManager
 
 
 @pytest.fixture

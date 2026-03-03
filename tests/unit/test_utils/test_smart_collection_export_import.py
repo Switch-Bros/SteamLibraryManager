@@ -9,15 +9,15 @@ from pathlib import Path
 
 import pytest
 
-from src.services.smart_collections.models import (
+from steam_library_manager.services.smart_collections.models import (
     FilterField,
     LogicOperator,
     Operator,
     SmartCollection,
     SmartCollectionRule,
 )
-from src.utils.smart_collection_exporter import SmartCollectionExporter
-from src.utils.smart_collection_importer import SmartCollectionImporter
+from steam_library_manager.utils.smart_collection_exporter import SmartCollectionExporter
+from steam_library_manager.utils.smart_collection_importer import SmartCollectionImporter
 
 # ---------------------------------------------------------------
 # Fixtures

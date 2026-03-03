@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.services.enrichment.pegi_enrichment_service import PEGIEnrichmentThread
+from steam_library_manager.services.enrichment.pegi_enrichment_service import PEGIEnrichmentThread
 
 
 class TestPEGIEnrichmentConfig:

@@ -13,7 +13,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from src.ui.actions.file_actions import FileActions
+from steam_library_manager.ui.actions.file_actions import FileActions
 
 
 @pytest.fixture
@@ -72,7 +72,7 @@ class TestRefreshData:
 class TestForceSave:
     """Tests for force_save() method."""
 
-    @patch("src.ui.actions.file_actions.UIHelper")
+    @patch("steam_library_manager.ui.actions.file_actions.UIHelper")
     def test_force_save_saves_and_shows_success(self, mock_helper, file_actions, mock_main_window):
         """Should save collections and show success message."""
         # Execute
@@ -82,8 +82,8 @@ class TestForceSave:
         mock_main_window.save_collections.assert_called_once()
         mock_helper.show_success.assert_called_once()
 
-    @patch("src.ui.actions.file_actions.UIHelper")
-    @patch("src.ui.actions.file_actions.t")
+    @patch("steam_library_manager.ui.actions.file_actions.UIHelper")
+    @patch("steam_library_manager.ui.actions.file_actions.t")
     def test_force_save_uses_i18n(self, mock_t, mock_helper, file_actions, mock_main_window):
         """Should use t() for success message."""
         # Setup
@@ -106,7 +106,7 @@ class TestForceSave:
 class TestShowVdfMerger:
     """Tests for show_vdf_merger() method."""
 
-    @patch("src.ui.actions.file_actions.VdfMergerDialog")
+    @patch("steam_library_manager.ui.actions.file_actions.VdfMergerDialog")
     def test_show_vdf_merger_creates_dialog(self, mock_dialog_class, file_actions, mock_main_window):
         """Should create and show VDF merger dialog."""
         # Setup
@@ -223,8 +223,8 @@ class TestIntegration:
         assert callable(file_actions.remove_duplicate_collections)
         assert callable(file_actions.exit_application)
 
-    @patch("src.ui.actions.file_actions.VdfMergerDialog")
-    @patch("src.ui.actions.file_actions.UIHelper")
+    @patch("steam_library_manager.ui.actions.file_actions.VdfMergerDialog")
+    @patch("steam_library_manager.ui.actions.file_actions.UIHelper")
     def test_can_call_all_methods(self, _mock_helper, _mock_dialog, file_actions, mock_main_window):
         """Should be able to call all methods without crashing."""
         # Setup
@@ -270,7 +270,7 @@ class TestEdgeCases:
         assert actions1 != actions2
         assert actions1.mw == actions2.mw  # But share same MainWindow
 
-    @patch("src.ui.actions.file_actions.UIHelper")
+    @patch("steam_library_manager.ui.actions.file_actions.UIHelper")
     def test_force_save_with_exception_propagates(self, _mock_helper, file_actions, mock_main_window):
         """Should propagate exceptions during save (by design)."""
         # Setup

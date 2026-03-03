@@ -12,7 +12,7 @@ Why 48x48?
     Anything larger wastes disk space with no visible quality gain at 24px.
 
 Usage:
-    1. Put your source PNGs in  source_icons/  (next to src/)
+    1. Put your source PNGs in  source_icons/  (next to steam_library_manager/)
     2. Run:  python resize_badge_icons.py
     3. Done — optimized icons land in  resources/icons/
 
@@ -56,14 +56,14 @@ ACCEPTED_EXTENSIONS: set[str] = {".png", ".jpg", ".jpeg", ".bmp", ".gif", ".webp
 
 
 def find_project_root() -> Path:
-    """Walks up from this script to find the directory containing src/.
+    """Walks up from this script to find the directory containing steam_library_manager/.
 
     Returns:
         Project root Path, or CWD as fallback.
     """
     candidate: Path = Path(__file__).resolve().parent
     for _ in range(5):
-        if (candidate / "src").is_dir():
+        if (candidate / "steam_library_manager").is_dir():
             return candidate
         candidate = candidate.parent
     return Path.cwd()

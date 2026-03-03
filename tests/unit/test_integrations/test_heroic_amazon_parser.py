@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
-from src.integrations.external_games.heroic_amazon_parser import HeroicAmazonParser
+from steam_library_manager.integrations.external_games.heroic_amazon_parser import HeroicAmazonParser
 
 
 class TestHeroicAmazonParser:

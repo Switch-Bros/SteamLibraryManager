@@ -10,11 +10,11 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from src.services.enrichment.achievement_enrichment_service import AchievementEnrichmentThread
-from src.services.enrichment.base_enrichment_thread import BaseEnrichmentThread
-from src.services.enrichment.deck_enrichment_service import DeckEnrichmentThread
-from src.services.enrichment.enrichment_service import EnrichmentThread
-from src.services.enrichment.protondb_enrichment_service import ProtonDBEnrichmentThread
+from steam_library_manager.services.enrichment.achievement_enrichment_service import AchievementEnrichmentThread
+from steam_library_manager.services.enrichment.base_enrichment_thread import BaseEnrichmentThread
+from steam_library_manager.services.enrichment.deck_enrichment_service import DeckEnrichmentThread
+from steam_library_manager.services.enrichment.enrichment_service import EnrichmentThread
+from steam_library_manager.services.enrichment.protondb_enrichment_service import ProtonDBEnrichmentThread
 
 # ---------------------------------------------------------------------------
 # BaseEnrichmentThread: force_refresh attribute
@@ -159,11 +159,11 @@ class TestEnrichmentActionsForceRefresh:
         # With force_refresh, the code uses all_games directly
         assert len(all_games) == 2
 
-    @patch("src.config.config")
+    @patch("steam_library_manager.config.config")
     @patch(
-        "src.services.enrichment.deck_enrichment_service.DeckEnrichmentThread",
+        "steam_library_manager.services.enrichment.deck_enrichment_service.DeckEnrichmentThread",
     )
-    @patch("src.ui.actions.enrichment_starters.UIHelper")
+    @patch("steam_library_manager.ui.actions.enrichment_starters.UIHelper")
     def test_force_refresh_runs_without_upfront_confirm(
         self,
         mock_helper: MagicMock,
@@ -177,7 +177,7 @@ class TestEnrichmentActionsForceRefresh:
             MagicMock(steam_deck_status="verified"),
         ]
 
-        from src.ui.actions.enrichment_starters import EnrichmentStarters
+        from steam_library_manager.ui.actions.enrichment_starters import EnrichmentStarters
 
         starters = EnrichmentStarters(mock_mw)
 
@@ -192,7 +192,7 @@ class TestEnrichmentActionsForceRefresh:
         call_kwargs = mock_run.call_args[1]
         assert call_kwargs["force_refresh_callback"] is None
 
-    @patch("src.ui.actions.enrichment_starters.UIHelper")
+    @patch("steam_library_manager.ui.actions.enrichment_starters.UIHelper")
     def test_no_games_shows_batch_result(self, mock_helper: MagicMock) -> None:
         """When no games need enrichment, show_batch_result is used."""
         mock_helper.show_batch_result.return_value = False
@@ -201,7 +201,7 @@ class TestEnrichmentActionsForceRefresh:
             MagicMock(steam_deck_status="verified"),
         ]
 
-        from src.ui.actions.enrichment_starters import EnrichmentStarters
+        from steam_library_manager.ui.actions.enrichment_starters import EnrichmentStarters
 
         starters = EnrichmentStarters(mock_mw)
         starters.start_deck_enrichment(force_refresh=False)

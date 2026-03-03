@@ -8,8 +8,8 @@ from datetime import datetime
 
 import pytest
 
-from src.core.game import Game
-from src.services.filter_service import FilterService, FilterState, SortKey
+from steam_library_manager.core.game import Game
+from steam_library_manager.services.filter_service import FilterService, FilterState, SortKey
 
 # ---------------------------------------------------------------------------
 # Fixtures

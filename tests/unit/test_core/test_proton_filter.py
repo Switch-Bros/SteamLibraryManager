@@ -8,7 +8,7 @@ class TestGameManagerProtonFilter:
 
     def test_non_game_app_ids_contains_proton(self):
         """Test that NON_GAME_APP_IDS contains major Proton versions."""
-        from src.core.game_manager import GameManager
+        from steam_library_manager.core.game_manager import GameManager
 
         # At least these Proton versions should be there
         expected_proton = {"1887720", "1493710", "1420170"}
@@ -16,7 +16,7 @@ class TestGameManagerProtonFilter:
 
     def test_is_real_game_with_real_game(self):
         """Test that real games are recognized."""
-        from src.core.game import Game, is_real_game
+        from steam_library_manager.core.game import Game, is_real_game
 
         # Team Fortress 2
         tf2 = Game(app_id="440", name="Team Fortress 2")
@@ -28,7 +28,7 @@ class TestGameManagerProtonFilter:
 
     def test_is_real_game_with_proton_id(self):
         """Test that Proton versions are filtered by ID."""
-        from src.core.game import Game, is_real_game
+        from steam_library_manager.core.game import Game, is_real_game
 
         # Proton Experimental
         proton = Game(app_id="1493710", name="Proton Experimental")
@@ -36,7 +36,7 @@ class TestGameManagerProtonFilter:
 
     def test_is_real_game_with_proton_name(self):
         """Test that Proton versions are filtered by name pattern."""
-        from src.core.game import Game, is_real_game
+        from steam_library_manager.core.game import Game, is_real_game
 
         # Game with "Proton" in name (even if ID is unknown)
         proton = Game(app_id="999999", name="Proton 99.0")
@@ -44,7 +44,7 @@ class TestGameManagerProtonFilter:
 
     def test_get_real_games_filters_proton(self, mock_config):
         """Test that get_real_games() filters out Proton on Linux."""
-        from src.core.game_manager import GameManager, Game
+        from steam_library_manager.core.game_manager import GameManager, Game
         from pathlib import Path
         import platform
 

@@ -2,7 +2,7 @@
 
 """Tests for the Game dataclass and filtering utilities."""
 
-from src.core.game import Game, NON_GAME_APP_IDS, NON_GAME_NAME_PATTERNS, is_real_game
+from steam_library_manager.core.game import Game, NON_GAME_APP_IDS, NON_GAME_NAME_PATTERNS, is_real_game
 
 
 class TestGameDataclass:

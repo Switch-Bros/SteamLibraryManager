@@ -15,8 +15,8 @@ pyinstaller \
     --name SteamLibraryManager \
     --windowed \
     --noconfirm \
-    --add-data "src:src" \
-    src/main.py
+    --add-data "steam_library_manager:steam_library_manager" \
+    steam_library_manager/main.py
 
 # 2. Create AppDir structure
 mkdir -p AppDir/usr/{bin,share/{applications,icons/hicolor/scalable/apps,metainfo}}
@@ -31,7 +31,7 @@ cp flatpak/io.github.switch_bros.SteamLibraryManager.desktop \
     AppDir/usr/share/applications/
 cp flatpak/io.github.switch_bros.SteamLibraryManager.svg \
     AppDir/usr/share/icons/hicolor/scalable/apps/
-cp src/resources/io.github.switch_bros.SteamLibraryManager.metainfo.xml \
+cp steam_library_manager/resources/io.github.switch_bros.SteamLibraryManager.metainfo.xml \
     AppDir/usr/share/metainfo/
 
 # AppRun needs these at the top level too

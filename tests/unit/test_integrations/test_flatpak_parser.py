@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from src.integrations.external_games.flatpak_parser import FlatpakParser
+from steam_library_manager.integrations.external_games.flatpak_parser import FlatpakParser
 
 
 class TestFlatpakParser:

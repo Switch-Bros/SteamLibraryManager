@@ -7,14 +7,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.integrations.external_games.emulator_config import (
+from steam_library_manager.integrations.external_games.emulator_config import (
     EMUDECK_ROM_DIRS,
     EMULATORS,
     SYSTEM_EMULATORS,
     EmulatorDef,
 )
-from src.integrations.external_games.models import get_collection_emoji
-from src.integrations.external_games.rom_parser import RomParser
+from steam_library_manager.integrations.external_games.models import get_collection_emoji
+from steam_library_manager.integrations.external_games.rom_parser import RomParser
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -538,7 +538,7 @@ class TestReadGames:
 
         with (
             patch(
-                "src.integrations.external_games.rom_parser.ROM_SEARCH_PATHS",
+                "steam_library_manager.integrations.external_games.rom_parser.ROM_SEARCH_PATHS",
                 (str(rom_base),),
             ),
             patch.object(
@@ -579,7 +579,7 @@ class TestReadGames:
 
         with (
             patch(
-                "src.integrations.external_games.rom_parser.ROM_SEARCH_PATHS",
+                "steam_library_manager.integrations.external_games.rom_parser.ROM_SEARCH_PATHS",
                 (str(rom_base),),
             ),
             patch.object(
@@ -601,7 +601,7 @@ class TestReadGames:
     def test_read_games_no_roms(self, tmp_path: Path, parser: RomParser) -> None:
         """Emulators but no ROM directories returns empty list."""
         with patch(
-            "src.integrations.external_games.rom_parser.ROM_SEARCH_PATHS",
+            "steam_library_manager.integrations.external_games.rom_parser.ROM_SEARCH_PATHS",
             (str(tmp_path / "nonexistent"),),
         ):
             games = parser.read_games()
@@ -616,7 +616,7 @@ class TestReadGames:
         (rom_dir / "game.nsp").touch()
 
         with patch(
-            "src.integrations.external_games.rom_parser.ROM_SEARCH_PATHS",
+            "steam_library_manager.integrations.external_games.rom_parser.ROM_SEARCH_PATHS",
             (str(rom_dir),),
         ):
             assert parser.is_available() is True
@@ -624,7 +624,7 @@ class TestReadGames:
     def test_is_available_empty(self, parser: RomParser) -> None:
         """is_available returns False when no ROM dirs exist."""
         with patch(
-            "src.integrations.external_games.rom_parser.ROM_SEARCH_PATHS",
+            "steam_library_manager.integrations.external_games.rom_parser.ROM_SEARCH_PATHS",
             ("/nonexistent/path/that/does/not/exist",),
         ):
             assert parser.is_available() is False
@@ -644,7 +644,7 @@ class TestCollectionEmoji:
 
     def test_get_collection_emoji_known(self) -> None:
         """Known platform returns emoji via t()."""
-        with patch("src.integrations.external_games.models.t", return_value="🔴"):
+        with patch("steam_library_manager.integrations.external_games.models.t", return_value="🔴"):
             result = get_collection_emoji("Nintendo Switch")
         assert result == "🔴"
 
@@ -655,7 +655,7 @@ class TestCollectionEmoji:
 
     def test_collection_emoji_keys_cover_rom_systems(self) -> None:
         """All ROM system display names have emoji mappings."""
-        from src.integrations.external_games.models import _COLLECTION_EMOJI_KEYS
+        from steam_library_manager.integrations.external_games.models import _COLLECTION_EMOJI_KEYS
 
         # All system_display values from EmulatorDef should have mappings
         for emu in EMULATORS:
@@ -672,12 +672,12 @@ class TestCollectionNameForPlatform:
 
     def test_emulation_platform_extracted(self) -> None:
         """Emulation wrapper is stripped."""
-        from src.ui.dialogs.external_games_dialog import ExternalGamesDialog
+        from steam_library_manager.ui.dialogs.external_games_dialog import ExternalGamesDialog
 
         assert ExternalGamesDialog._collection_name_for_platform("Emulation (Nintendo Switch)") == "Nintendo Switch"
 
     def test_non_emulation_platform_unchanged(self) -> None:
         """Non-emulation platforms are returned as-is."""
-        from src.ui.dialogs.external_games_dialog import ExternalGamesDialog
+        from steam_library_manager.ui.dialogs.external_games_dialog import ExternalGamesDialog
 
         assert ExternalGamesDialog._collection_name_for_platform("Heroic (Epic)") == "Heroic (Epic)"

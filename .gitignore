@@ -38,7 +38,7 @@ data/
 *.log
 .idea/
 .vscode/
-src/resources/icons/Icon_Namen.txt
+steam_library_manager/resources/icons/Icon_Namen.txt
 cleanup_dependencies_dev.sh
 *.zip
 /AGENTS.md

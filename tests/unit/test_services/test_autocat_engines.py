@@ -10,8 +10,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from src.core.game import Game
-from src.services.autocat_configs import (
+from steam_library_manager.core.game import Game
+from steam_library_manager.services.autocat_configs import (
     BUCKET_METHOD_CONFIGS,
     SIMPLE_METHOD_CONFIGS,
     AutoCatMethodConfig,
@@ -21,7 +21,7 @@ from src.services.autocat_configs import (
 
 def _make_service():
     """Creates an AutoCategorizeService with mocked dependencies."""
-    from src.services.autocategorize_service import AutoCategorizeService
+    from steam_library_manager.services.autocategorize_service import AutoCategorizeService
 
     service = AutoCategorizeService.__new__(AutoCategorizeService)
     service.game_manager = MagicMock()

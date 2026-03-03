@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from src.core.database import Database
-from src.utils.tag_resolver import GENRE_TAG_IDS, TagResolver
+from steam_library_manager.core.database import Database
+from steam_library_manager.utils.tag_resolver import GENRE_TAG_IDS, TagResolver
 
 # ---------------------------------------------------------------
 # Fixtures

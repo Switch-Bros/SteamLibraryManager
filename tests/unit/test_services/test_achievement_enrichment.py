@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.services.enrichment.achievement_enrichment_service import AchievementEnrichmentThread
+from steam_library_manager.services.enrichment.achievement_enrichment_service import AchievementEnrichmentThread
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -185,8 +185,8 @@ class TestRunMethod:
         thread.run()
         error_handler.assert_called_once()
 
-    @patch("src.core.database.Database")
-    @patch("src.integrations.steam_web_api.SteamWebAPI")
+    @patch("steam_library_manager.core.database.Database")
+    @patch("steam_library_manager.integrations.steam_web_api.SteamWebAPI")
     @patch("time.sleep")
     def test_run_cancellation_stops_early(
         self,
@@ -224,8 +224,8 @@ class TestRunMethod:
         success, _failed = finished_handler.call_args[0]
         assert success == 1
 
-    @patch("src.core.database.Database")
-    @patch("src.integrations.steam_web_api.SteamWebAPI")
+    @patch("steam_library_manager.core.database.Database")
+    @patch("steam_library_manager.integrations.steam_web_api.SteamWebAPI")
     @patch("time.sleep")
     def test_run_counts_success_and_failures(
         self,

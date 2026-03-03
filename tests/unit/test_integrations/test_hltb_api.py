@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.integrations.hltb_api import HLTBClient, HLTBResult
-from src.integrations.hltb_models import (
+from steam_library_manager.integrations.hltb_api import HLTBClient, HLTBResult
+from steam_library_manager.integrations.hltb_models import (
     find_best_match,
     levenshtein,
     normalize_for_compare,

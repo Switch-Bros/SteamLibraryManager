@@ -16,7 +16,7 @@ def make_bootstrap_service(qtbot):
     which requires a real QObject.  We pass a plain QObject as parent,
     then override service.mw with a MagicMock for test convenience.
     """
-    from src.services.bootstrap_service import BootstrapService
+    from steam_library_manager.services.bootstrap_service import BootstrapService
 
     def _make(mw=None):
         parent = QObject()
@@ -134,8 +134,8 @@ class TestBootstrapServiceSessionRestore:
         service._games_done = True  # So _check_complete doesn't block
 
         with (
-            patch("src.services.bootstrap_service.config"),
-            patch("src.services.bootstrap_service.t", side_effect=lambda k, **kw: k),
+            patch("steam_library_manager.services.bootstrap_service.config"),
+            patch("steam_library_manager.services.bootstrap_service.t", side_effect=lambda k, **kw: k),
         ):
             service._on_session_restored(result)
 
@@ -157,7 +157,7 @@ class TestBootstrapServiceSessionRestore:
         result.success = False
         service._games_done = True
 
-        with patch("src.services.bootstrap_service.t", side_effect=lambda k, **kw: k):
+        with patch("steam_library_manager.services.bootstrap_service.t", side_effect=lambda k, **kw: k):
             service._on_session_restored(result)
 
         assert service._session_done is True
@@ -176,8 +176,8 @@ class TestBootstrapServiceGamesLoaded:
         service._session_done = True
 
         with (
-            patch("src.services.bootstrap_service.t", side_effect=lambda k, **kw: k),
-            patch("src.ui.widgets.ui_helper.UIHelper.show_warning"),
+            patch("steam_library_manager.services.bootstrap_service.t", side_effect=lambda k, **kw: k),
+            patch("steam_library_manager.ui.widgets.ui_helper.UIHelper.show_warning"),
         ):
             service._on_games_loaded(False)
 

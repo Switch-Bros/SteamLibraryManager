@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.services.library_health_service import HealthReport, StoreCheckResult
+from steam_library_manager.services.library_health_service import HealthReport, StoreCheckResult
 
 
 class TestStoreCheckResult:
@@ -68,7 +68,7 @@ class TestLibraryHealthThread:
 
     def test_batch_missing_detection(self) -> None:
         """IDs not returned by _fetch_batch should be flagged as missing."""
-        from src.services.library_health_thread import LibraryHealthThread
+        from steam_library_manager.services.library_health_thread import LibraryHealthThread
 
         thread = LibraryHealthThread(
             games=[(440, "TF2"), (570, "Dota 2"), (730, "CS2")],
@@ -76,7 +76,7 @@ class TestLibraryHealthThread:
             db_path=Path("/tmp/test.db"),
         )
 
-        with patch("src.integrations.steam_web_api.SteamWebAPI") as mock_api_cls:
+        with patch("steam_library_manager.integrations.steam_web_api.SteamWebAPI") as mock_api_cls:
             mock_api = MagicMock()
             mock_api_cls.return_value = mock_api
             # Only return 440 and 730 — 570 is "missing"
@@ -90,7 +90,7 @@ class TestLibraryHealthThread:
 
     def test_batch_api_error_graceful(self) -> None:
         """API errors during batch check should not crash, just log."""
-        from src.services.library_health_thread import LibraryHealthThread
+        from steam_library_manager.services.library_health_thread import LibraryHealthThread
 
         thread = LibraryHealthThread(
             games=[(440, "TF2")],
@@ -98,7 +98,7 @@ class TestLibraryHealthThread:
             db_path=Path("/tmp/test.db"),
         )
 
-        with patch("src.integrations.steam_web_api.SteamWebAPI") as mock_api_cls:
+        with patch("steam_library_manager.integrations.steam_web_api.SteamWebAPI") as mock_api_cls:
             mock_api = MagicMock()
             mock_api_cls.return_value = mock_api
             mock_api._fetch_batch.side_effect = Exception("API timeout")
@@ -109,7 +109,7 @@ class TestLibraryHealthThread:
 
     def test_batch_invalid_api_key(self) -> None:
         """Invalid API key should return empty list (no crash)."""
-        from src.services.library_health_thread import LibraryHealthThread
+        from steam_library_manager.services.library_health_thread import LibraryHealthThread
 
         thread = LibraryHealthThread(
             games=[(440, "TF2")],
@@ -118,7 +118,7 @@ class TestLibraryHealthThread:
         )
 
         with patch(
-            "src.integrations.steam_web_api.SteamWebAPI",
+            "steam_library_manager.integrations.steam_web_api.SteamWebAPI",
             side_effect=ValueError("Invalid key"),
         ):
             missing = thread._check_store_batch([440])
@@ -126,7 +126,7 @@ class TestLibraryHealthThread:
 
     def test_detail_removed_404(self) -> None:
         """HTTP 404 should classify as 'removed'."""
-        from src.services.library_health_thread import LibraryHealthThread
+        from steam_library_manager.services.library_health_thread import LibraryHealthThread
 
         thread = LibraryHealthThread(
             games=[(440, "TF2")],
@@ -137,8 +137,8 @@ class TestLibraryHealthThread:
         mock_response = MagicMock()
         mock_response.status_code = 404
 
-        with patch("src.services.library_health_thread.requests.get", return_value=mock_response):
-            with patch("src.services.library_health_thread.time.sleep"):
+        with patch("steam_library_manager.services.library_health_thread.requests.get", return_value=mock_response):
+            with patch("steam_library_manager.services.library_health_thread.time.sleep"):
                 results = thread._check_store_detail([440], {440: "TF2"})
 
         assert len(results) == 1
@@ -147,7 +147,7 @@ class TestLibraryHealthThread:
 
     def test_detail_age_gate(self) -> None:
         """URL containing 'agecheck' should classify as 'age_gate'."""
-        from src.services.library_health_thread import LibraryHealthThread
+        from steam_library_manager.services.library_health_thread import LibraryHealthThread
 
         thread = LibraryHealthThread(
             games=[(440, "TF2")],
@@ -160,15 +160,15 @@ class TestLibraryHealthThread:
         mock_response.url = "https://store.steampowered.com/agecheck/app/440/"
         mock_response.text = "<html>Age verification required</html>"
 
-        with patch("src.services.library_health_thread.requests.get", return_value=mock_response):
-            with patch("src.services.library_health_thread.time.sleep"):
+        with patch("steam_library_manager.services.library_health_thread.requests.get", return_value=mock_response):
+            with patch("steam_library_manager.services.library_health_thread.time.sleep"):
                 results = thread._check_store_detail([440], {440: "TF2"})
 
         assert results[0].status == "age_gate"
 
     def test_detail_geo_locked(self) -> None:
         """Page containing geo-keywords should classify as 'geo_locked'."""
-        from src.services.library_health_thread import LibraryHealthThread
+        from steam_library_manager.services.library_health_thread import LibraryHealthThread
 
         thread = LibraryHealthThread(
             games=[(440, "TF2")],
@@ -181,15 +181,15 @@ class TestLibraryHealthThread:
         mock_response.url = "https://store.steampowered.com/app/440/"
         mock_response.text = "<html>This product is not available in your country</html>"
 
-        with patch("src.services.library_health_thread.requests.get", return_value=mock_response):
-            with patch("src.services.library_health_thread.time.sleep"):
+        with patch("steam_library_manager.services.library_health_thread.requests.get", return_value=mock_response):
+            with patch("steam_library_manager.services.library_health_thread.time.sleep"):
                 results = thread._check_store_detail([440], {440: "TF2"})
 
         assert results[0].status == "geo_locked"
 
     def test_detail_delisted(self) -> None:
         """Redirect to different URL should classify as 'delisted'."""
-        from src.services.library_health_thread import LibraryHealthThread
+        from steam_library_manager.services.library_health_thread import LibraryHealthThread
 
         thread = LibraryHealthThread(
             games=[(440, "TF2")],
@@ -202,15 +202,15 @@ class TestLibraryHealthThread:
         mock_response.url = "https://store.steampowered.com/"
         mock_response.text = "<html>Steam Store</html>"
 
-        with patch("src.services.library_health_thread.requests.get", return_value=mock_response):
-            with patch("src.services.library_health_thread.time.sleep"):
+        with patch("steam_library_manager.services.library_health_thread.requests.get", return_value=mock_response):
+            with patch("steam_library_manager.services.library_health_thread.time.sleep"):
                 results = thread._check_store_detail([440], {440: "TF2"})
 
         assert results[0].status == "delisted"
 
     def test_cancellation_stops_batch(self) -> None:
         """Cancelling should stop batch processing and return empty list."""
-        from src.services.library_health_thread import LibraryHealthThread
+        from steam_library_manager.services.library_health_thread import LibraryHealthThread
 
         thread = LibraryHealthThread(
             games=[(440, "TF2")],
@@ -219,7 +219,7 @@ class TestLibraryHealthThread:
         )
         thread.cancel()
 
-        with patch("src.integrations.steam_web_api.SteamWebAPI") as mock_api_cls:
+        with patch("steam_library_manager.integrations.steam_web_api.SteamWebAPI") as mock_api_cls:
             mock_api = MagicMock()
             mock_api_cls.return_value = mock_api
 
@@ -229,7 +229,7 @@ class TestLibraryHealthThread:
 
     def test_cancellation_stops_detail(self) -> None:
         """Cancelling should stop detail checking and return partial results."""
-        from src.services.library_health_thread import LibraryHealthThread
+        from steam_library_manager.services.library_health_thread import LibraryHealthThread
 
         thread = LibraryHealthThread(
             games=[(440, "TF2")],
@@ -248,7 +248,7 @@ class TestDatabaseHealthMethods:
     @pytest.fixture
     def health_db(self, tmp_path: Path):
         """Creates a database with test data for health checks."""
-        from src.core.database import Database
+        from steam_library_manager.core.database import Database
 
         db_path = tmp_path / "health_test.db"
         db = Database(db_path)

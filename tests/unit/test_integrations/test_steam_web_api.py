@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import requests
 
-from src.integrations.steam_web_api import SteamAppDetails, SteamWebAPI
+from steam_library_manager.integrations.steam_web_api import SteamAppDetails, SteamWebAPI
 
 
 class TestSteamAppDetails:
@@ -57,8 +57,8 @@ class TestSteamWebAPIInit:
 class TestBatchChunking:
     """Tests for batch chunking logic."""
 
-    @patch("src.integrations.steam_web_api.time.sleep")
-    @patch("src.integrations.steam_web_api.requests.get")
+    @patch("steam_library_manager.integrations.steam_web_api.time.sleep")
+    @patch("steam_library_manager.integrations.steam_web_api.requests.get")
     def test_batch_chunking_101_apps_splits_into_3(self, mock_get: MagicMock, mock_sleep: MagicMock) -> None:
         """101 app IDs are split into 3 batches (50+50+1)."""
         mock_response = MagicMock()
@@ -74,7 +74,7 @@ class TestBatchChunking:
         # 2 sleeps between 3 batches
         assert mock_sleep.call_count == 2
 
-    @patch("src.integrations.steam_web_api.requests.get")
+    @patch("steam_library_manager.integrations.steam_web_api.requests.get")
     def test_empty_response_returns_empty_dict(self, mock_get: MagicMock) -> None:
         """Empty API response returns empty dict."""
         mock_response = MagicMock()
@@ -156,8 +156,8 @@ class TestParseItem:
 class TestRateLimitAndErrors:
     """Tests for rate limiting and error handling."""
 
-    @patch("src.integrations.steam_web_api.time.sleep")
-    @patch("src.integrations.steam_web_api.requests.get")
+    @patch("steam_library_manager.integrations.steam_web_api.time.sleep")
+    @patch("steam_library_manager.integrations.steam_web_api.requests.get")
     def test_rate_limit_retries_with_backoff(self, mock_get: MagicMock, mock_sleep: MagicMock) -> None:
         """HTTP 429 triggers exponential backoff retries."""
         rate_limited = MagicMock()
@@ -176,7 +176,7 @@ class TestRateLimitAndErrors:
         assert result == []
         assert mock_sleep.call_count >= 1
 
-    @patch("src.integrations.steam_web_api.requests.get")
+    @patch("steam_library_manager.integrations.steam_web_api.requests.get")
     def test_network_error_raises_connection_error(self, mock_get: MagicMock) -> None:
         """Network failure raises ConnectionError."""
         mock_get.side_effect = requests.ConnectionError("Network down")

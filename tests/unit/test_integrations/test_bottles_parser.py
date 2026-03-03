@@ -9,7 +9,7 @@ import pytest
 
 yaml = pytest.importorskip("yaml")
 
-from src.integrations.external_games.bottles_parser import BottlesParser  # noqa: E402
+from steam_library_manager.integrations.external_games.bottles_parser import BottlesParser  # noqa: E402
 
 
 class TestBottlesParser:

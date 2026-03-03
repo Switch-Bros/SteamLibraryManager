@@ -5,8 +5,8 @@
 import json
 from unittest.mock import MagicMock
 
-from src.core.game import Game
-from src.services.enrichment.metadata_enrichment_service import MetadataEnrichmentService
+from steam_library_manager.core.game import Game
+from steam_library_manager.services.enrichment.metadata_enrichment_service import MetadataEnrichmentService
 
 
 class TestMetadataEnrichmentServiceInit:

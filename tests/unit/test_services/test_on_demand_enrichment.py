@@ -15,12 +15,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.core.game import Game
-from src.services.game_detail_enrichers import (
+from steam_library_manager.core.game import Game
+from steam_library_manager.services.game_detail_enrichers import (
     apply_achievement_data,
     apply_hltb_data,
 )
-from src.services.game_detail_service import GameDetailService
+from steam_library_manager.services.game_detail_service import GameDetailService
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -185,7 +185,7 @@ class TestFetchHltbData:
         assert games["100"].hltb_main_story == 0.0
         assert "100" in service._hltb_checked
 
-    @patch("src.services.game_detail_service.persist_hltb")
+    @patch("steam_library_manager.services.game_detail_service.persist_hltb")
     def test_fetches_from_api(self, mock_persist: MagicMock, service: GameDetailService, games: dict) -> None:
         """Fetches from HLTB API when no cache exists."""
         mock_result = MagicMock()
@@ -206,7 +206,7 @@ class TestFetchHltbData:
         mock_persist.assert_called_once_with(100, 10.0, 15.0, 20.0)
         assert "100" in service._hltb_checked
 
-    @patch("src.services.game_detail_service.persist_hltb")
+    @patch("steam_library_manager.services.game_detail_service.persist_hltb")
     def test_api_no_match(
         self, mock_persist: MagicMock, service: GameDetailService, games: dict, cache_dir: Path
     ) -> None:
@@ -306,8 +306,8 @@ class TestFetchAchievementData:
         assert games["100"].achievement_total == 0
         assert "100" in service._achievements_checked
 
-    @patch("src.services.game_detail_service.persist_achievements")
-    @patch("src.services.game_detail_service.persist_achievement_stats")
+    @patch("steam_library_manager.services.game_detail_service.persist_achievements")
+    @patch("steam_library_manager.services.game_detail_service.persist_achievement_stats")
     def test_fetches_from_api_with_achievements(
         self,
         mock_persist_stats: MagicMock,
@@ -329,8 +329,8 @@ class TestFetchAchievementData:
         mock_global = {"ACH_001": 85.5, "ACH_002": 5.2}
 
         with (
-            patch("src.integrations.steam_web_api.SteamWebAPI") as MockAPI,
-            patch("src.config.config") as mock_config,
+            patch("steam_library_manager.integrations.steam_web_api.SteamWebAPI") as MockAPI,
+            patch("steam_library_manager.config.config") as mock_config,
         ):
             mock_config.STEAM_API_KEY = "test_key"
             mock_config.STEAM_USER_ID = "76561198000000000"
@@ -350,7 +350,7 @@ class TestFetchAchievementData:
         mock_persist_records.assert_called_once()
         assert "100" in service._achievements_checked
 
-    @patch("src.services.game_detail_service.persist_achievement_stats")
+    @patch("steam_library_manager.services.game_detail_service.persist_achievement_stats")
     def test_fetches_no_achievements(
         self,
         mock_persist_stats: MagicMock,
@@ -360,8 +360,8 @@ class TestFetchAchievementData:
     ) -> None:
         """Game with no achievements gets total=0 cached."""
         with (
-            patch("src.integrations.steam_web_api.SteamWebAPI") as MockAPI,
-            patch("src.config.config") as mock_config,
+            patch("steam_library_manager.integrations.steam_web_api.SteamWebAPI") as MockAPI,
+            patch("steam_library_manager.config.config") as mock_config,
         ):
             mock_config.STEAM_API_KEY = "test_key"
             mock_config.STEAM_USER_ID = "76561198000000000"
@@ -379,7 +379,7 @@ class TestFetchAchievementData:
 
     def test_skips_without_api_key(self, service: GameDetailService, games: dict) -> None:
         """Skips fetch when API key is not configured."""
-        with patch("src.config.config") as mock_config:
+        with patch("steam_library_manager.config.config") as mock_config:
             mock_config.STEAM_API_KEY = None
             mock_config.STEAM_USER_ID = "76561198000000000"
             service._fetch_achievement_data("100")
@@ -389,7 +389,7 @@ class TestFetchAchievementData:
 
     def test_skips_without_steam_id(self, service: GameDetailService, games: dict) -> None:
         """Skips fetch when Steam user ID is not configured."""
-        with patch("src.config.config") as mock_config:
+        with patch("steam_library_manager.config.config") as mock_config:
             mock_config.STEAM_API_KEY = "test_key"
             mock_config.STEAM_USER_ID = None
             service._fetch_achievement_data("100")
@@ -400,8 +400,8 @@ class TestFetchAchievementData:
     def test_api_error_handled(self, service: GameDetailService, games: dict) -> None:
         """API errors are caught and app_id is still marked as checked."""
         with (
-            patch("src.integrations.steam_web_api.SteamWebAPI") as MockAPI,
-            patch("src.config.config") as mock_config,
+            patch("steam_library_manager.integrations.steam_web_api.SteamWebAPI") as MockAPI,
+            patch("steam_library_manager.config.config") as mock_config,
         ):
             mock_config.STEAM_API_KEY = "test_key"
             mock_config.STEAM_USER_ID = "76561198000000000"

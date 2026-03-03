@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import requests
 
-from src.integrations.protondb_api import ProtonDBClient, ProtonDBResult
+from steam_library_manager.integrations.protondb_api import ProtonDBClient, ProtonDBResult
 
 
 class TestProtonDBResult:
@@ -44,7 +44,7 @@ class TestProtonDBResult:
 class TestProtonDBClientGetRating:
     """Tests for ProtonDBClient.get_rating()."""
 
-    @patch("src.integrations.protondb_api.requests.Session")
+    @patch("steam_library_manager.integrations.protondb_api.requests.Session")
     def test_get_rating_success(self, mock_session_cls: MagicMock) -> None:
         mock_response = MagicMock()
         mock_response.status_code = 200
@@ -69,7 +69,7 @@ class TestProtonDBClientGetRating:
         assert result.score == 0.82
         assert result.best_reported == "platinum"
 
-    @patch("src.integrations.protondb_api.requests.Session")
+    @patch("steam_library_manager.integrations.protondb_api.requests.Session")
     def test_get_rating_404_returns_none(self, mock_session_cls: MagicMock) -> None:
         mock_response = MagicMock()
         mock_response.status_code = 404
@@ -82,7 +82,7 @@ class TestProtonDBClientGetRating:
 
         assert result is None
 
-    @patch("src.integrations.protondb_api.requests.Session")
+    @patch("steam_library_manager.integrations.protondb_api.requests.Session")
     def test_get_rating_network_error_returns_none(self, mock_session_cls: MagicMock) -> None:
         mock_session = MagicMock()
         mock_session.get.side_effect = requests.ConnectionError("Connection refused")
@@ -93,7 +93,7 @@ class TestProtonDBClientGetRating:
 
         assert result is None
 
-    @patch("src.integrations.protondb_api.requests.Session")
+    @patch("steam_library_manager.integrations.protondb_api.requests.Session")
     def test_get_rating_partial_response(self, mock_session_cls: MagicMock) -> None:
         """API returns only tier, missing optional fields."""
         mock_response = MagicMock()
@@ -111,7 +111,7 @@ class TestProtonDBClientGetRating:
         assert result.confidence == ""
         assert result.score == 0.0
 
-    @patch("src.integrations.protondb_api.requests.Session")
+    @patch("steam_library_manager.integrations.protondb_api.requests.Session")
     def test_get_rating_server_error_returns_none(self, mock_session_cls: MagicMock) -> None:
         mock_response = MagicMock()
         mock_response.status_code = 500
@@ -128,8 +128,8 @@ class TestProtonDBClientGetRating:
 class TestProtonDBClientBatch:
     """Tests for ProtonDBClient.get_ratings_batch()."""
 
-    @patch("src.integrations.protondb_api.requests.Session")
-    @patch("src.integrations.protondb_api.time.sleep")
+    @patch("steam_library_manager.integrations.protondb_api.requests.Session")
+    @patch("steam_library_manager.integrations.protondb_api.time.sleep")
     def test_batch_returns_successful_results(self, mock_sleep: MagicMock, mock_session_cls: MagicMock) -> None:
         responses = []
         for tier in ("gold", "platinum"):
@@ -149,8 +149,8 @@ class TestProtonDBClientBatch:
         assert results[730].tier == "gold"
         assert results[440].tier == "platinum"
 
-    @patch("src.integrations.protondb_api.requests.Session")
-    @patch("src.integrations.protondb_api.time.sleep")
+    @patch("steam_library_manager.integrations.protondb_api.requests.Session")
+    @patch("steam_library_manager.integrations.protondb_api.time.sleep")
     def test_batch_skips_failed_lookups(self, mock_sleep: MagicMock, mock_session_cls: MagicMock) -> None:
         ok_resp = MagicMock()
         ok_resp.status_code = 200
@@ -170,8 +170,8 @@ class TestProtonDBClientBatch:
         assert 730 in results
         assert 99999 not in results
 
-    @patch("src.integrations.protondb_api.requests.Session")
-    @patch("src.integrations.protondb_api.time.sleep")
+    @patch("steam_library_manager.integrations.protondb_api.requests.Session")
+    @patch("steam_library_manager.integrations.protondb_api.time.sleep")
     def test_batch_empty_list(self, mock_sleep: MagicMock, mock_session_cls: MagicMock) -> None:
         mock_session_cls.return_value = MagicMock()
 
@@ -186,7 +186,7 @@ class TestProtonDBDatabaseCache:
 
     @pytest.fixture()
     def db(self, tmp_path):
-        from src.core.database import Database
+        from steam_library_manager.core.database import Database
 
         return Database(tmp_path / "test.db")
 

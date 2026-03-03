@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from src.services.curator_presets import POPULAR_CURATORS, CuratorPreset
+from steam_library_manager.services.curator_presets import POPULAR_CURATORS, CuratorPreset
 
 
 class TestCuratorPresets:
