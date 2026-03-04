@@ -104,6 +104,12 @@
   </screenshots>
 
   <releases>
+    <release version="1.2.0" date="2026-03-04">
+      <description>
+        <p>Module rename from src/ to steam_library_manager/ for PEP 423 compliance.
+           No functional changes.</p>
+      </description>
+    </release>
     <release version="1.1.1" date="2026-02-27">
       <description>
         <p>Initial stable release with 17 AutoCat types, Smart Collections,
