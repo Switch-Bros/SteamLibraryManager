@@ -1,4 +1,3 @@
-# ========== NEU: Build-Artefakte & Packaging ==========
 /dist/
 /AppDir/
 *.AppImage
@@ -12,24 +11,14 @@ coverage.xml
 .pytest_cache/
 /profile_default/
 /ipython_config.py
-
-# Flatpak build artefacts
 /flatpak/build/
 /flatpak/repo/
 /flatpak/.flatpak-builder/
-
-# PyInstaller
 *.spec
-
-# ========== NEU: Entwicklungshilfen (optional) ==========
 /scratch/
 /notes/
 /todo.md
-
-# ========== Bestehende Einträge bleiben ALLE erhalten ==========
-# Test artifacts (MagicMock used as db_path creates SQLite files)
 <MagicMock*
-
 __pycache__/
 *.py[cod]
 .venv/
@@ -41,11 +30,5 @@ data/
 steam_library_manager/resources/icons/Icon_Namen.txt
 cleanup_dependencies_dev.sh
 *.zip
-/AGENTS.md
-/CLAUDE.md
 /SLM-Dateien.md
 /SLM-Fortschritt.md
-/MASTERPLAN_FINAL.md
-/NEXTCHAT.md
-/.claude/settings.json
-/.claude/commands/
