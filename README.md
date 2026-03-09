@@ -287,6 +287,28 @@ Got games scattered across Epic, GOG, Amazon, Lutris, Bottles, itch.io, and Flat
   <img src="steam_library_manager/resources/screenshots/17_external_games.webp" alt="External Games Manager — Scan and Import" width="800">
 </p>
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_divider_light.webp">
+    <img src="steam_library_manager/resources/images/readme_divider_light.webp" alt="" width="800">
+  </picture>
+</p>
+
+<h3 align="center">🔄 Built-in Auto-Updates — <i>Always Up to Date, Zero Effort</i></h3>
+
+AppImage users get seamless in-app updates — no manual downloads, no terminal commands. SLM checks GitHub Releases automatically (configurable: daily, weekly, monthly, or never), shows full release notes with changelog, downloads in the background with progress tracking, and restarts into the new version with one click. If anything goes wrong, the previous version is automatically restored.
+
+- **Atomic replace** with rollback — update can't leave you with a broken install
+- **"Skip Version"** button — dismiss updates you don't want without being nagged
+- **Configurable** — set your preferred check interval in Settings, or check manually anytime
+
+*AUR and Flatpak users update through their package manager as usual.*
+
+<p align="center">
+  <img src="steam_library_manager/resources/screenshots/18_appimage_update.webp" alt="Built-in AppImage Auto-Update with Release Notes" width="800">
+</p>
+
 
 <h2 align="center">📸 More Screenshots</h2>
 

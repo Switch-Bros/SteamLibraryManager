@@ -287,6 +287,28 @@ Spiele verstreut über Epic, GOG, Amazon, Lutris, Bottles, itch.io und Flatpak? 
   <img src="steam_library_manager/resources/screenshots/17_de_external_games.webp" alt="Externe Spiele — Scannen und Importieren (Deutsch)" width="800">
 </p>
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_divider_light.webp">
+    <img src="steam_library_manager/resources/images/readme_divider_light.webp" alt="" width="800">
+  </picture>
+</p>
+
+<h3 align="center">🔄 Integrierte Auto-Updates — <i>Immer aktuell, null Aufwand</i></h3>
+
+AppImage-Nutzer bekommen nahtlose In-App-Updates — kein manuelles Herunterladen, keine Terminal-Befehle. SLM prüft GitHub Releases automatisch (konfigurierbar: täglich, wöchentlich, monatlich oder nie), zeigt vollständige Versionshinweise mit Changelog, lädt im Hintergrund mit Fortschrittsanzeige herunter und startet mit einem Klick in die neue Version neu. Falls etwas schiefgeht, wird die vorherige Version automatisch wiederhergestellt.
+
+- **Atomarer Austausch** mit Rollback — ein Update kann nie eine kaputte Installation hinterlassen
+- **"Version überspringen"**-Button — ungewünschte Updates wegklicken ohne genervt zu werden
+- **Konfigurierbar** — Prüfintervall in den Einstellungen festlegen, oder jederzeit manuell prüfen
+
+*AUR- und Flatpak-Nutzer aktualisieren wie gewohnt über ihren Paketmanager.*
+
+<p align="center">
+  <img src="steam_library_manager/resources/screenshots/18_de_appimage_update.webp" alt="Integriertes AppImage Auto-Update mit Versionshinweisen (Deutsch)" width="800">
+</p>
+
 
 <h2 align="center">📸 Weitere Screenshots</h2>
 
