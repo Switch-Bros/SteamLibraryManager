@@ -27,7 +27,12 @@ from PyQt6.QtWidgets import (
 from steam_library_manager.config import config
 from steam_library_manager.core.game_manager import Game
 from steam_library_manager.core.steam_assets import SteamAssets
-from steam_library_manager.ui.builders.details_ui_builder import build_details_ui
+from steam_library_manager.ui.builders.details_ui_builder import (
+    build_details_ui,
+    rescale_ui,
+    _calc_scale,
+    _detect_initial_scale,
+)
 from steam_library_manager.ui.dialogs.image_selection_dialog import ImageSelectionDialog
 from steam_library_manager.ui.theme import Theme
 from steam_library_manager.ui.widgets.category_list import HorizontalCategoryList
@@ -99,8 +104,40 @@ class GameDetailsWidget(QWidget):
         super().__init__(parent)
         self.current_game: Game | None = None
         self.current_games: list[Game] = []
+        self._ui_scale: float = 1.0
+        self._initial_scale_applied: bool = False
         build_details_ui(self)
         self.clear()
+
+    def showEvent(self, event) -> None:
+        """Apply screen-based scaling on first show (screen info now available)."""
+        super().showEvent(event)
+        if not self._initial_scale_applied:
+            self._initial_scale_applied = True
+            import logging
+
+            scale = _detect_initial_scale()
+            _logger = logging.getLogger("steamlibmgr.details_ui")
+            _logger.info("showEvent: initial scale=%.3f (current=%.3f)", scale, self._ui_scale)
+            if abs(scale - self._ui_scale) > 0.01:
+                self._ui_scale = scale
+                rescale_ui(self, scale)
+
+    def resizeEvent(self, event) -> None:
+        """Recalculate scale from actual widget width and rescale if needed.
+
+        On small screens (Steam Deck), the screen-based scale from showEvent
+        takes priority — resizeEvent must not override it, otherwise moving
+        the splitter can blow images back to full size with no way to shrink.
+        """
+        super().resizeEvent(event)
+        if self._initial_scale_applied and self._ui_scale < 1.0:
+            return
+        w = event.size().width()
+        new_scale = _calc_scale(w)
+        if abs(new_scale - self._ui_scale) > 0.01:
+            self._ui_scale = new_scale
+            rescale_ui(self, new_scale)
 
     # ------------------------------------------------------------------
     # Rating label helpers

@@ -8,6 +8,7 @@ HLTB row, achievement row, categories) and wires signals to the widget.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import Qt
@@ -35,7 +36,141 @@ from steam_library_manager.utils.i18n import t
 if TYPE_CHECKING:
     from steam_library_manager.ui.widgets.game_details_widget import GameDetailsWidget
 
-__all__ = ["build_details_ui"]
+__all__ = ["build_details_ui", "rescale_ui", "_calc_scale", "_detect_initial_scale"]
+
+# ---------------------------------------------------------------------------
+# Responsive scaling constants
+# ---------------------------------------------------------------------------
+
+# Panels at or above this width get full-size images (scale 1.0).
+_FULL_SCALE_THRESHOLD: int = 1000
+
+# Reference width for proportional down-scaling below the threshold.
+# Higher value = more aggressive scaling on small screens.
+# Steam Deck detail panel ~930px → 930/1700 ≈ 0.55
+_SCALE_REFERENCE_WIDTH: int = 1700
+
+# All image sizes at scale=1.0 (current hardcoded values)
+_IMG_GRID: tuple[int, int] = (232, 348)
+_IMG_LOGO: tuple[int, int] = (264, 184)
+_IMG_ICON: tuple[int, int] = (80, 80)
+_IMG_HERO: tuple[int, int] = (348, 160)
+_IMG_PEGI: tuple[int, int] = (128, 128)
+
+# Metadata column minimum widths at scale=1.0
+_META_COLS: tuple[int, int, int] = (190, 320, 440)
+
+
+def _detect_initial_scale() -> float:
+    """Detect initial scale based on primary screen resolution.
+
+    Uses the LONGER edge of the screen to decide scale, because the
+    Steam Deck panel is natively 800x1280 (portrait) rotated -90 degrees.
+    Qt may report width/height either way depending on rotation state.
+
+    Returns:
+        Scale factor between 0.5 and 1.0.
+    """
+    from PyQt6.QtWidgets import QApplication
+
+    _logger = logging.getLogger("steamlibmgr.details_ui")
+    screen = QApplication.primaryScreen()
+    if screen:
+        sz = screen.availableSize()
+        # Use the longer edge so rotation doesn't matter
+        long_edge = max(sz.width(), sz.height())
+        _logger.info("Screen detected: %dx%d (long_edge=%d)", sz.width(), sz.height(), long_edge)
+        if long_edge <= 1280:
+            # Steam Deck (1280x800) — aggressive scaling
+            return 0.55
+        if long_edge <= 1600:
+            return 0.75
+    return 1.0
+
+
+def _calc_scale(panel_width: int) -> float:
+    """Calculate uniform scale factor from panel width.
+
+    Panels >= threshold get 1.0, smaller panels scale proportionally.
+
+    Args:
+        panel_width: Available detail panel width in pixels.
+
+    Returns:
+        Scale factor between 0.5 and 1.0.
+    """
+    if panel_width >= _FULL_SCALE_THRESHOLD:
+        return 1.0
+    return max(0.5, panel_width / _SCALE_REFERENCE_WIDTH)
+
+
+def _scaled(size: tuple[int, int], scale: float) -> tuple[int, int]:
+    """Scale a (w, h) tuple uniformly, preserving aspect ratio.
+
+    Args:
+        size: Original (width, height).
+        scale: Uniform scale factor.
+
+    Returns:
+        Rounded (width, height) integers.
+    """
+    return (round(size[0] * scale), round(size[1] * scale))
+
+
+def rescale_ui(w: GameDetailsWidget, scale: float) -> None:
+    """Rescale all size-dependent widgets to the given scale factor.
+
+    Called from GameDetailsWidget.resizeEvent when the panel width changes
+    significantly. Updates ClickableImage sizes, gallery container, and
+    metadata grid column widths.
+
+    Args:
+        w: The GameDetailsWidget instance.
+        scale: Uniform scale factor (0.5 to 1.0).
+    """
+    _logger = logging.getLogger("steamlibmgr.details_ui")
+    _logger.info("Rescaling UI: scale=%.3f", scale)
+
+    # Rescale each ClickableImage
+    for img_widget, design_size in [
+        (w.img_grid, _IMG_GRID),
+        (w.img_logo, _IMG_LOGO),
+        (w.img_icon, _IMG_ICON),
+        (w.img_hero, _IMG_HERO),
+        (w.pegi_image, _IMG_PEGI),
+    ]:
+        nw, nh = _scaled(design_size, scale)
+        img_widget.setFixedSize(nw, nh)
+        img_widget.w = nw
+        img_widget.h = nh
+        img_widget.image_label.setGeometry(0, 0, nw, nh)
+        if img_widget._badge_overlay:
+            img_widget._badge_overlay.setFixedWidth(nw)
+        # Re-apply image at new size: cached pixmap first, then default fallback
+        if img_widget.current_path and img_widget.current_path in img_widget._pixmap_cache:
+            img_widget._apply_pixmap(img_widget._pixmap_cache[img_widget.current_path])
+        elif hasattr(img_widget, "default_image") and img_widget.default_image:
+            img_widget._load_local_image(img_widget.default_image)
+
+    # Rescale gallery container — calculate from content sizes
+    if hasattr(w, "_gallery_widget"):
+        cw, ch = _scaled(_IMG_GRID, scale)
+        lw, lh = _scaled(_IMG_LOGO, scale)
+        iw, _ = _scaled(_IMG_ICON, scale)
+        _, hh = _scaled(_IMG_HERO, scale)
+        sp = max(2, round(4 * scale))
+        margin = max(2, round(4 * scale))
+        right_w = lw + sp + iw
+        right_h = lh + sp + hh
+        gw = margin + cw + sp + right_w + margin
+        gh = margin + max(ch, right_h) + margin
+        w._gallery_widget.setFixedSize(gw, gh)
+
+    # Rescale metadata grid column widths
+    if hasattr(w, "_meta_grid"):
+        w._meta_grid.setColumnMinimumWidth(0, round(_META_COLS[0] * scale))
+        w._meta_grid.setColumnMinimumWidth(1, round(_META_COLS[1] * scale))
+        w._meta_grid.setColumnMinimumWidth(2, round(_META_COLS[2] * scale))
 
 
 def build_details_ui(w: GameDetailsWidget) -> None:
@@ -47,12 +182,18 @@ def build_details_ui(w: GameDetailsWidget) -> None:
     Args:
         w: The GameDetailsWidget instance to populate.
     """
+    scale = _detect_initial_scale()
+    w._ui_scale = scale
+
+    _logger = logging.getLogger("steamlibmgr.details_ui")
+    _logger.info("Building details UI at scale=%.3f", scale)
+
     main_layout = QVBoxLayout(w)
     main_layout.setContentsMargins(15, 5, 15, 0)
     main_layout.setSpacing(0)
 
-    # === HEADER (Title & Buttons) ===
-    _build_header(w, main_layout)
+    # === HEADER (Title & Buttons) — built at detected scale ===
+    _build_header(w, main_layout, scale)
 
     # === PRIVATE BADGE (next to name) ===
     w.lbl_private_badge = QLabel()
@@ -74,7 +215,7 @@ def build_details_ui(w: GameDetailsWidget) -> None:
     main_layout.addWidget(line1)
 
     # === METADATA GRID ===
-    _build_metadata_grid(w, main_layout)
+    _build_metadata_grid(w, main_layout, scale)
 
     # === HLTB GRID ===
     _build_hltb_grid(w, main_layout)
@@ -143,8 +284,14 @@ def _build_dlc_section(w: GameDetailsWidget, main_layout: QVBoxLayout) -> None:
     main_layout.addWidget(w.dlc_group)
 
 
-def _build_header(w: GameDetailsWidget, main_layout: QVBoxLayout) -> None:
-    """Builds the header section: name, PEGI image, buttons, gallery."""
+def _build_header(w: GameDetailsWidget, main_layout: QVBoxLayout, scale: float) -> None:
+    """Builds the header section with scaled dimensions.
+
+    Args:
+        w: The GameDetailsWidget instance.
+        main_layout: Parent layout.
+        scale: Uniform scale factor (0.5 to 1.0).
+    """
     header_layout = QHBoxLayout()
 
     left_container = QVBoxLayout()
@@ -155,8 +302,9 @@ def _build_header(w: GameDetailsWidget, main_layout: QVBoxLayout) -> None:
     left_container.addWidget(w.name_label)
     left_container.addStretch()
 
-    # PEGI Rating Box
-    w.pegi_image = ClickableImage(w, 128, 128)
+    # PEGI Rating Box — scaled, always 1:1
+    pw, ph = _scaled(_IMG_PEGI, scale)
+    w.pegi_image = ClickableImage(w, pw, ph)
     w.pegi_image.set_default_image(str(config.RESOURCES_DIR / "images" / "default_icons.webp"))
     w.pegi_image.clicked.connect(w.on_pegi_clicked)
     w.pegi_image.right_clicked.connect(w.on_pegi_right_click)
@@ -192,23 +340,46 @@ def _build_header(w: GameDetailsWidget, main_layout: QVBoxLayout) -> None:
     header_layout.addLayout(left_container, stretch=1)
 
     # Gallery
-    _build_gallery(w, header_layout)
+    _build_gallery(w, header_layout, scale)
 
     main_layout.addLayout(header_layout)
 
 
-def _build_gallery(w: GameDetailsWidget, header_layout: QHBoxLayout) -> None:
-    """Builds the image gallery block (grid, hero, logo, icon)."""
+def _build_gallery(w: GameDetailsWidget, header_layout: QHBoxLayout, scale: float) -> None:
+    """Builds the image gallery block with scaled dimensions.
+
+    Args:
+        w: The GameDetailsWidget instance.
+        header_layout: Parent layout to add the gallery to.
+        scale: Uniform scale factor (0.5 to 1.0).
+    """
+    # Scale individual image sizes
+    cw, ch = _scaled(_IMG_GRID, scale)
+    lw, lh = _scaled(_IMG_LOGO, scale)
+    iw, ih = _scaled(_IMG_ICON, scale)
+    hw, hh = _scaled(_IMG_HERO, scale)
+
+    # Scale spacing/margins with the images
+    sp = max(2, round(4 * scale))
+    margin = max(2, round(4 * scale))
+
+    # Calculate gallery container size from content
+    right_w = lw + sp + iw  # top row: logo + spacing + icon
+    right_h = lh + sp + hh  # right stack: logo-row height + spacing + hero
+    gallery_w = margin + cw + sp + right_w + margin
+    gallery_h = margin + max(ch, right_h) + margin
+
     gallery_widget = QWidget()
-    gallery_widget.setFixedSize(592, 356)
+    gallery_widget.setFixedSize(gallery_w, gallery_h)
+    w._gallery_widget = gallery_widget
     gallery_widget.setStyleSheet("background-color: #1a1a1a; border-radius: 4px;")
 
     gallery_layout = QHBoxLayout(gallery_widget)
-    gallery_layout.setContentsMargins(4, 4, 4, 4)
-    gallery_layout.setSpacing(4)
+    gallery_layout.setContentsMargins(margin, margin, margin, margin)
+    gallery_layout.setSpacing(sp)
 
-    # Grid (Cover)
-    w.img_grid = ClickableImage(w, 232, 348)
+    # Grid (Cover) — aspect ratio 2:3
+    w.img_grid = ClickableImage(w, cw, ch)
     w.img_grid.set_default_image(str(config.RESOURCES_DIR / "images" / "default_grids.webp"))
     w.img_grid.clicked.connect(lambda: w.on_image_click("grids"))
     w.img_grid.right_clicked.connect(lambda: w.on_image_right_click("grids"))
@@ -217,21 +388,21 @@ def _build_gallery(w: GameDetailsWidget, header_layout: QHBoxLayout) -> None:
     # Right stack
     right_stack = QVBoxLayout()
     right_stack.setContentsMargins(0, 0, 0, 0)
-    right_stack.setSpacing(4)
+    right_stack.setSpacing(sp)
 
-    # Logo + Icon
+    # Logo + Icon row
     top_row = QHBoxLayout()
     top_row.setContentsMargins(0, 0, 0, 0)
-    top_row.setSpacing(4)
+    top_row.setSpacing(sp)
 
-    w.img_logo = ClickableImage(w, 264, 184)
+    w.img_logo = ClickableImage(w, lw, lh)
     w.img_logo.set_default_image(str(config.RESOURCES_DIR / "images" / "default_logos.webp"))
     w.img_logo.clicked.connect(lambda: w.on_image_click("logos"))
     w.img_logo.right_clicked.connect(lambda: w.on_image_right_click("logos"))
     w.img_logo.setStyleSheet("background: transparent;")
     top_row.addWidget(w.img_logo)
 
-    w.img_icon = ClickableImage(w, 80, 80)
+    w.img_icon = ClickableImage(w, iw, ih)
     w.img_icon.set_default_image(str(config.RESOURCES_DIR / "images" / "default_icons.webp"))
     w.img_icon.clicked.connect(lambda: w.on_image_click("icons"))
     w.img_icon.right_clicked.connect(lambda: w.on_image_right_click("icons"))
@@ -246,7 +417,7 @@ def _build_gallery(w: GameDetailsWidget, header_layout: QHBoxLayout) -> None:
     right_stack.addLayout(top_row)
 
     # Hero
-    w.img_hero = ClickableImage(w, 348, 160)
+    w.img_hero = ClickableImage(w, hw, hh)
     w.img_hero.set_default_image(str(config.RESOURCES_DIR / "images" / "default_heroes.webp"))
     w.img_hero.clicked.connect(lambda: w.on_image_click("heroes"))
     w.img_hero.right_clicked.connect(lambda: w.on_image_right_click("heroes"))
@@ -260,17 +431,24 @@ def _build_gallery(w: GameDetailsWidget, header_layout: QHBoxLayout) -> None:
     )
 
 
-def _build_metadata_grid(w: GameDetailsWidget, main_layout: QVBoxLayout) -> None:
-    """Builds the metadata grid (basic info, ratings, developer/publisher)."""
+def _build_metadata_grid(w: GameDetailsWidget, main_layout: QVBoxLayout, scale: float) -> None:
+    """Builds the metadata grid with scaled column widths.
+
+    Args:
+        w: The GameDetailsWidget instance.
+        main_layout: Parent layout.
+        scale: Uniform scale factor (0.5 to 1.0).
+    """
     meta_widget = QWidget()
     meta_grid = QGridLayout(meta_widget)
+    w._meta_grid = meta_grid
     meta_grid.setContentsMargins(0, 5, 0, 5)
     meta_grid.setHorizontalSpacing(20)
     meta_grid.setVerticalSpacing(2)
-    meta_grid.setColumnMinimumWidth(0, 190)
-    meta_grid.setColumnMinimumWidth(1, 320)
-    meta_grid.setColumnMinimumWidth(2, 440)
-    meta_grid.setColumnStretch(3, 1)
+    meta_grid.setColumnMinimumWidth(0, round(_META_COLS[0] * scale))
+    meta_grid.setColumnMinimumWidth(1, round(_META_COLS[1] * scale))
+    meta_grid.setColumnMinimumWidth(2, round(_META_COLS[2] * scale))
+    meta_grid.setColumnStretch(2, 1)
 
     # Column 0: Basic Info
     meta_grid.addWidget(QLabel(f"<b>{t('ui.game_details.section_basic')}</b>"), 0, 0)
