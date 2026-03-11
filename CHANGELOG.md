@@ -5,6 +5,22 @@ All notable changes to Steam Library Manager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.4] - 2026-03-11
+
+### Added
+- **Steam Deck Support:** Responsive UI scaling for 1280x800 displays.
+  Gallery images, metadata grid, and spacing automatically adapt to smaller screens.
+  Handles rotated displays (Deck is natively 800x1280 portrait).
+- **Library Auto-Sync:** Automatically reconcile saved library paths with
+  Steam's libraryfolders.vdf on startup. Removes dead paths (e.g. after drive swap),
+  adds new paths Steam reports. Skips dead VDF entries.
+- **Multi-Format Packaging:** New .deb, .rpm, and tar.gz packages alongside
+  existing AppImage and AUR. CI/CD builds all formats automatically on release.
+
+### Fixed
+- **Tests:** Fixed 3 pre-existing test failures in test_file_actions.py
+  (Mock parent widget crash in force_save dialog)
+
 ## [1.2.0] - 2026-03-04
 
 ### Changed
