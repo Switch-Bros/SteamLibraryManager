@@ -80,7 +80,7 @@ jobs:
     - name: Generate checksums
       run: |
         sha256sum \
-          SteamLibraryManager-*.AppImage \
+          SteamLibraryManager-x86_64.AppImage \
           SteamLibraryManager-*-linux-x86_64.tar.gz \
           steam-library-manager_*.deb \
           steam-library-manager-*.rpm \
@@ -90,7 +90,7 @@ jobs:
       with:
         body_path: release_notes.md
         files: |
-          SteamLibraryManager-*.AppImage
+          SteamLibraryManager-x86_64.AppImage
           SteamLibraryManager-*-linux-x86_64.tar.gz
           steam-library-manager_*.deb
           steam-library-manager-*.rpm

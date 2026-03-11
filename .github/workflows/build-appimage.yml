@@ -21,12 +21,6 @@ jobs:
       with:
         python-version: "3.12"
 
-    - name: Extract version
-      id: version
-      run: |
-        VERSION=$(python -c "exec(open('steam_library_manager/version.py').read()); print(__version__)")
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-
     - name: Install system dependencies
       run: |
         sudo apt-get update
@@ -69,10 +63,8 @@ jobs:
         chmod +x linuxdeploy-x86_64.AppImage
 
     - name: Build AppImage
-      env:
-        VERSION: ${{ steps.version.outputs.version }}
       run: |
-        export OUTPUT="SteamLibraryManager-${VERSION}-x86_64.AppImage"
+        export OUTPUT="SteamLibraryManager-x86_64.AppImage"
         ARCH=x86_64 ./linuxdeploy-x86_64.AppImage \
           --appdir AppDir \
           --desktop-file AppDir/io.github.switch_bros.SteamLibraryManager.desktop \
@@ -87,4 +79,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: SteamLibraryManager-AppImage
-        path: SteamLibraryManager-*.AppImage
+        path: SteamLibraryManager-x86_64.AppImage

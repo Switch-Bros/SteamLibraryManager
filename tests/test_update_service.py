@@ -90,9 +90,9 @@ class TestIsNewer:
         """Invalid version falls back to string comparison."""
         from steam_library_manager.version import __version__
 
-        # Same as current — not newer
+        # Same as current -- not newer
         assert UpdateService._is_newer(__version__) is False
-        # Different string — fallback says "newer"
+        # Different string -- fallback says "newer"
         assert UpdateService._is_newer("not-a-version") is True
 
     def test_prerelease_not_newer(self) -> None:
@@ -121,15 +121,19 @@ class TestInstallUpdate:
             assert result is False
 
     def test_install_creates_backup_and_replaces(self, tmp_path: Path) -> None:
-        """Install creates .bak backup before replacing."""
-        current = tmp_path / "SLM.AppImage"
+        """Install creates .bak backup and replaces in-place."""
+        current = tmp_path / "SteamLibraryManager-x86_64.AppImage"
         current.write_text("old-binary")
-        new = tmp_path / "SLM_new.AppImage"
+        new = tmp_path / ".SLM_update.AppImage"
         new.write_text("new-binary")
 
         with (
             patch.dict(os.environ, {"APPIMAGE": str(current)}),
             patch("os.execv", side_effect=SystemExit(0)),
+            patch(
+                "steam_library_manager.services.update_service.is_desktop_entry_installed",
+                return_value=False,
+            ),
         ):
             try:
                 UpdateService.install_update(str(new))
@@ -140,14 +144,40 @@ class TestInstallUpdate:
         backup = current.with_suffix(".bak")
         assert backup.exists()
         assert backup.read_text() == "old-binary"
-        # Current should have new content
+        # Current should have new content (same filename)
+        assert current.exists()
         assert current.read_text() == "new-binary"
+
+    def test_install_updates_desktop_entry(self, tmp_path: Path) -> None:
+        """Install updates desktop entry when one is installed."""
+        current = tmp_path / "SteamLibraryManager-x86_64.AppImage"
+        current.write_text("old-binary")
+        new = tmp_path / ".SLM_update.AppImage"
+        new.write_text("new-binary")
+
+        with (
+            patch.dict(os.environ, {"APPIMAGE": str(current)}),
+            patch("os.execv", side_effect=SystemExit(0)),
+            patch(
+                "steam_library_manager.services.update_service.is_desktop_entry_installed",
+                return_value=True,
+            ),
+            patch(
+                "steam_library_manager.services.update_service.install_desktop_entry",
+            ) as mock_install,
+        ):
+            try:
+                UpdateService.install_update(str(new))
+            except SystemExit:
+                pass
+
+        mock_install.assert_called_once()
 
     def test_install_rollback_on_failure(self, tmp_path: Path) -> None:
         """Install rolls back from backup on failure."""
-        current = tmp_path / "SLM.AppImage"
+        current = tmp_path / "SteamLibraryManager-x86_64.AppImage"
         current.write_text("old-binary")
-        new = tmp_path / "SLM_new.AppImage"
+        new = tmp_path / ".SLM_update.AppImage"
         new.write_text("new-binary")
 
         with (
@@ -167,7 +197,7 @@ class TestGithubApiParsing:
     @staticmethod
     def _make_release_json(
         tag: str = "v2.0.0",
-        appimage_url: str = "https://example.com/SLM-2.0.0.AppImage",
+        appimage_url: str = "https://example.com/SLM-x86_64.AppImage",
         appimage_size: int = 50_000_000,
     ) -> dict:
         """Create a mock GitHub release JSON response."""
@@ -177,7 +207,7 @@ class TestGithubApiParsing:
             "body": f"# {tag}\n- Feature A\n- Feature B",
             "assets": [
                 {
-                    "name": f"SteamLibraryManager-{tag.lstrip('v')}-x86_64.AppImage",
+                    "name": "SteamLibraryManager-x86_64.AppImage",
                     "browser_download_url": appimage_url,
                     "size": appimage_size,
                 },

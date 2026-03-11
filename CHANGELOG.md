@@ -5,6 +5,19 @@ All notable changes to Steam Library Manager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.5] - 2026-03-11
+
+### Fixed
+- **AppImage Update:** Desktop entry now updates after AppImage self-update,
+  so the application launcher always points to the correct binary.
+- **AppImage Naming:** Simplified to version-free filename
+  (SteamLibraryManager-x86_64.AppImage) to avoid stale paths after updates.
+- **Pyright:** Fixed type warnings in update service (QByteArray conversion,
+  optional QNetworkReply checks).
+
+### Changed
+- **AUR:** Removed checkdepends/check() to fix paru dependency resolution.
+
 ## [1.2.4] - 2026-03-11
 
 ### Added

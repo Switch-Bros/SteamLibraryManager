@@ -16,6 +16,10 @@ from pathlib import Path
 from PyQt6.QtCore import QObject, QUrl, pyqtSignal
 from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
+from steam_library_manager.utils.desktop_integration import (
+    install_desktop_entry,
+    is_desktop_entry_installed,
+)
 from steam_library_manager.utils.i18n import t
 from steam_library_manager.version import __version__
 
@@ -94,7 +98,8 @@ class UpdateService(QObject):
             f"SteamLibraryManager/{__version__}",
         )
         reply = self._nam.get(request)
-        reply.finished.connect(lambda: self._on_check_finished(reply))
+        if reply:
+            reply.finished.connect(lambda: self._on_check_finished(reply))
 
     def _on_check_finished(self, reply: QNetworkReply) -> None:
         """Handle GitHub API response."""
@@ -106,7 +111,7 @@ class UpdateService(QObject):
             return
 
         try:
-            data = json.loads(bytes(reply.readAll()))
+            data = json.loads(reply.readAll().data().decode("utf-8"))
             reply.deleteLater()
         except (json.JSONDecodeError, Exception) as e:
             logger.warning(t("logs.update.check_failed", error=str(e)))
@@ -150,7 +155,7 @@ class UpdateService(QObject):
             return
 
         # Same filesystem for atomic replace
-        self._download_path = current.parent / f".SLM_update_{info.version}.AppImage"
+        self._download_path = current.parent / ".SLM_update.AppImage"
 
         request = QNetworkRequest(QUrl(info.download_url))
         request.setHeader(
@@ -158,8 +163,9 @@ class UpdateService(QObject):
             f"SteamLibraryManager/{__version__}",
         )
         self._download_reply = self._nam.get(request)
-        self._download_reply.downloadProgress.connect(lambda recv, total: self.download_progress.emit(recv, total))
-        self._download_reply.finished.connect(self._on_download_finished)
+        if self._download_reply:
+            self._download_reply.downloadProgress.connect(lambda recv, total: self.download_progress.emit(recv, total))
+            self._download_reply.finished.connect(self._on_download_finished)
 
     def _on_download_finished(self) -> None:
         """Write downloaded data to disk."""
@@ -175,7 +181,7 @@ class UpdateService(QObject):
             return
 
         try:
-            self._download_path.write_bytes(bytes(reply.readAll()))
+            self._download_path.write_bytes(reply.readAll().data())
             reply.deleteLater()
             self._download_path.chmod(0o755)
             logger.info(t("logs.update.download_complete", path=str(self._download_path)))
@@ -215,6 +221,11 @@ class UpdateService(QObject):
             shutil.copy2(current, backup)
             new_path.chmod(0o755)
             new_path.replace(current)
+
+            # Update desktop entry to point to current path
+            if is_desktop_entry_installed():
+                install_desktop_entry()
+
             logger.info(t("logs.update.installing", path=str(current)))
             os.execv(str(current), [str(current)])
         except Exception as e:
@@ -222,7 +233,7 @@ class UpdateService(QObject):
             if backup.exists():
                 backup.replace(current)
             return False
-        return True  # pragma: no cover — execv replaces the process
+        return True  # pragma: no cover -- execv replaces the process
 
     @staticmethod
     def _is_newer(available: str) -> bool:

@@ -2,10 +2,10 @@
 
 [project]
 name = "steam-library-manager"
-version = "1.2.4"
+version = "1.2.5"
 description = "A powerful Steam library organizer for Linux - the modern Depressurizer alternative"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 requires-python = ">=3.10"
 authors = [{ name = "SwitchBros" }]
 keywords = ["steam", "games", "library", "manager", "linux", "pyqt6", "depressurizer"]
@@ -13,7 +13,6 @@ classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: X11 Applications :: Qt",
     "Intended Audience :: End Users/Desktop",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
