@@ -332,6 +332,12 @@ AppImage users get seamless in-app updates — no manual downloads, no terminal 
 | 📦 **Flatpak** | *Pending Flathub review* | Sandboxed, auto-updates |
 | 🏗️ **AUR** | `yay -S steam-library-manager` | Arch / Manjaro / CachyOS / EndeavourOS |
 
+<p align="center"><b>Runs great on Steam Deck</b> — tested on both LCD and OLED models.<br>The interface automatically adapts to smaller displays.</p>
+
+<p align="center">
+  <img src="steam_library_manager/resources/screenshots/19_steam_deck.webp" alt="Steam Library Manager running on Steam Deck" width="700">
+</p>
+
 <details>
 <summary>🔧 Build from source (for developers)</summary>
 
