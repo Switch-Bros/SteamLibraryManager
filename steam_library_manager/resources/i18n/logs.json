@@ -23,7 +23,9 @@
       "found_flatpak": "Found Flatpak Steam: {path}",
       "found_native": "Found Native Steam: {path}",
       "not_found": "Steam installation not found!",
-      "library_folders_detected": "Detected {count} library folders"
+      "library_folders_detected": "Detected {count} library folders",
+      "removed_dead_libraries": "Removed {count} dead library path(s) from settings.",
+      "added_new_libraries": "Added {count} new library path(s) from Steam."
     },
     "data_load": {
       "game_service_not_initialized": "GameService not initialized, cannot load games"

@@ -118,6 +118,10 @@ class Config:
         if not self.STEAM_LIBRARIES and self.STEAM_PATH:
             self.STEAM_LIBRARIES = self._detect_library_folders()
 
+        # Always sync: remove dead paths, add new ones from Steam
+        if self.STEAM_PATH:
+            self._sync_library_folders()
+
     @property
     def installation_type(self) -> str:
         """
@@ -308,6 +312,53 @@ class Config:
 
         logger.warning(t("logs.config.not_found"))
         return None
+
+    def _sync_library_folders(self) -> None:
+        """Synchronize saved library folders with Steam's libraryfolders.vdf.
+
+        Removes saved paths that no longer exist on disk and adds any new
+        paths that Steam reports but SLM doesn't know about yet.
+        Saves config if changes were made.
+        """
+        detected = self._detect_library_folders()
+        if not detected:
+            return
+
+        saved_set = set(self.STEAM_LIBRARIES)
+        detected_set = set(detected)
+
+        # Remove paths that no longer exist on disk
+        dead_paths = {p for p in saved_set if not Path(p).exists()}
+
+        # Add paths Steam knows about that we don't have — only if they exist on disk
+        # (Steam keeps dead paths in libraryfolders.vdf until manually removed)
+        new_paths = {p for p in detected_set - saved_set if Path(p).exists()}
+
+        if not dead_paths and not new_paths:
+            return
+
+        # Apply changes
+        updated = [p for p in self.STEAM_LIBRARIES if p not in dead_paths]
+        for p in sorted(new_paths):
+            if p not in updated:
+                updated.append(p)
+
+        if dead_paths:
+            logger.info(
+                t("logs.config.removed_dead_libraries", count=len(dead_paths)),
+            )
+            for p in sorted(dead_paths):
+                logger.info("  Removed: %s", p)
+
+        if new_paths:
+            logger.info(
+                t("logs.config.added_new_libraries", count=len(new_paths)),
+            )
+            for p in sorted(new_paths):
+                logger.info("  Added: %s", p)
+
+        self.STEAM_LIBRARIES = updated
+        self.save()
 
     def _detect_library_folders(self) -> list[str]:
         """Parses libraryfolders.vdf to find all steam library paths."""
