@@ -416,6 +416,11 @@ Dieses Projekt nutzt folgende Dienste:
 | Externe Spiele (8 Parser), ProtonDB, Kuratoren | ✅ Fertig |
 | UI-Polish, Keyboard Shortcuts, Dokumentation | ✅ Fertig |
 | **v1.1.1 — Erste öffentliche Veröffentlichung** | ✅ **Veröffentlicht** |
+| **v1.2.0 — Modul-Umbenennung, AUR-Paket** | ✅ **Veröffentlicht** |
+| Steam Deck responsive UI | ✅ Fertig |
+| Library Auto-Sync | ✅ Fertig |
+| Multi-Format Packaging (.deb, .rpm, tar.gz) | ✅ Fertig |
+| **v1.2.4 — Steam Deck + Packaging Release** | ✅ **Veröffentlicht** |
 | Packaging (AppImage, AUR, Flatpak) | 🔄 Flatpak-Review ausstehend |
 | Windows-Unterstützung | 📋 Geplant |
 
