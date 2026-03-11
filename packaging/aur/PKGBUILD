@@ -41,7 +41,7 @@ optdepends=(
     'python-steamgriddb: artwork browsing via SteamGridDB'
 )
 source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
-sha256sums=('SKIP')  # TODO: update after v1.2.4 tag is pushed
+sha256sums=('723c676324880ea773eb7d7673869c9613382e4f426133e25162123a730e1ff3')
 
 build() {
     cd "SteamLibraryManager-$pkgver"

@@ -40,7 +40,7 @@ jobs:
 
     - name: Install build tools
       run: |
-        pip install build installer
+        pip install build installer setuptools wheel
         pip install -r requirements-user.txt
 
     - name: Build .deb

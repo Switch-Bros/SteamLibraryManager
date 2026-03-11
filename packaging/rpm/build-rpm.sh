@@ -11,9 +11,11 @@ echo "Building .rpm for SteamLibraryManager v${VERSION}..."
 # Create rpmbuild tree
 mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
 
-# Create source tarball
-git archive --format=tar.gz --prefix="SteamLibraryManager-${VERSION}/" \
-    -o ~/rpmbuild/SOURCES/steam-library-manager-${VERSION}.tar.gz HEAD
+# Create source tarball (tar from working dir — git archive not available in containers)
+tar czf ~/rpmbuild/SOURCES/steam-library-manager-${VERSION}.tar.gz \
+    --transform "s,^\\.,SteamLibraryManager-${VERSION}," \
+    --exclude='.git' --exclude='dist' --exclude='__pycache__' --exclude='*.egg-info' \
+    .
 
 # Copy spec (with version substitution)
 sed "s/^Version:.*/Version:        ${VERSION}/" \
