@@ -20,7 +20,7 @@ jobs:
         python-version: "3.12"
 
     - name: Install build tools
-      run: pip install build installer
+      run: pip install build installer setuptools wheel
 
     - name: Build tar.gz
       run: bash packaging/tarball/build-tarball.sh
