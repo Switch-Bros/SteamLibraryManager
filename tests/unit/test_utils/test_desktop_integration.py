@@ -155,7 +155,7 @@ class TestInstallDesktopEntry:
         assert f"Icon={DESKTOP_ID}" in content
         assert "Terminal=false" in content
         assert "Categories=Game;Utility;" in content
-        assert "StartupWMClass=SteamLibraryManager" in content
+        assert f"StartupWMClass={DESKTOP_ID}" in content
 
 
 class TestUninstallDesktopEntry:

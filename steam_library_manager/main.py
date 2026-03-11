@@ -152,6 +152,9 @@ def main() -> None:
     setup_logging()
 
     # 3. Create QApplication
+    # Set WM_CLASS via argv[0] so X11 docks (Cairo, Plank) can match the window.
+    # Must match StartupWMClass in the .desktop file.
+    sys.argv[0] = "io.github.switch_bros.SteamLibraryManager"
     app = QApplication(sys.argv)
     app.setApplicationName("Steam Library Manager")
     app.setDesktopFileName("io.github.switch_bros.SteamLibraryManager")

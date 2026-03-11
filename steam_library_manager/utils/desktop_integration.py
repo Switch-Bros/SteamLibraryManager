@@ -43,7 +43,7 @@ Terminal=false
 Categories=Game;Utility;
 Keywords=steam;games;library;manager;categories;collections;protondb;deck;depressurizer;
 StartupNotify=true
-StartupWMClass=SteamLibraryManager
+StartupWMClass=io.github.switch_bros.SteamLibraryManager
 """
 
 

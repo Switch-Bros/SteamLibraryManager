@@ -5,6 +5,13 @@ All notable changes to Steam Library Manager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.6] - 2026-03-12
+
+### Fixed
+- **Dock Integration:** Unified StartupWMClass across all .desktop files
+  to match Wayland app_id (io.github.switch_bros.SteamLibraryManager).
+  Fixes Cairo Dock, Plank, and other docks not recognizing the app window.
+
 ## [1.2.5] - 2026-03-11
 
 ### Fixed
