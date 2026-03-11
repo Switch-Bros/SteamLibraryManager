@@ -1,7 +1,7 @@
 # .github/workflows/publish-release.yml
 #
 # Triggered on version tag push (v*.*.*).
-# Validates version consistency, runs tests, builds AppImage,
+# Validates version consistency, runs tests, builds all packages,
 # and creates a GitHub Release with artifacts + checksums.
 name: Publish Release
 
@@ -43,8 +43,12 @@ jobs:
     needs: test
     uses: ./.github/workflows/build-appimage.yml
 
+  build-packages:
+    needs: test
+    uses: ./.github/workflows/build-packages.yml
+
   create-release:
-    needs: [build-appimage]
+    needs: [build-appimage, build-packages]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -61,12 +65,33 @@ jobs:
       with:
         name: SteamLibraryManager-AppImage
 
+    - uses: actions/download-artifact@v4
+      with:
+        name: SteamLibraryManager-tarball
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: SteamLibraryManager-deb
+
+    - uses: actions/download-artifact@v4
+      with:
+        name: SteamLibraryManager-rpm
+
     - name: Generate checksums
-      run: sha256sum SteamLibraryManager-*.AppImage > SHA256SUMS.txt
+      run: |
+        sha256sum \
+          SteamLibraryManager-*.AppImage \
+          SteamLibraryManager-*-linux-x86_64.tar.gz \
+          steam-library-manager_*.deb \
+          steam-library-manager-*.rpm \
+          > SHA256SUMS.txt
 
     - uses: softprops/action-gh-release@v2
       with:
         body_path: release_notes.md
         files: |
           SteamLibraryManager-*.AppImage
+          SteamLibraryManager-*-linux-x86_64.tar.gz
+          steam-library-manager_*.deb
+          steam-library-manager-*.rpm
           SHA256SUMS.txt

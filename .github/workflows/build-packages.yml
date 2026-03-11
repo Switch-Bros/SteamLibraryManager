@@ -1,0 +1,72 @@
+# .github/workflows/build-packages.yml
+#
+# Builds tar.gz, .deb, and .rpm packages.
+# Can be triggered manually, called by other workflows, or on release.
+name: Build Packages
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  release:
+    types: [published]
+
+jobs:
+  build-tarball:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install build tools
+      run: pip install build installer
+
+    - name: Build tar.gz
+      run: bash packaging/tarball/build-tarball.sh
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: SteamLibraryManager-tarball
+        path: dist/SteamLibraryManager-*-linux-x86_64.tar.gz
+
+  build-deb:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install build tools
+      run: |
+        pip install build installer
+        pip install -r requirements-user.txt
+
+    - name: Build .deb
+      run: bash packaging/deb/build-deb.sh
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: SteamLibraryManager-deb
+        path: dist/steam-library-manager_*.deb
+
+  build-rpm:
+    runs-on: ubuntu-22.04
+    container:
+      image: fedora:latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install build tools
+      run: |
+        dnf install -y python3-devel python3-build python3-installer \
+          python3-setuptools python3-wheel rpm-build git
+
+    - name: Build .rpm
+      run: bash packaging/rpm/build-rpm.sh
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: SteamLibraryManager-rpm
+        path: ~/rpmbuild/RPMS/noarch/steam-library-manager-*.rpm
