@@ -424,6 +424,8 @@ This project uses the following services:
 | Library Auto-Sync | ✅ Complete |
 | Multi-format packaging (.deb, .rpm, tar.gz) | ✅ Complete |
 | **v1.2.4 - Steam Deck + packaging release** | ✅ **Released** |
+| **v1.2.5 - AppImage update fix** | ✅ **Released** |
+| **v1.2.6 - Dock integration fix** | ✅ **Released** |
 | Packaging (AppImage, AUR, Flatpak) | 🔄 Flatpak pending review |
 | Windows support | 📋 Planned |
 
