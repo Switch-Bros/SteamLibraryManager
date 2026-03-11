@@ -446,7 +446,7 @@ The language name must always be in its **own native script** — "Français", n
 - 🐛 **Found a bug?** → [Open an Issue](https://github.com/Switch-Bros/SteamLibraryManager/issues)
 - 💡 **Have an idea?** → [Start a Discussion](https://github.com/Switch-Bros/SteamLibraryManager/discussions)
 - 🌍 **Speak another language?** → [Help translate!](#-translations)
-- 🔧 **Want to code?** → Check out [`CLAUDE.md`](CLAUDE.md) for architecture & coding guidelines
+- 🔧 **Want to code?** → Fork the repo, check the issues, and submit a PR
 
 
 <h2 align="center">🙏 Acknowledgments</h2>

@@ -446,7 +446,7 @@ Der Sprachname muss immer in der **eigenen Originalschrift** stehen — "Türkç
 - 🐛 **Bug gefunden?** → [Issue erstellen](https://github.com/Switch-Bros/SteamLibraryManager/issues)
 - 💡 **Idee?** → [Diskussion starten](https://github.com/Switch-Bros/SteamLibraryManager/discussions)
 - 🌍 **Sprichst du eine andere Sprache?** → [Hilf beim Übersetzen!](#-übersetzungen)
-- 🔧 **Willst du coden?** → Schau dir [`CLAUDE.md`](CLAUDE.md) für Architektur- & Coding-Guidelines an
+- 🔧 **Willst du coden?** → Fork das Repo, schau dir die Issues an und erstelle einen PR
 
 
 <h2 align="center">🙏 Danksagungen</h2>

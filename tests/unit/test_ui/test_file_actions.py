@@ -72,8 +72,9 @@ class TestRefreshData:
 class TestForceSave:
     """Tests for force_save() method."""
 
+    @patch("steam_library_manager.core.steam_account_scanner.is_steam_running", return_value=False)
     @patch("steam_library_manager.ui.actions.file_actions.UIHelper")
-    def test_force_save_saves_and_shows_success(self, mock_helper, file_actions, mock_main_window):
+    def test_force_save_saves_and_shows_success(self, mock_helper, _mock_running, file_actions, mock_main_window):
         """Should save collections and show success message."""
         # Execute
         file_actions.force_save()
@@ -82,9 +83,10 @@ class TestForceSave:
         mock_main_window.save_collections.assert_called_once()
         mock_helper.show_success.assert_called_once()
 
+    @patch("steam_library_manager.core.steam_account_scanner.is_steam_running", return_value=False)
     @patch("steam_library_manager.ui.actions.file_actions.UIHelper")
     @patch("steam_library_manager.ui.actions.file_actions.t")
-    def test_force_save_uses_i18n(self, mock_t, mock_helper, file_actions, mock_main_window):
+    def test_force_save_uses_i18n(self, mock_t, mock_helper, _mock_running, file_actions, mock_main_window):
         """Should use t() for success message."""
         # Setup
         mock_t.return_value = "TRANSLATED"
@@ -270,8 +272,9 @@ class TestEdgeCases:
         assert actions1 != actions2
         assert actions1.mw == actions2.mw  # But share same MainWindow
 
+    @patch("steam_library_manager.core.steam_account_scanner.is_steam_running", return_value=False)
     @patch("steam_library_manager.ui.actions.file_actions.UIHelper")
-    def test_force_save_with_exception_propagates(self, _mock_helper, file_actions, mock_main_window):
+    def test_force_save_with_exception_propagates(self, _mock_helper, _mock_running, file_actions, mock_main_window):
         """Should propagate exceptions during save (by design)."""
         # Setup
         mock_main_window.save_collections.side_effect = RuntimeError("Save failed")
