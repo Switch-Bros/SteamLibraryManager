@@ -248,7 +248,7 @@ Entwickelt mit **PyQt6** für nahtlose Desktop-Integration. Das ist keine Window
 
 - **Steam Deck kompatibel** — funktioniert im Desktop-Modus
 - **Wayland & X11** unterstützt
-- **AppImage, Flatpak & AUR** Pakete verfügbar
+- **AppImage, Flatpak, AUR, .deb, .rpm & tar.gz** Pakete verfügbar
 - Windows-Unterstützung ist geplant — aber Linux hat immer Vorrang
 
 <p align="center">
@@ -331,6 +331,9 @@ AppImage-Nutzer bekommen nahtlose In-App-Updates — kein manuelles Herunterlade
 | 🐧 **AppImage** | [Neueste Version](https://github.com/Switch-Bros/SteamLibraryManager/releases) | Funktioniert auf jeder Distro — herunterladen, chmod +x, starten |
 | 📦 **Flatpak** | *Flathub-Review ausstehend* | Sandboxed, Auto-Updates |
 | 🏗️ **AUR** | `yay -S steam-library-manager` | Arch / Manjaro / CachyOS / EndeavourOS |
+| 🎩 **.rpm** | [Neueste Version](https://github.com/Switch-Bros/SteamLibraryManager/releases) | Fedora / openSUSE |
+| 🍥 **.deb** | [Neueste Version](https://github.com/Switch-Bros/SteamLibraryManager/releases) | Debian / Ubuntu / Linux Mint |
+| 📁 **tar.gz** | [Neueste Version](https://github.com/Switch-Bros/SteamLibraryManager/releases) | Portabel mit Install-Skript |
 
 <p align="center"><b>Läuft hervorragend auf dem Steam Deck</b> — getestet auf LCD und OLED.<br>Die Oberfläche passt sich automatisch an kleinere Displays an.</p>
 
