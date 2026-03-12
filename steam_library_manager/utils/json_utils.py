@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any
 
@@ -39,13 +40,14 @@ def load_json(path: Path, default: Any = None) -> Any:
         return default
 
 
-def save_json(path: Path, data: Any, ensure_parents: bool = True) -> bool:
+def save_json(path: Path, data: Any, ensure_parents: bool = True, restrict_permissions: bool = False) -> bool:
     """Save data as JSON with unified error handling.
 
     Args:
         path: Target file path.
         data: Data to serialize as JSON.
         ensure_parents: Create parent directories if needed.
+        restrict_permissions: Set file to owner-only (0o600) for sensitive data.
 
     Returns:
         True on success, False on failure.
@@ -55,6 +57,8 @@ def save_json(path: Path, data: Any, ensure_parents: bool = True) -> bool:
             path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
+        if restrict_permissions:
+            os.chmod(path, 0o600)
         return True
     except OSError as exc:
         logger.error("Failed to save JSON to %s: %s", path, exc)

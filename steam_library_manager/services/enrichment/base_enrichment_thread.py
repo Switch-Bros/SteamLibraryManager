@@ -71,9 +71,21 @@ class BaseEnrichmentThread(QThread):
                 )
 
                 try:
-                    if self._process_item(item):
-                        success += 1
-                    else:
+                    processed = False
+                    for attempt in range(3):
+                        try:
+                            if self._process_item(item):
+                                success += 1
+                            else:
+                                failed += 1
+                            processed = True
+                            break
+                        except Exception as exc:
+                            if "locked" in str(exc) and attempt < 2:
+                                time.sleep(2)
+                                continue
+                            raise
+                    if not processed:
                         failed += 1
                 except Exception as exc:
                     logger.warning("Enrichment failed for item %r: %s", item, exc)

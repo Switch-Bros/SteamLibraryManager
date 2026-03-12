@@ -418,7 +418,12 @@ class GameService:
             return new_app_ids
 
         except Exception as e:
-            logger.warning("API refresh failed (non-fatal): %s", e)
+            # Sanitize error message to avoid leaking access token in logs
+            if isinstance(e, requests.HTTPError) and e.response is not None:
+                safe_msg = f"HTTP {e.response.status_code}"
+            else:
+                safe_msg = type(e).__name__
+            logger.warning("API refresh failed (non-fatal): %s", safe_msg)
             return []
 
     def _save_new_games_to_db(self, new_app_ids: list[str]) -> None:

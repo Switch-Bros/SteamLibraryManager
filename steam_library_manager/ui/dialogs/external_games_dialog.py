@@ -230,6 +230,13 @@ class ExternalGamesDialog(BaseDialog):
 
         layout.addLayout(btn_layout)
 
+    def closeEvent(self, event) -> None:  # type: ignore[override]
+        """Waits for background threads to finish before closing."""
+        for thread in (self._scan_thread, self._add_thread):
+            if thread and thread.isRunning():
+                thread.wait(5000)
+        super().closeEvent(event)
+
     # ------------------------------------------------------------------
     # Scanning
     # ------------------------------------------------------------------

@@ -279,7 +279,12 @@ class TokenStore:
                 logger.info(t("logs.auth.get_owned_games_status", status=response.status_code))
 
         except Exception as e:
-            logger.error(t("logs.auth.steamid_from_token_error", error=str(e)))
+            # Sanitize error message to avoid leaking access token in logs
+            if isinstance(e, requests.HTTPError) and e.response is not None:
+                safe_msg = f"HTTP {e.response.status_code}"
+            else:
+                safe_msg = type(e).__name__
+            logger.error(t("logs.auth.steamid_from_token_error", error=safe_msg))
 
         # Method 2: Fallback — decode JWT token
         try:
@@ -462,6 +467,7 @@ class TokenStore:
         self.token_file.parent.mkdir(parents=True, exist_ok=True)
         with open(self.token_file, "w", encoding="utf-8") as f:
             json.dump(envelope, f)
+        self.token_file.chmod(0o600)
 
         logger.info(t("logs.auth.token_saved"))
         return True

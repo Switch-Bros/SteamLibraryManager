@@ -132,3 +132,10 @@ class PEGIEnrichmentThread(BaseEnrichmentThread):
         """
         _app_id, name = item
         return t("ui.enrichment.progress", name=name, current=current, total=total)
+
+    def _rate_limit(self) -> None:
+        """No delay needed — SteamStoreScraper has its own internal rate limit.
+
+        Most games are skipped instantly (already rated by batch API).
+        Only gap-fill HTTP requests are rate-limited by the scraper itself.
+        """

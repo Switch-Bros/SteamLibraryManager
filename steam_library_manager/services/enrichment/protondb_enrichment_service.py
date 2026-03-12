@@ -122,5 +122,9 @@ class ProtonDBEnrichmentThread(BaseEnrichmentThread):
         return t("ui.enrichment.progress", name=name, current=current, total=total)
 
     def _rate_limit(self) -> None:
-        """Sleeps 500ms between ProtonDB requests."""
-        time.sleep(0.5)
+        """Sleeps 200ms between ProtonDB requests.
+
+        ProtonDB is an open community database with no known rate limits.
+        If 429 errors occur, increase back to 0.5.
+        """
+        time.sleep(0.2)

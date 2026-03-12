@@ -685,9 +685,11 @@ class MenuBuilder:
                 from steam_library_manager.core.database import Database
 
                 temp_db = Database(db_path)
-                for c in temp_db.get_all_curators():
-                    curator_names[c["curator_id"]] = c["name"]
-                temp_db.close()
+                try:
+                    for c in temp_db.get_all_curators():
+                        curator_names[c["curator_id"]] = c["name"]
+                finally:
+                    temp_db.close()
         except Exception:
             pass
 

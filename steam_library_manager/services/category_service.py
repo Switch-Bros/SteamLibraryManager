@@ -13,7 +13,6 @@ from __future__ import annotations
 from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
 from steam_library_manager.core.game_manager import GameManager
 from steam_library_manager.core.localconfig_helper import LocalConfigHelper
-from steam_library_manager.ui.widgets.ui_helper import UIHelper
 from steam_library_manager.utils.i18n import t
 
 __all__ = ["CategoryService"]
@@ -136,30 +135,16 @@ class CategoryService:
 
         return True
 
-    def check_empty_collection(self, category_name: str, parent_window=None) -> bool:
-        """Check if collection is empty and ask user if it should be deleted.
+    def is_collection_empty(self, category_name: str) -> bool:
+        """Check if a collection has no games.
 
         Args:
-            category_name: Name of the collection to check
-            parent_window: Parent window for dialog (optional)
+            category_name: Name of the collection to check.
 
         Returns:
-            bool: True if collection was deleted, False otherwise
+            True if the collection is empty.
         """
-        games_in_category = self.game_manager.get_games_by_category(category_name)
-
-        if len(games_in_category) == 0:
-            confirmed = UIHelper.confirm(
-                parent_window,
-                t("ui.dialog.empty_collection_message", name=category_name),
-                title=t("ui.dialog.empty_collection_title"),
-            )
-
-            if confirmed:
-                self.delete_category(category_name)
-                return True
-
-        return False
+        return len(self.game_manager.get_games_by_category(category_name)) == 0
 
     def merge_categories(self, categories: list[str], target_category: str) -> bool:
         """

@@ -84,8 +84,8 @@ class AchievementEnrichmentThread(BaseEnrichmentThread):
         if self._db:
             try:
                 self._db.commit()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Failed to commit in cleanup: %s", e)
             self._db.close()
             self._db = None
 
@@ -148,6 +148,7 @@ class AchievementEnrichmentThread(BaseEnrichmentThread):
         if not schema_achievements:
             # Game has no achievements — record total=0 to avoid re-fetching
             db.upsert_achievement_stats(app_id, 0, 0, 0.0, False)
+            db.commit()
             return True
 
         total = len(schema_achievements)
@@ -199,8 +200,9 @@ class AchievementEnrichmentThread(BaseEnrichmentThread):
         completion_pct = (unlocked_count / total * 100) if total > 0 else 0.0
         perfect = unlocked_count == total and total > 0
 
-        # 6. Write to DB
+        # 6. Write to DB and commit immediately (release write lock for other threads)
         db.upsert_achievements(app_id, achievement_records)
         db.upsert_achievement_stats(app_id, total, unlocked_count, completion_pct, perfect)
+        db.commit()
 
         return True

@@ -325,9 +325,8 @@ class EnrichmentThread(BaseEnrichmentThread):
                                 [(aid, tg) for tg in details.tags],
                             )
 
+                        db.conn.commit()
                         success += 1
-
-                    db.conn.commit()
 
                 except Exception as exc:
                     logger.warning("Steam API batch failed: %s", exc)

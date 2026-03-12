@@ -13,6 +13,7 @@ from __future__ import annotations
 import logging
 import random
 import re
+import threading
 import time
 
 import requests
@@ -88,6 +89,7 @@ class HLTBClient:
         self._build_id: str = ""
         self._cache_time: float = 0.0
         self._id_cache: dict[int, int] = {}  # steam_app_id → hltb_game_id
+        self._lock = threading.Lock()
 
     @staticmethod
     def is_available() -> bool:
@@ -353,6 +355,7 @@ class HLTBClient:
         """Discovers the API endpoint and obtains an auth token if needed.
 
         Also extracts the Next.js buildId for game-by-ID fetching.
+        Thread-safe: uses a lock to prevent concurrent discovery races.
 
         Returns:
             True if the API endpoint and token are ready.
@@ -361,36 +364,42 @@ class HLTBClient:
         if self._api_path and self._auth_token and (now - self._cache_time) < _CACHE_TTL:
             return True
 
-        # Rotate User-Agent
-        self._session.headers["User-Agent"] = random.choice(_USER_AGENTS)
+        with self._lock:
+            # Double-check after acquiring lock
+            now = time.time()
+            if self._api_path and self._auth_token and (now - self._cache_time) < _CACHE_TTL:
+                return True
 
-        try:
-            homepage_html = self._fetch_homepage()
-            if not homepage_html:
+            # Rotate User-Agent
+            self._session.headers["User-Agent"] = random.choice(_USER_AGENTS)
+
+            try:
+                homepage_html = self._fetch_homepage()
+                if not homepage_html:
+                    return False
+
+                api_path = self._discover_endpoint(homepage_html)
+                if not api_path:
+                    logger.error("Failed to discover HLTB API endpoint")
+                    return False
+
+                auth_token = self._get_auth_token(api_path)
+                if not auth_token:
+                    logger.error("Failed to obtain HLTB auth token")
+                    return False
+
+                build_id = self._discover_build_id(homepage_html)
+
+                self._api_path = api_path
+                self._auth_token = auth_token
+                self._build_id = build_id
+                self._cache_time = now
+                logger.info("HLTB API ready: /api/%s (buildId=%s)", api_path, build_id or "N/A")
+                return True
+
+            except Exception as exc:
+                logger.error("HLTB API initialization failed: %s", exc)
                 return False
-
-            api_path = self._discover_endpoint(homepage_html)
-            if not api_path:
-                logger.error("Failed to discover HLTB API endpoint")
-                return False
-
-            auth_token = self._get_auth_token(api_path)
-            if not auth_token:
-                logger.error("Failed to obtain HLTB auth token")
-                return False
-
-            build_id = self._discover_build_id(homepage_html)
-
-            self._api_path = api_path
-            self._auth_token = auth_token
-            self._build_id = build_id
-            self._cache_time = now
-            logger.info("HLTB API ready: /api/%s (buildId=%s)", api_path, build_id or "N/A")
-            return True
-
-        except Exception as exc:
-            logger.error("HLTB API initialization failed: %s", exc)
-            return False
 
     def _fetch_homepage(self) -> str:
         """Fetches the HLTB homepage HTML.
@@ -434,7 +443,8 @@ class HLTBClient:
                 js_resp = self._session.get(url, timeout=15)
                 js_resp.raise_for_status()
                 js_text = js_resp.text
-            except Exception:
+            except Exception as exc:
+                logger.debug("Failed to fetch HLTB JS chunk: %s", type(exc).__name__)
                 continue
 
             # Look for /api/<path>/init pattern — this identifies the search endpoint

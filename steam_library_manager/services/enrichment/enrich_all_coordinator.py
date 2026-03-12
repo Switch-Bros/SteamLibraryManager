@@ -34,11 +34,12 @@ class EnrichAllCoordinator(QObject):
     """Coordinates parallel execution of all enrichment tracks.
 
     Phase 0: Tag import (runs first, then triggers Phase 1).
-    Phase 1: Four parallel tracks run simultaneously:
-        - Steam API (metadata then achievements, sequential within track)
+    Phase 1: Parallel tracks run simultaneously:
+        - Steam API (metadata -> achievements -> PEGI gap filler, chained)
         - HLTB
         - ProtonDB
         - Deck status
+        - Curator recommendations
 
     Attributes:
         track_progress: Per-track progress (track_name, current, total).
@@ -212,13 +213,16 @@ class EnrichAllCoordinator(QObject):
         else:
             self.track_finished.emit(TRACK_DECK, -1, 0)
 
-        # Track E: PEGI age ratings
-        if self._games_pegi and self._db_path:
-            self._pending_tracks += 1
-            self._start_pegi_track()
-        else:
+        # Track E: PEGI age ratings — chained after Steam API track
+        # (batch API fills most PEGI values, gap filler handles the rest)
+        # Only emit skip if PEGI has no data OR Steam track won't chain it
+        if not (self._games_pegi and self._db_path):
             self._results[TRACK_PEGI] = (-1, 0)
             self.track_finished.emit(TRACK_PEGI, -1, 0)
+        elif not (self._api_key and self._games_db and self._db_path):
+            # Steam track won't run, so PEGI won't be chained — run it directly
+            self._pending_tracks += 1
+            self._start_pegi_track()
 
         # Track G: Curator recommendations
         if self._db_path:
@@ -312,6 +316,9 @@ class EnrichAllCoordinator(QObject):
     ) -> None:
         """Handles completion of the full Steam track.
 
+        After Steam finishes, chains to PEGI gap filler (Track E) which
+        only fetches ratings for games the batch API missed.
+
         Args:
             meta_success: Metadata phase success count.
             meta_failed: Metadata phase fail count.
@@ -322,6 +329,16 @@ class EnrichAllCoordinator(QObject):
         total_failed = meta_failed + ach_failed
         self._results[TRACK_STEAM] = (total_success, total_failed)
         self.track_finished.emit(TRACK_STEAM, total_success, total_failed)
+
+        # Chain PEGI gap filler after Steam API (batch already filled most)
+        if not self._cancelled and self._games_pegi and self._db_path:
+            self._pending_tracks += 1
+            self._start_pegi_track()
+        elif self._games_pegi and self._db_path:
+            # Cancelled — report PEGI as skipped and count it as complete
+            self._results[TRACK_PEGI] = (0, 0)
+            self.track_finished.emit(TRACK_PEGI, 0, 0)
+
         self._on_track_complete()
 
     # -- Track B: HLTB ------------------------------------------------
@@ -375,7 +392,10 @@ class EnrichAllCoordinator(QObject):
     # -- Track E: PEGI age ratings --------------------------------------
 
     def _start_pegi_track(self) -> None:
-        """Starts PEGI age rating enrichment track."""
+        """Starts PEGI age rating gap filler (runs after Steam API track).
+
+        force_refresh=False so it skips games already rated by the batch API.
+        """
         from steam_library_manager.services.enrichment.pegi_enrichment_service import (
             PEGIEnrichmentThread,
         )
@@ -385,7 +405,7 @@ class EnrichAllCoordinator(QObject):
             self._games_pegi,
             self._db_path,  # type: ignore[arg-type]
             language=self._language,
-            force_refresh=True,
+            force_refresh=False,
         )
         self._wire_and_start_track(TRACK_PEGI, thread)
 
@@ -419,9 +439,11 @@ class EnrichAllCoordinator(QObject):
 
         try:
             db = Database(self._db_path)  # type: ignore[arg-type]
-            curators = db.get_all_curators()
-            db.close()
-            return curators
+            try:
+                curators = db.get_all_curators()
+                return curators
+            finally:
+                db.close()
         except Exception as exc:
             logger.warning("Failed to query curators: %s", exc)
             return []

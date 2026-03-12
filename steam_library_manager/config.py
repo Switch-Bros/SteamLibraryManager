@@ -232,7 +232,7 @@ class Config:
             "update_skipped_version": self.UPDATE_SKIPPED_VERSION,
         }
 
-        save_json(self.SETTINGS_FILE, data)
+        save_json(self.SETTINGS_FILE, data, restrict_permissions=True)
 
     def update_paths(self, **kwargs) -> None:
         """Update paths and save configuration."""
