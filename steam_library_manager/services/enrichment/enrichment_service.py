@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from steam_library_manager.services.enrichment.base_enrichment_thread import BaseEnrichmentThread
+from steam_library_manager.utils.age_ratings import convert_to_pegi
 from steam_library_manager.utils.i18n import t
 
 if TYPE_CHECKING:
@@ -283,6 +284,32 @@ class EnrichmentThread(BaseEnrichmentThread):
                                 for lang in details.languages
                             }
                             db.upsert_languages(aid, lang_dict)
+
+                        # Extract PEGI from batch age_ratings (zero extra HTTP requests)
+                        if details.age_ratings:
+                            pegi_value = None
+                            for system, value in details.age_ratings:
+                                if system.upper() == "PEGI":
+                                    pegi_value = str(value)
+                                    break
+                                mapped = convert_to_pegi(value, system)
+                                if mapped:
+                                    pegi_value = mapped
+                                    break
+
+                            if pegi_value:
+                                db.conn.execute(
+                                    "UPDATE games SET pegi_rating = ? WHERE app_id = ?",
+                                    (pegi_value, aid),
+                                )
+
+                            for system, value in details.age_ratings:
+                                db.conn.execute(
+                                    """INSERT OR REPLACE INTO age_ratings
+                                       (app_id, rating_system, rating_value, source, fetched_at)
+                                       VALUES (?, ?, ?, 'api', ?)""",
+                                    (aid, system, str(value), int(time.time())),
+                                )
 
                         if details.genres:
                             db.conn.execute("DELETE FROM game_genres WHERE app_id = ?", (aid,))

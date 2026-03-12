@@ -160,6 +160,67 @@ class TestCuratorClientHTMLParsing:
         assert result[440] == CuratorRecommendation.RECOMMENDED
 
 
+class TestCuratorClientTopCurators:
+    """Tests for the fetch_top_curators method."""
+
+    @patch("steam_library_manager.services.curator_client.urlopen")
+    def test_fetch_top_curators_handles_empty_html(self, mock_urlopen: MagicMock) -> None:
+        """Empty HTML response returns empty list, no crash."""
+        import json
+
+        response_data = {"success": 1, "results_html": ""}
+        mock_response = MagicMock()
+        mock_response.read.return_value = json.dumps(response_data).encode("utf-8")
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
+        mock_response.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_response
+
+        result = CuratorClient.fetch_top_curators()
+        assert result == []
+
+    @patch("steam_library_manager.services.curator_client.urlopen")
+    def test_fetch_top_curators_parses_js_variable(self, mock_urlopen: MagicMock) -> None:
+        """Curators are extracted from g_rgTopCurators JS variable."""
+        import json
+
+        curators_js = json.dumps(
+            [
+                {"clanID": "12345", "name": "Test Curator"},
+                {"clanID": "67890", "name": "Another Curator"},
+            ]
+        )
+        html = f"<script>var g_rgTopCurators = {curators_js};</script>"
+        response_data = {"success": 1, "results_html": html}
+
+        mock_response = MagicMock()
+        mock_response.read.return_value = json.dumps(response_data).encode("utf-8")
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
+        mock_response.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_response
+
+        result = CuratorClient.fetch_top_curators()
+        assert len(result) == 2
+        assert result[0] == {"curator_id": 12345, "name": "Test Curator"}
+        assert result[1] == {"curator_id": 67890, "name": "Another Curator"}
+
+    @patch("steam_library_manager.services.curator_client.urlopen")
+    def test_fetch_top_curators_handles_malformed_json(self, mock_urlopen: MagicMock) -> None:
+        """Malformed JSON in g_rgTopCurators returns empty list."""
+        import json
+
+        html = '<script>var g_rgTopCurators = [{"broken];</script>'
+        response_data = {"success": 1, "results_html": html}
+
+        mock_response = MagicMock()
+        mock_response.read.return_value = json.dumps(response_data).encode("utf-8")
+        mock_response.__enter__ = MagicMock(return_value=mock_response)
+        mock_response.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_response
+
+        result = CuratorClient.fetch_top_curators()
+        assert result == []
+
+
 class TestCuratorClientFetch:
     """Tests for the fetch_recommendations method."""
 

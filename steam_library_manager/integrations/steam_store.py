@@ -65,7 +65,7 @@ class SteamStoreScraper:
         self.language_code = language
         self.steam_language = self.STEAM_LANGUAGES.get(language, "english")
         self.last_request_time = 0.0
-        self.min_request_interval = 1.5  # Rate limit: 1.5 seconds between requests
+        self.min_request_interval = 1.0  # Reduced from 1.5 — Steam tolerates 1.0
 
         # Tag blacklist (common but unhelpful tags)
         self.tag_blacklist = {
@@ -180,9 +180,9 @@ class SteamStoreScraper:
         """
         Fetches age rating from Steam Store.
 
-        Priority: HTML scraping FIRST (most reliable!), then API fallback.
-        HTML scraping reads directly from Steam Store page and is more accurate
-        than the API. Results are cached for 30 days.
+        Priority: API first (fast JSON), HTML scraping as fallback.
+        Most games get their PEGI from the batch Steam API enrichment pass;
+        this method is only used as a gap filler. Results are cached for 30 days.
 
         Args:
             app_id (str): The Steam app ID.
@@ -201,12 +201,12 @@ class SteamStoreScraper:
         # 2. Rate Limiting
         self._rate_limit()
 
-        # 3. Try HTML scraping FIRST (most reliable!)
-        pegi_rating = self._fetch_age_rating_from_html(app_id)
+        # 3. Try API first (fast JSON parse, no age-gate issues)
+        pegi_rating = self._fetch_age_rating_from_api(app_id)
 
-        # 4. Fallback to API if HTML fails
+        # 4. Fallback to HTML scraping if API has no data
         if not pegi_rating:
-            pegi_rating = self._fetch_age_rating_from_api(app_id)
+            pegi_rating = self._fetch_age_rating_from_html(app_id)
 
         # 5. Cache result
         try:

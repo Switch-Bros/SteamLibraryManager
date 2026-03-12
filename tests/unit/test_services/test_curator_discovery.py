@@ -12,15 +12,16 @@ class TestFetchTopCurators:
 
     @patch("steam_library_manager.services.curator_client.urlopen")
     def test_parses_html_with_curators(self, mock_urlopen: MagicMock) -> None:
-        """Should extract curator_id and name from response HTML."""
+        """Should extract curator_id and name from g_rgTopCurators JS variable."""
         import json
 
-        html = (
-            '<div data-clanid="12345" class="curator">'
-            '<span class="curator_name">TestCurator</span></div>'
-            '<div data-clanid="67890" class="curator">'
-            '<span class="curator_name">AnotherCurator</span></div>'
+        curators_js = json.dumps(
+            [
+                {"clanID": "12345", "name": "TestCurator"},
+                {"clanID": "67890", "name": "AnotherCurator"},
+            ]
         )
+        html = f"<script>var g_rgTopCurators = {curators_js};</script>"
         response_data = json.dumps({"results_html": html}).encode()
         mock_response = MagicMock()
         mock_response.read.return_value = response_data

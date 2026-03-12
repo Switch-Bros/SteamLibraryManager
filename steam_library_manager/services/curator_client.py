@@ -246,18 +246,18 @@ class CuratorClient:
         if not html:
             return results
 
-        # Parse curator blocks from the HTML
-        curator_block_pattern = re.compile(
-            r'data-clanid="(\d+)".*?curator_name[^>]*>([^<]+)<',
-            re.DOTALL,
-        )
-        for match in curator_block_pattern.finditer(html):
-            results.append(
-                {
-                    "curator_id": int(match.group(1)),
-                    "name": match.group(2).strip(),
-                }
-            )
+        # Steam embeds curator data as JSON in a JS variable (not in HTML elements)
+        js_match = re.search(r"g_rgTopCurators\s*=\s*(\[.*?\]);", html, re.DOTALL)
+        if js_match:
+            try:
+                curators = json.loads(js_match.group(1))
+                for curator in curators:
+                    clan_id = curator.get("clanID")
+                    name = curator.get("name", "").strip()
+                    if clan_id and name:
+                        results.append({"curator_id": int(clan_id), "name": name})
+            except (json.JSONDecodeError, ValueError):
+                logger.warning("Failed to parse g_rgTopCurators JSON")
 
         logger.info("Fetched %d top curators", len(results))
         return results

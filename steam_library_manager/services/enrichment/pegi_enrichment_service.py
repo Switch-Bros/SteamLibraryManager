@@ -8,7 +8,6 @@ missing PEGI data. Results are cached via SteamStoreScraper's file cache
 from __future__ import annotations
 
 import logging
-import time
 from pathlib import Path
 from typing import Any
 
@@ -83,6 +82,9 @@ class PEGIEnrichmentThread(BaseEnrichmentThread):
     def _process_item(self, item: Any) -> bool:
         """Fetches the PEGI rating for a single game.
 
+        Acts as a gap filler: skips games that already have a rating
+        (filled by the batch Steam API enrichment pass).
+
         Args:
             item: Tuple of (app_id, name).
 
@@ -90,6 +92,15 @@ class PEGIEnrichmentThread(BaseEnrichmentThread):
             True if a valid rating was found and stored.
         """
         app_id, name = item
+
+        # Skip if already has a rating (filled by batch Steam API)
+        if not self._force_refresh:
+            cursor = self._db.conn.execute(
+                "SELECT pegi_rating FROM games WHERE app_id = ? AND pegi_rating != ''",
+                (app_id,),
+            )
+            if cursor.fetchone():
+                return True  # Already done, count as success
 
         if self._force_refresh:
             cache_file = self._scraper.cache_dir.parent / "age_ratings" / f"{app_id}.json"
@@ -121,7 +132,3 @@ class PEGIEnrichmentThread(BaseEnrichmentThread):
         """
         _app_id, name = item
         return t("ui.enrichment.progress", name=name, current=current, total=total)
-
-    def _rate_limit(self) -> None:
-        """Sleeps 500ms between requests to avoid rate limiting."""
-        time.sleep(0.5)
