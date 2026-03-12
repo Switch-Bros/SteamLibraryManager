@@ -5,6 +5,28 @@ All notable changes to Steam Library Manager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.7] - 2026-03-12
+
+### Fixed
+- **Security:** JWT access tokens no longer leak into log files when HTTP
+  errors occur. Exception messages are now sanitized to show only the status
+  code or exception type.
+- **Security:** Token file (tokens.enc) and settings file (settings.json)
+  are now written with owner-only permissions (0o600).
+- **Enrichment:** Fixed PEGI track counter logic in EnrichAllCoordinator
+  that could cause double-increment or missed completion signals.
+- **Stability:** Fixed database connection leaks in menu builder and
+  enrichment coordinator (could cause "database is locked" errors).
+- **Thread Safety:** HLTB client endpoint discovery is now protected by a
+  threading lock to prevent concurrent races.
+- **Thread Cleanup:** External Games dialog now properly waits for
+  background threads before closing.
+
+### Changed
+- Removed UIHelper dependency from CategoryService (service layer violation).
+- Replaced silent exception swallowing with proper logging in achievement
+  enrichment and HLTB API endpoint discovery.
+
 ## [1.2.6] - 2026-03-12
 
 ### Fixed
