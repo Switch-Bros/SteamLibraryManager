@@ -33,3 +33,4 @@ cleanup_dependencies_dev.sh
 /SLM-Dateien.md
 /SLM-Fortschritt.md
 /steamlibrarymanager/
+*.kate-swp
