@@ -32,3 +32,4 @@ cleanup_dependencies_dev.sh
 *.zip
 /SLM-Dateien.md
 /SLM-Fortschritt.md
+/steamlibrarymanager/
