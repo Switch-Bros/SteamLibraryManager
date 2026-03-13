@@ -22,7 +22,7 @@ def _make_game(
     sort_name: str = "",
     playtime_minutes: int = 0,
     last_played: datetime | None = None,
-    release_year: str = "",
+    release_year: int = 0,
 ) -> Game:
     """Helper to create a Game with sensible defaults."""
     return Game(
@@ -45,10 +45,16 @@ def service() -> FilterService:
 def sample_games() -> list[Game]:
     """Returns a set of games with varied attributes for sort testing."""
     return [
-        _make_game("1", "Zelda", playtime_minutes=500, release_year="2023", last_played=datetime(2025, 6, 1)),
-        _make_game("2", "Alpha", playtime_minutes=100, release_year="2020", last_played=datetime(2025, 1, 1)),
-        _make_game("3", "Mario", playtime_minutes=1000, release_year="2024", last_played=datetime(2026, 1, 1)),
-        _make_game("4", "Beta", playtime_minutes=0, release_year=""),
+        _make_game(
+            "1", "Zelda", playtime_minutes=500, release_year=1672531200, last_played=datetime(2025, 6, 1)
+        ),  # 2023-01-01
+        _make_game(
+            "2", "Alpha", playtime_minutes=100, release_year=1577836800, last_played=datetime(2025, 1, 1)
+        ),  # 2020-01-01
+        _make_game(
+            "3", "Mario", playtime_minutes=1000, release_year=1704067200, last_played=datetime(2026, 1, 1)
+        ),  # 2024-01-01
+        _make_game("4", "Beta", playtime_minutes=0, release_year=0),
     ]
 
 
@@ -132,10 +138,10 @@ class TestSortGames:
     def test_sort_by_release_date_descending(self, service: FilterService, sample_games: list[Game]) -> None:
         service.set_sort_key("release_date")
         result = service.sort_games(sample_games)
-        # 2024 > 2023 > 2020 > "" (empty goes last)
+        # 2024 > 2023 > 2020 > 0 (zero goes last)
         years = [g.release_year for g in result]
-        assert years[0] == "2024"
-        assert years[-1] == ""
+        assert years[0] == 1704067200  # 2024
+        assert years[-1] == 0
 
     def test_sort_empty_list(self, service: FilterService) -> None:
         result = service.sort_games([])

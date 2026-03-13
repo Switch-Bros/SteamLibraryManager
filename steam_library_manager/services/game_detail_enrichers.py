@@ -92,7 +92,11 @@ def apply_store_data(game: Game, data: dict[str, Any]) -> None:
         game.publisher = ", ".join(data.get("publishers", []))
         release = data.get("release_date", {})
         if release.get("date"):
-            game.release_year = release["date"]
+            from steam_library_manager.utils.date_utils import to_timestamp
+
+            ts = to_timestamp(release["date"])
+            if ts:
+                game.release_year = ts
     genres = data.get("genres", [])
     game.genres = [g["description"] for g in genres]
     categories = data.get("categories", [])

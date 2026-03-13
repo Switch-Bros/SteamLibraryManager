@@ -45,7 +45,7 @@ class Game:
     # Metadata
     developer: str = ""
     publisher: str = ""
-    release_year: str = ""
+    release_year: int = 0  # UNIX timestamp (0 = unknown)
     genres: list[str] = None
     tags: list[str] = None
     tag_ids: list[int] = None

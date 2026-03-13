@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-__all__ = ["parse_date_to_timestamp", "format_timestamp_to_date"]
+__all__ = ["parse_date_to_timestamp", "format_timestamp_to_date", "to_timestamp", "year_from_timestamp"]
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -64,6 +64,81 @@ def parse_date_to_timestamp(date_str: str) -> str:
 
     # Nothing matched -> return original so the user sees what went wrong
     return date_str
+
+
+def to_timestamp(value) -> int:
+    """Converts any date-like value to a UNIX timestamp int.
+
+    Handles: int timestamp, str timestamp, bare year "2020",
+    date strings "23.03.2020" / "2020-03-23", Steam dates "Mar 23, 2020".
+    Returns 0 on failure.
+    """
+    if not value:
+        return 0
+    if isinstance(value, int):
+        return value if value > 9999 else _year_to_ts(value) if value > 0 else 0
+    s = str(value).strip()
+    if not s:
+        return 0
+    # Pure digits
+    if s.isdigit():
+        n = int(s)
+        if n > 100_000_000:
+            return n
+        if 1970 <= n <= 9999:
+            return _year_to_ts(n)
+        return 0
+    # Numeric date formats (locale-independent)
+    for fmt in ("%d.%m.%Y", "%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y"):
+        try:
+            return int(datetime.strptime(s, fmt).timestamp())
+        except ValueError:
+            continue
+    # Steam store format uses English month names ("Mar 23, 2020")
+    # strptime depends on locale, so force C locale for parsing
+    return _parse_english_date(s)
+
+
+def year_from_timestamp(ts: int) -> str:
+    """Extracts the year from a UNIX timestamp. Returns '' for 0."""
+    if not ts or ts <= 0:
+        return ""
+    if ts <= 9999:
+        return str(ts)
+    try:
+        return str(datetime.fromtimestamp(ts).year)
+    except (OSError, OverflowError, ValueError):
+        return ""
+
+
+def _parse_english_date(s: str) -> int:
+    """Parses English-language date strings regardless of system locale."""
+    import locale
+
+    saved = locale.getlocale(locale.LC_TIME)
+    try:
+        locale.setlocale(locale.LC_TIME, "C")
+        for fmt in ("%b %d, %Y", "%d %b, %Y", "%b %Y", "%B %d, %Y"):
+            try:
+                return int(datetime.strptime(s, fmt).timestamp())
+            except ValueError:
+                continue
+    except locale.Error:
+        pass
+    finally:
+        try:
+            locale.setlocale(locale.LC_TIME, saved)
+        except locale.Error:
+            pass
+    return 0
+
+
+def _year_to_ts(year: int) -> int:
+    """Converts a bare year (e.g. 2020) to Jan 1 00:00 UTC timestamp."""
+    try:
+        return int(datetime(year, 1, 1).timestamp())
+    except (ValueError, OverflowError):
+        return 0
 
 
 def format_timestamp_to_date(value) -> str:

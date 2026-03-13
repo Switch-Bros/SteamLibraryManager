@@ -334,7 +334,11 @@ class MetadataEnrichmentService:
                 game.publisher = steam_meta["publisher"]
 
             if not game.release_year and steam_meta.get("release_date"):
-                game.release_year = steam_meta["release_date"]
+                from steam_library_manager.utils.date_utils import to_timestamp
+
+                ts = to_timestamp(steam_meta["release_date"])
+                if ts:
+                    game.release_year = ts
 
             # Extract review percentage and metacritic score from appinfo.vdf
             if not game.review_percentage and steam_meta.get("review_percentage"):
@@ -389,7 +393,11 @@ class MetadataEnrichmentService:
                 if modified.get("publisher"):
                     game.publisher = modified["publisher"]
                 if modified.get("release_date"):
-                    game.release_year = modified["release_date"]
+                    from steam_library_manager.utils.date_utils import to_timestamp
+
+                    ts = to_timestamp(modified["release_date"])
+                    if ts:
+                        game.release_year = ts
                 if modified.get("pegi_rating"):
                     game.pegi_rating = modified["pegi_rating"]
 

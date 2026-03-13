@@ -249,15 +249,15 @@ class TestDatabaseEntryToGame:
         assert game.developer == "Valve"
         assert game.publisher == "Valve"
 
-    def test_release_year_from_timestamp(self) -> None:
-        """Release year should be extracted from UNIX timestamp."""
+    def test_release_year_stores_timestamp(self) -> None:
+        """Release year should store the raw UNIX timestamp."""
         entry = DatabaseEntry(
             app_id=570,
             name="Dota 2",
             release_date=1373328000,  # 2013-07-09
         )
         game = database_entry_to_game(entry)
-        assert game.release_year == "2013"
+        assert game.release_year == 1373328000
 
     def test_none_fields_become_empty_strings(self) -> None:
         """None values should convert to empty strings."""
@@ -299,11 +299,11 @@ class TestDatabaseEntryToGame:
         game.genres.append("RPG")
         assert "RPG" not in entry.genres
 
-    def test_no_release_date_gives_empty_year(self) -> None:
-        """Missing release date should produce empty release_year."""
+    def test_no_release_date_gives_zero(self) -> None:
+        """Missing release date should produce release_year = 0."""
         entry = DatabaseEntry(app_id=1, name="Test")
         game = database_entry_to_game(entry)
-        assert game.release_year == ""
+        assert game.release_year == 0
 
 
 # ========================================================================

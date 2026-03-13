@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 
 from steam_library_manager.core.game import Game
 
@@ -122,11 +121,9 @@ def database_entry_to_game(entry: DatabaseEntry) -> Game:
     Returns:
         Game object populated from the database entry.
     """
-    # Extract release year from UNIX timestamp
-    release_year = ""
+    # Use best available release timestamp
     release_ts = entry.release_date or entry.steam_release_date or entry.original_release_date
-    if release_ts and isinstance(release_ts, int) and release_ts > 0:
-        release_year = str(datetime.fromtimestamp(release_ts, tz=timezone.utc).year)
+    release_year = release_ts if release_ts and isinstance(release_ts, int) and release_ts > 0 else 0
 
     # Extract interface languages from language support data
     interface_languages = [lang for lang, support in entry.languages.items() if support.get("interface", False)]

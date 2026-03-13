@@ -166,10 +166,10 @@ class FilterService:
                 reverse=True,
             )
         if self._sort_key == SortKey.RELEASE_DATE:
-            # Games without release_year go to the end
+            # Games without release_year (0) go to the end
             return sorted(
                 games,
-                key=lambda g: g.release_year if g.release_year else "",
+                key=lambda g: g.release_year if g.release_year else 0,
                 reverse=True,
             )
         # Default: NAME (A-Z) using sort_name

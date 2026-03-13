@@ -383,15 +383,15 @@ class GameManager:
             if not game.publisher and entry.publisher:
                 game.publisher = entry.publisher
             if not game.release_year:
-                from datetime import datetime, timezone
-
                 release_ts = entry.release_date or entry.steam_release_date or entry.original_release_date
                 if release_ts and isinstance(release_ts, int) and release_ts > 0:
-                    game.release_year = str(datetime.fromtimestamp(release_ts, tz=timezone.utc).year)
+                    game.release_year = release_ts
             if not game.genres and entry.genres:
                 game.genres = list(entry.genres)
             if not game.tags and entry.tags:
                 game.tags = list(entry.tags)
+            if not game.tag_ids and entry.tag_ids:
+                game.tag_ids = list(entry.tag_ids)
             if not game.app_type and entry.app_type:
                 game.app_type = entry.app_type
             if not game.platforms and entry.platforms:
@@ -418,6 +418,16 @@ class GameManager:
                 game.steam_deck_status = entry.steam_deck_status
             if not game.description and entry.short_description:
                 game.description = entry.short_description
+
+            # Achievement stats
+            if not game.achievement_percentage and entry.achievement_percentage:
+                game.achievement_percentage = entry.achievement_percentage
+            if not game.achievement_total and entry.achievements_total:
+                game.achievement_total = entry.achievements_total
+            if not game.achievement_unlocked and entry.achievement_unlocked:
+                game.achievement_unlocked = entry.achievement_unlocked
+            if not game.achievement_perfect and entry.achievement_perfect:
+                game.achievement_perfect = entry.achievement_perfect
 
             enriched += 1
 

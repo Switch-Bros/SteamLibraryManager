@@ -91,6 +91,13 @@ class AutoCategorizeService:
             value = getattr(game, cfg.attr, None)
             if not value:
                 continue
+            # release_year stores UNIX timestamp, extract year for display
+            if cfg.attr == "release_year" and isinstance(value, int) and value > 9999:
+                from steam_library_manager.utils.date_utils import year_from_timestamp
+
+                value = year_from_timestamp(value)
+                if not value:
+                    continue
             for v in (value if cfg.is_list else [value]):
                 if not v:
                     continue

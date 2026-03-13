@@ -147,7 +147,14 @@ class SmartCollectionEvaluator:
             return self._match_text_single(str(field_value), rule.operator, rule.value)
 
         if rule.field in _NUMERIC_FIELDS:
-            num_val: str | float | int = field_value if isinstance(field_value, (int, float)) else str(field_value)
+            # RELEASE_YEAR stores UNIX timestamp but user compares by year
+            if rule.field == FilterField.RELEASE_YEAR and isinstance(field_value, int) and field_value > 9999:
+                from steam_library_manager.utils.date_utils import year_from_timestamp
+
+                yr = year_from_timestamp(field_value)
+                num_val: str | float | int = float(yr) if yr else 0
+            else:
+                num_val = field_value if isinstance(field_value, (int, float)) else str(field_value)
             return self._match_numeric(num_val, rule.operator, rule.value, rule.value_max)
 
         if rule.field in _BOOL_FIELDS:
@@ -279,7 +286,8 @@ class SmartCollectionEvaluator:
                 num_max = float(target_max) if target_max else 0.0
             except (ValueError, TypeError):
                 return False
-            return num_target <= num_value <= num_max
+            lo, hi = min(num_target, num_max), max(num_target, num_max)
+            return lo <= num_value <= hi
 
         return False
 

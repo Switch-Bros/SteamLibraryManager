@@ -68,7 +68,7 @@ class TestApplyStoreData:
 
         assert game.developer == "Valve"
         assert game.publisher == "Valve"
-        assert game.release_year == "Oct 10, 2007"
+        assert game.release_year == 1191967200  # Oct 10, 2007
         assert "Action" in game.genres
         assert "Multi-player" in game.tags
 

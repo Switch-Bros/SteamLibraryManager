@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Any, TYPE_CHECKING
 
+from steam_library_manager.utils.date_utils import format_timestamp_to_date
+
 if TYPE_CHECKING:
     from steam_library_manager.core.game import Game
 
@@ -45,7 +47,7 @@ def game_to_export_dict(game: Game) -> dict[str, Any]:
         "sort_name": game.sort_name,
         "developer": game.developer,
         "publisher": game.publisher,
-        "release_year": game.release_year,
+        "release_year": format_timestamp_to_date(game.release_year) if game.release_year else "",
         "genres": list(game.genres) if game.genres else [],
         "tags": list(game.tags) if game.tags else [],
         "categories": list(game.categories) if game.categories else [],
