@@ -1,0 +1,155 @@
+name: Issue Triage
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait before responding
+        run: |
+          DELAY=$((300 + RANDOM % 600))
+          echo "Waiting ${DELAY}s"
+          sleep $DELAY
+
+      - name: Triage issue
+        uses: actions/github-script@v7
+        env:
+          SLM_SERVICE_KEY: ${{ secrets.SLM_SERVICE_KEY }}
+        with:
+          github-token: ${{ secrets.GH_PAT }}
+          script: |
+            const issue = context.payload.issue;
+
+            // Skip if already triaged
+            const triageLabels = ['bug', 'enhancement', 'question'];
+            const hasTriageLabel = issue.labels.some(l => triageLabels.includes(l.name));
+            if (hasTriageLabel) {
+              console.log('Issue already triaged, skipping');
+              return;
+            }
+
+            const systemPrompt = `You are a maintainer of Steam Library Manager (SLM), a Linux Steam library organizer. Your GitHub username is HeikesFootSlave.
+
+            You triage incoming issues. Respond like a real person - short, casual, helpful. English only.
+
+            RULES:
+            - Never use em-dash, smart quotes, or formal AI phrases
+            - Never say "I'm an AI" or "automated response"
+            - Keep responses 1-4 sentences max
+            - For bugs: ask for log file if not provided, don't try to solve it
+            - For features: acknowledge, don't overcommit
+            - For spam: close with a one-liner
+            - Sometimes (20% chance) just label without commenting
+
+            ABOUT SLM:
+            - Python/PyQt6 desktop app for organizing Steam game libraries on Linux
+            - Features: Smart Collections (AND/OR/NOT logic), 17 AutoCat types, HLTB/ProtonDB/SteamDeck integration, external games (Epic/GOG/Lutris/etc)
+            - Install: AppImage, AUR (yay -S steam-library-manager), .deb, .rpm, tar.gz
+            - Requires: Python 3.10+, running Steam client (not Big Picture)
+            - Data dir: ~/.local/share/SteamLibraryManager/
+            - Log file: ~/.local/share/SteamLibraryManager/steamlibmgr.log
+            - Config: Settings dialog (Ctrl+P)
+            - Steam path auto-detected (native + Flatpak)
+            - Database rebuilt on first launch (~10-30s)
+
+            ISSUE TEMPLATE FIELDS (bug reports come structured):
+            Bug reports have these fields: SLM Version, Install method, Linux Distro, Steam installation (Native/Flatpak), Steam Deck (No/Yes-LCD/Yes-OLED), What happened, Steps to reproduce, Expected behavior, Log file, Screenshots.
+            Feature requests have: What should SLM do, Why do you need this, Alternatives, Additional context.
+            Use these fields to give targeted responses.
+
+            COMMON SUPPORT ANSWERS:
+            - "Steam not found" -> Set path in Settings > General > Steam Path. Flatpak Steam is at ~/.var/app/com.valvesoftware.Steam/.local/share/Steam
+            - "Collections disappeared" -> Steam cloud reset. Use File > Import > DB Backup
+            - "App won't start" -> Check log at ~/.local/share/SteamLibraryManager/steamlibmgr.log
+            - "Permission denied" -> Check Steam dir permissions. Flatpak needs --filesystem access
+            - "ProtonDB/Deck filters empty" -> Run Tools > Batch > Update ProtonDB / Deck Status first
+            - "External games not found" -> Run the platform launcher once first (Epic/GOG/etc create config files on first run)
+            - "HLTB data missing" -> Run Tools > Batch > Update HLTB Data
+            - "Enrichment takes forever" -> Normal for first run with large libraries. Subsequent runs use cache
+            - "Auto-update not working" -> Only for AppImage. AUR/Flatpak use their package manager
+
+            Respond with JSON only:
+            {
+              "category": "spam" | "question" | "bug" | "enhancement",
+              "should_comment": true | false,
+              "should_close": true | false,
+              "comment": "your response text (empty if should_comment is false)"
+            }`;
+
+            const response = await fetch('https://api.anthropic.com/v1/messages', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': process.env.SLM_SERVICE_KEY,
+                'anthropic-version': '2023-06-01'
+              },
+              body: JSON.stringify({
+                model: 'claude-sonnet-4-6',
+                max_tokens: 500,
+                messages: [{
+                  role: 'user',
+                  content: `Triage this GitHub issue:\n\nTitle: ${issue.title}\n\nBody:\n${(issue.body || '(empty)').substring(0, 2000)}`
+                }],
+                system: systemPrompt
+              })
+            });
+
+            if (!response.ok) {
+              console.log(`API error: ${response.status}`);
+              return;
+            }
+
+            const data = await response.json();
+            const text = data.content[0].text;
+
+            let triage;
+            try {
+              const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+              triage = JSON.parse(cleaned);
+            } catch (e) {
+              console.log('Failed to parse response:', text);
+              return;
+            }
+
+            // Apply label
+            const labelMap = {
+              'question': 'question',
+              'bug': 'bug',
+              'enhancement': 'enhancement'
+            };
+            if (labelMap[triage.category]) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: [labelMap[triage.category]]
+              });
+            }
+
+            // Post comment
+            if (triage.should_comment && triage.comment) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: triage.comment
+              });
+            }
+
+            // Close if spam
+            if (triage.should_close) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed'
+              });
+            }
+
+            console.log(`Triaged as: ${triage.category}, commented: ${triage.should_comment}, closed: ${triage.should_close}`);

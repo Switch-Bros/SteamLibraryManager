@@ -1,0 +1,42 @@
+name: Feature Request
+description: Got an idea? We're listening.
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check [existing feature requests](https://github.com/Switch-Bros/SteamLibraryManager/issues?q=label%3Aenhancement) first - someone might have suggested it already.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What should SLM do?
+      description: Describe the feature you'd like.
+      placeholder: "It would be cool if SLM could..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why do you need this?
+      description: What problem does this solve for you?
+      placeholder: "Right now I have to manually..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you tried
+      description: Any workarounds you've used?
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, mockups, links, etc.
+    validations:
+      required: false

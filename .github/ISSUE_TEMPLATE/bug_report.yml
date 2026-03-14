@@ -1,0 +1,112 @@
+name: Bug Report
+description: Something broken? Let us know.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please search [existing issues](https://github.com/Switch-Bros/SteamLibraryManager/issues) before opening a new one.
+
+  - type: dropdown
+    id: version
+    attributes:
+      label: SLM Version
+      options:
+        - v1.2.8
+        - v1.2.7
+        - v1.2.6
+        - v1.2.5
+        - v1.2.4
+        - older
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: Install method
+      options:
+        - AppImage
+        - AUR
+        - .deb
+        - .rpm
+        - tar.gz
+        - from source
+    validations:
+      required: true
+
+  - type: input
+    id: distro
+    attributes:
+      label: Linux Distro
+      placeholder: "e.g. CachyOS, Ubuntu 24.04, Fedora 41, SteamOS 3.6"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: steam-type
+    attributes:
+      label: Steam installation
+      options:
+        - Native
+        - Flatpak
+    validations:
+      required: true
+
+  - type: dropdown
+    id: steam-deck
+    attributes:
+      label: Steam Deck?
+      options:
+        - "No"
+        - "Yes - LCD"
+        - "Yes - OLED"
+    validations:
+      required: false
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the bug clearly.
+      placeholder: "The app crashed when I tried to..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we trigger this?
+      placeholder: |
+        1. Open SLM
+        2. Go to ...
+        3. Click on ...
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened instead?
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log file
+      description: "Paste contents of `~/.local/share/SteamLibraryManager/steamlibmgr.log` or drag-drop the file here."
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: If applicable, drag-drop screenshots here.
+    validations:
+      required: false
