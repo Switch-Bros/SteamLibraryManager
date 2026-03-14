@@ -5,6 +5,25 @@ All notable changes to Steam Library Manager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.8] - 2026-03-14
+
+### Fixed
+- **Smart Collections:** Achievement percentage, total, unlocked, and perfect
+  were never loaded from database into Game objects at startup, causing
+  achievement-based Smart Collections to always show 0 results.
+- **Smart Collections:** tag_ids were not transferred during database
+  enrichment, breaking tag-based filtering.
+- **Smart Collections:** BETWEEN operator now auto-swaps reversed min/max
+  values so "BETWEEN 50 30" works the same as "BETWEEN 30 50".
+
+### Changed
+- **Release Dates:** Refactored release_year from string to UNIX timestamp
+  (int) across the entire codebase. Dates are now stored and compared as
+  timestamps internally, displayed as localized strings only in the UI.
+  Added to_timestamp() and year_from_timestamp() date conversion helpers.
+- **Date Parsing:** Steam API date strings (English month names like
+  "Oct 10, 2007") are now parsed correctly regardless of system locale.
+
 ## [1.2.7] - 2026-03-12
 
 ### Fixed
