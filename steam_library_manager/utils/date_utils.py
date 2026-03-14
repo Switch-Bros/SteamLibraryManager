@@ -15,6 +15,7 @@ Accepted input formats: DD.MM.YYYY, YYYY-MM-DD, YYYY, raw Unix timestamp.
 
 from __future__ import annotations
 
+import calendar
 from datetime import datetime
 
 __all__ = ["parse_date_to_timestamp", "format_timestamp_to_date", "to_timestamp", "year_from_timestamp"]
@@ -58,7 +59,7 @@ def parse_date_to_timestamp(date_str: str) -> str:
     for fmt in formats:
         try:
             dt = datetime.strptime(date_str, fmt)
-            return str(int(dt.timestamp()))
+            return str(calendar.timegm(dt.timetuple()))
         except ValueError:
             continue
 
@@ -91,7 +92,7 @@ def to_timestamp(value) -> int:
     # Numeric date formats (locale-independent)
     for fmt in ("%d.%m.%Y", "%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y"):
         try:
-            return int(datetime.strptime(s, fmt).timestamp())
+            return calendar.timegm(datetime.strptime(s, fmt).timetuple())
         except ValueError:
             continue
     # Steam store format uses English month names ("Mar 23, 2020")
@@ -120,7 +121,7 @@ def _parse_english_date(s: str) -> int:
         locale.setlocale(locale.LC_TIME, "C")
         for fmt in ("%b %d, %Y", "%d %b, %Y", "%b %Y", "%B %d, %Y"):
             try:
-                return int(datetime.strptime(s, fmt).timestamp())
+                return calendar.timegm(datetime.strptime(s, fmt).timetuple())
             except ValueError:
                 continue
     except locale.Error:
@@ -136,7 +137,7 @@ def _parse_english_date(s: str) -> int:
 def _year_to_ts(year: int) -> int:
     """Converts a bare year (e.g. 2020) to Jan 1 00:00 UTC timestamp."""
     try:
-        return int(datetime(year, 1, 1).timestamp())
+        return calendar.timegm(datetime(year, 1, 1).timetuple())
     except (ValueError, OverflowError):
         return 0
 
