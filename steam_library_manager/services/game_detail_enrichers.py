@@ -1,16 +1,15 @@
+#
 # steam_library_manager/services/game_detail_enrichers.py
+# Source-specific enrichment functions for game details
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
-"""Source-specific enrichment functions for game details.
-
-Free functions that take explicit dependencies as parameters and enrich
-a Game object with data from one source. Used by GameDetailService.
-
-Note on enrich_from_store() condensation (T06 check):
-A field-map approach was evaluated but not applied because each field
-uses a different transformation (join, nested lookup, list comprehension,
-set merge). Only developer/publisher share the same pattern, which is
-too few to justify a mapping abstraction.
-"""
+# T06 condensation check: a field-map approach was evaluated but not applied
+# because each field uses a different transformation (join, nested lookup,
+# list comprehension, set merge). Only developer/publisher share the same
+# pattern, which is too few to justify a mapping abstraction.
 
 from __future__ import annotations
 
@@ -61,18 +60,11 @@ _REVIEW_KEY_MAP: dict[str, str] = {
 }
 
 
-# ------------------------------------------------------------------
 # Apply functions (transform API data -> Game attributes)
-# ------------------------------------------------------------------
 
 
 def apply_review_data(game: Game, data: dict[str, Any]) -> None:
-    """Parses and applies review data to a game.
-
-    Args:
-        game: The game to enrich.
-        data: Review data from the Steam API.
-    """
+    """Apply review data to a game."""
     summary = data.get("query_summary", {})
     review_score_en = summary.get("review_score_desc", "")
     i18n_key: str | None = _REVIEW_KEY_MAP.get(review_score_en)
@@ -81,12 +73,7 @@ def apply_review_data(game: Game, data: dict[str, Any]) -> None:
 
 
 def apply_store_data(game: Game, data: dict[str, Any]) -> None:
-    """Parses and applies Steam Store metadata to a game.
-
-    Args:
-        game: The game to enrich.
-        data: Store data from the Steam API.
-    """
+    """Apply Steam Store metadata to a game."""
     if not game.name_overridden:
         game.developer = ", ".join(data.get("developers", []))
         game.publisher = ", ".join(data.get("publishers", []))
@@ -116,12 +103,7 @@ def apply_store_data(game: Game, data: dict[str, Any]) -> None:
 
 
 def apply_hltb_data(game: Game, data: dict[str, Any]) -> None:
-    """Applies cached HLTB data to a game object.
-
-    Args:
-        game: The game to enrich.
-        data: Dict with main_story, main_extras, completionist keys.
-    """
+    """Apply cached HLTB data to a game."""
     if data.get("no_data"):
         return
     game.hltb_main_story = float(data.get("main_story", 0.0))
@@ -130,30 +112,19 @@ def apply_hltb_data(game: Game, data: dict[str, Any]) -> None:
 
 
 def apply_achievement_data(game: Game, data: dict[str, Any]) -> None:
-    """Applies cached achievement stats to a game object.
-
-    Args:
-        game: The game to enrich.
-        data: Dict with total, unlocked, percentage, perfect keys.
-    """
+    """Apply cached achievement stats to a game."""
     game.achievement_total = int(data.get("total", 0))
     game.achievement_unlocked = int(data.get("unlocked", 0))
     game.achievement_percentage = float(data.get("percentage", 0.0))
     game.achievement_perfect = bool(data.get("perfect", False))
 
 
-# ------------------------------------------------------------------
 # DB helper
-# ------------------------------------------------------------------
 
 
 @contextmanager
 def _open_games_db() -> Generator[Any, None, None]:
-    """Opens the games database, yields it, and closes on exit.
-
-    Yields:
-        Database instance, or None if the database file doesn't exist.
-    """
+    """Open the games database, yield it, and close on exit."""
     from steam_library_manager.config import config
     from steam_library_manager.core.database import Database
 
@@ -168,24 +139,15 @@ def _open_games_db() -> Generator[Any, None, None]:
         db.close()
 
 
-# ------------------------------------------------------------------
 # Fetch functions (self-contained API calls with caching)
-# ------------------------------------------------------------------
 
 
 def fetch_proton_rating(game: Game) -> None:
-    """Fetches ProtonDB compatibility rating.
-
-    Checks the DB cache first (7-day TTL), then falls back to the
-    ProtonDB API via ProtonDBClient. Persists results to the database.
-
-    Args:
-        game: The game to enrich.
-    """
+    """Fetch ProtonDB compatibility rating with 7-day DB cache."""
     app_id = game.app_id
     unknown_status = "unknown"
 
-    # 1. DB cache lookup (7-day TTL)
+    # DB cache lookup (7-day TTL)
     try:
         with _open_games_db() as db:
             if db is not None:
@@ -196,7 +158,7 @@ def fetch_proton_rating(game: Game) -> None:
     except Exception as exc:
         logger.debug("ProtonDB DB lookup failed for %s: %s", app_id, exc)
 
-    # 2. API call + persist via shared helper
+    # API call + persist via shared helper
     try:
         from steam_library_manager.integrations.protondb_api import ProtonDBClient, fetch_and_persist_protondb
 
@@ -219,12 +181,7 @@ def fetch_proton_rating(game: Game) -> None:
 
 
 def fetch_steam_deck_status(game: Game, cache_dir: Path) -> None:
-    """Fetches Steam Deck compatibility status from Valve's Deck API.
-
-    Args:
-        game: The game to enrich.
-        cache_dir: Directory for JSON cache files.
-    """
+    """Fetch Steam Deck compatibility status with file cache."""
     app_id = game.app_id
     cache_file = cache_dir / "store_data" / f"{app_id}_deck.json"
     unknown_status = "unknown"
@@ -247,12 +204,7 @@ def fetch_steam_deck_status(game: Game, cache_dir: Path) -> None:
 
 
 def fetch_last_update(game: Game, cache_dir: Path) -> None:
-    """Fetches the last developer update date from Steam News API.
-
-    Args:
-        game: The game to enrich.
-        cache_dir: Directory for JSON cache files.
-    """
+    """Fetch the last developer update date from Steam News API."""
     app_id = game.app_id
     cache_file = cache_dir / "store_data" / f"{app_id}_news.json"
 
@@ -291,20 +243,11 @@ def fetch_last_update(game: Game, cache_dir: Path) -> None:
         pass
 
 
-# ------------------------------------------------------------------
 # Persist functions (write enrichment data to SQLite)
-# ------------------------------------------------------------------
 
 
 def persist_hltb(app_id: int, main_story: float, main_extras: float, completionist: float) -> None:
-    """Persists HLTB data to the SQLite database.
-
-    Args:
-        app_id: Steam app ID.
-        main_story: Hours to complete main story.
-        main_extras: Hours to complete main + extras.
-        completionist: Hours for 100% completion.
-    """
+    """Persist HLTB data to the SQLite database."""
     try:
         with _open_games_db() as db:
             if db is None:
@@ -323,15 +266,7 @@ def persist_hltb(app_id: int, main_story: float, main_extras: float, completioni
 
 
 def persist_achievement_stats(app_id: int, total: int, unlocked: int, percentage: float, perfect: bool) -> None:
-    """Persists achievement summary stats to the database.
-
-    Args:
-        app_id: Steam app ID.
-        total: Total number of achievements.
-        unlocked: Number of unlocked achievements.
-        percentage: Completion percentage (0-100).
-        perfect: Whether all achievements are unlocked.
-    """
+    """Persist achievement summary stats to the database."""
     try:
         with _open_games_db() as db:
             if db is None:
@@ -343,12 +278,7 @@ def persist_achievement_stats(app_id: int, total: int, unlocked: int, percentage
 
 
 def persist_achievements(app_id: int, records: list[dict]) -> None:
-    """Persists individual achievement records to the database.
-
-    Args:
-        app_id: Steam app ID.
-        records: List of achievement dicts.
-    """
+    """Persist individual achievement records to the database."""
     try:
         with _open_games_db() as db:
             if db is None:

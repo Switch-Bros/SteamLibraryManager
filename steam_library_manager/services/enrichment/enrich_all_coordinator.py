@@ -1,8 +1,10 @@
-"""Coordinator for running all enrichment tracks in parallel.
-
-Orchestrates tag import (Phase 0) followed by four parallel enrichment
-tracks (Phase 1): Steam API, HLTB, ProtonDB, and Deck status.
-"""
+#
+# steam_library_manager/services/enrichment/enrich_all_coordinator.py
+# Coordinator for running all enrichment tracks in parallel
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -31,33 +33,13 @@ TRACK_CURATOR = "curator"
 
 
 class EnrichAllCoordinator(QObject):
-    """Coordinates parallel execution of all enrichment tracks.
-
-    Phase 0: Tag import (runs first, then triggers Phase 1).
-    Phase 1: Parallel tracks run simultaneously:
-        - Steam API (metadata -> achievements -> PEGI gap filler, chained)
-        - HLTB
-        - ProtonDB
-        - Deck status
-        - Curator recommendations
-
-    Attributes:
-        track_progress: Per-track progress (track_name, current, total).
-        track_finished: Track completion (track_name, success, failed).
-            A success value of -1 indicates a skipped track.
-        all_finished: All tracks done, carries summary dict.
-    """
+    """Coordinates parallel execution of all enrichment tracks."""
 
     track_progress = pyqtSignal(str, int, int)
     track_finished = pyqtSignal(str, int, int)
     all_finished = pyqtSignal(dict)
 
     def __init__(self, parent: QObject | None = None) -> None:
-        """Initializes the coordinator.
-
-        Args:
-            parent: Parent QObject for lifecycle management.
-        """
         super().__init__(parent)
         self._threads: dict[str, object] = {}
         self._results: dict[str, tuple[int, int]] = {}
@@ -88,19 +70,7 @@ class EnrichAllCoordinator(QObject):
         cache_dir: Path,
         games_pegi: list[tuple[int, str]] | None = None,
     ) -> None:
-        """Configures all enrichment tracks.
-
-        Args:
-            db_path: Path to the SQLite database.
-            api_key: Steam Web API key.
-            steam_id: 64-bit Steam user ID.
-            steam_path: Steam installation root (for tag import).
-            games_deck: Game objects for deck status enrichment.
-            games_db: (app_id, name) tuples for DB-based enrichments.
-            hltb_client: HLTBClient instance, or None if unavailable.
-            language: Language code for tag resolution.
-            cache_dir: Cache directory for deck status.
-        """
+        """Configure all enrichment tracks before calling start()."""
         self._db_path = db_path
         self._api_key = api_key
         self._steam_id = steam_id
@@ -113,11 +83,7 @@ class EnrichAllCoordinator(QObject):
         self._games_pegi = games_pegi or []
 
     def start(self) -> None:
-        """Starts the enrichment pipeline.
-
-        Runs tag import (Phase 0) first if steam_path is available,
-        then starts four parallel tracks (Phase 1).
-        """
+        """Start the enrichment pipeline (Phase 0 then Phase 1)."""
         if self._steam_path and self._db_path:
             self._start_tag_import()
         else:
@@ -131,9 +97,7 @@ class EnrichAllCoordinator(QObject):
             if hasattr(thread, "cancel"):
                 thread.cancel()  # type: ignore[union-attr]
 
-    # ------------------------------------------------------------------
     # Phase 0: Tag import
-    # ------------------------------------------------------------------
 
     def _start_tag_import(self) -> None:
         """Phase 0: Starts tag import from appinfo.vdf."""
@@ -154,35 +118,24 @@ class EnrichAllCoordinator(QObject):
         thread.start()
 
     def _on_tags_finished(self, games_tagged: int, _total_tags: int) -> None:
-        """Handles tag import completion, then starts parallel tracks.
-
-        Args:
-            games_tagged: Number of games that received tags.
-            _total_tags: Total number of unique tags found.
-        """
+        """Handle tag import completion, then start parallel tracks."""
         self._results[TRACK_TAGS] = (games_tagged, 0)
         self.track_finished.emit(TRACK_TAGS, games_tagged, 0)
         if not self._cancelled:
             self._start_parallel_tracks()
 
     def _on_tags_error(self, message: str) -> None:
-        """Handles tag import errors and continues with parallel tracks.
-
-        Args:
-            message: Error description.
-        """
+        """Handle tag import error and continue with parallel tracks."""
         logger.warning("Tag import failed: %s", message)
         self._results[TRACK_TAGS] = (0, 1)
         self.track_finished.emit(TRACK_TAGS, 0, 1)
         if not self._cancelled:
             self._start_parallel_tracks()
 
-    # ------------------------------------------------------------------
     # Phase 1: Parallel tracks
-    # ------------------------------------------------------------------
 
     def _start_parallel_tracks(self) -> None:
-        """Phase 1: Starts all applicable parallel enrichment tracks."""
+        """Start all applicable parallel enrichment tracks."""
         self._pending_tracks = 0
 
         # Track A: Steam API (metadata + achievements)
@@ -238,14 +191,10 @@ class EnrichAllCoordinator(QObject):
         if self._pending_tracks == 0:
             self.all_finished.emit(self._results)
 
-    # -- Track A: Steam API (metadata → achievements) -----------------
+    # Track A: Steam API (metadata -> achievements)
 
     def _start_steam_track(self) -> None:
-        """Starts Steam API metadata enrichment.
-
-        On completion, chains to achievement enrichment when steam_id
-        is available.
-        """
+        """Start Steam API metadata enrichment, chains to achievements."""
         from steam_library_manager.services.enrichment.enrichment_service import EnrichmentThread
 
         thread = EnrichmentThread(self)
@@ -264,12 +213,7 @@ class EnrichAllCoordinator(QObject):
         thread.start()
 
     def _on_steam_metadata_finished(self, success: int, failed: int) -> None:
-        """Chains from Steam metadata to achievement enrichment.
-
-        Args:
-            success: Number of successfully enriched games.
-            failed: Number of failed games.
-        """
+        """Chain from Steam metadata to achievement enrichment."""
         self._results[f"{TRACK_STEAM}_metadata"] = (success, failed)
 
         if self._cancelled or not self._steam_id or not self._db_path:
@@ -281,12 +225,7 @@ class EnrichAllCoordinator(QObject):
         self._start_achievement_phase(success, failed)
 
     def _start_achievement_phase(self, meta_success: int, meta_failed: int) -> None:
-        """Starts achievement enrichment as second phase of Steam track.
-
-        Args:
-            meta_success: Success count from metadata phase.
-            meta_failed: Fail count from metadata phase.
-        """
+        """Start achievement enrichment as second phase of Steam track."""
         from steam_library_manager.services.enrichment.achievement_enrichment_service import (
             AchievementEnrichmentThread,
         )
@@ -314,17 +253,7 @@ class EnrichAllCoordinator(QObject):
         ach_success: int,
         ach_failed: int,
     ) -> None:
-        """Handles completion of the full Steam track.
-
-        After Steam finishes, chains to PEGI gap filler (Track E) which
-        only fetches ratings for games the batch API missed.
-
-        Args:
-            meta_success: Metadata phase success count.
-            meta_failed: Metadata phase fail count.
-            ach_success: Achievement phase success count.
-            ach_failed: Achievement phase fail count.
-        """
+        """Handle completion of the full Steam track, then chain PEGI."""
         total_success = meta_success + ach_success
         total_failed = meta_failed + ach_failed
         self._results[TRACK_STEAM] = (total_success, total_failed)
@@ -341,7 +270,7 @@ class EnrichAllCoordinator(QObject):
 
         self._on_track_complete()
 
-    # -- Track B: HLTB ------------------------------------------------
+    # Track B: HLTB
 
     def _start_hltb_track(self) -> None:
         """Starts HLTB enrichment track."""
@@ -357,7 +286,7 @@ class EnrichAllCoordinator(QObject):
         )
         self._wire_and_start_track(TRACK_HLTB, thread)
 
-    # -- Track C: ProtonDB --------------------------------------------
+    # Track C: ProtonDB
 
     def _start_protondb_track(self) -> None:
         """Starts ProtonDB enrichment track."""
@@ -373,7 +302,7 @@ class EnrichAllCoordinator(QObject):
         )
         self._wire_and_start_track(TRACK_PROTONDB, thread)
 
-    # -- Track D: Deck status -----------------------------------------
+    # Track D: Deck status
 
     def _start_deck_track(self) -> None:
         """Starts Deck status enrichment track."""
@@ -389,13 +318,10 @@ class EnrichAllCoordinator(QObject):
         )
         self._wire_and_start_track(TRACK_DECK, thread)
 
-    # -- Track E: PEGI age ratings --------------------------------------
+    # Track E: PEGI age ratings
 
     def _start_pegi_track(self) -> None:
-        """Starts PEGI age rating gap filler (runs after Steam API track).
-
-        force_refresh=False so it skips games already rated by the batch API.
-        """
+        """Start PEGI age rating gap filler after Steam API track."""
         from steam_library_manager.services.enrichment.pegi_enrichment_service import (
             PEGIEnrichmentThread,
         )
@@ -409,14 +335,10 @@ class EnrichAllCoordinator(QObject):
         )
         self._wire_and_start_track(TRACK_PEGI, thread)
 
-    # -- Track G: Curator recommendations --------------------------------
+    # Track G: Curator recommendations
 
     def _start_curator_track(self, curators: list) -> None:
-        """Starts curator recommendation enrichment track.
-
-        Args:
-            curators: List of curator dicts from DB.
-        """
+        """Start curator recommendation enrichment track."""
         from steam_library_manager.services.enrichment.curator_enrichment_service import (
             CuratorEnrichmentThread,
         )
@@ -430,11 +352,7 @@ class EnrichAllCoordinator(QObject):
         self._wire_and_start_track(TRACK_CURATOR, thread)
 
     def _get_curators_for_refresh(self) -> list:
-        """Opens DB to fetch curators needing refresh.
-
-        Returns:
-            List of curator dicts, or empty list.
-        """
+        """Fetch curators needing refresh from the DB."""
         from steam_library_manager.core.db import Database
 
         try:
@@ -448,20 +366,10 @@ class EnrichAllCoordinator(QObject):
             logger.warning("Failed to query curators: %s", exc)
             return []
 
-    # ------------------------------------------------------------------
     # Shared track wiring
-    # ------------------------------------------------------------------
 
     def _wire_and_start_track(self, track_name: str, thread: object) -> None:
-        """Connects standard signals and starts a simple enrichment track.
-
-        Wires progress, finished_enrichment, and error signals to the
-        shared handlers. Only suitable for non-chained tracks (B–E).
-
-        Args:
-            track_name: Track identifier constant.
-            thread: The enrichment thread to wire and start.
-        """
+        """Wire standard signals and start a non-chained enrichment track."""
         thread.progress.connect(  # type: ignore[union-attr]
             lambda _t, cur, tot: self.track_progress.emit(track_name, cur, tot)
         )
@@ -472,29 +380,16 @@ class EnrichAllCoordinator(QObject):
         self._threads[track_name] = thread
         thread.start()  # type: ignore[union-attr]
 
-    # ------------------------------------------------------------------
     # Shared completion handlers
-    # ------------------------------------------------------------------
 
     def _on_simple_track_done(self, track: str, success: int, failed: int) -> None:
-        """Handles completion of a simple (non-chained) track.
-
-        Args:
-            track: Track identifier.
-            success: Number of successfully processed items.
-            failed: Number of failed items.
-        """
+        """Handle completion of a non-chained track."""
         self._results[track] = (success, failed)
         self.track_finished.emit(track, success, failed)
         self._on_track_complete()
 
     def _on_track_error(self, track: str, message: str) -> None:
-        """Handles a track-level error.
-
-        Args:
-            track: Track identifier.
-            message: Error description.
-        """
+        """Handle a track-level error."""
         logger.error("Track %s failed: %s", track, message)
         self._results[track] = (0, -1)
         self.track_finished.emit(track, 0, -1)

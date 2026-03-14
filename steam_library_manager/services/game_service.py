@@ -1,8 +1,10 @@
-"""Service for managing game loading and initialization.
-
-This module provides the GameService class which handles loading games from Steam API,
-initializing parsers, and managing game data.
-"""
+#
+# steam_library_manager/services/game_service.py
+# Service for managing game loading and initialization.
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -30,29 +32,10 @@ __all__ = ["GameService"]
 
 
 class GameService:
-    """Service for managing game loading and initialization.
-
-    Handles loading games from Steam API, initializing VDF and Cloud Storage parsers,
-    and managing game data through GameManager.
-
-    Attributes:
-        steam_path: Path to Steam installation directory.
-        api_key: Steam API key for fetching game data.
-        cache_dir: Directory for caching game data.
-        localconfig_helper: Helper for Steam's localconfig.vdf (hidden status only).
-        cloud_storage_parser: Parser for Steam's cloud storage JSON files.
-        game_manager: Manager for game data.
-        appinfo_manager: Manager for appinfo.vdf metadata.
-    """
+    """Service for managing game loading and initialization."""
 
     def __init__(self, steam_path: str, api_key: str, cache_dir: str):
-        """Initializes the GameService.
-
-        Args:
-            steam_path: Path to Steam installation directory.
-            api_key: Steam API key for fetching game data.
-            cache_dir: Directory for caching game data.
-        """
+        """Initialize with Steam path, API key, and cache directory."""
         self.steam_path = steam_path
         self.api_key = api_key
         self.cache_dir = cache_dir
@@ -64,15 +47,7 @@ class GameService:
         self.database: Database | None = None
 
     def initialize_parsers(self, localconfig_path: str, user_id: str) -> tuple[bool, bool]:
-        """Initializes VDF and Cloud Storage parsers.
-
-        Args:
-            localconfig_path: Path to localconfig.vdf file.
-            user_id: Steam user ID (short format, e.g., "12345678").
-
-        Returns:
-            Tuple of (vdf_success, cloud_success) indicating which parsers initialized successfully.
-        """
+        """Initialize VDF and Cloud Storage parsers, returns (vdf_ok, cloud_ok)."""
         vdf_success = False
         cloud_success = False
 
@@ -102,14 +77,7 @@ class GameService:
         return vdf_success, cloud_success
 
     def _init_database(self) -> Database | None:
-        """Initialize the metadata database.
-
-        Opens (or creates) the SQLite database under the app's data directory.
-        On first run the database will be empty and needs an import.
-
-        Returns:
-            Database instance, or None on failure.
-        """
+        """Open or create the SQLite metadata database."""
         db_dir = Path(self.cache_dir).parent  # data/ directory
         db_path = db_dir / "metadata.db"
 
@@ -126,12 +94,7 @@ class GameService:
         db: Database,
         progress_callback: Callable[[str, int, int], None] | None = None,
     ) -> None:
-        """Run the one-time database import from appinfo.vdf.
-
-        Args:
-            db: Database instance.
-            progress_callback: Optional progress callback.
-        """
+        """Run the one-time database import from appinfo.vdf."""
         # Quick check BEFORE loading appinfo.vdf (avoids ~30s parse on every start)
         if db.get_game_count() > 0:
             logger.info(t("logs.db.already_initialized"))
@@ -145,7 +108,6 @@ class GameService:
         importer = DatabaseImporter(db, self.appinfo_manager)
 
         def _bridge(current: int, total: int, msg: str) -> None:
-            """Bridge 3-arg importer callback to GameService callback."""
             if progress_callback:
                 progress_callback(msg, current, total)
 
@@ -153,24 +115,7 @@ class GameService:
         importer.import_from_appinfo(_bridge)
 
     def load_games(self, user_id: str, progress_callback: Callable[[str, int, int], None] | None = None) -> bool:
-        """Loads all games from API/local, then enriches with DB metadata.
-
-        Flow:
-            1. Initialize database (create/open)
-            2. If DB empty: import from appinfo.vdf (one-time, ~30s)
-            3. Load games from API + local files (authoritative names/playtime)
-            4. Enrich loaded games with DB metadata (developer, publisher, genres)
-
-        Args:
-            user_id: Steam user ID (long format, e.g., "76561197960287930") to load games for.
-            progress_callback: Optional callback for progress updates (step, current, total).
-
-        Returns:
-            True if games were loaded successfully and at least one game was found.
-
-        Raises:
-            RuntimeError: If parsers are not initialized.
-        """
+        """Load all games from API/local, then enrich with DB metadata."""
         if not self.cloud_storage_parser:
             raise RuntimeError("Parsers not initialized. Call initialize_parsers() first.")
 
@@ -196,58 +141,31 @@ class GameService:
         return success and bool(self.game_manager.games)
 
     def load_and_prepare(self, user_id: str, progress_callback: Callable[[str, int, int], None] | None = None) -> bool:
-        """Loads games and runs the full preparation pipeline in one call.
-
-        Designed to run entirely in a worker thread so the UI stays responsive.
-        Uses lazy-load: the expensive binary appinfo.vdf is NOT parsed at
-        startup.  Instead the SQLite DB provides type/name data for discovery,
-        and only the lightweight custom_metadata.json is loaded for overrides.
-
-        Pipeline:
-            1. load_games() — API + local + DB enrichment
-            2. merge_with_localconfig() — assign collections
-            3. appinfo_manager.load_modifications_only() — JSON only (~5ms)
-            4. PackageInfoParser.get_all_app_ids() — package IDs
-            5. database.get_app_type_lookup() -> discover_missing_games(db_type_lookup=...)
-            6. apply_custom_overrides(modifications) — JSON overrides only
-
-        Fallback: if no DB exists (should not happen after Phase 1.2) the
-        legacy binary path is used.
-
-        Args:
-            user_id: Steam user ID (long format) to load games for.
-            progress_callback: Optional callback for progress updates (step, current, total).
-
-        Returns:
-            True if games were loaded successfully and at least one game was found.
-
-        Raises:
-            RuntimeError: If parsers are not initialized.
-        """
-        # Step 1: Load games (API + local + DB enrichment)
+        """Load games and run the full preparation pipeline in one call."""
+        # Load games (API + local + DB enrichment)
         success = self.load_games(user_id, progress_callback)
         if not success or not self.game_manager or not self.game_manager.games:
             return False
 
-        # Step 2: Merge collections from cloud storage
+        # Merge collections from cloud storage
         if progress_callback:
             progress_callback(t("logs.manager.merging"), 0, 0)
         if self.cloud_storage_parser:
             self.game_manager.merge_with_localconfig(self.cloud_storage_parser)
 
-        # Step 3: Load ONLY custom_metadata.json (skip binary VDF)
+        # Load ONLY custom_metadata.json (skip binary VDF)
         if progress_callback:
             progress_callback(t("logs.service.applying_metadata"), 0, 0)
         if not self.appinfo_manager:
             self.appinfo_manager = AppInfoManager(Path(self.steam_path))
         modifications = self.appinfo_manager.load_modifications_only()
 
-        # Step 4: Parse packageinfo.vdf + licensecache for ownership data
+        # Parse packageinfo.vdf + licensecache for ownership data
         if progress_callback:
             progress_callback(t("logs.service.parsing_packages"), 0, 0)
         pkg_parser = PackageInfoParser(Path(self.steam_path))
 
-        # Step 4.5: Cross-reference with licensecache for definitive ownership
+        # Cross-reference with licensecache for definitive ownership
         from steam_library_manager.config import config as _cfg
 
         short_id, _ = _cfg.get_detected_user()
@@ -271,7 +189,7 @@ class GameService:
         else:
             packageinfo_ids = pkg_parser.get_all_app_ids()
 
-        # Step 5: Discover missing games — DB fast path or binary fallback
+        # Discover missing games - DB fast path or binary fallback
         if progress_callback:
             progress_callback(t("logs.service.discovering_games"), 0, 0)
 
@@ -300,8 +218,8 @@ class GameService:
         if discovered > 0 and self.cloud_storage_parser:
             self.game_manager.merge_with_localconfig(self.cloud_storage_parser)
 
-        # Step 5.5: Fresh API call to discover newly purchased games
-        # (Depressurizer approach — catches games not in local files/DB)
+        # Fresh API call to discover newly purchased games
+        # (Depressurizer approach - catches games not in local files/DB)
         if progress_callback:
             progress_callback(t("ui.status.api_refresh"), 0, 0)
         new_app_ids = self._refresh_from_api(user_id)
@@ -311,10 +229,9 @@ class GameService:
             if self.database:
                 self._save_new_games_to_db(new_app_ids)
 
-        # Step 5.7: Steam Community Profile scrape — DISABLED
-        # The profile page uses React client-side rendering; a simple
-        # requests.get() only receives a 52KB shell with zero game data.
-        # Revisit in v1.2 with session-cookie auth or Playwright.
+        # Steam Community Profile scrape - DISABLED
+        # Profile page uses React CSR; requests.get() only gets a shell.
+        # Revisit with session-cookie auth or Playwright.
         # See: TASK_ADDENDUM_FIX_C_REPLACEMENT.md for full analysis.
 
         # Re-enrich ALL games with DB metadata (fixes fallback names from
@@ -325,7 +242,7 @@ class GameService:
         # Repair placeholder names ("App XXXXX") from appinfo.vdf
         self._repair_placeholder_names()
 
-        # Step 6: Apply ONLY custom JSON overrides (not full binary metadata)
+        # Apply ONLY custom JSON overrides (not full binary metadata)
         if progress_callback:
             progress_callback(t("logs.service.applying_overrides"), 0, 0)
         if db_type_lookup is not None:
@@ -338,18 +255,7 @@ class GameService:
         return True
 
     def _refresh_from_api(self, steam_user_id: str) -> list[str]:
-        """Refresh game list from GetOwnedGames API to catch new purchases.
-
-        Runs AFTER the main loading pipeline as a safety net to discover games
-        purchased since the last Steam Client sync. This is the Depressurizer
-        approach: always do a fresh API call.
-
-        Args:
-            steam_user_id: SteamID64 of the user.
-
-        Returns:
-            List of newly discovered app_ids (empty if none found or on error).
-        """
+        """Refresh game list from GetOwnedGames API to catch new purchases."""
         if not self.game_manager:
             return []
 
@@ -427,11 +333,7 @@ class GameService:
             return []
 
     def _save_new_games_to_db(self, new_app_ids: list[str]) -> None:
-        """Persist newly discovered games to the database.
-
-        Args:
-            new_app_ids: App IDs of games to save.
-        """
+        """Persist newly discovered games to the database."""
         if not self.database or not self.game_manager:
             return
 
@@ -452,12 +354,7 @@ class GameService:
         self.database.commit()
 
     def _repair_placeholder_names(self) -> None:
-        """Repairs games with placeholder names by looking up real names in appinfo.vdf.
-
-        Games that ended up with names like "App 12345" (from empty DB entries or
-        missing API data) get their real names from appinfo.vdf.  Updates both
-        the in-memory Game object and the database.
-        """
+        """Replace placeholder names ("App XXXXX") with real names from appinfo.vdf."""
         if not self.game_manager or not self.appinfo_manager:
             return
 
@@ -494,13 +391,7 @@ class GameService:
             logger.info(t("logs.service.placeholder_names_repaired", count=repaired))
 
     def merge_with_localconfig(self) -> None:
-        """Merges collections from active parser into game_manager.
-
-        Uses cloud storage parser if available, otherwise falls back to VDF parser.
-
-        Raises:
-            RuntimeError: If no parser or game_manager is available.
-        """
+        """Merge collections from active parser into game_manager."""
         if not self.game_manager:
             raise RuntimeError("GameManager not initialized. Call load_games() first.")
 
@@ -512,11 +403,7 @@ class GameService:
         self.game_manager.merge_with_localconfig(parser)
 
     def apply_metadata(self) -> None:
-        """Applies metadata overrides from appinfo.vdf to loaded games.
-
-        Raises:
-            RuntimeError: If game_manager is not initialized.
-        """
+        """Apply metadata overrides from appinfo.vdf to loaded games."""
         if not self.game_manager:
             raise RuntimeError("GameManager not initialized. Call load_games() first.")
 
@@ -541,28 +428,11 @@ class GameService:
         self.game_manager.apply_metadata_overrides(self.appinfo_manager)
 
     def get_active_parser(self) -> CloudStorageParser | None:
-        """Returns the active parser (cloud storage only).
-
-        Returns:
-            CloudStorageParser instance, or None if not initialized.
-        """
+        """Return the active cloud storage parser, or None."""
         return self.cloud_storage_parser  # Only cloud_storage handles categories!
 
     def _refresh_from_profile(self, steam_user_id: str) -> list[str]:
-        """Scrape game list from Steam Community profile page.
-
-        Catches games that GetOwnedGames API sometimes misses:
-        free-to-play, recently added/gifted, key-redeemed games.
-
-        This is a safety net — runs AFTER the API call. Only adds games
-        that weren't already found by previous pipeline steps.
-
-        Args:
-            steam_user_id: SteamID64 of the user.
-
-        Returns:
-            List of newly discovered app_ids (empty on failure).
-        """
+        """Scrape game list from Steam Community profile as a safety net."""
         if not self.game_manager:
             return []
 
@@ -598,11 +468,7 @@ class GameService:
             return []
 
     def get_load_source_message(self) -> str:
-        """Returns a message indicating which parser was used to load games.
-
-        Returns:
-            Human-readable message about the load source.
-        """
+        """Return a message indicating which parser was used to load games."""
         if not self.game_manager:
             return "No games loaded"
 

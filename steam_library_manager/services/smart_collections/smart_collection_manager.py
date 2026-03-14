@@ -1,10 +1,10 @@
+#
 # steam_library_manager/services/smart_collections/smart_collection_manager.py
-
-"""Smart Collection lifecycle manager: CRUD, evaluate, sync.
-
-Orchestrates Smart Collection creation, evaluation against game objects,
-persistence to the local DB, and synchronization to Steam cloud storage.
-"""
+# Smart Collection lifecycle manager: CRUD, evaluate, sync.
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -30,14 +30,7 @@ logger = logging.getLogger("steamlibmgr.smart_collections.manager")
 
 
 class SmartCollectionManager:
-    """Manages Smart Collection lifecycle: CRUD, evaluate, sync.
-
-    Attributes:
-        database: The application database.
-        game_manager: The game manager for accessing games.
-        category_service: The category service for Steam sync.
-        evaluator: The rule evaluation engine.
-    """
+    """Manages Smart Collection lifecycle: CRUD, evaluate, sync."""
 
     def __init__(
         self,
@@ -45,31 +38,15 @@ class SmartCollectionManager:
         game_manager: GameManager,
         category_service: CategoryService | None = None,
     ) -> None:
-        """Initializes the SmartCollectionManager.
-
-        Args:
-            database: The application database.
-            game_manager: The game manager for accessing games.
-            category_service: Optional category service for Steam sync.
-        """
         self.database = database
         self.game_manager = game_manager
         self.category_service = category_service
         self.evaluator = SmartCollectionEvaluator()
 
-    # ------------------------------------------------------------------
     # CRUD
-    # ------------------------------------------------------------------
 
     def create(self, collection: SmartCollection) -> int:
-        """Creates a smart collection, evaluates it, and syncs to Steam.
-
-        Args:
-            collection: The SmartCollection to create.
-
-        Returns:
-            The new collection_id from the database.
-        """
+        """Create a smart collection, evaluate it, and sync to Steam."""
         rules_json = collection_to_json(collection)
         collection_id = self.database.create_smart_collection(
             name=collection.name,
@@ -98,18 +75,8 @@ class SmartCollectionManager:
         return collection_id
 
     def update(self, collection: SmartCollection) -> int:
-        """Updates a smart collection, re-evaluates, and re-syncs.
-
-        If the name changed, the old Steam category is cleaned up first
-        so that orphan categories don't remain in the cloud storage.
-
-        Args:
-            collection: The SmartCollection to update (must have collection_id set).
-
-        Returns:
-            Number of matching games after re-evaluation.
-        """
-        # Check if name changed — clean up old Steam category
+        """Update a smart collection, re-evaluate, and re-sync."""
+        # Check if name changed - clean up old Steam category
         old_row = self.database.get_smart_collection(collection.collection_id)
         old_name = old_row["name"] if old_row else None
 
@@ -145,11 +112,7 @@ class SmartCollectionManager:
         return len(matching)
 
     def delete(self, collection_id: int) -> None:
-        """Deletes a smart collection from DB and optionally from Steam.
-
-        Args:
-            collection_id: The collection ID to delete.
-        """
+        """Delete a smart collection from DB and optionally from Steam."""
         # Get collection info before deleting (for Steam cleanup)
         row = self.database.get_smart_collection(collection_id)
         self.database.delete_smart_collection(collection_id)
@@ -163,66 +126,33 @@ class SmartCollectionManager:
         logger.info("Deleted smart collection id=%d", collection_id)
 
     def get_all(self) -> list[SmartCollection]:
-        """Loads all smart collections from DB.
-
-        Returns:
-            List of SmartCollection instances.
-        """
+        """Load all smart collections from DB."""
         return [self._hydrate_row(row) for row in self.database.get_all_smart_collections()]
 
     def get_by_name(self, name: str) -> SmartCollection | None:
-        """Loads a single smart collection by name.
-
-        Args:
-            name: The collection name.
-
-        Returns:
-            SmartCollection or None if not found.
-        """
+        """Load a single smart collection by name."""
         row = self.database.get_smart_collection_by_name(name)
         return self._hydrate_row(row) if row else None
 
-    # ------------------------------------------------------------------
-    # EVALUATION
-    # ------------------------------------------------------------------
+    # Evaluation
 
     def evaluate_collection(self, collection: SmartCollection) -> list[Game]:
-        """Evaluates rules against all real games.
-
-        Args:
-            collection: The Smart Collection with rules.
-
-        Returns:
-            List of matching Game objects.
-        """
+        """Evaluate rules against all real games."""
         all_games = self.game_manager.get_real_games()
         return self.evaluator.evaluate_batch(all_games, collection)
 
     def evaluate_all(self) -> dict[str, list[Game]]:
-        """Evaluates ALL smart collections.
-
-        Returns:
-            Dict mapping collection name to list of matching games.
-        """
+        """Evaluate all active smart collections."""
         result: dict[str, list[Game]] = {}
         for sc in self.get_all():
             if sc.is_active:
                 result[sc.name] = self.evaluate_collection(sc)
         return result
 
-    # ------------------------------------------------------------------
-    # STEAM SYNC
-    # ------------------------------------------------------------------
+    # Steam sync
 
     def sync_to_steam(self, collection: SmartCollection, matching_app_ids: list[str]) -> None:
-        """Syncs a smart collection to Steam as a static collection.
-
-        Adds matching games and removes games that no longer match.
-
-        Args:
-            collection: The Smart Collection to sync.
-            matching_app_ids: App IDs of games that currently match.
-        """
+        """Sync a smart collection to Steam, adding/removing games as needed."""
         if not self.category_service:
             return
 
@@ -250,18 +180,10 @@ class SmartCollectionManager:
                 self.sync_to_steam(sc, [g.app_id for g in matching])
         self.database.commit()
 
-    # ------------------------------------------------------------------
-    # AUTO-UPDATE
-    # ------------------------------------------------------------------
+    # Auto-update
 
     def refresh(self) -> dict[str, int]:
-        """Re-evaluates all active smart collections and syncs.
-
-        Called on populate_categories() to keep smart collections up-to-date.
-
-        Returns:
-            Dict mapping collection_name to game_count.
-        """
+        """Re-evaluate all active smart collections and sync."""
         result: dict[str, int] = {}
         for sc in self.get_all():
             if not sc.is_active:
@@ -280,20 +202,11 @@ class SmartCollectionManager:
             logger.info("Refreshed %d smart collections: %s", len(result), result)
         return result
 
-    # ------------------------------------------------------------------
-    # PRIVATE HELPERS
-    # ------------------------------------------------------------------
+    # Private helpers
 
     @staticmethod
     def _hydrate_row(row: dict) -> SmartCollection:
-        """Creates a SmartCollection from a database row.
-
-        Args:
-            row: Database row dict with collection fields.
-
-        Returns:
-            Hydrated SmartCollection with rules loaded from JSON.
-        """
+        """Create a SmartCollection from a database row."""
         sc = SmartCollection(
             collection_id=row["collection_id"],
             name=row["name"],
@@ -307,11 +220,7 @@ class SmartCollectionManager:
         return sc
 
     def _remove_from_steam(self, category_name: str) -> None:
-        """Removes all games from a Steam category (for deletion cleanup).
-
-        Args:
-            category_name: The category to clean up.
-        """
+        """Remove all games from a Steam category (for deletion cleanup)."""
         if not self.category_service:
             return
         games = self.game_manager.get_games_by_category(category_name)

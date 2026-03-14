@@ -1,6 +1,10 @@
-"""
-Central version management for Steam Library Manager.
-"""
+#
+# steam_library_manager/version.py
+# Version constants
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 

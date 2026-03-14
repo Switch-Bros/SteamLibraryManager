@@ -1,12 +1,10 @@
+#
 # steam_library_manager/ui/widgets/game_details_widget.py
-
-"""Widget for displaying and editing game details.
-
-The heavy UI construction is delegated to
-:func:`src.ui.builders.details_ui_builder.build_details_ui`.
-This module keeps only the widget class with its signals, data-display
-logic, and event handlers.
-"""
+# Widget for displaying and editing game details
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -63,7 +61,7 @@ class GameDetailsWidget(QWidget):
     edit_metadata = pyqtSignal(object)
     pegi_override_requested = pyqtSignal(str, str)
 
-    # UI components — populated by build_details_ui()
+    # UI components - populated by build_details_ui()
     name_label: QLabel
     btn_edit: QPushButton
     btn_store: QPushButton
@@ -96,11 +94,6 @@ class GameDetailsWidget(QWidget):
     category_list: HorizontalCategoryList
 
     def __init__(self, parent=None):
-        """Initializes the game details widget.
-
-        Args:
-            parent: Parent widget.
-        """
         super().__init__(parent)
         self.current_game: Game | None = None
         self.current_games: list[Game] = []
@@ -124,12 +117,8 @@ class GameDetailsWidget(QWidget):
                 rescale_ui(self, scale)
 
     def resizeEvent(self, event) -> None:
-        """Recalculate scale from actual widget width and rescale if needed.
-
-        On small screens (Steam Deck), the screen-based scale from showEvent
-        takes priority — resizeEvent must not override it, otherwise moving
-        the splitter can blow images back to full size with no way to shrink.
-        """
+        """Recalculate scale on resize. On small screens (Deck) the initial
+        scale takes priority so moving the splitter can't blow images up."""
         super().resizeEvent(event)
         if self._initial_scale_applied and self._ui_scale < 1.0:
             return
@@ -139,29 +128,18 @@ class GameDetailsWidget(QWidget):
             self._ui_scale = new_scale
             rescale_ui(self, new_scale)
 
-    # ------------------------------------------------------------------
     # Rating label helpers
-    # ------------------------------------------------------------------
 
     def _update_proton_label(self, tier: str) -> None:
-        """Updates the ProtonDB label with tier-colored HTML."""
         self.lbl_proton.setText(format_proton_html(tier))
 
     def _update_steam_deck_label(self, status: str) -> None:
-        """Updates the Steam Deck label with status-colored HTML."""
         self.lbl_steam_deck.setText(format_deck_html(status))
 
-    # ------------------------------------------------------------------
     # Data display
-    # ------------------------------------------------------------------
 
     def set_games(self, games: list[Game], _all_categories: list[str]) -> None:
-        """Sets multiple games for multi-selection display.
-
-        Args:
-            games: List of selected games.
-            _all_categories: All available categories.
-        """
+        """Display summary info for a multi-game selection."""
         if not games:
             return
 
@@ -213,12 +191,7 @@ class GameDetailsWidget(QWidget):
         self.pegi_image.load_image(None)
 
     def set_game(self, game: Game, _all_categories: list[str]) -> None:
-        """Sets the game to display in the widget.
-
-        Args:
-            game: The game to display.
-            _all_categories: All available categories.
-        """
+        """Display details for a single game."""
         self.current_game = game
         self.current_games = []
         self.name_label.setText(game.name)
@@ -262,7 +235,6 @@ class GameDetailsWidget(QWidget):
         unknown = t("ui.game_details.value_unknown")
 
         def safe_text(value, formatter=None):
-            """Safely converts a value to text with optional formatting."""
             if not value:
                 return unknown
             return formatter(value) if formatter else str(value)
@@ -283,9 +255,7 @@ class GameDetailsWidget(QWidget):
         all_avg = sum(all_vals) / len(all_vals) if all_vals else 0.0
         update_hltb_label(self.lbl_hltb_all, all_avg, dash)
 
-        # Achievement data
         self._update_achievement_labels(game)
-
         self.category_list.set_categories(_all_categories, game.categories)
 
         # Description
@@ -310,21 +280,13 @@ class GameDetailsWidget(QWidget):
         else:
             self.dlc_group.hide()
 
-        # PEGI rating
         self._load_pegi_rating(game)
-
         self._reload_images(game.app_id)
 
-    # ------------------------------------------------------------------
     # Achievement helpers
-    # ------------------------------------------------------------------
 
     def _update_achievement_labels(self, game: Game) -> None:
-        """Updates achievement total, progress and perfect labels.
-
-        Args:
-            game: The game whose achievement data to display.
-        """
+        """Updates achievement total, progress and perfect labels."""
         _GOLD = Theme.ACHIEVEMENT_GOLD
 
         if game.achievement_total > 0:
@@ -355,36 +317,22 @@ class GameDetailsWidget(QWidget):
             self.lbl_achievement_perfect.setText("")
 
     def _clear_achievement_labels(self) -> None:
-        """Resets achievement labels to their default empty state."""
         dash = t("emoji.dash")
         set_info_label_value(self.lbl_achievement_total, dash)
         set_info_label_value(self.lbl_achievement_progress, dash)
         self.lbl_achievement_perfect.setText("")
 
-    # ------------------------------------------------------------------
     # Image handling
-    # ------------------------------------------------------------------
 
     @property
     def _asset_map(self) -> dict[str, ClickableImage]:
-        """Maps asset type names to their corresponding image widgets."""
         return {"grids": self.img_grid, "heroes": self.img_hero, "logos": self.img_logo, "icons": self.img_icon}
 
     def _reload_images(self, app_id: str) -> None:
-        """Reloads all game images from the asset manager.
-
-        Args:
-            app_id: The Steam app ID.
-        """
         for asset_type, img_widget in self._asset_map.items():
             img_widget.load_image(SteamAssets.get_asset_path(app_id, asset_type))
 
     def _reload_single_asset(self, img_type: str) -> None:
-        """Reloads a single image asset after change.
-
-        Args:
-            img_type: Image type ('grids', 'heroes', 'logos', 'icons').
-        """
         if not self.current_game:
             return
         widget = self._asset_map.get(img_type)
@@ -392,11 +340,7 @@ class GameDetailsWidget(QWidget):
             widget.load_image(SteamAssets.get_asset_path(self.current_game.app_id, img_type))
 
     def on_image_click(self, img_type: str) -> None:
-        """Opens the image selection dialog on click.
-
-        Args:
-            img_type: Image type ('grids', 'heroes', 'logos', 'icons').
-        """
+        """Opens the image selection dialog."""
         if not self.current_game:
             return
         dialog = ImageSelectionDialog(self, self.current_game.name, int(self.current_game.app_id), img_type)
@@ -406,11 +350,7 @@ class GameDetailsWidget(QWidget):
                 self._reload_single_asset(img_type)
 
     def on_image_right_click(self, img_type: str) -> None:
-        """Shows reset context menu on right-click.
-
-        Args:
-            img_type: Image type ('grids', 'heroes', 'logos', 'icons').
-        """
+        """Shows reset context menu on right-click."""
         if not self.current_game:
             return
         menu = QMenu(self)
@@ -419,18 +359,10 @@ class GameDetailsWidget(QWidget):
         if action == reset_action and SteamAssets.delete_custom_image(self.current_game.app_id, img_type):
             self._reload_single_asset(img_type)
 
-    # ------------------------------------------------------------------
     # PEGI handling
-    # ------------------------------------------------------------------
 
     def _load_pegi_rating(self, game: Game) -> None:
-        """Loads and displays the PEGI rating for a game.
-
-        Tries PEGI field first, falls back to ESRB mapping, then Steam Store fetch.
-
-        Args:
-            game: The game to load PEGI for.
-        """
+        """Loads PEGI rating: tries pegi_rating, then ESRB mapping, then store fetch."""
         pegi_to_display = ""
 
         if hasattr(game, "pegi_rating") and game.pegi_rating:
@@ -454,7 +386,7 @@ class GameDetailsWidget(QWidget):
             self.pegi_image.load_image(None)
 
     def on_pegi_clicked(self) -> None:
-        """Opens the PEGI selector dialog on click."""
+        """Opens the PEGI selector dialog."""
         if not self.current_game:
             return
         from steam_library_manager.ui.dialogs.pegi_selector_dialog import PEGISelectorDialog
@@ -478,12 +410,10 @@ class GameDetailsWidget(QWidget):
         if action == reset_action:
             self.pegi_override_requested.emit(self.current_game.app_id, "")
 
-    # ------------------------------------------------------------------
     # Clear / Reset
-    # ------------------------------------------------------------------
 
     def clear(self) -> None:
-        """Reset all displayed game details to their default empty state."""
+        """Reset all displayed game details to default empty state."""
         self.current_game = None
         self.current_games = []
         self.name_label.setText(t("ui.game_details.select_placeholder"))
@@ -502,17 +432,9 @@ class GameDetailsWidget(QWidget):
 
         self.category_list.set_categories([], [])
 
-    # ------------------------------------------------------------------
     # Event handlers
-    # ------------------------------------------------------------------
 
     def on_category_toggle(self, category_name: str, checked: bool) -> None:
-        """Handles category checkbox toggle events.
-
-        Args:
-            category_name: The category name.
-            checked: Whether the checkbox is checked.
-        """
         if self.current_game:
             self.category_changed.emit(self.current_game.app_id, category_name, checked)
         elif self.current_games:
@@ -520,12 +442,11 @@ class GameDetailsWidget(QWidget):
                 self.category_changed.emit(game.app_id, category_name, checked)
 
     def on_edit(self) -> None:
-        """Opens the metadata editor for the current game."""
         if self.current_game:
             self.edit_metadata.emit(self.current_game)
 
     def open_current_store(self) -> None:
-        """Opens the Steam Store page in the default browser."""
+        """Opens the Steam Store page in the browser."""
         if self.current_game:
             from steam_library_manager.utils.open_url import open_url
 

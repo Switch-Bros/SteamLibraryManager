@@ -1,12 +1,10 @@
+#
 # steam_library_manager/core/appinfo_manager.py
-
-"""
-Manages Steam app metadata modifications and binary appinfo.vdf operations.
-
-This module provides functionality to read, modify, and write Steam's appinfo.vdf
-file, which contains metadata for all Steam applications. It tracks user modifications
-separately and supports restoring them after Steam updates the file.
-"""
+# Manages Steam app metadata modifications and binary appinfo.vdf operations
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -24,15 +22,7 @@ __all__ = ["AppInfoManager", "extract_associations"]
 
 
 def extract_associations(associations: dict, assoc_type: str) -> list[str]:
-    """Extracts names of a given type from a VDF associations block.
-
-    Args:
-        associations: VDF associations dictionary (indexed by "0", "1", ...).
-        assoc_type: The type to extract ("developer" or "publisher").
-
-    Returns:
-        List of names matching the given type.
-    """
+    """Extracts names of a given type from a VDF associations block."""
     if not isinstance(associations, dict):
         return []
     return [
@@ -43,23 +33,9 @@ def extract_associations(associations: dict, assoc_type: str) -> list[str]:
 
 
 class AppInfoManager:
-    """
-    Manages Steam app metadata modifications with VDF write support.
-
-    This class handles reading Steam's binary appinfo.vdf file, tracking user
-    modifications to app metadata (like developer, publisher, release date),
-    and writing those changes back to the VDF file with correct checksums.
-    """
+    """Manages Steam app metadata modifications with VDF write support."""
 
     def __init__(self, steam_path: Path | None = None):
-        """
-        Initializes the AppInfoManager.
-
-        Args:
-            steam_path (Path | None): Path to the Steam installation directory.
-                                         If provided, appinfo.vdf will be loaded from
-                                         <steam_path>/appcache/appinfo.vdf.
-        """
         from steam_library_manager.config import config
 
         self.data_dir = config.DATA_DIR
@@ -83,28 +59,15 @@ class AppInfoManager:
             self.appinfo_path = steam_path / "appcache" / "appinfo.vdf"
 
     def load_appinfo(self, _app_ids: list[str] | None = None, _load_all: bool = False) -> dict:
-        """
-        Loads the binary appinfo.vdf and previously saved modifications.
-
-        This method reads the Steam appinfo.vdf file using the appinfo_v2 parser
-        and loads any custom metadata modifications from the JSON file.
-
-        Args:
-            _app_ids (list[str] | None): Reserved for future use (currently ignored).
-            _load_all (bool): Reserved for future use (currently ignored).
-
-        Returns:
-            dict: A dictionary of all tracked modifications, keyed by app_id.
-        """
+        """Loads the binary appinfo.vdf and previously saved modifications."""
         self.data_dir.mkdir(exist_ok=True)
 
-        # 1. Load saved modifications
+        # Load saved modifications
         self._load_modifications_from_json()
 
-        # 2. Load binary appinfo.vdf
+        # Load binary appinfo.vdf
         if self.appinfo_path and self.appinfo_path.exists():
             try:
-                # Load appinfo.vdf
                 self.appinfo = AppInfo(path=str(self.appinfo_path))
 
                 # Update steam_apps cache
@@ -124,11 +87,7 @@ class AppInfoManager:
         return self.modifications
 
     def _load_modifications_from_json(self):
-        """
-        Loads saved metadata modifications from the JSON file.
-
-        Supports both old (direct metadata) and new (original + modified) formats.
-        """
+        """Loads saved metadata modifications from the JSON file."""
         file_data = load_json(self.metadata_file)
         if not file_data:
             self.modifications = {}
@@ -153,41 +112,23 @@ class AppInfoManager:
         logger.info(t("logs.appinfo.loaded", count=len(self.modifications)))
 
     def load_modifications_only(self) -> dict[str, dict]:
-        """Loads ONLY custom_metadata.json, skips binary VDF parsing.
-
-        Used during startup to avoid the expensive ~2s binary parse when
-        the SQLite DB already contains all metadata.
-
-        Returns:
-            Dictionary of tracked modifications keyed by app_id.
-        """
+        """Loads ONLY custom_metadata.json, skips binary VDF parsing."""
         self.data_dir.mkdir(exist_ok=True)
         self._load_modifications_from_json()
         return self.modifications
 
     @staticmethod
     def _find_common_section(data: dict) -> dict:
-        """
-        Recursively searches for the 'common' section in VDF data.
-
-        Steam's appinfo.vdf structure can vary. This method tries multiple
-        paths to locate the 'common' section that contains app metadata.
-
-        Args:
-            data (Dict): The VDF data dictionary to search.
-
-        Returns:
-            dict: The 'common' section dictionary, or an empty dict if not found.
-        """
-        # 1. Direct hit
+        """Recursively searches for the 'common' section in VDF data."""
+        # Direct hit
         if "common" in data:
             return data["common"]
 
-        # 2. Nested in appinfo
+        # Nested in appinfo
         if "appinfo" in data and "common" in data["appinfo"]:
             return data["appinfo"]["common"]
 
-        # 3. Recursive search (limited depth)
+        # Recursive search (limited depth)
         for key, value in data.items():
             if isinstance(value, dict):
                 if "common" in value:
@@ -199,29 +140,15 @@ class AppInfoManager:
         return {}
 
     def get_app_metadata(self, app_id: str) -> dict[str, Any]:
-        """
-        Retrieves app metadata with user modifications applied.
-
-        This method first reads metadata from the binary appinfo.vdf, then
-        applies any custom modifications tracked in the JSON file. It supports
-        both the old (direct fields) and new (associations block) formats for
-        developer and publisher information.
-
-        Args:
-            app_id (str): The Steam app ID as a string.
-
-        Returns:
-            dict[str, Any]: A dictionary containing metadata fields like 'name',
-                           'developer', 'publisher', 'release_date', etc.
-        """
+        """Retrieves app metadata with user modifications applied."""
         result = {}
 
-        # 1. Get from binary appinfo
+        # Get from binary appinfo
         if self.appinfo and int(app_id) in self.appinfo.apps:
             app_data_full = self.appinfo.apps[int(app_id)]
             vdf_data = app_data_full.get("data", {})
 
-            # Find common section - use helper method!
+            # Find common section
             common = self._find_common_section(vdf_data)
 
             if common:
@@ -229,13 +156,11 @@ class AppInfoManager:
                 result["name"] = common.get("name", "")
                 result["type"] = common.get("type", "")
 
-                # =============================================
-                # DEVELOPER & PUBLISHER - ASSOCIATIONS FIRST!
-                # =============================================
+                # Developer & Publisher - associations first
                 devs = extract_associations(common.get("associations", {}), "developer")
                 pubs = extract_associations(common.get("associations", {}), "publisher")
 
-                # B) FALLBACK: Direct fields (old format)
+                # Fallback: direct fields (old format)
                 if not devs:
                     dev_direct = common.get("developer", "")
                     if dev_direct:
@@ -250,10 +175,7 @@ class AppInfoManager:
                 result["developer"] = ", ".join(devs) if devs else ""
                 result["publisher"] = ", ".join(pubs) if pubs else ""
 
-                # =============================================
-                # RELEASE DATE
-                # =============================================
-                # Try multiple keys
+                # Release date
                 if "steam_release_date" in common:
                     result["release_date"] = common.get("steam_release_date", "")
                 elif "release_date" in common:
@@ -261,18 +183,14 @@ class AppInfoManager:
                 else:
                     result["release_date"] = ""
 
-                # =============================================
-                # REVIEW PERCENTAGE & METACRITIC SCORE
-                # =============================================
-                # Extract review percentage (0-100)
+                # Review percentage & metacritic score
                 if "review_percentage" in common:
                     result["review_percentage"] = common.get("review_percentage", 0)
 
-                # Extract metacritic score (0-100)
                 if "metacritic_score" in common:
                     result["metacritic_score"] = common.get("metacritic_score", 0)
 
-        # 2. Apply modifications (Custom Overrides)
+        # Apply modifications (Custom Overrides)
         if app_id in self.modifications:
             modified = self.modifications[app_id].get("modified", {})
             result.update(modified)
@@ -280,21 +198,7 @@ class AppInfoManager:
         return result
 
     def set_app_metadata(self, app_id: str, metadata: dict[str, Any]) -> bool:
-        """
-        Sets custom metadata for an app and tracks the modification.
-
-        This method stores the original values (if not already stored) and
-        updates the modified values. If the binary appinfo.vdf is loaded,
-        the changes are also applied in-memory.
-
-        Args:
-            app_id (str): The Steam app ID as a string.
-            metadata (dict[str, Any]): A dictionary of metadata fields to update
-                                       (e.g., {'developer': 'New Dev', 'publisher': 'New Pub'}).
-
-        Returns:
-            bool: True if the operation succeeded, False otherwise.
-        """
+        """Sets custom metadata for an app and tracks the modification."""
         try:
             # Get original values
             if app_id not in self.modifications:
@@ -320,30 +224,14 @@ class AppInfoManager:
             return False
 
     def save_appinfo(self) -> bool:
-        """
-        Saves all tracked modifications to the JSON file.
-
-        Returns:
-            bool: True if the save operation succeeded, False otherwise.
-        """
+        """Saves all tracked modifications to the JSON file."""
         result = save_json(self.metadata_file, self.modifications)
         if result:
             logger.info(t("logs.appinfo.saved_mods", count=len(self.modifications)))
         return result
 
     def write_to_vdf(self, backup: bool = True) -> bool:
-        """
-        Writes all in-memory modifications back to the binary appinfo.vdf file.
-
-        This method uses the appinfo_v2 library to write the VDF file with
-        correct checksums. A backup is created by default before writing.
-
-        Args:
-            backup (bool): Whether to create a rolling backup before writing.
-
-        Returns:
-            bool: True if the write operation succeeded, False otherwise.
-        """
+        """Writes all in-memory modifications back to the binary appinfo.vdf file."""
         if not self.appinfo:
             logger.info(t("logs.appinfo.not_loaded"))
             return False
@@ -373,19 +261,7 @@ class AppInfoManager:
             return False
 
     def restore_modifications(self, app_ids: list[str] | None = None) -> int:
-        """
-        Restores saved modifications to the binary appinfo.vdf.
-
-        This is useful after Steam updates the appinfo.vdf file and overwrites
-        custom metadata. The method re-applies all tracked modifications.
-
-        Args:
-            app_ids (list[str] | None): A list of app IDs to restore. If None,
-                                          all tracked modifications are restored.
-
-        Returns:
-            int: The number of apps successfully restored.
-        """
+        """Restores saved modifications to the binary appinfo.vdf."""
         if not app_ids:
             app_ids = list(self.modifications.keys())
 
@@ -409,29 +285,15 @@ class AppInfoManager:
         return restored
 
     def get_all_apps(self) -> dict[int, dict]:
-        """Returns all parsed apps from appinfo.vdf.
-
-        Returns:
-            Dictionary mapping app_id to app data.
-        """
+        """Returns all parsed apps from appinfo.vdf."""
         return self.steam_apps
 
     def get_modification_count(self) -> int:
-        """
-        Returns the number of apps with tracked modifications.
-
-        Returns:
-            int: The count of modified apps.
-        """
+        """Returns the number of apps with tracked modifications."""
         return len(self.modifications)
 
     def clear_all_modifications(self) -> int:
-        """
-        Clears all tracked modifications and saves the empty state.
-
-        Returns:
-            int: The number of modifications that were cleared.
-        """
+        """Clears all tracked modifications and saves the empty state."""
         count = len(self.modifications)
         self.modifications = {}
         self.modified_apps = []

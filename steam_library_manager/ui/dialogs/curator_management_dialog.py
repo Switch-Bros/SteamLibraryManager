@@ -1,11 +1,10 @@
+#
 # steam_library_manager/ui/dialogs/curator_management_dialog.py
-
-"""Dialog for managing Steam Curators.
-
-Provides a table view of configured curators with controls
-for adding, removing, and refreshing curator data. Curators
-and their recommendations are persisted in the SQLite database.
-"""
+# Dialog for managing Steam Curators
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -48,23 +47,9 @@ _COL_UPDATED = 3
 
 
 class CuratorManagementDialog(BaseDialog):
-    """Dialog for managing Steam Curators and their recommendations.
-
-    Displays a table of configured curators with active toggle,
-    recommendation count, and last-updated timestamp. Provides
-    Add, Popular, Remove, and Refresh actions.
-
-    Attributes:
-        db: Database instance for curator operations.
-    """
+    """Dialog for managing Steam Curators and their recommendations."""
 
     def __init__(self, parent: QWidget | None, db_path: Path) -> None:
-        """Initialize the curator management dialog.
-
-        Args:
-            parent: Parent widget.
-            db_path: Path to the SQLite database file.
-        """
         self._db_path = db_path
         self._db: Database | None = None
 
@@ -141,9 +126,7 @@ class CuratorManagementDialog(BaseDialog):
         # Initial population
         self._refresh_table()
 
-    # ------------------------------------------------------------------
     # Table population
-    # ------------------------------------------------------------------
 
     def _refresh_table(self) -> None:
         """Reload curator data from DB into the table."""
@@ -184,17 +167,9 @@ class CuratorManagementDialog(BaseDialog):
             updated_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
             self._table.setItem(row, _COL_UPDATED, updated_item)
 
-    # ------------------------------------------------------------------
     # Actions
-    # ------------------------------------------------------------------
 
     def _on_active_toggled(self, curator_id: int, active: bool) -> None:
-        """Toggle a curator's active state in the database.
-
-        Args:
-            curator_id: The curator's ID.
-            active: New active state.
-        """
         if self._db:
             self._db.toggle_curator_active(curator_id, active)
 
@@ -312,12 +287,10 @@ class CuratorManagementDialog(BaseDialog):
             self._db.remove_curator(curators[row]["curator_id"])
             self._refresh_table()
 
-    # ------------------------------------------------------------------
     # Top Curators (Auto-Discovery)
-    # ------------------------------------------------------------------
 
     def _on_top_curators(self) -> None:
-        """Fetches the most popular Steam curators and presents a selection dialog."""
+        """Fetch and display top Steam curators for selection."""
         from steam_library_manager.services.curator_client import CuratorClient
 
         if not self._db:
@@ -381,9 +354,7 @@ class CuratorManagementDialog(BaseDialog):
         if added > 0:
             self._refresh_table()
 
-    # ------------------------------------------------------------------
     # Export / Import
-    # ------------------------------------------------------------------
 
     def _on_export(self) -> None:
         """Export all curators and recommendations to a JSON file."""
@@ -484,9 +455,7 @@ class CuratorManagementDialog(BaseDialog):
             t("ui.curator.import_success", count=imported),
         )
 
-    # ------------------------------------------------------------------
     # DB lifecycle
-    # ------------------------------------------------------------------
 
     def _open_db(self) -> None:
         """Open a database connection for the dialog's lifetime."""

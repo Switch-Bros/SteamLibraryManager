@@ -1,20 +1,10 @@
+#
 # steam_library_manager/utils/appinfo.py
-
-"""
-Steam AppInfo.vdf parser with full read and write support.
-
-This module provides a comprehensive parser for Steam's appinfo.vdf file format,
-supporting versions 28, 29, 39, 40, and 41. It can read, modify, and write back
-appinfo.vdf files with correct checksums and string table support.
-
-Based on:
-- SteamAppInfoParser (C# by xPaw) - Modern version support
-- appinfo-parser (Python) - Version detection
-- Steam-Metadata-Editor - Write support
-
-Author: HeikesFootSlave
-License: GPL-3.0
-"""
+# Steam AppInfo.vdf parser with full read and write support
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -54,41 +44,17 @@ __all__ = ("AppInfo", "IncompatibleVersionError", "load", "loads")
 logger = logging.getLogger("steamlibmgr.appinfo")
 
 
-# ===== MAIN PARSER CLASS =====
+# Main parser class
 
 
 class AppInfo:
-    """
-    Parser for Steam's appinfo.vdf file format.
+    """Parser for Steam's appinfo.vdf file format.
 
-    This class provides comprehensive support for reading, modifying, and writing
-    Steam's appinfo.vdf files. It supports versions 28, 29, 39, 40, and 41, with
-    correct checksum calculation and string table handling.
-
-    Attributes:
-        file_path (str | None): Path to the appinfo.vdf file.
-        data (bytearray): Raw file data.
-        offset (int): Current read position in the data.
-        magic (int): Magic number identifying the file format.
-        version (int): Version number of the file format.
-        universe (EUniverse): Steam universe identifier.
-        apps (dict[int, Dict]): Dictionary of app data keyed by app ID.
-        string_table (list[str]): String table for version 41+ files.
-        string_table_offset (int): Offset of the string table in the file.
+    Supports versions 28, 29, 39, 40, and 41 with correct checksum
+    calculation and string table handling.
     """
 
     def __init__(self, path: str | None = None, data: bytes | None = None):
-        """
-        Initializes the AppInfo parser.
-
-        Args:
-            path (str | None): Path to an appinfo.vdf file to load.
-            data (bytes | None): Raw bytes to parse instead of loading from a file.
-
-        Raises:
-            ValueError: If neither path nor data is provided.
-            IncompatibleVersionError: If the file version is not supported.
-        """
         self.file_path = path
         self.data = None
         self.offset = 0
@@ -118,15 +84,10 @@ class AppInfo:
         # Parse apps
         self._parse_apps()
 
-    # ===== HEADER PARSING =====
+    # Header parsing
 
     def _parse_header(self):
-        """
-        Parses the file header and detects the version.
-
-        Raises:
-            IncompatibleVersionError: If the magic number or version is not supported.
-        """
+        """Parses the file header and detects the version."""
         # Read magic (4 bytes)
         raw_magic = self._read_uint32()
 
@@ -152,11 +113,7 @@ class AppInfo:
             self._parse_string_table()
 
     def _parse_string_table(self):
-        """
-        Parses the string table for version 41+ files.
-
-        The string table is used to deduplicate common keys in the VDF data.
-        """
+        """Parses the string table for version 41+ files."""
         # Save current position
         saved_offset = self.offset
 
@@ -175,14 +132,10 @@ class AppInfo:
         # Restore position
         self.offset = saved_offset
 
-    # ===== APP PARSING =====
+    # App parsing
 
     def _parse_apps(self):
-        """
-        Parses all app entries from the file.
-
-        This method reads app entries sequentially until it encounters the end marker (app ID 0).
-        """
+        """Parses all app entries from the file."""
         while True:
             # Read app ID
             current_app_id = self._read_uint32()
@@ -200,12 +153,7 @@ class AppInfo:
                 continue
 
     def _parse_app_entry(self) -> dict:
-        """
-        Parses a single app entry.
-
-        Returns:
-            dict: A dictionary containing the app's metadata and data.
-        """
+        """Parses a single app entry."""
         app_entry = {}
 
         # Version-specific parsing
@@ -242,15 +190,10 @@ class AppInfo:
 
         return app_entry
 
-    # ===== VDF PARSING =====
+    # VDF parsing
 
     def _parse_vdf(self) -> dict:
-        """
-        Parses binary VDF (Key-Value) data.
-
-        Returns:
-            dict: A nested dictionary representing the VDF data.
-        """
+        """Parses binary VDF (Key-Value) data."""
         result = {}
 
         while True:
@@ -292,7 +235,7 @@ class AppInfo:
 
         return result
 
-    # ===== READ PRIMITIVES =====
+    # Read primitives
 
     def _read_byte(self) -> int:
         """Reads a single byte from the data."""
@@ -331,12 +274,7 @@ class AppInfo:
         return value
 
     def _read_cstring(self) -> str:
-        """
-        Reads a null-terminated string.
-
-        Returns:
-            str: The decoded string (UTF-8 with latin-1 fallback).
-        """
+        """Reads a null-terminated string (UTF-8 with latin-1 fallback)."""
         end = self.data.find(0, self.offset)
         if end == -1:
             end = len(self.data)
@@ -351,15 +289,7 @@ class AppInfo:
             return string_bytes.decode("latin-1", errors="replace")
 
     def _read_key(self) -> str:
-        """
-        Reads a key from the data.
-
-        For version 41+, this reads an index into the string table.
-        For older versions, this reads a direct null-terminated string.
-
-        Returns:
-            str: The key string.
-        """
+        """Reads a key - string table index for v41+, direct string otherwise."""
         if self.version >= 41 and self.string_table:
             # Read string table index
             index = self._read_uint32()
@@ -374,23 +304,10 @@ class AppInfo:
             # Direct string
             return self._read_cstring()
 
-    # ===== WRITE SUPPORT =====
+    # Write support
 
     def write(self, output_path: str | None = None) -> bool:
-        """
-        Writes the appinfo.vdf back to disk.
-
-        This method rebuilds the entire file with correct checksums and string tables.
-
-        Args:
-            output_path (str | None): Output path. If None, overwrites the original file.
-
-        Returns:
-            bool: True if successful, False otherwise.
-
-        Raises:
-            ValueError: If no output path is provided and no file path was set during initialization.
-        """
+        """Writes the appinfo.vdf back to disk with correct checksums."""
         if output_path is None:
             if self.file_path is None:
                 raise ValueError(t("errors.appinfo.no_output_path"))
@@ -425,12 +342,7 @@ class AppInfo:
             return False
 
     def _write_header(self, output: bytearray):
-        """
-        Writes the file header.
-
-        Args:
-            output (bytearray): The output buffer to write to.
-        """
+        """Writes the file header."""
         # Write magic + version
         magic_version = (self.magic << 8) | self.version
         output.extend(struct.pack("<I", magic_version))
@@ -444,24 +356,12 @@ class AppInfo:
             output.extend(struct.pack("<Q", 0))
 
     def _write_apps(self, output: bytearray):
-        """
-        Writes all app entries.
-
-        Args:
-            output (bytearray): The output buffer to write to.
-        """
+        """Writes all app entries."""
         for current_app_id, current_app_data in self.apps.items():
             self._write_app_entry(output, current_app_id, current_app_data)
 
     def _write_app_entry(self, output: bytearray, entry_app_id: int, entry_app_data: dict):
-        """
-        Writes a single app entry.
-
-        Args:
-            output (bytearray): The output buffer to write to.
-            entry_app_id (int): The app ID.
-            entry_app_data (Dict): The app data dictionary.
-        """
+        """Writes a single app entry."""
         # Write app ID
         output.extend(struct.pack("<I", entry_app_id))
 
@@ -512,15 +412,7 @@ class AppInfo:
         output.extend(vdf_data)
 
     def _encode_vdf(self, vdf_data: dict) -> bytearray:
-        """
-        Encodes a dictionary to binary VDF format.
-
-        Args:
-            vdf_data (Dict): The dictionary to encode.
-
-        Returns:
-            bytearray: The encoded binary VDF data.
-        """
+        """Encodes a dictionary to binary VDF format."""
         output = bytearray()
 
         for key, value in vdf_data.items():
@@ -561,18 +453,7 @@ class AppInfo:
         return output
 
     def _encode_key(self, key: str) -> bytearray:
-        """
-        Encodes a key for writing.
-
-        For version 41+, this adds the key to the string table and writes an index.
-        For older versions, this writes the key as a null-terminated string.
-
-        Args:
-            key (str): The key to encode.
-
-        Returns:
-            bytearray: The encoded key data.
-        """
+        """Encodes a key - string table index for v41+, direct string otherwise."""
         if self.version >= 41 and self.string_table:
             # Find or add to string table
             try:
@@ -589,27 +470,14 @@ class AppInfo:
 
     @staticmethod
     def _encode_cstring(string: str) -> bytearray:
-        """
-        Encodes a null-terminated string.
-
-        Args:
-            string (str): The string to encode.
-
-        Returns:
-            bytearray: The encoded string with null terminator.
-        """
+        """Encodes a null-terminated string."""
         try:
             return bytearray(string.encode("utf-8") + b"\x00")
         except UnicodeEncodeError:
             return bytearray(string.encode("latin-1", errors="replace") + b"\x00")
 
     def _write_string_table(self, output: bytearray):
-        """
-        Writes the string table and updates the offset in the header.
-
-        Args:
-            output (bytearray): The output buffer to write to.
-        """
+        """Writes the string table and updates the offset in the header."""
         # Record string table position
         string_table_offset = len(output)
 
@@ -624,18 +492,7 @@ class AppInfo:
         struct.pack_into("<Q", output, 8, string_table_offset)
 
     def _dict_to_text_vdf(self, vdf_dict: dict, indent: int = 0) -> bytes:
-        """
-        Converts a dictionary to text VDF format for SHA-1 calculation.
-
-        This method must match Steam's exact formatting for correct checksums.
-
-        Args:
-            vdf_dict (Dict): The dictionary to convert.
-            indent (int): The current indentation level. Defaults to 0.
-
-        Returns:
-            bytes: The text VDF representation.
-        """
+        """Converts a dictionary to text VDF format for SHA-1 calculation."""
         output = b""
         tabs = b"\t" * indent
 
@@ -663,47 +520,20 @@ class AppInfo:
 
         return output
 
-    # ===== CONVENIENCE METHODS =====
+    # Convenience methods
 
     def get_app(self, app_id: int) -> dict | None:
-        """
-        Gets app data by ID.
-
-        Args:
-            app_id (int): The app ID.
-
-        Returns:
-            dict | None: The app data dictionary, or None if not found.
-        """
         return self.apps.get(app_id)
 
     def set_app(self, set_app_id: int, set_data: dict):
-        """
-        Sets app data for a specific app ID.
-
-        If the app doesn't exist, it creates a new entry with default metadata.
-
-        Args:
-            set_app_id (int): The app ID.
-            set_data (Dict): The app data dictionary.
-        """
+        """Sets app data for a specific app ID, creating the entry if needed."""
         if set_app_id not in self.apps:
             self.apps[set_app_id] = {"info_state": 2, "last_updated": 0, "data": {}}
 
         self.apps[set_app_id]["data"] = set_data
 
     def update_app_metadata(self, update_app_id: int, metadata: dict):
-        """
-        Updates app metadata in the 'common' section.
-
-        Args:
-            update_app_id (int): The app ID.
-            metadata (Dict): A dictionary containing metadata fields to update
-                           (e.g., 'name', 'developer', 'publisher', 'release_date').
-
-        Returns:
-            bool: True if successful, False if the app doesn't exist.
-        """
+        """Updates app metadata in the 'common' section."""
         if update_app_id not in self.apps:
             return False
 
@@ -731,42 +561,23 @@ class AppInfo:
         return len(self.apps)
 
     def __contains__(self, check_app_id: int) -> bool:
-        """Checks if an app exists."""
         return check_app_id in self.apps
 
     def __getitem__(self, get_app_id: int) -> dict:
-        """Gets app data by ID (dictionary-style access)."""
         return self.apps[get_app_id]
 
     def __repr__(self) -> str:
-        """Returns a string representation of the AppInfo object."""
         return f"<AppInfo v{self.version} with {len(self.apps)} apps>"
 
 
-# ===== SIMPLE API =====
+# Simple API
 
 
 def load(fp: BinaryIO) -> AppInfo:
-    """
-    Loads appinfo.vdf from a file object.
-
-    Args:
-        fp (BinaryIO): A file-like object opened in binary mode.
-
-    Returns:
-        AppInfo: The parsed AppInfo object.
-    """
+    """Loads appinfo.vdf from a file object."""
     return AppInfo(data=fp.read())
 
 
 def loads(file_data: bytes) -> AppInfo:
-    """
-    Loads appinfo.vdf from bytes.
-
-    Args:
-        file_data (bytes): The raw file data.
-
-    Returns:
-        AppInfo: The parsed AppInfo object.
-    """
+    """Loads appinfo.vdf from bytes."""
     return AppInfo(data=file_data)

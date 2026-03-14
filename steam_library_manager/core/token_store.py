@@ -1,11 +1,10 @@
+#
 # steam_library_manager/core/token_store.py
-
-"""Secure token storage for Steam authentication credentials.
-
-Provides encrypted persistence of access and refresh tokens using
-AES-GCM encryption with keys derived from machine identity.
-Falls back to system keyring when available.
-"""
+# Secure token storage for Steam authentication credentials
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -28,20 +27,13 @@ logger = logging.getLogger("steamlibmgr.token_store")
 __all__ = ["StoredTokens", "TokenStore"]
 
 # Sentinel returned by refresh_access_token() when Steam responds with HTTP 200
-# but does not issue a new token — meaning the stored access token is still valid.
+# but does not issue a new token - meaning the stored access token is still valid.
 _REFRESH_NOT_NEEDED = "__refresh_not_needed__"
 
 
 @dataclass(frozen=True)
 class StoredTokens:
-    """Immutable container for persisted authentication tokens.
-
-    Attributes:
-        access_token: Steam OAuth2 access token.
-        refresh_token: Steam OAuth2 refresh token.
-        steam_id: SteamID64 of the authenticated user.
-        timestamp: Unix timestamp when tokens were stored.
-    """
+    """Immutable container for persisted authentication tokens."""
 
     access_token: str
     refresh_token: str
@@ -55,21 +47,12 @@ class TokenStore:
     Tokens are stored encrypted on disk using AES-GCM.  The encryption key
     is derived from the machine ID and OS username via PBKDF2.  When the
     ``keyring`` package is available, tokens are stored there instead.
-
-    Attributes:
-        token_file: Path to the encrypted token file on disk.
     """
 
     _KEYRING_SERVICE = "steamlibmgr"
     _KEYRING_USERNAME = "steam_tokens"
 
     def __init__(self, data_dir: Path | None = None) -> None:
-        """Initialize the token store.
-
-        Args:
-            data_dir: Directory for storing the encrypted token file.
-                      Defaults to config.DATA_DIR.
-        """
         self.token_file: Path = (data_dir or config.DATA_DIR) / "tokens.enc"
         self._keyring_available: bool = self._check_keyring()
 
@@ -84,21 +67,10 @@ class TokenStore:
         except (ImportError, RuntimeError, OSError):
             return False
 
-    # ------------------------------------------------------------------
     # Public API
-    # ------------------------------------------------------------------
 
     def save_tokens(self, access_token: str, refresh_token: str, steam_id: str) -> bool:
-        """Persist authentication tokens securely.
-
-        Args:
-            access_token: Steam OAuth2 access token.
-            refresh_token: Steam OAuth2 refresh token.
-            steam_id: SteamID64 of the authenticated user.
-
-        Returns:
-            True if tokens were saved successfully.
-        """
+        """Persist authentication tokens securely."""
         token_data = {
             "access_token": access_token,
             "refresh_token": refresh_token,
@@ -115,11 +87,7 @@ class TokenStore:
             return False
 
     def load_tokens(self) -> StoredTokens | None:
-        """Load tokens from secure storage.
-
-        Returns:
-            StoredTokens if found and valid, None otherwise.
-        """
+        """Load tokens from secure storage."""
         try:
             if self._keyring_available:
                 data = self._load_from_keyring()
@@ -155,21 +123,8 @@ class TokenStore:
     def refresh_access_token(refresh_token: str, steam_id: str = "", max_retries: int = 3) -> str | None:
         """Obtain a new access token using a refresh token.
 
-        Steam's IAuthenticationService uses protobuf-over-HTTP: the request
-        body is sent as a base64-encoded protobuf in the
-        ``input_protobuf_encoded`` form parameter.  The response body is raw
-        protobuf (field 1 = access_token string).
-
-        Retries up to ``max_retries`` times with exponential backoff to
-        handle transient network issues.
-
-        Args:
-            refresh_token: The Steam refresh token (JWT).
-            steam_id: SteamID64 of the user.  Required by Steam API.
-            max_retries: Maximum number of attempts (default 3).
-
-        Returns:
-            New access token, or None on failure.
+        Uses Steam's IAuthenticationService protobuf-over-HTTP endpoint.
+        Retries up to ``max_retries`` times with exponential backoff.
         """
         if not steam_id:
             logger.warning("Cannot refresh token without steam_id")
@@ -199,7 +154,7 @@ class TokenStore:
                     logger.info(t("logs.auth.token_refresh_success"))
                     return new_token
 
-                # Steam returned HTTP 200 but no new token — stored token still valid
+                # Steam returned HTTP 200 but no new token - stored token still valid
                 logger.info("Token refresh: Steam returned no new token, stored token still valid")
                 return _REFRESH_NOT_NEEDED
 
@@ -220,18 +175,7 @@ class TokenStore:
 
     @staticmethod
     def validate_access_token(access_token: str, steam_id: str = "") -> bool:
-        """Check whether an access token is still accepted by Steam.
-
-        Makes a lightweight API call (GetOwnedGames with minimal data)
-        to verify the token has not expired.
-
-        Args:
-            access_token: The Steam access token to validate.
-            steam_id: SteamID64 of the user (required by the Steam API).
-
-        Returns:
-            True if the token is still valid.
-        """
+        """Check whether an access token is still accepted by Steam."""
         try:
             url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
             params: dict[str, str | int] = {
@@ -248,18 +192,8 @@ class TokenStore:
 
     @staticmethod
     def get_steamid_from_token(access_token: str) -> str | None:
-        """Extract SteamID64 by calling GetOwnedGames with the access token.
-
-        The GetOwnedGames API returns the SteamID of the authenticated user
-        even without a steamid parameter.
-
-        Args:
-            access_token: The Steam access token.
-
-        Returns:
-            SteamID64 as string, or None if failed.
-        """
-        # Method 1: Try GetOwnedGames API
+        """Extract SteamID64 by calling GetOwnedGames or decoding the JWT."""
+        # Try GetOwnedGames API
         try:
             url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
             params = {"access_token": access_token, "include_appinfo": 0, "format": "json"}
@@ -286,7 +220,7 @@ class TokenStore:
                 safe_msg = type(e).__name__
             logger.error(t("logs.auth.steamid_from_token_error", error=safe_msg))
 
-        # Method 2: Fallback — decode JWT token
+        # Fallback - decode JWT token
         try:
             parts = access_token.split(".")
             if len(parts) >= 2:
@@ -305,25 +239,11 @@ class TokenStore:
 
         return None
 
-    # ------------------------------------------------------------------
     # Protobuf helpers
-    # ------------------------------------------------------------------
 
     @staticmethod
     def _encode_refresh_proto(refresh_token: str, steam_id: str = "") -> bytes:
-        """Manually encode GenerateAccessTokenForApp request as protobuf.
-
-        Protobuf wire format for CAuthentication_AccessToken_GenerateForApp_Request:
-            field 1 (refresh_token, string): tag 0x0A + varint length + UTF-8
-            field 2 (steamid, fixed64):      tag 0x11 + 8 bytes LE
-
-        Args:
-            refresh_token: The refresh JWT token.
-            steam_id: Optional SteamID64.
-
-        Returns:
-            Raw protobuf bytes.
-        """
+        """Manually encode GenerateAccessTokenForApp request as protobuf."""
         buf = bytearray()
 
         # Field 1: refresh_token (string, field number 1, wire type 2)
@@ -341,15 +261,7 @@ class TokenStore:
 
     @staticmethod
     def _decode_string_field(data: bytes, field_number: int) -> str | None:
-        """Extract a string field from raw protobuf bytes.
-
-        Args:
-            data: Raw protobuf response bytes.
-            field_number: The protobuf field number to extract.
-
-        Returns:
-            Decoded string value, or None if not found.
-        """
+        """Extract a string field from raw protobuf bytes."""
         pos = 0
         while pos < len(data):
             if pos >= len(data):
@@ -377,15 +289,7 @@ class TokenStore:
 
     @staticmethod
     def _read_varint(data: bytes, pos: int) -> tuple[int, int]:
-        """Read a varint from bytes at the given position.
-
-        Args:
-            data: The byte buffer.
-            pos: Starting position.
-
-        Returns:
-            Tuple of (decoded value, new position).
-        """
+        """Read a varint from bytes at the given position."""
         result = 0
         shift = 0
         while pos < len(data):
@@ -399,20 +303,13 @@ class TokenStore:
 
     @staticmethod
     def _write_varint(buf: bytearray, value: int) -> None:
-        """Write a varint-encoded integer to a byte buffer.
-
-        Args:
-            buf: Target buffer to append to.
-            value: Non-negative integer to encode.
-        """
+        """Write a varint-encoded integer to a byte buffer."""
         while value > 0x7F:
             buf.append((value & 0x7F) | 0x80)
             value >>= 7
         buf.append(value & 0x7F)
 
-    # ------------------------------------------------------------------
     # Keyring backend
-    # ------------------------------------------------------------------
 
     def _save_to_keyring(self, data: dict[str, Any]) -> bool:
         """Store token data in the system keyring."""
@@ -440,9 +337,7 @@ class TokenStore:
         except (ImportError, RuntimeError, OSError):
             pass  # Key may not exist or keyring unavailable
 
-    # ------------------------------------------------------------------
     # File-based encrypted backend
-    # ------------------------------------------------------------------
 
     def _save_to_file(self, data: dict[str, Any]) -> bool:
         """Encrypt and save token data to file using AES-GCM."""
@@ -496,11 +391,7 @@ class TokenStore:
 
     @staticmethod
     def _get_machine_key() -> str:
-        """Derive a machine-specific key seed from system identity.
-
-        Combines /etc/machine-id (Linux) or hostname fallback with the
-        OS username to produce a deterministic but machine-bound seed.
-        """
+        """Derive a machine-specific key seed from system identity."""
         machine_id = ""
         for path in ("/etc/machine-id", "/var/lib/dbus/machine-id"):
             try:

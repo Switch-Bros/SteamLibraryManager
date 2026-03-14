@@ -1,11 +1,10 @@
+#
 # steam_library_manager/ui/builders/menu_builder.py
-
-"""Builder for the main application menu bar.
-
-Constructs a rich, Steam-inspired menu bar with submenus, filters,
-and stub entries for future features. Each top-level menu is built
-by a dedicated private method for maintainability.
-"""
+# Builder for the main application menu bar.
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -27,39 +26,16 @@ _GITHUB_URL = "https://github.com/Switch-Bros/SteamLibraryManager"
 
 
 class MenuBuilder:
-    """Constructs the entire QMenuBar for the application.
-
-    Owns no state beyond a reference to MainWindow. All menu actions
-    connect directly to MainWindow methods so that signal routing is
-    unchanged after extraction.
-
-    Attributes:
-        main_window: Back-reference to the owning MainWindow instance.
-        user_label: The corner-widget label that displays the logged-in user.
-    """
+    """Constructs the entire QMenuBar for the application."""
 
     def __init__(self, main_window: MainWindow) -> None:
-        """Initializes the MenuBuilder.
-
-        Args:
-            main_window: The MainWindow instance that owns this menu bar.
-        """
         self.main_window: MainWindow = main_window
         self.user_label: QLabel = QLabel(t("common.unknown"))
 
-    # ------------------------------------------------------------------
     # Public API
-    # ------------------------------------------------------------------
 
     def build(self, menubar: QMenuBar) -> None:
-        """Populates an existing QMenuBar with all application menus.
-
-        This is called on the menubar returned by QMainWindow.menuBar() so
-        that Qt's native menu integration is preserved.
-
-        Args:
-            menubar: The QMenuBar instance to populate.
-        """
+        """Populate the given QMenuBar with all application menus."""
         self._build_file_menu(menubar)
         self._build_edit_menu(menubar)
         self._build_view_menu(menubar)
@@ -67,35 +43,20 @@ class MenuBuilder:
         self._build_help_menu(menubar)
         self._attach_corner_widget(menubar)
 
-    # ------------------------------------------------------------------
-    # Private – Helper methods
-    # ------------------------------------------------------------------
+    # Helper methods
 
     def _not_implemented(self, feature_key: str) -> None:
-        """Shows a placeholder message in the status bar for unfinished features.
-
-        Args:
-            feature_key: The i18n key whose translated value is used as
-                the feature name in the placeholder message.
-        """
+        """Show a placeholder message in the status bar."""
         feature = t(feature_key)
         msg = f"{t('common.placeholder_message', feature=feature)} {t('emoji.rocket')}"
         self.main_window.set_status(msg)
 
     def _open_url(self, url: str) -> None:
-        """Opens a URL in the default system browser.
-
-        Args:
-            url: The URL to open.
-        """
+        """Open a URL in the default system browser."""
         open_url(url)
 
     def _edit_single_game(self) -> None:
-        """Selection guard for single game metadata editing.
-
-        Checks whether a game is selected; if not, shows a status bar
-        message. Otherwise delegates to EditActions.
-        """
+        """Guard: edit metadata for the currently selected game."""
         mw = self.main_window
         if mw.selected_game is None:
             mw.set_status(t("ui.errors.no_selection"))
@@ -103,11 +64,7 @@ class MenuBuilder:
         mw.metadata_actions.edit_game_metadata(mw.selected_game)
 
     def _rename_selected_collection(self) -> None:
-        """Selection guard for collection renaming.
-
-        Checks whether a category is selected; if not, shows a status
-        bar message. Currently a stub after the guard passes.
-        """
+        """Guard: rename the currently selected collection (stub)."""
         mw = self.main_window
         selected = mw.tree.get_selected_categories()
         if not selected:
@@ -116,11 +73,7 @@ class MenuBuilder:
         self._not_implemented("menu.edit.collections.rename")
 
     def _merge_selected_collections(self) -> None:
-        """Selection guard for merging multiple collections.
-
-        Checks whether at least two categories are selected; if not,
-        shows a status bar message. Currently a stub after the guard passes.
-        """
+        """Guard: merge two or more selected collections (stub)."""
         mw = self.main_window
         selected = mw.tree.get_selected_categories()
         if len(selected) < 2:
@@ -136,20 +89,7 @@ class MenuBuilder:
         filter_name: str | None = None,
         checked_default: bool = False,
     ) -> None:
-        """Adds a checkable filter submenu to the given parent menu.
-
-        All View-menu filter submenus follow the same pattern: a submenu
-        with checkable actions that call ``view_actions.on_filter_toggled``.
-        This helper eliminates the repetition.
-
-        Args:
-            parent_menu: Parent menu to add the submenu to.
-            i18n_prefix: i18n key prefix (e.g. ``menu.view.type``).
-            keys: Tuple of filter keys used for both i18n and toggling.
-            filter_name: Filter category name passed to on_filter_toggled.
-                Defaults to the last segment of *i18n_prefix*.
-            checked_default: Whether items start checked.
-        """
+        """Add a checkable filter submenu to the given parent menu."""
         if filter_name is None:
             filter_name = i18n_prefix.rsplit(".", 1)[-1]
         sub = parent_menu.addMenu(t(f"{i18n_prefix}.root"))
@@ -164,16 +104,10 @@ class MenuBuilder:
             )
             sub.addAction(action)
 
-    # ------------------------------------------------------------------
-    # Private – one method per top-level menu
-    # ------------------------------------------------------------------
+    # Menu builders
 
     def _build_file_menu(self, menubar: QMenuBar) -> None:
-        """Builds the File menu: Refresh, Save, Export, Import, Exit.
-
-        Args:
-            menubar: The parent menu bar to add the menu to.
-        """
+        """Build the File menu."""
         mw = self.main_window
         file_menu = menubar.addMenu(t("menu.file.root"))
 
@@ -277,11 +211,7 @@ class MenuBuilder:
         file_menu.addAction(exit_action)
 
     def _build_edit_menu(self, menubar: QMenuBar) -> None:
-        """Builds the Edit menu: Metadata, Auto-Cat, Collections, etc.
-
-        Args:
-            menubar: The parent menu bar to add the menu to.
-        """
+        """Build the Edit menu."""
         mw = self.main_window
         edit_menu = menubar.addMenu(t("menu.edit.root"))
 
@@ -367,16 +297,7 @@ class MenuBuilder:
         edit_menu.addAction(remove_dupes_action)
 
     def _build_view_menu(self, menubar: QMenuBar) -> None:
-        """Builds the View menu: View Mode, Type/Platform/Status filters, Statistics.
-
-        View Mode uses an exclusive QActionGroup (radio-button style).
-        Type and Platform filters default to all checked.
-        Status filters default to all unchecked.
-        All filter actions are currently UI-only stubs.
-
-        Args:
-            menubar: The parent menu bar to add the menu to.
-        """
+        """Build the View menu."""
         mw = self.main_window
         view_menu = menubar.addMenu(t("menu.view.root"))
 
@@ -464,13 +385,7 @@ class MenuBuilder:
         view_menu.addAction(stats_action)
 
     def _build_tools_menu(self, menubar: QMenuBar) -> None:
-        """Builds the Tools menu: Artwork, Search, Batch, Database, Settings.
-
-        Settings is the only wired action; all others are stubs.
-
-        Args:
-            menubar: The parent menu bar to add the menu to.
-        """
+        """Build the Tools menu."""
         mw = self.main_window
         tools_menu = menubar.addMenu(t("menu.tools.root"))
 
@@ -581,14 +496,7 @@ class MenuBuilder:
         tools_menu.addAction(settings_action)
 
     def _build_help_menu(self, menubar: QMenuBar) -> None:
-        """Builds the Help menu: Docs, Online, Updates, Support, About.
-
-        Online and Support items open URLs in the browser.
-        About is wired to SteamActions. Everything else is a stub.
-
-        Args:
-            menubar: The parent menu bar to add the menu to.
-        """
+        """Build the Help menu."""
         mw = self.main_window
         help_menu = menubar.addMenu(t("menu.help.root"))
 
@@ -656,11 +564,7 @@ class MenuBuilder:
         help_menu.addAction(about_action)
 
     def _populate_curator_filter_menu(self) -> None:
-        """Dynamically populates the curator filter submenu from cached data.
-
-        Called when the submenu is about to show. Reads curator names from
-        the filter service cache and creates checkable actions.
-        """
+        """Populate the curator filter submenu from cached data."""
         menu = self._curator_filter_menu
         menu.clear()
         mw = self.main_window
@@ -707,11 +611,7 @@ class MenuBuilder:
             menu.addAction(action)
 
     def _attach_corner_widget(self, menubar: QMenuBar) -> None:
-        """Attaches the user-info label to the top-right corner of the menu bar.
-
-        Args:
-            menubar: The menu bar to attach the corner widget to.
-        """
+        """Attach the user-info label to the menu bar corner."""
         self.user_label.setStyleSheet("padding: 5px 10px;")
         self.user_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         self.user_label.setMinimumWidth(250)

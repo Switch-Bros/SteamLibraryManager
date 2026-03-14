@@ -1,16 +1,10 @@
+#
 # steam_library_manager/ui/actions/file_actions.py
-
-"""
-Action handler for File menu operations.
-
-Extracts the following methods from MainWindow:
-  - refresh_data()                  (reload all game data)
-  - force_save()                    (explicit save trigger)
-  - remove_duplicate_collections()  (cleanup duplicate categories)
-  - show_vdf_merger()               (open VDF merge dialog)
-
-All actions connect back to MainWindow for state access and UI updates.
-"""
+# Action handler for File menu operations.
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -30,54 +24,19 @@ __all__ = ["FileActions"]
 
 
 class FileActions:
-    """Handles all File menu actions.
-
-    Owns no persistent state beyond a reference to MainWindow. Each action
-    method delegates to the appropriate service or manager and triggers the
-    standard save/populate/update cycle when data changes.
-
-    Attributes:
-        mw: Back-reference to the owning MainWindow instance.
-    """
+    """Handles all File menu actions."""
 
     def __init__(self, main_window: "MainWindow") -> None:
-        """Initializes the FileActions handler.
-
-        Args:
-            main_window: The MainWindow instance that owns these actions.
-        """
         self.mw: "MainWindow" = main_window
 
-    # ------------------------------------------------------------------
-    # Public API - File Actions
-    # ------------------------------------------------------------------
+    # Public API
 
     def refresh_data(self) -> None:
-        """Reloads all game data from scratch.
-
-        Triggers the full non-blocking loading pipeline via BootstrapService.
-        This includes:
-          - Steam path validation and parser init
-          - Background session restore (token refresh)
-          - Background game loading (manifests, VDF, appinfo)
-          - Service initialization
-          - UI population (tree, details, stats)
-        """
+        """Reload all game data via BootstrapService."""
         self.mw.bootstrap_service.start()
 
     def force_save(self) -> None:
-        """Forces an immediate save of all collections and metadata.
-
-        Writes current state to:
-          - VDF files (localconfig.vdf)
-          - Cloud storage (remotecache.vdf)
-          - Metadata overrides (JSON)
-
-        Checks if Steam is running before saving. If Steam is running,
-        shows a warning dialog with option to close Steam automatically.
-
-        Shows a success message on completion.
-        """
+        """Save all collections and metadata, warning if Steam is running."""
         from steam_library_manager.core.steam_account_scanner import is_steam_running
         from steam_library_manager.ui.dialogs.steam_running_dialog import SteamRunningDialog
 
@@ -98,20 +57,11 @@ class FileActions:
             UIHelper.show_success(self.mw, t("ui.save.success"))
 
     def remove_duplicate_collections(self) -> None:
-        """Opens the merge-duplicates dialog for cloud storage collections.
-
-        Delegates to CategoryActionHandler.show_merge_duplicates_dialog()
-        which detects duplicates, shows the selection UI, and performs
-        the safe merge with game preservation.
-        """
+        """Open the merge-duplicates dialog for cloud storage collections."""
         self.mw.category_handler.show_merge_duplicates_dialog()
 
     def export_collections_text(self) -> None:
-        """Exports current collections as a human-readable VDF text file.
-
-        Opens a file dialog, then writes all cloud storage collections
-        to the selected path using VDFTextExporter.
-        """
+        """Export current collections as a human-readable VDF text file."""
         from PyQt6.QtWidgets import QFileDialog
 
         from steam_library_manager.utils.vdf_exporter import VDFTextExporter
@@ -144,9 +94,7 @@ class FileActions:
         except OSError as exc:
             UIHelper.show_warning(self.mw, str(exc))
 
-    # ------------------------------------------------------------------
     # Export Actions
-    # ------------------------------------------------------------------
 
     def export_csv_simple(self) -> None:
         """Exports the game list as a simple CSV file (Name, App ID, Playtime)."""
@@ -175,14 +123,7 @@ class FileActions:
         filter_key: str,
         export_fn: Callable[[list[Game], Path], None],
     ) -> None:
-        """Shared export flow: get games, file dialog, export, show result.
-
-        Args:
-            title_key: i18n key for the file dialog title.
-            default_name: Default filename suggestion.
-            filter_key: i18n key for the file type filter.
-            export_fn: Export function accepting (games, output_path).
-        """
+        """Shared export flow: file dialog, export, show result."""
         from PyQt6.QtWidgets import QFileDialog
 
         games = self._get_exportable_games()
@@ -257,9 +198,7 @@ class FileActions:
         except OSError as exc:
             UIHelper.show_warning(self.mw, t("ui.export.error", error=str(exc)))
 
-    # ------------------------------------------------------------------
     # Import Actions
-    # ------------------------------------------------------------------
 
     def import_collections_vdf(self) -> None:
         """Imports collections from a VDF text file."""
@@ -387,16 +326,10 @@ class FileActions:
         else:
             UIHelper.show_warning(self.mw, t("ui.export.error", error="Restore failed"))
 
-    # ------------------------------------------------------------------
     # Helpers
-    # ------------------------------------------------------------------
 
     def _get_exportable_games(self) -> list:
-        """Returns the list of games for export, or shows a warning if empty.
-
-        Returns:
-            List of games, or empty list if no games available.
-        """
+        """Return the list of games for export, or show a warning if empty."""
         if not self.mw.game_manager:
             UIHelper.show_warning(self.mw, t("ui.export.no_games"))
             return []
@@ -407,15 +340,7 @@ class FileActions:
         return games
 
     def ask_save_on_exit(self, has_collection_changes: bool, has_metadata_changes: bool) -> str:
-        """Shows a 3-button dialog when unsaved changes exist on exit.
-
-        Args:
-            has_collection_changes: Whether cloud storage collections were modified.
-            has_metadata_changes: Whether appinfo.vdf metadata was modified.
-
-        Returns:
-            ``"save"``, ``"discard"``, or ``"cancel"``.
-        """
+        """Show a save/discard/cancel dialog for unsaved changes on exit."""
         from PyQt6.QtWidgets import QMessageBox
 
         filenames: list[str] = []
@@ -444,9 +369,5 @@ class FileActions:
         return "cancel"
 
     def exit_application(self) -> None:
-        """Closes the main window.
-
-        Delegates to ``MainWindow.close()`` which triggers ``closeEvent()``
-        for unsaved-changes handling and exit confirmation.
-        """
+        """Close the main window."""
         self.mw.close()

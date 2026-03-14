@@ -1,14 +1,10 @@
-"""
-Configuration - Enhanced Steam Auto-Detection
-Supports: Native Linux, Flatpak Linux, SteamOS, Windows
-
-ENHANCEMENTS (2026-02-13):
-✅ Flatpak Steam detection
-✅ SteamOS/Steam Deck detection
-✅ Grid folder property
-✅ Installation type detection
-✅ Better logging
-"""
+#
+# steam_library_manager/config.py
+# Application configuration with Steam auto-detection
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -38,15 +34,7 @@ __all__ = ["Config", "config"]
 
 @dataclass
 class Config:
-    """
-    Central configuration handling for the application.
-    Manages paths, settings, API keys, and UI state.
-
-    ENHANCEMENTS:
-    - Auto-detects Flatpak Steam
-    - Provides grid_folder property
-    - Detects installation type
-    """
+    """Central configuration handling for the application."""
 
     APP_DIR: Path = Path(__file__).parent.parent
     RESOURCES_DIR: Path = get_resources_dir()
@@ -124,12 +112,7 @@ class Config:
 
     @property
     def installation_type(self) -> str:
-        """
-        Get Steam installation type.
-
-        Returns:
-            'flatpak', 'native', 'custom', or 'unknown'
-        """
+        """Returns 'flatpak', 'native', 'custom', or 'unknown'."""
         if not self.STEAM_PATH:
             return "unknown"
 
@@ -146,12 +129,7 @@ class Config:
 
     @property
     def grid_folder(self) -> Path | None:
-        """
-        Get Steam grid folder path.
-
-        Returns:
-            Path to userdata/{user_id}/config/grid/ or None if not available.
-        """
+        """Returns the Steam grid folder path, or None if unavailable."""
         if not self.STEAM_PATH:
             return None
 
@@ -167,12 +145,7 @@ class Config:
         return grid_path
 
     def _migrate_legacy_data_dir(self) -> None:
-        """Migrate data from legacy location (relative to install dir) to XDG path.
-
-        Before v1.2, DATA_DIR was set to APP_DIR/data for non-AppImage/Flatpak
-        installs. This migrates any existing data to the XDG-compliant location.
-        Only runs if old path exists and new path does not.
-        """
+        """Migrates data from pre-v1.2 install-relative path to XDG location."""
         legacy_data_dir = Path(__file__).resolve().parent.parent / "data"
         if legacy_data_dir.is_dir() and not self.DATA_DIR.is_dir():
             import shutil
@@ -242,23 +215,7 @@ class Config:
 
     @staticmethod
     def _find_steam_path() -> Path | None:
-        """
-        Auto-detect Steam path on Linux and Windows.
-
-        ENHANCED: Now detects Flatpak Steam!
-
-        Detection order (Linux):
-        1. Flatpak Steam
-        2. Native Steam (.local/share/Steam)
-        3. Legacy paths (.steam/steam)
-
-        Detection order (Windows):
-        1. Registry (HKCU)
-        2. Common install paths
-
-        Returns:
-            Path to Steam installation or None if not found.
-        """
+        """Auto-detect Steam path on Linux and Windows."""
         system = platform.system()
 
         if system == "Windows":
@@ -314,12 +271,7 @@ class Config:
         return None
 
     def _sync_library_folders(self) -> None:
-        """Synchronize saved library folders with Steam's libraryfolders.vdf.
-
-        Removes saved paths that no longer exist on disk and adds any new
-        paths that Steam reports but SLM doesn't know about yet.
-        Saves config if changes were made.
-        """
+        """Syncs saved library folders with Steam's libraryfolders.vdf."""
         detected = self._detect_library_folders()
         if not detected:
             return
@@ -388,12 +340,7 @@ class Config:
         return list(libraries)
 
     def get_detected_user(self) -> tuple[str | None, str | None]:
-        """
-        Auto-detect Steam user from userdata folder.
-
-        Returns:
-            Tuple of (account_id, steam_id_64) or (None, None) if not found.
-        """
+        """Auto-detects Steam user from userdata folder."""
         if not self.STEAM_PATH:
             return None, None
 

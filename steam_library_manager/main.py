@@ -1,5 +1,10 @@
-#!/usr/bin/env python3
-"""Steam Library Manager - Main Entry Point (PyQt6 Version)."""
+#
+# steam_library_manager/main.py
+# Application entry point
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -30,11 +35,7 @@ __all__ = ["main"]
 
 
 def check_steam_running() -> bool:
-    """Check if Steam is currently running using psutil.
-
-    Returns:
-        True if Steam is running, False otherwise.
-    """
+    """Checks if Steam is currently running using psutil."""
     try:
         import psutil
 
@@ -55,14 +56,7 @@ def check_steam_running() -> bool:
 
 
 def load_steam_file(file_path: Path) -> Any:
-    """Load a Steam file based on its extension/name (.acf or .vdf).
-
-    Args:
-        file_path: Path to the file.
-
-    Returns:
-        The parsed data (dict or AppInfo object) or None if loading failed.
-    """
+    """Loads a Steam file based on its extension (.acf or .vdf)."""
     if not file_path.exists():
         return None
 
@@ -84,14 +78,7 @@ def load_steam_file(file_path: Path) -> Any:
 
 
 def _handle_desktop_integration(*, install: bool) -> int:
-    """Handle --install/--uninstall CLI commands for AppImage desktop integration.
-
-    Args:
-        install: True to install, False to uninstall.
-
-    Returns:
-        Exit code (0 = success, 1 = failure).
-    """
+    """Handles --install/--uninstall CLI commands for AppImage desktop integration."""
     from steam_library_manager.utils.desktop_integration import (
         install_desktop_entry,
         is_appimage,
@@ -118,12 +105,7 @@ def _handle_desktop_integration(*, install: bool) -> int:
 
 
 def _auto_register_desktop_entry() -> None:
-    """Silently register desktop entry when running as AppImage.
-
-    Called once on every AppImage startup. If the entry already exists,
-    it gets updated (in case the AppImage was moved to a new path).
-    Failures are logged but never interrupt the user.
-    """
+    """Silently registers desktop entry when running as AppImage."""
     try:
         from steam_library_manager.utils.desktop_integration import install_desktop_entry, is_appimage
 
@@ -137,7 +119,7 @@ def _auto_register_desktop_entry() -> None:
 
 def main() -> None:
     """Main application execution flow."""
-    # 0. Handle desktop integration CLI commands (no GUI needed)
+    # Handle desktop integration CLI commands (no GUI needed)
     if "--install" in sys.argv:
         init_i18n(config.UI_LANGUAGE)
         sys.exit(_handle_desktop_integration(install=True))
@@ -145,13 +127,13 @@ def main() -> None:
         init_i18n(config.UI_LANGUAGE)
         sys.exit(_handle_desktop_integration(install=False))
 
-    # 1. Initialize language (BEFORE creating UI elements)
+    # Initialize language (BEFORE creating UI elements)
     init_i18n(config.UI_LANGUAGE)
 
-    # 2. Setup logging
+    # Setup logging
     setup_logging()
 
-    # 3. Create QApplication
+    # Create QApplication
     # Set WM_CLASS via argv[0] so X11 docks (Cairo, Plank) can match the window.
     # Must match StartupWMClass in the .desktop file.
     sys.argv[0] = "io.github.switch_bros.SteamLibraryManager"
@@ -164,13 +146,13 @@ def main() -> None:
     if icon_path.exists():
         app.setWindowIcon(QIcon(str(icon_path)))
 
-    # 3b. Auto-register desktop entry for AppImage (silent, background)
+    # Auto-register desktop entry for AppImage (silent, background)
     _auto_register_desktop_entry()
 
-    # 4. Load and set Inter font
-    FontHelper.set_app_font(app, size=10)  # ← NEU!
+    # Load and set Inter font
+    FontHelper.set_app_font(app, size=10)
 
-    # 5. CRITICAL: Check if Steam is running!
+    # Check if Steam is running
     if check_steam_running():
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Icon.Warning)
@@ -185,7 +167,7 @@ def main() -> None:
         logger.info(t("logs.main.steam_running_exit"))
         sys.exit(0)
 
-    # 6. Check if user profile is configured
+    # Check if user profile is configured
     if not config.STEAM_USER_ID:
         from steam_library_manager.ui.dialogs.profile_setup_dialog import ProfileSetupDialog
 
@@ -205,7 +187,7 @@ def main() -> None:
             logger.info(t("logs.main.setup_cancelled"))
             sys.exit(0)
 
-    # 7. Startup logs
+    # Startup logs
     logger.info("=" * 60)
     logger.info(__app_name__)
     logger.info("=" * 60)

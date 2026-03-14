@@ -1,11 +1,10 @@
-"""
-Main application window for Steam Library Manager.
-
-This module contains the primary application window that displays the game
-library, handles user interactions, and coordinates between various managers
-and dialogs. It provides the main interface for browsing, searching, and
-managing Steam games.
-"""
+#
+# steam_library_manager/ui/main_window.py
+# Main application window for Steam Library Manager.
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -75,25 +74,7 @@ __all__ = ["MainWindow"]
 
 
 class MainWindow(QMainWindow):
-    """Primary application window for Steam Library Manager.
-
-    Contains the game tree sidebar, details panel, menus, and toolbar.
-    Coordinates between various managers for game loading, category editing,
-    metadata management, and Steam authentication.
-
-    Attributes:
-        game_manager: Manages game data loading and storage.
-        localconfig_helper: Parser for Steam's localconfig.vdf file.
-        steam_scraper: Scraper for Steam Store data.
-        appinfo_manager: Manager for appinfo.vdf metadata.
-        selected_game: Currently selected single game.
-        selected_games: List of currently selected games (multi-select).
-        dialog_games: Games passed to the current dialog.
-        steam_username: Logged in Steam username.
-        'load_thread': Background thread game loading.
-        store_check_thread: Background thread store availability checks.
-        'progress_dialog': Progress dialog long operations.
-    """
+    """Primary application window for Steam Library Manager."""
 
     def __init__(self):
         """Initializes the main window and loads initial data."""
@@ -118,7 +99,7 @@ class MainWindow(QMainWindow):
         self.search_service = SearchService()
         self.filter_service = FilterService()
 
-        # NEW: Session/Token storage for modern Steam login
+        # Session/Token storage for Steam login
         self.session = None  # For password login (requests.Session)
         self.access_token = None  # For QR login (OAuth token)
         self.refresh_token = None  # For QR login (refresh token)
@@ -168,11 +149,7 @@ class MainWindow(QMainWindow):
         self._init_bootstrap_service()
 
     def _create_ui(self) -> None:
-        """Initializes all UI components, menus, and layouts.
-
-        Creates the menu bar, toolbar, central widget with splitter layout,
-        game tree sidebar, details panel, search bar, and status bar.
-        """
+        """Initialize all UI components, menus, and layouts."""
         # --- Menu bar (delegated to MenuBuilder) ---
         self.menu_builder.build(self.menuBar())
         self.user_label = self.menu_builder.user_label
@@ -199,11 +176,7 @@ class MainWindow(QMainWindow):
         self.reload_btn = self.statusbar_builder.reload_btn
 
     def refresh_toolbar(self) -> None:
-        """Rebuilds the toolbar based on current authentication state.
-
-        Delegates entirely to ToolbarBuilder which handles clearing
-        and recreating toolbar actions based on login state.
-        """
+        """Rebuild the toolbar based on current authentication state."""
         self.toolbar_builder.build(self.toolbar)
 
     # --- Bootstrap & Loading ---
@@ -230,32 +203,18 @@ class MainWindow(QMainWindow):
         self.set_status(t("common.loading"))
 
     def _on_load_progress(self, step: str, current: int, total: int) -> None:
-        """Update inline progress bar and label.
-
-        Args:
-            step: Description of the current loading step.
-            current: Current progress count.
-            total: Total items to process.
-        """
+        """Update inline progress bar and label."""
         self.loading_label.setText(step)
         if total > 0:
             percent = int((current / total) * 100)
             self.progress_bar.setValue(percent)
 
     def _on_persona_resolved(self, display_name: str) -> None:
-        """Update the user label when persona name is fetched.
-
-        Args:
-            display_name: The resolved persona name or Steam ID.
-        """
+        """Update the user label when persona name is fetched."""
         self.user_label.setText(t("ui.main_window.user_label", user_id=display_name))
 
     def _on_session_restored(self, success: bool) -> None:
-        """Rebuild toolbar if session was restored.
-
-        Args:
-            success: Whether the session was restored successfully.
-        """
+        """Rebuild toolbar if session was restored."""
         if success:
             self.refresh_toolbar()
 
@@ -265,40 +224,19 @@ class MainWindow(QMainWindow):
         self.progress_bar.setVisible(False)
 
     def _populate_categories(self) -> None:
-        """Refreshes the sidebar tree with current game data.
-
-        Delegates to CategoryPopulator.populate().
-        """
+        """Refresh the sidebar tree with current game data."""
         self.category_populator.populate()
 
     def on_game_right_click(self, game: Game, pos) -> None:
-        """Shows context menu for a right-clicked game.
-
-        Delegated to CategoryActionHandler.
-
-        Args:
-            game: The game that was right-clicked.
-            pos: The screen position for the context menu.
-        """
+        """Show context menu for a right-clicked game."""
         self.category_handler.on_game_right_click(game, pos)
 
     def on_category_right_click(self, category: str, pos) -> None:
-        """Shows context menu for a right-clicked category.
-
-        Delegated to CategoryActionHandler.
-
-        Args:
-            category: The category name that was right-clicked (or "__MULTI__" for multi-select).
-            pos: The screen position for the context menu.
-        """
+        """Show context menu for a right-clicked category."""
         self.category_handler.on_category_right_click(category, pos)
 
     def set_status(self, text: str) -> None:
-        """Updates the status bar message.
-
-        Args:
-            text (str): The status message to display.
-        """
+        """Update the status bar message."""
         self.statusbar.showMessage(text)
 
     def _update_statistics(self) -> None:
@@ -318,15 +256,7 @@ class MainWindow(QMainWindow):
         self.stats_label.setText(stats_text)
 
     def closeEvent(self, event) -> None:
-        """Handle window close event with unified save dialog.
-
-        Checks for both collection changes and metadata (VDF) changes.
-        If changes exist, offers Save & Exit / Discard & Exit / Cancel.
-        If no changes exist, asks for simple exit confirmation.
-
-        Args:
-            event: The close event from Qt.
-        """
+        """Handle window close with save prompt if changes exist."""
         self.keyboard_handler.remove_event_filter()
 
         parser = self._get_active_parser()
@@ -382,19 +312,13 @@ class MainWindow(QMainWindow):
             thread.wait(3000)  # 3 second timeout
 
     def _save_all_on_exit(self) -> None:
-        """Saves all pending changes before exiting.
-
-        1. Saves collections if the parser has modifications.
-        2. If VDF metadata is dirty: lazy-loads the binary (if not loaded),
-           applies all modifications, writes to VDF with backup, and saves
-           the JSON as well.
-        """
-        # 1. Save collections
+        """Save all pending changes before exiting."""
+        # Save collections
         parser = self._get_active_parser()
         if parser and parser.modified:
             self._save_collections()
 
-        # 2. Save VDF metadata
+        # Save VDF metadata
         if self.appinfo_manager and self.appinfo_manager.vdf_dirty:
             # Lazy-load binary if not yet loaded
             if not self.appinfo_manager.appinfo:
@@ -414,18 +338,14 @@ class MainWindow(QMainWindow):
             # Save JSON as well
             self.appinfo_manager.save_appinfo()
 
-    # ========== Parser Wrapper Methods ==========
+    # Parser wrapper methods
 
     def _get_active_parser(self) -> CloudStorageParser | None:
         """Get the active parser (cloud storage or localconfig)."""
         return self.cloud_storage_parser if self.cloud_storage_parser else self.localconfig_helper
 
     def _schedule_save(self) -> None:
-        """Schedule a delayed save to batch multiple operations.
-
-        Uses a 100ms timer to batch multiple rapid changes into a single save operation.
-        This prevents excessive backups when performing bulk operations.
-        """
+        """Schedule a delayed save to batch multiple rapid changes."""
         if hasattr(self, "_save_timer") and self._save_timer.isActive():
             self._save_timer.stop()
 
@@ -434,9 +354,7 @@ class MainWindow(QMainWindow):
         self._save_timer.timeout.connect(self._save_collections)
         self._save_timer.start(100)  # 100ms delay
 
-    # ------------------------------------------------------------------
-    # Public persistence interface (used by extracted action handlers)
-    # ------------------------------------------------------------------
+    # Public persistence interface
 
     def save_collections(self) -> bool:
         """Persists collections to the active parser."""
@@ -450,14 +368,8 @@ class MainWindow(QMainWindow):
         """Refreshes the statistics label in the status bar."""
         self._update_statistics()
 
-    # ------------------------------------------------------------------
-
     def _save_collections(self) -> bool:
-        """Save collections using the active parser.
-
-        If the cloud storage file was modified externally since the last
-        load, a warning is shown to the user after saving.
-        """
+        """Save collections using the active parser."""
         from steam_library_manager.ui.widgets.ui_helper import UIHelper
 
         # Only save to the active parser (cloud storage OR localconfig, not both!)
@@ -473,16 +385,12 @@ class MainWindow(QMainWindow):
             return self.localconfig_helper.save()
         return False
 
-    # ------------------------------------------------------------------
-    # Keyboard & Easter Egg delegation
-    # ------------------------------------------------------------------
+    # Keyboard handling
 
     def eventFilter(self, obj, event) -> bool:
-        """Delegates to KeyboardHandler for surprise code detection."""
         self.keyboard_handler.handle_event_filter(obj, event)
         return super().eventFilter(obj, event)
 
     def keyPressEvent(self, event) -> None:
-        """Delegates to KeyboardHandler for shortcut processing."""
         if not self.keyboard_handler.handle_key_press(event):
             super().keyPressEvent(event)

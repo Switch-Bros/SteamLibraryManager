@@ -1,19 +1,10 @@
+#
 # steam_library_manager/ui/handlers/category_action_handler.py
-
-"""
-Handler for all category (collection) actions and context menus.
-
-Extracts the following methods from MainWindow:
-  - on_game_right_click / on_category_right_click   (context menus)
-  - rename_category                                  (CRUD)
-  - delete_category / delete_multiple_categories    (CRUD)
-  - merge_categories                                (CRUD)
-  - show_merge_duplicates_dialog                    (duplicate merging)
-
-All persistence (save / populate / update stats) is delegated back to
-MainWindow via the stored reference so that the rest of the window's
-state stays in sync.
-"""
+# Handler for category (collection) actions and context menus.
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -32,37 +23,19 @@ __all__ = ["CategoryActionHandler"]
 
 
 class CategoryActionHandler:
-    """Handles all category/collection CRUD operations and context menus.
+    """Handles category/collection CRUD operations and context menus.
 
-    Holds a single back-reference to MainWindow.  Every method that mutates
-    data ends with the standard three-step flush:
-        1. ``mw.save_collections()``   – persist to VDF / cloud
-        2. ``mw.populate_categories()`` – rebuild the tree widget
-        3. ``mw.update_statistics()``   – refresh the status-bar counters
-
-    Attributes:
-        mw: Back-reference to the owning MainWindow instance.
+    Every mutation method ends with the three-step flush:
+    save_collections, populate_categories, update_statistics.
     """
 
     def __init__(self, main_window: "MainWindow") -> None:
-        """Initializes the handler.
-
-        Args:
-            main_window: The MainWindow instance that owns this handler.
-        """
         self.mw: "MainWindow" = main_window
 
-    # ------------------------------------------------------------------
     # Context menus
-    # ------------------------------------------------------------------
 
     def on_game_right_click(self, game: Game, pos) -> None:
-        """Shows the context menu for a right-clicked game.
-
-        Args:
-            game: The game that was right-clicked.
-            pos:  The global screen position for the popup.
-        """
+        """Show the context menu for a right-clicked game."""
         mw = self.mw
         menu = QMenu(mw)
 
@@ -115,17 +88,7 @@ class CategoryActionHandler:
         menu.exec(pos)
 
     def on_category_right_click(self, category: str, pos) -> None:
-        """Shows the context menu for a right-clicked category.
-
-        Handles three cases:
-            1. Multi-category selection  → merge + delete
-            2. Special categories        → create + auto-categorize only
-            3. Normal categories         → full CRUD menu
-
-        Args:
-            category: The category name, or ``"__MULTI__"`` for multi-select.
-            pos:      The global screen position for the popup.
-        """
+        """Show the context menu for a right-clicked category."""
         mw = self.mw
         menu = QMenu(mw)
 
@@ -170,16 +133,10 @@ class CategoryActionHandler:
 
         menu.exec(pos)
 
-    # ------------------------------------------------------------------
     # Category CRUD
-    # ------------------------------------------------------------------
 
     def rename_category(self, old_name: str) -> None:
-        """Prompts the user for a new name and renames the category.
-
-        Args:
-            old_name: The current name of the category.
-        """
+        """Prompt for a new name and rename the category."""
         mw = self.mw
         if not mw.category_service:
             return
@@ -194,11 +151,7 @@ class CategoryActionHandler:
                 UIHelper.show_error(mw, str(e))
 
     def delete_category(self, category: str) -> None:
-        """Confirms and deletes a single category.
-
-        Args:
-            category: The name of the category to delete.
-        """
+        """Confirm and delete a single category."""
         mw = self.mw
         if not mw.category_service:
             return
@@ -208,11 +161,7 @@ class CategoryActionHandler:
             self._flush(stats=True)
 
     def delete_multiple_categories(self, categories: list[str]) -> None:
-        """Confirms and deletes multiple categories at once.
-
-        Args:
-            categories: List of category names to delete.
-        """
+        """Confirm and delete multiple categories at once."""
         mw = self.mw
         if not mw.category_service or not categories:
             return
@@ -226,14 +175,7 @@ class CategoryActionHandler:
             self._flush(stats=True)
 
     def merge_categories(self, categories: list[str]) -> None:
-        """Shows a target-selection dialog and merges categories.
-
-        All games from the non-target categories are moved into the chosen
-        target, then the source categories are deleted.
-
-        Args:
-            categories: List of category names to merge (must be ≥ 2).
-        """
+        """Show a target-selection dialog and merge categories."""
         mw = self.mw
         if not mw.category_service or len(categories) < 2:
             return
@@ -278,7 +220,7 @@ class CategoryActionHandler:
 
             if not source_categories:
                 # All categories have the same name → open merge dialog
-                # (not destructive remove — that would lose games!)
+                # (not destructive remove - that would lose games!)
                 self.show_merge_duplicates_dialog(filter_name=target_category)
                 return
 
@@ -291,20 +233,10 @@ class CategoryActionHandler:
                     t("categories.merge_title"),
                 )
 
-    # ------------------------------------------------------------------
     # Duplicate merging
-    # ------------------------------------------------------------------
 
     def show_merge_duplicates_dialog(self, filter_name: str | None = None) -> None:
-        """Shows the merge-duplicates dialog and executes the merge.
-
-        Detects duplicate collection groups from the cloud parser, opens
-        the selection dialog, and merges based on the user's choices.
-
-        Args:
-            filter_name: If set, only show the group with this name
-                (used from the context menu).
-        """
+        """Show the merge-duplicates dialog and execute the merge."""
         mw = self.mw
         if not mw.cloud_storage_parser or not mw.category_service:
             UIHelper.show_error(mw, t("ui.main_window.cloud_storage_only"))
@@ -331,16 +263,10 @@ class CategoryActionHandler:
                     self._flush(stats=True)
                     UIHelper.show_success(mw, t("categories.merge_duplicates_success", count=merged))
 
-    # ------------------------------------------------------------------
-    # Collection creation with games
-    # ------------------------------------------------------------------
+    # Collection creation
 
     def _create_collection_with_games(self, games: list[Game]) -> None:
-        """Prompts for a name, creates a collection, and adds the given games.
-
-        Args:
-            games: The games to add to the newly created collection.
-        """
+        """Prompt for a name, create a collection, and add the given games."""
         mw = self.mw
         if not mw.category_service:
             return
@@ -375,19 +301,10 @@ class CategoryActionHandler:
                 t("ui.main_window.collection_created", name=name),
             )
 
-    # ------------------------------------------------------------------
     # Internal helpers
-    # ------------------------------------------------------------------
 
     def _flush(self, *, stats: bool = False) -> None:
-        """Persists collections and refreshes the UI.
-
-        Every mutation method ends with this single call instead of
-        manually chaining save / populate / update_statistics.
-
-        Args:
-            stats: If True, also refresh the statistics label.
-        """
+        """Persist collections and refresh the UI."""
         self.mw.save_collections()
         self.mw.populate_categories()
 
