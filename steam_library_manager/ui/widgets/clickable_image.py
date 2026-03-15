@@ -1,12 +1,10 @@
-# steam_library_manager/ui/components/clickable_image.py
-
-"""
-A custom widget to display clickable and dynamically loaded images.
-
-This widget can load images from local paths or URLs in a separate thread,
-supports animated GIFs (if Pillow is installed), and can display
-superimposed badges based on metadata via ImageBadgeOverlay.
-"""
+#
+# steam_library_manager/ui/widgets/clickable_image.py
+# Clickable image widget with async loading and animated GIF support.
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -44,12 +42,6 @@ class ImageLoader(QThread):
     loaded = pyqtSignal(QByteArray)
 
     def __init__(self, url_or_path: str):
-        """
-        Initializes the ImageLoader.
-
-        Args:
-            url_or_path (str): The URL or local file path to load the image from.
-        """
         super().__init__()
         self.url_or_path = url_or_path
         self._is_running = True
@@ -82,13 +74,7 @@ class ImageLoader(QThread):
 
 
 class ClickableImage(QWidget):
-    """A widget that displays an image and emits signals on clicks.
-
-    Signals:
-        clicked: Emitted on left click.
-        right_clicked: Emitted on right click.
-        load_finished: Emitted when image loading completes (success or failure).
-    """
+    """A widget that displays an image and emits signals on clicks."""
 
     clicked = pyqtSignal()
     right_clicked = pyqtSignal()
@@ -102,16 +88,7 @@ class ClickableImage(QWidget):
         metadata: dict = None,
         external_badges: bool = False,
     ):
-        """
-        Initializes the ClickableImage widget.
-
-        Args:
-            parent_or_text: The parent widget or a text string (legacy parameter).
-            width (int): The fixed width of the widget.
-            height (int): The fixed height of the widget.
-            metadata (dict): Optional metadata dictionary for badge display.
-            external_badges (bool): If True, badge system is managed externally.
-        """
+        """Initializes the ClickableImage widget."""
         parent = parent_or_text if not isinstance(parent_or_text, str) else None
         super().__init__(parent)
         self.w = width
@@ -119,13 +96,13 @@ class ClickableImage(QWidget):
         self.metadata = metadata
         self.external_badges = external_badges
 
-        # Widget keeps ORIGINAL size — badge area extends UPWARDS!
+        # Widget keeps ORIGINAL size - badge area extends UPWARDS!
         # This prevents gaps in the layout
         self.setFixedSize(width, height)
         self.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
-        # image_label — fills the entire widget (as before)
-        # Generation counter — incremented on every load_image() call.
+        # image_label fills the entire widget (as before)
+        # Generation counter - incremented on every load_image() call.
         # _on_loaded() checks this to discard stale results from previous loads.
         self._load_generation: int = 0
 
@@ -154,31 +131,19 @@ class ClickableImage(QWidget):
         self._pixmap_cache = {}  # {path: QPixmap}
 
     def set_default_image(self, path: str):
-        """
-        Sets a default image to show if the primary image fails to load.
-
-        Args:
-            path (str): The path to the default image file.
-        """
+        """Sets a default image to show if the primary image fails to load."""
         self.default_image = path
         if not self.current_path:
             self._load_local_image(path)
 
     @staticmethod
     def _is_animated_pillow(im) -> bool:
-        """Checks if a Pillow image is animated (APNG, GIF, WEBP) using seek fallback.
-
-        Args:
-            im: The Pillow Image object.
-
-        Returns:
-            bool: True if animated, False otherwise.
-        """
-        # 1. Standard check (GIF, WEBP often set this)
+        """Checks if a Pillow image is animated (APNG, GIF, WEBP) using seek fallback."""
+        # Standard check (GIF, WEBP often set this)
         if getattr(im, "is_animated", False):
             return True
 
-        # 2. Fallback check (APNG detection via seeking)
+        # Fallback check (APNG detection via seeking)
         try:
             im.seek(1)  # Try to go to 2nd frame
             im.seek(0)  # Reset to 1st frame
@@ -188,29 +153,14 @@ class ClickableImage(QWidget):
 
     @staticmethod
     def _pillow_to_pixmap(pil_image) -> QPixmap:
-        """Converts a Pillow Image to QPixmap via RGBA conversion.
-
-        Args:
-            pil_image: A PIL/Pillow Image object.
-
-        Returns:
-            QPixmap created from the converted image data.
-        """
+        """Converts a Pillow Image to QPixmap via RGBA conversion."""
         frame = pil_image.convert("RGBA")
         img_bytes = frame.tobytes("raw", "RGBA")
         qim = QImage(img_bytes, frame.width, frame.height, QImage.Format.Format_RGBA8888)
         return QPixmap.fromImage(qim)
 
     def load_image(self, url_or_path: str | None, metadata: dict = None):
-        """Starts loading an image from a URL or local path.
-
-        Supports images (PNG, JPG, GIF, WEBP, APNG). Animated formats are
-        handled via Pillow. WEBM videos show the default placeholder.
-
-        Args:
-            url_or_path (str | None): The URL or file path of the image to load, or None to clear.
-            metadata (dict): Optional metadata for badge display.
-        """
+        """Starts loading an image from a URL or local path."""
         if metadata is not None:
             self.metadata = metadata
 
@@ -226,7 +176,7 @@ class ClickableImage(QWidget):
                 self._load_local_image(self.default_image)
             return
 
-        # WEBM videos can't be displayed as images — show default
+        # WEBM videos can't be displayed as images - show default
         if url_or_path and url_or_path.lower().endswith(".webm"):
             if self.default_image:
                 self._load_local_image(self.default_image)
@@ -257,17 +207,8 @@ class ClickableImage(QWidget):
         self.loader.start()
 
     def _on_loaded(self, data: QByteArray, generation: int = -1):
-        """Handles the loaded image data, parsing it with Pillow if available.
-
-        Discards stale results from previous load_image() calls to prevent
-        race conditions when clicking rapidly between games.
-
-        Args:
-            data: The raw image bytes.
-            generation: Load generation counter.  If it doesn't match the
-                current generation, the result is stale and discarded.
-        """
-        # Stale result — a newer load_image() call has been made since this one started
+        """Handles the loaded image data, parsing it with Pillow if available."""
+        # Stale result - a newer load_image() call has been made since this one started
         if generation != -1 and generation != self._load_generation:
             return
 
@@ -280,7 +221,7 @@ class ClickableImage(QWidget):
             self.load_finished.emit()
             return
 
-        # 1. Attempt to load with Pillow (for Animations)
+        # Attempt to load with Pillow (for Animations)
         if HAS_PILLOW:
             try:
                 # Keep bytes alive!
@@ -312,7 +253,7 @@ class ClickableImage(QWidget):
             except (IOError, ValueError, TypeError, EOFError) as e:
                 logger.error(t("logs.image.pillow_fallback", error=e))
 
-        # 2. Fallback: Standard Qt Loading
+        # Fallback: Standard Qt Loading
         pixmap = QPixmap()
         pixmap.loadFromData(data)
 
@@ -395,12 +336,7 @@ class ClickableImage(QWidget):
             self._badge_overlay.clear_badges()
 
     def clear(self):
-        """
-        Clears the image and shows the default image or empty state.
-
-        This method is useful when you want to reset the widget to its initial state,
-        such as when clearing a multi-selection view.
-        """
+        """Clears the image and shows the default image or empty state."""
         self.timer.stop()
         self.frames = []
         self.current_path = None

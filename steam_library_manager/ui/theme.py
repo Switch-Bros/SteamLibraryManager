@@ -1,12 +1,10 @@
-"""Centralized theme constants and style factory.
-
-Two-layer color system:
-  Layer 1 (Palette): Raw color hex values — what the color IS.
-  Layer 2 (Semantic): Purpose-based aliases — what the color MEANS.
-
-To change a specific use case: modify the semantic alias.
-To change the base color everywhere: modify the palette value.
-"""
+#
+# steam_library_manager/ui/theme.py
+# Centralized theme constants and style factory.
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -14,16 +12,9 @@ __all__ = ["Theme"]
 
 
 class Theme:
-    """Central color and style definitions for the application.
+    """Central color and style definitions for the application."""
 
-    Uses a two-layer system: base palette colors and semantic aliases.
-    Semantic aliases point to palette colors but can be overridden
-    individually when a use case needs a different shade.
-    """
-
-    # ══════════════════════════════════════════════════════
-    # LAYER 1: PALETTE — Raw colors (What IS it?)
-    # ══════════════════════════════════════════════════════
+    # Layer 1: Palette - Raw colors
 
     # Blues (Steam's signature dark blue family)
     STEAM_DARK = "#1b2838"
@@ -70,9 +61,7 @@ class Theme:
     TEXT_WHITE = "#ffffff"
     TEXT_DARK = "#e0e0e0"
 
-    # ══════════════════════════════════════════════════════
-    # LAYER 2: SEMANTIC — Purpose-based aliases (What MEANS it?)
-    # ══════════════════════════════════════════════════════
+    # Layer 2: Semantic - Purpose-based aliases
 
     # Backgrounds
     BG_PRIMARY = STEAM_DARK
@@ -123,9 +112,7 @@ class Theme:
     STEAMDECK_UNSUPPORTED = DECK_UNSUPPORTED
     STEAMDECK_UNKNOWN = DECK_UNKNOWN
 
-    # ══════════════════════════════════════════════════════
-    # COLOR DICTS — For lookup by tier/status string
-    # ══════════════════════════════════════════════════════
+    # Color dicts for lookup by tier/status string
 
     PROTONDB_COLORS: dict[str, str] = {
         "platinum": PROTON_PLATINUM,
@@ -145,17 +132,11 @@ class Theme:
         "unknown": DECK_UNKNOWN,
     }
 
-    # ══════════════════════════════════════════════════════
-    # STYLE FACTORIES — Reusable stylesheet generators
-    # ══════════════════════════════════════════════════════
+    # Style factories
 
     @staticmethod
     def button_danger() -> str:
-        """Stylesheet for danger/destructive action buttons.
-
-        Returns:
-            CSS stylesheet string for QPushButton.
-        """
+        """Stylesheet for danger/destructive action buttons."""
         return f"""
             QPushButton {{ background-color: {Theme.DANGER}; color: {Theme.TEXT_WHITE};
                           font-weight: bold; padding: 8px 16px; }}
@@ -164,11 +145,7 @@ class Theme:
 
     @staticmethod
     def button_primary() -> str:
-        """Stylesheet for primary action buttons.
-
-        Returns:
-            CSS stylesheet string for QPushButton.
-        """
+        """Stylesheet for primary action buttons."""
         return f"""
             QPushButton {{ background-color: {Theme.ACCENT}; color: {Theme.TEXT_WHITE};
                           padding: 8px 16px; }}
@@ -177,11 +154,7 @@ class Theme:
 
     @staticmethod
     def button_steam() -> str:
-        """Stylesheet for Steam-green action buttons (login etc).
-
-        Returns:
-            CSS stylesheet string for QPushButton.
-        """
+        """Stylesheet for Steam-green action buttons (login etc)."""
         return f"""
             QPushButton {{ background-color: {Theme.LOGIN_BUTTON}; color: {Theme.TEXT_WHITE};
                           border: none; padding: 10px 20px; border-radius: 3px;
@@ -191,11 +164,7 @@ class Theme:
 
     @staticmethod
     def progress_bar() -> str:
-        """Stylesheet for progress bars.
-
-        Returns:
-            CSS stylesheet string for QProgressBar.
-        """
+        """Stylesheet for progress bars."""
         return f"""
             QProgressBar {{ border: 1px solid {Theme.BORDER_SEPARATOR}; border-radius: 5px;
                           text-align: center; background: {Theme.BG_WIDGET}; }}
@@ -204,11 +173,7 @@ class Theme:
 
     @staticmethod
     def info_box() -> str:
-        """Stylesheet for informational text boxes.
-
-        Returns:
-            CSS stylesheet string for QLabel.
-        """
+        """Stylesheet for informational text boxes."""
         return f"""
             QLabel {{ background-color: {Theme.BG_INFO_BOX}; padding: 15px;
                     border-radius: 5px; color: {Theme.TEXT_PRIMARY}; }}
@@ -216,11 +181,7 @@ class Theme:
 
     @staticmethod
     def pegi_button() -> str:
-        """Stylesheet for PEGI rating icon buttons.
-
-        Returns:
-            CSS stylesheet string for QPushButton.
-        """
+        """Stylesheet for PEGI rating icon buttons."""
         return f"""
             QPushButton {{ border: 2px solid {Theme.BORDER}; background-color: {Theme.BG_PRIMARY};
                           border-radius: 4px; }}
@@ -231,16 +192,10 @@ class Theme:
 
     @staticmethod
     def modified_field() -> str:
-        """Stylesheet for metadata fields that have been modified.
-
-        Returns:
-            CSS stylesheet string for QLineEdit.
-        """
+        """Stylesheet for metadata fields that have been modified."""
         return f"border: 2px solid {Theme.MODIFIED_FIELD_BORDER};"
 
-    # ------------------------------------------------------------------
-    # Style constants for consistent UI (replacements happen in separate task)
-    # ------------------------------------------------------------------
+    # Style constants for consistent UI
     STYLE_HINT = "color: gray; font-style: italic;"
     STYLE_WARNING = "color: orange;"
     STYLE_SUCCESS = "color: green; font-weight: bold;"

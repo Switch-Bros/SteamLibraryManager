@@ -1,10 +1,10 @@
+#
 # steam_library_manager/ui/builders/details_ui_builder.py
-
-"""Builder for the game details panel UI.
-
-Constructs all visual components (header, gallery, metadata grid,
-HLTB row, achievement row, categories) and wires signals to the widget.
-"""
+# Builder for the game details panel UI
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -38,16 +38,13 @@ if TYPE_CHECKING:
 
 __all__ = ["build_details_ui", "rescale_ui", "_calc_scale", "_detect_initial_scale"]
 
-# ---------------------------------------------------------------------------
 # Responsive scaling constants
-# ---------------------------------------------------------------------------
 
 # Panels at or above this width get full-size images (scale 1.0).
 _FULL_SCALE_THRESHOLD: int = 1000
 
 # Reference width for proportional down-scaling below the threshold.
 # Higher value = more aggressive scaling on small screens.
-# Steam Deck detail panel ~930px → 930/1700 ≈ 0.55
 _SCALE_REFERENCE_WIDTH: int = 1700
 
 # All image sizes at scale=1.0 (current hardcoded values)
@@ -62,15 +59,7 @@ _META_COLS: tuple[int, int, int] = (190, 320, 440)
 
 
 def _detect_initial_scale() -> float:
-    """Detect initial scale based on primary screen resolution.
-
-    Uses the LONGER edge of the screen to decide scale, because the
-    Steam Deck panel is natively 800x1280 (portrait) rotated -90 degrees.
-    Qt may report width/height either way depending on rotation state.
-
-    Returns:
-        Scale factor between 0.5 and 1.0.
-    """
+    """Detect initial scale based on primary screen resolution."""
     from PyQt6.QtWidgets import QApplication
 
     _logger = logging.getLogger("steamlibmgr.details_ui")
@@ -81,7 +70,6 @@ def _detect_initial_scale() -> float:
         long_edge = max(sz.width(), sz.height())
         _logger.info("Screen detected: %dx%d (long_edge=%d)", sz.width(), sz.height(), long_edge)
         if long_edge <= 1280:
-            # Steam Deck (1280x800) — aggressive scaling
             return 0.55
         if long_edge <= 1600:
             return 0.75
@@ -89,45 +77,19 @@ def _detect_initial_scale() -> float:
 
 
 def _calc_scale(panel_width: int) -> float:
-    """Calculate uniform scale factor from panel width.
-
-    Panels >= threshold get 1.0, smaller panels scale proportionally.
-
-    Args:
-        panel_width: Available detail panel width in pixels.
-
-    Returns:
-        Scale factor between 0.5 and 1.0.
-    """
+    """Calculate uniform scale factor from panel width."""
     if panel_width >= _FULL_SCALE_THRESHOLD:
         return 1.0
     return max(0.5, panel_width / _SCALE_REFERENCE_WIDTH)
 
 
 def _scaled(size: tuple[int, int], scale: float) -> tuple[int, int]:
-    """Scale a (w, h) tuple uniformly, preserving aspect ratio.
-
-    Args:
-        size: Original (width, height).
-        scale: Uniform scale factor.
-
-    Returns:
-        Rounded (width, height) integers.
-    """
+    """Scale a (w, h) tuple uniformly, preserving aspect ratio."""
     return (round(size[0] * scale), round(size[1] * scale))
 
 
 def rescale_ui(w: GameDetailsWidget, scale: float) -> None:
-    """Rescale all size-dependent widgets to the given scale factor.
-
-    Called from GameDetailsWidget.resizeEvent when the panel width changes
-    significantly. Updates ClickableImage sizes, gallery container, and
-    metadata grid column widths.
-
-    Args:
-        w: The GameDetailsWidget instance.
-        scale: Uniform scale factor (0.5 to 1.0).
-    """
+    """Rescale all size-dependent widgets to the given scale factor."""
     _logger = logging.getLogger("steamlibmgr.details_ui")
     _logger.info("Rescaling UI: scale=%.3f", scale)
 
@@ -152,7 +114,7 @@ def rescale_ui(w: GameDetailsWidget, scale: float) -> None:
         elif hasattr(img_widget, "default_image") and img_widget.default_image:
             img_widget._load_local_image(img_widget.default_image)
 
-    # Rescale gallery container — calculate from content sizes
+    # Rescale gallery container - calculate from content sizes
     if hasattr(w, "_gallery_widget"):
         cw, ch = _scaled(_IMG_GRID, scale)
         lw, lh = _scaled(_IMG_LOGO, scale)
@@ -174,14 +136,7 @@ def rescale_ui(w: GameDetailsWidget, scale: float) -> None:
 
 
 def build_details_ui(w: GameDetailsWidget) -> None:
-    """Creates all UI components on the GameDetailsWidget.
-
-    Sets widget attributes (name_label, img_grid, lbl_proton, etc.) and
-    connects signals to the widget's event handler methods.
-
-    Args:
-        w: The GameDetailsWidget instance to populate.
-    """
+    """Creates all UI components on the GameDetailsWidget."""
     scale = _detect_initial_scale()
     w._ui_scale = scale
 
@@ -192,10 +147,10 @@ def build_details_ui(w: GameDetailsWidget) -> None:
     main_layout.setContentsMargins(15, 5, 15, 0)
     main_layout.setSpacing(0)
 
-    # === HEADER (Title & Buttons) — built at detected scale ===
+    # Header (Title & Buttons)
     _build_header(w, main_layout, scale)
 
-    # === PRIVATE BADGE (next to name) ===
+    # Private badge (next to name)
     w.lbl_private_badge = QLabel()
     w.lbl_private_badge.setTextFormat(Qt.TextFormat.RichText)
     w.lbl_private_badge.setStyleSheet(
@@ -204,7 +159,7 @@ def build_details_ui(w: GameDetailsWidget) -> None:
     w.lbl_private_badge.hide()
     main_layout.addWidget(w.lbl_private_badge)
 
-    # === DESCRIPTION ===
+    # Description
     _build_description(w, main_layout)
 
     main_layout.addSpacing(10)
@@ -214,16 +169,16 @@ def build_details_ui(w: GameDetailsWidget) -> None:
     line1.setFrameShadow(QFrame.Shadow.Sunken)
     main_layout.addWidget(line1)
 
-    # === METADATA GRID ===
+    # Metadata grid
     _build_metadata_grid(w, main_layout, scale)
 
-    # === HLTB GRID ===
+    # HLTB grid
     _build_hltb_grid(w, main_layout)
 
-    # === ACHIEVEMENT GRID ===
+    # Achievement grid
     _build_achievement_grid(w, main_layout)
 
-    # === DLC SECTION ===
+    # DLC section
     _build_dlc_section(w, main_layout)
 
     line2 = QFrame()
@@ -232,7 +187,7 @@ def build_details_ui(w: GameDetailsWidget) -> None:
     line2.setContentsMargins(0, 0, 0, 0)
     main_layout.addWidget(line2)
 
-    # === CATEGORIES ===
+    # Categories
     cat_header = QLabel(t("ui.game_details.categories_label"))
     cat_header.setFont(FontHelper.get_font(10, FontHelper.BOLD))
     cat_header.setStyleSheet("padding-top: 5px; padding-bottom: 5px;")
@@ -243,9 +198,7 @@ def build_details_ui(w: GameDetailsWidget) -> None:
     main_layout.addWidget(w.category_list)
 
 
-# ---------------------------------------------------------------------------
 # Section builders
-# ---------------------------------------------------------------------------
 
 
 def _build_description(w: GameDetailsWidget, main_layout: QVBoxLayout) -> None:
@@ -285,13 +238,7 @@ def _build_dlc_section(w: GameDetailsWidget, main_layout: QVBoxLayout) -> None:
 
 
 def _build_header(w: GameDetailsWidget, main_layout: QVBoxLayout, scale: float) -> None:
-    """Builds the header section with scaled dimensions.
-
-    Args:
-        w: The GameDetailsWidget instance.
-        main_layout: Parent layout.
-        scale: Uniform scale factor (0.5 to 1.0).
-    """
+    """Builds the header section with scaled dimensions."""
     header_layout = QHBoxLayout()
 
     left_container = QVBoxLayout()
@@ -302,7 +249,7 @@ def _build_header(w: GameDetailsWidget, main_layout: QVBoxLayout, scale: float) 
     left_container.addWidget(w.name_label)
     left_container.addStretch()
 
-    # PEGI Rating Box — scaled, always 1:1
+    # PEGI Rating Box - scaled, always 1:1
     pw, ph = _scaled(_IMG_PEGI, scale)
     w.pegi_image = ClickableImage(w, pw, ph)
     w.pegi_image.set_default_image(str(config.RESOURCES_DIR / "images" / "default_icons.webp"))
@@ -346,13 +293,7 @@ def _build_header(w: GameDetailsWidget, main_layout: QVBoxLayout, scale: float) 
 
 
 def _build_gallery(w: GameDetailsWidget, header_layout: QHBoxLayout, scale: float) -> None:
-    """Builds the image gallery block with scaled dimensions.
-
-    Args:
-        w: The GameDetailsWidget instance.
-        header_layout: Parent layout to add the gallery to.
-        scale: Uniform scale factor (0.5 to 1.0).
-    """
+    """Builds the image gallery block with scaled dimensions."""
     # Scale individual image sizes
     cw, ch = _scaled(_IMG_GRID, scale)
     lw, lh = _scaled(_IMG_LOGO, scale)
@@ -378,7 +319,7 @@ def _build_gallery(w: GameDetailsWidget, header_layout: QHBoxLayout, scale: floa
     gallery_layout.setContentsMargins(margin, margin, margin, margin)
     gallery_layout.setSpacing(sp)
 
-    # Grid (Cover) — aspect ratio 2:3
+    # Grid (Cover) - aspect ratio 2:3
     w.img_grid = ClickableImage(w, cw, ch)
     w.img_grid.set_default_image(str(config.RESOURCES_DIR / "images" / "default_grids.webp"))
     w.img_grid.clicked.connect(lambda: w.on_image_click("grids"))
@@ -432,13 +373,7 @@ def _build_gallery(w: GameDetailsWidget, header_layout: QHBoxLayout, scale: floa
 
 
 def _build_metadata_grid(w: GameDetailsWidget, main_layout: QVBoxLayout, scale: float) -> None:
-    """Builds the metadata grid with scaled column widths.
-
-    Args:
-        w: The GameDetailsWidget instance.
-        main_layout: Parent layout.
-        scale: Uniform scale factor (0.5 to 1.0).
-    """
+    """Builds the metadata grid with scaled column widths."""
     meta_widget = QWidget()
     meta_grid = QGridLayout(meta_widget)
     w._meta_grid = meta_grid
@@ -484,16 +419,7 @@ def _build_metadata_grid(w: GameDetailsWidget, main_layout: QVBoxLayout, scale: 
 
 
 def _add_meta_field(grid: QGridLayout, label_key: str, row: int) -> QLineEdit:
-    """Adds a label + read-only QLineEdit row to a metadata grid.
-
-    Args:
-        grid: The target grid layout.
-        label_key: i18n key for the field label.
-        row: Grid row index.
-
-    Returns:
-        The created QLineEdit widget.
-    """
+    """Adds a label + read-only QLineEdit row to a metadata grid."""
     layout = QHBoxLayout()
     layout.setContentsMargins(0, 0, 0, 0)
     layout.setSpacing(2)

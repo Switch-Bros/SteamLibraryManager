@@ -1,11 +1,10 @@
+#
 # steam_library_manager/ui/dialogs/about_dialog.py
-
-"""Professional About dialog with Photoshop-style two-column layout.
-
-Dark Steam-inspired design with app logo, version info, credits,
-license, and a clickable GitHub link.  All content strings are
-intentionally hardcoded (project metadata, not user-facing i18n).
-"""
+# Professional About dialog with two-column layout.
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -30,14 +29,14 @@ from steam_library_manager.version import __app_name__, __version__, __release_d
 
 __all__ = ["AboutDialog"]
 
-# -- Hardcoded project metadata (NOT i18n — intentional) --------------------
+# Hardcoded project metadata (NOT i18n - intentional)
 # These are curated by SwitchBros, not pulled from i18n files.
 
 _GITHUB_URL = "https://github.com/Switch-Bros/SteamLibraryManager"
 
 
 class AboutTexts(NamedTuple):
-    """Curated About dialog texts — controlled by SwitchBros, not i18n."""
+    """Curated About dialog texts - controlled by SwitchBros, not i18n."""
 
     description: str
     credits: str
@@ -51,28 +50,28 @@ _ABOUT_EN = AboutTexts(
         "auto-categorization, and cloud sync."
     ),
     credits="Contributors will be listed here.",
-    built_with="Built with Python, PyQt6 & 💛🖤💛",
+    built_with="Built with Python, PyQt6 & \U0001f49b\U0001f5a4\U0001f49b",
 )
 
 _ABOUT_DE = AboutTexts(
     description=(
-        "Der ultimative Steam-Bibliotheksmanager für Linux.\n"
+        "Der ultimative Steam-Bibliotheksmanager f\u00fcr Linux.\n"
         "Verwalte tausende Spiele mit smarten Kollektionen,\n"
         "Auto-Kategorisierung und Cloud-Sync."
     ),
-    credits="Mitwirkende werden hier aufgeführt.",
-    built_with="Erstellt mit Python, PyQt6 & 💛🖤💛",
+    credits="Mitwirkende werden hier aufgef\u00fchrt.",
+    built_with="Erstellt mit Python, PyQt6 & \U0001f49b\U0001f5a4\U0001f49b",
 )
 
 
 def _get_about_texts() -> AboutTexts:
-    """Returns curated About texts — DE or EN (fallback)."""
+    """Returns curated About texts - DE or EN (fallback)."""
     if get_language() == "de":
         return _ABOUT_DE
     return _ABOUT_EN
 
 
-# -- Colors -----------------------------------------------------------------
+# Colors
 
 _BG_DARK = "#1b2838"
 _TEXT_PRIMARY = "#c7d5e0"
@@ -95,32 +94,21 @@ class _ClickableLabel(QLabel):
 
 
 class AboutDialog(BaseDialog):
-    """Professional About dialog inspired by Adobe Photoshop's splash screen.
-
-    Two-column layout: app logo on the left, version/credits/license on the
-    right, separated by a thin vertical divider.  Dark Steam theme.
-    """
+    """Professional About dialog with two-column layout and dark Steam theme."""
 
     def __init__(self, parent=None) -> None:
-        """Initializes the About dialog.
-
-        Args:
-            parent: Optional parent widget.
-        """
         self._click_count = 0
 
         super().__init__(
             parent,
-            title_text=f"{t('menu.help.about')} — {__app_name__}",
+            title_text=f"{t('menu.help.about')} - {__app_name__}",
             min_width=650,
             show_title_label=False,
             buttons="none",
         )
         self.setFixedSize(650, 400)
 
-    # ------------------------------------------------------------------
     # UI Construction
-    # ------------------------------------------------------------------
 
     def _build_content(self, layout: QVBoxLayout) -> None:
         """Builds the two-column dialog layout."""
@@ -130,10 +118,10 @@ class AboutDialog(BaseDialog):
         root = QHBoxLayout()
         root.setSpacing(0)
 
-        # --- Left: Logo ---
+        # Left: Logo
         root.addLayout(self._build_logo_column())
 
-        # --- Vertical divider ---
+        # Vertical divider
         divider = QFrame()
         divider.setFrameShape(QFrame.Shape.VLine)
         divider.setStyleSheet(f"color: {_DIVIDER};")
@@ -142,12 +130,12 @@ class AboutDialog(BaseDialog):
         root.addWidget(divider)
         root.addSpacing(20)
 
-        # --- Right: Info ---
+        # Right: Info
         root.addLayout(self._build_info_column(), stretch=1)
 
         layout.addLayout(root)
 
-        # --- Global stylesheet ---
+        # Global stylesheet
         self.setStyleSheet(f"""
             QDialog {{
                 background-color: {_BG_DARK};
@@ -208,7 +196,7 @@ class AboutDialog(BaseDialog):
         col.addWidget(name_label)
 
         # Version + Release date
-        version_label = QLabel(f"Version {__version__}  —  Release: {__release_date__}")
+        version_label = QLabel(f"Version {__version__}  -  Release: {__release_date__}")
         version_label.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 12px;")
         col.addWidget(version_label)
 
@@ -269,9 +257,7 @@ class AboutDialog(BaseDialog):
 
         return col
 
-    # ------------------------------------------------------------------
     # Helpers
-    # ------------------------------------------------------------------
 
     @staticmethod
     def _h_line() -> QFrame:
@@ -283,10 +269,7 @@ class AboutDialog(BaseDialog):
         return line
 
     def _on_logo_clicked(self) -> None:
-        """Hidden interactions based on click count.
-
-        3 clicks opens GitHub, 5 clicks shows SwitchBros tribute.
-        """
+        """Hidden interactions based on click count."""
         self._click_count += 1
 
         if self._click_count == 3:

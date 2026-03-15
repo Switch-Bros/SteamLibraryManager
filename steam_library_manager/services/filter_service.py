@@ -1,11 +1,10 @@
+#
 # steam_library_manager/services/filter_service.py
-
-"""View-menu filter service for the Steam Library Manager.
-
-Provides FilterState (frozen dataclass) and FilterService which applies
-type, platform, and status filters to game lists. Used by the View menu
-checkboxes and CategoryPopulator to filter the sidebar tree.
-"""
+# View-menu filter service for type, platform, and status filters
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -49,15 +48,7 @@ __all__ = [
 
 @dataclass(frozen=True)
 class FilterState:
-    """Immutable snapshot of the current filter configuration.
-
-    Attributes:
-        enabled_types: Type filter keys that are enabled (default: all).
-        enabled_platforms: Platform filter keys that are enabled (default: all).
-        active_statuses: Status filter keys that are active (default: none).
-        active_languages: Language filter keys that are active (default: none = all visible).
-        sort_key: Current sort key (default: NAME).
-    """
+    """Immutable snapshot of the current filter configuration."""
 
     enabled_types: frozenset[str] = ALL_TYPE_KEYS
     enabled_platforms: frozenset[str] = ALL_PLATFORM_KEYS
@@ -71,15 +62,9 @@ class FilterState:
 
 
 class FilterService:
-    """Manages view-menu filter state and applies filters to game lists.
-
-    The service maintains a mutable internal state that tracks which type,
-    platform, and status filters are currently enabled. The ``apply()``
-    method returns a filtered copy of the input game list.
-    """
+    """Manages view-menu filter state and applies filters to game lists."""
 
     def __init__(self) -> None:
-        """Initializes the FilterService with default state (all types/platforms on, no status/language)."""
         self._enabled_types: set[str] = set(ALL_TYPE_KEYS)
         self._enabled_platforms: set[str] = set(ALL_PLATFORM_KEYS)
         self._active_statuses: set[str] = set()
@@ -120,11 +105,7 @@ class FilterService:
         )
 
     def restore_state(self, state: FilterState) -> None:
-        """Replaces the current filter state with the given snapshot.
-
-        Args:
-            state: A frozen FilterState to restore from.
-        """
+        """Replaces the current filter state with the given snapshot."""
         self._enabled_types = set(state.enabled_types)
         self._enabled_platforms = set(state.enabled_platforms)
         self._active_statuses = set(state.active_statuses)
@@ -136,11 +117,7 @@ class FilterService:
         self._sort_key = state.sort_key
 
     def set_sort_key(self, key: str) -> None:
-        """Sets the sort key from a string value.
-
-        Args:
-            key: One of "name", "playtime", "last_played", "release_date".
-        """
+        """Sets the sort key from a string value."""
         try:
             self._sort_key = SortKey(key)
         except ValueError:
@@ -148,14 +125,7 @@ class FilterService:
             self._sort_key = SortKey.NAME
 
     def sort_games(self, games: list[Game]) -> list[Game]:
-        """Sorts a list of games according to the current sort key.
-
-        Args:
-            games: The games to sort.
-
-        Returns:
-            A new sorted list of games.
-        """
+        """Sorts a list of games according to the current sort key."""
         if self._sort_key == SortKey.PLAYTIME:
             return sorted(games, key=lambda g: g.playtime_minutes, reverse=True)
         if self._sort_key == SortKey.LAST_PLAYED:
@@ -178,15 +148,7 @@ class FilterService:
     def _toggle_filter(
         self, key: str, active: bool, valid_keys: frozenset[str], target_set: set[str], label: str
     ) -> None:
-        """Toggles a single filter key in the target set.
-
-        Args:
-            key: The filter key to toggle.
-            active: Whether to add (True) or remove (False).
-            valid_keys: Set of valid keys for validation.
-            target_set: The mutable set to modify.
-            label: Category label for log messages.
-        """
+        """Toggles a single filter key in the target set."""
         if key not in valid_keys:
             logger.warning("Unknown %s filter key: %s", label, key)
             return
@@ -221,42 +183,22 @@ class FilterService:
         self._toggle_filter(key, active, ALL_ACHIEVEMENT_KEYS, self._active_achievement_filters, "achievement")
 
     def set_curator_cache(self, cache: dict[int, set[int]]) -> None:
-        """Replaces the curator recommendation cache.
-
-        Args:
-            cache: Maps curator_id to the set of recommended app_ids.
-        """
+        """Replaces the curator recommendation cache."""
         self._curator_cache = cache
 
     def toggle_curator_filter(self, curator_id: int, active: bool) -> None:
-        """Activates or deactivates a curator filter.
-
-        Args:
-            curator_id: The curator ID to toggle.
-            active: Whether to enable (True) or disable (False).
-        """
+        """Activates or deactivates a curator filter."""
         if curator_id not in self._curator_cache:
             logger.warning("Unknown curator ID for filter: %d", curator_id)
             return
         self._active_curator_ids.add(curator_id) if active else self._active_curator_ids.discard(curator_id)
 
     def is_type_category_visible(self, type_key: str) -> bool:
-        """Checks whether a type category should be shown in the sidebar.
-
-        Args:
-            type_key: One of "soundtracks", "tools", "software", "videos".
-
-        Returns:
-            True if the corresponding type filter is enabled.
-        """
+        """Checks whether a type category should be shown in the sidebar."""
         return type_key in self._enabled_types
 
     def has_active_filters(self) -> bool:
-        """Checks whether any filter deviates from the default state.
-
-        Returns:
-            True if any type/platform is disabled or any status/language is active.
-        """
+        """Checks whether any filter deviates from the default state."""
         if self._enabled_types != ALL_TYPE_KEYS:
             return True
         if self._enabled_platforms != ALL_PLATFORM_KEYS:
@@ -276,21 +218,7 @@ class FilterService:
         return False
 
     def apply(self, games: list[Game]) -> list[Game]:
-        """Applies all active filters to a list of games.
-
-        Filter pipeline:
-        1. Type filter: game.app_type must match an enabled type.
-        2. Platform filter: game must have at least one enabled platform,
-           or have no platform data (safe default).
-        3. Status filter (OR): if any status is active, game must match
-           at least one active status.
-
-        Args:
-            games: The input game list.
-
-        Returns:
-            A new list containing only games that pass all filters.
-        """
+        """Applies all active filters to a list of games."""
         if not self.has_active_filters():
             return games
 
@@ -316,14 +244,7 @@ class FilterService:
         return result
 
     def _passes_type_filter(self, game: Game) -> bool:
-        """Checks if a game passes the type filter.
-
-        Args:
-            game: The game to check.
-
-        Returns:
-            True if the game's app_type matches any enabled type key.
-        """
+        """Checks if a game passes the type filter."""
         if self._enabled_types == ALL_TYPE_KEYS:
             return True
 
@@ -335,16 +256,7 @@ class FilterService:
         return False
 
     def _passes_platform_filter(self, game: Game) -> bool:
-        """Checks if a game passes the platform filter.
-
-        Games without platform data always pass (safe default).
-
-        Args:
-            game: The game to check.
-
-        Returns:
-            True if the game has at least one enabled platform or no data.
-        """
+        """Checks if a game passes the platform filter."""
         if self._enabled_platforms == ALL_PLATFORM_KEYS:
             return True
 
@@ -358,16 +270,7 @@ class FilterService:
         return False
 
     def _passes_status_filter(self, game: Game) -> bool:
-        """Checks if a game passes the status filter (OR logic).
-
-        If no status filters are active, all games pass.
-
-        Args:
-            game: The game to check.
-
-        Returns:
-            True if no status is active or game matches at least one.
-        """
+        """Checks if a game passes the status filter (OR logic)."""
         if not self._active_statuses:
             return True
 
@@ -385,18 +288,7 @@ class FilterService:
         return False
 
     def _passes_language_filter(self, game: Game) -> bool:
-        """Checks if a game passes the language filter (OR logic).
-
-        If no language filters are active, all games pass. Games without
-        language data always pass (safe default).
-
-        Args:
-            game: The game to check.
-
-        Returns:
-            True if no language is active, game has no language data,
-            or game supports at least one active language.
-        """
+        """Checks if a game passes the language filter (OR logic)."""
         if not self._active_languages:
             return True
 
@@ -407,17 +299,7 @@ class FilterService:
         return bool(game_langs_lower & self._active_languages)
 
     def _passes_deck_filter(self, game: Game) -> bool:
-        """Checks if a game passes the Steam Deck compatibility filter (OR logic).
-
-        If no deck status filters are active, all games pass. Games without
-        deck status data are treated as "unknown".
-
-        Args:
-            game: The game to check.
-
-        Returns:
-            True if no deck filter is active or game matches at least one.
-        """
+        """Checks if a game passes the Steam Deck compatibility filter (OR logic)."""
         if not self._active_deck_statuses:
             return True
 
@@ -425,16 +307,7 @@ class FilterService:
         return status in self._active_deck_statuses
 
     def _passes_achievement_filter(self, game: Game) -> bool:
-        """Checks if a game passes the achievement filter (OR logic).
-
-        If no achievement filters are active, all games pass.
-
-        Args:
-            game: The game to check.
-
-        Returns:
-            True if no filter is active or game matches at least one.
-        """
+        """Checks if a game passes the achievement filter (OR logic)."""
         if not self._active_achievement_filters:
             return True
 
@@ -455,17 +328,7 @@ class FilterService:
         return False
 
     def _passes_pegi_filter(self, game: Game) -> bool:
-        """Checks if a game passes the PEGI age rating filter (OR logic).
-
-        If no PEGI filters are active, all games pass. Games without
-        PEGI data match the "pegi_none" key.
-
-        Args:
-            game: The game to check.
-
-        Returns:
-            True if no PEGI filter is active or game matches at least one.
-        """
+        """Checks if a game passes the PEGI age rating filter (OR logic)."""
         if not self._active_pegi_ratings:
             return True
 
@@ -485,18 +348,7 @@ class FilterService:
         return rating in allowed
 
     def _passes_curator_filter(self, game: Game) -> bool:
-        """Checks if a game passes the curator filter (OR logic).
-
-        If no curator filters are active, all games pass. When active,
-        a game must be recommended by at least one of the selected curators.
-        Uses the in-memory cache — no database access.
-
-        Args:
-            game: The game to check.
-
-        Returns:
-            True if no curator filter is active or game matches at least one.
-        """
+        """Checks if a game passes the curator filter (OR logic)."""
         if not self._active_curator_ids:
             return True
 

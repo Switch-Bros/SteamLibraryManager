@@ -1,14 +1,10 @@
+#
 # steam_library_manager/core/game_manager.py
-
-"""Core game management logic for the Steam Library Manager.
-
-This module provides the GameManager class, which handles loading games from
-multiple sources (Steam API, local files), merging metadata, and fetching
-additional details from external APIs.
-
-The Game dataclass lives in src.core.game but is re-exported here for
-backwards compatibility.
-"""
+# Core game management - loading, merging, and metadata fetching
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -40,26 +36,13 @@ __all__ = ["Game", "GameManager"]
 
 
 class GameManager:
-    """Manages loading, merging, and metadata fetching for all games.
-
-    This class is the central hub for game data. It loads games from multiple
-    sources (Steam Web API, local files), merges category data from localconfig.vdf,
-    applies metadata overrides, and fetches additional details from external APIs.
-    """
+    """Manages loading, merging, and metadata fetching for all games."""
 
     # Backwards-compatible class-level references to module constants
     NON_GAME_APP_IDS = NON_GAME_APP_IDS
     NON_GAME_NAME_PATTERNS = NON_GAME_NAME_PATTERNS
 
     def __init__(self, steam_api_key: str | None, cache_dir: Path, steam_path: Path):
-        """Initializes the GameManager.
-
-        Args:
-            steam_api_key: Optional Steam Web API key for fetching
-                owned games from the Steam API.
-            cache_dir: Directory to store JSON cache files for API responses.
-            steam_path: Path to the local Steam installation directory.
-        """
         self.api_key = steam_api_key
         self.cache_dir = cache_dir
         self.steam_path = steam_path
@@ -79,24 +62,11 @@ class GameManager:
         self.query_service = GameQueryService(self.games, self.filter_non_games)
 
     def load_games(self, steam_user_id: str, progress_callback: Callable[[str, int, int], None] | None = None) -> bool:
-        """Main entry point to load games from API and local files.
-
-        This method attempts to load games from both the Steam Web API (if an API key
-        is configured) and local Steam files (manifests, appinfo.vdf). It merges the
-        results and returns True if at least one source succeeded.
-
-        Args:
-            steam_user_id: The SteamID64 of the user whose games to load.
-            progress_callback: Optional callback for UI progress updates.
-                Receives (message, current, total).
-
-        Returns:
-            True if at least one source loaded successfully, False otherwise.
-        """
+        """Main entry point to load games from API and local files."""
         self.steam_user_id = steam_user_id
         api_success = False
 
-        # STEP 1: Steam Web API (via API key OR OAuth access token)
+        # Steam Web API (via API key OR OAuth access token)
         from steam_library_manager.config import config as _cfg
 
         has_credentials = self.api_key or getattr(_cfg, "STEAM_ACCESS_TOKEN", None)
@@ -107,14 +77,14 @@ class GameManager:
             logger.info(t("logs.manager.api_trying"))
             api_success = self.load_from_steam_api(steam_user_id)
 
-        # STEP 2: Local Files
+        # Local Files
         if progress_callback:
             progress_callback(t("logs.manager.local_loading"), 1, 3)
 
         logger.info(t("logs.manager.local_loading"))
         local_success = self.load_from_local_files(progress_callback)
 
-        # STEP 3: Finalize Status
+        # Finalize Status
         if progress_callback:
             progress_callback(t("common.loading"), 2, 3)
 
@@ -134,17 +104,7 @@ class GameManager:
         return True
 
     def load_from_local_files(self, progress_callback: Callable | None = None) -> bool:
-        """Loads installed games from local Steam manifests.
-
-        This method uses LocalGamesLoader to scan all Steam library folders
-        for appmanifest_*.acf files and extract game information.
-
-        Args:
-            progress_callback: Optional callback for progress updates.
-
-        Returns:
-            True if games were found, False otherwise.
-        """
+        """Loads installed games from local Steam manifests."""
         # Local import to avoid circular dependency
         from steam_library_manager.core.local_games_loader import LocalGamesLoader
 
@@ -192,19 +152,7 @@ class GameManager:
             return False
 
     def load_from_steam_api(self, steam_user_id: str) -> bool:
-        """Fetches owned games via the Steam Web API.
-
-        This method calls the Steam Web API's GetOwnedGames endpoint to retrieve
-        a list of all games owned by the specified user. It supports both:
-        - Traditional API key (stored in self.api_key)
-        - OAuth2 access token (from Steam login, passed via environment/global)
-
-        Args:
-            steam_user_id: The SteamID64 of the user.
-
-        Returns:
-            True if the API call succeeded and games were loaded, False otherwise.
-        """
+        """Fetches owned games via the Steam Web API."""
         # Check if we have EITHER an API key OR an access token
         # Access token might be stored globally after login
         from steam_library_manager.config import config
@@ -277,33 +225,15 @@ class GameManager:
             return False
 
     def merge_with_localconfig(self, parser) -> None:
-        """Merges categories and hidden status from parser into loaded games.
-
-        Delegates to MetadataEnrichmentService.
-
-        Args:
-            parser: An instance of CloudStorageParser or LocalConfigHelper.
-        """
+        """Merges categories and hidden status from parser into loaded games."""
         self.enrichment_service.merge_with_localconfig(parser)
 
     def apply_appinfo_data(self, appinfo_data: dict) -> None:
-        """Applies last_updated timestamp from appinfo.vdf data.
-
-        Delegates to MetadataEnrichmentService.
-
-        Args:
-            appinfo_data: A dictionary of app data from appinfo.vdf.
-        """
+        """Applies last_updated timestamp from appinfo.vdf data."""
         self.enrichment_service.apply_appinfo_data(appinfo_data)
 
     def apply_metadata_overrides(self, appinfo_manager) -> None:
-        """Applies metadata overrides from AppInfoManager.
-
-        Delegates to MetadataEnrichmentService.
-
-        Args:
-            appinfo_manager: An instance of AppInfoManager with loaded appinfo.vdf data.
-        """
+        """Applies metadata overrides from AppInfoManager."""
         self.appinfo_manager = appinfo_manager
         self.enrichment_service.apply_metadata_overrides(appinfo_manager)
 
@@ -315,19 +245,7 @@ class GameManager:
         *,
         db_type_lookup: dict[str, tuple[str, str]] | None = None,
     ) -> int:
-        """Discovers owned games that the API did not return.
-
-        Delegates to MetadataEnrichmentService.
-
-        Args:
-            localconfig_helper: A loaded LocalConfigHelper instance.
-            appinfo_manager: A loaded AppInfoManager instance.
-            packageinfo_ids: Optional set of app IDs from packageinfo.vdf.
-            db_type_lookup: Optional DB-based type/name lookup for fast path.
-
-        Returns:
-            Number of newly discovered games.
-        """
+        """Discovers owned games that the API did not return."""
         return self.enrichment_service.discover_missing_games(
             localconfig_helper,
             appinfo_manager,
@@ -336,28 +254,11 @@ class GameManager:
         )
 
     def apply_custom_overrides(self, modifications: dict[str, dict]) -> None:
-        """Applies only custom JSON overrides to loaded games.
-
-        Delegates to MetadataEnrichmentService.
-
-        Args:
-            modifications: Dict of modifications from AppInfoManager.
-        """
+        """Applies only custom JSON overrides to loaded games."""
         self.enrichment_service.apply_custom_overrides(modifications)
 
     def enrich_from_database(self, database: Database) -> int:
-        """Enrich already-loaded games with cached metadata from the database.
-
-        This does NOT add new games — it only fills in missing metadata fields
-        (developer, publisher, genres, tags, release_year, app_type) for games
-        that were already loaded by the API or local files.
-
-        Args:
-            database: An initialized Database instance.
-
-        Returns:
-            Number of games enriched.
-        """
+        """Enrich already-loaded games with cached metadata from the database."""
         entries = database.get_all_games()
         if not entries:
             return 0
@@ -371,7 +272,7 @@ class GameManager:
             if not entry:
                 continue
 
-            # Fix fallback names — only if DB has a REAL name (not a placeholder)
+            # Fix fallback names - only if DB has a REAL name (not a placeholder)
             if not is_placeholder_name(entry.name) and is_placeholder_name(game.name):
                 game.name = entry.name
                 if not game.name_overridden:
@@ -452,14 +353,7 @@ class GameManager:
         return enriched
 
     def get_game(self, app_id: str) -> Game | None:
-        """Gets a single game by its app ID.
-
-        Args:
-            app_id: The Steam app ID.
-
-        Returns:
-            The Game object, or None if not found.
-        """
+        """Gets a single game by its app ID."""
         return self.games.get(app_id)
 
     def get_games_by_category(self, category: str) -> list[Game]:
@@ -479,24 +373,11 @@ class GameManager:
         return self.query_service.get_all_categories()
 
     def fetch_game_details(self, app_id: str) -> bool:
-        """Fetches additional details for a game from external APIs.
-
-        Delegates to GameDetailService.
-
-        Args:
-            app_id: The Steam app ID.
-
-        Returns:
-            True if the game exists, False otherwise.
-        """
+        """Fetches additional details for a game from external APIs."""
         return self.detail_service.fetch_game_details(app_id)
 
     def get_load_source_message(self) -> str:
-        """Returns a localized status message about the load source.
-
-        Returns:
-            A localized message indicating how games were loaded (API, local, or mixed).
-        """
+        """Returns a localized status message about the load source."""
         if self.load_source == "api":
             return t("logs.manager.loaded_api", count=len(self.games))
         elif self.load_source == "local":

@@ -1,8 +1,10 @@
-"""Auto-Categorize Service for Steam Library Manager.
-
-Uses two generic engines (simple attribute-based and threshold-based bucket)
-plus special methods for tags, franchise, flags, deck, achievements, curator, PEGI.
-"""
+#
+# steam_library_manager/services/autocategorize_service.py
+# Auto-categorization service using attribute and bucket engines
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -34,29 +36,14 @@ class AutoCategorizeService:
         category_service: CategoryService,
         steam_scraper: SteamStoreScraper | None = None,
     ) -> None:
-        """Initialize the AutoCategorizeService.
-
-        Args:
-            game_manager: Manager for accessing game data.
-            category_service: Service for category operations.
-            steam_scraper: Optional scraper for Steam Store data.
-        """
         self.game_manager = game_manager
         self.category_service = category_service
         self.steam_scraper = steam_scraper
 
-    # -- Shared helper -----------------------------------------------------
+    # Shared helper
 
     def _add_category(self, game: Game, category: str) -> bool:
-        """Adds a game to a category, updating both DB and in-memory state.
-
-        Args:
-            game: The game to categorize.
-            category: Category name to add.
-
-        Returns:
-            True if category was added, False on error.
-        """
+        """Adds a game to a category, updating both DB and in-memory state."""
         try:
             self.category_service.add_app_to_category(game.app_id, category)
             if category not in game.categories:
@@ -65,7 +52,7 @@ class AutoCategorizeService:
         except (ValueError, RuntimeError):
             return False
 
-    # -- Generic engines ---------------------------------------------------
+    # Generic engines
 
     def _categorize_simple(
         self,
@@ -73,16 +60,7 @@ class AutoCategorizeService:
         games: list[Game],
         progress_callback: Callable[[int, str], None] | None = None,
     ) -> int:
-        """Categorize games by reading a single attribute and creating categories.
-
-        Args:
-            method_key: Key into SIMPLE_METHOD_CONFIGS.
-            games: List of games to categorize.
-            progress_callback: Optional callback(current_index, game_name).
-
-        Returns:
-            Number of categories added.
-        """
+        """Categorize games by reading a single attribute and creating categories."""
         cfg = SIMPLE_METHOD_CONFIGS[method_key]
         categories_added = 0
         for i, game in enumerate(games):
@@ -112,16 +90,7 @@ class AutoCategorizeService:
         games: list[Game],
         progress_callback: Callable[[int, str], None] | None = None,
     ) -> int:
-        """Categorize games by mapping a numeric attribute to threshold buckets.
-
-        Args:
-            method_key: Key into BUCKET_METHOD_CONFIGS.
-            games: List of games to categorize.
-            progress_callback: Optional callback(current_index, game_name).
-
-        Returns:
-            Number of categories added.
-        """
+        """Categorize games by mapping a numeric attribute to threshold buckets."""
         cfg = BUCKET_METHOD_CONFIGS[method_key]
         categories_added = 0
         for i, game in enumerate(games):
@@ -150,7 +119,7 @@ class AutoCategorizeService:
             categories_added += self._add_category(game, category)
         return categories_added
 
-    # -- Simple method wrappers --------------------------------------------
+    # Simple method wrappers
 
     def categorize_by_publisher(
         self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
@@ -190,7 +159,7 @@ class AutoCategorizeService:
         """Categorize games by VR support level."""
         return self._categorize_simple("vr", games, progress_callback)
 
-    # -- Bucket method wrappers --------------------------------------------
+    # Bucket method wrappers
 
     def categorize_by_user_score(
         self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
@@ -208,7 +177,7 @@ class AutoCategorizeService:
         """Categorize games by HowLongToBeat main story duration."""
         return self._categorize_by_buckets("hltb", games, progress_callback)
 
-    # -- Special methods (unique logic) ------------------------------------
+    # Special methods
 
     def categorize_by_tags(
         self,
@@ -216,16 +185,7 @@ class AutoCategorizeService:
         tags_count: int,
         progress_callback: Callable[[int, str], None] | None = None,
     ) -> int:
-        """Categorize games by Steam Store tags.
-
-        Args:
-            games: List of games to categorize.
-            tags_count: Number of top tags to use per game.
-            progress_callback: Optional callback(current_index, game_name).
-
-        Returns:
-            Number of categories added.
-        """
+        """Categorize games by Steam Store tags."""
         if not self.steam_scraper:
             return 0
         categories_added = 0
@@ -238,14 +198,7 @@ class AutoCategorizeService:
 
     @staticmethod
     def _detect_franchise(game_name: str) -> str | None:
-        """Detects franchise from a game name using the curated list + pattern fallback.
-
-        Args:
-            game_name: The full game name.
-
-        Returns:
-            The detected franchise name, or None.
-        """
+        """Detects franchise from a game name using the curated list + pattern fallback."""
         if not game_name:
             return None
         for prefix in GHOST_PREFIXES:
@@ -269,15 +222,7 @@ class AutoCategorizeService:
     def categorize_by_franchise(
         self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
     ) -> int:
-        """Categorize games by detected franchise (two-pass approach).
-
-        Args:
-            games: List of games to categorize.
-            progress_callback: Optional callback(current_index, game_name).
-
-        Returns:
-            Number of categories added.
-        """
+        """Categorize games by detected franchise (two-pass approach)."""
         game_franchise_map: dict[str, list[Game]] = {}
         for i, game in enumerate(games):
             if progress_callback:
@@ -299,15 +244,7 @@ class AutoCategorizeService:
     def categorize_by_flags(
         self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
     ) -> int:
-        """Categorize games by feature flags (e.g. Free to Play).
-
-        Args:
-            games: List of games to categorize.
-            progress_callback: Optional callback(current_index, game_name).
-
-        Returns:
-            Number of categories added.
-        """
+        """Categorize games by feature flags (e.g. Free to Play)."""
         categories_added = 0
         for i, game in enumerate(games):
             if progress_callback:
@@ -325,15 +262,7 @@ class AutoCategorizeService:
     def categorize_by_deck_status(
         self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
     ) -> int:
-        """Categorize games by Steam Deck compatibility status.
-
-        Args:
-            games: List of games to categorize.
-            progress_callback: Optional callback(current_index, game_name).
-
-        Returns:
-            Number of categories added.
-        """
+        """Categorize games by Steam Deck compatibility status."""
         categories_added = 0
         for i, game in enumerate(games):
             if progress_callback:
@@ -354,15 +283,7 @@ class AutoCategorizeService:
     )
 
     def categorize_by_pegi(self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None) -> int:
-        """Categorize games by PEGI age rating.
-
-        Args:
-            games: List of games to categorize.
-            progress_callback: Optional callback(current_index, game_name).
-
-        Returns:
-            Number of categories added.
-        """
+        """Categorize games by PEGI age rating."""
         categories_added = 0
         for i, game in enumerate(games):
             if progress_callback:
@@ -384,15 +305,7 @@ class AutoCategorizeService:
     def categorize_by_achievements(
         self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
     ) -> int:
-        """Categorize games by achievement completion percentage.
-
-        Args:
-            games: List of games to categorize.
-            progress_callback: Optional callback(current_index, game_name).
-
-        Returns:
-            Number of categories added.
-        """
+        """Categorize games by achievement completion percentage."""
         categories_added = 0
         for i, game in enumerate(games):
             if progress_callback:
@@ -418,19 +331,7 @@ class AutoCategorizeService:
         db_path: Path | None = None,
         progress_callback: Callable[[int, str], None] | None = None,
     ) -> int:
-        """Categorize games based on stored curator recommendations from DB.
-
-        Creates one collection per active curator, named "{name} {emoji.curator}".
-        Reads recommendations from the database — no live network requests.
-
-        Args:
-            games: List of games to categorize.
-            db_path: Path to the SQLite database file.
-            progress_callback: Optional callback(current_index, game_name).
-
-        Returns:
-            Number of categories added.
-        """
+        """Categorize games based on stored curator recommendations from DB."""
         if db_path is None:
             return 0
 
@@ -464,17 +365,10 @@ class AutoCategorizeService:
         finally:
             db.close()
 
-    # -- Cache coverage & time estimation ----------------------------------
+    # Cache coverage and time estimation
 
     def get_cache_coverage(self, games: list[Game]) -> dict[str, Any]:
-        """Get cache coverage for games (for tags method).
-
-        Args:
-            games: List of games to check.
-
-        Returns:
-            Dictionary with 'total', 'cached', 'missing', 'percentage'.
-        """
+        """Get cache coverage for games (for tags method)."""
         if not self.steam_scraper:
             return {"total": len(games), "cached": 0, "missing": len(games), "percentage": 0.0}
         app_ids = [game.app_id for game in games]
@@ -482,14 +376,7 @@ class AutoCategorizeService:
 
     @staticmethod
     def estimate_time(missing_count: int) -> str:
-        """Estimate time for fetching missing tags.
-
-        Args:
-            missing_count: Number of games with missing cache.
-
-        Returns:
-            Formatted time string.
-        """
+        """Estimate time for fetching missing tags."""
         estimated_seconds = int(missing_count * 1.5)
         estimated_minutes = estimated_seconds // 60
         if estimated_minutes > 60:

@@ -1,3 +1,11 @@
+#
+# steam_library_manager/ui/actions/tools_actions.py
+# Handles tool-related actions like metadata search and store checks
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -36,11 +44,7 @@ class StoreCheckThread(QThread):
     )
 
     def run(self) -> None:
-        """Performs the store check via HTTP request.
-
-        Follows redirects to distinguish geo-blocked, age-gated,
-        available, and truly delisted/removed games.
-        """
+        """Performs the store check via HTTP request."""
         try:
             url = f"https://store.steampowered.com/app/{self.app_id}/"
             response = requests.get(
@@ -179,11 +183,7 @@ class ToolsActions:
             UIHelper.show_success(self.main_window, t("ui.tools.missing_metadata.all_complete"))
 
     def check_store_availability(self, game: Game) -> None:
-        """Checks if a game is still available on the Steam Store.
-
-        Args:
-            game: The game object to check.
-        """
+        """Checks if a game is still available on the Steam Store."""
         # Create and show progress dialog
         progress = UIHelper.create_progress_dialog(
             self.main_window,
@@ -214,12 +214,7 @@ class ToolsActions:
         self._store_check_thread.start()
 
     def start_library_health_check(self) -> None:
-        """Starts the full library health check with progress dialog.
-
-        Shows a confirmation dialog, then launches a background thread
-        that performs batch store checks, metadata checks, and cache
-        freshness checks. Opens the result dialog when complete.
-        """
+        """Starts the full library health check with progress dialog."""
         from steam_library_manager.config import config
         from steam_library_manager.services.library_health_thread import LibraryHealthThread
         from steam_library_manager.ui.dialogs.health_check_dialog import HealthCheckResultDialog
@@ -245,7 +240,7 @@ class ToolsActions:
             except (ValueError, TypeError):
                 continue
 
-        # Get API key (optional — DB checks work without it)
+        # Get API key (optional - DB checks work without it)
         api_key = config.STEAM_API_KEY or ""
 
         # Get database path

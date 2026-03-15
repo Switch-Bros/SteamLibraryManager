@@ -1,10 +1,10 @@
+#
 # steam_library_manager/utils/appinfo_constants.py
-
-"""Constants for the Steam AppInfo.vdf binary format.
-
-Extracted from appinfo.py to separate constants/enums from parser logic.
-Contains version definitions, binary VDF type markers, enums, and error types.
-"""
+# Constants for the Steam AppInfo.vdf binary format.
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -29,15 +29,11 @@ __all__ = [
 ]
 
 
-# ===== VERSION DEFINITIONS =====
+# Version definitions
 
 
 class AppInfoVersion(IntEnum):
-    """AppInfo format version identifiers.
-
-    These are the magic numbers used to identify different versions of the
-    appinfo.vdf file format.
-    """
+    """AppInfo format version identifiers."""
 
     # Old versions (for reference, not implemented)
     # VERSION_24 = 0x06445624  # circa 2011
@@ -54,10 +50,7 @@ class AppInfoVersion(IntEnum):
 
 
 class EUniverse(IntEnum):
-    """Steam Universe identifiers.
-
-    Defines the Steam environment the appinfo.vdf file belongs to.
-    """
+    """Steam Universe identifiers."""
 
     Invalid = 0
     Public = 1
@@ -66,7 +59,7 @@ class EUniverse(IntEnum):
     Dev = 4
 
 
-# ===== MAGIC NUMBERS & VALID VERSIONS =====
+# Magic numbers and valid versions
 
 MAGIC_NUMBER: int = 0x07_56_44
 """Expected magic prefix in the appinfo.vdf header (3 bytes, shifted)."""
@@ -75,7 +68,7 @@ VALID_VERSIONS: tuple[int, ...] = (28, 29, 39, 40, 41)
 """Supported appinfo.vdf version numbers."""
 
 
-# ===== BINARY VDF TYPE MARKERS =====
+# Binary VDF type markers
 
 TYPE_DICT: int = 0x00
 TYPE_STRING: int = 0x01
@@ -89,24 +82,13 @@ TYPE_SECTION_END: int = 0x08
 TYPE_END: int = 0x08  # Alias for TYPE_SECTION_END
 
 
-# ===== EXCEPTIONS =====
+# Exceptions
 
 
 class IncompatibleVersionError(Exception):
-    """Raised when an unsupported appinfo.vdf version is encountered.
-
-    Attributes:
-        version: The version number that was detected.
-        magic: The magic number that was read from the file.
-    """
+    """Raised when an unsupported appinfo.vdf version is encountered."""
 
     def __init__(self, version: int, magic: int):
-        """Initializes the exception.
-
-        Args:
-            version: The version number that was detected.
-            magic: The magic number that was read from the file.
-        """
         self.version = version
         self.magic = magic
         super().__init__(f"Incompatible version {version} (magic: 0x{magic:08X})")

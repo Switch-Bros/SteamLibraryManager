@@ -1,12 +1,10 @@
-# steam_library_manager/ui/components/category_tree.py
-
-"""
-Displays games grouped by categories in a tree structure.
-
-This widget provides the main navigation sidebar, showing games organized
-by categories. It supports drag-and-drop for re-categorization and persists
-the expanded/collapsed state of categories.
-"""
+#
+# steam_library_manager/ui/widgets/category_tree.py
+# Displays games grouped by categories in a tree structure
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -23,13 +21,7 @@ __all__ = ["GameTreeWidget"]
 
 
 class GameTreeWidget(QTreeWidget):
-    """
-    Custom QTreeWidget for displaying and organizing game categories.
-
-    Emits signals for user interactions like clicks, right-clicks, and
-    selection changes. Handles drag-and-drop operations for moving games
-    between categories.
-    """
+    """Custom QTreeWidget for displaying and organizing game categories."""
 
     # Signals
     game_clicked = pyqtSignal(Game)
@@ -67,13 +59,7 @@ class GameTreeWidget(QTreeWidget):
         """)
 
     def set_loading_state(self, loading: bool) -> None:
-        """Toggle the tree between a loading placeholder and normal state.
-
-        Args:
-            loading: If True, clears the tree and shows a disabled
-                "Loading..." placeholder item. If False, just clears
-                the tree so populate_categories() can refill it.
-        """
+        """Toggle the tree between a loading placeholder and normal state."""
         self.clear()
         if loading:
             placeholder = QTreeWidgetItem(self)
@@ -88,23 +74,7 @@ class GameTreeWidget(QTreeWidget):
         smart_collections: set | None = None,
         external_platform_collections: set | None = None,
     ) -> None:
-        """Rebuilds the entire tree with the provided category-to-game mapping.
-
-        This method clears the existing tree and repopulates it, restoring the
-        expansion state of each category from the application's config.
-
-        Args:
-            categories: A dictionary mapping category names to lists of Game objects.
-                For duplicate collections, keys use ``__dup__<name>__<idx>`` format.
-            dynamic_collections: Set of collection names that are dynamic
-                (have filterSpec). These will get a blitz emoji.
-            duplicate_info: Maps internal dup keys to (real_name, index, total).
-                Used to display duplicate collections individually.
-            smart_collections: Set of collection names that are Smart Collections.
-                These will get a brain emoji.
-            external_platform_collections: Set of collection names from external
-                platform parsers. These will get platform-specific emojis.
-        """
+        """Rebuilds the entire tree with the provided category-to-game mapping."""
         self.clear()
 
         if dynamic_collections is None:
@@ -200,12 +170,7 @@ class GameTreeWidget(QTreeWidget):
         self.selection_changed.emit(selected_games)
 
     def get_selected_categories(self) -> list[str]:
-        """
-        Returns a list of currently selected category names.
-
-        Returns:
-            list[str]: List of selected category names.
-        """
+        """Returns a list of currently selected category names."""
         selected_categories = []
         for item in self.selectedItems():
             if item.data(0, Qt.ItemDataRole.UserRole) == "category":
@@ -251,15 +216,7 @@ class GameTreeWidget(QTreeWidget):
             event.ignore()
 
     def dropEvent(self, event: QDropEvent) -> None:
-        """
-        Handles drop events when games are dragged onto categories.
-
-        Emits the games_dropped signal with the dropped games and target category,
-        allowing the parent window to update the VDF file.
-
-        Args:
-            event: The drop event containing drag data.
-        """
+        """Handles drop events when games are dragged onto categories."""
         target_item = self.itemAt(event.position().toPoint())
 
         if not target_item or target_item.data(0, Qt.ItemDataRole.UserRole) != "category":

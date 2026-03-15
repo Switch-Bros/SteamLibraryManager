@@ -1,12 +1,10 @@
+#
 # steam_library_manager/services/category_service.py
-
-"""
-Service for managing game categories and collections.
-
-This service handles all category-related operations including creating,
-renaming, deleting, and merging categories. It supports both VDF parser
-(localconfig.vdf) and Cloud Storage parser.
-"""
+# Service for managing game categories and collections
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -19,12 +17,7 @@ __all__ = ["CategoryService"]
 
 
 class CategoryService:
-    """
-    Service for category management operations.
-
-    Handles category operations for both VDF and Cloud Storage parsers,
-    providing a unified interface for category management.
-    """
+    """Service for category management operations."""
 
     def __init__(
         self,
@@ -32,41 +25,16 @@ class CategoryService:
         cloud_parser: CloudStorageParser | None,
         game_manager: GameManager,
     ):
-        """
-        Initialize the CategoryService.
-
-        Args:
-            localconfig_helper: LocalConfig VDF parser (can be None)
-            cloud_parser: Cloud Storage parser (can be None)
-            game_manager: Game manager instance
-        """
         self.localconfig_helper = localconfig_helper
         self.cloud_parser = cloud_parser
         self.game_manager = game_manager
 
     def get_active_parser(self) -> CloudStorageParser | None:
-        """
-        Get the currently active parser.
-
-        Returns:
-            CloudStorageParser if available, otherwise LocalConfigParser.
-        """
+        """Get the currently active parser."""
         return self.cloud_parser
 
     def rename_category(self, old_name: str, new_name: str) -> bool:
-        """
-        Rename a category across all parsers.
-
-        Args:
-            old_name: Current category name
-            new_name: New category name
-
-        Returns:
-            bool: True if successful, False otherwise
-
-        Raises:
-            ValueError: If new name already exists
-        """
+        """Rename a category across all parsers."""
         parser = self.get_active_parser()
         if not parser:
             return False
@@ -87,15 +55,7 @@ class CategoryService:
         return True
 
     def delete_category(self, category_name: str) -> bool:
-        """
-        Delete a category.
-
-        Args:
-            category_name: Name of category to delete
-
-        Returns:
-            bool: True if successful, False otherwise
-        """
+        """Delete a category."""
         parser = self.get_active_parser()
         if not parser:
             return False
@@ -111,15 +71,7 @@ class CategoryService:
         return True
 
     def delete_multiple_categories(self, categories: list[str]) -> bool:
-        """
-        Delete multiple categories at once.
-
-        Args:
-            categories: List of category names to delete
-
-        Returns:
-            bool: True if successful, False otherwise
-        """
+        """Delete multiple categories at once."""
         parser = self.get_active_parser()
         if not parser or not categories:
             return False
@@ -136,30 +88,11 @@ class CategoryService:
         return True
 
     def is_collection_empty(self, category_name: str) -> bool:
-        """Check if a collection has no games.
-
-        Args:
-            category_name: Name of the collection to check.
-
-        Returns:
-            True if the collection is empty.
-        """
+        """Check if a collection has no games."""
         return len(self.game_manager.get_games_by_category(category_name)) == 0
 
     def merge_categories(self, categories: list[str], target_category: str) -> bool:
-        """
-        Merge multiple categories into one target category.
-
-        All games from source categories are moved to the target category,
-        then source categories are deleted.
-
-        Args:
-            categories: List of all categories to merge (including target)
-            target_category: The category to merge into
-
-        Returns:
-            bool: True if successful, False otherwise
-        """
+        """Merge multiple categories into one target category."""
         parser = self.get_active_parser()
         if not parser or len(categories) < 2:
             return False
@@ -188,18 +121,7 @@ class CategoryService:
         return True
 
     def create_collection(self, name: str) -> bool:
-        """
-        Create a new empty collection.
-
-        Args:
-            name: Name of the new collection
-
-        Returns:
-            bool: True if successful, False otherwise
-
-        Raises:
-            ValueError: If collection name already exists
-        """
+        """Create a new empty collection."""
         parser = self.get_active_parser()
         if not parser:
             return False
@@ -208,7 +130,7 @@ class CategoryService:
         if name in parser.get_all_categories():
             raise ValueError(t("ui.main_window.collection_exists", name=name))
 
-        # Create# Delegate to a dedicated method — add_app_category("") would crash
+        # Delegate to a dedicated method - add_app_category("") would crash
         # because cloud_storage_parser does int(app_id) internally.
         parser.create_empty_collection(name)
 
@@ -223,12 +145,6 @@ class CategoryService:
         programmatic/testing use only.
 
         Identifies collections with identical names, keeping only the first occurrence.
-
-        Returns:
-            Number of duplicates removed.
-
-        Raises:
-            RuntimeError: If cloud storage is not available.
         """
         if not self.cloud_parser:
             raise RuntimeError(t("ui.main_window.cloud_storage_only"))
@@ -237,21 +153,7 @@ class CategoryService:
         return removed
 
     def merge_duplicate_collections(self, merge_plan: list[tuple[str, int]]) -> int:
-        """Merges duplicate collections based on a user-selected plan.
-
-        For each group in the plan, keeps the selected collection and merges
-        all games from the other duplicates into it, then removes the others.
-        After merging, re-syncs in-memory ``game.categories`` from the parser.
-
-        Args:
-            merge_plan: List of ``(collection_name, keep_index)`` tuples.
-
-        Returns:
-            Number of groups successfully merged.
-
-        Raises:
-            RuntimeError: If cloud storage is not available.
-        """
+        """Merges duplicate collections based on a user-selected plan."""
         if not self.cloud_parser:
             raise RuntimeError(t("ui.main_window.cloud_storage_only"))
 
@@ -301,12 +203,7 @@ class CategoryService:
         return merged_count
 
     def _resync_game_categories(self) -> None:
-        """Rebuilds in-memory ``game.categories`` from parser collections.
-
-        Clears all user categories from each game (preserving special ones
-        like Favorites / Hidden which are handled separately) and rebuilds
-        them from the current parser state.
-        """
+        """Rebuilds in-memory game.categories from parser collections."""
         if not self.cloud_parser:
             return
 
@@ -337,27 +234,11 @@ class CategoryService:
             game.categories = app_categories.get(aid, [])
 
     def get_all_categories(self) -> dict[str, int]:
-        """
-        Get all categories with game counts.
-
-        Delegates to game_manager for consistent counts.
-
-        Returns:
-            dict mapping category names to game counts
-        """
+        """Get all categories with game counts."""
         return self.game_manager.get_all_categories()
 
     def add_app_to_category(self, app_id: str, category: str) -> bool:
-        """
-        Add an app to a category.
-
-        Args:
-            app_id: Steam app ID
-            category: Category name
-
-        Returns:
-            bool: True if successful, False otherwise
-        """
+        """Add an app to a category."""
         parser = self.get_active_parser()
         if not parser:
             return False
@@ -373,16 +254,7 @@ class CategoryService:
         return True
 
     def remove_app_from_category(self, app_id: str, category: str) -> bool:
-        """
-        Remove an app from a category.
-
-        Args:
-            app_id: Steam app ID
-            category: Category name
-
-        Returns:
-            bool: True if successful, False otherwise
-        """
+        """Remove an app from a category."""
         parser = self.get_active_parser()
         if not parser:
             return False

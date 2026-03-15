@@ -1,11 +1,10 @@
+#
 # steam_library_manager/core/game.py
-
-"""Game dataclass and filtering constants for the Steam Library Manager.
-
-This module defines the central Game dataclass used by 15+ modules across
-the codebase, along with constants and helpers for filtering non-game
-Steam apps (Proton, Steam Runtime, etc.).
-"""
+# Game dataclass and filtering constants
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -26,12 +25,7 @@ __all__ = [
 
 @dataclass
 class Game:
-    """Represents a single Steam game with all its metadata.
-
-    This dataclass stores all information about a game, including basic info
-    (name, app_id), playtime, categories, metadata (developer, publisher),
-    and extended data from external APIs (ProtonDB, Steam Deck, reviews).
-    """
+    """Represents a single Steam game with all its metadata."""
 
     app_id: str
     name: str
@@ -134,32 +128,15 @@ class Game:
 
     @property
     def playtime_hours(self) -> float:
-        """Returns playtime in hours, rounded to 1 decimal place.
-
-        Returns:
-            Playtime in hours.
-        """
+        """Returns playtime in hours, rounded to 1 decimal place."""
         return round(self.playtime_minutes / 60, 1)
 
     def has_category(self, category: str) -> bool:
-        """Checks if the game belongs to a specific category.
-
-        Args:
-            category: The category name to check.
-
-        Returns:
-            True if the game has this category, False otherwise.
-        """
+        """Checks if the game belongs to a specific category."""
         return category in self.categories
 
     def is_favorite(self) -> bool:
-        """Checks if the game is marked as a favorite.
-
-        Supports localized favorite category names (e.g., 'Favoriten' in German).
-
-        Returns:
-            True if the localized 'favorites' category is in the game's categories.
-        """
+        """Checks if the game is marked as a favorite."""
         favorites_key = t("categories.favorites")
         return favorites_key in self.categories
 
@@ -212,23 +189,8 @@ _GHOST_NAME_RE: re.Pattern[str] = re.compile(r"^(?:App|Unknown App|Unbekannte Ap
 
 
 def is_real_game(game: Game) -> bool:
-    """Checks if a game is a real game (not Proton/Steam runtime/tool/soundtrack).
-
-    When ``app_type`` is set, it is used as the primary filter:
-    - ``"game"`` or ``""`` (unknown) → falls through to heuristic checks.
-    - Any type in ``NON_GAME_APP_TYPES`` → immediately returns False.
-
-    Ghost entries (name matches ``"App <digits>"``) are always excluded,
-    regardless of app_type.  These are orphan IDs in cloud storage or
-    appinfo.vdf that no longer correspond to a real product.
-
-    Args:
-        game: The game to check.
-
-    Returns:
-        True if real game, False if tool/runtime/soundtrack/etc.
-    """
-    # Ghost entries: "App 1002140" etc. — always exclude
+    """Checks if a game is a real game (not Proton/Steam runtime/tool/soundtrack)."""
+    # Ghost entries: "App 1002140" etc. - always exclude
     if _GHOST_NAME_RE.match(game.name):
         return False
 

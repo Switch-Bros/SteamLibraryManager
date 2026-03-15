@@ -1,9 +1,10 @@
-"""Background enrichment worker for ProtonDB ratings.
-
-Provides ProtonDBEnrichmentThread that fetches compatibility ratings
-from ProtonDB for games missing this data, with DB caching (7-day TTL)
-and configurable force refresh.
-"""
+#
+# steam_library_manager/services/enrichment/protondb_enrichment_service.py
+# Background enrichment worker for ProtonDB ratings.
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -21,17 +22,9 @@ __all__ = ["ProtonDBEnrichmentThread"]
 
 
 class ProtonDBEnrichmentThread(BaseEnrichmentThread):
-    """Background thread for ProtonDB rating enrichment.
-
-    Fetches compatibility tiers from the ProtonDB API, caches results
-    in the protondb_ratings DB table (7-day TTL), and updates the
-    in-memory game objects.
-
-    Configure with configure() before starting.
-    """
+    """Background thread for ProtonDB rating enrichment."""
 
     def __init__(self, parent: Any = None) -> None:
-        """Initializes the ProtonDB enrichment thread."""
         super().__init__(parent)
         self._games: list[tuple[int, str]] = []
         self._db_path: Path | None = None
@@ -45,13 +38,7 @@ class ProtonDBEnrichmentThread(BaseEnrichmentThread):
         db_path: Path,
         force_refresh: bool = False,
     ) -> None:
-        """Configures the thread for ProtonDB enrichment.
-
-        Args:
-            games: List of (app_id, name) tuples to enrich.
-            db_path: Path to the SQLite database file.
-            force_refresh: If True, skip cache and re-fetch all ratings.
-        """
+        """Configures the thread for ProtonDB enrichment."""
         self._games = games
         self._db_path = db_path
         self._force_refresh = force_refresh
@@ -76,17 +63,7 @@ class ProtonDBEnrichmentThread(BaseEnrichmentThread):
         return self._games
 
     def _process_item(self, item: Any) -> bool:
-        """Enriches a single game with ProtonDB data.
-
-        Checks the DB cache first (7-day TTL). On cache miss or
-        force_refresh, queries the ProtonDB API and persists the result.
-
-        Args:
-            item: Tuple of (app_id, name).
-
-        Returns:
-            True if a valid rating was found and stored.
-        """
+        """Enriches a single game with ProtonDB data."""
         app_id, name = item
 
         # Check DB cache unless force refresh
@@ -101,30 +78,17 @@ class ProtonDBEnrichmentThread(BaseEnrichmentThread):
         if tier:
             return True
 
-        # No data — store "unknown" so we don't retry immediately
+        # No data - store "unknown" so we don't retry immediately
         self._db.upsert_protondb(app_id, tier="unknown")
         self._db.commit()
         logger.info("ProtonDB miss: %d '%s' (marked as unknown)", app_id, name)
         return False
 
     def _format_progress(self, item: Any, current: int, total: int) -> str:
-        """Formats progress text with the game name.
-
-        Args:
-            item: Tuple of (app_id, name).
-            current: 1-based current index.
-            total: Total games count.
-
-        Returns:
-            Formatted progress string.
-        """
+        """Formats progress text with the game name."""
         _app_id, name = item
         return t("ui.enrichment.progress", name=name, current=current, total=total)
 
     def _rate_limit(self) -> None:
-        """Sleeps 200ms between ProtonDB requests.
-
-        ProtonDB is an open community database with no known rate limits.
-        If 429 errors occur, increase back to 0.5.
-        """
+        """Sleeps 200ms between ProtonDB requests."""
         time.sleep(0.2)

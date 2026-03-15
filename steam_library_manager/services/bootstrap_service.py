@@ -1,14 +1,10 @@
-"""Central startup orchestrator for non-blocking application bootstrap.
-
-This service manages the entire startup sequence so the UI appears
-immediately while data loads progressively in the background.
-
-Architecture:
-    Phase 1: Show loading state (instant, main thread)
-    Phase 2: Quick init — validate paths, create GameService, init parsers
-    Phase 3: Launch concurrent background workers (session + game loading)
-    Phase 4: Completion — initialize services, populate tree, update UI
-"""
+#
+# steam_library_manager/services/bootstrap_service.py
+# Central startup orchestrator for non-blocking application bootstrap
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -29,21 +25,7 @@ __all__ = ["BootstrapService"]
 
 
 class BootstrapService(QObject):
-    """Orchestrates the non-blocking startup sequence.
-
-    Emits signals at each phase so the UI can update progressively
-    without blocking the main thread.
-
-    Attributes:
-        mw: Reference to the MainWindow instance.
-
-    Signals:
-        loading_started: Emitted when bootstrap begins (tree shows placeholder).
-        load_progress: Emitted with (step, current, total) during game loading.
-        persona_resolved: Emitted with the persona display name.
-        session_restored: Emitted with success status after session restore.
-        bootstrap_complete: Emitted when all loading is finished.
-    """
+    """Orchestrates the non-blocking startup sequence."""
 
     loading_started = pyqtSignal()
     load_progress = pyqtSignal(str, int, int)
@@ -52,11 +34,6 @@ class BootstrapService(QObject):
     bootstrap_complete = pyqtSignal()
 
     def __init__(self, main_window: MainWindow) -> None:
-        """Initialize the bootstrap service.
-
-        Args:
-            main_window: The MainWindow instance to orchestrate.
-        """
         super().__init__(parent=main_window)
         self.mw: MainWindow = main_window
         self._session_done: bool = False
@@ -65,37 +42,25 @@ class BootstrapService(QObject):
         self._game_worker = None
 
     def start(self) -> None:
-        """Begin the bootstrap sequence.
-
-        Can be called multiple times (e.g. for reload via Ctrl+R).
-        Resets internal state and launches all phases.
-        """
+        """Begin the bootstrap sequence."""
         self._session_done = False
         self._games_done = False
 
-        # Phase 1: Show loading state
+        # Show loading state
         self.loading_started.emit()
 
-        # Phase 2: Quick init (no HTTP, main thread)
+        # Quick init (no HTTP, main thread)
         quick_init_ok = self._quick_init()
         if not quick_init_ok:
             self.bootstrap_complete.emit()
             return
 
-        # Phase 3: Launch background workers concurrently
+        # Launch background workers concurrently
         self._start_session_worker()
         self._start_game_worker()
 
     def _quick_init(self) -> bool:
-        """Validate Steam paths, create GameService, and initialize parsers.
-
-        This runs on the main thread but is fast (no HTTP, no heavy I/O).
-        Loads stored token synchronously from keyring (fast read) and sets
-        it in config so game loading can use it immediately.
-
-        Returns:
-            True if initialization succeeded and workers can be started.
-        """
+        """Validate Steam paths, create GameService, and initialize parsers."""
         from steam_library_manager.ui.widgets.ui_helper import UIHelper
 
         if not config.STEAM_PATH:
@@ -149,13 +114,7 @@ class BootstrapService(QObject):
         return True
 
     def _quick_token_load(self) -> None:
-        """Load stored tokens from keyring/file without HTTP.
-
-        Sets config.STEAM_ACCESS_TOKEN so game loading can use the
-        token immediately. The SessionRestoreWorker will refresh it
-        in the background; if a new token is obtained, it replaces
-        the stored one for next startup.
-        """
+        """Load stored tokens from keyring/file without HTTP."""
         from steam_library_manager.core.token_store import TokenStore
 
         token_store = TokenStore()
@@ -190,14 +149,7 @@ class BootstrapService(QObject):
         self._game_worker.start()
 
     def _on_session_restored(self, result) -> None:
-        """Handle completion of the session restore worker.
-
-        Updates MainWindow state with the restored session and emits
-        signals to update toolbar and user label.
-
-        Args:
-            result: SessionRestoreResult from the worker.
-        """
+        """Handle completion of the session restore worker."""
         self._session_done = True
 
         if result.success:
@@ -226,24 +178,11 @@ class BootstrapService(QObject):
         self._check_complete()
 
     def _on_load_progress(self, step: str, current: int, total: int) -> None:
-        """Forward game loading progress to the UI.
-
-        Args:
-            step: Description of the current loading step.
-            current: Current progress count.
-            total: Total items to process.
-        """
+        """Forward game loading progress to the UI."""
         self.load_progress.emit(step, current, total)
 
     def _on_games_loaded(self, success: bool) -> None:
-        """Handle completion of the game load worker.
-
-        Initializes services and populates the tree — same logic as
-        DataLoadHandler.on_load_finished() but without modal dialogs.
-
-        Args:
-            success: Whether game loading completed successfully.
-        """
+        """Handle completion of the game load worker."""
         from steam_library_manager.ui.widgets.ui_helper import UIHelper
         from steam_library_manager.integrations.steam_store import SteamStoreScraper
 

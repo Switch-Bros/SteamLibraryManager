@@ -1,9 +1,10 @@
-"""Background enrichment worker for PEGI age ratings.
-
-Fetches age ratings from Steam Store API (with HTML fallback) for games
-missing PEGI data. Results are cached via SteamStoreScraper's file cache
-(30-day TTL).
-"""
+#
+# steam_library_manager/services/enrichment/pegi_enrichment_service.py
+# Background enrichment worker for PEGI age ratings.
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -20,17 +21,9 @@ __all__ = ["PEGIEnrichmentThread"]
 
 
 class PEGIEnrichmentThread(BaseEnrichmentThread):
-    """Background thread for PEGI age rating enrichment.
-
-    Uses SteamStoreScraper.fetch_age_rating() which tries the Steam API
-    first, then falls back to HTML scraping. Results are file-cached
-    (30-day TTL) by the scraper.
-
-    Configure with configure() before starting.
-    """
+    """Background thread for PEGI age rating enrichment."""
 
     def __init__(self, parent: Any = None) -> None:
-        """Initializes the PEGI enrichment thread."""
         super().__init__(parent)
         self._games: list[tuple[int, str]] = []
         self._db_path: Path | None = None
@@ -46,14 +39,7 @@ class PEGIEnrichmentThread(BaseEnrichmentThread):
         language: str = "en",
         force_refresh: bool = False,
     ) -> None:
-        """Configures the thread for PEGI enrichment.
-
-        Args:
-            games: List of (app_id, name) tuples to enrich.
-            db_path: Path to the SQLite database file.
-            language: Steam language code for store scraping.
-            force_refresh: If True, skip cache and re-fetch all ratings.
-        """
+        """Configures the thread for PEGI enrichment."""
         self._games = games
         self._db_path = db_path
         self._language = language
@@ -80,17 +66,7 @@ class PEGIEnrichmentThread(BaseEnrichmentThread):
         return self._games
 
     def _process_item(self, item: Any) -> bool:
-        """Fetches the PEGI rating for a single game.
-
-        Acts as a gap filler: skips games that already have a rating
-        (filled by the batch Steam API enrichment pass).
-
-        Args:
-            item: Tuple of (app_id, name).
-
-        Returns:
-            True if a valid rating was found and stored.
-        """
+        """Fetches the PEGI rating for a single game (gap filler)."""
         app_id, name = item
 
         # Skip if already has a rating (filled by batch Steam API)
@@ -120,22 +96,9 @@ class PEGIEnrichmentThread(BaseEnrichmentThread):
         return False
 
     def _format_progress(self, item: Any, current: int, total: int) -> str:
-        """Formats progress text with the game name.
-
-        Args:
-            item: Tuple of (app_id, name).
-            current: 1-based current index.
-            total: Total games count.
-
-        Returns:
-            Formatted progress string.
-        """
+        """Formats progress text with the game name."""
         _app_id, name = item
         return t("ui.enrichment.progress", name=name, current=current, total=total)
 
     def _rate_limit(self) -> None:
-        """No delay needed — SteamStoreScraper has its own internal rate limit.
-
-        Most games are skipped instantly (already rated by batch API).
-        Only gap-fill HTTP requests are rate-limited by the scraper itself.
-        """
+        """No delay needed - SteamStoreScraper has its own internal rate limit."""

@@ -1,9 +1,10 @@
-"""Background thread for Steam Achievement enrichment.
-
-Fetches achievement data (schema, player progress, global rarity) from
-the Steam Web API for games without achievement data. Rate-limited to
-~1 request per second (3 API calls per game = ~3 seconds per game).
-"""
+#
+# steam_library_manager/services/enrichment/achievement_enrichment_service.py
+# Background thread for Steam Achievement enrichment
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -21,15 +22,9 @@ __all__ = ["AchievementEnrichmentThread"]
 
 
 class AchievementEnrichmentThread(BaseEnrichmentThread):
-    """Background thread for fetching Steam achievement data.
-
-    Iterates over games without achievement data, fetches schema + player
-    progress + global rarity from Steam Web API, and writes results to the
-    database.
-    """
+    """Background thread for fetching Steam achievement data."""
 
     def __init__(self, parent: Any = None) -> None:
-        """Initializes the AchievementEnrichmentThread."""
         super().__init__(parent)
         self._games: list[tuple[int, str]] = []
         self._db_path: Path | None = None
@@ -46,29 +41,17 @@ class AchievementEnrichmentThread(BaseEnrichmentThread):
         steam_id: str,
         force_refresh: bool = False,
     ) -> None:
-        """Configures the thread with games and API credentials.
-
-        Args:
-            games: List of (app_id, name) tuples for games to enrich.
-            db_path: Path to the SQLite database file.
-            api_key: Steam Web API key.
-            steam_id: 64-bit Steam user ID.
-            force_refresh: If True, re-process all games instead of only missing.
-        """
+        """Configures the thread with games and API credentials."""
         self._games = games
         self._db_path = db_path
         self._api_key = api_key
         self._steam_id = steam_id
         self._force_refresh = force_refresh
 
-    # ── BaseEnrichmentThread hooks ──────────────────────
+    # BaseEnrichmentThread hooks
 
     def _setup(self) -> None:
-        """Opens database and API connections.
-
-        Raises:
-            ValueError: If required configuration is missing.
-        """
+        """Opens database and API connections."""
         from steam_library_manager.core.database import Database
         from steam_library_manager.integrations.steam_web_api import SteamWebAPI
 
@@ -94,28 +77,12 @@ class AchievementEnrichmentThread(BaseEnrichmentThread):
         return self._games
 
     def _process_item(self, item: Any) -> bool:
-        """Fetches and stores achievement data for a single game.
-
-        Args:
-            item: Tuple of (app_id, name).
-
-        Returns:
-            True if data was successfully fetched and stored.
-        """
+        """Fetches and stores achievement data for a single game."""
         app_id, _name = item
         return self._enrich_game(self._api, self._db, app_id)
 
     def _format_progress(self, item: Any, current: int, total: int) -> str:
-        """Formats progress text with the game name.
-
-        Args:
-            item: Tuple of (app_id, name).
-            current: 1-based current index.
-            total: Total games count.
-
-        Returns:
-            Formatted progress string.
-        """
+        """Formats progress text with the game name."""
         _app_id, name = item
         return t("ui.enrichment.progress", name=name[:30], current=current, total=total)
 
@@ -123,7 +90,7 @@ class AchievementEnrichmentThread(BaseEnrichmentThread):
         """Sleeps 1 second between games."""
         time.sleep(1.0)
 
-    # ── Internal ────────────────────────────────────────
+    # Internal
 
     def _enrich_game(
         self,
@@ -131,39 +98,30 @@ class AchievementEnrichmentThread(BaseEnrichmentThread):
         db: Any,
         app_id: int,
     ) -> bool:
-        """Fetches and stores achievement data for a single game.
-
-        Args:
-            api: SteamWebAPI instance.
-            db: Database instance.
-            app_id: Steam app ID to enrich.
-
-        Returns:
-            True if data was successfully fetched and stored.
-        """
-        # 1. Get achievement schema (list of possible achievements)
+        """Fetches and stores achievement data for a single game."""
+        # Get achievement schema (list of possible achievements)
         schema = api.get_game_schema(app_id)
         schema_achievements = (schema or {}).get("achievements", [])
 
         if not schema_achievements:
-            # Game has no achievements — record total=0 to avoid re-fetching
+            # Game has no achievements - record total=0 to avoid re-fetching
             db.upsert_achievement_stats(app_id, 0, 0, 0.0, False)
             db.commit()
             return True
 
         total = len(schema_achievements)
 
-        # 2. Get player's achievement progress
+        # Get player's achievement progress
         player_achievements = api.get_player_achievements(app_id, self._steam_id)
         player_map: dict[str, dict] = {}
         if player_achievements:
             for ach in player_achievements:
                 player_map[ach.get("apiname", "")] = ach
 
-        # 3. Get global rarity percentages (no auth needed)
+        # Get global rarity percentages (no auth needed)
         global_pcts = api.get_global_achievement_percentages(app_id)
 
-        # 4. Merge and build achievement records
+        # Merge and build achievement records
         achievement_records: list[dict] = []
         unlocked_count = 0
 
@@ -196,11 +154,11 @@ class AchievementEnrichmentThread(BaseEnrichmentThread):
                 }
             )
 
-        # 5. Calculate stats
+        # Calculate stats
         completion_pct = (unlocked_count / total * 100) if total > 0 else 0.0
         perfect = unlocked_count == total and total > 0
 
-        # 6. Write to DB and commit immediately (release write lock for other threads)
+        # Write to DB and commit immediately (release write lock for other threads)
         db.upsert_achievements(app_id, achievement_records)
         db.upsert_achievement_stats(app_id, total, unlocked_count, completion_pct, perfect)
         db.commit()

@@ -1,11 +1,10 @@
+#
 # steam_library_manager/services/smart_collections/evaluator.py
-
-"""Smart Collection rule evaluation engine.
-
-Evaluates SmartCollectionRule instances against Game objects, supporting
-text matching (equals, contains, starts_with, ends_with, regex),
-numeric comparison (>, <, >=, <=, between), and boolean checks.
-"""
+# Smart Collection rule evaluation engine.
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -43,20 +42,7 @@ class SmartCollectionEvaluator:
     """Evaluates Smart Collection rules against Game objects."""
 
     def evaluate(self, game: Game, collection: SmartCollection) -> bool:
-        """Checks if a game matches a Smart Collection's rules.
-
-        When the collection has groups, evaluates using grouped logic
-        (each group has its own internal AND/OR, and the top-level logic
-        combines group results).  Otherwise falls back to the legacy flat
-        rule evaluation.
-
-        Args:
-            game: The game to evaluate.
-            collection: The Smart Collection with rules.
-
-        Returns:
-            True if the game matches the collection's rules.
-        """
+        """Checks if a game matches a Smart Collection's rules."""
         if collection.groups:
             return self._evaluate_groups(game, collection)
 
@@ -70,33 +56,14 @@ class SmartCollectionEvaluator:
         return any(self._evaluate_rule(game, rule) for rule in collection.rules)
 
     def _evaluate_groups(self, game: Game, collection: SmartCollection) -> bool:
-        """Evaluates a game against grouped rules.
-
-        Each group is evaluated independently with its internal logic operator,
-        then group results are combined with the collection's top-level logic.
-
-        Args:
-            game: The game to evaluate.
-            collection: The Smart Collection with groups.
-
-        Returns:
-            True if the game matches according to the group logic.
-        """
+        """Evaluates a game against grouped rules."""
         group_results = [self._evaluate_group(game, g) for g in collection.groups]
         if collection.logic == LogicOperator.AND:
             return all(group_results)
         return any(group_results)
 
     def _evaluate_group(self, game: Game, group: SmartCollectionRuleGroup) -> bool:
-        """Evaluates a single rule group against a game.
-
-        Args:
-            game: The game to evaluate.
-            group: The rule group with its internal logic operator.
-
-        Returns:
-            True if the game matches the group's rules. False if the group has no rules.
-        """
+        """Evaluates a single rule group against a game."""
         if not group.rules:
             return False
 
@@ -105,28 +72,12 @@ class SmartCollectionEvaluator:
         return any(self._evaluate_rule(game, rule) for rule in group.rules)
 
     def _evaluate_rule(self, game: Game, rule: SmartCollectionRule) -> bool:
-        """Evaluates a single rule against a game, handling negation.
-
-        Args:
-            game: The game to check.
-            rule: The rule to evaluate.
-
-        Returns:
-            True if the game matches the rule (or fails it when negated).
-        """
+        """Evaluates a single rule against a game, handling negation."""
         result = self._match_rule(game, rule)
         return not result if rule.negated else result
 
     def _match_rule(self, game: Game, rule: SmartCollectionRule) -> bool:
-        """Matches a single rule against a game (without negation).
-
-        Args:
-            game: The game to check.
-            rule: The rule to evaluate.
-
-        Returns:
-            True if the game's field value matches the rule's operator and value.
-        """
+        """Matches a single rule against a game (without negation)."""
         # Fast path: TAG + EQUALS with tag_id -> language-independent ID comparison
         if rule.field == FilterField.TAG and rule.operator == Operator.EQUALS and rule.tag_id is not None:
             game_tag_ids = getattr(game, "tag_ids", None)
@@ -164,15 +115,7 @@ class SmartCollectionEvaluator:
         return False
 
     def _get_field_value(self, game: Game, fld: FilterField) -> str | list[str] | float | bool:
-        """Extracts the field value from a Game object.
-
-        Args:
-            game: The game to get the value from.
-            fld: The filter field to extract.
-
-        Returns:
-            The field value (type depends on the field category).
-        """
+        """Extracts the field value from a Game object."""
         attr_name = field_to_game_attr(fld)
 
         # playtime_hours is a property, not a stored field
@@ -182,18 +125,7 @@ class SmartCollectionEvaluator:
         return getattr(game, attr_name, "")
 
     def _match_text_list(self, values: list[str], operator: Operator, target: str) -> bool:
-        """Matches an operator against a list of text values (tags, genres, etc.).
-
-        For list fields, the rule matches if ANY item in the list satisfies the operator.
-
-        Args:
-            values: The list of string values from the game.
-            operator: The comparison operator.
-            target: The target value to compare against.
-
-        Returns:
-            True if any item in the list matches the operator and target.
-        """
+        """Matches an operator against a list of text values (tags, genres, etc.)."""
         if not values:
             return False
 
@@ -220,16 +152,7 @@ class SmartCollectionEvaluator:
         return False
 
     def _match_text_single(self, value: str, operator: Operator, target: str) -> bool:
-        """Matches an operator against a single text value.
-
-        Args:
-            value: The string value from the game.
-            operator: The comparison operator.
-            target: The target value to compare against.
-
-        Returns:
-            True if the value matches the operator and target.
-        """
+        """Matches an operator against a single text value."""
         value_lower = value.lower()
         target_lower = target.lower()
 
@@ -250,17 +173,7 @@ class SmartCollectionEvaluator:
         return False
 
     def _match_numeric(self, value: str | float | int, operator: Operator, target: str, target_max: str) -> bool:
-        """Matches a numeric operator against a value.
-
-        Args:
-            value: The numeric value from the game (may be string).
-            operator: The comparison operator.
-            target: The target value (as string, will be parsed).
-            target_max: The upper bound for BETWEEN operator.
-
-        Returns:
-            True if the numeric comparison succeeds.
-        """
+        """Matches a numeric operator against a value."""
         try:
             num_value = float(value) if not isinstance(value, (int, float)) else float(value)
         except (ValueError, TypeError):
@@ -292,15 +205,7 @@ class SmartCollectionEvaluator:
         return False
 
     def _match_boolean(self, value: bool, operator: Operator) -> bool:
-        """Matches a boolean operator.
-
-        Args:
-            value: The boolean value from the game.
-            operator: IS_TRUE or IS_FALSE.
-
-        Returns:
-            True if the boolean check matches.
-        """
+        """Matches a boolean operator."""
         if operator == Operator.IS_TRUE:
             return value is True
         if operator == Operator.IS_FALSE:
@@ -308,13 +213,5 @@ class SmartCollectionEvaluator:
         return False
 
     def evaluate_batch(self, games: list[Game], collection: SmartCollection) -> list[Game]:
-        """Returns all games matching the collection rules.
-
-        Args:
-            games: List of games to evaluate.
-            collection: The Smart Collection with rules.
-
-        Returns:
-            List of games that match the collection's rules.
-        """
+        """Returns all games matching the collection rules."""
         return [game for game in games if self.evaluate(game, collection)]

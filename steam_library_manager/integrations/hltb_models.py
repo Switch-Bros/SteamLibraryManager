@@ -1,9 +1,10 @@
-"""HLTB data models and name processing utilities.
-
-Contains the HLTBResult frozen dataclass, name normalization/simplification
-regex patterns, Levenshtein distance, and match-finding logic.
-Extracted from hltb_api.py to separate data/parsing from networking.
-"""
+#
+# steam_library_manager/integrations/hltb_models.py
+# HLTB data models and name processing utilities
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -22,19 +23,12 @@ __all__ = [
 ]
 
 
-# ===== HLTB RESULT DATACLASS =====
+# HLTB result dataclass
 
 
 @dataclass(frozen=True)
 class HLTBResult:
-    """Frozen dataclass for HowLongToBeat completion time data.
-
-    Attributes:
-        game_name: Name of the game as returned by HLTB.
-        main_story: Hours to complete the main story.
-        main_extras: Hours to complete main story + extras.
-        completionist: Hours for 100% completion.
-    """
+    """Frozen dataclass for HowLongToBeat completion time data."""
 
     game_name: str
     main_story: float
@@ -42,16 +36,16 @@ class HLTBResult:
     completionist: float
 
 
-# ===== NAME PROCESSING CONSTANTS =====
+# Name processing constants
 
 # Symbols to strip from game names (TM, (R), (C), also text forms)
-# Uses a space replacement to avoid "Velocity®Ultra" → "VelocityUltra"
+# Uses a space replacement to avoid "Velocity(R)Ultra" -> "VelocityUltra"
 _SYMBOL_PATTERN = re.compile(r"[\u2122\u00AE\u00A9]|\(TM\)|\(R\)")
 
-# Superscript digits → normal digits
-_SUPERSCRIPT_MAP = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹", "0123456789")
+# Superscript digits -> normal digits
+_SUPERSCRIPT_MAP = str.maketrans("\u2070\u00b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079", "0123456789")
 
-# Bare year at end of name without parentheses: "Game 2014" → "Game"
+# Bare year at end of name without parentheses: "Game 2014" -> "Game"
 _BARE_YEAR_PATTERN = re.compile(r"\s+[12][09]\d\d$")
 
 # Parenthetical noise to strip before search (year tags, Classic, etc.)
@@ -129,29 +123,19 @@ _EDITION_PATTERNS: tuple[re.Pattern[str], ...] = (
 )
 
 
-# ===== NAME PROCESSING FUNCTIONS =====
+# Name processing functions
 
 
 def normalize_name(name: str) -> str:
-    """Strips trademark and copyright symbols for cleaner search terms.
-
-    Does NOT strip edition suffixes — that is handled as a fallback
-    in search_game() when the first search attempt has a poor match.
-
-    Args:
-        name: Raw game name.
-
-    Returns:
-        Cleaned name suitable for HLTB search.
-    """
-    # Replace symbols with space (keeps word boundaries: "Velocity®Ultra" → "Velocity Ultra")
+    """Strips trademark and copyright symbols for cleaner search terms."""
+    # Replace symbols with space (keeps word boundaries: "Velocity(R)Ultra" -> "Velocity Ultra")
     cleaned = _SYMBOL_PATTERN.sub(" ", name).strip()
-    # Normalize superscript digits: ² → 2
+    # Normalize superscript digits
     cleaned = cleaned.translate(_SUPERSCRIPT_MAP)
     # Normalize backtick to apostrophe
     cleaned = cleaned.replace("`", "'")
-    # Strip special unicode chars: ∞, etc.
-    cleaned = re.sub(r"[∞]", "", cleaned)
+    # Strip special unicode chars
+    cleaned = re.sub(r"[\u221e]", "", cleaned)
     # Strip parenthetical noise: (2003), (Classic), etc.
     cleaned = _PAREN_NOISE_PATTERN.sub("", cleaned).strip()
     cleaned = re.sub(r"\s+", " ", cleaned)
@@ -159,17 +143,7 @@ def normalize_name(name: str) -> str:
 
 
 def simplify_name(name: str) -> str:
-    """Strips common edition/remaster/year suffixes for fallback search.
-
-    Iterates _EDITION_PATTERNS in a loop until no more changes occur,
-    handling stacked suffixes like "Enhanced Edition Director's Cut".
-
-    Args:
-        name: Sanitized game name.
-
-    Returns:
-        Simplified name with edition suffixes removed.
-    """
+    """Strips common edition/remaster/year suffixes for fallback search."""
     # Normalize Unicode dashes to ASCII hyphen with spaces for pattern matching
     name = re.sub(r"[\u2013\u2014]", " - ", name)
     name = re.sub(r"\s+", " ", name).strip()
@@ -179,20 +153,13 @@ def simplify_name(name: str) -> str:
         prev = name
         for pattern in _EDITION_PATTERNS:
             name = pattern.sub("", name).strip()
-        # Also strip bare year at end: "Lords Of The Fallen 2014" → "Lords Of The Fallen"
+        # Also strip bare year at end: "Lords Of The Fallen 2014" -> "Lords Of The Fallen"
         name = _BARE_YEAR_PATTERN.sub("", name).strip()
     return re.sub(r"\s+", " ", name).strip()
 
 
 def normalize_for_compare(name: str) -> str:
-    """Normalizes a name for comparison (lowercase, no accents, no special chars).
-
-    Args:
-        name: Name to normalize.
-
-    Returns:
-        Lowercased name with accents and special characters removed.
-    """
+    """Normalizes a name for comparison (lowercase, no accents, no special chars)."""
     result = name.lower()
     result = unicodedata.normalize("NFD", result)
     result = re.sub(r"[\u0300-\u036f]", "", result)
@@ -201,15 +168,7 @@ def normalize_for_compare(name: str) -> str:
 
 
 def levenshtein(s1: str, s2: str) -> int:
-    """Calculates the Levenshtein (edit) distance between two strings.
-
-    Args:
-        s1: First string.
-        s2: Second string.
-
-    Returns:
-        Minimum number of single-character edits to transform s1 into s2.
-    """
+    """Calculates the Levenshtein (edit) distance between two strings."""
     if s1 == s2:
         return 0
     len1, len2 = len(s1), len(s2)
@@ -242,27 +201,15 @@ def find_best_match(
     results: list[dict],
     search_name: str,
 ) -> tuple[dict | None, int]:
-    """Finds the best matching game from HLTB search results.
-
-    Uses a two-tier approach:
-    1. Exact sanitized name match (distance 0).
-    2. Levenshtein distance, with popularity (comp_all_count) as tiebreaker.
-
-    Args:
-        results: List of game data dicts from the HLTB API.
-        search_name: Cleaned game name for comparison.
-
-    Returns:
-        Tuple of (best_match, distance) or (None, 0) if no match.
-    """
+    """Finds the best matching game from HLTB search results."""
     sanitized_query = normalize_for_compare(search_name)
 
-    # 1. Exact name match
+    # Exact name match
     for r in results:
         if normalize_for_compare(r.get("game_name", "")) == sanitized_query:
             return r, 0
 
-    # 2. Levenshtein distance with popularity tiebreaker
+    # Levenshtein distance with popularity tiebreaker
     candidates: list[tuple[int, int, dict]] = []
     for r in results:
         r_name = normalize_for_compare(r.get("game_name", ""))
@@ -281,14 +228,7 @@ def find_best_match(
 
 
 def to_result(match: dict) -> HLTBResult:
-    """Converts an HLTB API result dict to an HLTBResult.
-
-    Args:
-        match: Raw game data dict from the HLTB API.
-
-    Returns:
-        HLTBResult with hours converted from seconds.
-    """
+    """Converts an HLTB API result dict to an HLTBResult."""
     return HLTBResult(
         game_name=match.get("game_name", ""),
         main_story=match.get("comp_main", 0) / 3600,

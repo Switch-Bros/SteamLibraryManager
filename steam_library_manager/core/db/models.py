@@ -1,8 +1,10 @@
-"""Database data models and conversion functions.
-
-Contains the core data structures used for database operations:
-DatabaseEntry, ImportStats, and conversion utilities.
-"""
+#
+# steam_library_manager/core/db/models.py
+# Database data models and conversion functions
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -22,17 +24,7 @@ _PLACEHOLDER_PATTERN = re.compile(r"^(App \d+|Unknown App \d+|Unbekannte App \d+
 
 
 def is_placeholder_name(name: str | None) -> bool:
-    """Check if a game name is a placeholder/fallback.
-
-    Detects names like "App 123", "Unknown App 123", "Unbekannte App 123"
-    which are generated when appinfo.vdf has no real name for an app.
-
-    Args:
-        name: The game name to check.
-
-    Returns:
-        True if the name is empty, None, or matches a known placeholder pattern.
-    """
+    """Check if a game name is a placeholder/fallback."""
     if not name or not name.strip():
         return True
     return bool(_PLACEHOLDER_PATTERN.match(name.strip()))
@@ -113,14 +105,7 @@ class DatabaseEntry:
 
 
 def database_entry_to_game(entry: DatabaseEntry) -> Game:
-    """Convert a DatabaseEntry to a Game dataclass.
-
-    Args:
-        entry: Database entry to convert.
-
-    Returns:
-        Game object populated from the database entry.
-    """
+    """Convert a DatabaseEntry to a Game dataclass."""
     # Use best available release timestamp
     release_ts = entry.release_date or entry.steam_release_date or entry.original_release_date
     release_year = release_ts if release_ts and isinstance(release_ts, int) and release_ts > 0 else 0

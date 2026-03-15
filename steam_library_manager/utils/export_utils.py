@@ -1,8 +1,10 @@
-"""Export utility functions for game data.
-
-Provides shared helpers for CSV, JSON, and other export formats:
-game field extraction and consistent sort order.
-"""
+#
+# steam_library_manager/utils/export_utils.py
+# Shared helpers for CSV, JSON, and other export formats
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -17,30 +19,12 @@ __all__ = ["game_to_export_dict", "sorted_for_export"]
 
 
 def sorted_for_export(games: list[Game]) -> list[Game]:
-    """Sorts games by sort_name for consistent export order.
-
-    Args:
-        games: List of games to sort.
-
-    Returns:
-        New sorted list (original is not modified).
-    """
+    """Sorts games by sort_name for consistent export order."""
     return sorted(games, key=lambda g: g.sort_name.lower())
 
 
 def game_to_export_dict(game: Game) -> dict[str, Any]:
-    """Converts a Game to a standardized export dictionary.
-
-    Used by both CSV and JSON exporters to ensure field consistency.
-    List fields (genres, tags, etc.) are kept as lists — callers
-    flatten them as needed for their format.
-
-    Args:
-        game: Game instance to convert.
-
-    Returns:
-        Dictionary with all exportable fields.
-    """
+    """Converts a Game to a standardized export dictionary."""
     return {
         "app_id": game.app_id,
         "name": game.name,

@@ -1,11 +1,10 @@
+#
 # steam_library_manager/services/smart_collections/models.py
-
-"""Data models for Smart Collections: enums, dataclasses, and serialization helpers.
-
-Defines the rule language for Smart Collections including filter fields,
-operators, logic operators, and the SmartCollection/SmartCollectionRule
-dataclasses. Also provides serialization helpers for JSON persistence.
-"""
+# Data models for Smart Collections: enums, dataclasses, and serialization helpers
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -215,28 +214,13 @@ _FIELD_TO_ATTR: dict[FilterField, str] = {
 
 
 def field_to_game_attr(fld: FilterField) -> str:
-    """Maps a FilterField to the corresponding Game dataclass attribute name.
-
-    Args:
-        fld: The filter field to map.
-
-    Returns:
-        The attribute name on the Game dataclass.
-    """
+    """Maps a FilterField to the corresponding Game dataclass attribute name."""
     return _FIELD_TO_ATTR[fld]
 
 
 @dataclass(frozen=True)
 class SmartCollectionRule:
-    """A single rule in a Smart Collection.
-
-    Attributes:
-        field: Which game field to match against.
-        operator: The comparison operator.
-        value: The target value for comparison.
-        value_max: Second value for BETWEEN operator.
-        negated: If True, the rule result is inverted (NOT).
-    """
+    """A single rule in a Smart Collection."""
 
     field: FilterField
     operator: Operator
@@ -248,16 +232,7 @@ class SmartCollectionRule:
 
 @dataclass(frozen=True)
 class SmartCollectionRuleGroup:
-    """A group of rules with its own internal logic operator.
-
-    Groups enable nested boolean logic: e.g. (A AND B) OR (C AND D).
-    Each group evaluates its rules with its own logic operator, and the
-    top-level SmartCollection logic operator combines group results.
-
-    Attributes:
-        logic: The logic operator applied between rules within this group.
-        rules: The rules in this group.
-    """
+    """A group of rules with its own internal logic operator."""
 
     logic: LogicOperator = LogicOperator.AND
     rules: tuple[SmartCollectionRule, ...] = ()
@@ -265,27 +240,7 @@ class SmartCollectionRuleGroup:
 
 @dataclass
 class SmartCollection:
-    """A Smart Collection with its rules and metadata.
-
-    When ``groups`` is non-empty the evaluator uses grouped logic:
-    each group is evaluated with its own internal logic operator, and
-    ``logic`` combines group results at the top level.
-    When ``groups`` is empty but ``rules`` is non-empty, the legacy
-    flat-rule evaluation path is used for backward compatibility.
-
-    Attributes:
-        collection_id: Database primary key (0 for unsaved).
-        name: Display name of the collection.
-        description: Optional description.
-        icon: Emoji icon for display.
-        logic: Top-level logic operator between rules/groups (AND/OR).
-        rules: Legacy flat list of filter rules.
-        groups: Grouped rules with per-group logic operators.
-        is_active: Whether the collection is evaluated on refresh.
-        auto_sync: Whether to sync matching games to Steam cloud.
-        last_evaluated: Unix timestamp of last evaluation.
-        created_at: Unix timestamp of creation.
-    """
+    """A Smart Collection with its rules and metadata."""
 
     collection_id: int = 0
     name: str = ""
@@ -300,20 +255,11 @@ class SmartCollection:
     created_at: int = 0
 
 
-# ========================================================================
-# SERIALIZATION HELPERS
-# ========================================================================
+# Serialization helpers
 
 
 def rule_to_dict(rule: SmartCollectionRule) -> dict:
-    """Serializes a SmartCollectionRule to a JSON-compatible dict.
-
-    Args:
-        rule: The rule to serialize.
-
-    Returns:
-        Dict with field, operator, value, value_max, negated.
-    """
+    """Serializes a SmartCollectionRule to a JSON-compatible dict."""
     d: dict = {
         "field": rule.field.value,
         "operator": rule.operator.value,
@@ -327,17 +273,7 @@ def rule_to_dict(rule: SmartCollectionRule) -> dict:
 
 
 def rule_from_dict(data: dict) -> SmartCollectionRule:
-    """Deserializes a SmartCollectionRule from a dict.
-
-    Args:
-        data: Dict with field, operator, value, value_max, negated.
-
-    Returns:
-        A SmartCollectionRule instance.
-
-    Raises:
-        ValueError: If field or operator values are invalid.
-    """
+    """Deserializes a SmartCollectionRule from a dict."""
     return SmartCollectionRule(
         field=FilterField(data["field"]),
         operator=Operator(data["operator"]),
@@ -349,14 +285,7 @@ def rule_from_dict(data: dict) -> SmartCollectionRule:
 
 
 def group_to_dict(group: SmartCollectionRuleGroup) -> dict:
-    """Serializes a SmartCollectionRuleGroup to a JSON-compatible dict.
-
-    Args:
-        group: The rule group to serialize.
-
-    Returns:
-        Dict with logic and rules array.
-    """
+    """Serializes a SmartCollectionRuleGroup to a JSON-compatible dict."""
     return {
         "logic": group.logic.value,
         "rules": [rule_to_dict(r) for r in group.rules],
@@ -364,17 +293,7 @@ def group_to_dict(group: SmartCollectionRuleGroup) -> dict:
 
 
 def group_from_dict(data: dict) -> SmartCollectionRuleGroup:
-    """Deserializes a SmartCollectionRuleGroup from a dict.
-
-    Args:
-        data: Dict with logic and rules array.
-
-    Returns:
-        A SmartCollectionRuleGroup instance.
-
-    Raises:
-        ValueError: If logic operator value is invalid.
-    """
+    """Deserializes a SmartCollectionRuleGroup from a dict."""
     try:
         logic = LogicOperator(data.get("logic", "AND"))
     except ValueError:
@@ -395,18 +314,7 @@ def group_from_dict(data: dict) -> SmartCollectionRuleGroup:
 
 
 def collection_to_json(collection: SmartCollection) -> str:
-    """Serializes a SmartCollection's rules to a JSON string for DB storage.
-
-    When ``groups`` is non-empty, the v2 format with a ``"groups"`` key is
-    used.  Otherwise the legacy v1 format with a flat ``"rules"`` key is
-    produced for backward compatibility.
-
-    Args:
-        collection: The SmartCollection to serialize.
-
-    Returns:
-        JSON string with logic and rules/groups.
-    """
+    """Serializes a SmartCollection's rules to a JSON string for DB storage."""
     payload: dict = {
         "logic": collection.logic.value,
     }
@@ -420,17 +328,7 @@ def collection_to_json(collection: SmartCollection) -> str:
 
 
 def collection_from_json(rules_json: str, collection: SmartCollection | None = None) -> SmartCollection:
-    """Deserializes rules JSON into a SmartCollection (or updates an existing one).
-
-    Supports both v1 (flat ``"rules"``) and v2 (``"groups"``) formats.
-
-    Args:
-        rules_json: JSON string with logic and rules/groups.
-        collection: Optional existing SmartCollection to update. If None, a new one is created.
-
-    Returns:
-        SmartCollection with deserialized rules/groups and logic.
-    """
+    """Deserializes rules JSON into a SmartCollection (or updates an existing one)."""
     if collection is None:
         collection = SmartCollection()
 
@@ -475,9 +373,5 @@ def collection_from_json(rules_json: str, collection: SmartCollection | None = N
 
 
 def now_ts() -> int:
-    """Returns the current Unix timestamp as integer.
-
-    Returns:
-        Current time as integer seconds since epoch.
-    """
+    """Returns the current Unix timestamp as integer."""
     return int(time.time())

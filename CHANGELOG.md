@@ -5,6 +5,29 @@ All notable changes to Steam Library Manager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-03-15
+
+### Added
+- **Smart Collections:** Automatic sidecar backup (smart_collections.json) on
+  every create/update/delete. Auto-recovery on startup when the database is
+  empty, so Smart Collections survive installation or device changes.
+- **Curators:** Auto-register existing curators from Steam collections when
+  opening the management dialog. Fuzzy name matching strips emojis, punctuation,
+  and whitespace for reliable preset detection.
+- **Curators:** Cloud storage parser as additional source for collection names,
+  catching dynamic/filter-based collections that game_manager does not see.
+
+### Fixed
+- **Collections:** Steam-internal names "favorite" and "hidden" (lowercase
+  English) are now recognized as protected system collections and sort
+  correctly instead of appearing alphabetically in the sidebar.
+- **Smart Collections:** Brain emoji now appears as suffix (after name, before
+  count) consistent with dynamic and external platform collection emojis.
+- **Smart Collections:** Name validation in SmartCollectionManager.create()
+  prevents saving collections without a name.
+- **Curators:** Popular/Top Curators dialogs now have scroll areas and a
+  max height so they don't fill the entire screen on smaller displays.
+
 ## [1.2.8] - 2026-03-14
 
 ### Fixed

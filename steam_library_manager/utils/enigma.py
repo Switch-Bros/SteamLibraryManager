@@ -1,13 +1,10 @@
+#
 # steam_library_manager/utils/enigma.py
-
-"""Easter egg loader, sound player, and detection manager.
-
-Reads egg data from the hidden resources/.enigma file and plays
-sound effects via paplay (PulseAudio/PipeWire).
-
-The EasterEggManager provides a generic key-sequence detection
-system so new eggs can be added with a single dict entry.
-"""
+# Easter egg loader, sound player, and detection manager
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -33,15 +30,7 @@ __all__ = [
 
 
 def load_easter_egg(egg_id: str) -> dict[str, str]:
-    """Load easter egg data from the hidden .enigma file.
-
-    Args:
-        egg_id: Key in the JSON file (e.g. "konami", "searchbar").
-
-    Returns:
-        Dict with 'title', 'message', and optionally 'sound'.
-        Empty dict if egg_id not found or file missing.
-    """
+    """Load easter egg data from the hidden .enigma file."""
     egg_file: Path = config.RESOURCES_DIR / ".enigma"
     try:
         with open(egg_file, encoding="utf-8") as f:
@@ -52,14 +41,7 @@ def load_easter_egg(egg_id: str) -> dict[str, str]:
 
 
 def play_easter_egg_sound(filename: str) -> None:
-    """Play an easter egg sound file via system audio.
-
-    Uses paplay (PulseAudio/PipeWire) which is available on
-    virtually all Linux desktops.  Fails silently if unavailable.
-
-    Args:
-        filename: Sound file name (e.g. "Konami-victory.wav").
-    """
+    """Play an easter egg sound file via paplay (PulseAudio/PipeWire)."""
     sound_path: Path = config.RESOURCES_DIR / "sounds" / filename
     if not sound_path.exists():
         return
@@ -71,24 +53,16 @@ def play_easter_egg_sound(filename: str) -> None:
             stderr=subprocess.DEVNULL,
         )
     except FileNotFoundError:
-        # paplay not installed — fail silently, it's just an easter egg
+        # paplay not installed - fail silently, it's just an easter egg
         pass
 
 
-# ---------------------------------------------------------------------------
-# Key-sequence-based Easter egg system
-# ---------------------------------------------------------------------------
+# Key-sequence Easter egg system
 
 
 @dataclass
 class KeySequenceEgg:
-    """A key-sequence-based Easter egg definition.
-
-    Attributes:
-        sequence: List of Qt key codes to match.
-        timeout_ms: Buffer auto-clear timeout in milliseconds.
-        egg_id: Identifier for load_easter_egg() lookup.
-    """
+    """A key-sequence-based Easter egg definition."""
 
     sequence: list[int]
     timeout_ms: int = 3000
@@ -96,14 +70,7 @@ class KeySequenceEgg:
     _buffer: list[int] = field(default_factory=list, repr=False, compare=False)
 
     def feed_key(self, key: int) -> bool:
-        """Feeds a key press and checks for sequence match.
-
-        Args:
-            key: Qt key code from the event.
-
-        Returns:
-            True if the full sequence was matched.
-        """
+        """Feeds a key press and checks for sequence match."""
         self._buffer.append(key)
         max_len = len(self.sequence)
         if len(self._buffer) > max_len:
@@ -116,14 +83,7 @@ class KeySequenceEgg:
 
 
 class EasterEggManager:
-    """Central detection and triggering for all Easter eggs.
-
-    Manages key sequence detection, timeouts, and triggering.
-    New eggs are added by appending to the _eggs dict.
-
-    Attributes:
-        _mw: The parent MainWindow instance.
-    """
+    """Central detection and triggering for all Easter eggs."""
 
     def __init__(self, mw: MainWindow) -> None:
         self._mw = mw
@@ -153,14 +113,7 @@ class EasterEggManager:
         self._timer.timeout.connect(self._reset_all)
 
     def on_key_event(self, key: int) -> str | None:
-        """Feeds a key press to all registered eggs.
-
-        Args:
-            key: Qt key code from the event.
-
-        Returns:
-            Name of triggered egg, or None.
-        """
+        """Feeds a key press to all registered eggs."""
         self._timer.start()
         for name, egg in self._eggs.items():
             if egg.feed_key(key):
@@ -171,12 +124,7 @@ class EasterEggManager:
         return None
 
     def _trigger(self, name: str, egg: KeySequenceEgg) -> None:
-        """Triggers an Easter egg by name.
-
-        Args:
-            name: Registry key of the egg.
-            egg: The egg definition.
-        """
+        """Triggers an Easter egg by name."""
         from steam_library_manager.ui.widgets.ui_helper import UIHelper
 
         if self._mw.search_entry and self._mw.search_entry.text():

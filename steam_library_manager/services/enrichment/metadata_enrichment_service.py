@@ -1,11 +1,10 @@
-# steam_library_manager/services/metadata_enrichment_service.py
-
-"""Service for merging and enriching game metadata from various sources.
-
-Extracted from GameManager to separate the concern of metadata merging
-(localconfig categories, appinfo.vdf data, custom overrides) from core
-game management logic.
-"""
+#
+# steam_library_manager/services/enrichment/metadata_enrichment_service.py
+# Service for merging and enriching game metadata from various sources.
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -45,29 +44,14 @@ HIDDEN_IDENTIFIERS: Final[frozenset[str]] = frozenset(
 
 
 class MetadataEnrichmentService:
-    """Merges and enriches game metadata from multiple sources.
-
-    Operates on a shared games dict (by reference) so that mutations
-    are immediately visible to GameManager and the rest of the app.
-
-    Args:
-        games: Shared reference to the GameManager's games dict.
-        cache_dir: Directory for JSON cache files.
-    """
+    """Merges and enriches game metadata from multiple sources."""
 
     def __init__(self, games: dict[str, Game], cache_dir: Path) -> None:
         self._games = games
         self._cache_dir = cache_dir
 
     def merge_with_localconfig(self, parser) -> None:
-        """Merges categories and hidden status from parser into loaded games.
-
-        For cloud_storage_parser: loads favorites, hidden, and user collections.
-        For localconfig_helper: loads only hidden status (old method).
-
-        Args:
-            parser: An instance of CloudStorageParser or LocalConfigHelper.
-        """
+        """Merges categories and hidden status from parser into loaded games."""
         logger.info(t("logs.manager.merging"))
 
         # Get favorites and hidden from collections (Depressurizer way!)
@@ -167,14 +151,7 @@ class MetadataEnrichmentService:
                 pass  # Parser doesn't support get_all_app_ids
 
     def _get_cached_name(self, app_id: str) -> str | None:
-        """Tries to retrieve a game name from the local JSON cache.
-
-        Args:
-            app_id: The app ID to look up.
-
-        Returns:
-            The cached game name, or None if not found.
-        """
+        """Tries to retrieve a game name from the local JSON cache."""
         cache_file = self._cache_dir / "store_data" / f"{app_id}.json"
         if cache_file.exists():
             try:
@@ -196,22 +173,7 @@ class MetadataEnrichmentService:
         *,
         db_type_lookup: dict[str, tuple[str, str]] | None = None,
     ) -> int:
-        """Discovers owned games missing from the API response.
-
-        Collects candidate app IDs from multiple local sources (localconfig,
-        packageinfo) and cross-references them with metadata.  When
-        ``db_type_lookup`` is provided the fast DB-based path is used,
-        otherwise falls back to per-app appinfo_manager lookups.
-
-        Args:
-            localconfig_helper: A loaded LocalConfigHelper instance.
-            appinfo_manager: A loaded AppInfoManager instance.
-            packageinfo_ids: Optional set of app IDs from packageinfo.vdf.
-            db_type_lookup: Optional {app_id_str: (app_type, name)} from DB.
-
-        Returns:
-            Number of newly discovered games added.
-        """
+        """Discovers owned games missing from the API response."""
         # Collect candidate IDs from all available sources
         candidate_ids: set[str] = set()
 
@@ -279,11 +241,7 @@ class MetadataEnrichmentService:
         return count
 
     def apply_appinfo_data(self, appinfo_data: dict) -> None:
-        """Applies last_updated timestamp from appinfo.vdf data.
-
-        Args:
-            appinfo_data: A dictionary of app data from appinfo.vdf.
-        """
+        """Applies last_updated timestamp from appinfo.vdf data."""
         for app_id, data in appinfo_data.items():
             if app_id in self._games:
                 if "common" in data and "last_updated" in data["common"]:
@@ -295,17 +253,7 @@ class MetadataEnrichmentService:
                         pass
 
     def apply_metadata_overrides(self, appinfo_manager) -> None:
-        """Applies metadata overrides from AppInfoManager.
-
-        This method first loads metadata from the binary appinfo.vdf (via AppInfoManager),
-        then applies any custom user modifications stored in custom_metadata.json.
-
-        Args:
-            appinfo_manager: An instance of AppInfoManager with loaded appinfo.vdf data.
-
-        Returns:
-            The appinfo_manager instance (for caller to store if needed).
-        """
+        """Applies metadata overrides from AppInfoManager."""
         # Use already-loaded data; only load if not yet initialized
         if not appinfo_manager.steam_apps:
             appinfo_manager.load_appinfo()
@@ -313,7 +261,7 @@ class MetadataEnrichmentService:
 
         count = 0
 
-        # 1. BINARY APPINFO METADATA
+        # Binary appinfo metadata
         for app_id, game in self._games.items():
             steam_meta = appinfo_manager.get_app_metadata(app_id)
 
@@ -347,34 +295,20 @@ class MetadataEnrichmentService:
             if not game.metacritic_score and steam_meta.get("metacritic_score"):
                 game.metacritic_score = int(steam_meta["metacritic_score"])
 
-        # 2. CUSTOM OVERRIDES
+        # Custom overrides
         count += self._apply_overrides_to_games(modifications)
 
         if count > 0:
             logger.info(t("logs.manager.applied_overrides", count=count))
 
     def apply_custom_overrides(self, modifications: dict[str, dict]) -> None:
-        """Applies ONLY custom JSON overrides, skipping the binary appinfo phase.
-
-        Used during lazy-load startup where the DB already provides base
-        metadata, so only the JSON override layer is needed.
-
-        Args:
-            modifications: Dict of {app_id: {"original": ..., "modified": {...}}}.
-        """
+        """Applies ONLY custom JSON overrides, skipping the binary appinfo phase."""
         count = self._apply_overrides_to_games(modifications)
         if count > 0:
             logger.info(t("logs.manager.applied_overrides", count=count))
 
     def _apply_overrides_to_games(self, modifications: dict[str, dict]) -> int:
-        """Applies custom JSON field overrides to matching games.
-
-        Args:
-            modifications: Dict of {app_id: {"original": ..., "modified": {...}}}.
-
-        Returns:
-            Number of games that had overrides applied.
-        """
+        """Applies custom JSON field overrides to matching games."""
         count = 0
         for app_id, meta_data in modifications.items():
             if app_id in self._games:

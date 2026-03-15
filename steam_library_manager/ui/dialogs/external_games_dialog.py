@@ -1,8 +1,10 @@
-"""Dialog for managing external (non-Steam) games.
-
-Provides a UI to scan installed platforms, view found games,
-and add them to Steam as Non-Steam shortcuts.
-"""
+#
+# steam_library_manager/ui/dialogs/external_games_dialog.py
+# Dialog for managing external (non-Steam) games
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -91,11 +93,7 @@ class _AddThread(QThread):
 
 
 class ExternalGamesDialog(BaseDialog):
-    """Dialog for scanning and importing external games into Steam.
-
-    Provides platform scanning, game selection, and batch import
-    with progress feedback.
-    """
+    """Dialog for scanning and importing external games into Steam."""
 
     _COL_PLATFORM = 0
     _COL_NAME = 1
@@ -138,11 +136,7 @@ class ExternalGamesDialog(BaseDialog):
             logger.exception("Failed to initialize ExternalGamesService")
 
     def _build_content(self, layout: QVBoxLayout) -> None:
-        """Builds the dialog UI.
-
-        Args:
-            layout: Main vertical layout from BaseDialog.
-        """
+        """Builds the dialog UI."""
         # Top row: Scan button + filter
         top_row = QHBoxLayout()
 
@@ -237,9 +231,7 @@ class ExternalGamesDialog(BaseDialog):
                 thread.wait(5000)
         super().closeEvent(event)
 
-    # ------------------------------------------------------------------
     # Scanning
-    # ------------------------------------------------------------------
 
     def _on_scan(self) -> None:
         """Starts platform scanning in a background thread."""
@@ -259,14 +251,10 @@ class ExternalGamesDialog(BaseDialog):
         self._scan_thread.start()
 
     def _on_scan_finished(self, results: dict[str, list[ExternalGame]]) -> None:
-        """Handles scan completion.
-
-        Args:
-            results: Dict mapping platform name to list of found games.
-        """
+        """Handles scan completion."""
         self._btn_scan.setEnabled(True)
 
-        # Flatten results — use actual game platforms for the filter
+        # Flatten results - use actual game platforms for the filter
         # (RomParser creates per-system platforms like "Emulation (Nintendo Switch)")
         self._all_games.clear()
         for games in results.values():
@@ -279,7 +267,7 @@ class ExternalGamesDialog(BaseDialog):
             self._btn_add_all.setEnabled(False)
             return
 
-        # Update filter combo — group emulation sub-platforms under one header
+        # Update filter combo - group emulation sub-platforms under one header
         self._filter_combo.blockSignals(True)
         self._filter_combo.clear()
         self._filter_combo.addItem(t("ui.external.filter_all"), "")
@@ -289,7 +277,7 @@ class ExternalGamesDialog(BaseDialog):
         other_platforms = sorted(p for p in platforms if not p.startswith(emu_prefix))
 
         if emu_platforms:
-            # Group header — filters ALL emulation games
+            # Group header - filters ALL emulation games
             self._filter_combo.addItem("Emulation (ROMs)", "emulation_all")
             # Sub-entries with indent
             for plat in emu_platforms:
@@ -313,11 +301,7 @@ class ExternalGamesDialog(BaseDialog):
         self._btn_add_all.setEnabled(has_new)
 
     def _populate_table(self, games: list[ExternalGame]) -> None:
-        """Fills the table with game data.
-
-        Args:
-            games: List of games to display.
-        """
+        """Fills the table with game data."""
         self._table.setRowCount(len(games))
 
         for row, game in enumerate(games):
@@ -351,11 +335,7 @@ class ExternalGamesDialog(BaseDialog):
                 self._table.setItem(row, self._COL_STATUS, chk_item)
 
     def _get_filtered_games(self) -> list[ExternalGame]:
-        """Return games matching the current platform filter.
-
-        Returns:
-            Filtered game list (all games if no filter active).
-        """
+        """Return games matching the current platform filter."""
         platform_filter = self._filter_combo.currentData()
         if not platform_filter:
             return self._all_games
@@ -367,16 +347,10 @@ class ExternalGamesDialog(BaseDialog):
         """Handles platform filter changes."""
         self._populate_table(self._get_filtered_games())
 
-    # ------------------------------------------------------------------
     # Adding games
-    # ------------------------------------------------------------------
 
     def _get_selected_games(self) -> list[ExternalGame]:
-        """Returns list of checked games from the table.
-
-        Returns:
-            Games that are checked and not already in Steam.
-        """
+        """Returns list of checked games from the table."""
         selected: list[ExternalGame] = []
         visible_games = self._get_filtered_games()
 
@@ -391,11 +365,7 @@ class ExternalGamesDialog(BaseDialog):
         return selected
 
     def _get_new_games(self) -> list[ExternalGame]:
-        """Returns all games not already in Steam.
-
-        Returns:
-            Games whose names are not in existing shortcuts.
-        """
+        """Returns all games not already in Steam."""
         return [g for g in self._all_games if g.name.lower() not in self._existing_names]
 
     def _on_add_selected(self) -> None:
@@ -426,11 +396,7 @@ class ExternalGamesDialog(BaseDialog):
         self._start_add(games)
 
     def _start_add(self, games: list[ExternalGame]) -> None:
-        """Starts the batch-add operation in a background thread.
-
-        Args:
-            games: Games to add to Steam.
-        """
+        """Starts the batch-add operation in a background thread."""
         if not self._service:
             return
 
@@ -452,14 +418,7 @@ class ExternalGamesDialog(BaseDialog):
             self._add_thread.start()
 
     def _add_with_platform_tags(self, games: list[ExternalGame]) -> None:
-        """Adds games with per-platform category tags using non-blocking batching.
-
-        Uses QTimer.singleShot to yield to the event loop between batches,
-        keeping the dialog responsive without resorting to processEvents().
-
-        Args:
-            games: Games to add.
-        """
+        """Adds games with per-platform category tags using non-blocking batching."""
         self._progress_bar.setVisible(True)
         self._progress_label.setVisible(True)
         self._progress_bar.setMaximum(len(games))
@@ -469,11 +428,7 @@ class ExternalGamesDialog(BaseDialog):
         self._add_batch(0)
 
     def _add_batch(self, index: int) -> None:
-        """Processes a batch of games and schedules the next batch.
-
-        Args:
-            index: Current index in the game list.
-        """
+        """Processes a batch of games and schedules the next batch."""
         if index >= len(self._batch_games):
             self._on_add_finished(self._batch_stats)
             return
@@ -499,38 +454,18 @@ class ExternalGamesDialog(BaseDialog):
 
     @staticmethod
     def _collection_name_for_platform(platform: str) -> str:
-        """Extract clean collection name from platform string.
-
-        Converts "Emulation (Nintendo Switch)" to "Nintendo Switch" so that
-        Steam collections use clean system names instead of the wrapper format.
-
-        Args:
-            platform: Platform string from ExternalGame.
-
-        Returns:
-            Clean collection name for Steam category tag.
-        """
+        """Extract clean collection name from platform string."""
         if platform.startswith("Emulation (") and platform.endswith(")"):
             return platform[len("Emulation (") : -1]
         return platform
 
     def _on_add_progress(self, current: int, total: int, name: str) -> None:
-        """Updates progress UI during adding.
-
-        Args:
-            current: Current game index.
-            total: Total game count.
-            name: Current game name.
-        """
+        """Updates progress UI during adding."""
         self._progress_bar.setValue(current)
         self._progress_label.setText(t("ui.external.adding_game", name=name, current=current, total=total))
 
     def _on_add_finished(self, stats: dict[str, int]) -> None:
-        """Handles completion of the add operation.
-
-        Args:
-            stats: Dict with "added", "skipped", "errors" counts.
-        """
+        """Handles completion of the add operation."""
         self._set_ui_busy(False)
 
         # Refresh existing names for accurate display
@@ -562,11 +497,7 @@ class ExternalGamesDialog(BaseDialog):
         self._btn_add_all.setEnabled(has_new)
 
     def _set_ui_busy(self, busy: bool) -> None:
-        """Toggles UI elements during operations.
-
-        Args:
-            busy: True to disable controls, False to re-enable.
-        """
+        """Toggles UI elements during operations."""
         self._btn_scan.setEnabled(not busy)
         self._btn_add_selected.setEnabled(not busy)
         self._btn_add_all.setEnabled(not busy)

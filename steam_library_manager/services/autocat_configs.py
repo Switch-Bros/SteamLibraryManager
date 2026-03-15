@@ -1,8 +1,10 @@
-"""Configuration dataclasses and constants for auto-categorization.
-
-Defines AutoCatMethodConfig and BucketConfig for the two generic engines
-in AutoCategorizeService, plus franchise detection constants.
-"""
+#
+# steam_library_manager/services/autocat_configs.py
+# Configuration dataclasses and constants for auto-categorization
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -20,16 +22,7 @@ __all__ = [
 
 @dataclass(frozen=True)
 class AutoCatMethodConfig:
-    """Configuration for a simple attribute-based categorization method.
-
-    Args:
-        attr: Game attribute name to read via getattr.
-        i18n_key: Translation key for the category name.
-        is_list: True if the attribute returns a list of values.
-        use_raw: True if the value itself is the category name (no i18n wrapping).
-        capitalize: True to capitalize the value before use.
-        i18n_kwarg: Keyword argument name for the i18n key.
-    """
+    """Configuration for a simple attribute-based categorization method."""
 
     attr: str
     i18n_key: str = ""
@@ -41,16 +34,7 @@ class AutoCatMethodConfig:
 
 @dataclass(frozen=True)
 class BucketConfig:
-    """Configuration for a threshold-based bucket categorization method.
-
-    Args:
-        attr: Game attribute name to read via getattr.
-        buckets: Threshold/i18n-key pairs in DESCENDING order.
-        i18n_wrapper_key: Translation key wrapping the bucket label.
-        i18n_wrapper_kwarg: Keyword argument name for the wrapper key.
-        fallback_key: Translation key for the no-data/zero-value bucket.
-        skip_falsy: True to skip games with falsy attribute values.
-    """
+    """Configuration for a threshold-based bucket categorization method."""
 
     attr: str
     buckets: tuple[tuple[int | float, str], ...]
@@ -60,9 +44,7 @@ class BucketConfig:
     skip_falsy: bool = True
 
 
-# ---------------------------------------------------------------------------
 # Simple method configurations
-# ---------------------------------------------------------------------------
 
 SIMPLE_METHOD_CONFIGS: dict[str, AutoCatMethodConfig] = {
     "publisher": AutoCatMethodConfig(
@@ -101,9 +83,7 @@ SIMPLE_METHOD_CONFIGS: dict[str, AutoCatMethodConfig] = {
     ),
 }
 
-# ---------------------------------------------------------------------------
 # Bucket method configurations
-# ---------------------------------------------------------------------------
 
 BUCKET_METHOD_CONFIGS: dict[str, BucketConfig] = {
     "user_score": BucketConfig(
@@ -147,9 +127,7 @@ BUCKET_METHOD_CONFIGS: dict[str, BucketConfig] = {
     ),
 }
 
-# ---------------------------------------------------------------------------
 # Franchise detection constants
-# ---------------------------------------------------------------------------
 
 # Well-known gaming franchises for auto-categorization.
 # Only these (or franchises with 2+ games detected) create categories.

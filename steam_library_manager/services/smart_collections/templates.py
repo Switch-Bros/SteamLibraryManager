@@ -1,11 +1,10 @@
+#
 # steam_library_manager/services/smart_collections/templates.py
-
-"""Predefined Smart Collection templates for quick-start creation.
-
-Provides a set of built-in templates organized by category (Quality, Completion,
-Time, Platform, Examples) that users can apply as starting points for new
-Smart Collections.
-"""
+# Predefined Smart Collection templates for quick-start creation
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -30,13 +29,7 @@ __all__ = [
 
 @dataclass(frozen=True)
 class SmartCollectionTemplate:
-    """A predefined Smart Collection template.
-
-    Attributes:
-        key: Unique template identifier, used as i18n lookup suffix.
-        category: Category key for UI grouping (e.g. 'quality', 'completion').
-        collection: The pre-configured SmartCollection to use as a starting point.
-    """
+    """A predefined Smart Collection template."""
 
     key: str
     category: str
@@ -51,18 +44,7 @@ def _rule(
     *,
     negated: bool = False,
 ) -> SmartCollectionRule:
-    """Shorthand factory for creating a SmartCollectionRule.
-
-    Args:
-        fld: The filter field.
-        op: The comparison operator.
-        value: The comparison value.
-        value_max: The upper bound for BETWEEN operator.
-        negated: Whether to negate the result.
-
-    Returns:
-        A frozen SmartCollectionRule instance.
-    """
+    """Shorthand factory for creating a SmartCollectionRule."""
     return SmartCollectionRule(
         field=fld,
         operator=op,
@@ -73,24 +55,14 @@ def _rule(
 
 
 def _group(logic: LogicOperator, *rules: SmartCollectionRule) -> SmartCollectionRuleGroup:
-    """Shorthand factory for creating a SmartCollectionRuleGroup.
-
-    Args:
-        logic: The logic operator within this group.
-        rules: The rules in this group.
-
-    Returns:
-        A frozen SmartCollectionRuleGroup instance.
-    """
+    """Shorthand factory for creating a SmartCollectionRuleGroup."""
     return SmartCollectionRuleGroup(logic=logic, rules=rules)
 
 
-# ========================================================================
-# TEMPLATE DEFINITIONS
-# ========================================================================
+# Template definitions
 
 _TEMPLATES: list[SmartCollectionTemplate] = [
-    # --- Quality ---
+    # Quality
     SmartCollectionTemplate(
         key="highly_rated",
         category="quality",
@@ -121,7 +93,7 @@ _TEMPLATES: list[SmartCollectionTemplate] = [
             ],
         ),
     ),
-    # --- Completion ---
+    # Completion
     SmartCollectionTemplate(
         key="unplayed",
         category="completion",
@@ -169,7 +141,7 @@ _TEMPLATES: list[SmartCollectionTemplate] = [
             ],
         ),
     ),
-    # --- Time ---
+    # Time
     SmartCollectionTemplate(
         key="quick_play",
         category="time",
@@ -215,7 +187,7 @@ _TEMPLATES: list[SmartCollectionTemplate] = [
             ],
         ),
     ),
-    # --- Platform ---
+    # Platform
     SmartCollectionTemplate(
         key="linux_native",
         category="platform",
@@ -246,7 +218,7 @@ _TEMPLATES: list[SmartCollectionTemplate] = [
             ],
         ),
     ),
-    # --- Examples ---
+    # Examples
     SmartCollectionTemplate(
         key="hybrid_demo",
         category="examples",
@@ -293,23 +265,12 @@ for _tmpl in _TEMPLATES:
 
 
 def get_all_templates() -> list[SmartCollectionTemplate]:
-    """Returns all available templates as a flat list.
-
-    Returns:
-        List of all SmartCollectionTemplate instances.
-    """
+    """Returns all available templates as a flat list."""
     return list(_TEMPLATES)
 
 
 def get_template_by_key(key: str) -> SmartCollectionTemplate | None:
-    """Looks up a template by its unique key.
-
-    Args:
-        key: The template key to search for.
-
-    Returns:
-        The matching template, or None if not found.
-    """
+    """Looks up a template by its unique key."""
     for tmpl in _TEMPLATES:
         if tmpl.key == key:
             return tmpl
