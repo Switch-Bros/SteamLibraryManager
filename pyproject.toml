@@ -2,7 +2,7 @@
 
 [project]
 name = "steam-library-manager"
-version = "1.3.0"
+version = "1.3.1"
 description = "A powerful Steam library organizer for Linux - the modern Depressurizer alternative"
 readme = "README.md"
 license = "MIT"
@@ -47,6 +47,7 @@ include = ["steam_library_manager*"]
     "resources/**/*.ttf",
     "resources/**/*.otf",
     "resources/**/*.sql",
+    "core/db/*.sql",
     "resources/**/*.proto",
     "resources/**/*.txt",
     "resources/**/*.xml",
