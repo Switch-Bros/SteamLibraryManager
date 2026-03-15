@@ -48,6 +48,9 @@ class SmartCollectionManager:
 
     def create(self, collection: SmartCollection) -> int:
         """Create a smart collection, evaluate it, and sync to Steam."""
+        if not collection.name or not collection.name.strip():
+            raise ValueError("Smart collection name must not be empty")
+
         rules_json = collection_to_json(collection)
         collection_id = self.database.create_smart_collection(
             name=collection.name,
