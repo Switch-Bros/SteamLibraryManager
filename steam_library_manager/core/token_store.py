@@ -21,6 +21,7 @@ import requests
 
 from steam_library_manager.config import config
 from steam_library_manager.utils.i18n import t
+from steam_library_manager.utils.timeouts import HTTP_TIMEOUT
 
 logger = logging.getLogger("steamlibmgr.token_store")
 
@@ -138,7 +139,7 @@ class TokenStore:
 
         for attempt in range(1, max_retries + 1):
             try:
-                response = requests.post(url, data=post_data, timeout=10)
+                response = requests.post(url, data=post_data, timeout=HTTP_TIMEOUT)
                 response.raise_for_status()
 
                 new_token: str | None = None
@@ -185,7 +186,7 @@ class TokenStore:
             }
             if steam_id:
                 params["steamid"] = steam_id
-            response = requests.get(url, params=params, timeout=8)
+            response = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
             return response.status_code == 200
         except requests.RequestException:
             return False
@@ -198,7 +199,7 @@ class TokenStore:
             url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
             params = {"access_token": access_token, "include_appinfo": 0, "format": "json"}
 
-            response = requests.get(url, params=params, timeout=10)
+            response = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
 
             if response.status_code == 200:
                 data = response.json()

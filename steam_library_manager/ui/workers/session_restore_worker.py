@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from steam_library_manager.utils.i18n import t
+from steam_library_manager.utils.timeouts import HTTP_TIMEOUT_SHORT
 
 logger = logging.getLogger("steamlibmgr.session_restore_worker")
 
@@ -132,7 +133,7 @@ class SessionRestoreWorker(QThread):
 
         try:
             url = f"https://steamcommunity.com/profiles/{steam_id}/?xml=1"
-            response = requests.get(url, timeout=5)
+            response = requests.get(url, timeout=HTTP_TIMEOUT_SHORT)
             if response.status_code == 200:
                 tree = ET.fromstring(response.content)
                 steam_id_element = tree.find("steamID")

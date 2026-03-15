@@ -28,6 +28,7 @@ from steam_library_manager.core.steam_account_scanner import scan_steam_accounts
 from steam_library_manager.ui.widgets.base_dialog import BaseDialog
 from steam_library_manager.ui.widgets.ui_helper import UIHelper
 from steam_library_manager.utils.i18n import t
+from steam_library_manager.utils.timeouts import HTTP_TIMEOUT
 
 __all__ = ["AccountScanWorker", "ProfileSetupDialog"]
 
@@ -328,7 +329,7 @@ class ProfileSetupDialog(BaseDialog):
 
         try:
             url = f"https://steamcommunity.com/id/{custom_url}?xml=1"
-            response = requests.get(url, timeout=10)
+            response = requests.get(url, timeout=HTTP_TIMEOUT)
 
             if response.status_code == 200:
                 tree = ElementTree.fromstring(response.content)

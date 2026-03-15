@@ -16,6 +16,7 @@ import requests
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from steam_library_manager.services.library_health_service import HealthReport, StoreCheckResult
+from steam_library_manager.utils.timeouts import HTTP_TIMEOUT
 
 logger = logging.getLogger("steamlibmgr.library_health")
 
@@ -34,7 +35,6 @@ _GEO_KEYWORDS = (
 )
 
 _USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" " (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-_HTTP_TIMEOUT = 10
 _BATCH_SIZE = 50
 _BATCH_DELAY = 1.0
 _DETAIL_DELAY = 1.5
@@ -208,7 +208,7 @@ class LibraryHealthThread(QThread):
                 url = f"https://store.steampowered.com/app/{app_id}/"
                 response = requests.get(
                     url,
-                    timeout=_HTTP_TIMEOUT,
+                    timeout=HTTP_TIMEOUT,
                     allow_redirects=True,
                     headers={"User-Agent": _USER_AGENT},
                 )

@@ -17,6 +17,8 @@ import time
 import requests
 from bs4 import BeautifulSoup
 
+from steam_library_manager.utils.timeouts import HTTP_TIMEOUT_API, HTTP_TIMEOUT_LONG
+
 from steam_library_manager.integrations.hltb_models import (
     HLTBResult,
     find_best_match,
@@ -113,7 +115,7 @@ class HLTBClient:
                     "Origin": _HLTB_BASE,
                     "Referer": f"{_HLTB_BASE}/",
                 },
-                timeout=30,
+                timeout=HTTP_TIMEOUT_API,
             )
             resp.raise_for_status()
             data = resp.json()
@@ -149,7 +151,7 @@ class HLTBClient:
                 headers={
                     "Referer": f"{_HLTB_BASE}/",
                 },
-                timeout=15,
+                timeout=HTTP_TIMEOUT_LONG,
             )
             resp.raise_for_status()
             data = resp.json()
@@ -218,7 +220,7 @@ class HLTBClient:
                 "Referer": f"{_HLTB_BASE}/",
                 "x-auth-token": self._auth_token,
             },
-            timeout=15,
+            timeout=HTTP_TIMEOUT_LONG,
         )
 
     def _search_and_find(self, search_name: str) -> tuple[dict | None, int]:
@@ -321,7 +323,7 @@ class HLTBClient:
     def _fetch_homepage(self) -> str:
         """Fetches the HLTB homepage HTML."""
         try:
-            resp = self._session.get(f"{_HLTB_BASE}/", timeout=15)
+            resp = self._session.get(f"{_HLTB_BASE}/", timeout=HTTP_TIMEOUT_LONG)
             resp.raise_for_status()
             return resp.text
         except Exception as exc:
@@ -343,7 +345,7 @@ class HLTBClient:
 
         for url in chunk_urls:
             try:
-                js_resp = self._session.get(url, timeout=15)
+                js_resp = self._session.get(url, timeout=HTTP_TIMEOUT_LONG)
                 js_resp.raise_for_status()
                 js_text = js_resp.text
             except Exception as exc:
@@ -394,7 +396,7 @@ class HLTBClient:
                     "Referer": f"{_HLTB_BASE}/",
                     "Origin": _HLTB_BASE,
                 },
-                timeout=15,
+                timeout=HTTP_TIMEOUT_LONG,
             )
             resp.raise_for_status()
             data = resp.json()

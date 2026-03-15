@@ -19,6 +19,7 @@ import requests
 from bs4 import BeautifulSoup
 from steam_library_manager.utils.age_ratings import ESRB_TO_PEGI, USK_TO_PEGI
 from steam_library_manager.utils.i18n import t
+from steam_library_manager.utils.timeouts import HTTP_TIMEOUT
 
 logger = logging.getLogger("steamlibmgr.steam_store")
 
@@ -113,7 +114,7 @@ class SteamStoreScraper:
             # Secure HTTPS link
             url = f"https://store.steampowered.com/app/{app_id}/"
 
-            response = requests.get(url, cookies=cookies, timeout=10)
+            response = requests.get(url, cookies=cookies, timeout=HTTP_TIMEOUT)
 
             if response.status_code == 200:
                 soup = BeautifulSoup(response.text, "html.parser")
@@ -184,7 +185,7 @@ class SteamStoreScraper:
             # Steam Store API endpoint
             url = f"https://store.steampowered.com/api/appdetails?appids={app_id}"
 
-            response = requests.get(url, timeout=10)
+            response = requests.get(url, timeout=HTTP_TIMEOUT)
             response.raise_for_status()
 
             data = response.json()
@@ -244,7 +245,7 @@ class SteamStoreScraper:
             }
 
             url = f"https://store.steampowered.com/app/{app_id}/"
-            response = requests.get(url, cookies=cookies, timeout=10)
+            response = requests.get(url, cookies=cookies, timeout=HTTP_TIMEOUT)
             response.raise_for_status()
 
             soup = BeautifulSoup(response.text, "html.parser")

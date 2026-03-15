@@ -19,6 +19,7 @@ from PyQt6.QtCore import QObject, pyqtSignal, QThread
 
 from steam_library_manager.core.token_store import TokenStore
 from steam_library_manager.utils.i18n import t
+from steam_library_manager.utils.timeouts import HTTP_TIMEOUT
 
 from typing import TYPE_CHECKING
 
@@ -73,7 +74,7 @@ def _poll_auth_session(
             response = requests.post(
                 url,
                 data={"client_id": client_id, "request_id": request_id},
-                timeout=10,
+                timeout=HTTP_TIMEOUT,
             )
             response.raise_for_status()
             result = response.json().get("response", {})

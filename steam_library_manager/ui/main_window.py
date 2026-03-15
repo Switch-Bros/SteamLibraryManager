@@ -35,6 +35,7 @@ from steam_library_manager.services.search_service import SearchService
 from steam_library_manager.ui.widgets.ui_helper import UIHelper
 
 from steam_library_manager.utils.i18n import t
+from steam_library_manager.utils.timeouts import THREAD_WAIT_MS
 from steam_library_manager.version import __app_name__
 
 # Builders
@@ -309,7 +310,7 @@ class MainWindow(QMainWindow):
 
         for thread in threads_to_stop:
             thread.quit()
-            thread.wait(3000)  # 3 second timeout
+            thread.wait(THREAD_WAIT_MS)
 
     def _save_all_on_exit(self) -> None:
         """Save all pending changes before exiting."""

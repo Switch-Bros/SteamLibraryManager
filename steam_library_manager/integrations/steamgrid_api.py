@@ -16,6 +16,7 @@ import requests
 
 from steam_library_manager.config import config
 from steam_library_manager.utils.i18n import t
+from steam_library_manager.utils.timeouts import HTTP_TIMEOUT, HTTP_TIMEOUT_SHORT
 
 logger = logging.getLogger("steamlibmgr.steamgrid")
 
@@ -106,7 +107,7 @@ class SteamGridDB:
                     params["dimensions"] = "600x900,342x482"
 
                 url = f"{self.BASE_URL}/{img_type}/game/{game_id}"
-                response = requests.get(url, headers=self.headers, params=params, timeout=10)
+                response = requests.get(url, headers=self.headers, params=params, timeout=HTTP_TIMEOUT)
 
                 if response.status_code == 200:
                     data = response.json()
@@ -169,7 +170,7 @@ class SteamGridDB:
                 params["dimensions"] = "600x900,342x482"
 
             url = f"{self.BASE_URL}/{img_type}/game/{game_id}"
-            response = requests.get(url, headers=self.headers, params=params, timeout=10)
+            response = requests.get(url, headers=self.headers, params=params, timeout=HTTP_TIMEOUT)
 
             if response.status_code == 200:
                 data = response.json()
@@ -194,7 +195,7 @@ class SteamGridDB:
         """
         try:
             url = f"{self.BASE_URL}/games/steam/{steam_app_id}"
-            response = requests.get(url, headers=self.headers, timeout=5)
+            response = requests.get(url, headers=self.headers, timeout=HTTP_TIMEOUT_SHORT)
             if response.status_code == 200:
                 data = response.json()
                 if data["success"]:
@@ -220,7 +221,7 @@ class SteamGridDB:
         """
         try:
             url = f"{self.BASE_URL}/{endpoint}/game/{game_id}"
-            response = requests.get(url, headers=self.headers, params=params, timeout=5)
+            response = requests.get(url, headers=self.headers, params=params, timeout=HTTP_TIMEOUT_SHORT)
             if response.status_code == 200:
                 data = response.json()
                 if data["success"] and data["data"]:

@@ -31,6 +31,7 @@ from steam_library_manager.services.external_games_service import ExternalGamesS
 from steam_library_manager.ui.widgets.base_dialog import BaseDialog
 from steam_library_manager.ui.widgets.ui_helper import UIHelper
 from steam_library_manager.utils.i18n import t
+from steam_library_manager.utils.timeouts import THREAD_WAIT_LONG_MS
 
 __all__ = ["ExternalGamesDialog"]
 
@@ -228,7 +229,7 @@ class ExternalGamesDialog(BaseDialog):
         """Waits for background threads to finish before closing."""
         for thread in (self._scan_thread, self._add_thread):
             if thread and thread.isRunning():
-                thread.wait(5000)
+                thread.wait(THREAD_WAIT_LONG_MS)
         super().closeEvent(event)
 
     # Scanning

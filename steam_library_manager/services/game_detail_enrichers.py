@@ -29,6 +29,7 @@ from steam_library_manager.utils.age_ratings import USK_TO_PEGI
 from steam_library_manager.utils.date_utils import format_timestamp_to_date
 from steam_library_manager.utils.deck_utils import fetch_deck_compatibility
 from steam_library_manager.utils.i18n import t
+from steam_library_manager.utils.timeouts import HTTP_TIMEOUT_SHORT
 
 logger = logging.getLogger("steamlibmgr.game_detail_enrichers")
 
@@ -222,7 +223,7 @@ def fetch_last_update(game: Game, cache_dir: Path) -> None:
     try:
         url = "https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/"
         params = {"appid": app_id, "count": 10, "maxlength": 100, "format": "json"}
-        response = requests.get(url, params=params, timeout=5)
+        response = requests.get(url, params=params, timeout=HTTP_TIMEOUT_SHORT)
 
         if response.status_code == 200:
             data = response.json()

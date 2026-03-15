@@ -14,6 +14,8 @@ from typing import Any
 
 import requests
 
+from steam_library_manager.utils.timeouts import HTTP_TIMEOUT
+
 logger = logging.getLogger("steamlibmgr.protondb_api")
 
 __all__ = ["ProtonDBClient", "ProtonDBResult", "fetch_and_persist_protondb"]
@@ -63,7 +65,7 @@ class ProtonDBClient:
         """
         try:
             url = f"{self.BASE_URL}{app_id}.json"
-            response = self._session.get(url, timeout=10)
+            response = self._session.get(url, timeout=HTTP_TIMEOUT)
 
             if response.status_code == 404:
                 logger.debug("ProtonDB: no data for app %d", app_id)

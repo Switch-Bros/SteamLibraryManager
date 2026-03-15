@@ -14,6 +14,7 @@ import xml.etree.ElementTree as ElementTree
 
 from steam_library_manager.core.steam_account import SteamAccount
 from steam_library_manager.utils.i18n import t
+from steam_library_manager.utils.timeouts import HTTP_TIMEOUT_SHORT
 
 try:
     import psutil as _psutil
@@ -66,7 +67,7 @@ def fetch_steam_display_name(steam_id_64: int) -> str:
     """
     try:
         url = f"https://steamcommunity.com/profiles/{steam_id_64}?xml=1"
-        response = requests.get(url, timeout=5)
+        response = requests.get(url, timeout=HTTP_TIMEOUT_SHORT)
 
         if response.status_code == 200:
             tree = ElementTree.fromstring(response.content)

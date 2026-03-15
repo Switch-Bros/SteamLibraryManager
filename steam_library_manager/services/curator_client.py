@@ -14,6 +14,8 @@ from typing import Callable
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
+from steam_library_manager.utils.timeouts import HTTP_TIMEOUT_LONG
+
 logger = logging.getLogger("steamlibmgr.curator_client")
 
 __all__ = ["CuratorClient", "CuratorRecommendation"]
@@ -189,7 +191,7 @@ class CuratorClient:
 
                 request = Request(url)
                 request.add_header("Accept", "application/json")
-                with urlopen(request, timeout=15) as response:  # noqa: S310
+                with urlopen(request, timeout=HTTP_TIMEOUT_LONG) as response:  # noqa: S310
                     data = json.loads(response.read().decode("utf-8"))
             except (URLError, TimeoutError, OSError) as exc:
                 raise ConnectionError(f"Failed to fetch curator data: {exc}") from exc
@@ -236,7 +238,7 @@ class CuratorClient:
         try:
             request = Request(url)
             request.add_header("Accept", "application/json")
-            with urlopen(request, timeout=15) as response:  # noqa: S310
+            with urlopen(request, timeout=HTTP_TIMEOUT_LONG) as response:  # noqa: S310
                 data = json.loads(response.read().decode("utf-8"))
         except (URLError, TimeoutError, OSError) as exc:
             raise ConnectionError(f"Failed to fetch top curators: {exc}") from exc
@@ -283,7 +285,7 @@ class CuratorClient:
         try:
             request = Request(url)
             request.add_header("Cookie", steam_cookies)
-            with urlopen(request, timeout=15) as response:  # noqa: S310
+            with urlopen(request, timeout=HTTP_TIMEOUT_LONG) as response:  # noqa: S310
                 html = response.read().decode("utf-8", errors="replace")
         except (URLError, TimeoutError, OSError) as exc:
             raise ConnectionError(f"Failed to fetch subscribed curators: {exc}") from exc

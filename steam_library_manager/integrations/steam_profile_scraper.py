@@ -18,6 +18,7 @@ from dataclasses import dataclass
 import requests
 
 from steam_library_manager.utils.i18n import t
+from steam_library_manager.utils.timeouts import HTTP_TIMEOUT_SCRAPE
 
 logger = logging.getLogger("steamlibmgr.profile_scraper")
 
@@ -108,7 +109,7 @@ class SteamProfileScraper:
         """
         try:
             # timeout=(connect, read) per Alex annotation 5
-            response = self._session.get(url, timeout=(10, 60))
+            response = self._session.get(url, timeout=HTTP_TIMEOUT_SCRAPE)
             response.raise_for_status()
 
             # Use .content.decode() to avoid slow charset auto-detection

@@ -21,6 +21,7 @@ from steam_library_manager.ui.utils.font_helper import FontHelper
 from steam_library_manager.ui.widgets.base_dialog import BaseDialog
 from steam_library_manager.ui.widgets.ui_helper import UIHelper
 from steam_library_manager.utils.i18n import t
+from steam_library_manager.utils.timeouts import THREAD_WAIT_MS
 
 if TYPE_CHECKING:
     from PyQt6.QtWidgets import QWidget
@@ -159,7 +160,7 @@ class EnrichmentDialog(BaseDialog):
         """Stops and cleans up the background thread."""
         if self._thread and self._thread.isRunning():
             self._thread.quit()
-            self._thread.wait(3000)
+            self._thread.wait(THREAD_WAIT_MS)
         self._thread = None
 
     def closeEvent(self, event) -> None:

@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import QLabel, QWidget
 from steam_library_manager.ui.theme import Theme
 from steam_library_manager.ui.widgets.image_badge_overlay import ImageBadgeOverlay
 from steam_library_manager.utils.i18n import t
+from steam_library_manager.utils.timeouts import HTTP_TIMEOUT
 
 logger = logging.getLogger("steamlibmgr.clickable_image")
 
@@ -59,7 +60,7 @@ class ImageLoader(QThread):
                     data = QByteArray(f.read())
             elif str(self.url_or_path).startswith("http"):
                 headers = {"User-Agent": "SteamLibraryManager/1.0"}
-                response = requests.get(self.url_or_path, headers=headers, timeout=10)
+                response = requests.get(self.url_or_path, headers=headers, timeout=HTTP_TIMEOUT)
                 response.raise_for_status()
                 data = QByteArray(response.content)
         except (OSError, ValueError, requests.RequestException):

@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING
 import requests
 
 from steam_library_manager.core.game import Game
+from steam_library_manager.utils.timeouts import HTTP_TIMEOUT_SHORT
 from steam_library_manager.services.game_detail_enrichers import (
     apply_achievement_data,
     apply_hltb_data,
@@ -143,7 +144,7 @@ class GameDetailService:
         try:
             url = "https://store.steampowered.com/api/appdetails"
             params = {"appids": app_id}
-            response = requests.get(url, params=params, timeout=5)
+            response = requests.get(url, params=params, timeout=HTTP_TIMEOUT_SHORT)
             data = response.json()
             if app_id in data and data[app_id]["success"]:
                 game_data = data[app_id]["data"]
@@ -174,7 +175,7 @@ class GameDetailService:
 
         try:
             url = f"https://store.steampowered.com/appreviews/{app_id}?json=1&language=german"
-            response = requests.get(url, timeout=5)
+            response = requests.get(url, timeout=HTTP_TIMEOUT_SHORT)
             data = response.json()
             if "query_summary" in data:
                 with open(cache_file, "w") as f:

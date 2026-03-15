@@ -14,6 +14,8 @@ from typing import Any
 
 import requests
 
+from steam_library_manager.utils.timeouts import HTTP_TIMEOUT_API
+
 logger = logging.getLogger("steamlibmgr.steam_web_api")
 
 __all__ = ["SteamAPIEndpoints"]
@@ -38,9 +40,9 @@ class SteamAPIEndpoints:
         """Makes a Steam API request with standard error handling."""
         try:
             if method == "POST":
-                response = requests.post(url, data=data, timeout=30)
+                response = requests.post(url, data=data, timeout=HTTP_TIMEOUT_API)
             else:
-                response = requests.get(url, params=params, timeout=30)
+                response = requests.get(url, params=params, timeout=HTTP_TIMEOUT_API)
             response.raise_for_status()
             return response.json()
         except (requests.RequestException, ValueError, KeyError) as exc:
@@ -92,7 +94,7 @@ class SteamAPIEndpoints:
             params[f"appids[{i}]"] = aid
 
         try:
-            response = requests.get(url, params=params, timeout=30)
+            response = requests.get(url, params=params, timeout=HTTP_TIMEOUT_API)
             if response.status_code == 404:
                 logger.debug("GetAchievementsProgress: endpoint not available")
                 return {}

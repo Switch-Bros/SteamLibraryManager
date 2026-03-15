@@ -25,6 +25,7 @@ from steam_library_manager.core.db.models import DatabaseEntry
 from steam_library_manager.core.database_importer import DatabaseImporter
 from steam_library_manager.core.packageinfo_parser import PackageInfoParser
 from steam_library_manager.utils.license_cache_parser import LicenseCacheParser
+from steam_library_manager.utils.timeouts import HTTP_TIMEOUT_LONG
 
 logger = logging.getLogger("steamlibmgr.game_service")
 
@@ -141,55 +142,75 @@ class GameService:
         return success and bool(self.game_manager.games)
 
     def load_and_prepare(self, user_id: str, progress_callback: Callable[[str, int, int], None] | None = None) -> bool:
-        """Load games and run the full preparation pipeline in one call."""
-        # Load games (API + local + DB enrichment)
+        """Load games and run the full preparation pipeline."""
         success = self.load_games(user_id, progress_callback)
         if not success or not self.game_manager or not self.game_manager.games:
             return False
 
-        # Merge collections from cloud storage
+        self._merge_cloud_collections(progress_callback)
+        modifications = self._load_custom_modifications(progress_callback)
+        pkg_ids = self._resolve_package_ownership(progress_callback)
+        db_type_lookup = self._discover_missing_games(pkg_ids, progress_callback)
+        self._refresh_from_api_and_merge(user_id, progress_callback)
+        self._finalize_games(modifications, db_type_lookup, progress_callback)
+        return True
+
+    # -- load_and_prepare pipeline steps --
+
+    def _merge_cloud_collections(self, progress_callback: Callable[[str, int, int], None] | None) -> None:
+        """Merge collections from cloud storage into loaded games."""
         if progress_callback:
             progress_callback(t("logs.manager.merging"), 0, 0)
         if self.cloud_storage_parser:
             self.game_manager.merge_with_localconfig(self.cloud_storage_parser)
 
-        # Load ONLY custom_metadata.json (skip binary VDF)
+    def _load_custom_modifications(self, progress_callback: Callable[[str, int, int], None] | None) -> dict:
+        """Load custom_metadata.json overrides (skip binary VDF)."""
         if progress_callback:
             progress_callback(t("logs.service.applying_metadata"), 0, 0)
         if not self.appinfo_manager:
             self.appinfo_manager = AppInfoManager(Path(self.steam_path))
-        modifications = self.appinfo_manager.load_modifications_only()
+        return self.appinfo_manager.load_modifications_only()
 
-        # Parse packageinfo.vdf + licensecache for ownership data
+    def _resolve_package_ownership(self, progress_callback: Callable[[str, int, int], None] | None) -> set:
+        """Parse packageinfo.vdf + licensecache to determine owned app IDs."""
         if progress_callback:
             progress_callback(t("logs.service.parsing_packages"), 0, 0)
+
         pkg_parser = PackageInfoParser(Path(self.steam_path))
 
-        # Cross-reference with licensecache for definitive ownership
         from steam_library_manager.config import config as _cfg
 
         short_id, _ = _cfg.get_detected_user()
         steam32_id = int(short_id) if short_id else None
 
-        if steam32_id:
-            license_parser = LicenseCacheParser(Path(self.steam_path), steam32_id)
-            owned_packages = license_parser.get_owned_package_ids()
+        if not steam32_id:
+            return pkg_parser.get_all_app_ids()
 
-            if owned_packages:
-                packageinfo_ids = pkg_parser.get_app_ids_for_packages(owned_packages)
-                logger.info(
-                    t(
-                        "logs.license_cache.cross_reference",
-                        packages=len(owned_packages),
-                        apps=len(packageinfo_ids),
-                    )
-                )
-            else:
-                packageinfo_ids = pkg_parser.get_all_app_ids()
-        else:
-            packageinfo_ids = pkg_parser.get_all_app_ids()
+        license_parser = LicenseCacheParser(Path(self.steam_path), steam32_id)
+        owned_packages = license_parser.get_owned_package_ids()
 
-        # Discover missing games - DB fast path or binary fallback
+        if not owned_packages:
+            return pkg_parser.get_all_app_ids()
+
+        pkg_ids = pkg_parser.get_app_ids_for_packages(owned_packages)
+        logger.info(
+            t(
+                "logs.license_cache.cross_reference",
+                packages=len(owned_packages),
+                apps=len(pkg_ids),
+            )
+        )
+        return pkg_ids
+
+    def _discover_missing_games(
+        self, packageinfo_ids: set, progress_callback: Callable[[str, int, int], None] | None
+    ) -> dict[str, tuple[str, str]] | None:
+        """Find games missing from the API list using DB or binary fallback.
+
+        Returns the db_type_lookup (needed by _finalize_games to pick
+        the right override strategy), or None when DB was unavailable.
+        """
         if progress_callback:
             progress_callback(t("logs.service.discovering_games"), 0, 0)
 
@@ -198,7 +219,6 @@ class GameService:
             db_type_lookup = self.database.get_app_type_lookup()
 
         if db_type_lookup is not None:
-            # Fast path: use DB for type/name resolution
             discovered = self.game_manager.discover_missing_games(
                 self.localconfig_helper,
                 self.appinfo_manager,
@@ -206,7 +226,6 @@ class GameService:
                 db_type_lookup=db_type_lookup,
             )
         else:
-            # Fallback: load binary (first run or missing DB)
             self.appinfo_manager.load_appinfo()
             discovered = self.game_manager.discover_missing_games(
                 self.localconfig_helper,
@@ -214,12 +233,15 @@ class GameService:
                 packageinfo_ids,
             )
 
-        # Re-merge categories for newly discovered games
         if discovered > 0 and self.cloud_storage_parser:
             self.game_manager.merge_with_localconfig(self.cloud_storage_parser)
 
-        # Fresh API call to discover newly purchased games
-        # (Depressurizer approach - catches games not in local files/DB)
+        return db_type_lookup
+
+    def _refresh_from_api_and_merge(
+        self, user_id: str, progress_callback: Callable[[str, int, int], None] | None
+    ) -> None:
+        """Fresh API call to catch newly purchased games, then re-merge."""
         if progress_callback:
             progress_callback(t("ui.status.api_refresh"), 0, 0)
         new_app_ids = self._refresh_from_api(user_id)
@@ -229,30 +251,24 @@ class GameService:
             if self.database:
                 self._save_new_games_to_db(new_app_ids)
 
-        # Steam Community Profile scrape - DISABLED
-        # Profile page uses React CSR; requests.get() only gets a shell.
-        # Revisit with session-cookie auth or Playwright.
-        # See: TASK_ADDENDUM_FIX_C_REPLACEMENT.md for full analysis.
-
-        # Re-enrich ALL games with DB metadata (fixes fallback names from
-        # both discover_missing_games and merge_with_localconfig)
+    def _finalize_games(
+        self,
+        modifications: dict,
+        db_type_lookup: dict[str, tuple[str, str]] | None,
+        progress_callback: Callable[[str, int, int], None] | None,
+    ) -> None:
+        """Re-enrich from DB, repair placeholders, apply metadata overrides."""
         if self.database:
             self.game_manager.enrich_from_database(self.database)
 
-        # Repair placeholder names ("App XXXXX") from appinfo.vdf
         self._repair_placeholder_names()
 
-        # Apply ONLY custom JSON overrides (not full binary metadata)
         if progress_callback:
             progress_callback(t("logs.service.applying_overrides"), 0, 0)
         if db_type_lookup is not None:
-            # Lazy path: only custom overrides from JSON
             self.game_manager.apply_custom_overrides(modifications)
         else:
-            # Fallback: full binary metadata overrides
             self.game_manager.apply_metadata_overrides(self.appinfo_manager)
-
-        return True
 
     def _refresh_from_api(self, steam_user_id: str) -> list[str]:
         """Refresh game list from GetOwnedGames API to catch new purchases."""
@@ -291,7 +307,7 @@ class GameService:
                     "format": "json",
                 }
 
-            response = requests.get(url, params=params, timeout=15)
+            response = requests.get(url, params=params, timeout=HTTP_TIMEOUT_LONG)
             response.raise_for_status()
             data = response.json()
 

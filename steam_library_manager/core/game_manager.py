@@ -29,6 +29,7 @@ from steam_library_manager.services.game_detail_service import GameDetailService
 from steam_library_manager.services.game_query_service import GameQueryService
 from steam_library_manager.services.enrichment.metadata_enrichment_service import MetadataEnrichmentService
 from steam_library_manager.utils.i18n import t
+from steam_library_manager.utils.timeouts import HTTP_TIMEOUT
 
 logger = logging.getLogger("steamlibmgr.game_manager")
 
@@ -178,7 +179,7 @@ class GameManager:
                     "skip_unvetted_apps": 0,
                     "format": "json",
                 }
-                response = requests.get(url, params=params, timeout=10)
+                response = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
             else:
                 # Traditional API key method
                 logger.info(t("logs.manager.using_api_key"))
@@ -191,7 +192,7 @@ class GameManager:
                     "skip_unvetted_apps": 0,
                     "format": "json",
                 }
-                response = requests.get(url, params=params, timeout=10)
+                response = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
 
             response.raise_for_status()
 

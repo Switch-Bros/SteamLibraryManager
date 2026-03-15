@@ -13,6 +13,7 @@ from PyQt6.QtCore import QThread, pyqtSignal
 import requests
 
 from steam_library_manager.utils.i18n import t
+from steam_library_manager.utils.timeouts import HTTP_TIMEOUT
 from steam_library_manager.ui.widgets.ui_helper import UIHelper
 from steam_library_manager.ui.dialogs.missing_metadata_dialog import MissingMetadataDialog
 from steam_library_manager.core.game_manager import Game
@@ -49,7 +50,7 @@ class StoreCheckThread(QThread):
             url = f"https://store.steampowered.com/app/{self.app_id}/"
             response = requests.get(
                 url,
-                timeout=10,
+                timeout=HTTP_TIMEOUT,
                 allow_redirects=True,
                 headers={
                     "User-Agent": (

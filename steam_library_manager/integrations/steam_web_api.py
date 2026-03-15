@@ -19,6 +19,7 @@ from typing import Any
 import requests
 
 from steam_library_manager.integrations.steam_api_endpoints import SteamAPIEndpoints
+from steam_library_manager.utils.timeouts import HTTP_TIMEOUT_API
 
 logger = logging.getLogger("steamlibmgr.steam_web_api")
 
@@ -120,7 +121,7 @@ class SteamWebAPI(SteamAPIEndpoints):
             Response on success, None if retries exhausted or bail status hit.
         """
         for attempt in range(_MAX_RETRIES):
-            response = requests.get(url, params=params, timeout=30)
+            response = requests.get(url, params=params, timeout=HTTP_TIMEOUT_API)
             if response.status_code == 429:
                 delay = _BASE_DELAY * (2**attempt)
                 logger.warning("Rate limited (429), retrying in %.1fs...", delay)
@@ -289,7 +290,7 @@ class SteamWebAPI(SteamAPIEndpoints):
         params: dict[str, int] = {"gameid": app_id}
 
         try:
-            response = requests.get(url, params=params, timeout=30)
+            response = requests.get(url, params=params, timeout=HTTP_TIMEOUT_API)
             if response.status_code != 200:
                 return {}
             data = response.json()

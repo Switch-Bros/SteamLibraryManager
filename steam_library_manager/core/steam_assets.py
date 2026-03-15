@@ -31,6 +31,7 @@ import requests
 
 from steam_library_manager.config import config
 from steam_library_manager.utils.i18n import t
+from steam_library_manager.utils.timeouts import HTTP_TIMEOUT
 
 if TYPE_CHECKING:
     from steam_library_manager.core.database import Database
@@ -190,7 +191,7 @@ class SteamAssets:
             # Download URL
             if str(url_or_path).startswith("http"):
                 headers = {"User-Agent": "SteamLibraryManager/1.0"}
-                response = requests.get(url_or_path, headers=headers, timeout=10)
+                response = requests.get(url_or_path, headers=headers, timeout=HTTP_TIMEOUT)
                 if response.status_code == 200:
                     with open(target_file, "wb") as f:
                         f.write(response.content)
