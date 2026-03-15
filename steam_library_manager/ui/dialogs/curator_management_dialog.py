@@ -24,6 +24,7 @@ from PyQt6.QtWidgets import (
     QInputDialog,
     QLabel,
     QPushButton,
+    QScrollArea,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -129,8 +130,35 @@ class CuratorManagementDialog(BaseDialog):
 
         layout.addLayout(btn_layout)
 
+        # Auto-register curators whose collections already exist in Steam
+        self._sync_curators_from_collections()
+
         # Initial population
         self._refresh_table()
+
+    # Auto-sync
+
+    def _sync_curators_from_collections(self) -> None:
+        """Register known curators whose Steam collections already exist."""
+        if not self._db or not self._existing_collections:
+            return
+
+        from steam_library_manager.services.curator_presets import POPULAR_CURATORS
+
+        existing_ids = {c["curator_id"] for c in self._db.get_all_curators()}
+        added = 0
+
+        for preset in POPULAR_CURATORS:
+            if preset.curator_id in existing_ids:
+                continue
+            if preset.name in self._existing_collections:
+                url = f"https://store.steampowered.com/curator/{preset.curator_id}/"
+                self._db.add_curator(preset.curator_id, preset.name, url, source="auto")
+                added += 1
+
+        if added:
+            self._db.commit()
+            logger.info("Auto-registered %d curators from existing collections", added)
 
     # Table population
 
@@ -220,6 +248,7 @@ class CuratorManagementDialog(BaseDialog):
         dialog = QDialog(self)
         dialog.setWindowTitle(t("ui.curator.popular_title"))
         dialog.setMinimumWidth(500)
+        dialog.setMaximumHeight(600)
         dialog.setModal(True)
 
         dlg_layout = QVBoxLayout(dialog)
@@ -228,9 +257,15 @@ class CuratorManagementDialog(BaseDialog):
         info_label.setWordWrap(True)
         dlg_layout.addWidget(info_label)
 
+        # Scrollable checkbox list
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll_widget = QWidget()
+        scroll_layout = QVBoxLayout(scroll_widget)
+
         checkboxes: list[tuple[QCheckBox, int, str]] = []
         for preset in POPULAR_CURATORS:
-            label = f"{preset.name} — {preset.description}"
+            label = f"{preset.name} - {preset.description}"
             cb = QCheckBox(label)
             in_db = preset.curator_id in existing_ids
             has_collection = preset.name in self._existing_collections
@@ -238,8 +273,12 @@ class CuratorManagementDialog(BaseDialog):
                 cb.setChecked(True)
                 cb.setEnabled(False)
                 cb.setToolTip(t("ui.curator.already_added"))
-            dlg_layout.addWidget(cb)
+            scroll_layout.addWidget(cb)
             checkboxes.append((cb, preset.curator_id, preset.name))
+
+        scroll_layout.addStretch()
+        scroll.setWidget(scroll_widget)
+        dlg_layout.addWidget(scroll)
 
         # Buttons
         btn_layout = QHBoxLayout()
@@ -319,12 +358,19 @@ class CuratorManagementDialog(BaseDialog):
         dialog = QDialog(self)
         dialog.setWindowTitle(t("ui.curator.top_title"))
         dialog.setMinimumWidth(500)
+        dialog.setMaximumHeight(600)
         dialog.setModal(True)
 
         dlg_layout = QVBoxLayout(dialog)
         info_label = QLabel(t("ui.curator.top_info"))
         info_label.setWordWrap(True)
         dlg_layout.addWidget(info_label)
+
+        # Scrollable checkbox list
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll_widget = QWidget()
+        scroll_layout = QVBoxLayout(scroll_widget)
 
         checkboxes: list[tuple[QCheckBox, int, str]] = []
         for entry in top_list:
@@ -337,8 +383,12 @@ class CuratorManagementDialog(BaseDialog):
                 cb.setChecked(True)
                 cb.setEnabled(False)
                 cb.setToolTip(t("ui.curator.already_added"))
-            dlg_layout.addWidget(cb)
+            scroll_layout.addWidget(cb)
             checkboxes.append((cb, int(curator_id), name))
+
+        scroll_layout.addStretch()
+        scroll.setWidget(scroll_widget)
+        dlg_layout.addWidget(scroll)
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
