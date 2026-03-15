@@ -128,7 +128,12 @@ class ToolsActions:
             UIHelper.show_warning(self.main_window, t("ui.enrichment.no_curators"))
             return
 
-        dialog = CuratorManagementDialog(self.main_window, db_path)
+        # Collect existing collection names so the dialog can detect duplicates
+        existing_names: set[str] = set()
+        if self.main_window.game_manager:
+            existing_names = set(self.main_window.game_manager.get_all_categories().keys())
+
+        dialog = CuratorManagementDialog(self.main_window, db_path, existing_names)
         dialog.exec()
 
         # Refresh curator filter cache after management changes

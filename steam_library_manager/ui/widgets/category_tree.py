@@ -134,7 +134,7 @@ class GameTreeWidget(QTreeWidget):
             else:
                 display_name = cat_name
                 if cat_name in smart_collections:
-                    display_name = f"{cat_name} {t('emoji.brain')}"
+                    display_name = f"{t('emoji.brain')} {cat_name}"
                 elif cat_name in dynamic_collections:
                     display_name = f"{cat_name} {t('emoji.blitz')}"
                 elif cat_name in external_platform_collections:

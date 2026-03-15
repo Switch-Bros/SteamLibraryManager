@@ -49,9 +49,15 @@ _COL_UPDATED = 3
 class CuratorManagementDialog(BaseDialog):
     """Dialog for managing Steam Curators and their recommendations."""
 
-    def __init__(self, parent: QWidget | None, db_path: Path) -> None:
+    def __init__(
+        self,
+        parent: QWidget | None,
+        db_path: Path,
+        existing_collection_names: set[str] | None = None,
+    ) -> None:
         self._db_path = db_path
         self._db: Database | None = None
+        self._existing_collections = existing_collection_names or set()
 
         super().__init__(
             parent,
@@ -226,7 +232,9 @@ class CuratorManagementDialog(BaseDialog):
         for preset in POPULAR_CURATORS:
             label = f"{preset.name} — {preset.description}"
             cb = QCheckBox(label)
-            if preset.curator_id in existing_ids:
+            in_db = preset.curator_id in existing_ids
+            has_collection = preset.name in self._existing_collections
+            if in_db or has_collection:
                 cb.setChecked(True)
                 cb.setEnabled(False)
                 cb.setToolTip(t("ui.curator.already_added"))
@@ -323,7 +331,9 @@ class CuratorManagementDialog(BaseDialog):
             curator_id = entry["curator_id"]
             name = str(entry.get("name", f"Curator {curator_id}"))
             cb = QCheckBox(name)
-            if curator_id in existing_ids:
+            in_db = curator_id in existing_ids
+            has_collection = name in self._existing_collections
+            if in_db or has_collection:
                 cb.setChecked(True)
                 cb.setEnabled(False)
                 cb.setToolTip(t("ui.curator.already_added"))
