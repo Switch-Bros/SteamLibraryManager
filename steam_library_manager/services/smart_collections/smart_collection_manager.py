@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from steam_library_manager.services.smart_collections.evaluator import SmartCollectionEvaluator
@@ -72,6 +73,7 @@ class SmartCollectionManager:
             collection_id,
             len(matching),
         )
+        self._save_sidecar()
         return collection_id
 
     def update(self, collection: SmartCollection) -> int:
@@ -109,6 +111,7 @@ class SmartCollectionManager:
             collection.collection_id,
             len(matching),
         )
+        self._save_sidecar()
         return len(matching)
 
     def delete(self, collection_id: int) -> None:
@@ -124,6 +127,7 @@ class SmartCollectionManager:
             self._remove_from_steam(name)
 
         logger.info("Deleted smart collection id=%d", collection_id)
+        self._save_sidecar()
 
     def get_all(self) -> list[SmartCollection]:
         """Load all smart collections from DB."""
@@ -199,8 +203,73 @@ class SmartCollectionManager:
 
         if result:
             self.database.commit()
+            self._save_sidecar()
             logger.info("Refreshed %d smart collections: %s", len(result), result)
         return result
+
+    # Sidecar backup + recovery
+
+    @staticmethod
+    def _sidecar_path() -> Path:
+        """Path to the auto-saved smart collections backup."""
+        from steam_library_manager.config import config
+
+        return config.DATA_DIR / "smart_collections.json"
+
+    def _save_sidecar(self) -> None:
+        """Write all smart collections to a sidecar JSON for recovery."""
+        collections = self.get_all()
+        path = self._sidecar_path()
+
+        if not collections:
+            # Remove stale sidecar when all smart collections are deleted
+            if path.exists():
+                path.unlink()
+            return
+
+        try:
+            from steam_library_manager.utils.smart_collection_exporter import SmartCollectionExporter
+
+            SmartCollectionExporter.export(collections, path)
+        except Exception as exc:
+            logger.warning("Failed to save smart collection sidecar: %s", exc)
+
+    def recover_from_sidecar(self) -> int:
+        """Recover smart collections from sidecar if DB is empty.
+
+        Called once during bootstrap. If the DB already has smart
+        collections, this is a no-op.
+        """
+        if self.get_all():
+            return 0
+
+        path = self._sidecar_path()
+        if not path.exists():
+            return 0
+
+        try:
+            from steam_library_manager.utils.smart_collection_importer import SmartCollectionImporter
+
+            collections = SmartCollectionImporter.import_collections(path)
+        except (ValueError, FileNotFoundError) as exc:
+            logger.warning("Sidecar recovery failed: %s", exc)
+            return 0
+
+        if not collections:
+            return 0
+
+        recovered = 0
+        for sc in collections:
+            # Skip if a collection with this name already exists
+            if self.database.get_smart_collection_by_name(sc.name):
+                continue
+            self.create(sc)
+            recovered += 1
+
+        if recovered:
+            logger.info("Recovered %d smart collections from sidecar backup", recovered)
+
+        return recovered
 
     # Private helpers
 
