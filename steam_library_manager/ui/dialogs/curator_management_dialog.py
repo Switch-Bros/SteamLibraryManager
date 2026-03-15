@@ -138,6 +138,29 @@ class CuratorManagementDialog(BaseDialog):
 
     # Auto-sync
 
+    @staticmethod
+    def _normalize_name(name: str) -> str:
+        """Strip emojis, punctuation, whitespace and lowercase for fuzzy matching."""
+        import re
+
+        # Remove non-ASCII (emojis, special chars) and punctuation
+        cleaned = re.sub(r"[^\w]", "", name, flags=re.UNICODE)
+        # Keep only letters and digits
+        cleaned = re.sub(r"[^a-zA-Z0-9]", "", cleaned)
+        return cleaned.lower()
+
+    def _collection_matches(self, curator_name: str) -> bool:
+        """Check if any existing collection matches this curator name."""
+        # Exact match first
+        if curator_name in self._existing_collections:
+            return True
+        # Fuzzy: normalize both sides and compare
+        norm_curator = self._normalize_name(curator_name)
+        for coll_name in self._existing_collections:
+            if self._normalize_name(coll_name) == norm_curator:
+                return True
+        return False
+
     def _sync_curators_from_collections(self) -> None:
         """Register known curators whose Steam collections already exist."""
         if not self._db or not self._existing_collections:
@@ -151,7 +174,7 @@ class CuratorManagementDialog(BaseDialog):
         for preset in POPULAR_CURATORS:
             if preset.curator_id in existing_ids:
                 continue
-            if preset.name in self._existing_collections:
+            if self._collection_matches(preset.name):
                 url = f"https://store.steampowered.com/curator/{preset.curator_id}/"
                 self._db.add_curator(preset.curator_id, preset.name, url, source="auto")
                 added += 1
@@ -268,7 +291,7 @@ class CuratorManagementDialog(BaseDialog):
             label = f"{preset.name} - {preset.description}"
             cb = QCheckBox(label)
             in_db = preset.curator_id in existing_ids
-            has_collection = preset.name in self._existing_collections
+            has_collection = self._collection_matches(preset.name)
             if in_db or has_collection:
                 cb.setChecked(True)
                 cb.setEnabled(False)
@@ -378,7 +401,7 @@ class CuratorManagementDialog(BaseDialog):
             name = str(entry.get("name", f"Curator {curator_id}"))
             cb = QCheckBox(name)
             in_db = curator_id in existing_ids
-            has_collection = name in self._existing_collections
+            has_collection = self._collection_matches(name)
             if in_db or has_collection:
                 cb.setChecked(True)
                 cb.setEnabled(False)
