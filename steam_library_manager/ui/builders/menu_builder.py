@@ -14,6 +14,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction, QActionGroup, QKeySequence
 from PyQt6.QtWidgets import QMenuBar, QLabel
 
+from steam_library_manager.ui.widgets.ui_helper import UIHelper
 from steam_library_manager.utils.i18n import get_language, t
 from steam_library_manager.utils.open_url import open_url
 
@@ -46,10 +47,10 @@ class MenuBuilder:
     # Helper methods
 
     def _not_implemented(self, feature_key: str) -> None:
-        """Show a placeholder message in the status bar."""
+        """Show a coming-soon dialog for unimplemented features."""
         feature = t(feature_key)
         msg = f"{t('common.placeholder_message', feature=feature)} {t('emoji.rocket')}"
-        self.main_window.set_status(msg)
+        UIHelper.show_info(self.main_window, msg, t("common.placeholder_title"))
 
     def _open_url(self, url: str) -> None:
         """Open a URL in the default system browser."""

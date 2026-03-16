@@ -330,14 +330,19 @@ class GameDetailsWidget(QWidget):
 
     def _reload_images(self, app_id: str) -> None:
         for asset_type, img_widget in self._asset_map.items():
-            img_widget.load_image(SteamAssets.get_asset_path(app_id, asset_type))
+            path = SteamAssets.get_asset_path(app_id, asset_type)
+            fallbacks = SteamAssets.get_cdn_fallback_urls(app_id, asset_type) if path.startswith("http") else None
+            img_widget.load_image(path, fallback_urls=fallbacks)
 
     def _reload_single_asset(self, img_type: str) -> None:
         if not self.current_game:
             return
         widget = self._asset_map.get(img_type)
         if widget:
-            widget.load_image(SteamAssets.get_asset_path(self.current_game.app_id, img_type))
+            app_id = self.current_game.app_id
+            path = SteamAssets.get_asset_path(app_id, img_type)
+            fallbacks = SteamAssets.get_cdn_fallback_urls(app_id, img_type) if path.startswith("http") else None
+            widget.load_image(path, fallback_urls=fallbacks)
 
     def on_image_click(self, img_type: str) -> None:
         """Opens the image selection dialog."""

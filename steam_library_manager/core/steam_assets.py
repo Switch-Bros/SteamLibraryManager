@@ -63,13 +63,13 @@ class SteamAssets:
         "capsules": "",
     }
 
-    # CDN URL paths per asset type
-    _CDN_PATHS: dict[str, str] = {
-        "grids": "library_600x900.jpg",
-        "heroes": "library_hero.jpg",
-        "logos": "logo.png",
-        "icons": "icon.jpg",
-        "capsules": "header.jpg",
+    # CDN URL paths per asset type (first match wins)
+    _CDN_PATHS: dict[str, list[str]] = {
+        "grids": ["library_600x900.jpg", "library_600x900_2x.jpg", "header.jpg"],
+        "heroes": ["library_hero.jpg", "header.jpg"],
+        "logos": ["logo.png"],
+        "icons": ["icon.jpg"],
+        "capsules": ["header.jpg"],
     }
 
     # Filename suffix keyed by DB type name (for export/import)
@@ -136,11 +136,18 @@ class SteamAssets:
                     if local_path.exists():
                         return str(local_path)
 
-        # Fallback to Steam CDN URLs
-        cdn_path = SteamAssets._CDN_PATHS.get(asset_type)
-        if cdn_path:
-            return f"https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id}/{cdn_path}"
+        # Fallback to Steam CDN URLs (try first path in chain)
+        cdn_paths = SteamAssets._CDN_PATHS.get(asset_type, [])
+        if cdn_paths:
+            return f"https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id}/{cdn_paths[0]}"
         return ""
+
+    @staticmethod
+    def get_cdn_fallback_urls(app_id: str, asset_type: str) -> list[str]:
+        """Returns all CDN fallback URLs for an asset type, in priority order."""
+        cdn_paths = SteamAssets._CDN_PATHS.get(asset_type, [])
+        base = "https://cdn.cloudflare.steamstatic.com/steam/apps"
+        return [f"{base}/{app_id}/{p}" for p in cdn_paths]
 
     @staticmethod
     def save_custom_image(

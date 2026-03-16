@@ -43,9 +43,10 @@ class ImageLoader(QThread):
 
     loaded = pyqtSignal(QByteArray)
 
-    def __init__(self, url_or_path: str):
+    def __init__(self, url_or_path: str, fallback_urls: list[str] | None = None):
         super().__init__()
         self.url_or_path = url_or_path
+        self.fallback_urls = fallback_urls or []
         self._is_running = True
 
     def run(self):
@@ -60,15 +61,25 @@ class ImageLoader(QThread):
                 with open(self.url_or_path, "rb") as f:
                     data = QByteArray(f.read())
             elif str(self.url_or_path).startswith("http"):
-                headers = {"User-Agent": "SteamLibraryManager/1.0"}
-                response = requests.get(self.url_or_path, headers=headers, timeout=HTTP_TIMEOUT)
-                response.raise_for_status()
-                data = QByteArray(response.content)
+                data = self._fetch_with_fallback()
         except (OSError, ValueError, requests.RequestException):
-            pass  # Fail silently, the UI will handle the empty data
+            pass
 
         if self._is_running:
             self.loaded.emit(data)
+
+    def _fetch_with_fallback(self) -> QByteArray:
+        """Try primary URL, then fallbacks if it returns 404."""
+        headers = {"User-Agent": "SteamLibraryManager/1.0"}
+        urls = [self.url_or_path] + self.fallback_urls
+        for url in urls:
+            try:
+                resp = requests.get(url, headers=headers, timeout=HTTP_TIMEOUT)
+                if resp.status_code == 200 and len(resp.content) > 100:
+                    return QByteArray(resp.content)
+            except requests.RequestException:
+                continue
+        return QByteArray()
 
     def stop(self):
         """Stops the thread from emitting the loaded signal if it's no longer needed."""
@@ -161,7 +172,7 @@ class ClickableImage(QWidget):
         qim = QImage(img_bytes, frame.width, frame.height, QImage.Format.Format_RGBA8888)
         return QPixmap.fromImage(qim)
 
-    def load_image(self, url_or_path: str | None, metadata: dict = None):
+    def load_image(self, url_or_path: str | None, metadata: dict = None, fallback_urls: list[str] | None = None):
         """Starts loading an image from a URL or local path."""
         if metadata is not None:
             self.metadata = metadata
@@ -204,7 +215,7 @@ class ClickableImage(QWidget):
 
         # Capture generation so the callback can detect stale results
         gen = self._load_generation
-        self.loader = ImageLoader(url_or_path)
+        self.loader = ImageLoader(url_or_path, fallback_urls=fallback_urls)
         self.loader.loaded.connect(lambda data, g=gen: self._on_loaded(data, g))
         self.loader.start()
 
