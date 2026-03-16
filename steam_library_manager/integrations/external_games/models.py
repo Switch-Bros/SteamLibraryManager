@@ -2,7 +2,7 @@
 # steam_library_manager/integrations/external_games/models.py
 # Data models and platform constants for external (non-Steam) games
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

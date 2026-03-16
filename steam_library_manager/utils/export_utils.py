@@ -2,7 +2,7 @@
 # steam_library_manager/utils/export_utils.py
 # Shared helpers for CSV, JSON, and other export formats
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

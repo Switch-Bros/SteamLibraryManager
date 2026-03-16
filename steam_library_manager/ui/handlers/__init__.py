@@ -1,10 +1,10 @@
-"""UI action-handler package.
-
-Each handler owns a logical slice of MainWindow's action methods.
-They are instantiated once in MainWindow.__init__ and receive a
-back-reference so they can call persistence helpers on the window.
-"""
-
+#
+# steam_library_manager/ui/handlers/__init__.py
+# UI handlers package
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 from __future__ import annotations
 
 from steam_library_manager.ui.handlers.category_action_handler import CategoryActionHandler

@@ -2,7 +2,7 @@
 # steam_library_manager/core/game_manager.py
 # Core game management - loading, merging, and metadata fetching
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

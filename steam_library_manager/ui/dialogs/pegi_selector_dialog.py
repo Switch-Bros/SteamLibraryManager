@@ -1,8 +1,10 @@
-"""PEGI Rating Selector Dialog.
-
-This dialog allows users to manually select a PEGI rating for a game
-by clicking on one of the available PEGI icons.
-"""
+#
+# steam_library_manager/ui/dialogs/pegi_selector_dialog.py
+# PEGI rating selector with clickable icon buttons
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -24,19 +26,11 @@ class PEGIIconButton(QPushButton):
     """A clickable button displaying a PEGI icon."""
 
     def __init__(self, rating: str, icon_path: Path, parent=None):
-        """Initializes a PEGI icon button.
-
-        Args:
-            rating: The PEGI rating value (e.g. "3", "18").
-            icon_path: Path to the PEGI icon image.
-            parent: Parent widget.
-        """
         super().__init__(parent)
         self.rating = rating
         self.setFixedSize(140, 140)
         self.setStyleSheet(Theme.pegi_button())
 
-        # Load and display icon
         if icon_path.exists():
             pixmap = QPixmap(str(icon_path))
             scaled_pixmap = pixmap.scaled(
@@ -54,12 +48,6 @@ class PEGISelectorDialog(BaseDialog):
     rating_selected = pyqtSignal(str)  # Emits the selected rating (e.g., "18")
 
     def __init__(self, current_rating: str = "", parent=None):
-        """Initializes the PEGI selector dialog.
-
-        Args:
-            current_rating: Currently assigned PEGI rating (highlighted in UI).
-            parent: Parent widget.
-        """
         self.current_rating = current_rating
         self.selected_rating = ""
 
@@ -75,13 +63,11 @@ class PEGISelectorDialog(BaseDialog):
         """Builds the PEGI rating selection grid and buttons."""
         layout.setSpacing(20)
 
-        # Instruction
         title = QLabel(t("ui.pegi_selector.instruction"))
         title.setStyleSheet(f"font-size: 14px; font-weight: bold; color: {Theme.TEXT_PRIMARY};")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
 
-        # PEGI icons grid
         grid_widget = QWidget()
         grid = QGridLayout(grid_widget)
         grid.setSpacing(15)
@@ -95,7 +81,6 @@ class PEGISelectorDialog(BaseDialog):
             btn = PEGIIconButton(rating, icon_path, self)
             btn.clicked.connect(lambda _checked=False, r=rating: self._on_rating_clicked(r))
 
-            # Highlight current rating
             if rating == self.current_rating:
                 btn.setStyleSheet(btn.styleSheet() + f"""
                     QPushButton {{
@@ -111,7 +96,6 @@ class PEGISelectorDialog(BaseDialog):
 
         layout.addWidget(grid_widget)
 
-        # Buttons
         button_layout = QHBoxLayout()
         button_layout.addStretch()
 

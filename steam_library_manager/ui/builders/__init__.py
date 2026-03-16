@@ -1,8 +1,10 @@
-"""UI Builder classes for Steam Library Manager.
-
-Each builder is responsible for constructing a specific part of the UI.
-"""
-
+#
+# steam_library_manager/ui/builders/__init__.py
+# UI builders package
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 from __future__ import annotations
 
 from steam_library_manager.ui.builders.central_widget_builder import CentralWidgetBuilder

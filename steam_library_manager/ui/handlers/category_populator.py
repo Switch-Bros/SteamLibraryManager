@@ -2,7 +2,7 @@
 # steam_library_manager/ui/handlers/category_populator.py
 # Populates the sidebar category tree from game data
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

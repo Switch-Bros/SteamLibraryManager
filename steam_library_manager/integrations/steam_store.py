@@ -2,7 +2,7 @@
 # steam_library_manager/integrations/steam_store.py
 # Steam Store integration for fetching tags and age ratings.
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

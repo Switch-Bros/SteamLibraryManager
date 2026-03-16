@@ -2,7 +2,7 @@
 # steam_library_manager/services/curator_client.py
 # Steam Curator recommendations - fetch, parse, and paginate
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

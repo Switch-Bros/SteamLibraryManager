@@ -2,7 +2,7 @@
 # steam_library_manager/integrations/steam_profile_scraper.py
 # Scrapes game lists from Steam Community profile pages
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

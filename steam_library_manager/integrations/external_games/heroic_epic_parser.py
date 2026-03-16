@@ -1,7 +1,10 @@
-"""Parser for Epic Games installed via Heroic Games Launcher.
-
-Reads Legendary's installed.json to detect Epic Games Store titles.
-"""
+#
+# steam_library_manager/integrations/external_games/heroic_epic_parser.py
+# Parser for Epic Games installed via Heroic Games Launcher
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -35,35 +38,16 @@ class HeroicEpicParser(BaseHeroicParser):
     _RUNNER = "legendary"
 
     def platform_name(self) -> str:
-        """Return platform name.
-
-        Returns:
-            Platform identifier.
-        """
         return "Heroic (Epic)"
 
     def is_available(self) -> bool:
-        """Check if Heroic Epic config exists.
-
-        Returns:
-            True if installed.json is found.
-        """
         return self._find_config_file() is not None
 
     def get_config_paths(self) -> list[Path]:
-        """Return native and Flatpak config paths.
-
-        Returns:
-            List of possible installed.json paths.
-        """
         return [_NATIVE, _FLATPAK]
 
     def read_games(self) -> list[ExternalGame]:
-        """Read installed Epic games from Heroic's Legendary config.
-
-        Returns:
-            List of detected Epic games.
-        """
+        """Read installed Epic games from Heroic's Legendary config."""
         data, config_path = self._load_heroic_config_with_path()
         if not isinstance(data, dict):
             return []

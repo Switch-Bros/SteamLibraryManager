@@ -2,7 +2,7 @@
 # steam_library_manager/integrations/external_games/heroic_gog_parser.py
 # Parser for GOG games installed via Heroic Games Launcher
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

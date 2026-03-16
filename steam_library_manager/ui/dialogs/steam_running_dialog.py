@@ -1,11 +1,10 @@
-"""
-Steam Running Warning Dialog.
-
-This dialog is shown when the user tries to save changes while Steam is running.
-Provides options to:
-- Cancel the save operation
-- Close Steam and save (kills Steam process)
-"""
+#
+# steam_library_manager/ui/dialogs/steam_running_dialog.py
+# Warning dialog shown when saving while Steam is running
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -31,11 +30,6 @@ class SteamRunningDialog(BaseDialog):
     CLOSE_AND_SAVE = 1
 
     def __init__(self, parent=None):
-        """Initialize the Steam running warning dialog.
-
-        Args:
-            parent: Parent widget
-        """
         super().__init__(
             parent,
             title_key="steam.running.title",
@@ -48,7 +42,6 @@ class SteamRunningDialog(BaseDialog):
         """Builds the warning content with icon, message, and action buttons."""
         layout.setSpacing(20)
 
-        # Warning icon + message
         header_layout = QHBoxLayout()
 
         icon_label = QLabel(t("emoji.warning"))
@@ -70,13 +63,11 @@ class SteamRunningDialog(BaseDialog):
         header_layout.addLayout(message_layout, 1)
         layout.addLayout(header_layout)
 
-        # Info box
         info_box = QLabel(t("steam.running.info"))
         info_box.setWordWrap(True)
         info_box.setStyleSheet(Theme.info_box())
         layout.addWidget(info_box)
 
-        # Buttons
         layout.addStretch()
         button_layout = QHBoxLayout()
         button_layout.addStretch()

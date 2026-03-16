@@ -2,7 +2,7 @@
 # steam_library_manager/integrations/external_games/itch_parser.py
 # Detects installed itch.io games from the butler SQLite database
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

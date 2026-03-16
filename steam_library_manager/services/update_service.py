@@ -2,7 +2,7 @@
 # steam_library_manager/services/update_service.py
 # AppImage self-update via GitHub Releases API
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

@@ -2,7 +2,7 @@
 # steam_library_manager/utils/desktop_integration.py
 # Desktop integration for AppImage installations (.desktop file + icon).
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

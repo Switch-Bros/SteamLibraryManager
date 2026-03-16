@@ -2,7 +2,7 @@
 # steam_library_manager/core/db/game_queries.py
 # Single-game CRUD operations (insert, update, get, delete with related data)
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

@@ -2,7 +2,7 @@
 # steam_library_manager/integrations/steam_web_api.py
 # Batched Steam Web API client with rate limiting and retry logic
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

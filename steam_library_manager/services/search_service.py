@@ -1,10 +1,10 @@
+#
 # steam_library_manager/services/search_service.py
-
-"""Search service with regex and tag-prefix support.
-
-Provides game filtering by text search (case-insensitive substring),
-regex patterns (prefixed with ``/``), and future tag-based queries.
-"""
+# Search service with regex and tag-prefix support
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -27,20 +27,7 @@ class SearchService:
 
     @staticmethod
     def filter_games(games: list[Game], query: str) -> list[Game]:
-        """Filters a list of games based on a search query.
-
-        Supports three modes:
-        - Empty query: returns all games.
-        - Regex mode: query starts with ``/`` (e.g. ``/^Half.*``).
-        - Plain text: case-insensitive substring match on name.
-
-        Args:
-            games: List of Game objects to filter.
-            query: The search string.
-
-        Returns:
-            The filtered list of games.
-        """
+        """Filter games by text substring or regex (prefix with ``/``)."""
         if not query:
             return games
 
@@ -52,17 +39,6 @@ class SearchService:
 
     @staticmethod
     def _filter_regex(games: list[Game], pattern: str) -> list[Game]:
-        """Filters games using a regex pattern against the game name.
-
-        Invalid regex patterns fall back to empty results with a warning.
-
-        Args:
-            games: Games to filter.
-            pattern: Regex pattern string (without leading ``/``).
-
-        Returns:
-            Games whose name matches the pattern.
-        """
         try:
             compiled = re.compile(pattern, re.IGNORECASE)
         except re.error as exc:
@@ -73,14 +49,6 @@ class SearchService:
 
     @staticmethod
     def validate_regex(pattern: str) -> bool:
-        """Checks if a regex pattern is valid.
-
-        Args:
-            pattern: The regex pattern string to check.
-
-        Returns:
-            True if valid regex, False otherwise.
-        """
         try:
             re.compile(pattern)
             return True

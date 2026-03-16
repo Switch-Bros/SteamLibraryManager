@@ -1,3 +1,10 @@
+#
+# steam_library_manager/services/__init__.py
+# Services package
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 from __future__ import annotations
 
 from steam_library_manager.services.enrichment.metadata_enrichment_service import MetadataEnrichmentService

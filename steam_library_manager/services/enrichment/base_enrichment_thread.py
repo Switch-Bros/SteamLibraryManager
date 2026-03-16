@@ -1,9 +1,10 @@
-"""Base class for all enrichment background threads.
-
-Provides standard signals, cancellation, and the run() template.
-Subclasses implement: _get_items(), _process_item(),
-_format_progress(), and optionally _setup(), _cleanup(), _rate_limit().
-"""
+#
+# steam_library_manager/services/enrichment/base_enrichment_thread.py
+# Base class for all enrichment background threads
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -32,11 +33,6 @@ class BaseEnrichmentThread(QThread):
     error = pyqtSignal(str)
 
     def __init__(self, parent: Any = None) -> None:
-        """Initializes the base enrichment thread.
-
-        Args:
-            parent: Parent QObject.
-        """
         super().__init__(parent)
         self._cancelled: bool = False
         self._force_refresh: bool = False
@@ -97,60 +93,23 @@ class BaseEnrichmentThread(QThread):
 
         self.finished_enrichment.emit(success, failed)
 
-    # ── Subclasses MUST override these ──────────────────
-
     def _get_items(self) -> list:
-        """Return the list of items to process.
-
-        Raises:
-            NotImplementedError: Subclass must implement.
-        """
+        """Return the list of items to process."""
         raise NotImplementedError
 
     def _process_item(self, item: Any) -> bool:
-        """Process a single item.
-
-        Args:
-            item: The item from _get_items() to process.
-
-        Returns:
-            True on success, False on expected failure.
-
-        Raises:
-            NotImplementedError: Subclass must implement.
-        """
+        """Process a single item. Returns True on success."""
         raise NotImplementedError
 
     def _format_progress(self, item: Any, current: int, total: int) -> str:
-        """Format a progress message for the current item.
-
-        Args:
-            item: The current item being processed.
-            current: 1-based index of the current item.
-            total: Total number of items.
-
-        Returns:
-            Formatted progress string.
-
-        Raises:
-            NotImplementedError: Subclass must implement.
-        """
+        """Format a progress message for the current item."""
         raise NotImplementedError
 
-    # ── Subclasses MAY override these ────────────────────
-
     def _setup(self) -> None:
-        """Initialize resources before the processing loop.
-
-        Override to open database connections, API clients, etc.
-        """
+        """Initialize resources before the processing loop."""
 
     def _cleanup(self) -> None:
-        """Release resources after the processing loop.
-
-        Override to close database connections, etc.
-        Always called, even on cancellation.
-        """
+        """Release resources after the processing loop. Always called."""
 
     def _rate_limit(self) -> None:
         """Sleep between items to respect rate limits. Override as needed."""

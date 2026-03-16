@@ -2,7 +2,7 @@
 # steam_library_manager/integrations/external_games/rom_parser.py
 # Scan ROM directories, pair with emulators, create Steam shortcuts
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

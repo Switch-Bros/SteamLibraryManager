@@ -2,7 +2,7 @@
 # steam_library_manager/ui/dialogs/auto_categorize_dialog.py
 # Auto-categorization dialog with preset management and method selection
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

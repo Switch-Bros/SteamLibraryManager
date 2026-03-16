@@ -2,7 +2,7 @@
 # steam_library_manager/ui/dialogs/external_games_dialog.py
 # Dialog for managing external (non-Steam) games
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

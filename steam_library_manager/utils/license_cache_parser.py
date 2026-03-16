@@ -2,7 +2,7 @@
 # steam_library_manager/utils/license_cache_parser.py
 # Parser for Steam's encrypted licensecache file (PRNG XOR cipher)
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 # Credits: Depressurizer (GPLv3), wynick27/steam-missing-covers-downloader,

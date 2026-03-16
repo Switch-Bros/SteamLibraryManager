@@ -2,7 +2,7 @@
 # steam_library_manager/core/cloud_storage_parser.py
 # Read and write Steam collections from cloud-storage-namespace-1.json
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

@@ -1,12 +1,10 @@
+#
 # steam_library_manager/ui/actions/__init__.py
-
-"""UI Action Handler classes for Steam Library Manager.
-
-Each handler is responsible for one menu or context-menu group.
-They hold no persistent state beyond a back-reference to MainWindow
-and are designed to extract action logic from the monolithic main_window.py.
-"""
-
+# UI actions package
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 from __future__ import annotations
 
 from steam_library_manager.ui.actions.edit_actions import EditActions
@@ -20,7 +18,6 @@ from steam_library_manager.ui.actions.steam_actions import SteamActions
 from steam_library_manager.ui.actions.tools_actions import ToolsActions
 from steam_library_manager.ui.actions.view_actions import ViewActions
 
-# Export public classes
 __all__ = [
     "FileActions",
     "EditActions",

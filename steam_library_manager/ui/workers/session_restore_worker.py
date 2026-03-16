@@ -1,9 +1,10 @@
-"""Worker thread for restoring Steam session in the background.
-
-This module contains the SessionRestoreWorker that handles all HTTP-blocking
-session operations (token refresh, validation, persona fetch) without
-blocking the main UI thread.
-"""
+#
+# steam_library_manager/ui/workers/session_restore_worker.py
+# Background worker for Steam session restore (token refresh, validation).
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -23,15 +24,7 @@ __all__ = ["SessionRestoreResult", "SessionRestoreWorker"]
 
 @dataclass(frozen=True)
 class SessionRestoreResult:
-    """Immutable result of a session restore attempt.
-
-    Attributes:
-        success: Whether the session was restored with a valid token.
-        access_token: The validated or refreshed access token.
-        refresh_token: The refresh token from storage.
-        steam_id: SteamID64 of the authenticated user.
-        persona_name: Display name fetched from Steam Community.
-    """
+    """Immutable result of a session restore attempt."""
 
     success: bool
     access_token: str | None = None
@@ -41,27 +34,12 @@ class SessionRestoreResult:
 
 
 class SessionRestoreWorker(QThread):
-    """Background thread for restoring a Steam session without blocking the UI.
-
-    Performs token loading, refresh with retries, validation fallback,
-    and persona name fetch — all in a separate thread.
-
-    Signals:
-        session_restored: Emitted with a SessionRestoreResult when done.
-    """
+    """Background thread for restoring a Steam session without blocking the UI."""
 
     session_restored = pyqtSignal(object)
 
     def run(self) -> None:
-        """Execute the full session restore pipeline.
-
-        Steps:
-            1. Load stored tokens from keyring/file (fast).
-            2. Try to refresh the access token (HTTP, retries).
-            3. If refresh fails, validate the stored token (HTTP).
-            4. Fetch persona name from Steam Community (HTTP).
-            5. Emit result via signal.
-        """
+        """Execute the full session restore pipeline."""
         from steam_library_manager.core.token_store import TokenStore, _REFRESH_NOT_NEEDED
 
         token_store = TokenStore()
@@ -71,7 +49,6 @@ class SessionRestoreWorker(QThread):
             self.session_restored.emit(SessionRestoreResult(success=False))
             return
 
-        # Log token age for diagnostics
         token_age_hours = (_time.time() - stored.timestamp) / 3600
         logger.info(
             t(
@@ -81,30 +58,24 @@ class SessionRestoreWorker(QThread):
             )
         )
 
-        # Try to refresh the access token (with retry)
         refresh_result = token_store.refresh_access_token(stored.refresh_token, stored.steam_id)
 
         if refresh_result and refresh_result != _REFRESH_NOT_NEEDED:
-            # Got a fresh token from Steam
             active_token = refresh_result
             token_store.save_tokens(refresh_result, stored.refresh_token, stored.steam_id)
         elif refresh_result == _REFRESH_NOT_NEEDED:
-            # Steam returned 200 but no new token — stored token is still valid
             logger.info(t("logs.auth.token_validation_ok"))
             active_token = stored.access_token
         else:
-            # Refresh truly failed — validate stored token as fallback
             logger.warning(t("logs.auth.token_refresh_failed", error="using stored token"))
             if TokenStore.validate_access_token(stored.access_token, stored.steam_id):
                 logger.info(t("logs.auth.token_validation_ok"))
                 active_token = stored.access_token
             else:
-                # Both refresh and validation failed — token is expired
                 logger.error(t("logs.auth.token_validation_failed"))
                 self.session_restored.emit(SessionRestoreResult(success=False))
                 return
 
-        # Fetch persona name (HTTP)
         persona_name = self.fetch_steam_persona_name(stored.steam_id)
 
         logger.info(t("logs.auth.token_loaded"))
@@ -120,14 +91,7 @@ class SessionRestoreWorker(QThread):
 
     @staticmethod
     def fetch_steam_persona_name(steam_id: str) -> str | None:
-        """Fetch the public persona name from Steam Community XML.
-
-        Args:
-            steam_id: The SteamID64 to look up.
-
-        Returns:
-            The persona name if found, otherwise None.
-        """
+        """Fetch the public persona name from Steam Community XML."""
         import requests
         import xml.etree.ElementTree as ET
 

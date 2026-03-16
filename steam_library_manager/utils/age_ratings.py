@@ -2,7 +2,7 @@
 # steam_library_manager/utils/age_ratings.py
 # Age rating conversion utilities (USK, ESRB, CERO -> PEGI)
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

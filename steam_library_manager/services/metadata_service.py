@@ -1,15 +1,10 @@
-"""
-Metadata Service for Steam Library Manager.
-
-This service handles all metadata-related operations including:
-- Single game metadata editing
-- Bulk metadata editing with name modifications
-- Finding games with missing metadata
-- Restoring metadata modifications
-
-The service acts as a bridge between the UI and AppInfoManager,
-providing a clean API for metadata operations.
-"""
+#
+# steam_library_manager/services/metadata_service.py
+# Service for managing game metadata operations
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -25,32 +20,13 @@ class MetadataService:
     """Service for managing game metadata operations."""
 
     def __init__(self, appinfo_manager: AppInfoManager, game_manager: GameManager):
-        """
-        Initialize the MetadataService.
-
-        Args:
-            appinfo_manager: Manager for reading/writing appinfo metadata.
-            game_manager: Manager for accessing game data.
-        """
         self.appinfo_manager = appinfo_manager
         self.game_manager = game_manager
 
-    # === SINGLE GAME METADATA ===
-
     def get_game_metadata(self, app_id: str, game: Game | None = None) -> dict[str, Any]:
-        """
-        Get metadata for a single game with defaults from game object.
-
-        Args:
-            app_id: Steam app ID.
-            game: Optional game object to use for defaults.
-
-        Returns:
-            Dictionary containing metadata with defaults filled in.
-        """
+        """Get metadata for a single game with defaults from game object."""
         meta = self.appinfo_manager.get_app_metadata(app_id)
 
-        # Fill defaults from game object if provided
         if game:
             defaults = {
                 "name": game.name,
@@ -65,27 +41,12 @@ class MetadataService:
         return meta
 
     def set_game_metadata(self, app_id: str, metadata: dict[str, Any]) -> None:
-        """
-        Set metadata for a single game.
-
-        Args:
-            app_id: Steam app ID.
-            metadata: Dictionary containing metadata fields to set.
-        """
+        """Set metadata for a single game."""
         self.appinfo_manager.set_app_metadata(app_id, metadata)
         self.appinfo_manager.save_appinfo()
 
     def get_original_metadata(self, app_id: str, fallback: dict[str, Any] | None = None) -> dict[str, Any]:
-        """
-        Get original (unmodified) metadata for a game.
-
-        Args:
-            app_id: Steam app ID.
-            fallback: Optional fallback metadata if no original exists.
-
-        Returns:
-            Original metadata or fallback if not modified.
-        """
+        """Get original (unmodified) metadata for a game."""
         modifications = self.appinfo_manager.modifications.get(app_id, {})
         original = modifications.get("original", {})
 
@@ -94,78 +55,40 @@ class MetadataService:
 
         return original
 
-    # === BULK METADATA ===
-
     def apply_bulk_metadata(
         self, games: list[Game], metadata: dict[str, Any], name_modifications: dict[str, str] | None = None
     ) -> int:
-        """
-        Apply metadata changes to multiple games.
-
-        Args:
-            games: List of games to modify.
-            metadata: Metadata fields to set (without name_modifications).
-            name_modifications: Optional dict with 'prefix', 'suffix', 'remove'.
-
-        Returns:
-            Number of games modified.
-        """
+        """Apply metadata changes to multiple games."""
         if not games:
             return 0
 
         modified_count = 0
 
         for game in games:
-            # Apply name modifications if provided
             new_name = game.name
             if name_modifications:
                 new_name = self._apply_name_modifications(game.name, name_modifications)
 
-            # Create metadata dict for this game
             meta = metadata.copy()
             if new_name != game.name:
                 meta["name"] = new_name
                 meta["sort_as"] = new_name
 
-            # Set metadata
             self.appinfo_manager.set_app_metadata(game.app_id, meta)
             modified_count += 1
 
-        # Save once after all modifications
         self.appinfo_manager.save_appinfo()
 
         return modified_count
 
     @staticmethod
     def _apply_name_modifications(name: str, mods: dict[str, str]) -> str:
-        """Applies prefix, suffix, and remove modifications to a name.
-
-        Delegates to :func:`src.utils.name_utils.apply_name_modifications`.
-
-        Args:
-            name: Original name.
-            mods: Dictionary with optional ``prefix``, ``suffix``, ``remove`` keys.
-
-        Returns:
-            Modified name.
-        """
         from steam_library_manager.utils.name_utils import apply_name_modifications
 
         return apply_name_modifications(name, mods)
 
     def restore_games_to_original(self, games: list[Game]) -> int:
-        """Restore metadata to original values for specific games.
-
-        Removes the modification entries for each game so that the
-        original values from Steam are used again. This is the per-game
-        equivalent of ``clear_all_modifications()``.
-
-        Args:
-            games: List of games to restore.
-
-        Returns:
-            Number of games restored.
-        """
+        """Restore metadata to original values for specific games."""
         restored = 0
         for game in games:
             app_id = game.app_id
@@ -180,20 +103,8 @@ class MetadataService:
 
         return restored
 
-    # === MISSING METADATA ===
-
     def find_missing_metadata(self) -> list[Game]:
-        """
-        Find games with incomplete metadata.
-
-        A game is considered to have missing metadata if it lacks:
-        - Developer
-        - Publisher
-        - Release year
-
-        Returns:
-            List of games missing at least one metadata field.
-        """
+        """Find games missing developer, publisher, or release year."""
         affected = []
 
         for game in self.game_manager.get_real_games():
@@ -202,22 +113,10 @@ class MetadataService:
 
         return affected
 
-    # === RESTORE ===
-
     def get_modification_count(self) -> int:
-        """
-        Get number of games with modified metadata.
-
-        Returns:
-            Count of games with metadata modifications.
-        """
+        """Get number of games with modified metadata."""
         return self.appinfo_manager.get_modification_count()
 
     def restore_modifications(self) -> int:
-        """
-        Restore all metadata modifications to original values.
-
-        Returns:
-            Number of games restored.
-        """
+        """Restore all metadata modifications to original values."""
         return self.appinfo_manager.restore_modifications()

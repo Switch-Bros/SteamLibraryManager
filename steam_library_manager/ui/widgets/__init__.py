@@ -1,15 +1,10 @@
-"""
-UI Widgets Package.
-
-This package contains custom Qt widgets used throughout the application:
-- UIHelper: Static utility methods for common UI operations
-- GameTreeWidget: Custom tree widget for displaying game categories
-- ClickableImage: Clickable image widget with hover effects
-- InfoLabel: Styled key-value label + grid builder helper
-- HorizontalCategoryList: Category checkboxes with tri-state support
-- GameDetailsWidget: Detail panel (import directly to avoid circular deps)
-"""
-
+#
+# steam_library_manager/ui/widgets/__init__.py
+# UI widgets package
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 from __future__ import annotations
 
 from steam_library_manager.ui.widgets.category_list import HorizontalCategoryList

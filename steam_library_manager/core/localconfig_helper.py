@@ -1,14 +1,10 @@
+#
 # steam_library_manager/core/localconfig_helper.py
-
-"""
-LocalConfig Helper - Minimal VDF parser for Steam's localconfig.vdf
-
-Only handles:
-- Hidden status (games hidden from library)
-- Expanded/Collapsed state (category UI state in Steam client)
-
-Collections/Categories are managed by cloud_storage_parser!
-"""
+# Minimal localconfig.vdf parser for hidden status and expand/collapse state
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -28,27 +24,17 @@ class LocalConfigHelper:
     """Minimal helper for localconfig.vdf operations."""
 
     def __init__(self, config_path: str):
-        """Initialize the helper.
-
-        Args:
-            config_path: Path to localconfig.vdf file
-        """
         self.config_path = Path(config_path)
         self.data: dict = {}
         self.apps: dict = {}
         self.modified = False
 
     def load(self) -> bool:
-        """Load localconfig.vdf file.
-
-        Returns:
-            True if successful, False otherwise
-        """
+        """Load and parse localconfig.vdf."""
         try:
             with open(self.config_path, "r", encoding="utf-8") as f:
                 self.data = vdf.load(f)
 
-            # Navigate to Apps section
             steam_section = (
                 self.data.get("UserLocalConfigStore", {}).get("Software", {}).get("Valve", {}).get("Steam", {})
             )
@@ -64,11 +50,7 @@ class LocalConfigHelper:
             return False
 
     def save(self) -> bool:
-        """Save localconfig.vdf file.
-
-        Returns:
-            True if successful, False otherwise
-        """
+        """Write changes back to localconfig.vdf."""
         if not self.modified:
             return True
 
@@ -82,14 +64,10 @@ class LocalConfigHelper:
             logger.error(t("logs.localconfig.save_error", error=e))
             return False
 
-    # ===== HIDDEN STATUS =====
+    # Hidden status
 
     def get_hidden_apps(self) -> list[str]:
-        """Get list of hidden app IDs.
-
-        Returns:
-            List of app IDs that are hidden
-        """
+        """App IDs marked as hidden in the Steam client."""
         hidden = []
         for app_id, app_data in self.apps.items():
             if app_data.get("hidden", "0") == "1":
@@ -97,12 +75,6 @@ class LocalConfigHelper:
         return hidden
 
     def set_app_hidden(self, app_id: str, hidden: bool):
-        """Set hidden status for an app.
-
-        Args:
-            app_id: Steam app ID
-            hidden: True to hide, False to show
-        """
         app_id = str(app_id)
 
         if app_id not in self.apps:
@@ -111,17 +83,10 @@ class LocalConfigHelper:
         self.apps[app_id]["hidden"] = "1" if hidden else "0"
         self.modified = True
 
-    # ===== EXPANDED/COLLAPSED STATE =====
+    # Expanded/collapsed state
 
     def get_expanded_state(self, category_id: str) -> bool:
-        """Get expanded state for a category.
-
-        Args:
-            category_id: Category/collection ID
-
-        Returns:
-            True if expanded, False if collapsed
-        """
+        """Whether a category is expanded (default: True)."""
         if category_id not in self.apps:
             return True  # Default: expanded
 
@@ -130,12 +95,6 @@ class LocalConfigHelper:
         return expanded == "1"
 
     def set_expanded_state(self, category_id: str, expanded: bool):
-        """Set expanded state for a category.
-
-        Args:
-            category_id: Category/collection ID
-            expanded: True to expand, False to collapse
-        """
         if category_id not in self.apps:
             self.apps[category_id] = {}
 
@@ -146,11 +105,7 @@ class LocalConfigHelper:
         self.modified = True
 
     def get_all_expanded_states(self) -> dict[str, bool]:
-        """Get expanded states for all categories.
-
-        Returns:
-            Dictionary mapping category IDs to expanded state (True/False)
-        """
+        """Expanded state for all categories that have one."""
         states = {}
         for app_id, app_data in self.apps.items():
             cloud_state = app_data.get("CloudLocalAppState", {})
@@ -159,27 +114,14 @@ class LocalConfigHelper:
                 states[app_id] = expanded == "1"
         return states
 
-    # ===== ALL APP IDS =====
-
     def get_all_app_ids(self) -> list[str]:
-        """Returns all app IDs present in the localconfig Apps section.
-
-        Returns:
-            List of app ID strings.
-        """
+        """All app IDs in the localconfig Apps section."""
         return list(self.apps.keys())
 
-    # ===== CLEANUP =====
+    # Cleanup
 
     def remove_app(self, app_id: str) -> bool:
-        """Remove app entry from localconfig (cleanup ghost entries).
-
-        Args:
-            app_id: Steam app ID to remove
-
-        Returns:
-            True if app was removed, False if not found
-        """
+        """Remove an app entry (for ghost entry cleanup)."""
         app_id = str(app_id)
 
         if app_id in self.apps:

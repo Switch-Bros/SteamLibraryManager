@@ -2,7 +2,7 @@
 # steam_library_manager/ui/widgets/clickable_image.py
 # Clickable image widget with async loading and animated GIF support.
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

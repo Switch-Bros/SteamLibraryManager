@@ -2,7 +2,7 @@
 # steam_library_manager/core/steam_account.py
 # SteamAccount dataclass for user identity and display info
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

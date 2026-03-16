@@ -1,8 +1,10 @@
-"""Parser for existing non-Steam games in shortcuts.vdf.
-
-Wraps ShortcutsManager for duplicate detection. Does NOT
-duplicate VDF parsing logic — delegates to ShortcutsManager.
-"""
+#
+# steam_library_manager/integrations/external_games/shortcuts_vdf_parser.py
+# Parser for existing non-Steam games in shortcuts.vdf
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -23,67 +25,27 @@ logger = logging.getLogger("steamlibmgr.external_games.shortcuts_vdf")
 
 
 class ShortcutsVDFParser(BaseExternalParser):
-    """Read existing non-Steam games from shortcuts.vdf.
-
-    Wraps ShortcutsManager for uniform ExternalGame interface.
-    Used for duplicate detection when adding new shortcuts.
-    """
+    """Read existing non-Steam games from shortcuts.vdf."""
 
     def __init__(self, shortcuts_manager: ShortcutsManager) -> None:
-        """Initializes the parser.
-
-        Args:
-            shortcuts_manager: Configured ShortcutsManager instance.
-        """
         self._manager = shortcuts_manager
 
     def platform_name(self) -> str:
-        """Return platform name.
-
-        Returns:
-            Platform identifier.
-        """
         return "Steam (Non-Steam)"
 
     def is_available(self) -> bool:
-        """Check if shortcuts.vdf exists.
-
-        Returns:
-            True if the file is present.
-        """
         return self._manager.get_shortcuts_path().exists()
 
     def get_config_paths(self) -> list[Path]:
-        """Return shortcuts.vdf path.
-
-        Returns:
-            Single-element list with the shortcuts file path.
-        """
         return [self._manager.get_shortcuts_path()]
 
     def read_games(self) -> list[ExternalGame]:
-        """Read current shortcuts.vdf entries as ExternalGames.
-
-        Delegates to ShortcutsManager.read_shortcuts() internally,
-        then converts SteamShortcut to ExternalGame.
-
-        Returns:
-            List of existing non-Steam game entries.
-        """
+        """Read current shortcuts.vdf entries as ExternalGames."""
         shortcuts = self._manager.read_shortcuts()
         return [self._to_external_game(s) for s in shortcuts]
 
     @staticmethod
     def _to_external_game(shortcut: SteamShortcut) -> ExternalGame:
-        """Convert a SteamShortcut to ExternalGame.
-
-        Args:
-            shortcut: SteamShortcut from shortcuts.vdf.
-
-        Returns:
-            ExternalGame representation.
-        """
-        # Strip quotes from exe for display
         exe = shortcut.exe.strip('"')
 
         return ExternalGame(

@@ -1,11 +1,10 @@
+#
 # steam_library_manager/services/enrichment/tag_import_service.py
-
-"""Background worker for importing Steam tags from appinfo.vdf.
-
-Parses the binary appinfo.vdf file in a background thread, extracts
-store_tags (numeric TagIDs) for all games, resolves them to localized
-names via TagResolver, and bulk-inserts into the game_tags table.
-"""
+# Background worker for importing Steam tags from appinfo.vdf
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -36,7 +35,6 @@ class TagImportThread(QThread):
     error = pyqtSignal(str)
 
     def __init__(self, parent: Any = None) -> None:
-        """Initializes the TagImportThread."""
         super().__init__(parent)
         self._cancelled: bool = False
         self._steam_path: Path | None = None
@@ -49,13 +47,7 @@ class TagImportThread(QThread):
         db_path: Path,
         language: str = "en",
     ) -> None:
-        """Configure the import parameters.
-
-        Args:
-            steam_path: Path to Steam installation directory.
-            db_path: Path to the metadata database.
-            language: Language code for tag name resolution.
-        """
+        """Configure the import parameters."""
         self._steam_path = steam_path
         self._db_path = db_path
         self._language = language
@@ -84,7 +76,6 @@ class TagImportThread(QThread):
 
         self.progress.emit(t("ui.tag_import.loading_appinfo"), 0, 0)
 
-        # Load appinfo.vdf (the expensive operation)
         appinfo_mgr = AppInfoManager(self._steam_path)
         appinfo_mgr.load_appinfo()
 
@@ -97,14 +88,11 @@ class TagImportThread(QThread):
 
         self.progress.emit(t("ui.tag_import.extracting", total=total), 0, total)
 
-        # Open DB and ensure tag definitions are loaded
         db = Database(self._db_path)
         try:
             resolver = TagResolver(db)
             resolver.ensure_loaded()
 
-            # Only import tags for games that exist in our DB
-            # (appinfo.vdf has ~5000 apps, games table may have fewer)
             known_app_ids = db.get_all_app_ids()
             logger.info(
                 "Filtering tags: %d apps in appinfo, %d in games table",
@@ -112,7 +100,6 @@ class TagImportThread(QThread):
                 len(known_app_ids),
             )
 
-            # Extract store_tags + review data from each app
             batch: list[tuple[int, int, str]] = []
             review_batch: list[tuple[int, int]] = []
             games_with_tags = 0
@@ -130,7 +117,6 @@ class TagImportThread(QThread):
                         total,
                     )
 
-                # Skip apps not in our games table (FK constraint)
                 if app_id not in known_app_ids:
                     continue
 
@@ -139,7 +125,6 @@ class TagImportThread(QThread):
                 if not common:
                     continue
 
-                # Extract review_percentage (0-100) and store in DB
                 review_pct = common.get("review_percentage")
                 if review_pct is not None:
                     try:
@@ -151,7 +136,6 @@ class TagImportThread(QThread):
                 if not store_tags or not isinstance(store_tags, dict):
                     continue
 
-                # store_tags is {"0": "19", "1": "122", ...} or {"0": 19, "1": 122, ...}
                 tag_ids = self._extract_tag_ids(store_tags)
                 if not tag_ids:
                     continue
@@ -162,18 +146,15 @@ class TagImportThread(QThread):
                     if name:
                         batch.append((app_id, tag_id, name))
 
-                # Commit in batches of 5000 to avoid huge transactions
                 if len(batch) >= 5000:
                     db.bulk_insert_game_tags_by_id(batch)
                     db.commit()
                     batch.clear()
 
-            # Final tag batch
             if batch:
                 db.bulk_insert_game_tags_by_id(batch)
                 db.commit()
 
-            # Persist review percentages to games table
             if review_batch:
                 db.bulk_update_review_percentages(review_batch)
                 db.commit()
@@ -192,16 +173,6 @@ class TagImportThread(QThread):
 
     @staticmethod
     def _extract_tag_ids(store_tags: dict) -> list[int]:
-        """Extract numeric TagIDs from the store_tags dict.
-
-        appinfo.vdf stores tags as {"0": "19", "1": "122"} or {"0": 19, "1": 122}.
-
-        Args:
-            store_tags: The store_tags dictionary from appinfo.vdf common section.
-
-        Returns:
-            List of numeric TagIDs.
-        """
         tag_ids: list[int] = []
         for value in store_tags.values():
             try:

@@ -1,9 +1,10 @@
-"""Text VDF exporter for human-readable collection output.
-
-Exports Steam collections as formatted VDF text files for debugging,
-backup, and manual inspection purposes.
-"""
-
+#
+# steam_library_manager/utils/vdf_exporter.py
+# VDF text export for Steam collections
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 from __future__ import annotations
 
 import logging
@@ -18,26 +19,11 @@ __all__ = ["VDFTextExporter"]
 
 
 class VDFTextExporter:
-    """Exports Steam collections as human-readable VDF text files.
-
-    Uses the ``vdf`` library's ``dumps()`` function to produce correctly
-    formatted Valve Data Format output.
-    """
+    """Exports Steam collections as human-readable VDF text files."""
 
     @staticmethod
     def export_collections(collections: list[dict[str, Any]], output_path: Path) -> None:
-        """Exports a list of collection dicts to a VDF text file.
-
-        Each collection is expected to have at least a ``name`` key and
-        optionally ``added`` (list of app IDs) and ``id`` keys.
-
-        Args:
-            collections: List of collection dicts from cloud storage.
-            output_path: Path to write the VDF text file.
-
-        Raises:
-            OSError: If the file cannot be written.
-        """
+        """Export a list of collection dicts to a VDF text file."""
         vdf_data: dict[str, Any] = {"collections": {}}
 
         for idx, coll in enumerate(collections):
@@ -51,7 +37,6 @@ class VDFTextExporter:
                 "count": str(len(added)),
             }
 
-            # Add app IDs as numbered entries
             for app_idx, app_id in enumerate(added):
                 coll_entry[str(app_idx)] = str(app_id)
 

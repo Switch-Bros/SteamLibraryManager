@@ -2,7 +2,7 @@
 # steam_library_manager/utils/timeouts.py
 # Central timeout and delay constants for network, DB, and UI operations.
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

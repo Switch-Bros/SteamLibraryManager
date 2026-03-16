@@ -2,7 +2,7 @@
 # steam_library_manager/services/game_query_service.py
 # Read-only query service for game data.
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

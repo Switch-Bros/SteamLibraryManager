@@ -2,7 +2,7 @@
 # steam_library_manager/integrations/external_games/bottles_parser.py
 # Detects programs from Bottles wine prefixes via bottle.yml and library.yml
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

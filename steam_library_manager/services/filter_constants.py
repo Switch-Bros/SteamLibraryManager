@@ -2,7 +2,7 @@
 # steam_library_manager/services/filter_constants.py
 # Constants and enums for the view-menu filter system
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

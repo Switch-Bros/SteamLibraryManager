@@ -2,7 +2,7 @@
 # steam_library_manager/services/external_games_service.py
 # External game scanning and Steam shortcut integration
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

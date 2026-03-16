@@ -1,8 +1,10 @@
-"""Parser for Flatpak-installed game applications.
-
-Uses the flatpak CLI to list installed applications and filters
-out known non-game prefixes.
-"""
+#
+# steam_library_manager/integrations/external_games/flatpak_parser.py
+# Parser for Flatpak-installed game applications
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -49,27 +51,13 @@ class FlatpakParser(BaseExternalParser):
     """Parser for Flatpak-installed game applications."""
 
     def platform_name(self) -> str:
-        """Return platform name.
-
-        Returns:
-            Platform identifier.
-        """
         return "Flatpak"
 
     def is_available(self) -> bool:
-        """Check if the flatpak command is available.
-
-        Returns:
-            True if flatpak CLI is found.
-        """
         return shutil.which("flatpak") is not None
 
     def read_games(self) -> list[ExternalGame]:
-        """Read installed Flatpak applications, filtering non-games.
-
-        Returns:
-            List of Flatpak apps that might be games.
-        """
+        """Read installed Flatpak applications, filtering non-games."""
         if not self.is_available():
             return []
 
@@ -119,12 +107,4 @@ class FlatpakParser(BaseExternalParser):
 
     @staticmethod
     def _is_non_game(app_id: str) -> bool:
-        """Check if a Flatpak app ID belongs to a known non-game.
-
-        Args:
-            app_id: Flatpak application identifier.
-
-        Returns:
-            True if the app is a known non-game.
-        """
         return any(app_id.startswith(prefix) for prefix in _NON_GAME_PREFIXES)

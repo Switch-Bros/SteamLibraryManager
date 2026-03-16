@@ -2,7 +2,7 @@
 # steam_library_manager/services/enrichment/protondb_enrichment_service.py
 # Background enrichment worker for ProtonDB ratings.
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

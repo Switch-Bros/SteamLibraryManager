@@ -2,7 +2,7 @@
 # steam_library_manager/utils/name_utils.py
 # Name modification utilities for game metadata
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

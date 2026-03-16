@@ -2,7 +2,7 @@
 # steam_library_manager/services/enrichment/achievement_enrichment_service.py
 # Background thread for Steam Achievement enrichment
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

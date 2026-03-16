@@ -1,11 +1,10 @@
-"""Database module — split from monolithic database.py.
-
-All mixins compose into the Database class via multiple inheritance.
-The MRO (Method Resolution Order) ensures ConnectionBase.__init__
-runs first, then SchemaMixin._ensure_schema() creates/migrates
-the schema.
-"""
-
+#
+# steam_library_manager/core/db/__init__.py
+# Database package
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 from __future__ import annotations
 
 from steam_library_manager.core.db.connection import ConnectionBase
@@ -44,11 +43,6 @@ class Database(
     CuratorMixin,
     ConnectionBase,
 ):
-    """Main database class composing all query mixins.
-
-    Inherits connection management from ConnectionBase,
-    schema handling from SchemaMixin, and all query methods
-    from the remaining mixins.
-    """
+    """Main database class composing all query mixins."""
 
     pass

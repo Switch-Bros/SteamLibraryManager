@@ -1,9 +1,10 @@
-"""Background thread for curator recommendation enrichment.
-
-Fetches recommendations for all configured curators and persists
-them to the database. Unlike other enrichment threads that iterate
-games (3000+), this iterates curators (5-20).
-"""
+#
+# steam_library_manager/services/enrichment/curator_enrichment_service.py
+# Background thread for curator recommendation enrichment
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -33,13 +34,7 @@ class CuratorEnrichmentThread(BaseEnrichmentThread):
         db_path: Path,
         force_refresh: bool = False,
     ) -> None:
-        """Configures the thread with curator list and database path.
-
-        Args:
-            curators: List of curator dicts from DB.
-            db_path: Path to SQLite database.
-            force_refresh: If True, refresh all curators regardless of age.
-        """
+        """Configure the thread with curator list and database path."""
         self._curators = curators
         self._db_path = db_path
         self._force_refresh = force_refresh
@@ -54,28 +49,15 @@ class CuratorEnrichmentThread(BaseEnrichmentThread):
         self._client = CuratorClient()
 
     def _cleanup(self) -> None:
-        """Closes database connection."""
         if self._db is not None:
             self._db.close()
             self._db = None
 
     def _get_items(self) -> list[dict[str, Any]]:
-        """Returns curators to process.
-
-        Returns:
-            List of curator dicts.
-        """
         return self._curators
 
     def _process_item(self, item: dict[str, Any]) -> bool:
-        """Fetches and persists recommendations for one curator.
-
-        Args:
-            item: Curator dict with keys: curator_id, name, url.
-
-        Returns:
-            True on success, False on failure.
-        """
+        """Fetch and persist recommendations for one curator."""
         from steam_library_manager.services.curator_client import CuratorRecommendation
 
         curator_id = item["curator_id"]
@@ -85,7 +67,6 @@ class CuratorEnrichmentThread(BaseEnrichmentThread):
         try:
             all_recs = self._client.fetch_recommendations(url)
 
-            # Filter: only "Recommended" (design decision)
             recommended_ids = [
                 app_id for app_id, rec_type in all_recs.items() if rec_type == CuratorRecommendation.RECOMMENDED
             ]
@@ -106,16 +87,6 @@ class CuratorEnrichmentThread(BaseEnrichmentThread):
             return False
 
     def _format_progress(self, item: Any, current: int, total: int) -> str:
-        """Formats a progress message for the current curator.
-
-        Args:
-            item: The curator dict being processed.
-            current: 1-based index.
-            total: Total curators.
-
-        Returns:
-            Formatted progress string.
-        """
         name = item.get("name", "?")
         return t(
             "ui.enrichment.curator_progress",
@@ -125,5 +96,4 @@ class CuratorEnrichmentThread(BaseEnrichmentThread):
         )
 
     def _rate_limit(self) -> None:
-        """Sleeps between curators to respect Steam rate limits."""
         time.sleep(2.0)

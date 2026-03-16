@@ -2,7 +2,7 @@
 # steam_library_manager/integrations/protondb_api.py
 # ProtonDB API client for Linux compatibility ratings
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

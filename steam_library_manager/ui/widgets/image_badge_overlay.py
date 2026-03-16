@@ -1,9 +1,10 @@
-"""Badge overlay system for ClickableImage (SteamGridDB-style).
-
-Provides an animated badge strip that sits above image covers.
-Normal state: thin colored stripes at top edge.
-On hover: badges expand downward to reveal full icons.
-"""
+#
+# steam_library_manager/ui/widgets/image_badge_overlay.py
+# Animated badge overlay for image covers (stripes expand to icons on hover).
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -27,28 +28,14 @@ _STRIPE_GAP: int = 2
 
 
 class ImageBadgeOverlay(QWidget):
-    """Animated badge overlay widget for image covers.
-
-    Creates colored stripe hints at the top of a cover image that
-    expand into full badge icons on mouse hover.
-
-    Attributes:
-        badges: List of badge icon widgets currently displayed.
-    """
+    """Animated badge overlay that expands from stripes to icons on hover."""
 
     def __init__(self, parent: QWidget, width: int) -> None:
-        """Initializes the badge overlay.
-
-        Args:
-            parent: Parent widget (the ClickableImage).
-            width: Width of the parent image widget.
-        """
         super().__init__(parent)
         self._width = width
         self.badges: list[QWidget] = []
         self._badge_colors: list[str] = []
 
-        # Positioned 6px above the image top edge
         self.setGeometry(0, -6, width, _EXPANDED_HEIGHT)
         self.raise_()
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
@@ -58,7 +45,6 @@ class ImageBadgeOverlay(QWidget):
         overlay_layout.setSpacing(_BADGE_GAP)
         overlay_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # Stripe row — always visible (thin colored bars)
         self._stripe_container = QWidget()
         stripe_layout = QHBoxLayout(self._stripe_container)
         stripe_layout.setContentsMargins(0, 0, 0, 0)
@@ -67,7 +53,6 @@ class ImageBadgeOverlay(QWidget):
         self._stripe_container.setFixedHeight(_STRIPE_HEIGHT)
         overlay_layout.addWidget(self._stripe_container)
 
-        # Icon row — only visible on hover
         self._icon_container = QWidget()
         icon_layout = QHBoxLayout(self._icon_container)
         icon_layout.setContentsMargins(0, 0, 0, 0)
@@ -75,19 +60,12 @@ class ImageBadgeOverlay(QWidget):
         icon_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
         overlay_layout.addWidget(self._icon_container)
 
-        # Geometry animation for expand/collapse
         self._animation = QPropertyAnimation(self, b"geometry")
         self._animation.setEasingCurve(QEasingCurve.Type.OutCubic)
         self._animation.setDuration(180)
 
     def create_badges(self, metadata: dict | None, is_animated: bool = False) -> None:
-        """Creates badge stripes and icons from metadata.
-
-        Args:
-            metadata: Game metadata dict with optional 'tags', 'nsfw',
-                'humor', 'epilepsy' keys.
-            is_animated: Whether the loaded image is animated (GIF/APNG/WEBM).
-        """
+        """Creates badge stripes and icons from game metadata."""
         self.clear_badges()
         if not metadata:
             return
@@ -129,13 +107,11 @@ class ImageBadgeOverlay(QWidget):
         icon_layout: QHBoxLayout = cast(QHBoxLayout, self._icon_container.layout())
 
         for type_key, text, bg_color in active_badges:
-            # Stripe (always visible, square)
             stripe = QWidget()
             stripe.setFixedSize(_STRIPE_WIDTH, _STRIPE_HEIGHT)
             stripe.setStyleSheet(f"background-color: {bg_color};")
             stripe_layout.addWidget(stripe)
 
-            # Icon (visible on hover)
             icon_path = config.ICONS_DIR / f"flag_{type_key}.png"
             if icon_path.exists():
                 lbl = QLabel()
@@ -151,7 +127,6 @@ class ImageBadgeOverlay(QWidget):
                     "}"
                 )
             else:
-                # Fallback: text badge when no PNG available
                 lbl = QLabel(text)
                 lbl.setFixedSize(_STRIPE_WIDTH, _ICON_HEIGHT)
                 lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -166,7 +141,6 @@ class ImageBadgeOverlay(QWidget):
             self._badge_colors.append(bg_color)
             self.badges.append(lbl)
 
-        # Start collapsed — only stripes visible
         self.setGeometry(0, 0, self._width, _STRIPE_HEIGHT)
 
     def clear_badges(self) -> None:
@@ -197,11 +171,6 @@ class ImageBadgeOverlay(QWidget):
             self._animate_to(_STRIPE_HEIGHT)
 
     def _animate_to(self, target_height: int) -> None:
-        """Animates overlay geometry to target height.
-
-        Args:
-            target_height: The target height in pixels.
-        """
         self._animation.stop()
         current: QRect = self.geometry()
         self._animation.setStartValue(current)

@@ -2,7 +2,7 @@
 # steam_library_manager/ui/dialogs/about_dialog.py
 # Professional About dialog with two-column layout.
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

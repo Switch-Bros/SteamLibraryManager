@@ -1,8 +1,10 @@
-"""Background thread for Steam Deck compatibility status enrichment.
-
-Fetches deck compatibility data from Valve's API for games that are
-missing a deck status. Rate-limited to ~1 request/second.
-"""
+#
+# steam_library_manager/services/enrichment/deck_enrichment_service.py
+# Background thread for Steam Deck compatibility status enrichment
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -33,7 +35,6 @@ class DeckEnrichmentThread(BaseEnrichmentThread):
     """
 
     def __init__(self, parent: Any = None) -> None:
-        """Initializes the DeckEnrichmentThread."""
         super().__init__(parent)
         self._games: list[Game] = []
         self._cache_dir: Path = Path()
@@ -45,37 +46,19 @@ class DeckEnrichmentThread(BaseEnrichmentThread):
         cache_dir: Path,
         force_refresh: bool = False,
     ) -> None:
-        """Configures the thread with games and cache directory.
-
-        Args:
-            games: List of games to enrich (should be pre-filtered to those missing status).
-            cache_dir: Base cache directory (store_data subdirectory will be used).
-            force_refresh: If True, re-process all games instead of only missing.
-        """
+        """Configure the thread with games and cache directory."""
         self._games = games
         self._cache_dir = cache_dir
         self._force_refresh = force_refresh
 
-    # ── BaseEnrichmentThread hooks ──────────────────────
-
     def _setup(self) -> None:
-        """Creates the store_data cache directory."""
         self._store_cache_dir = self._cache_dir / "store_data"
         self._store_cache_dir.mkdir(parents=True, exist_ok=True)
 
     def _get_items(self) -> list:
-        """Returns the list of games to enrich."""
         return self._games
 
     def _process_item(self, item: Any) -> bool:
-        """Fetches the Steam Deck status for a single game.
-
-        Args:
-            item: A Game instance.
-
-        Returns:
-            True if a valid status was fetched and applied.
-        """
         game: Game = item
         status = self._fetch_deck_status(game.app_id, self._store_cache_dir)
         if status:
@@ -84,34 +67,12 @@ class DeckEnrichmentThread(BaseEnrichmentThread):
         return False
 
     def _format_progress(self, item: Any, current: int, total: int) -> str:
-        """Formats progress text with the game name.
-
-        Args:
-            item: A Game instance.
-            current: 1-based current index.
-            total: Total games count.
-
-        Returns:
-            Formatted progress string.
-        """
         game: Game = item
         return t("ui.enrichment.progress", name=game.name[:30], current=current, total=total)
 
     def _rate_limit(self) -> None:
-        """Sleeps 1 second between API requests."""
         time.sleep(_RATE_LIMIT_DELAY)
-
-    # ── Internal ────────────────────────────────────────
 
     @staticmethod
     def _fetch_deck_status(app_id: str, cache_dir: Path) -> str | None:
-        """Fetches the Steam Deck status for a single game from Valve's API.
-
-        Args:
-            app_id: The Steam app ID.
-            cache_dir: Directory for storing JSON cache files.
-
-        Returns:
-            The deck status string ("verified", "playable", etc.), or None on failure.
-        """
         return fetch_deck_compatibility(app_id, cache_dir)

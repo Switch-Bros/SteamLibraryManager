@@ -2,7 +2,7 @@
 # steam_library_manager/ui/dialogs/settings_dialog.py
 # Tabbed settings dialog for language, paths, tags, backups, and API keys
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

@@ -1,11 +1,10 @@
+#
 # steam_library_manager/utils/csv_exporter.py
-
-"""CSV export utilities for game data.
-
-Provides simple (name + playtime) and full (all metadata) CSV export
-formats for the Steam Library Manager.
-"""
-
+# CSV export for game data (simple and full formats)
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 from __future__ import annotations
 
 import csv
@@ -23,7 +22,6 @@ logger = logging.getLogger("steamlibmgr.csv_exporter")
 
 __all__ = ["CSVExporter"]
 
-# Ordered dict keys matching the full CSV headers
 _FULL_EXPORT_KEYS: tuple[str, ...] = (
     "name",
     "app_id",
@@ -76,7 +74,7 @@ _FULL_HEADERS: tuple[str, ...] = (
 
 
 def _flatten_value(value: Any) -> Any:
-    """Flattens a value for CSV output: lists joined, None to empty string."""
+    """Lists joined by '; ', None to empty string."""
     if isinstance(value, list):
         return "; ".join(str(v) for v in value)
     if value is None:
@@ -85,11 +83,7 @@ def _flatten_value(value: Any) -> Any:
 
 
 class CSVExporter:
-    """Exports game lists as CSV files in two formats.
-
-    Simple format: Name, App ID, Playtime (hours)
-    Full format: All available metadata fields
-    """
+    """Exports game lists as CSV files in simple or full format."""
 
     @staticmethod
     def _export(
@@ -98,14 +92,7 @@ class CSVExporter:
         headers: tuple[str, ...],
         row_fn: Callable[[Game], list[Any]],
     ) -> None:
-        """Shared CSV export logic: mkdir, write header, sort, write rows.
-
-        Args:
-            games: List of games to export.
-            output_path: Path to write the CSV file.
-            headers: Column header names.
-            row_fn: Function that converts a Game to a list of row values.
-        """
+        """Shared CSV export logic: mkdir, write header, sort, write rows."""
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_path, "w", newline="", encoding="utf-8") as fh:
             writer = csv.writer(fh)
@@ -116,17 +103,7 @@ class CSVExporter:
 
     @staticmethod
     def export_simple(games: list[Game], output_path: Path) -> None:
-        """Exports a simple CSV with basic game info.
-
-        Columns: Name, App ID, Playtime (hours)
-
-        Args:
-            games: List of games to export.
-            output_path: Path to write the CSV file.
-
-        Raises:
-            OSError: If the file cannot be written.
-        """
+        """Export a simple CSV with Name, App ID, Playtime columns."""
         CSVExporter._export(
             games,
             output_path,
@@ -136,15 +113,7 @@ class CSVExporter:
 
     @staticmethod
     def export_full(games: list[Game], output_path: Path) -> None:
-        """Exports a full CSV with all available metadata.
-
-        Args:
-            games: List of games to export.
-            output_path: Path to write the CSV file.
-
-        Raises:
-            OSError: If the file cannot be written.
-        """
+        """Export a full CSV with all available metadata."""
 
         def row_fn(game: Game) -> list[Any]:
             d = game_to_export_dict(game)

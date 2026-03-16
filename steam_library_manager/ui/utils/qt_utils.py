@@ -2,7 +2,7 @@
 # steam_library_manager/ui/utils/qt_utils.py
 # Low-level Qt utilities for layout and widget manipulation.
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

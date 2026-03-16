@@ -6,7 +6,7 @@
 # Original: https://github.com/ValvePython/vdf
 # Copyright (c) 2015 Rossen Georgiev <rossen@rgp.io>
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

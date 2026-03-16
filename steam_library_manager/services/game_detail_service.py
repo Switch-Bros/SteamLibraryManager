@@ -2,7 +2,7 @@
 # steam_library_manager/services/game_detail_service.py
 # On-demand fetching and caching of external game data (store, HLTB, achievements)
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

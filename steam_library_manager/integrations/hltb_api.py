@@ -2,7 +2,7 @@
 # steam_library_manager/integrations/hltb_api.py
 # HowLongToBeat API client with endpoint discovery and auth handling
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

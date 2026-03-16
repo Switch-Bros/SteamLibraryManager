@@ -1,8 +1,10 @@
-"""Smart collection database operations.
-
-Handles CRUD for smart (rule-based) collections and their
-game memberships.
-"""
+#
+# steam_library_manager/core/db/smart_collection_queries.py
+# CRUD for smart (rule-based) collections and game memberships
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -15,23 +17,10 @@ __all__ = ["SmartCollectionMixin"]
 
 
 class SmartCollectionMixin:
-    """Mixin providing smart collection operations.
-
-    Requires ConnectionBase attributes: conn.
-    """
+    """Smart collection operations. Requires ``conn``."""
 
     def create_smart_collection(self, name: str, description: str, icon: str, rules_json: str) -> int:
-        """Creates a new smart collection in the database.
-
-        Args:
-            name: Collection name (must be unique).
-            description: Optional description.
-            icon: Emoji icon.
-            rules_json: JSON string with logic and rules.
-
-        Returns:
-            The new collection_id.
-        """
+        """Insert a new smart collection. Returns the new collection_id."""
         cursor = self.conn.execute(
             """
             INSERT INTO user_collections (name, description, icon, is_smart, rules, created_at)
@@ -44,15 +33,6 @@ class SmartCollectionMixin:
     def update_smart_collection(
         self, collection_id: int, name: str, description: str, icon: str, rules_json: str
     ) -> None:
-        """Updates an existing smart collection.
-
-        Args:
-            collection_id: The collection to update.
-            name: New name.
-            description: New description.
-            icon: New icon.
-            rules_json: New rules JSON string.
-        """
         self.conn.execute(
             """
             UPDATE user_collections
@@ -63,11 +43,7 @@ class SmartCollectionMixin:
         )
 
     def delete_smart_collection(self, collection_id: int) -> None:
-        """Deletes a smart collection and its game associations.
-
-        Args:
-            collection_id: The collection to delete.
-        """
+        """Delete collection and its game associations."""
         self.conn.execute(
             "DELETE FROM collection_games WHERE collection_id = ?",
             (collection_id,),
@@ -78,14 +54,6 @@ class SmartCollectionMixin:
         )
 
     def get_smart_collection(self, collection_id: int) -> dict | None:
-        """Retrieves a single smart collection by ID.
-
-        Args:
-            collection_id: The collection to retrieve.
-
-        Returns:
-            Dict with collection fields, or None if not found.
-        """
         cursor = self.conn.execute(
             "SELECT * FROM user_collections WHERE collection_id = ? AND is_smart = 1",
             (collection_id,),
@@ -97,24 +65,12 @@ class SmartCollectionMixin:
         return dict(zip(columns, row))
 
     def get_all_smart_collections(self) -> list[dict]:
-        """Retrieves all smart collections ordered by name.
-
-        Returns:
-            List of dicts with collection fields.
-        """
+        """All smart collections, ordered by name."""
         cursor = self.conn.execute("SELECT * FROM user_collections WHERE is_smart = 1 ORDER BY name")
         columns = [desc[0] for desc in cursor.description]
         return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
     def get_smart_collection_by_name(self, name: str) -> dict | None:
-        """Retrieves a smart collection by name.
-
-        Args:
-            name: The collection name.
-
-        Returns:
-            Dict with collection fields, or None if not found.
-        """
         cursor = self.conn.execute(
             "SELECT * FROM user_collections WHERE name = ? AND is_smart = 1",
             (name,),
@@ -126,15 +82,7 @@ class SmartCollectionMixin:
         return dict(zip(columns, row))
 
     def populate_smart_collection(self, collection_id: int, app_ids: list[int]) -> int:
-        """Replaces the game membership of a smart collection.
-
-        Args:
-            collection_id: The collection to populate.
-            app_ids: List of app IDs that match the collection rules.
-
-        Returns:
-            Number of games added.
-        """
+        """Replace collection membership with the given app_ids."""
         self.conn.execute(
             "DELETE FROM collection_games WHERE collection_id = ?",
             (collection_id,),
@@ -151,14 +99,7 @@ class SmartCollectionMixin:
         return len(app_ids)
 
     def get_smart_collection_games(self, collection_id: int) -> list[int]:
-        """Retrieves all app IDs in a smart collection.
-
-        Args:
-            collection_id: The collection to query.
-
-        Returns:
-            List of app IDs.
-        """
+        """All app IDs belonging to this collection."""
         cursor = self.conn.execute(
             "SELECT app_id FROM collection_games WHERE collection_id = ?",
             (collection_id,),

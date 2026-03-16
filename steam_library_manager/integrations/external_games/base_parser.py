@@ -1,8 +1,10 @@
-"""Abstract base class for external game platform parsers.
-
-All platform parsers inherit from BaseExternalParser and implement
-platform_name(), is_available(), and read_games().
-"""
+#
+# steam_library_manager/integrations/external_games/base_parser.py
+# Abstract base class for external game platform parsers
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -19,53 +21,26 @@ logger = logging.getLogger("steamlibmgr.external_games")
 
 
 class BaseExternalParser(ABC):
-    """Abstract base class for external game platform parsers.
-
-    Provides common path-detection logic and error handling.
-    Subclasses implement platform-specific game reading.
-    """
+    """Abstract base class for external game platform parsers."""
 
     @abstractmethod
     def platform_name(self) -> str:
-        """Return human-readable platform name.
-
-        Returns:
-            Platform identifier string.
-        """
+        """Return human-readable platform name."""
 
     @abstractmethod
     def is_available(self) -> bool:
-        """Check if this platform is installed/accessible.
-
-        Returns:
-            True if the platform's data files or commands are available.
-        """
+        """Check if this platform is installed/accessible."""
 
     @abstractmethod
     def read_games(self) -> list[ExternalGame]:
-        """Read all installed games from this platform.
-
-        Returns:
-            List of detected games, empty if none found or unavailable.
-        """
+        """Read all installed games from this platform."""
 
     def get_config_paths(self) -> list[Path]:
-        """Return all possible config paths (native + Flatpak).
-
-        Override in subclasses to provide platform-specific paths.
-        Order by priority (native first, then Flatpak).
-
-        Returns:
-            List of paths to check.
-        """
+        """Return all possible config paths (native + Flatpak)."""
         return []
 
     def _find_config_file(self) -> Path | None:
-        """Find the first existing config file from get_config_paths().
-
-        Returns:
-            Path to the first existing config file, or None.
-        """
+        """Find the first existing config file from get_config_paths()."""
         for path in self.get_config_paths():
             if path.exists():
                 logger.debug("Found %s config: %s", self.platform_name(), path)
@@ -73,14 +48,7 @@ class BaseExternalParser(ABC):
         return None
 
     def _open_readonly_db(self, db_path: Path) -> sqlite3.Connection | None:
-        """Opens a SQLite database in read-only mode with Row factory.
-
-        Args:
-            db_path: Path to the SQLite database file.
-
-        Returns:
-            Connection with Row factory set, or None on error.
-        """
+        """Open a SQLite database in read-only mode with Row factory."""
         try:
             conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
             conn.row_factory = sqlite3.Row

@@ -2,7 +2,7 @@
 # steam_library_manager/utils/json_utils.py
 # Centralized JSON file I/O with consistent error handling
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

@@ -2,7 +2,7 @@
 # steam_library_manager/services/autocategorize_service.py
 # Auto-categorization service using attribute and bucket engines
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

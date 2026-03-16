@@ -2,7 +2,7 @@
 # steam_library_manager/core/logging.py
 # Centralized logging configuration with console and optional file output
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

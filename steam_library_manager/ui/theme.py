@@ -2,7 +2,7 @@
 # steam_library_manager/ui/theme.py
 # Centralized theme constants and style factory.
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 
@@ -14,9 +14,7 @@ __all__ = ["Theme"]
 class Theme:
     """Central color and style definitions for the application."""
 
-    # Layer 1: Palette - Raw colors
-
-    # Blues (Steam's signature dark blue family)
+    # Blues
     STEAM_DARK = "#1b2838"
     STEAM_BLUE = "#2a3f5f"
     STEAM_DEEP = "#171a21"
@@ -40,7 +38,7 @@ class Theme:
     YELLOW = "#FDE100"
     ORANGE = "#FFA500"
 
-    # ProtonDB tier colors (official ProtonDB palette)
+    # ProtonDB tier colors
     PROTON_PLATINUM = "#B4C7D9"
     PROTON_GOLD = "#FDE100"
     PROTON_SILVER = "#C0C0C0"
@@ -60,8 +58,6 @@ class Theme:
     TEXT_LIGHT = "#c7d5e0"
     TEXT_WHITE = "#ffffff"
     TEXT_DARK = "#e0e0e0"
-
-    # Layer 2: Semantic - Purpose-based aliases
 
     # Backgrounds
     BG_PRIMARY = STEAM_DARK
@@ -87,7 +83,7 @@ class Theme:
     TEXT_PRIMARY = TEXT_LIGHT
     TEXT_MUTED = GRAY_MUTED
 
-    # Feature-specific (easy to change independently!)
+    # Feature-specific
     ACHIEVEMENT_GOLD = YELLOW
     PEGI_HOVER = YELLOW
     MODIFIED_FIELD_BG = "#3a2a00"
@@ -96,7 +92,7 @@ class Theme:
     LOGIN_BUTTON = STEAM_GREEN
     LOGIN_BUTTON_HOVER = STEAM_GREEN_HOVER
 
-    # ProtonDB tier aliases (change individually if needed!)
+    # ProtonDB tier aliases
     PROTONDB_PLATINUM = PROTON_PLATINUM
     PROTONDB_GOLD = PROTON_GOLD
     PROTONDB_SILVER = PROTON_SILVER
@@ -111,8 +107,6 @@ class Theme:
     STEAMDECK_PLAYABLE = DECK_PLAYABLE
     STEAMDECK_UNSUPPORTED = DECK_UNSUPPORTED
     STEAMDECK_UNKNOWN = DECK_UNKNOWN
-
-    # Color dicts for lookup by tier/status string
 
     PROTONDB_COLORS: dict[str, str] = {
         "platinum": PROTON_PLATINUM,
@@ -131,8 +125,6 @@ class Theme:
         "unsupported": DECK_UNSUPPORTED,
         "unknown": DECK_UNKNOWN,
     }
-
-    # Style factories
 
     @staticmethod
     def button_danger() -> str:
@@ -195,7 +187,6 @@ class Theme:
         """Stylesheet for metadata fields that have been modified."""
         return f"border: 2px solid {Theme.MODIFIED_FIELD_BORDER};"
 
-    # Style constants for consistent UI
     STYLE_HINT = "color: gray; font-style: italic;"
     STYLE_WARNING = "color: orange;"
     STYLE_SUCCESS = "color: green; font-weight: bold;"
