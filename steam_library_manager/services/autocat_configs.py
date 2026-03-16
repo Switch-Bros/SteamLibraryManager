@@ -6,13 +6,6 @@
 # Licensed under the MIT License. See LICENSE for details.
 #
 
-#
-# steam_library_manager/services/autocat_configs.py
-# Configuration dataclasses and constants for auto-categorization
-#
-# Copyright © 2025-2026 SwitchBros
-# Licensed under the MIT License. See LICENSE for details.
-#
 
 from __future__ import annotations
 

@@ -6,13 +6,6 @@
 # Licensed under the MIT License. See LICENSE for details.
 #
 
-#
-# steam_library_manager/utils/export_utils.py
-# Shared helpers for CSV, JSON, and other export formats
-#
-# Copyright © 2025-2026 SwitchBros
-# Licensed under the MIT License. See LICENSE for details.
-#
 
 from __future__ import annotations
 

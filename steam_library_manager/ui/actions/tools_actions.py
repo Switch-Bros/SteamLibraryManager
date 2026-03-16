@@ -6,13 +6,6 @@
 # Licensed under the MIT License. See LICENSE for details.
 #
 
-#
-# steam_library_manager/ui/actions/tools_actions.py
-# Handles tool-related actions like metadata search and store checks
-#
-# Copyright © 2025-2026 SwitchBros
-# Licensed under the MIT License. See LICENSE for details.
-#
 
 from __future__ import annotations
 

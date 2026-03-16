@@ -191,7 +191,7 @@ class MetadataEditDialog(BaseDialog):
         display value. Applies modified styling if different, clears it
         if identical.
         """
-        modified_style = Theme.modified_field()
+        modified_style = Theme.mod_field()
         na = t("ui.game_details.value_unknown")
 
         fields = [

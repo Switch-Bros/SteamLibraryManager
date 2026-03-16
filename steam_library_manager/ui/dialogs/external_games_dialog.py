@@ -6,13 +6,6 @@
 # Licensed under the MIT License. See LICENSE for details.
 #
 
-#
-# steam_library_manager/ui/dialogs/external_games_dialog.py
-# Dialog for managing external (non-Steam) games
-#
-# Copyright © 2025-2026 SwitchBros
-# Licensed under the MIT License. See LICENSE for details.
-#
 
 from __future__ import annotations
 

@@ -6,13 +6,6 @@
 # Licensed under the MIT License. See LICENSE for details.
 #
 
-#
-# steam_library_manager/utils/timeouts.py
-# Central timeout and delay constants for network, DB, and UI operations.
-#
-# Copyright © 2025-2026 SwitchBros
-# Licensed under the MIT License. See LICENSE for details.
-#
 
 from __future__ import annotations
 

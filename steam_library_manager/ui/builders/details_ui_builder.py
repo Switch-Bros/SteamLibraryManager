@@ -6,13 +6,6 @@
 # Licensed under the MIT License. See LICENSE for details.
 #
 
-#
-# steam_library_manager/ui/builders/details_ui_builder.py
-# Builder for the game details panel UI
-#
-# Copyright © 2025-2026 SwitchBros
-# Licensed under the MIT License. See LICENSE for details.
-#
 
 from __future__ import annotations
 
@@ -162,7 +155,7 @@ def build_details_ui(w: GameDetailsWidget) -> None:
     w.lbl_private_badge = QLabel()
     w.lbl_private_badge.setTextFormat(Qt.TextFormat.RichText)
     w.lbl_private_badge.setStyleSheet(
-        f"color: {Theme.TEXT_MUTED}; background: #3a2020; " "border-radius: 3px; padding: 2px 6px; font-size: 11px;"
+        f"color: {Theme.TXT_MUTED}; background: #3a2020; " "border-radius: 3px; padding: 2px 6px; font-size: 11px;"
     )
     w.lbl_private_badge.hide()
     main_layout.addWidget(w.lbl_private_badge)
@@ -214,7 +207,7 @@ def _build_description(w: GameDetailsWidget, main_layout: QVBoxLayout) -> None:
     w.lbl_description = QLabel()
     w.lbl_description.setWordWrap(True)
     w.lbl_description.setMaximumHeight(60)
-    w.lbl_description.setStyleSheet(f"color: {Theme.TEXT_MUTED}; font-size: 12px; padding: 4px 0;")
+    w.lbl_description.setStyleSheet(f"color: {Theme.TXT_MUTED}; font-size: 12px; padding: 4px 0;")
     w.lbl_description.setTextFormat(Qt.TextFormat.PlainText)
     w.lbl_description.hide()
     main_layout.addWidget(w.lbl_description)
@@ -237,7 +230,7 @@ def _build_dlc_section(w: GameDetailsWidget, main_layout: QVBoxLayout) -> None:
     w.dlc_content = QLabel()
     w.dlc_content.setWordWrap(True)
     w.dlc_content.setTextFormat(Qt.TextFormat.PlainText)
-    w.dlc_content.setStyleSheet(f"color: {Theme.TEXT_MUTED}; font-size: 11px;")
+    w.dlc_content.setStyleSheet(f"color: {Theme.TXT_MUTED}; font-size: 11px;")
     scroll.setWidget(w.dlc_content)
 
     dlc_layout.addWidget(scroll)
@@ -263,7 +256,7 @@ def _build_header(w: GameDetailsWidget, main_layout: QVBoxLayout, scale: float) 
     w.pegi_image.set_default_image(str(config.RESOURCES_DIR / "images" / "default_icons.webp"))
     w.pegi_image.clicked.connect(w.on_pegi_clicked)
     w.pegi_image.right_clicked.connect(w.on_pegi_right_click)
-    w.pegi_image.setStyleSheet(f"border: 1px solid {Theme.PEGI_HOVER}; background-color: {Theme.BG_PRIMARY};")
+    w.pegi_image.setStyleSheet(f"border: 1px solid {Theme.PEGI_HVR}; background-color: {Theme.BG_PRI};")
 
     pegi_layout = QHBoxLayout()
     pegi_layout.addWidget(w.pegi_image)

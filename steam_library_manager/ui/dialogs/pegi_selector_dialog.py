@@ -36,7 +36,7 @@ class PEGIIconButton(QPushButton):
         super().__init__(parent)
         self.rating = rating
         self.setFixedSize(140, 140)
-        self.setStyleSheet(Theme.pegi_button())
+        self.setStyleSheet(Theme.pegi_btn())
 
         # Load and display icon
         if icon_path.exists():
@@ -79,7 +79,7 @@ class PEGISelectorDialog(BaseDialog):
 
         # Instruction
         title = QLabel(t("ui.pegi_selector.instruction"))
-        title.setStyleSheet(f"font-size: 14px; font-weight: bold; color: {Theme.TEXT_PRIMARY};")
+        title.setStyleSheet(f"font-size: 14px; font-weight: bold; color: {Theme.TXT_PRI};")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
 
@@ -101,7 +101,7 @@ class PEGISelectorDialog(BaseDialog):
             if rating == self.current_rating:
                 btn.setStyleSheet(btn.styleSheet() + f"""
                     QPushButton {{
-                        border: 3px solid {Theme.PEGI_HOVER};
+                        border: 3px solid {Theme.PEGI_HVR};
                     }}
                 """)
 

@@ -6,13 +6,6 @@
 # Licensed under the MIT License. See LICENSE for details.
 #
 
-#
-# steam_library_manager/ui/widgets/clickable_image.py
-# Clickable image widget with async loading and animated GIF support.
-#
-# Copyright © 2025-2026 SwitchBros
-# Licensed under the MIT License. See LICENSE for details.
-#
 
 from __future__ import annotations
 
@@ -117,7 +110,7 @@ class ClickableImage(QWidget):
 
         self.image_label = QLabel(self)
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.image_label.setStyleSheet(f"border: 1px solid {Theme.PEGI_HOVER}; background-color: {Theme.BG_PRIMARY};")
+        self.image_label.setStyleSheet(f"border: 1px solid {Theme.PEGI_HVR}; background-color: {Theme.BG_PRI};")
         self.image_label.setGeometry(0, 0, width, height)
         self.image_label.setScaledContents(False)
         # Pass through mouse events so enterEvent/leaveEvent work on self

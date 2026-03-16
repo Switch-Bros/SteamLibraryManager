@@ -33,7 +33,7 @@ class InfoLabel(QLabel):
     def __init__(self, title_key: str, value: str = "") -> None:
         super().__init__()
         title = t(title_key)
-        self.setText(f"<span style='color:{Theme.TEXT_MUTED};'>{title}:</span> <b>{value}</b>")
+        self.setText(f"<span style='color:{Theme.TXT_MUTED};'>{title}:</span> <b>{value}</b>")
         self.setTextFormat(Qt.TextFormat.RichText)
         self.setStyleSheet("padding: 1px 0;")
 
@@ -112,18 +112,18 @@ def _format_rating_html(
         display = key.title()
     title = t(title_key)
     return (
-        f"<span style='color:{Theme.TEXT_MUTED};'>{title}:</span> "
+        f"<span style='color:{Theme.TXT_MUTED};'>{title}:</span> "
         f"<span style='color:{color}; font-weight:bold;'>{display}</span>"
     )
 
 
 def format_proton_html(tier: str) -> str:
     """Return styled HTML string for the ProtonDB rating label."""
-    return _format_rating_html(tier, Theme.PROTONDB_COLORS, "ui.game_details.proton_tiers", "ui.game_details.proton_db")
+    return _format_rating_html(tier, Theme.PDB_COLORS, "ui.game_details.proton_tiers", "ui.game_details.proton_db")
 
 
 def format_deck_html(status: str) -> str:
     """Return styled HTML string for the Steam Deck status label."""
     return _format_rating_html(
-        status, Theme.STEAMDECK_COLORS, "ui.game_details.steam_deck_status", "ui.game_details.steam_deck"
+        status, Theme.DECK_COLORS, "ui.game_details.steam_deck_status", "ui.game_details.steam_deck"
     )

@@ -95,7 +95,7 @@ class MissingMetadataDialog(BaseDialog):
         # Info Text
         info = QLabel(t("ui.tools.missing_metadata.info"))
         info.setWordWrap(True)
-        info.setStyleSheet(f"color: {Theme.TEXT_MUTED}; padding: 10px 0;")
+        info.setStyleSheet(f"color: {Theme.TXT_MUTED}; padding: 10px 0;")
         layout.addWidget(info)
 
         # Table
@@ -129,7 +129,7 @@ class MissingMetadataDialog(BaseDialog):
 
         # Statistics Label
         self.stats_label = QLabel()
-        self.stats_label.setStyleSheet(f"color: {Theme.TEXT_MUTED}; font-size: 10px;")
+        self.stats_label.setStyleSheet(f"color: {Theme.TXT_MUTED}; font-size: 10px;")
 
         stats_layout = QHBoxLayout()
         stats_layout.addWidget(self.stats_label)

@@ -63,7 +63,7 @@ class SteamRunningDialog(BaseDialog):
 
         explanation = QLabel(t("steam.running.explanation"))
         explanation.setWordWrap(True)
-        explanation.setStyleSheet(f"color: {Theme.TEXT_MUTED};")
+        explanation.setStyleSheet(f"color: {Theme.TXT_MUTED};")
         message_layout.addWidget(explanation)
 
         header_layout.addLayout(message_layout, 1)
@@ -86,7 +86,7 @@ class SteamRunningDialog(BaseDialog):
 
         self.btn_close_steam = QPushButton(t("steam.running.close_and_save"))
         self.btn_close_steam.setDefault(True)
-        self.btn_close_steam.setStyleSheet(Theme.button_danger())
+        self.btn_close_steam.setStyleSheet(Theme.btn_danger())
         self.btn_close_steam.clicked.connect(self._on_close_steam)
         button_layout.addWidget(self.btn_close_steam)
 

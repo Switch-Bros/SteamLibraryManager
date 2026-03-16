@@ -155,7 +155,7 @@ class BulkMetadataEditDialog(BaseDialog):
         layout.addWidget(self.cb_revert)
 
         revert_help = QLabel(t("ui.metadata_editor.bulk_revert_help"))
-        revert_help.setStyleSheet(f"color: {Theme.TEXT_MUTED}; font-size: 11px; margin-left: 24px;")
+        revert_help.setStyleSheet(f"color: {Theme.TXT_MUTED}; font-size: 11px; margin-left: 24px;")
         revert_help.setWordWrap(True)
         layout.addWidget(revert_help)
 
@@ -217,13 +217,13 @@ class BulkMetadataEditDialog(BaseDialog):
                 preview_name = self._preview_name_modification(original_name, mods)
                 if preview_name != original_name:
                     item.setText(preview_name)
-                    item.setForeground(QColor(Theme.MODIFIED_FIELD_BORDER))
+                    item.setForeground(QColor(Theme.MOD_BORDER))
                 else:
                     item.setText(original_name)
-                    item.setForeground(QColor(Theme.TEXT_PRIMARY))
+                    item.setForeground(QColor(Theme.TXT_PRI))
             else:
                 item.setText(original_name)
-                item.setForeground(QColor(Theme.TEXT_PRIMARY))
+                item.setForeground(QColor(Theme.TXT_PRI))
 
     @staticmethod
     def _preview_name_modification(name: str, mods: dict[str, str]) -> str:

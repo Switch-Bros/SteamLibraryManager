@@ -1,14 +1,6 @@
 #
 # steam_library_manager/ui/theme.py
-# Application theme definitions: colors, fonts, and style sheets
-#
-# Copyright © 2025-2026 SwitchBros
-# Licensed under the MIT License. See LICENSE for details.
-#
-
-#
-# steam_library_manager/ui/theme.py
-# Centralized theme constants and style factory.
+# Colors, fonts and stylesheet helpers for the UI
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -20,192 +12,167 @@ __all__ = ["Theme"]
 
 
 class Theme:
-    """Central color and style definitions for the application."""
+    # -- base palette --
 
-    # Layer 1: Palette - Raw colors
-
-    # Blues (Steam's signature dark blue family)
+    # steam's dark blue family
     STEAM_DARK = "#1b2838"
     STEAM_BLUE = "#2a3f5f"
     STEAM_DEEP = "#171a21"
     STEAM_INFO = "#2a475e"
 
-    # Grays
+    # grays
     GRAY_BORDER = "#3d4450"
     GRAY_MUTED = "#888888"
     GRAY_INPUT = "#32444e"
     GRAY_DARK = "#2b2b2b"
-    GRAY_SEPARATOR = "#555555"
+    GRAY_SEP = "#555555"
 
-    # Accent colors
+    # accents
     BLUE = "#4a9eff"
-    BLUE_LIGHT = "#5ab0ff"
-    GREEN = "#4caf50"
-    STEAM_GREEN = "#5c7e10"
-    STEAM_GREEN_HOVER = "#699d11"
+    BLUE_LT = "#5ab0ff"
+    GRN = "#4caf50"
+    STEAM_GRN = "#5c7e10"
+    STEAM_GRN_HVR = "#699d11"
     RED = "#c75450"
-    RED_LIGHT = "#d66460"
+    RED_LT = "#d66460"
     YELLOW = "#FDE100"
     ORANGE = "#FFA500"
 
-    # ProtonDB tier colors (official ProtonDB palette)
-    PROTON_PLATINUM = "#B4C7D9"
-    PROTON_GOLD = "#FDE100"
-    PROTON_SILVER = "#C0C0C0"
-    PROTON_BRONZE = "#CD7F32"
-    PROTON_NATIVE = "#5CB85C"
-    PROTON_BORKED = "#D9534F"
-    PROTON_PENDING = "#1C39BB"
-    PROTON_UNKNOWN = "#FE28A2"
+    # protondb tier colors
+    # FDE100 = BVB 09 Dortmund yellow - had to pick my club's color for gold!
+    # 1C39BB = Persian Blue, FE28A2 = Persian Rose
+    # found both on color-hex.com while browsing palettes, couldn't resist
+    PDB_PLATIN = "#B4C7D9"
+    PDB_GOLD = "#FDE100"
+    PDB_SILVER = "#C0C0C0"
+    PDB_BRONZE = "#CD7F32"
+    PDB_NATIVE = "#5CB85C"
+    PDB_BORKED = "#D9534F"
+    PDB_PENDING = "#1C39BB"
+    PDB_UNK = "#FE28A2"
 
-    # Steam Deck status colors
-    DECK_VERIFIED = "#59BF40"
-    DECK_PLAYABLE = "#FDE100"
-    DECK_UNSUPPORTED = "#D9534F"
-    DECK_UNKNOWN = "#808080"
+    # deck compat status
+    DECK_OK = "#59BF40"
+    DECK_PLAY = "#FDE100"
+    DECK_UNSUP = "#D9534F"
+    DECK_UNK = "#808080"
 
-    # Text
-    TEXT_LIGHT = "#c7d5e0"
-    TEXT_WHITE = "#ffffff"
-    TEXT_DARK = "#e0e0e0"
+    # txt colors
+    TXT_LIGHT = "#c7d5e0"
+    TXT_WHITE = "#ffffff"
+    TXT_DARK = "#e0e0e0"
 
-    # Layer 2: Semantic - Purpose-based aliases
+    # -- semantic aliases --
 
-    # Backgrounds
-    BG_PRIMARY = STEAM_DARK
-    BG_SECONDARY = STEAM_BLUE
+    BG_PRI = STEAM_DARK
+    BG_SEC = STEAM_BLUE
     BG_DARK = STEAM_DEEP
-    BG_INFO_BOX = STEAM_INFO
+    BG_INFO = STEAM_INFO
     BG_INPUT = GRAY_INPUT
     BG_WIDGET = GRAY_DARK
 
-    # Borders
     BORDER = GRAY_BORDER
-    BORDER_SEPARATOR = GRAY_SEPARATOR
+    BORDER_SEP = GRAY_SEP
 
-    # Actions
     ACCENT = BLUE
-    ACCENT_HOVER = BLUE_LIGHT
+    ACCENT_HVR = BLUE_LT
     DANGER = RED
-    DANGER_HOVER = RED_LIGHT
-    SUCCESS = GREEN
+    DANGER_HVR = RED_LT
+    SUCCESS = GRN
     WARNING = YELLOW
 
-    # Text
-    TEXT_PRIMARY = TEXT_LIGHT
-    TEXT_MUTED = GRAY_MUTED
+    TXT_PRI = TXT_LIGHT
+    TXT_MUTED = GRAY_MUTED
 
-    # Feature-specific (easy to change independently!)
-    ACHIEVEMENT_GOLD = YELLOW
-    PEGI_HOVER = YELLOW
-    MODIFIED_FIELD_BG = "#3a2a00"
-    MODIFIED_FIELD_BORDER = ORANGE
-    CATEGORY_SELECTED = "#FFD700"
-    LOGIN_BUTTON = STEAM_GREEN
-    LOGIN_BUTTON_HOVER = STEAM_GREEN_HOVER
+    # feature stuff
+    ACHV_GOLD = YELLOW
+    PEGI_HVR = YELLOW
+    MOD_BG = "#3a2a00"
+    MOD_BORDER = ORANGE
+    CAT_SEL = "#FFD700"
+    LOGIN_BTN = STEAM_GRN
+    LOGIN_BTN_HVR = STEAM_GRN_HVR
 
-    # ProtonDB tier aliases (change individually if needed!)
-    PROTONDB_PLATINUM = PROTON_PLATINUM
-    PROTONDB_GOLD = PROTON_GOLD
-    PROTONDB_SILVER = PROTON_SILVER
-    PROTONDB_BRONZE = PROTON_BRONZE
-    PROTONDB_NATIVE = PROTON_NATIVE
-    PROTONDB_BORKED = PROTON_BORKED
-    PROTONDB_PENDING = PROTON_PENDING
-    PROTONDB_UNKNOWN = PROTON_UNKNOWN
-
-    # Steam Deck status aliases
-    STEAMDECK_VERIFIED = DECK_VERIFIED
-    STEAMDECK_PLAYABLE = DECK_PLAYABLE
-    STEAMDECK_UNSUPPORTED = DECK_UNSUPPORTED
-    STEAMDECK_UNKNOWN = DECK_UNKNOWN
-
-    # Color dicts for lookup by tier/status string
-
-    PROTONDB_COLORS: dict[str, str] = {
-        "platinum": PROTON_PLATINUM,
-        "gold": PROTON_GOLD,
-        "silver": PROTON_SILVER,
-        "bronze": PROTON_BRONZE,
-        "native": PROTON_NATIVE,
-        "borked": PROTON_BORKED,
-        "pending": PROTON_PENDING,
-        "unknown": PROTON_UNKNOWN,
+    # lookup dicts for tier/status coloring
+    PDB_COLORS = {
+        "platinum": PDB_PLATIN,
+        "gold": PDB_GOLD,
+        "silver": PDB_SILVER,
+        "bronze": PDB_BRONZE,
+        "native": PDB_NATIVE,
+        "borked": PDB_BORKED,
+        "pending": PDB_PENDING,
+        "unknown": PDB_UNK,
     }
 
-    STEAMDECK_COLORS: dict[str, str] = {
-        "verified": DECK_VERIFIED,
-        "playable": DECK_PLAYABLE,
-        "unsupported": DECK_UNSUPPORTED,
-        "unknown": DECK_UNKNOWN,
+    DECK_COLORS = {
+        "verified": DECK_OK,
+        "playable": DECK_PLAY,
+        "unsupported": DECK_UNSUP,
+        "unknown": DECK_UNK,
     }
 
-    # Style factories
+    # -- qss factories --
 
     @staticmethod
-    def button_danger() -> str:
-        """Stylesheet for danger/destructive action buttons."""
+    def btn_danger():
+        # red destroy btn
         return f"""
-            QPushButton {{ background-color: {Theme.DANGER}; color: {Theme.TEXT_WHITE};
+            QPushButton {{ background-color: {Theme.DANGER}; color: {Theme.TXT_WHITE};
                           font-weight: bold; padding: 8px 16px; }}
-            QPushButton:hover {{ background-color: {Theme.DANGER_HOVER}; }}
+            QPushButton:hover {{ background-color: {Theme.DANGER_HVR}; }}
         """
 
     @staticmethod
-    def button_primary() -> str:
-        """Stylesheet for primary action buttons."""
+    def btn_primary():
         return f"""
-            QPushButton {{ background-color: {Theme.ACCENT}; color: {Theme.TEXT_WHITE};
+            QPushButton {{ background-color: {Theme.ACCENT}; color: {Theme.TXT_WHITE};
                           padding: 8px 16px; }}
-            QPushButton:hover {{ background-color: {Theme.ACCENT_HOVER}; }}
+            QPushButton:hover {{ background-color: {Theme.ACCENT_HVR}; }}
         """
 
     @staticmethod
-    def button_steam() -> str:
-        """Stylesheet for Steam-green action buttons (login etc)."""
+    def btn_steam():
+        # steam green login btn
         return f"""
-            QPushButton {{ background-color: {Theme.LOGIN_BUTTON}; color: {Theme.TEXT_WHITE};
+            QPushButton {{ background-color: {Theme.LOGIN_BTN}; color: {Theme.TXT_WHITE};
                           border: none; padding: 10px 20px; border-radius: 3px;
                           font-weight: bold; }}
-            QPushButton:hover {{ background-color: {Theme.LOGIN_BUTTON_HOVER}; }}
+            QPushButton:hover {{ background-color: {Theme.LOGIN_BTN_HVR}; }}
         """
 
     @staticmethod
-    def progress_bar() -> str:
-        """Stylesheet for progress bars."""
+    def progressbar_style():
         return f"""
-            QProgressBar {{ border: 1px solid {Theme.BORDER_SEPARATOR}; border-radius: 5px;
+            QProgressBar {{ border: 1px solid {Theme.BORDER_SEP}; border-radius: 5px;
                           text-align: center; background: {Theme.BG_WIDGET}; }}
             QProgressBar::chunk {{ background: {Theme.ACCENT}; border-radius: 4px; }}
         """
 
     @staticmethod
-    def info_box() -> str:
-        """Stylesheet for informational text boxes."""
+    def info_box():
         return f"""
-            QLabel {{ background-color: {Theme.BG_INFO_BOX}; padding: 15px;
-                    border-radius: 5px; color: {Theme.TEXT_PRIMARY}; }}
+            QLabel {{ background-color: {Theme.BG_INFO}; padding: 15px;
+                    border-radius: 5px; color: {Theme.TXT_PRI}; }}
         """
 
     @staticmethod
-    def pegi_button() -> str:
-        """Stylesheet for PEGI rating icon buttons."""
+    def pegi_btn():
         return f"""
-            QPushButton {{ border: 2px solid {Theme.BORDER}; background-color: {Theme.BG_PRIMARY};
+            QPushButton {{ border: 2px solid {Theme.BORDER}; background-color: {Theme.BG_PRI};
                           border-radius: 4px; }}
-            QPushButton:hover {{ border: 2px solid {Theme.PEGI_HOVER};
-                               background-color: {Theme.BG_SECONDARY}; }}
+            QPushButton:hover {{ border: 2px solid {Theme.PEGI_HVR};
+                               background-color: {Theme.BG_SEC}; }}
             QPushButton:pressed {{ background-color: #1a2332; }}
         """
 
     @staticmethod
-    def modified_field() -> str:
-        """Stylesheet for metadata fields that have been modified."""
-        return f"border: 2px solid {Theme.MODIFIED_FIELD_BORDER};"
+    def mod_field():
+        return "border: 2px solid %s;" % Theme.MOD_BORDER
 
-    # Style constants for consistent UI
+    # inline styles
     STYLE_HINT = "color: gray; font-style: italic;"
-    STYLE_WARNING = "color: orange;"
-    STYLE_SUCCESS = "color: green; font-weight: bold;"
-    STYLE_ERROR = "color: red; font-weight: bold;"
-    STYLE_SECTION_HEADER = "font-size: 14px; font-weight: bold;"
+    STYLE_WARN = "color: orange;"
+    STYLE_OK = "color: green; font-weight: bold;"
+    STYLE_ERR = "color: red; font-weight: bold;"
+    STYLE_HDR = "font-size: 14px; font-weight: bold;"
