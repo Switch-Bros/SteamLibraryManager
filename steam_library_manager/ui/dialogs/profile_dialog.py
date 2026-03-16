@@ -1,11 +1,10 @@
+#
 # steam_library_manager/ui/dialogs/profile_dialog.py
-
-"""Dialog for managing categorization profiles.
-
-Provides a modal dialog with a profile list, allowing the user to
-save the current setup, load an existing profile, delete, rename,
-export, and import profiles.
-"""
+# Dialog for managing categorization profiles
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -39,22 +38,10 @@ __all__ = ["ProfileDialog"]
 class ProfileDialog(BaseDialog):
     """Modal dialog for profile management.
 
-    After ``exec()`` returns ``Accepted``, the caller should check
-    ``self.action`` and ``self.selected_name`` to determine which
-    action to perform.
-
-    Attributes:
-        action: The action chosen by the user (``"save"``, ``"load"``, or ``""``).
-        selected_name: The profile name associated with the chosen action.
+    After exec() returns Accepted, check self.action and self.selected_name.
     """
 
     def __init__(self, manager: ProfileManager, parent: QWidget | None = None) -> None:
-        """Initializes the ProfileDialog.
-
-        Args:
-            manager: The ProfileManager for data operations.
-            parent: Optional parent widget.
-        """
         self.manager: ProfileManager = manager
         self.action: str = ""
         self.selected_name: str = ""
@@ -70,26 +57,21 @@ class ProfileDialog(BaseDialog):
         self._refresh_list()
 
     def _build_content(self, layout: QVBoxLayout) -> None:
-        """Creates the dialog layout with info, list, and action buttons."""
-        # Info text
         info = QLabel(t("ui.profile.info_text"))
         info.setWordWrap(True)
         layout.addWidget(info)
 
-        # Profile list
         self.profile_list = QListWidget()
         self.profile_list.setAlternatingRowColors(True)
         self.profile_list.itemDoubleClicked.connect(self._on_load)
         layout.addWidget(self.profile_list, stretch=1)
 
-        # No-profiles placeholder (hidden by default)
         self.no_profiles_label = QLabel(t("ui.profile.no_profiles"))
         self.no_profiles_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.no_profiles_label.setStyleSheet("color: gray; padding: 20px;")
         self.no_profiles_label.setVisible(False)
         layout.addWidget(self.no_profiles_label)
 
-        # Action buttons row 1: Save Current, Load, Delete
         row1 = QHBoxLayout()
         self.btn_save = QPushButton(t("common.save"))
         self.btn_save.clicked.connect(self._on_save_current)
@@ -105,7 +87,6 @@ class ProfileDialog(BaseDialog):
 
         layout.addLayout(row1)
 
-        # Action buttons row 2: Rename, Export, Import
         row2 = QHBoxLayout()
         self.btn_rename = QPushButton(t("common.rename"))
         self.btn_rename.clicked.connect(self._on_rename)
@@ -121,7 +102,6 @@ class ProfileDialog(BaseDialog):
 
         layout.addLayout(row2)
 
-        # Close button
         close_layout = QHBoxLayout()
         close_layout.addStretch()
         btn_close = QPushButton(t("common.close"))
@@ -129,12 +109,7 @@ class ProfileDialog(BaseDialog):
         close_layout.addWidget(btn_close)
         layout.addLayout(close_layout)
 
-    # ------------------------------------------------------------------
-    # List management
-    # ------------------------------------------------------------------
-
     def _refresh_list(self) -> None:
-        """Reloads the profile list from disk."""
         self.profile_list.clear()
         profiles = self.manager.list_profiles()
 
@@ -143,18 +118,16 @@ class ProfileDialog(BaseDialog):
         self.no_profiles_label.setVisible(not has_profiles)
 
         for name, created_at in profiles:
-            date_str = datetime.fromtimestamp(created_at).strftime("%d.%m.%Y %H:%M") if created_at else "—"
+            date_str = datetime.fromtimestamp(created_at).strftime("%d.%m.%Y %H:%M") if created_at else "-"
             display = f"{name}    ({t('ui.profile.created_at', date=date_str)})"
             item = QListWidgetItem(display)
             item.setData(Qt.ItemDataRole.UserRole, name)
             self.profile_list.addItem(item)
 
-        # Enable/disable action buttons based on selection
         self._update_button_states()
         self.profile_list.currentItemChanged.connect(lambda: self._update_button_states())
 
     def _update_button_states(self) -> None:
-        """Enables or disables buttons depending on whether a profile is selected."""
         has_selection = self.profile_list.currentItem() is not None
         self.btn_load.setEnabled(has_selection)
         self.btn_delete.setEnabled(has_selection)
@@ -162,22 +135,12 @@ class ProfileDialog(BaseDialog):
         self.btn_export.setEnabled(has_selection)
 
     def _get_selected_name(self) -> str | None:
-        """Returns the name stored in the currently selected list item.
-
-        Returns:
-            The profile name, or None if no item is selected.
-        """
         item = self.profile_list.currentItem()
         if item is None:
             return None
         return item.data(Qt.ItemDataRole.UserRole)
 
-    # ------------------------------------------------------------------
-    # Button handlers
-    # ------------------------------------------------------------------
-
     def _on_save_current(self) -> None:
-        """Handles 'Save Current' button: asks for name, signals save action."""
         name, ok = UIHelper.ask_text(
             self,
             title=t("ui.profile.new_title"),
@@ -186,7 +149,6 @@ class ProfileDialog(BaseDialog):
         if not ok or not name:
             return
 
-        # Check for duplicate
         existing = [n for n, _ in self.manager.list_profiles()]
         if name in existing:
             overwrite = UIHelper.confirm(
@@ -202,7 +164,6 @@ class ProfileDialog(BaseDialog):
         self.accept()
 
     def _on_load(self) -> None:
-        """Handles 'Load' button or double-click: signals load action."""
         name = self._get_selected_name()
         if not name:
             return
@@ -212,7 +173,6 @@ class ProfileDialog(BaseDialog):
         self.accept()
 
     def _on_delete(self) -> None:
-        """Handles 'Delete' button: asks confirmation and deletes."""
         name = self._get_selected_name()
         if not name:
             return
@@ -230,7 +190,6 @@ class ProfileDialog(BaseDialog):
         self._refresh_list()
 
     def _on_rename(self) -> None:
-        """Handles 'Rename' button: asks for new name and renames."""
         name = self._get_selected_name()
         if not name:
             return
@@ -250,7 +209,6 @@ class ProfileDialog(BaseDialog):
             self._refresh_list()
 
     def _on_export(self) -> None:
-        """Handles 'Export' button: opens file save dialog and exports."""
         from pathlib import Path
 
         from PyQt6.QtWidgets import QFileDialog
@@ -273,7 +231,6 @@ class ProfileDialog(BaseDialog):
             UIHelper.show_success(self, t("ui.profile.export_success"))
 
     def _on_import(self) -> None:
-        """Handles 'Import' button: opens file dialog and imports."""
         from pathlib import Path
 
         from PyQt6.QtWidgets import QFileDialog

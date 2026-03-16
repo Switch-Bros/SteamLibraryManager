@@ -1,8 +1,10 @@
-"""Action handler for auto-categorization and Smart Collections.
-
-Connects back to MainWindow to access services and update UI.
-Metadata editing operations are in metadata_actions.py.
-"""
+#
+# steam_library_manager/ui/actions/edit_actions.py
+# Action handler for auto-categorization and Smart Collections
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -22,55 +24,28 @@ if TYPE_CHECKING:
 
 
 class EditActions:
-    """Handles auto-categorization and Smart Collection actions.
-
-    Attributes:
-        mw: Back-reference to the owning MainWindow instance.
-        dialog_games: Temporary storage for games being processed in dialogs.
-    """
+    """Handles auto-categorization and Smart Collection actions."""
 
     def __init__(self, main_window: "MainWindow") -> None:
-        """
-        Initialize the EditActions handler.
-
-        Args:
-            main_window: The main application window.
-        """
         self.mw = main_window
         self.dialog_games: list[Game] = []
 
-    # ------------------------------------------------------------------
     # Auto-Categorization
-    # ------------------------------------------------------------------
 
     def auto_categorize(self) -> None:
-        """Opens the auto-categorize dialog for selected or uncategorized games."""
         if self.mw.selected_games:
             self._show_auto_categorize_dialog(self.mw.selected_games, None)
         elif self.mw.game_manager:
             self._show_auto_categorize_dialog(self.mw.game_manager.get_uncategorized_games(), None)
 
     def auto_categorize_selected(self) -> None:
-        """Opens the auto-categorize dialog for currently selected games."""
         if self.mw.selected_games:
             self._show_auto_categorize_dialog(self.mw.selected_games, None)
 
     def auto_categorize_single(self, game: Game) -> None:
-        """
-        Opens the auto-categorize dialog for a single game.
-
-        Args:
-            game: The game to auto-categorize.
-        """
         self._show_auto_categorize_dialog([game], None)
 
     def auto_categorize_category(self, category: str) -> None:
-        """
-        Opens the auto-categorize dialog for games in a specific category.
-
-        Args:
-            category: The name of the category.
-        """
         if not self.mw.game_manager:
             return
 
@@ -82,13 +57,6 @@ class EditActions:
             self._show_auto_categorize_dialog(self.mw.game_manager.get_games_by_category(category), category)
 
     def _show_auto_categorize_dialog(self, games: list[Game], category_name: str | None) -> None:
-        """
-        Internal helper to show the dialog.
-
-        Args:
-            games: List of games to process.
-            category_name: Optional source category name.
-        """
         self.dialog_games = games
         if not self.mw.game_manager:
             return
@@ -103,15 +71,7 @@ class EditActions:
         dialog.exec()
 
     def _check_and_start(self, settings: dict, dialog: "AutoCategorizeDialog") -> None:
-        """
-        Checks cache coverage before starting auto-categorization.
-        Uses custom buttons to avoid English text.
-
-        Args:
-            settings: The settings dictionary from the dialog.
-            dialog: The dialog instance to close on success.
-        """
-        # Check tags requirement
+        """Check cache coverage before starting, warn if low."""
         if "tags" not in settings.get("methods", []):
             dialog.accept()
             self._do_auto_categorize(settings)
@@ -122,13 +82,11 @@ class EditActions:
             self._do_auto_categorize(settings)
             return
 
-        # Determine scope
         if settings["scope"] == "all":
             actual_games = self.mw.game_manager.get_real_games()
         else:
             actual_games = self.dialog_games
 
-        # Check coverage
         coverage = self.mw.autocategorize_service.get_cache_coverage(actual_games)
 
         if coverage["percentage"] >= 50:
@@ -136,7 +94,6 @@ class EditActions:
             self._do_auto_categorize(settings)
             return
 
-        # Show warning with CUSTOM buttons
         missing = coverage["missing"]
         time_str = self.mw.autocategorize_service.estimate_time(missing)
 
@@ -152,7 +109,6 @@ class EditActions:
             )
         )
 
-        # IMPORTANT: Manual buttons, no StandardButtons
         yes_button = msg_box.addButton(t("common.yes"), QMessageBox.ButtonRole.YesRole)
         no_button = msg_box.addButton(t("common.no"), QMessageBox.ButtonRole.NoRole)
         msg_box.setDefaultButton(no_button)
@@ -164,13 +120,6 @@ class EditActions:
             self._do_auto_categorize(settings)
 
     def _do_auto_categorize(self, settings: dict) -> None:
-        """
-        Executes the auto-categorization process.
-        Iterates through selected methods and updates progress.
-
-        Args:
-            settings: Configuration dictionary.
-        """
         # noinspection PyProtectedMember
         parser = self.mw._get_active_parser()
         if not settings or not parser or not self.mw.autocategorize_service:
@@ -187,7 +136,6 @@ class EditActions:
 
         step = 0
 
-        # Mapping simple methods to avoid code duplication
         simple_methods = {
             "publisher": self.mw.autocategorize_service.categorize_by_publisher,
             "franchise": self.mw.autocategorize_service.categorize_by_franchise,
@@ -234,9 +182,7 @@ class EditActions:
                 )
 
             elif method in simple_methods:
-                # Update progress for fast batch operations
                 progress.setValue(step)
-                # Call the service method
                 # noinspection PyTypeChecker
                 simple_methods[method](games)
 
@@ -249,23 +195,15 @@ class EditActions:
         UIHelper.show_success(self.mw, t("common.success"))
 
     def _get_db_path(self):
-        """Returns the database file path from the active game service.
-
-        Returns:
-            Path to the SQLite database, or None if not available.
-        """
         if hasattr(self.mw, "game_service") and self.mw.game_service:
             db = getattr(self.mw.game_service, "database", None)
             if db and hasattr(db, "db_path"):
                 return db.db_path
         return None
 
-    # ------------------------------------------------------------------
     # Smart Collections
-    # ------------------------------------------------------------------
 
     def create_smart_collection(self) -> None:
-        """Opens SmartCollectionDialog for creating a new Smart Collection."""
         if not self.mw.game_manager or not self.mw.smart_collection_manager:
             return
 
@@ -289,7 +227,6 @@ class EditActions:
                 )
 
     def edit_smart_collection(self) -> None:
-        """Opens SmartCollectionDialog for editing the selected Smart Collection."""
         existing = self._get_selected_smart_collection()
         if not existing:
             return
@@ -314,7 +251,6 @@ class EditActions:
                 )
 
     def delete_smart_collection(self) -> None:
-        """Deletes the selected Smart Collection after confirmation."""
         existing = self._get_selected_smart_collection()
         if not existing:
             return
@@ -330,7 +266,6 @@ class EditActions:
             UIHelper.show_success(self.mw, t("ui.smart_collections.deleted"))
 
     def refresh_smart_collections(self) -> None:
-        """Re-evaluates all Smart Collections and refreshes the tree."""
         if not self.mw.smart_collection_manager:
             return
 
@@ -343,15 +278,7 @@ class EditActions:
         )
 
     def _get_selected_smart_collection(self):
-        """Returns the selected Smart Collection, or None with a user warning.
-
-        Shared guard logic for edit / delete Smart Collection actions.
-        Checks that game_manager and smart_collection_manager are available,
-        that a category is selected, and that it is a Smart Collection.
-
-        Returns:
-            The SmartCollection object, or None if any check fails.
-        """
+        """Return the selected Smart Collection, or None with a warning."""
         if not self.mw.game_manager or not self.mw.smart_collection_manager:
             return None
 

@@ -1,8 +1,10 @@
-"""Method selector widget for the auto-categorize dialog.
-
-Provides checkboxes for selecting categorization methods, scope radio
-buttons, tags settings, estimation label, and select/deselect controls.
-"""
+#
+# steam_library_manager/ui/widgets/autocat_method_selector.py
+# Method selector widget for the auto-categorize dialog
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -51,11 +53,7 @@ _METHOD_CHECKBOX_KEYS: tuple[tuple[str, str], ...] = (
 
 
 class AutoCatMethodSelector(QWidget):
-    """Widget for selecting auto-categorization methods and scope.
-
-    Attributes:
-        methods_changed: Emitted when any checkbox, scope, or setting changes.
-    """
+    """Widget for selecting auto-categorization methods and scope."""
 
     methods_changed = pyqtSignal()
 
@@ -66,14 +64,6 @@ class AutoCatMethodSelector(QWidget):
         all_games_count: int,
         category_name: str | None = None,
     ) -> None:
-        """Initialize the method selector widget.
-
-        Args:
-            parent: Parent widget.
-            games_count: Number of selected/scoped games.
-            all_games_count: Total number of games in the library.
-            category_name: Name of the source category, if any.
-        """
         super().__init__(parent)
         self._games_count = games_count
         self._all_games_count = all_games_count
@@ -83,7 +73,6 @@ class AutoCatMethodSelector(QWidget):
         self._create_ui()
 
     def _create_ui(self) -> None:
-        """Create all UI components."""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
@@ -101,11 +90,6 @@ class AutoCatMethodSelector(QWidget):
         self._update_estimate()
 
     def _create_methods_group(self, parent_layout: QVBoxLayout) -> None:
-        """Create the method checkboxes grid with select/deselect buttons.
-
-        Args:
-            parent_layout: Layout to add the group to.
-        """
         methods_group = QGroupBox(t("auto_categorize.method_group"))
         grid = QGridLayout()
         grid.setSpacing(4)
@@ -116,10 +100,8 @@ class AutoCatMethodSelector(QWidget):
             self._checkboxes[key] = cb
             grid.addWidget(cb, i // cols, i % cols)
 
-        # Default: tags checked
         self._checkboxes["tags"].setChecked(True)
 
-        # Select All / Deselect All buttons
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
@@ -139,11 +121,6 @@ class AutoCatMethodSelector(QWidget):
         parent_layout.addWidget(methods_group)
 
     def _create_tags_settings(self, parent_layout: QVBoxLayout) -> None:
-        """Create the tags-specific settings group.
-
-        Args:
-            parent_layout: Layout to add the group to.
-        """
         self.tags_group = QGroupBox(t("auto_categorize.settings"))
         tags_layout = QVBoxLayout()
 
@@ -165,11 +142,6 @@ class AutoCatMethodSelector(QWidget):
         parent_layout.addWidget(self.tags_group)
 
     def _create_scope_group(self, parent_layout: QVBoxLayout) -> None:
-        """Create the apply-to scope radio buttons.
-
-        Args:
-            parent_layout: Layout to add the group to.
-        """
         apply_group = QGroupBox(t("auto_categorize.apply_group"))
         apply_layout = QVBoxLayout()
 
@@ -200,7 +172,6 @@ class AutoCatMethodSelector(QWidget):
         parent_layout.addWidget(apply_group)
 
     def _connect_signals(self) -> None:
-        """Connect all internal signals to the change handler."""
         for cb in self._checkboxes.values():
             cb.toggled.connect(self._on_changed)
 
@@ -209,12 +180,10 @@ class AutoCatMethodSelector(QWidget):
         self.rb_all.toggled.connect(self._on_changed)
 
     def _on_changed(self) -> None:
-        """Handle any setting change."""
         self._update_estimate()
         self.methods_changed.emit()
 
     def _update_estimate(self) -> None:
-        """Update the time estimate label based on current selections."""
         if not hasattr(self, "estimate_label") or not hasattr(self, "tags_group"):
             return
 
@@ -238,33 +207,18 @@ class AutoCatMethodSelector(QWidget):
         )
 
     def _select_all(self) -> None:
-        """Check all method checkboxes."""
         for cb in self._checkboxes.values():
             cb.setChecked(True)
 
     def _deselect_all(self) -> None:
-        """Uncheck all method checkboxes."""
         for cb in self._checkboxes.values():
             cb.setChecked(False)
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
-
     def get_selected_methods(self) -> list[str]:
-        """Get the list of selected categorization method keys.
-
-        Returns:
-            List of method key strings.
-        """
         return [key for key, cb in self._checkboxes.items() if cb.isChecked()]
 
     def get_settings(self) -> dict[str, Any]:
-        """Get the current selector settings.
-
-        Returns:
-            Dictionary with scope, methods, tags_count, ignore_common.
-        """
+        """Returns scope, methods, tags_count, ignore_common."""
         return {
             "scope": "all" if self.rb_all.isChecked() else "selected",
             "methods": self.get_selected_methods(),
@@ -273,23 +227,11 @@ class AutoCatMethodSelector(QWidget):
         }
 
     def apply_preset(self, methods: set[str], tags_count: int, ignore_common: bool) -> None:
-        """Apply preset settings to the selector.
-
-        Args:
-            methods: Set of method keys to check.
-            tags_count: Value for the tags count spin box.
-            ignore_common: Value for the ignore common tags checkbox.
-        """
         for key, cb in self._checkboxes.items():
             cb.setChecked(key in methods)
         self.tags_count_spin.setValue(tags_count)
         self.cb_ignore_common.setChecked(ignore_common)
 
     def is_curator_selected(self) -> bool:
-        """Check if the curator method is currently selected.
-
-        Returns:
-            True if the curator checkbox is checked.
-        """
         cb = self._checkboxes.get("curator")
         return cb.isChecked() if cb else False

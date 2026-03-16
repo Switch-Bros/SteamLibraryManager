@@ -1,8 +1,10 @@
-"""Database schema creation and migrations.
-
-Handles initial schema creation from SQL file and all version
-migrations (v3 through v9).
-"""
+#
+# steam_library_manager/core/db/schema.py
+# Database schema creation and version migrations (v3-v9)
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -19,13 +21,9 @@ __all__ = ["SchemaMixin"]
 
 
 class SchemaMixin:
-    """Mixin providing schema creation and migration logic.
-
-    Requires ConnectionBase attributes: conn, SCHEMA_VERSION.
-    """
+    """Schema creation and migration logic. Requires conn and SCHEMA_VERSION."""
 
     def _ensure_schema(self) -> None:
-        """Create or migrate database schema."""
         current_version = self._get_schema_version()
 
         if current_version == 0:
@@ -35,7 +33,6 @@ class SchemaMixin:
             self._migrate(current_version, self.SCHEMA_VERSION)
 
     def _get_schema_version(self) -> int:
-        """Get current database schema version."""
         try:
             cursor = self.conn.execute("SELECT MAX(version) FROM schema_version")
             result = cursor.fetchone()
@@ -44,7 +41,6 @@ class SchemaMixin:
             return 0
 
     def _set_schema_version(self, version: int) -> None:
-        """Set database schema version."""
         self.conn.execute(
             """
             INSERT OR REPLACE INTO schema_version (version, applied_at, description)
@@ -55,7 +51,6 @@ class SchemaMixin:
         self.conn.commit()
 
     def _create_schema(self) -> None:
-        """Create initial database schema from SQL file."""
         schema_path = Path(__file__).parent / "schema.sql"
         try:
             with open(schema_path) as f:
@@ -73,12 +68,6 @@ class SchemaMixin:
             raise
 
     def _migrate(self, from_version: int, to_version: int) -> None:
-        """Migrate database schema.
-
-        Args:
-            from_version: Current schema version.
-            to_version: Target schema version.
-        """
         logger.info(
             "Migrating database from version %d to %d",
             from_version,
@@ -114,7 +103,6 @@ class SchemaMixin:
             self._set_schema_version(9)
 
     def _migrate_to_v3(self) -> None:
-        """Migrate to schema v3: tag_definitions table + tag_id column."""
         try:
             self.conn.execute("ALTER TABLE game_tags ADD COLUMN tag_id INTEGER")
         except sqlite3.OperationalError:
@@ -135,7 +123,6 @@ class SchemaMixin:
         logger.info("Migrated to schema v3: tag_definitions + tag_id")
 
     def _migrate_to_v4(self) -> None:
-        """Migrate to schema v4: hltb_id_cache table."""
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS hltb_id_cache (
                 steam_app_id INTEGER PRIMARY KEY,
@@ -147,7 +134,6 @@ class SchemaMixin:
         logger.info("Migrated to schema v4: hltb_id_cache")
 
     def _migrate_to_v5(self) -> None:
-        """Migrate to schema v5: protondb_ratings table."""
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS protondb_ratings (
                 app_id INTEGER PRIMARY KEY,
@@ -163,7 +149,6 @@ class SchemaMixin:
         logger.info("Migrated to schema v5: protondb_ratings")
 
     def _migrate_to_v6(self) -> None:
-        """Migrate to schema v6: review_percentage column in games table."""
         try:
             self.conn.execute("ALTER TABLE games ADD COLUMN review_percentage INTEGER")
         except sqlite3.OperationalError:
@@ -172,7 +157,6 @@ class SchemaMixin:
         logger.info("Migrated to schema v6: review_percentage column")
 
     def _migrate_to_v7(self) -> None:
-        """Migrate to schema v7: external_games table."""
         self.conn.executescript("""
             CREATE TABLE IF NOT EXISTS external_games (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -193,7 +177,6 @@ class SchemaMixin:
         logger.info("Migrated to schema v7: external_games table")
 
     def _migrate_to_v8(self) -> None:
-        """Migrate to schema v8: PEGI + user data normalization + future tables."""
         new_columns = [
             ("pegi_rating", "TEXT DEFAULT ''"),
             ("esrb_rating", "TEXT DEFAULT ''"),
@@ -296,7 +279,6 @@ class SchemaMixin:
         logger.info("Migrated to schema v8: PEGI + user data normalization + future tables")
 
     def _migrate_to_v9(self) -> None:
-        """Migrate to schema v9: curator tables."""
         self.conn.executescript("""
             CREATE TABLE IF NOT EXISTS curators (
                 curator_id    INTEGER PRIMARY KEY,

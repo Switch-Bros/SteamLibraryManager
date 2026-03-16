@@ -1,11 +1,10 @@
+#
 # steam_library_manager/ui/dialogs/settings_dialog.py
-
-"""Settings dialog for application configuration.
-
-Provides a tabbed settings dialog where users can configure
-language preferences, Steam paths, library locations, tag settings, backup
-limits, and API keys.
-"""
+# Tabbed settings dialog for language, paths, tags, backups, and API keys
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -37,37 +36,12 @@ __all__ = ["SettingsDialog"]
 
 
 class SettingsDialog(BaseDialog):
-    """Dialog for application settings configuration.
-
-    Provides two tabs (General and Other) for configuring various
-    application settings including language, paths, APIs, and backup options.
-
-    Signals:
-        language_changed: Emitted when the UI language is changed, passes the language code.
-        settings_saved: Emitted when settings are saved, passes the settings dict.
-
-    Attributes:
-        tabs: The tab widget containing General and Other tabs.
-        combo_ui_lang: Dropdown for UI language selection.
-        combo_tags_lang: Dropdown for tags language selection.
-        path_edit: Input field for Steam installation path.
-        lib_list: List of additional Steam library folders.
-        spin_tags: Spinner for tags per game setting.
-        check_common: Checkbox for ignoring common tags.
-        spin_backup: Spinner for maximum backup files.
-        steam_api_edit: Input field for Steam Web API key.
-        sgdb_key_edit: Input field for SteamGridDB API key.
-    """
+    """Two-tab settings dialog (General + Other)."""
 
     language_changed = pyqtSignal(str)
     settings_saved = pyqtSignal(dict)
 
     def __init__(self, parent=None):
-        """Initializes the settings dialog.
-
-        Args:
-            parent: Parent widget.
-        """
         super().__init__(
             parent,
             title_key="settings.title",
@@ -83,12 +57,12 @@ class SettingsDialog(BaseDialog):
         self.tabs = QTabWidget()
         layout.addWidget(self.tabs)
 
-        # --- TAB 1: GENERAL ---
+        # General tab
         tab_general = QWidget()
         self._init_general_tab(tab_general)
         self.tabs.addTab(tab_general, t("settings.tabs.general"))
 
-        # --- TAB 2: OTHER ---
+        # Other tab
         tab_other = QWidget()
         self._init_other_tab(tab_other)
         self.tabs.addTab(tab_other, t("settings.tabs.other"))
@@ -107,14 +81,10 @@ class SettingsDialog(BaseDialog):
         layout.addLayout(btn_layout)
 
     def _init_general_tab(self, parent: QWidget):
-        """Initializes the General tab with language, Steam path, and library settings.
-
-        Args:
-            parent: The parent widget for this tab.
-        """
+        """Build the General tab: language, Steam path, libraries."""
         layout = QVBoxLayout(parent)
 
-        # 1. LANGUAGE GROUP
+        # Language group
         group_lang = QGroupBox(t("settings.general.language"))
         form_lang = QFormLayout(group_lang)
 
@@ -151,7 +121,7 @@ class SettingsDialog(BaseDialog):
 
         layout.addWidget(group_lang)
 
-        # 2. STEAM PATH GROUP
+        # Steam path
         group_path = QGroupBox(t("settings.general.steam_path"))
         path_layout = QHBoxLayout(group_path)
 
@@ -164,7 +134,7 @@ class SettingsDialog(BaseDialog):
         path_layout.addWidget(self.btn_browse_path)
         layout.addWidget(group_path)
 
-        # 3. STEAM LIBRARIES GROUP
+        # Steam libraries
         group_libs = QGroupBox(t("settings.libraries.title"))
         lib_main_layout = QVBoxLayout(group_libs)
 
@@ -188,14 +158,10 @@ class SettingsDialog(BaseDialog):
         layout.addWidget(group_libs)
 
     def _init_other_tab(self, parent: QWidget):
-        """Initializes the Other tab with tags, backup, and API settings.
-
-        Args:
-            parent: The parent widget for this tab.
-        """
+        """Build the Other tab: tags, backups, API keys."""
         layout = QVBoxLayout(parent)
 
-        # 1. TAGS GROUP
+        # Tags
         group_tags = QGroupBox(t("settings.tags.title_group"))
         form_tags = QFormLayout(group_tags)
 
@@ -207,7 +173,7 @@ class SettingsDialog(BaseDialog):
         form_tags.addRow("", self.check_common)
         layout.addWidget(group_tags)
 
-        # 2. BACKUP GROUP
+        # Backups
         group_backup = QGroupBox(t("settings.backup.title_group"))
         form_backup = QFormLayout(group_backup)
 
@@ -223,7 +189,7 @@ class SettingsDialog(BaseDialog):
 
         layout.addWidget(group_backup)
 
-        # 3. API GROUP
+        # API keys
         group_api = QGroupBox(t("settings.api.title_group"))
         api_layout = QVBoxLayout(group_api)
 
@@ -261,8 +227,7 @@ class SettingsDialog(BaseDialog):
         layout.addStretch()
 
     def _load_current_settings(self):
-        """Load current configuration values into the settings form fields."""
-        # General
+        """Populate form fields from current config."""
         idx_ui = self.combo_ui_lang.findData(config.UI_LANGUAGE)
         if idx_ui >= 0:
             self.combo_ui_lang.setCurrentIndex(idx_ui)
@@ -273,13 +238,11 @@ class SettingsDialog(BaseDialog):
 
         self.path_edit.setText(str(config.STEAM_PATH) if config.STEAM_PATH else "")
 
-        # Libraries
         self.lib_list.clear()
         if config.STEAM_LIBRARIES:
             for lib in config.STEAM_LIBRARIES:
                 self.lib_list.addItem(str(lib))
 
-        # Other
         self.spin_tags.setValue(config.TAGS_PER_GAME)
         self.check_common.setChecked(config.IGNORE_COMMON_TAGS)
         self.spin_backup.setValue(config.MAX_BACKUPS)
@@ -287,13 +250,11 @@ class SettingsDialog(BaseDialog):
         self.sgdb_key_edit.setText(config.STEAMGRIDDB_API_KEY or "")
 
     def _browse_steam_path(self):
-        """Open a file dialog to select the Steam installation directory."""
         path = QFileDialog.getExistingDirectory(self, t("settings.general.browse"), self.path_edit.text())
         if path:
             self.path_edit.setText(path)
 
     def _add_library(self):
-        """Open a file dialog to add a new Steam library folder path."""
         title = t("common.add")
         path = QFileDialog.getExistingDirectory(self, title)
         if path:
@@ -302,31 +263,20 @@ class SettingsDialog(BaseDialog):
                 self.lib_list.addItem(path)
 
     def _remove_library(self):
-        """Remove the currently selected library folder from the list."""
         row = self.lib_list.currentRow()
         if row >= 0:
             if UIHelper.confirm(self, t("settings.libraries.confirm_msg"), t("settings.libraries.confirm_remove")):
                 self.lib_list.takeItem(row)
 
     def _on_language_changed(self, index: int):
-        """Handles UI language changes.
-
-        Args:
-            index: The index of the selected language in the combo box.
-        """
         code = self.combo_ui_lang.itemData(index)
         self.language_changed.emit(code)
 
     def _on_save(self) -> None:
-        """Saves settings without closing the dialog."""
         self.settings_saved.emit(self.get_settings())
 
     def get_settings(self) -> dict:
-        """Collects all settings from the dialog.
-
-        Returns:
-            A dictionary containing all configured settings.
-        """
+        """Return all settings as a dict."""
         libraries = []
         for i in range(self.lib_list.count()):
             libraries.append(self.lib_list.item(i).text())

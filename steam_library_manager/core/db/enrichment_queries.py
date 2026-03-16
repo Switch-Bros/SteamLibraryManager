@@ -1,9 +1,10 @@
-"""Enrichment, HLTB, ProtonDB, achievement, and health check queries.
-
-Handles all data enrichment operations: metadata updates, HLTB cache,
-ProtonDB ratings, achievement stats, import recording, data quality,
-and library health checks.
-"""
+#
+# steam_library_manager/core/db/enrichment_queries.py
+# Enrichment, HLTB, ProtonDB, achievement, and health check queries
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -25,17 +26,10 @@ class EnrichmentQueryMixin:
     Requires ConnectionBase attributes: conn.
     """
 
-    # ── Shared query helpers ─────────────────────────────────────────────
+    # Shared query helpers
 
     def _get_apps_without_join(self, table: str) -> list[tuple[int, str]]:
-        """Returns game-type apps with no entry in the given table.
-
-        Args:
-            table: Target table name to LEFT JOIN against.
-
-        Returns:
-            List of (app_id, name) tuples.
-        """
+        """Returns game-type apps with no entry in the given table."""
         cursor = self.conn.execute(
             f"SELECT g.app_id, g.name FROM games g"
             f" LEFT JOIN {table} t ON g.app_id = t.app_id"
@@ -44,15 +38,7 @@ class EnrichmentQueryMixin:
         return [(row[0], row[1]) for row in cursor.fetchall()]
 
     def _get_stale_count(self, table: str, max_age_days: int) -> int:
-        """Counts entries with cache older than max_age_days.
-
-        Args:
-            table: Table name with a last_updated column.
-            max_age_days: Maximum cache age in days.
-
-        Returns:
-            Number of stale entries.
-        """
+        """Counts entries with cache older than max_age_days."""
         cutoff = int(time.time()) - (max_age_days * 86400)
         cursor = self.conn.execute(
             f"SELECT COUNT(*) FROM {table} WHERE last_updated < ?",
@@ -60,17 +46,12 @@ class EnrichmentQueryMixin:
         )
         return cursor.fetchone()[0]
 
-    # ── Metadata enrichment ──────────────────────────────────────────────
+    # Metadata enrichment
 
     def upsert_game_metadata(self, app_id: int, **fields: Any) -> None:
         """Updates specific metadata fields for an existing game.
 
         Only updates the provided fields; other columns remain unchanged.
-        Silently does nothing if the game does not exist.
-
-        Args:
-            app_id: Steam app ID.
-            **fields: Column name/value pairs to update (e.g. developer="Valve").
         """
         if not fields:
             return
@@ -110,12 +91,7 @@ class EnrichmentQueryMixin:
         )
 
     def upsert_languages(self, app_id: int, languages: dict[str, dict[str, bool]]) -> None:
-        """Replaces language support data for a game.
-
-        Args:
-            app_id: Steam app ID.
-            languages: Dict mapping language name to support flags.
-        """
+        """Replaces language support data for a game."""
         if not languages:
             return
 
@@ -139,20 +115,12 @@ class EnrichmentQueryMixin:
         )
 
     def get_all_game_ids(self) -> list[tuple[int, str]]:
-        """Returns all game-type apps from the database.
-
-        Returns:
-            List of (app_id, name) tuples for all games.
-        """
+        """Returns all game-type apps as (app_id, name) tuples."""
         cursor = self.conn.execute("SELECT app_id, name FROM games WHERE app_type IN ('game', '')")
         return [(row[0], row[1]) for row in cursor.fetchall()]
 
     def get_apps_missing_metadata(self) -> list[tuple[int, str]]:
-        """Returns apps with missing developer, publisher, or release date.
-
-        Returns:
-            List of (app_id, name) tuples.
-        """
+        """Returns apps with missing developer, publisher, or release date."""
         cursor = self.conn.execute(
             "SELECT app_id, name FROM games"
             " WHERE (developer IS NULL OR developer = '')"
@@ -168,18 +136,12 @@ class EnrichmentQueryMixin:
         """Returns game-type apps that have no HLTB data."""
         return self._get_apps_without_join("hltb_data")
 
-    # ── HLTB ID cache ────────────────────────────────────────────────────
+    # HLTB ID cache
 
     _HLTB_CACHE_TTL_DAYS = 30
 
     def load_hltb_id_cache(self) -> dict[int, int]:
-        """Loads the steam_app_id -> hltb_game_id cache from database.
-
-        Only returns entries younger than 30 days.
-
-        Returns:
-            Dict mapping steam_app_id to hltb_game_id.
-        """
+        """Loads steam_app_id -> hltb_game_id cache (entries younger than 30 days)."""
         cutoff = int(time.time()) - (self._HLTB_CACHE_TTL_DAYS * 86400)
         cursor = self.conn.execute(
             "SELECT steam_app_id, hltb_game_id FROM hltb_id_cache WHERE cached_at > ?",
@@ -188,14 +150,7 @@ class EnrichmentQueryMixin:
         return {row[0]: row[1] for row in cursor.fetchall()}
 
     def save_hltb_id_cache(self, mappings: dict[int, int]) -> int:
-        """Saves steam_app_id -> hltb_game_id mappings to the cache table.
-
-        Args:
-            mappings: Dict mapping steam_app_id to hltb_game_id.
-
-        Returns:
-            Number of mappings saved.
-        """
+        """Saves steam_app_id -> hltb_game_id mappings to the cache table."""
         if not mappings:
             return 0
 
@@ -209,30 +164,18 @@ class EnrichmentQueryMixin:
         return len(rows)
 
     def clear_expired_hltb_cache(self) -> int:
-        """Removes expired entries from the HLTB ID cache.
-
-        Returns:
-            Number of entries removed.
-        """
+        """Removes expired entries from the HLTB ID cache."""
         cutoff = int(time.time()) - (self._HLTB_CACHE_TTL_DAYS * 86400)
         cursor = self.conn.execute("DELETE FROM hltb_id_cache WHERE cached_at <= ?", (cutoff,))
         self.conn.commit()
         return cursor.rowcount
 
-    # ── ProtonDB ─────────────────────────────────────────────────────────
+    # ProtonDB
 
     _PROTONDB_TTL_DAYS = 7
 
     def get_cached_protondb(self, app_id: int) -> dict | None:
-        """Returns cached ProtonDB rating if fresh enough.
-
-        Args:
-            app_id: Steam app ID.
-
-        Returns:
-            Dict with tier/confidence/trending/score/best_reported/last_updated,
-            or None if not cached or expired.
-        """
+        """Returns cached ProtonDB rating if fresh enough, or None."""
         cutoff = int(time.time()) - (self._PROTONDB_TTL_DAYS * 86400)
         cursor = self.conn.execute(
             "SELECT tier, confidence, trending_tier, score, best_reported, last_updated"
@@ -260,16 +203,7 @@ class EnrichmentQueryMixin:
         score: float = 0.0,
         best_reported: str = "",
     ) -> None:
-        """Inserts or updates a ProtonDB rating.
-
-        Args:
-            app_id: Steam app ID.
-            tier: Compatibility tier.
-            confidence: Confidence level.
-            trending_tier: Trending tier direction.
-            score: Numeric score.
-            best_reported: Best reported tier.
-        """
+        """Inserts or updates a ProtonDB rating."""
         self.conn.execute(
             """
             INSERT OR REPLACE INTO protondb_ratings
@@ -284,11 +218,7 @@ class EnrichmentQueryMixin:
         return self._get_apps_without_join("protondb_ratings")
 
     def get_apps_without_pegi(self) -> list[tuple[int, str]]:
-        """Returns game-type apps that have no PEGI age rating.
-
-        Returns:
-            List of (app_id, name) tuples.
-        """
+        """Returns game-type apps that have no PEGI age rating."""
         cursor = self.conn.execute("""
             SELECT app_id, name FROM games
             WHERE (pegi_rating IS NULL OR pegi_rating = '')
@@ -297,14 +227,7 @@ class EnrichmentQueryMixin:
         return [(row[0], row[1]) for row in cursor.fetchall()]
 
     def batch_get_protondb(self, app_ids: list[int]) -> dict[int, str]:
-        """Batch load ProtonDB tiers for multiple app_ids.
-
-        Args:
-            app_ids: List of app IDs.
-
-        Returns:
-            Dict mapping app_id to tier string.
-        """
+        """Batch load ProtonDB tiers for multiple app_ids."""
         if not app_ids:
             return {}
 
@@ -315,20 +238,12 @@ class EnrichmentQueryMixin:
         )
         return {row[0]: row[1] for row in cursor.fetchall()}
 
-    # ── Achievement operations ───────────────────────────────────────────
+    # Achievement operations
 
     def upsert_achievement_stats(
         self, app_id: int, total: int, unlocked: int, completion_pct: float, perfect: bool
     ) -> None:
-        """Inserts or updates achievement statistics for a game.
-
-        Args:
-            app_id: Steam app ID.
-            total: Total number of achievements.
-            unlocked: Number of unlocked achievements.
-            completion_pct: Completion percentage (0.0-100.0).
-            perfect: Whether all achievements are unlocked.
-        """
+        """Inserts or updates achievement statistics for a game."""
         self.conn.execute(
             """
             INSERT OR REPLACE INTO achievement_stats
@@ -339,12 +254,7 @@ class EnrichmentQueryMixin:
         )
 
     def upsert_achievements(self, app_id: int, achievements: list[dict]) -> None:
-        """Batch inserts or updates individual achievements for a game.
-
-        Args:
-            app_id: Steam app ID.
-            achievements: List of achievement dicts.
-        """
+        """Batch inserts or updates individual achievements for a game."""
         if not achievements:
             return
 
@@ -375,7 +285,7 @@ class EnrichmentQueryMixin:
         """Returns game-type apps that have no achievement_stats entry."""
         return self._get_apps_without_join("achievement_stats")
 
-    # ── Health check queries ─────────────────────────────────────────────
+    # Health check queries
 
     def get_games_missing_artwork(self) -> list[tuple[int, str]]:
         """Returns games that have no custom artwork entry."""
@@ -389,14 +299,9 @@ class EnrichmentQueryMixin:
         """Counts games with ProtonDB cache older than max_age_days."""
         return self._get_stale_count("protondb_ratings", max_age_days)
 
-    # ── Import recording ─────────────────────────────────────────────────
+    # Import recording
 
     def record_import(self, stats: ImportStats) -> None:
-        """Record import statistics.
-
-        Args:
-            stats: Import statistics.
-        """
         self.conn.execute(
             """
             INSERT INTO import_history
@@ -414,14 +319,10 @@ class EnrichmentQueryMixin:
         )
         self.conn.commit()
 
-    # ── Data quality ─────────────────────────────────────────────────────
+    # Data quality
 
     def repair_placeholder_names(self) -> int:
-        """Replace placeholder names with empty strings in the database.
-
-        Returns:
-            Number of names cleaned.
-        """
+        """Replace placeholder names ('App 123', 'Unknown App 456') with empty strings."""
         cursor = self.conn.execute("""
             SELECT COUNT(*) FROM games
             WHERE name GLOB 'App [0-9]*'
