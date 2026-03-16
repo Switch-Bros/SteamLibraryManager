@@ -1,9 +1,10 @@
-"""
-AutoCat Preset Manager for saving and loading categorization presets.
-
-Manages named presets of auto-categorization configurations,
-persisted as JSON in the application data directory.
-"""
+#
+# steam_library_manager/services/autocat_preset_manager.py
+# Saving and loading auto-categorization presets as JSON
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -21,16 +22,7 @@ __all__ = ["AutoCatPreset", "AutoCatPresetManager"]
 
 @dataclass(frozen=True)
 class AutoCatPreset:
-    """Immutable representation of an auto-categorization preset.
-
-    Args:
-        name: Display name for the preset.
-        methods: Tuple of method names to run (e.g. ("tags", "publisher")).
-        tags_count: Number of tags per game (used when "tags" is in methods).
-        ignore_common: Whether to ignore common tags.
-        curator_url: Optional Steam Curator URL (used when "curator" is in methods).
-        curator_recommendations: Optional tuple of recommendation types to include.
-    """
+    """Immutable auto-categorization preset."""
 
     name: str
     methods: tuple[str, ...] = field(default_factory=tuple)
@@ -41,26 +33,14 @@ class AutoCatPreset:
 
 
 class AutoCatPresetManager:
-    """Manages CRUD operations for auto-categorization presets.
-
-    Presets are stored as a JSON array in the application data directory.
-    """
+    """CRUD operations for auto-categorization presets stored as JSON."""
 
     def __init__(self, data_dir: Path | None = None) -> None:
-        """Initialize the preset manager.
-
-        Args:
-            data_dir: Directory for storing presets. Defaults to config.DATA_DIR.
-        """
         self._data_dir = data_dir or config.DATA_DIR
         self._file_path = self._data_dir / "autocat_presets.json"
 
     def load_presets(self) -> list[AutoCatPreset]:
-        """Load all presets from disk.
-
-        Returns:
-            List of presets, empty if file does not exist or is invalid.
-        """
+        """Load all presets from disk."""
         data = load_json(self._file_path, default=[])
         if not data:
             return []
@@ -87,13 +67,7 @@ class AutoCatPresetManager:
         return presets
 
     def save_preset(self, preset: AutoCatPreset) -> None:
-        """Save or update a preset.
-
-        If a preset with the same name exists, it is overwritten.
-
-        Args:
-            preset: The preset to save.
-        """
+        """Save or update a preset. Overwrites existing with same name."""
         presets = self.load_presets()
 
         # Replace existing preset with same name
@@ -104,14 +78,7 @@ class AutoCatPresetManager:
         logger.info("Saved preset '%s'", preset.name)
 
     def delete_preset(self, name: str) -> bool:
-        """Delete a preset by name.
-
-        Args:
-            name: Name of the preset to delete.
-
-        Returns:
-            True if a preset was deleted, False if not found.
-        """
+        """Delete a preset by name. Returns True if found and deleted."""
         presets = self.load_presets()
         original_count = len(presets)
         presets = [p for p in presets if p.name != name]
@@ -124,15 +91,7 @@ class AutoCatPresetManager:
         return True
 
     def rename_preset(self, old_name: str, new_name: str) -> bool:
-        """Rename a preset.
-
-        Args:
-            old_name: Current name of the preset.
-            new_name: New name for the preset.
-
-        Returns:
-            True if renamed, False if old_name not found.
-        """
+        """Rename a preset. Returns True if old_name was found."""
         presets = self.load_presets()
         found = False
 
@@ -161,11 +120,6 @@ class AutoCatPresetManager:
         return found
 
     def _write_presets(self, presets: list[AutoCatPreset]) -> None:
-        """Write the full preset list to disk.
-
-        Args:
-            presets: List of presets to persist.
-        """
         data = []
         for p in presets:
             d = asdict(p)

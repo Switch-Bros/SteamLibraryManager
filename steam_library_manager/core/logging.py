@@ -1,8 +1,10 @@
-"""Centralized logging configuration for Steam Library Manager.
-
-Provides a pre-configured logger with console output and optional file logging.
-All modules should import the logger from here instead of using print().
-"""
+#
+# steam_library_manager/core/logging.py
+# Centralized logging configuration with console and optional file output
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -19,13 +21,7 @@ def setup_logging(
     level: int = logging.INFO,
     log_file: Path | None = None,
 ) -> None:
-    """Configure the root application logger.
-
-    Args:
-        level: The logging level (default: INFO).
-        log_file: Optional path to a log file. If provided, logs will
-            also be written to this file.
-    """
+    """Configure the root application logger."""
     logger.setLevel(level)
 
     if logger.handlers:

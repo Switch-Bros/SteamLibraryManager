@@ -1,10 +1,10 @@
+#
 # steam_library_manager/services/filter_constants.py
-
-"""Constants and enums for the view-menu filter system.
-
-Defines all frozenset keys, the SortKey enum, and the type-to-app_type
-mapping used by FilterService and other modules.
-"""
+# Constants and enums for the view-menu filter system
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -25,14 +25,7 @@ __all__ = [
 
 
 class SortKey(Enum):
-    """Available sort keys for the game list.
-
-    Attributes:
-        NAME: Sort alphabetically by display name (A-Z).
-        PLAYTIME: Sort by total playtime (descending).
-        LAST_PLAYED: Sort by last played date (most recent first).
-        RELEASE_DATE: Sort by release year (newest first).
-    """
+    """Available sort keys for the game list."""
 
     NAME = "name"
     PLAYTIME = "playtime"

@@ -1,8 +1,10 @@
-"""Parser for itch.io games installed via butler.
-
-Reads the butler.db SQLite database to detect installed games
-by joining caves and games tables.
-"""
+#
+# steam_library_manager/integrations/external_games/itch_parser.py
+# Detects installed itch.io games from the butler SQLite database
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -43,11 +45,7 @@ _QUERY = """
 
 
 def _get_db_path() -> Path:
-    """Return the butler.db path using XDG conventions.
-
-    Returns:
-        Path to butler.db.
-    """
+    """Return the butler.db path using XDG conventions."""
     xdg = os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))
     return Path(xdg) / "itch" / "db" / "butler.db"
 
@@ -56,37 +54,16 @@ class ItchParser(BaseExternalParser):
     """Parser for itch.io games installed through butler."""
 
     def platform_name(self) -> str:
-        """Return platform name.
-
-        Returns:
-            Platform identifier.
-        """
         return "itch.io"
 
     def is_available(self) -> bool:
-        """Check if itch.io butler database exists.
-
-        Returns:
-            True if butler.db is found.
-        """
         return _get_db_path().exists()
 
     def get_config_paths(self) -> list[Path]:
-        """Return butler.db path.
-
-        Returns:
-            List containing the single database path.
-        """
         return [_get_db_path()]
 
     def read_games(self) -> list[ExternalGame]:
-        """Read installed games from itch.io butler database.
-
-        Opens the database read-only and filters by classification.
-
-        Returns:
-            List of detected itch.io games.
-        """
+        """Read installed games from itch.io butler database."""
         db_path = _get_db_path()
         if not db_path.exists():
             return []
@@ -133,17 +110,7 @@ class ItchParser(BaseExternalParser):
 
     @staticmethod
     def _resolve_install_path(row: sqlite3.Row) -> str:
-        """Resolve install path from cave data.
-
-        Uses custom_install_folder if set, otherwise combines
-        location_path with install_folder_name.
-
-        Args:
-            row: Database row with cave and location data.
-
-        Returns:
-            Resolved install path string.
-        """
+        """Resolve install path from cave data."""
         custom = row["custom_install_folder"]
         if custom:
             return str(custom)

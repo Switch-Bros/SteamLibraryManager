@@ -1,12 +1,10 @@
-"""Steam Community Profile games page scraper.
-
-Fetches the complete game list from the user's Steam Community profile
-page. Works even without Steam Client running. Catches games that
-GetOwnedGames sometimes misses (F2P, recently added, gifted, etc.).
-
-The profile page embeds ALL owned games as a React Query SSR cache
-in the initial HTML response (~10MB for large libraries).
-"""
+#
+# steam_library_manager/integrations/steam_profile_scraper.py
+# Scrapes game lists from Steam Community profile pages
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -27,13 +25,7 @@ __all__ = ["SteamProfileScraper", "ProfileGame"]
 
 @dataclass(frozen=True)
 class ProfileGame:
-    """A game entry from the Steam Community profile page.
-
-    Args:
-        app_id: Steam application ID.
-        name: Game display name.
-        playtime_forever: Total playtime in minutes.
-    """
+    """A game entry from the Steam Community profile page."""
 
     app_id: int
     name: str
@@ -41,11 +33,7 @@ class ProfileGame:
 
 
 class SteamProfileScraper:
-    """Fetches game lists from Steam Community profile pages.
-
-    Uses the public profile page which contains ALL owned games as
-    server-side rendered data. No API key required for public profiles.
-    """
+    """Fetches game lists from Steam Community profile pages via SSR data."""
 
     PROFILE_URL_BY_ID = "https://steamcommunity.com/profiles/{steamid}/games?tab=all"
 
@@ -72,11 +60,6 @@ class SteamProfileScraper:
     )
 
     def __init__(self, session_cookie: str | None = None) -> None:
-        """Initialize the scraper.
-
-        Args:
-            session_cookie: Optional steamLoginSecure cookie for private profiles.
-        """
         self._session = requests.Session()
         self._session.headers.update(self._HEADERS)
         if session_cookie:
@@ -87,26 +70,11 @@ class SteamProfileScraper:
             )
 
     def fetch_games(self, steamid64: str) -> list[ProfileGame]:
-        """Fetch all games from a user's profile by SteamID64.
-
-        Args:
-            steamid64: The user's 64-bit Steam ID.
-
-        Returns:
-            List of ProfileGame objects, empty on failure.
-        """
+        """Fetch all games from a user's profile by SteamID64."""
         url = self.PROFILE_URL_BY_ID.format(steamid=steamid64)
         return self._fetch_and_parse(url)
 
     def _fetch_and_parse(self, url: str) -> list[ProfileGame]:
-        """Fetch profile page and extract game data.
-
-        Args:
-            url: Full URL to the games page.
-
-        Returns:
-            List of ProfileGame objects.
-        """
         try:
             # timeout=(connect, read) per Alex annotation 5
             response = self._session.get(url, timeout=HTTP_TIMEOUT_SCRAPE)
@@ -122,23 +90,10 @@ class SteamProfileScraper:
             return []
 
     def _parse_games_from_html(self, html: str) -> list[ProfileGame]:
-        """Parse game objects from the SSR HTML.
-
-        The Steam community profile page embeds all game data in a React
-        Query SSR cache.  We extract game objects using regex since parsing
-        the full 10MB HTML with a DOM parser is impractical.
-
-        Falls back to JSON array extraction if regex finds nothing.
-
-        Args:
-            html: The full HTML content of the games page.
-
-        Returns:
-            List of ProfileGame objects.
-        """
+        """Parse game objects from SSR HTML via regex, with JSON fallback."""
         games: dict[int, ProfileGame] = {}
 
-        # Strategy 1: Direct regex on unescaped JSON in <script> tags
+        # Regex on unescaped JSON in <script> tags
         for match in self._GAME_PATTERN.finditer(html):
             app_id = int(match.group(1))
             name = match.group(2).replace('\\"', '"').replace("\\\\", "\\")
@@ -151,8 +106,7 @@ class SteamProfileScraper:
                     playtime_forever=playtime,
                 )
 
-        # Strategy 2: Try to find JSON arrays with game objects
-        # (handles double-escaped variants in React dehydrated state)
+        # Fallback: JSON arrays with game objects
         if not games:
             games = self._try_json_extraction(html)
 
@@ -165,17 +119,7 @@ class SteamProfileScraper:
 
     @staticmethod
     def _try_json_extraction(html: str) -> dict[int, ProfileGame]:
-        """Try to extract games from JSON arrays embedded in the HTML.
-
-        Some profile pages embed the data as escaped JSON strings within
-        a dehydrated React Query state object.
-
-        Args:
-            html: The full HTML content.
-
-        Returns:
-            Dict mapping app_id to ProfileGame.
-        """
+        """Extract games from JSON arrays in dehydrated React Query state."""
         games: dict[int, ProfileGame] = {}
 
         # Look for arrays of game objects (e.g., [{appid:10,...},{appid:20,...}])

@@ -1,9 +1,10 @@
-"""Parser for GOG games installed via Heroic Games Launcher.
-
-Reads Heroic's gog_store/installed.json to detect GOG titles.
-Note: GOG format uses an 'installed' array wrapper and may lack
-a 'title' field, requiring name resolution from install_path or metadata.
-"""
+#
+# steam_library_manager/integrations/external_games/heroic_gog_parser.py
+# Parser for GOG games installed via Heroic Games Launcher
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -40,14 +41,7 @@ _SIZE_MULTIPLIERS: dict[str, int] = {
 
 
 def _parse_size_string(size_str: str) -> int:
-    """Parse human-readable size string to bytes.
-
-    Args:
-        size_str: Size like "27.8 MiB" or "1.2 GiB".
-
-    Returns:
-        Size in bytes, 0 if unparseable.
-    """
+    """Parse human-readable size string (e.g. '27.8 MiB') to bytes."""
     match = _SIZE_PATTERN.match(size_str.strip())
     if not match:
         return 0
@@ -62,35 +56,16 @@ class HeroicGOGParser(BaseHeroicParser):
     _RUNNER = "gog"
 
     def platform_name(self) -> str:
-        """Return platform name.
-
-        Returns:
-            Platform identifier.
-        """
         return "Heroic (GOG)"
 
     def is_available(self) -> bool:
-        """Check if Heroic GOG config exists.
-
-        Returns:
-            True if installed.json is found.
-        """
         return self._find_config_file() is not None
 
     def get_config_paths(self) -> list[Path]:
-        """Return native and Flatpak config paths.
-
-        Returns:
-            List of possible installed.json paths.
-        """
         return [_NATIVE, _FLATPAK]
 
     def read_games(self) -> list[ExternalGame]:
-        """Read installed GOG games from Heroic's config.
-
-        Returns:
-            List of detected GOG games.
-        """
+        """Read installed GOG games from Heroic's config."""
         data, config_path = self._load_heroic_config_with_path()
 
         installed = data.get("installed", []) if isinstance(data, dict) else []
@@ -138,19 +113,7 @@ class HeroicGOGParser(BaseHeroicParser):
 
     @staticmethod
     def _resolve_name(app_name: str, install_path: str, heroic_config: Path | None) -> str:
-        """Resolve game name from metadata or install path.
-
-        GOG installed.json lacks a title field. Try metadata cache
-        first, then fall back to the last component of install_path.
-
-        Args:
-            app_name: GOG app ID.
-            install_path: Installation directory.
-            heroic_config: Path to heroic config root.
-
-        Returns:
-            Resolved game name.
-        """
+        """Resolve game name from store cache or install path fallback."""
         if heroic_config:
             cache_file = heroic_config / "store_cache" / f"{app_name}.json"
             if cache_file.exists():

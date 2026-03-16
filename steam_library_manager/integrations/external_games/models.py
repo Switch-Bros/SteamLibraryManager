@@ -1,9 +1,10 @@
-"""Data models for external (non-Steam) games.
-
-Defines the ExternalGame dataclass and supported platform constants
-used by all platform parsers. Also provides emoji mapping for
-external platform collections in the category tree.
-"""
+#
+# steam_library_manager/integrations/external_games/models.py
+# Data models and platform constants for external (non-Steam) games
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -25,21 +26,7 @@ PlatformName: TypeAlias = str
 
 @dataclass(frozen=True)
 class ExternalGame:
-    """Game detected from an external (non-Steam) platform.
-
-    Args:
-        platform: Platform identifier (e.g. "Heroic (Epic)").
-        platform_app_id: Platform-specific unique ID.
-        name: Display name of the game.
-        install_path: Installation directory.
-        executable: Executable name or path.
-        launch_command: Full launch command for Steam shortcut.
-        icon_path: Path to icon file if available.
-        install_size: Installation size in bytes.
-        is_installed: Whether the game is currently installed.
-        platform_metadata: Additional platform-specific key-value pairs.
-            Uses tuple of tuples for frozen dataclass compatibility.
-    """
+    """Game detected from an external (non-Steam) platform."""
 
     platform: PlatformName
     platform_app_id: str
@@ -99,15 +86,7 @@ _COLLECTION_EMOJI_KEYS: dict[str, str] = {
 def get_collection_emoji(collection_name: str) -> str:
     """Get emoji for an external platform/system collection.
 
-    Called at RUNTIME (not import time) to ensure i18n is initialized.
-    Follows the same pattern as Smart Collections which call t('emoji.brain')
-    directly in populate_categories().
-
-    Args:
-        collection_name: Name of the collection (e.g. "Nintendo Switch").
-
-    Returns:
-        Emoji string, or empty string if no mapping exists.
+    Called at runtime (not import time) to ensure i18n is initialized.
     """
     key = _COLLECTION_EMOJI_KEYS.get(collection_name, "")
     return t(key) if key else ""

@@ -1,9 +1,10 @@
+#
 # steam_library_manager/utils/name_utils.py
-
-"""Name modification utilities for game metadata.
-
-Shared by MetadataService (actual application) and MetadataDialogs (preview).
-"""
+# Name modification utilities for game metadata
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -11,17 +12,9 @@ __all__ = ["apply_name_modifications"]
 
 
 def apply_name_modifications(name: str, mods: dict[str, str]) -> str:
-    """Applies prefix, suffix, and remove modifications to a game name.
+    """Apply prefix, suffix, and remove mods to a game name.
 
-    Order: remove first (so prefix/suffix don't get mangled),
-    then prefix, then suffix.
-
-    Args:
-        name: Original game name.
-        mods: Dict with optional ``prefix``, ``suffix``, ``remove`` keys.
-
-    Returns:
-        Modified name string.
+    Order: remove first, then prefix, then suffix.
     """
     result = name
     if mods.get("remove"):

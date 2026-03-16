@@ -1,9 +1,10 @@
-"""Age rating conversion utilities.
-
-Single source of truth for all rating system conversions.
-Replaces duplicated maps in steam_store.py, game_detail_service.py,
-and game_details_widget.py.
-"""
+#
+# steam_library_manager/utils/age_ratings.py
+# Age rating conversion utilities (USK, ESRB, CERO -> PEGI)
+#
+# Copyright (c) 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
 
 from __future__ import annotations
 
@@ -44,14 +45,6 @@ CERO_TO_PEGI: dict[str, str] = {
 
 
 def convert_to_pegi(rating: str, system: str) -> str | None:
-    """Convert any rating system to PEGI equivalent.
-
-    Args:
-        rating: The rating value (e.g., "everyone", "12", "T").
-        system: The rating system (e.g., "esrb", "usk", "cero").
-
-    Returns:
-        PEGI equivalent string, or None if no mapping exists.
-    """
+    """Convert any rating system to PEGI equivalent, or None if unmapped."""
     maps = {"usk": USK_TO_PEGI, "esrb": ESRB_TO_PEGI, "cero": CERO_TO_PEGI}
     return maps.get(system.lower(), {}).get(rating.lower())
