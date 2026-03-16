@@ -534,7 +534,7 @@
       "curator_title": "Kurator-Empfehlungen",
       "curator_starting": "Lade Kurator-Empfehlungen...",
       "curator_progress": "Kurator {current}/{total}: {name}",
-      "no_curators": "Keine Kuratoren konfiguriert. Kuratoren hinzufügen über Werkzeuge → Kuratoren verwalten."
+      "no_curators": "Keine Kuratoren konfiguriert. Kuratoren hinzufügen über Werkzeuge > Kuratoren verwalten."
     },
     "curator": {
       "title": "Kuratoren verwalten",

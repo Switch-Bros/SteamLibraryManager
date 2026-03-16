@@ -282,8 +282,39 @@ class AutoCategorizeService:
         ("18", "auto_categorize.pegi_18"),
     )
 
+    def _migrate_pegi_categories(self, games: list[Game]) -> None:
+        """Rename old PEGI category labels to zero-padded format."""
+        import re
+
+        pegi_pattern = re.compile(r"^(.+?)(PEGI\s*)(\d+)(.*)$")
+        renames: dict[str, str] = {}
+        for game in games:
+            for cat in list(game.categories):
+                m = pegi_pattern.match(cat)
+                if not m:
+                    continue
+                prefix, pegi_word, num, suffix = m.groups()
+                # Strip parenthetical like "(Everyone)" or "(Alle Altersgruppen)"
+                clean_suffix = re.sub(r"\s*\(.*?\)", "", suffix).strip()
+                padded = f"{prefix}{pegi_word}{int(num):02d}{clean_suffix}"
+                if padded != cat:
+                    renames[cat] = padded
+
+        for old_cat, new_cat in renames.items():
+            for game in games:
+                if old_cat in game.categories:
+                    game.categories.remove(old_cat)
+                    if new_cat not in game.categories:
+                        game.categories.append(new_cat)
+                    self.category_service.add_app_to_category(game.app_id, new_cat)
+            try:
+                self.category_service.delete_category(old_cat)
+            except (ValueError, RuntimeError):
+                pass
+
     def categorize_by_pegi(self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None) -> int:
         """Categorize games by PEGI age rating."""
+        self._migrate_pegi_categories(games)
         categories_added = 0
         for i, game in enumerate(games):
             if progress_callback:
@@ -373,6 +404,15 @@ class AutoCategorizeService:
             return {"total": len(games), "cached": 0, "missing": len(games), "percentage": 0.0}
         app_ids = [game.app_id for game in games]
         return self.steam_scraper.get_cache_coverage(app_ids)
+
+    def get_tag_coverage_from_db(self, total_games: int, database: Any = None) -> dict[str, Any]:
+        """Check tag coverage from database instead of file cache."""
+        if not database:
+            return {"total": total_games, "cached": 0, "missing": total_games, "percentage": 0.0}
+        cached = database.get_games_with_tags_count()
+        missing = max(0, total_games - cached)
+        pct = (cached / total_games * 100) if total_games > 0 else 0.0
+        return {"total": total_games, "cached": cached, "missing": missing, "percentage": pct}
 
     @staticmethod
     def estimate_time(missing_count: int) -> str:

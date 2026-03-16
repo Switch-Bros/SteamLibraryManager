@@ -175,8 +175,8 @@
       "error_fetch_name": "Unexpected error fetching Steam display name: {error}",
       "warning_no_userdata": "Warning: userdata directory not found: {path}",
       "scanning_accounts": "Scanning Steam accounts in: {path}",
-      "found_account": "Found account: {account_id} → SteamID64: {steam_id}",
-      "display_name_found": "  → Display name: {name}",
+      "found_account": "Found account: {account_id} -> SteamID64: {steam_id}",
+      "display_name_found": "  -> Display name: {name}",
       "warning_invalid_dir": "Warning: Invalid account directory name: {name}",
       "error_processing": "Error processing account {name}: {error}",
       "total_found": "Total accounts found: {count}",
@@ -256,7 +256,7 @@
       "too_small": "licensecache too small ({size} bytes) — possibly corrupted",
       "parse_error": "Failed to parse licensecache: {error}",
       "parsed": "Parsed {count} licenses from licensecache",
-      "cross_reference": "licensecache: {packages} owned packages → {apps} AppIDs"
+      "cross_reference": "licensecache: {packages} owned packages -> {apps} AppIDs"
     },
     "profile_scraper": {
       "request_error": "Profile scrape failed: {error}",

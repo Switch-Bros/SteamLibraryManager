@@ -87,7 +87,17 @@ class EditActions:
         else:
             actual_games = self.dialog_games
 
-        coverage = self.mw.autocategorize_service.get_cache_coverage(actual_games)
+        db_path = self._get_db_path()
+        if db_path:
+            from steam_library_manager.core.database import Database
+
+            temp_db = Database(db_path)
+            try:
+                coverage = self.mw.autocategorize_service.get_tag_coverage_from_db(len(actual_games), temp_db)
+            finally:
+                temp_db.close()
+        else:
+            coverage = self.mw.autocategorize_service.get_tag_coverage_from_db(len(actual_games))
 
         if coverage["percentage"] >= 50:
             dialog.accept()

@@ -72,6 +72,11 @@ class TagQueryMixin:
         cursor = self.conn.execute("SELECT app_id FROM games")
         return {row[0] for row in cursor.fetchall()}
 
+    def get_games_with_tags_count(self) -> int:
+        """Count games that have at least one tag in game_tags."""
+        cursor = self.conn.execute("SELECT COUNT(DISTINCT app_id) FROM game_tags")
+        return cursor.fetchone()[0]
+
     def bulk_update_review_percentages(self, percentages: list[tuple[int, int]]) -> int:
         """Batch-update review_percentage. Returns update count."""
         self.conn.executemany(

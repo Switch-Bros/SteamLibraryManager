@@ -119,11 +119,11 @@
       },
       "pegi": {
         "root": "Altersfreigabe",
-        "pegi_3": "PEGI 3 (Alle Altersgruppen)",
-        "pegi_7": "PEGI 7",
+        "pegi_3": "PEGI 03",
+        "pegi_7": "PEGI 07",
         "pegi_12": "PEGI 12",
         "pegi_16": "PEGI 16",
-        "pegi_18": "PEGI 18 (Nur Erwachsene)",
+        "pegi_18": "PEGI 18",
         "pegi_none": "Kein Rating"
       },
       "curator": {
