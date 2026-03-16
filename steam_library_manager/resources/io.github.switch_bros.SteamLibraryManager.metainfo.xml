@@ -2,7 +2,7 @@
 <component type="desktop-application">
   <id>io.github.switch_bros.SteamLibraryManager</id>
   <name>Steam Library Manager</name>
-  <summary>The modern Depressurizer alternative for Linux — organize your Steam library like a pro</summary>
+  <summary>The modern Depressurizer alternative for Linux - organize your Steam library like a pro</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>MIT</project_license>
 
@@ -19,7 +19,7 @@
 
     <p>Smart Collections &amp; Auto-Categorization</p>
     <ul>
-      <li>Smart Collections with AND/OR/NOT logic — filter combinations Steam can't do</li>
+      <li>Smart Collections with AND/OR/NOT logic - filter combinations Steam can't do</li>
       <li>17 AutoCat types: Tags, Genre, Publisher, Developer, Franchise, Platform,
           User Score, Playtime, Playtime (HLTB), Features, VR Support, Release Year,
           Language, Steam Deck, Achievements, Curator, PEGI Age Rating</li>
@@ -54,7 +54,7 @@
     <p>Security &amp; Performance</p>
     <ul>
       <li>Secure login via QR code or password with keyring + AES-GCM token storage</li>
-      <li>Fast startup with progressive loading — UI visible in under 3 seconds</li>
+      <li>Fast startup with progressive loading - UI visible in under 3 seconds</li>
       <li>AppImage self-update with atomic replace and rollback</li>
     </ul>
 

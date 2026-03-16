@@ -6,7 +6,7 @@
 
 ### Was ist SLM?
 
-Steam Library Manager (SLM) ist ein Linux-natives Werkzeug zur Organisation großer Steam-Spielebibliotheken. Es erstellt, bearbeitet und verwaltet Steam-Sammlungen und -Kategorien — wie Depressurizer, aber für Linux gebaut und mit modernen Features.
+Steam Library Manager (SLM) ist ein Linux-natives Werkzeug zur Organisation großer Steam-Spielebibliotheken. Es erstellt, bearbeitet und verwaltet Steam-Sammlungen und -Kategorien - wie Depressurizer, aber für Linux gebaut und mit modernen Features.
 
 ### Ist SLM ein Ersatz für Depressurizer?
 
@@ -18,7 +18,7 @@ SLM ist Linux-first. Die Codebasis ist Python/PyQt6 und könnte theoretisch unte
 
 ### Ist SLM kostenlos?
 
-Ja, SLM ist kostenlos und Open Source. Wenn du es nützlich findest, kannst du die Entwicklung über Hilfe → Unterstützen (PayPal, GitHub Sponsors oder Ko-fi) unterstützen.
+Ja, SLM ist kostenlos und Open Source. Wenn du es nützlich findest, kannst du die Entwicklung über Hilfe > Unterstützen (PayPal, GitHub Sponsors oder Ko-fi) unterstützen.
 
 ### Verändert SLM meine Steam-Dateien?
 
@@ -45,7 +45,7 @@ Ja, aber mit Vorsicht. Wenn du Sammlungen gleichzeitig in SLM und Steam änderst
 
 ### Mein Steam ist an einem nicht-standardmäßigen Ort installiert
 
-Gehe zu Einstellungen (`Strg+P`) → Allgemein → Steam-Pfad und setze den korrekten Pfad. SLM erkennt `~/.steam` und `~/.local/share/Steam` automatisch, unterstützt aber jeden Ort.
+Gehe zu Einstellungen (`Strg+P`) > Allgemein > Steam-Pfad und setze den korrekten Pfad. SLM erkennt `~/.steam` und `~/.local/share/Steam` automatisch, unterstützt aber jeden Ort.
 
 ---
 
@@ -53,7 +53,7 @@ Gehe zu Einstellungen (`Strg+P`) → Allgemein → Steam-Pfad und setze den korr
 
 ### Ist es sicher, sich über SLM bei Steam einzuloggen?
 
-Ja. SLM nutzt Steams offizielle OAuth2-API (`IAuthenticationService`) — dasselbe Authentifizierungssystem, das auch der Steam Desktop Client verwendet. Beim QR-Code-Login (empfohlen) sieht SLM dein Passwort nicht einmal. Beim Passwort-Login wird dein Passwort mit Steams RSA Public Key verschlüsselt, bevor es dein System verlässt.
+Ja. SLM nutzt Steams offizielle OAuth2-API (`IAuthenticationService`) - dasselbe Authentifizierungssystem, das auch der Steam Desktop Client verwendet. Beim QR-Code-Login (empfohlen) sieht SLM dein Passwort nicht einmal. Beim Passwort-Login wird dein Passwort mit Steams RSA Public Key verschlüsselt, bevor es dein System verlässt.
 
 ### Kann SLM mein Inventar stehlen oder meine Items handeln?
 
@@ -65,11 +65,11 @@ SLMs Zugriff ist beschränkt auf: Spieleliste lesen, Sammlungen lesen und schrei
 
 ### Wie werden meine Login-Tokens gespeichert?
 
-Tokens werden über deinen System-Keyring gespeichert (KWallet bei KDE, GNOME Keyring, etc.) — derselbe sichere Speicher, den auch dein Browser für Passwörter nutzt. Falls kein Keyring verfügbar ist, nutzt SLM AES-GCM-verschlüsselte Dateien, deren Schlüssel über PBKDF2 aus deiner Machine-ID abgeleitet wird. Tokens werden niemals im Klartext gespeichert.
+Tokens werden über deinen System-Keyring gespeichert (KWallet bei KDE, GNOME Keyring, etc.) - derselbe sichere Speicher, den auch dein Browser für Passwörter nutzt. Falls kein Keyring verfügbar ist, nutzt SLM AES-GCM-verschlüsselte Dateien, deren Schlüssel über PBKDF2 aus deiner Machine-ID abgeleitet wird. Tokens werden niemals im Klartext gespeichert.
 
 ### Brauche ich einen Steam-API-Key?
 
-Nein. Der Steam-API-Key ist optional. SLMs primäre Methode liest deine Spiele direkt aus lokalen Steam-Dateien (licensecache, packageinfo.vdf). Der API-Key ermöglicht nur einige zusätzliche Metadaten-Abfragen und wird lokal in deiner Konfiguration gespeichert — nie an Dritte übertragen.
+Nein. Der Steam-API-Key ist optional. SLMs primäre Methode liest deine Spiele direkt aus lokalen Steam-Dateien (licensecache, packageinfo.vdf). Der API-Key ermöglicht nur einige zusätzliche Metadaten-Abfragen und wird lokal in deiner Konfiguration gespeichert - nie an Dritte übertragen.
 
 ### Sammelt SLM irgendwelche Daten oder telefoniert nach Hause?
 
@@ -80,11 +80,11 @@ grep -r "requests\.\(get\|post\)" steam_library_manager/ | grep -v test | grep -
 
 ### Wie widerrufe ich SLMs Zugriff auf meinen Account?
 
-Drei Möglichkeiten: Einstellungen → Logout in SLM (löscht alle lokalen Tokens), https://store.steampowered.com/twofactor/manage besuchen um alle Geräte zu deautorisieren, oder einfach `~/.config/SteamLibraryManager/tokens.enc` löschen.
+Drei Möglichkeiten: Einstellungen > Logout in SLM (löscht alle lokalen Tokens), https://store.steampowered.com/twofactor/manage besuchen um alle Geräte zu deautorisieren, oder einfach `~/.config/SteamLibraryManager/tokens.enc` löschen.
 
 ### Ich habe ein teures Inventar. Sollte ich mir Sorgen machen?
 
-Nein. Selbst im schlimmsten Fall, wenn jemand deinen Token stehlen würde, könnte er nur deine Spieleliste lesen — keine Items handeln, keine Käufe tätigen und keine Account-Einstellungen ändern. Mit aktivem 2FA bleibt dein Account in jedem Fall sicher.
+Nein. Selbst im schlimmsten Fall, wenn jemand deinen Token stehlen würde, könnte er nur deine Spieleliste lesen - keine Items handeln, keine Käufe tätigen und keine Account-Einstellungen ändern. Mit aktivem 2FA bleibt dein Account in jedem Fall sicher.
 
 ---
 
@@ -92,7 +92,7 @@ Nein. Selbst im schlimmsten Fall, wenn jemand deinen Token stehlen würde, könn
 
 ### Was ist der Unterschied zwischen einer Sammlung und einer Smart Collection?
 
-Eine **Sammlung** ist ein manueller Ordner — du fügst Spiele selbst hinzu und entfernst sie. Eine **Smart Collection** ist regelbasiert — sie schließt automatisch jedes Spiel ein, das deinen Kriterien entspricht, und aktualisiert sich selbst, wenn sich deine Bibliothek ändert.
+Eine **Sammlung** ist ein manueller Ordner - du fügst Spiele selbst hinzu und entfernst sie. Eine **Smart Collection** ist regelbasiert - sie schließt automatisch jedes Spiel ein, das deinen Kriterien entspricht, und aktualisiert sich selbst, wenn sich deine Bibliothek ändert.
 
 ### Synchronisieren meine Sammlungen zurück zu Steam?
 
@@ -100,7 +100,7 @@ Ja. SLM liest aus und schreibt in Steams Cloud Storage. Nach dem Speichern in SL
 
 ### Ich habe ein Chaos bei meinen Kategorien angerichtet. Kann ich das rückgängig machen?
 
-Verwende Datei → Profile → Verwalten um ein gespeichertes Profil zu laden, oder Datei → Import → DB Backup um von einem Backup wiederherzustellen. Wenn du vor den Änderungen ein Profil gespeichert hast, kannst du deine vorherige Organisation vollständig wiederherstellen.
+Verwende Datei > Profile > Verwalten um ein gespeichertes Profil zu laden, oder Datei > Import > DB Backup um von einem Backup wiederherzustellen. Wenn du vor den Änderungen ein Profil gespeichert hast, kannst du deine vorherige Organisation vollständig wiederherstellen.
 
 ### Kann ein Spiel in mehreren Sammlungen sein?
 
@@ -108,7 +108,7 @@ Ja. Spiele können gleichzeitig beliebig vielen Sammlungen angehören, genau wie
 
 ### Was bedeutet „Unkategorisiert"?
 
-Spiele, die in keiner Sammlung sind. Das ist eine virtuelle Kategorie — du kannst keine Spiele hinzufügen, aber Spiele daraus in Sammlungen ziehen.
+Spiele, die in keiner Sammlung sind. Das ist eine virtuelle Kategorie - du kannst keine Spiele hinzufügen, aber Spiele daraus in Sammlungen ziehen.
 
 ---
 
@@ -120,7 +120,7 @@ UND (alle Bedingungen wahr), ODER (mindestens eine wahr), NICHT (entsprechende S
 
 ### Warum zeigt meine Smart Collection 0 Spiele?
 
-Höchstwahrscheinlich wurden die Metadaten, auf die deine Regeln basieren, noch nicht geladen. Führe zuerst das entsprechende Enrichment aus (Werkzeuge → Batch). Zum Beispiel brauchen HLTB-basierte Regeln HLTB-Enrichment, Deck-Regeln brauchen Deck-Status-Enrichment.
+Höchstwahrscheinlich wurden die Metadaten, auf die deine Regeln basieren, noch nicht geladen. Führe zuerst das entsprechende Enrichment aus (Werkzeuge > Batch). Zum Beispiel brauchen HLTB-basierte Regeln HLTB-Enrichment, Deck-Regeln brauchen Deck-Status-Enrichment.
 
 ### Zählen Smart Collections gegen Steams Sammlungslimit?
 
@@ -137,7 +137,7 @@ Nein. AutoCat fügt Spiele zu neuen Kategorien hinzu (z.B. „Genre: RPG"), entf
 ### Was ist das beste AutoCat-Setup für eine große Bibliothek?
 
 Für eine Bibliothek mit 1000+ Spielen empfehlen wir:
-1. Zuerst Enrichment ausführen (Werkzeuge → Batch → ALLE Daten NEU einlesen)
+1. Zuerst Enrichment ausführen (Werkzeuge > Batch > ALLE Daten NEU einlesen)
 2. Dann AutoCat mit: Genre + Tags (Top 3) + Plattform + Deck-Status
 3. Optional: HLTB + Jahr für weitere Organisation
 
@@ -238,7 +238,7 @@ Stelle sicher, dass SLM Lese-/Schreibzugriff auf dein Steam-Verzeichnis hat. Bei
 
 ### Sammlungen verschwunden nach Steam-Update
 
-Steam setzt gelegentlich den Cloud Storage zurück. Verwende Datei → Import → DB Backup um von deinem letzten Backup wiederherzustellen, oder Datei → Profile um ein gespeichertes Profil zu laden.
+Steam setzt gelegentlich den Cloud Storage zurück. Verwende Datei > Import > DB Backup um von deinem letzten Backup wiederherzustellen, oder Datei > Profile um ein gespeichertes Profil zu laden.
 
 ### Die App startet nicht
 
@@ -246,7 +246,7 @@ Prüfe die Logdatei unter `~/.local/share/SteamLibraryManager/steamlibmgr.log` f
 
 ### Ich habe einen Bug gefunden!
 
-Bitte melde ihn unter Hilfe → Online → Issues melden (oder direkt auf GitHub). Füge bei:
+Bitte melde ihn unter Hilfe > Online > Issues melden (oder direkt auf GitHub). Füge bei:
 1. Was du gemacht hast
 2. Was du erwartet hast
 3. Was stattdessen passiert ist
@@ -255,4 +255,4 @@ Bitte melde ihn unter Hilfe → Online → Issues melden (oder direkt auf GitHub
 ---
 
 *Zuletzt aktualisiert: Februar 2026*
-*Weitere Fragen? Besuche Hilfe → Online → Discussions*
+*Weitere Fragen? Besuche Hilfe > Online > Discussions*

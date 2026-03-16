@@ -6,7 +6,7 @@
 
 ### What is SLM?
 
-Steam Library Manager (SLM) is a Linux-native tool for organizing large Steam game libraries. It creates, edits, and manages Steam collections and categories — like Depressurizer, but built for Linux with modern features.
+Steam Library Manager (SLM) is a Linux-native tool for organizing large Steam game libraries. It creates, edits, and manages Steam collections and categories - like Depressurizer, but built for Linux with modern features.
 
 ### Is SLM a replacement for Depressurizer?
 
@@ -18,7 +18,7 @@ SLM is Linux-first. While the codebase is Python/PyQt6 and could theoretically r
 
 ### Is SLM free?
 
-Yes, SLM is free and open source. If you find it useful, you can support development via Help → Support (PayPal, GitHub Sponsors, or Ko-fi).
+Yes, SLM is free and open source. If you find it useful, you can support development via Help > Support (PayPal, GitHub Sponsors, or Ko-fi).
 
 ### Does SLM modify my Steam files?
 
@@ -45,7 +45,7 @@ Yes, but with caution. If you modify collections in both SLM and Steam at the sa
 
 ### My Steam is installed in a non-standard location
 
-Go to Settings (`Ctrl+P`) → General → Steam Path and set the correct path. SLM auto-detects `~/.steam` and `~/.local/share/Steam` but supports any location.
+Go to Settings (`Ctrl+P`) > General > Steam Path and set the correct path. SLM auto-detects `~/.steam` and `~/.local/share/Steam` but supports any location.
 
 ---
 
@@ -53,7 +53,7 @@ Go to Settings (`Ctrl+P`) → General → Steam Path and set the correct path. S
 
 ### Is it safe to log into Steam through SLM?
 
-Yes. SLM uses Steam's official OAuth2 API (`IAuthenticationService`) — the same authentication system the Steam desktop client uses. With QR code login (recommended), SLM never even sees your password. With password login, your password is RSA-encrypted with Steam's public key before it leaves your machine.
+Yes. SLM uses Steam's official OAuth2 API (`IAuthenticationService`) - the same authentication system the Steam desktop client uses. With QR code login (recommended), SLM never even sees your password. With password login, your password is RSA-encrypted with Steam's public key before it leaves your machine.
 
 ### Can SLM steal my inventory or trade my items?
 
@@ -65,11 +65,11 @@ SLM's access is limited to reading your game list, reading and writing your coll
 
 ### How are my login tokens stored?
 
-Tokens are stored using your system keyring (KWallet on KDE, GNOME Keyring, etc.) — the same secure storage your browser uses for passwords. If no keyring is available, SLM falls back to AES-GCM encrypted files where the key is derived from your machine ID via PBKDF2. Tokens are never stored in plain text.
+Tokens are stored using your system keyring (KWallet on KDE, GNOME Keyring, etc.) - the same secure storage your browser uses for passwords. If no keyring is available, SLM falls back to AES-GCM encrypted files where the key is derived from your machine ID via PBKDF2. Tokens are never stored in plain text.
 
 ### Do I need a Steam API key?
 
-No. The Steam API key is optional. SLM's primary method reads your games directly from local Steam files (licensecache, packageinfo.vdf). The API key only enables some additional metadata lookups and is stored locally in your config — never transmitted to third parties.
+No. The Steam API key is optional. SLM's primary method reads your games directly from local Steam files (licensecache, packageinfo.vdf). The API key only enables some additional metadata lookups and is stored locally in your config - never transmitted to third parties.
 
 ### Does SLM collect any data or phone home?
 
@@ -80,11 +80,11 @@ grep -r "requests\.\(get\|post\)" steam_library_manager/ | grep -v test | grep -
 
 ### How do I revoke SLM's access to my account?
 
-Three options: use Settings → Logout in SLM (deletes all local tokens), visit https://store.steampowered.com/twofactor/manage to deauthorize all devices, or simply delete `~/.config/SteamLibraryManager/tokens.enc`.
+Three options: use Settings > Logout in SLM (deletes all local tokens), visit https://store.steampowered.com/twofactor/manage to deauthorize all devices, or simply delete `~/.config/SteamLibraryManager/tokens.enc`.
 
 ### I have an expensive inventory. Should I be worried?
 
-No. Even in a worst-case scenario where someone stole your token, they could only read your game list — not trade items, make purchases, or change account settings. With 2FA active, your account remains secure regardless.
+No. Even in a worst-case scenario where someone stole your token, they could only read your game list - not trade items, make purchases, or change account settings. With 2FA active, your account remains secure regardless.
 
 ---
 
@@ -92,7 +92,7 @@ No. Even in a worst-case scenario where someone stole your token, they could onl
 
 ### What's the difference between a Collection and a Smart Collection?
 
-A **Collection** is a manual folder — you add and remove games yourself. A **Smart Collection** is rule-based — it automatically includes every game matching your criteria and updates itself when your library changes.
+A **Collection** is a manual folder - you add and remove games yourself. A **Smart Collection** is rule-based - it automatically includes every game matching your criteria and updates itself when your library changes.
 
 ### Do my collections sync back to Steam?
 
@@ -100,7 +100,7 @@ Yes. SLM reads from and writes to Steam's cloud storage. After saving in SLM and
 
 ### I made a mess of my categories. Can I undo?
 
-Use File → Profiles → Manage to load a saved profile, or File → Import → DB Backup to restore from a backup. If you saved a profile before the changes, you can fully restore your previous organization.
+Use File > Profiles > Manage to load a saved profile, or File > Import > DB Backup to restore from a backup. If you saved a profile before the changes, you can fully restore your previous organization.
 
 ### Can I have a game in multiple collections?
 
@@ -108,7 +108,7 @@ Yes. Games can belong to any number of collections simultaneously, just like in 
 
 ### What does "Uncategorized" mean?
 
-Games that aren't in any collection. This is a virtual category — you can't add games to it, but you can drag games from it into collections.
+Games that aren't in any collection. This is a virtual category - you can't add games to it, but you can drag games from it into collections.
 
 ---
 
@@ -120,7 +120,7 @@ AND (all conditions true), OR (at least one true), NOT (exclude matching games).
 
 ### Why does my Smart Collection show 0 games?
 
-Most likely the metadata your rules depend on hasn't been loaded yet. Run the appropriate enrichment (Tools → Batch) first. For example, HLTB-based rules need HLTB enrichment, Deck rules need Deck status enrichment.
+Most likely the metadata your rules depend on hasn't been loaded yet. Run the appropriate enrichment (Tools > Batch) first. For example, HLTB-based rules need HLTB enrichment, Deck rules need Deck status enrichment.
 
 ### Do Smart Collections count against Steam's collection limit?
 
@@ -137,7 +137,7 @@ No. AutoCat adds games to new categories (e.g., "Genre: RPG") but doesn't remove
 ### What's the best AutoCat setup for a large library?
 
 For a library of 1000+ games, we recommend:
-1. First run enrichment (Tools → Batch → Refresh ALL Data)
+1. First run enrichment (Tools > Batch > Refresh ALL Data)
 2. Then AutoCat with: Genre + Tags (Top 3) + Platform + Deck Status
 3. Optionally add: HLTB + Year for further organization
 
@@ -238,7 +238,7 @@ Make sure SLM has read/write access to your Steam directory. If using Flatpak, e
 
 ### Collections disappeared after Steam update
 
-Steam occasionally resets cloud storage. Use File → Import → DB Backup to restore from your latest backup, or File → Profiles to load a saved profile.
+Steam occasionally resets cloud storage. Use File > Import > DB Backup to restore from your latest backup, or File > Profiles to load a saved profile.
 
 ### The app won't start
 
@@ -246,7 +246,7 @@ Check the log file at `~/.local/share/SteamLibraryManager/steamlibmgr.log` for e
 
 ### I found a bug!
 
-Please report it at Help → Online → Report Issues (or directly on GitHub). Include:
+Please report it at Help > Online > Report Issues (or directly on GitHub). Include:
 1. What you did
 2. What you expected
 3. What happened instead
@@ -255,4 +255,4 @@ Please report it at Help → Online → Report Issues (or directly on GitHub). I
 ---
 
 *Last updated: February 2026*
-*More questions? Visit Help → Online → Discussions*
+*More questions? Visit Help > Online > Discussions*

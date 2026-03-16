@@ -146,7 +146,7 @@
       "error_details": "Error details: {error}",
       "external_change_detected": "Cloud storage file modified externally since last load",
       "delta_merge_stats": "Delta-merge: {managed} managed, {deleted} deleted, {preserved} preserved",
-      "size_shrink_warning": "Cloud storage shrunk by {ratio} ({old_size} to {new_size} bytes) — check for data loss"
+      "size_shrink_warning": "Cloud storage shrunk by {ratio} ({old_size} to {new_size} bytes) - check for data loss"
     },
     "local_loader": {
       "scanning": "Scanning {count} manifest files...",
@@ -252,8 +252,8 @@
       "subscribed_discovered": "Discovered {count} subscribed curators"
     },
     "license_cache": {
-      "not_found": "licensecache not found at {path} — skipping license-based discovery",
-      "too_small": "licensecache too small ({size} bytes) — possibly corrupted",
+      "not_found": "licensecache not found at {path} - skipping license-based discovery",
+      "too_small": "licensecache too small ({size} bytes) - possibly corrupted",
       "parse_error": "Failed to parse licensecache: {error}",
       "parsed": "Parsed {count} licenses from licensecache",
       "cross_reference": "licensecache: {packages} owned packages -> {apps} AppIDs"

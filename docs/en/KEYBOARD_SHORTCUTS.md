@@ -52,12 +52,12 @@ All keyboard shortcuts available in Steam Library Manager.
 |----------|--------|-------|
 | `F1` | User Manual | Opens this documentation |
 
-## Escape Key — Layered Behavior
+## Escape Key - Layered Behavior
 
 The `Esc` key works in layers, which means pressing it multiple times does different things:
 
-1. **First press:** If the search bar has text → clears the search
-2. **Second press:** If games are selected → clears the selection
+1. **First press:** If the search bar has text > clears the search
+2. **Second press:** If games are selected > clears the selection
 3. **Third press:** Nothing (you're already at the base state)
 
 This design lets you quickly get back to a clean view without losing your place.

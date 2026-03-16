@@ -385,7 +385,7 @@
       "export_empty": "No Smart Collections to export.",
       "import_title": "Import Smart Collections",
       "import_success": "Imported {count} Smart Collections.",
-      "import_success_skipped": "Imported {imported} Smart Collections ({skipped} skipped — already exist).",
+      "import_success_skipped": "Imported {imported} Smart Collections ({skipped} skipped - already exist).",
       "import_error": "Smart Collection import failed: {error}",
       "import_empty": "No Smart Collections found in file.",
       "field": {
@@ -423,10 +423,10 @@
         "app_type": "game, dlc, tool, demo",
         "playtime_hours": "e.g. 50",
         "release_year": "e.g. 2020",
-        "review_score": "0–100",
+        "review_score": "0-100",
         "review_count": "e.g. 1000",
         "hltb_main": "Minutes, e.g. 600",
-        "achievement_pct": "0–100",
+        "achievement_pct": "0-100",
         "achievement_total": "e.g. 50",
         "steam_deck": "verified, playable, unsupported",
         "protondb": "platinum, gold, silver, bronze",
@@ -625,7 +625,7 @@
     },
     "result": {
       "title": "Health Check Results",
-      "summary": "{total} games checked — {issues} issues found.",
+      "summary": "{total} games checked - {issues} issues found.",
       "no_issues": "Your library is in great shape! No issues found."
     },
     "tabs": {

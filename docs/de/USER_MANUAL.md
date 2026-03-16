@@ -1,4 +1,4 @@
-# 📖 Steam Library Manager — Benutzerhandbuch
+# 📖 Steam Library Manager - Benutzerhandbuch
 
 **Version:** 1.0
 **Plattform:** Linux (CachyOS, Ubuntu, Fedora, Arch, SteamOS, etc.)
@@ -27,7 +27,7 @@
 
 ## Was ist Steam Library Manager?
 
-Steam Library Manager (SLM) ist ein leistungsstarkes Werkzeug zur Organisation großer Steam-Spielebibliotheken unter Linux. Stell es dir als moderne, Linux-native Alternative zu Depressurizer vor — mit Extras.
+Steam Library Manager (SLM) ist ein leistungsstarkes Werkzeug zur Organisation großer Steam-Spielebibliotheken unter Linux. Stell es dir als moderne, Linux-native Alternative zu Depressurizer vor - mit Extras.
 
 **Hauptfunktionen:**
 - 3000+ Spiele in Sammlungen organisieren, die mit Steam synchronisiert werden
@@ -78,10 +78,10 @@ Erfordert Python 3.11+ und PyQt6.
 
 Beim ersten Start wird SLM:
 
-1. **Deine Steam-Installation erkennen** — findet automatisch deinen Steam-Pfad
-2. **Nach deinem Steam-Account fragen** — wähle welchen Steam-Benutzer du verwalten willst
-3. **Die lokale Datenbank aufbauen** — das dauert beim ersten Mal 10-30 Sekunden
-4. **Deine Sammlungen laden** — liest deine bestehenden Steam-Kategorien aus dem Cloud Storage
+1. **Deine Steam-Installation erkennen** - findet automatisch deinen Steam-Pfad
+2. **Nach deinem Steam-Account fragen** - wähle welchen Steam-Benutzer du verwalten willst
+3. **Die lokale Datenbank aufbauen** - das dauert beim ersten Mal 10-30 Sekunden
+4. **Deine Sammlungen laden** - liest deine bestehenden Steam-Kategorien aus dem Cloud Storage
 
 Nach dem initialen Setup dauern Folgestarts weniger als 3 Sekunden.
 
@@ -107,7 +107,7 @@ Das Hauptfenster hat vier Bereiche:
 │  Ein/Aus     │  Leertaste für Detailbereich             │
 │              │                                          │
 ├──────────────┴──────────────────────────────────────────┤
-│  Statusleiste — Spielanzahl, Filterstatus, Meldungen    │
+│  Statusleiste - Spielanzahl, Filterstatus, Meldungen    │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -117,7 +117,7 @@ Das Hauptfenster hat vier Bereiche:
 
 **Detailbereich:** Zeigt Metadaten, Artwork, Spielzeit, Erfolge und mehr für das ausgewählte Spiel. Umschalten mit `Leertaste`.
 
-**Statusleiste:** Live-Statistiken zur aktuellen Ansicht — wie viele Spiele angezeigt werden, welche Filter aktiv sind.
+**Statusleiste:** Live-Statistiken zur aktuellen Ansicht - wie viele Spiele angezeigt werden, welche Filter aktiv sind.
 
 ---
 
@@ -125,23 +125,23 @@ Das Hauptfenster hat vier Bereiche:
 
 ### Sammlung erstellen
 
-Rechtsklick im Kategoriebaum → „Neue Sammlung" → Namen eingeben. Die Sammlung wird automatisch mit Steam synchronisiert.
+Rechtsklick im Kategoriebaum > „Neue Sammlung" > Namen eingeben. Die Sammlung wird automatisch mit Steam synchronisiert.
 
 ### Spiele zu Sammlungen hinzufügen
 
 1. Wähle ein oder mehrere Spiele in der Spielliste
 2. Ziehe sie auf eine Sammlung in der Seitenleiste, ODER
-3. Rechtsklick → „Zu Sammlung hinzufügen" → Ziel wählen
+3. Rechtsklick > „Zu Sammlung hinzufügen" > Ziel wählen
 
 ### Spiele aus Sammlungen entfernen
 
 1. Wähle Spiele innerhalb einer Sammlung
 2. Drücke `Entf`, ODER
-3. Rechtsklick → „Aus Sammlung entfernen"
+3. Rechtsklick > „Aus Sammlung entfernen"
 
 ### Sammlungen umbenennen
 
-Sammlung auswählen → `F2` drücken → neuen Namen eingeben.
+Sammlung auswählen > `F2` drücken > neuen Namen eingeben.
 
 ### Synchronisation mit Steam
 
@@ -157,7 +157,7 @@ Smart Collections sind sich automatisch aktualisierende Ordner basierend auf Reg
 
 ### Smart Collection erstellen
 
-1. Drücke `Strg+Umschalt+N` oder gehe zu Bearbeiten → Sammlungen → Smart Collection erstellen
+1. Drücke `Strg+Umschalt+N` oder gehe zu Bearbeiten > Sammlungen > Smart Collection erstellen
 2. Gib einen Namen ein
 3. Füge Regeln mit dem Regel-Editor hinzu
 
@@ -165,9 +165,9 @@ Smart Collections sind sich automatisch aktualisierende Ordner basierend auf Reg
 
 Regeln unterstützen drei Operatoren:
 
-- **UND** — Alle Bedingungen müssen zutreffen (Standard)
-- **ODER** — Mindestens eine Bedingung muss zutreffen
-- **NICHT** — Spiele ausschließen, die dieser Bedingung entsprechen
+- **UND** - Alle Bedingungen müssen zutreffen (Standard)
+- **ODER** - Mindestens eine Bedingung muss zutreffen
+- **NICHT** - Spiele ausschließen, die dieser Bedingung entsprechen
 
 **Beispiel:** „Linux-RPGs unter 20 Stunden"
 ```
@@ -238,10 +238,10 @@ AutoCat (`Strg+Umschalt+A`) sortiert Spiele automatisch basierend auf ihren Meta
 ### Presets
 
 Speichere deine AutoCat-Konfiguration als Preset zur Wiederverwendung:
-- Klicke „Preset speichern" → gib einen Namen ein
+- Klicke „Preset speichern" > gib einen Namen ein
 - Beim nächsten Mal „Preset laden", um deine exakte Konfiguration wiederherzustellen
 
-**Tipp:** Führe AutoCat nach dem Enrichment aus für die besten Ergebnisse — mehr Metadaten bedeuten genauere Kategorisierung.
+**Tipp:** Führe AutoCat nach dem Enrichment aus für die besten Ergebnisse - mehr Metadaten bedeuten genauere Kategorisierung.
 
 ---
 
@@ -253,16 +253,16 @@ SLM kann zusätzliche Daten aus mehreren Quellen abrufen, um deine Spielmetadate
 
 | Quelle | Menüpfad | Hinzugefügte Daten |
 |--------|----------|-------------------|
-| Steam-API | Werkzeuge → Batch → Metadaten aktualisieren | Genres, Tags, Beschreibungen, Screenshots, Bewertungen |
-| HLTB | Werkzeuge → Batch → HLTB aktualisieren | Hauptstory-, Completionist- und alle Spielstil-Zeiten |
-| ProtonDB | Werkzeuge → Batch → ProtonDB aktualisieren | Linux-Kompatibilitätsbewertungen (Platinum, Gold, Silver, etc.) |
-| Steam Deck | Werkzeuge → Batch → Deck-Status abrufen | Verified, Playable, Unsupported, Unknown |
-| Erfolge | Werkzeuge → Batch → Achievements aktualisieren | Erfolgsanzahl, Abschlussquote |
-| Tags | Werkzeuge → Batch → Tags importieren | Steam-Community-Tags aus appinfo.vdf |
+| Steam-API | Werkzeuge > Batch > Metadaten aktualisieren | Genres, Tags, Beschreibungen, Screenshots, Bewertungen |
+| HLTB | Werkzeuge > Batch > HLTB aktualisieren | Hauptstory-, Completionist- und alle Spielstil-Zeiten |
+| ProtonDB | Werkzeuge > Batch > ProtonDB aktualisieren | Linux-Kompatibilitätsbewertungen (Platinum, Gold, Silver, etc.) |
+| Steam Deck | Werkzeuge > Batch > Deck-Status abrufen | Verified, Playable, Unsupported, Unknown |
+| Erfolge | Werkzeuge > Batch > Achievements aktualisieren | Erfolgsanzahl, Abschlussquote |
+| Tags | Werkzeuge > Batch > Tags importieren | Steam-Community-Tags aus appinfo.vdf |
 
 ### ALLE Daten NEU einlesen
 
-Werkzeuge → Batch → „ALLE Daten NEU einlesen" führt alle Enrichments parallel aus mit einer Multi-Track-Fortschrittsanzeige, die jede Quelle unabhängig zeigt.
+Werkzeuge > Batch > „ALLE Daten NEU einlesen" führt alle Enrichments parallel aus mit einer Multi-Track-Fortschrittsanzeige, die jede Quelle unabhängig zeigt.
 
 ### Force Refresh
 
@@ -304,7 +304,7 @@ SLM kann Spiele von 8 Nicht-Steam-Plattformen erkennen und verwalten (`Strg+Umsc
 
 ## Import & Export
 
-### Export-Optionen (Datei → Export)
+### Export-Optionen (Datei > Export)
 
 | Format | Inhalt | Verwendungszweck |
 |--------|--------|-----------------|
@@ -316,7 +316,7 @@ SLM kann Spiele von 8 Nicht-Steam-Plattformen erkennen und verwalten (`Strg+Umsc
 | Smart Collections | Smart-Collection-Regeln | Regeln mit anderen teilen |
 | DB Backup | Komplette SQLite-Datenbank | Vollständiges Daten-Backup |
 
-### Import-Optionen (Datei → Import)
+### Import-Optionen (Datei > Import)
 
 | Format | Was wiederhergestellt wird |
 |--------|--------------------------|
@@ -332,8 +332,8 @@ SLM kann Spiele von 8 Nicht-Steam-Plattformen erkennen und verwalten (`Strg+Umsc
 
 Profile speichern einen Snapshot deiner gesamten Kategorieorganisation.
 
-- **Speichern:** Datei → Profile → Aktuelles speichern
-- **Laden:** Datei → Profile → Verwalten → Profil wählen → Laden
+- **Speichern:** Datei > Profile > Aktuelles speichern
+- **Laden:** Datei > Profile > Verwalten > Profil wählen > Laden
 - **Anwendungsfall:** Vor größeren Umstrukturierungen speichern, bei Unzufriedenheit wiederherstellen
 
 ### Backup
@@ -344,8 +344,8 @@ Mehrere Backup-Mechanismen:
 |---------|-----|-----|
 | Auto-Backup | Cloud-Storage-Backup vor jedem Speichern | Automatisch |
 | Manuelles Backup | `Strg+Umschalt+S` | Datenbank-Snapshot |
-| Export | Datei → Export → DB Backup | Komplette Datenbank |
-| Profile | Datei → Profile → Speichern | Kategorie-Snapshot |
+| Export | Datei > Export > DB Backup | Komplette Datenbank |
+| Profile | Datei > Profile > Speichern | Kategorie-Snapshot |
 
 ---
 
@@ -357,20 +357,20 @@ Das Ansicht-Menü bietet leistungsstarke Filter- und Sortiermöglichkeiten.
 
 | Sortierung | Verhalten |
 |------------|-----------|
-| Name | Alphabetisch A→Z |
+| Name | Alphabetisch A>Z |
 | Spielzeit | Meistgespielte zuerst |
 | Zuletzt gespielt | Zuletzt gespielte zuerst |
 | Erscheinungsdatum | Neueste zuerst |
 
 ### Filter-Untermenüs
 
-Alle Filter sind stapelbar — aktiviere mehrere, um die Ansicht einzugrenzen.
+Alle Filter sind stapelbar - aktiviere mehrere, um die Ansicht einzugrenzen.
 
 **Typ:** Spiele, Soundtracks, Software, Videos, DLCs, Tools (standardmäßig alle aktiviert)
 
 **Plattform:** Linux, Windows, SteamOS (standardmäßig alle aktiviert)
 
-**Status:** Installiert, Nicht installiert, Versteckt, Mit Spielzeit, Favoriten (standardmäßig alle deaktiviert — aktivieren zum Filtern)
+**Status:** Installiert, Nicht installiert, Versteckt, Mit Spielzeit, Favoriten (standardmäßig alle deaktiviert - aktivieren zum Filtern)
 
 **Sprache:** 15 Sprachen verfügbar. Eine oder mehrere aktivieren, um nur Spiele mit dieser Sprachunterstützung anzuzeigen.
 
@@ -382,7 +382,7 @@ Alle Filter sind stapelbar — aktiviere mehrere, um die Ansicht einzugrenzen.
 
 ## Einstellungen
 
-Öffne die Einstellungen mit `Strg+P` oder Werkzeuge → Einstellungen.
+Öffne die Einstellungen mit `Strg+P` oder Werkzeuge > Einstellungen.
 
 ### Allgemein
 
@@ -421,7 +421,7 @@ Kurzübersicht:
 
 ### SLM findet meine Steam-Installation nicht
 
-SLM sucht an Standardpfaden (`~/.steam`, `~/.local/share/Steam`). Wenn dein Steam woanders installiert ist, setze den Pfad manuell unter Einstellungen → Allgemein → Steam-Pfad.
+SLM sucht an Standardpfaden (`~/.steam`, `~/.local/share/Steam`). Wenn dein Steam woanders installiert ist, setze den Pfad manuell unter Einstellungen > Allgemein > Steam-Pfad.
 
 ### Sammlungen erscheinen nicht in Steam
 
@@ -439,7 +439,7 @@ Manche Spiele (aus Steam entfernt, regiongesperrt oder sehr alt) haben mögliche
 
 ### „Konflikt erkannt"-Warnung beim Speichern
 
-Das bedeutet, dass Steams Cloud-Storage-Datei geändert wurde, während SLM geöffnet war (vermutlich von Steam selbst). SLM erstellt ein Backup vor dem Speichern. Deine Daten sind sicher — aktualisiere (`Strg+R`) um den neuesten Stand zu sehen.
+Das bedeutet, dass Steams Cloud-Storage-Datei geändert wurde, während SLM geöffnet war (vermutlich von Steam selbst). SLM erstellt ein Backup vor dem Speichern. Deine Daten sind sicher - aktualisiere (`Strg+R`) um den neuesten Stand zu sehen.
 
 ### Scanner für externe Spiele findet nichts
 
@@ -447,10 +447,10 @@ Stelle sicher, dass der jeweilige Plattform-Launcher (Epic, GOG, etc.) tatsächl
 
 ### ProtonDB- / Deck-Status-Filter zeigen 0 Ergebnisse
 
-Führe zuerst Werkzeuge → Batch → ProtonDB aktualisieren und Deck-Status abrufen aus. Diese Filter benötigen Enrichment-Daten, die nicht standardmäßig geladen werden.
+Führe zuerst Werkzeuge > Batch > ProtonDB aktualisieren und Deck-Status abrufen aus. Diese Filter benötigen Enrichment-Daten, die nicht standardmäßig geladen werden.
 
 ---
 
 *Weitere Antworten findest du in den [Häufig gestellten Fragen](FAQ.md).*
 
-*Brauchst du weitere Hilfe? Besuche Hilfe → Online → Discussions oder melde Issues auf GitHub.*
+*Brauchst du weitere Hilfe? Besuche Hilfe > Online > Discussions oder melde Issues auf GitHub.*

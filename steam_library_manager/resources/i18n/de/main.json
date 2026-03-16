@@ -385,7 +385,7 @@
       "export_empty": "Keine Smart Collections zum Exportieren.",
       "import_title": "Smart Collections importieren",
       "import_success": "{count} Smart Collections importiert.",
-      "import_success_skipped": "{imported} Smart Collections importiert ({skipped} übersprungen — existieren bereits).",
+      "import_success_skipped": "{imported} Smart Collections importiert ({skipped} übersprungen - existieren bereits).",
       "import_error": "Smart Collection Import fehlgeschlagen: {error}",
       "import_empty": "Keine Smart Collections in Datei gefunden.",
       "field": {
@@ -423,10 +423,10 @@
         "app_type": "game, dlc, tool, demo",
         "playtime_hours": "z.B. 50",
         "release_year": "z.B. 2020",
-        "review_score": "0–100",
+        "review_score": "0-100",
         "review_count": "z.B. 1000",
         "hltb_main": "Minuten, z.B. 600",
-        "achievement_pct": "0–100",
+        "achievement_pct": "0-100",
         "achievement_total": "z.B. 50",
         "steam_deck": "verified, playable, unsupported",
         "protondb": "platinum, gold, silver, bronze",
@@ -614,7 +614,7 @@
   },
   "health_check": {
     "title": "Bibliothek prüfen",
-    "confirm": "Alle {count} Spiele auf Store-Verfügbarkeit, fehlende Daten und veraltete Caches prüfen?\n\nDies kann 4–5 Minuten dauern.",
+    "confirm": "Alle {count} Spiele auf Store-Verfügbarkeit, fehlende Daten und veraltete Caches prüfen?\n\nDies kann 4-5 Minuten dauern.",
     "progress": {
       "starting": "Gesundheitscheck wird vorbereitet...",
       "store_batch": "Prüfe Store-Verfügbarkeit ({current}/{total} Batches)...",
@@ -625,7 +625,7 @@
     },
     "result": {
       "title": "Ergebnisse der Bibliotheksprüfung",
-      "summary": "{total} Spiele geprüft — {issues} Probleme gefunden.",
+      "summary": "{total} Spiele geprüft - {issues} Probleme gefunden.",
       "no_issues": "Deine Bibliothek ist in Top-Zustand! Keine Probleme gefunden."
     },
     "tabs": {

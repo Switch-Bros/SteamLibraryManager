@@ -52,12 +52,12 @@ Alle verfügbaren Tastenkürzel im Steam Library Manager.
 |--------------|--------|----------|
 | `F1` | Benutzerhandbuch | Öffnet diese Dokumentation |
 
-## Escape-Taste — Gestuftes Verhalten
+## Escape-Taste - Gestuftes Verhalten
 
-Die `Esc`-Taste arbeitet in Stufen — mehrmaliges Drücken löst verschiedene Aktionen aus:
+Die `Esc`-Taste arbeitet in Stufen - mehrmaliges Drücken löst verschiedene Aktionen aus:
 
-1. **Erster Druck:** Wenn die Suchleiste Text enthält → leert die Suche
-2. **Zweiter Druck:** Wenn Spiele ausgewählt sind → hebt die Auswahl auf
+1. **Erster Druck:** Wenn die Suchleiste Text enthält > leert die Suche
+2. **Zweiter Druck:** Wenn Spiele ausgewählt sind > hebt die Auswahl auf
 3. **Dritter Druck:** Nichts (du bist bereits im Ausgangszustand)
 
 So kannst du schnell zu einer sauberen Ansicht zurückkehren, ohne deinen Platz zu verlieren.

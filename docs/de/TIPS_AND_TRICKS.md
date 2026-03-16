@@ -8,8 +8,8 @@ Power-User-Tipps, um das Beste aus dem Steam Library Manager herauszuholen.
 
 Die Suchleiste (`Strg+F`) filtert sofort nach Spielnamen. Kombiniere sie mit den Ansichtsfiltern für noch bessere Ergebnisse:
 
-- **Suche + Typfilter:** Suche „dark" mit nur „Spiele" aktiviert → findet Dark Souls, Darkest Dungeon, etc. ohne Soundtracks oder DLCs.
-- **Suche + Plattformfilter:** Deaktiviere „Windows" unter Ansicht → Plattform, um nur Linux-native Spiele zu sehen.
+- **Suche + Typfilter:** Suche „dark" mit nur „Spiele" aktiviert > findet Dark Souls, Darkest Dungeon, etc. ohne Soundtracks oder DLCs.
+- **Suche + Plattformfilter:** Deaktiviere „Windows" unter Ansicht > Plattform, um nur Linux-native Spiele zu sehen.
 - **Schnell leeren:** Drücke `Esc`, um die Suche sofort zu leeren und die gesamte Bibliothek zu sehen.
 
 ## 📂 Organisieren mit Smart Collections
@@ -31,27 +31,27 @@ Smart Collections sind sich automatisch aktualisierende Ordner, die Spiele anhan
 | „Deck-Ready" | Deck-Status = Verified UND Spielzeit < 10h |
 | „Fast Geschafft" | Erfolge > 75% UND Erfolge < 100% |
 
-## 🏷️ AutoCat — Automatische Kategorisierung
+## 🏷️ AutoCat - Automatische Kategorisierung
 
 AutoCat (`Strg+Umschalt+A`) sortiert deine gesamte Bibliothek automatisch in Kategorien. Mit 15+ Kategorisierungstypen organisierst du nach:
 
-- **Genre** — RPG, Action, Strategie, etc.
-- **Entwickler / Publisher** — Gruppierung nach Studio
-- **Plattform** — Linux, Windows, SteamOS
-- **Tags** — Top N Steam-Tags pro Spiel
-- **Jahr** — Erscheinungsjahr-Kategorien
-- **HLTB** — „Kurz (< 5h)", „Mittel (5-20h)", „Lang (20h+)"
-- **Deck-Status** — Verified, Playable, Unsupported
-- **Erfolge** — Perfekt, Fast geschafft, In Arbeit
-- **Sprache** — Spiele mit bestimmter Sprachunterstützung
-- **Nutzerbewertung** — Overwhelmingly Positive, Mixed, etc.
+- **Genre** - RPG, Action, Strategie, etc.
+- **Entwickler / Publisher** - Gruppierung nach Studio
+- **Plattform** - Linux, Windows, SteamOS
+- **Tags** - Top N Steam-Tags pro Spiel
+- **Jahr** - Erscheinungsjahr-Kategorien
+- **HLTB** - „Kurz (< 5h)", „Mittel (5-20h)", „Lang (20h+)"
+- **Deck-Status** - Verified, Playable, Unsupported
+- **Erfolge** - Perfekt, Fast geschafft, In Arbeit
+- **Sprache** - Spiele mit bestimmter Sprachunterstützung
+- **Nutzerbewertung** - Overwhelmingly Positive, Mixed, etc.
 - Und mehr!
 
 **Profitipp:** Speichere deine AutoCat-Konfiguration als Preset. So kannst du sie jederzeit laden, um nach neuen Spielen erneut zu kategorisieren.
 
-## 🔄 Enrichment — Fehlende Daten ergänzen
+## 🔄 Enrichment - Fehlende Daten ergänzen
 
-Unter Werkzeuge → Batch-Operationen kannst du deine Bibliothek mit Daten aus mehreren Quellen anreichern:
+Unter Werkzeuge > Batch-Operationen kannst du deine Bibliothek mit Daten aus mehreren Quellen anreichern:
 
 | Quelle | Was wird hinzugefügt | Dauer |
 |--------|---------------------|-------|
@@ -63,20 +63,20 @@ Unter Werkzeuge → Batch-Operationen kannst du deine Bibliothek mit Daten aus m
 
 **„ALLE Daten NEU einlesen"** führt alle Enrichments parallel aus mit einer Multi-Track-Fortschrittsanzeige. Am besten nach einer Neuinstallation oder wenn viele neue Spiele hinzugekommen sind.
 
-**Force-Refresh**-Varianten (pro Quelle verfügbar) holen auch zwischengespeicherte Daten erneut — nützlich wenn sich Bewertungen ändern oder neue Daten verfügbar sind.
+**Force-Refresh**-Varianten (pro Quelle verfügbar) holen auch zwischengespeicherte Daten erneut - nützlich wenn sich Bewertungen ändern oder neue Daten verfügbar sind.
 
 ## 🎮 Externe Spiele
 
 SLM kann Spiele von anderen Plattformen finden und verwalten (`Strg+Umschalt+E`):
 
-- **Epic Games Store** — Scannt lokale Manifeste
-- **GOG Galaxy** — Liest die GOG-Datenbank
-- **Heroic Launcher** — Epic/GOG via Heroic
-- **Lutris** — Jedes in Lutris konfigurierte Spiel
-- **Flatpak** — Als Flatpak installierte Spiele
-- **Bottles** — Windows-Spiele via Bottles
-- **itch.io** — Spiele von itch
-- **Amazon Games** — Amazon-Gaming-Bibliothek
+- **Epic Games Store** - Scannt lokale Manifeste
+- **GOG Galaxy** - Liest die GOG-Datenbank
+- **Heroic Launcher** - Epic/GOG via Heroic
+- **Lutris** - Jedes in Lutris konfigurierte Spiel
+- **Flatpak** - Als Flatpak installierte Spiele
+- **Bottles** - Windows-Spiele via Bottles
+- **itch.io** - Spiele von itch
+- **Amazon Games** - Amazon-Gaming-Bibliothek
 
 Gefundene Spiele können als Nicht-Steam-Verknüpfungen zu Steam hinzugefügt werden, inklusive Artwork von SteamGridDB.
 
@@ -86,15 +86,15 @@ SLM hat mehrere Schutzebenen:
 
 1. **Auto-Backup:** Cloud Storage wird vor jedem Speichern gesichert
 2. **Manuelles Backup:** `Strg+Umschalt+S` erstellt einen Datenbank-Snapshot mit Zeitstempel
-3. **Profile:** Datei → Profile → Aktuelles speichern sichert deine gesamte Kategoriestruktur
-4. **Export:** Datei → Export bietet CSV-, VDF- und JSON-Exporte
+3. **Profile:** Datei > Profile > Aktuelles speichern sichert deine gesamte Kategoriestruktur
+4. **Export:** Datei > Export bietet CSV-, VDF- und JSON-Exporte
 
 **Empfehlung:** Speichere ein Profil vor größeren Umstrukturierungen. Falls etwas schiefgeht, lade das Profil zum Wiederherstellen.
 
 ## ⚡ Performance-Tipps
 
-- **Erster Start ist langsam** — SLM baut beim ersten Start seine lokale Datenbank auf. Folgestarts sind deutlich schneller (< 3 Sekunden).
-- **Batch-Enrichment nutzen** — Führe „ALLE Daten NEU einlesen" einmal nach dem Setup aus, dann einzelne Enrichments für Updates.
+- **Erster Start ist langsam** - SLM baut beim ersten Start seine lokale Datenbank auf. Folgestarts sind deutlich schneller (< 3 Sekunden).
+- **Batch-Enrichment nutzen** - Führe „ALLE Daten NEU einlesen" einmal nach dem Setup aus, dann einzelne Enrichments für Updates.
 - **Große Bibliotheken (3000+ Spiele):** Die Seitenleiste braucht nach großen AutoCat-Läufen einen Moment zum Neuaufbau. Das ist normal.
 
 ## 🖥️ Ansicht anpassen
@@ -109,7 +109,7 @@ Das Ansicht-Menü bietet mächtige Filter-Untermenüs:
 - **Steam Deck:** Verified, Playable, Unsupported, Unknown
 - **Erfolge:** Perfekt, Fast, In Arbeit, Angefangen, Keine
 
-Alle Filter sind stapelbar — aktiviere mehrere, um die Ansicht einzugrenzen.
+Alle Filter sind stapelbar - aktiviere mehrere, um die Ansicht einzugrenzen.
 
 ## 🔐 Sicherheit
 
@@ -127,4 +127,4 @@ Alle Filter sind stapelbar — aktiviere mehrere, um die Ansicht einzugrenzen.
 
 ---
 
-*Einen Bug gefunden oder einen Feature-Wunsch? Hilfe → Online → Issues melden*
+*Einen Bug gefunden oder einen Feature-Wunsch? Hilfe > Online > Issues melden*
