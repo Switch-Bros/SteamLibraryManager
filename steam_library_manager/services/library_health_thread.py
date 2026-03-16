@@ -1,6 +1,6 @@
 #
 # steam_library_manager/services/library_health_thread.py
-# Background thread for performing library health checks
+# Background thread for running the library health check service
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -63,6 +63,14 @@ class LibraryHealthThread(QThread):
         db_path: Path,
         parent: Any = None,
     ) -> None:
+        """Initializes the LibraryHealthThread.
+
+        Args:
+            games: List of (app_id, name) tuples to check.
+            api_key: Steam Web API key (may be empty for DB-only checks).
+            db_path: Path to the SQLite database file.
+            parent: Optional QObject parent.
+        """
         super().__init__(parent)
         self._games = games
         self._api_key = api_key
@@ -74,13 +82,22 @@ class LibraryHealthThread(QThread):
         self._cancelled = True
 
     def run(self) -> None:
-        """Execute the full health check pipeline."""
+        """Executes the full health check pipeline.
+
+        Pipeline:
+            1. Batch store check via GetItems (50er batches, 1s pause).
+            2. Detail HTTP check for missing app IDs (1.5s pause).
+            3. Missing metadata check (DB query).
+            4. Missing artwork check (DB query).
+            5. Stale cache check (DB query).
+        """
         from steam_library_manager.core.database import Database
 
         report = HealthReport(total_games=len(self._games))
         all_app_ids = [app_id for app_id, _ in self._games]
         name_map = {app_id: name for app_id, name in self._games}
 
+        # Stage 1: Batch store check via GetItems API
         missing_ids: list[int] = []
         if self._api_key:
             self.phase_changed.emit("health_check.progress.store_batch")
@@ -89,6 +106,7 @@ class LibraryHealthThread(QThread):
             if self._cancelled:
                 return
 
+            # Stage 2: Detail HTTP check for missing IDs
             if missing_ids:
                 self.phase_changed.emit("health_check.progress.store_detail")
                 results = self._check_store_detail(missing_ids, name_map)
@@ -97,6 +115,7 @@ class LibraryHealthThread(QThread):
                 if self._cancelled:
                     return
 
+        # Stage 3-5: DB-based checks
         db = Database(self._db_path)
         try:
             self.phase_changed.emit("health_check.progress.metadata")
@@ -114,7 +133,14 @@ class LibraryHealthThread(QThread):
         self.finished_report.emit(report)
 
     def _check_store_batch(self, all_app_ids: list[int]) -> list[int]:
-        """Check store availability via GetItems API in batches."""
+        """Checks store availability via GetItems API in 50er batches.
+
+        Args:
+            all_app_ids: All app IDs to check.
+
+        Returns:
+            List of app IDs that returned NO data (potentially delisted).
+        """
         from steam_library_manager.integrations.steam_web_api import SteamWebAPI
 
         try:
@@ -153,7 +179,18 @@ class LibraryHealthThread(QThread):
         missing_app_ids: list[int],
         name_map: dict[int, str],
     ) -> list[StoreCheckResult]:
-        """Perform detailed HTTP checks on potentially delisted games."""
+        """Performs detailed HTTP checks on potentially delisted games.
+
+        Uses the same logic as StoreCheckThread but in batch.
+        Rate limited to 1 request per 1.5 seconds.
+
+        Args:
+            missing_app_ids: App IDs that returned no data from GetItems.
+            name_map: Mapping of app_id to game name.
+
+        Returns:
+            List of StoreCheckResult with exact status per game.
+        """
         results: list[StoreCheckResult] = []
 
         for idx, app_id in enumerate(missing_app_ids):

@@ -1,5 +1,13 @@
 #
 # steam_library_manager/services/category_service.py
+# Service layer for creating, renaming, and deleting categories
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
+
+#
+# steam_library_manager/services/category_service.py
 # Service for managing game categories and collections
 #
 # Copyright © 2025-2026 SwitchBros

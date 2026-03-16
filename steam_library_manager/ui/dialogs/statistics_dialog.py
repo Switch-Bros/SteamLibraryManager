@@ -1,6 +1,6 @@
 #
 # steam_library_manager/ui/dialogs/statistics_dialog.py
-# Library statistics dialog with overview, genre, platform, and top-10 tabs
+# Dialog showing library statistics and enrichment coverage
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -32,9 +32,18 @@ __all__ = ["StatisticsDialog"]
 
 
 class StatisticsDialog(QDialog):
-    """Dialog showing library statistics in four tab views."""
+    """Dialog showing library statistics in four tab views.
+
+    Attributes:
+        _games: List of real games used for all statistics.
+    """
 
     def __init__(self, parent: MainWindow) -> None:
+        """Initializes the StatisticsDialog.
+
+        Args:
+            parent: The MainWindow instance providing game data.
+        """
         super().__init__(parent)
         self.setWindowTitle(t("ui.stats.title"))
         self.setMinimumSize(600, 500)
@@ -52,7 +61,16 @@ class StatisticsDialog(QDialog):
 
         layout.addWidget(tabs)
 
+    # ------------------------------------------------------------------
+    # Tab builders
+    # ------------------------------------------------------------------
+
     def _build_overview_tab(self) -> QWidget:
+        """Builds the overview tab showing aggregate statistics.
+
+        Returns:
+            Widget containing the overview layout.
+        """
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
@@ -88,6 +106,11 @@ class StatisticsDialog(QDialog):
         return widget
 
     def _build_genre_tab(self) -> QWidget:
+        """Builds the genre distribution tab.
+
+        Returns:
+            Scrollable widget showing genre counts sorted descending.
+        """
         genre_counter: Counter[str] = Counter()
         for g in self._games:
             for genre in g.genres:
@@ -96,6 +119,11 @@ class StatisticsDialog(QDialog):
         return self._build_bar_list(genre_counter)
 
     def _build_platform_tab(self) -> QWidget:
+        """Builds the platform distribution tab.
+
+        Returns:
+            Scrollable widget showing platform counts sorted descending.
+        """
         platform_counter: Counter[str] = Counter()
         for g in self._games:
             for plat in g.platforms:
@@ -104,6 +132,11 @@ class StatisticsDialog(QDialog):
         return self._build_bar_list(platform_counter)
 
     def _build_top10_tab(self) -> QWidget:
+        """Builds the top 10 most played games tab.
+
+        Returns:
+            Widget showing the top 10 games by playtime.
+        """
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
@@ -135,8 +168,20 @@ class StatisticsDialog(QDialog):
         layout.addStretch()
         return widget
 
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
     @staticmethod
     def _build_bar_list(counter: Counter[str]) -> QWidget:
+        """Builds a scrollable list of items with counts from a Counter.
+
+        Args:
+            counter: Counter mapping labels to counts.
+
+        Returns:
+            A scroll area widget with the bar list.
+        """
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         inner = QWidget()

@@ -1,6 +1,6 @@
 #
 # steam_library_manager/core/db/curator_mixin.py
-# Curator CRUD, recommendations, and overlap scoring
+# DB mixin for curator CRUD, recommendations, and overlap scoring
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -19,10 +19,18 @@ __all__ = ["CuratorMixin"]
 
 
 class CuratorMixin:
-    """Curator CRUD and recommendation queries. Requires ``conn``."""
+    """Mixin providing curator CRUD and recommendation queries.
+
+    Requires ConnectionBase attributes: conn.
+    """
 
     def get_all_curators(self) -> list[dict[str, Any]]:
-        """Returns all curators as list of dicts."""
+        """Returns all curators as list of dicts.
+
+        Returns:
+            List of dicts with keys: curator_id, name, url, source,
+            active, last_updated, total_count.
+        """
         cursor = self.conn.execute(
             "SELECT curator_id, name, url, source, active, last_updated, total_count " "FROM curators ORDER BY name"
         )
@@ -30,7 +38,11 @@ class CuratorMixin:
         return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
     def get_active_curators(self) -> list[dict[str, Any]]:
-        """Returns only active curators."""
+        """Returns only active curators (for AutoCat).
+
+        Returns:
+            List of active curator dicts.
+        """
         cursor = self.conn.execute(
             "SELECT curator_id, name, url, source, active, last_updated, total_count "
             "FROM curators WHERE active = 1 ORDER BY name"
@@ -45,7 +57,14 @@ class CuratorMixin:
         url: str = "",
         source: str = "manual",
     ) -> None:
-        """Insert or update a curator (upsert)."""
+        """Inserts or updates a curator.
+
+        Args:
+            curator_id: Steam curator ID.
+            name: Display name.
+            url: Steam Store URL.
+            source: One of 'manual', 'subscribed', 'preset'.
+        """
         self.conn.execute(
             """INSERT INTO curators (curator_id, name, url, source)
                VALUES (?, ?, ?, ?)
@@ -57,11 +76,21 @@ class CuratorMixin:
         self.conn.commit()
 
     def remove_curator(self, curator_id: int) -> None:
-        """Delete curator and all recommendations (CASCADE)."""
+        """Deletes curator and all recommendations (CASCADE).
+
+        Args:
+            curator_id: The curator to remove.
+        """
         self.conn.execute("DELETE FROM curators WHERE curator_id = ?", (curator_id,))
         self.conn.commit()
 
     def toggle_curator_active(self, curator_id: int, active: bool) -> None:
+        """Sets the active flag for a curator.
+
+        Args:
+            curator_id: The curator to update.
+            active: Whether the curator should be active.
+        """
         self.conn.execute(
             "UPDATE curators SET active = ? WHERE curator_id = ?",
             (1 if active else 0, curator_id),
@@ -69,7 +98,16 @@ class CuratorMixin:
         self.conn.commit()
 
     def save_curator_recommendations(self, curator_id: int, app_ids: list[int]) -> None:
-        """Atomic replace of all recommendations for a curator."""
+        """Replaces all recommendations for a curator.
+
+        Atomic DELETE + batch INSERT + UPDATE in one transaction.
+        Uses ``with self.conn:`` for rollback safety — if any step
+        fails, the old recommendations remain intact.
+
+        Args:
+            curator_id: The curator to update.
+            app_ids: List of recommended app IDs.
+        """
         now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         with self.conn:
             self.conn.execute(
@@ -86,7 +124,14 @@ class CuratorMixin:
             )
 
     def get_recommendations_for_curator(self, curator_id: int) -> set[int]:
-        """Returns app_ids recommended by this curator."""
+        """Returns app_ids recommended by this curator.
+
+        Args:
+            curator_id: The curator ID.
+
+        Returns:
+            Set of recommended app_ids.
+        """
         cursor = self.conn.execute(
             "SELECT app_id FROM curator_recommendations WHERE curator_id = ?",
             (curator_id,),
@@ -94,7 +139,14 @@ class CuratorMixin:
         return {row[0] for row in cursor.fetchall()}
 
     def get_curators_for_app(self, app_id: int) -> list[tuple[int, str]]:
-        """Active curators recommending this app as (curator_id, name) tuples."""
+        """Returns (curator_id, name) for all active curators recommending this app.
+
+        Args:
+            app_id: The game to look up.
+
+        Returns:
+            List of (curator_id, name) tuples.
+        """
         cursor = self.conn.execute(
             """SELECT c.curator_id, c.name
                FROM curator_recommendations cr
@@ -106,7 +158,15 @@ class CuratorMixin:
         return cursor.fetchall()
 
     def get_curator_overlap_score(self, app_id: int) -> tuple[int, int]:
-        """Returns (recommending_count, total_active_curators)."""
+        """Returns (recommending_count, total_active_curators).
+
+        Args:
+            app_id: The game to check.
+
+        Returns:
+            Tuple of (how many active curators recommend it,
+            total active curators).
+        """
         total = self.conn.execute("SELECT COUNT(*) FROM curators WHERE active = 1").fetchone()[0]
         recommending = self.conn.execute(
             """SELECT COUNT(*) FROM curator_recommendations cr
@@ -117,7 +177,14 @@ class CuratorMixin:
         return (recommending, total)
 
     def get_curators_needing_refresh(self, max_age_days: int = 7) -> list[dict[str, Any]]:
-        """Curators whose data is older than max_age_days."""
+        """Returns curators whose data is older than max_age_days.
+
+        Args:
+            max_age_days: Maximum age before a curator needs refresh.
+
+        Returns:
+            List of curator dicts needing refresh.
+        """
         cutoff = (datetime.datetime.now(tz=datetime.timezone.utc) - datetime.timedelta(days=max_age_days)).strftime(
             "%Y-%m-%dT%H:%M:%SZ"
         )

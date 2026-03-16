@@ -1,6 +1,6 @@
 #
 # steam_library_manager/ui/dialogs/health_check_dialog.py
-# Tabbed dialog for library health check results
+# Dialog displaying library health check results
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -29,6 +29,7 @@ if TYPE_CHECKING:
 
 __all__ = ["HealthCheckResultDialog"]
 
+# Status emoji mapping
 _STATUS_ICONS: dict[str, str] = {
     "available": "\U0001f7e2",  # green circle
     "age_gate": "\U0001f7e1",  # yellow circle
@@ -40,9 +41,21 @@ _STATUS_ICONS: dict[str, str] = {
 
 
 class HealthCheckResultDialog(BaseDialog):
-    """Dialog showing library health check results in tabs."""
+    """Dialog showing library health check results in tabs.
+
+    Tabs:
+        1. Store Availability — delisted, geo-locked, removed games.
+        2. Missing Data — incomplete metadata, missing artwork.
+        3. Cache Status — stale HLTB, ProtonDB caches.
+    """
 
     def __init__(self, parent: QWidget | None, report: HealthReport) -> None:
+        """Initializes the health check result dialog.
+
+        Args:
+            parent: Parent widget.
+            report: HealthReport dataclass with all check results.
+        """
         self._report = report
         super().__init__(
             parent,
@@ -53,6 +66,11 @@ class HealthCheckResultDialog(BaseDialog):
         self.setMinimumHeight(500)
 
     def _build_content(self, layout: QVBoxLayout) -> None:
+        """Builds the tabbed result view.
+
+        Args:
+            layout: The main vertical layout from BaseDialog.
+        """
         issues = self._report.count_total_issues()
 
         if issues == 0:
@@ -85,6 +103,11 @@ class HealthCheckResultDialog(BaseDialog):
         layout.addWidget(tabs)
 
     def _build_store_tab(self) -> QWidget:
+        """Builds the store availability tab with a table of problem games.
+
+        Returns:
+            Widget containing the store results table.
+        """
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
@@ -122,6 +145,11 @@ class HealthCheckResultDialog(BaseDialog):
         return widget
 
     def _build_data_tab(self) -> QWidget:
+        """Builds the missing data tab with summary statistics.
+
+        Returns:
+            Widget containing data completeness information.
+        """
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
@@ -153,6 +181,11 @@ class HealthCheckResultDialog(BaseDialog):
         return widget
 
     def _build_cache_tab(self) -> QWidget:
+        """Builds the cache freshness tab with stale cache counts.
+
+        Returns:
+            Widget containing cache status information.
+        """
         widget = QWidget()
         layout = QVBoxLayout(widget)
 

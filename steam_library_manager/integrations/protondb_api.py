@@ -1,6 +1,6 @@
 #
 # steam_library_manager/integrations/protondb_api.py
-# ProtonDB API client for Linux compatibility ratings
+# ProtonDB API client for Linux game compatibility ratings
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -24,7 +24,15 @@ __all__ = ["ProtonDBClient", "ProtonDBResult", "fetch_and_persist_protondb"]
 
 @dataclass(frozen=True)
 class ProtonDBResult:
-    """Immutable result from a ProtonDB rating lookup."""
+    """Immutable result from a ProtonDB rating lookup.
+
+    Attributes:
+        tier: Compatibility tier (platinum, gold, silver, bronze, borked, native, pending).
+        confidence: Confidence level of the rating (good, strong, weak).
+        trending_tier: Trending tier direction if available.
+        score: Numeric score if available.
+        best_reported: Best tier reported by users.
+    """
 
     tier: str
     confidence: str = ""
@@ -34,17 +42,28 @@ class ProtonDBResult:
 
 
 class ProtonDBClient:
-    """Client for the ProtonDB public API with rate-limited lookups."""
+    """Client for the ProtonDB public API.
+
+    Fetches compatibility ratings for Steam games. The API has no
+    authentication but should be queried respectfully with rate limiting.
+    """
 
     BASE_URL = "https://www.protondb.com/api/v1/reports/summaries/"
 
     def __init__(self) -> None:
-        """Set up HTTP session with custom user-agent."""
+        """Initializes the ProtonDB client with a configured session."""
         self._session = requests.Session()
         self._session.headers.update({"User-Agent": "SteamLibraryManager/1.0"})
 
     def get_rating(self, app_id: int) -> ProtonDBResult | None:
-        """Fetch a single ProtonDB rating, or None on error/404."""
+        """Fetches a single ProtonDB rating.
+
+        Args:
+            app_id: Steam app ID.
+
+        Returns:
+            ProtonDBResult with all available fields, or None on error/404.
+        """
         try:
             url = f"{self.BASE_URL}{app_id}.json"
             response = self._session.get(url, timeout=HTTP_TIMEOUT)
@@ -78,7 +97,18 @@ class ProtonDBClient:
             return None
 
     def get_ratings_batch(self, app_ids: list[int], delay: float = 0.5) -> dict[int, ProtonDBResult]:
-        """Fetch ratings for multiple apps with rate limiting between requests."""
+        """Fetches ratings for multiple apps sequentially with rate limiting.
+
+        ProtonDB has no batch endpoint, so requests are made one at a time
+        with a configurable delay between each.
+
+        Args:
+            app_ids: List of Steam app IDs to query.
+            delay: Seconds to wait between requests.
+
+        Returns:
+            Dict mapping app_id to ProtonDBResult (only successful lookups).
+        """
         results: dict[int, ProtonDBResult] = {}
 
         for i, app_id in enumerate(app_ids):
@@ -94,9 +124,18 @@ class ProtonDBClient:
 
 
 def fetch_and_persist_protondb(app_id: int, db: Any, client: ProtonDBClient) -> str | None:
-    """Fetch a ProtonDB rating and persist it to the database.
+    """Fetches a ProtonDB rating and persists it to the database.
 
-    Returns the tier string if found, None otherwise.
+    Shared logic used by both the game detail enricher and the
+    background ProtonDB enrichment thread.
+
+    Args:
+        app_id: Steam app ID.
+        db: Database instance with upsert_protondb() and commit().
+        client: ProtonDBClient instance.
+
+    Returns:
+        The tier string if a rating was found and persisted, None otherwise.
     """
     result = client.get_rating(app_id)
     if result:

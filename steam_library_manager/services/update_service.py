@@ -1,6 +1,6 @@
 #
 # steam_library_manager/services/update_service.py
-# AppImage self-update via GitHub Releases API
+# Checks for and applies application updates from GitHub releases
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -34,7 +34,15 @@ _GITHUB_API_URL = "https://api.github.com/repos/Switch-Bros/SteamLibraryManager/
 
 @dataclass(frozen=True)
 class UpdateInfo:
-    """Information about an available update."""
+    """Information about an available update.
+
+    Args:
+        version: New version string.
+        download_url: Direct URL to AppImage asset.
+        download_size: Size in bytes.
+        release_notes: Markdown release notes.
+        html_url: URL to GitHub release page.
+    """
 
     version: str
     download_url: str
@@ -44,7 +52,16 @@ class UpdateInfo:
 
 
 class UpdateService(QObject):
-    """Checks for updates and manages the AppImage update flow."""
+    """Checks for updates and manages AppImage update flow.
+
+    Signals:
+        update_available: Emitted with UpdateInfo when newer version found.
+        update_not_available: Emitted when already on latest.
+        check_failed: Emitted with error message.
+        download_progress: Emitted with (downloaded_bytes, total_bytes).
+        download_finished: Emitted with path to downloaded AppImage.
+        download_failed: Emitted with error message.
+    """
 
     update_available = pyqtSignal(object)
     update_not_available = pyqtSignal()
@@ -184,10 +201,17 @@ class UpdateService(QObject):
 
     @staticmethod
     def install_update(new_appimage_path: str) -> bool:
-        """Atomically replace current AppImage and restart via execv.
+        """Atomically replace current AppImage and restart.
 
-        Caller must save app state before calling - this has no UI access.
-        Returns False on failure (rolled back), never returns on success.
+        IMPORTANT: Caller MUST save application state (collections,
+        unsaved changes) and show a confirm dialog BEFORE calling this!
+        This method has no access to MainWindow or save logic.
+
+        Args:
+            new_appimage_path: Path to downloaded new AppImage.
+
+        Returns:
+            False on failure (rolled back). Never returns on success (execv).
         """
         current = UpdateService.current_appimage_path()
         new_path = Path(new_appimage_path)

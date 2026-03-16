@@ -1,5 +1,13 @@
 #
 # steam_library_manager/services/game_query_service.py
+# High-level game query interface over the database layer
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
+
+#
+# steam_library_manager/services/game_query_service.py
 # Read-only query service for game data.
 #
 # Copyright © 2025-2026 SwitchBros

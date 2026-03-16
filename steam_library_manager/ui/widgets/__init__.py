@@ -1,10 +1,11 @@
 #
 # steam_library_manager/ui/widgets/__init__.py
-# UI widgets package
+# widgets package
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+
 from __future__ import annotations
 
 from steam_library_manager.ui.widgets.category_list import HorizontalCategoryList

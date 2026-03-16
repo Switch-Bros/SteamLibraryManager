@@ -1,5 +1,13 @@
 #
 # steam_library_manager/services/smart_collections/evaluator.py
+# Evaluates smart collection rules against game records
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
+
+#
+# steam_library_manager/services/smart_collections/evaluator.py
 # Smart Collection rule evaluation engine.
 #
 # Copyright © 2025-2026 SwitchBros

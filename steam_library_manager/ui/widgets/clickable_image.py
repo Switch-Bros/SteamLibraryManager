@@ -1,5 +1,13 @@
 #
 # steam_library_manager/ui/widgets/clickable_image.py
+# Clickable image label widget with hover and click signals
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
+
+#
+# steam_library_manager/ui/widgets/clickable_image.py
 # Clickable image widget with async loading and animated GIF support.
 #
 # Copyright © 2025-2026 SwitchBros

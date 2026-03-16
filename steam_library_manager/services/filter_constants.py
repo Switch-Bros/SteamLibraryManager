@@ -1,6 +1,6 @@
 #
 # steam_library_manager/services/filter_constants.py
-# Constants and enums for the view-menu filter system
+# Constants and enums used by the filter and search services
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -25,7 +25,14 @@ __all__ = [
 
 
 class SortKey(Enum):
-    """Available sort keys for the game list."""
+    """Available sort keys for the game list.
+
+    Attributes:
+        NAME: Sort alphabetically by display name (A-Z).
+        PLAYTIME: Sort by total playtime (descending).
+        LAST_PLAYED: Sort by last played date (most recent first).
+        RELEASE_DATE: Sort by release year (newest first).
+    """
 
     NAME = "name"
     PLAYTIME = "playtime"

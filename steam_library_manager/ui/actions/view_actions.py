@@ -1,6 +1,6 @@
 #
 # steam_library_manager/ui/actions/view_actions.py
-# View actions: search, sort, filter, tree expand/collapse
+# UI action handlers for view menu and display options
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -25,7 +25,13 @@ class ViewActions:
         self.main_window = main_window
 
     def on_sort_changed(self, key: str) -> None:
-        """Handles sort key change from the View menu."""
+        """Handles sort key change from the View menu.
+
+        Updates the FilterService sort key and refreshes the view.
+
+        Args:
+            key: The sort key string ("name", "playtime", "last_played", "release_date").
+        """
         self.main_window.filter_service.set_sort_key(key)
 
         if self.main_window.current_search_query:
@@ -34,7 +40,16 @@ class ViewActions:
             self.main_window.populate_categories()
 
     def on_filter_toggled(self, group: str, key: str, checked: bool) -> None:
-        """Handles View menu filter checkbox toggle."""
+        """Handles View menu filter checkbox toggle.
+
+        Dispatches to the appropriate FilterService toggle method
+        based on the filter group, then refreshes the view.
+
+        Args:
+            group: The filter group ("type", "platform", or "status").
+            key: The specific filter key within the group.
+            checked: Whether the checkbox is now checked.
+        """
         fs = self.main_window.filter_service
         if group == "type":
             fs.toggle_type(key, checked)
@@ -56,6 +71,7 @@ class ViewActions:
             except (ValueError, TypeError):
                 pass
 
+        # Re-run search if active, otherwise repopulate full tree
         if self.main_window.current_search_query:
             self.on_search(self.main_window.current_search_query)
         else:
@@ -72,7 +88,11 @@ class ViewActions:
             self.main_window.tree.collapseAll()
 
     def on_search(self, query: str):
-        """Filters the game tree based on the search query."""
+        """Filters the game tree based on search query using SearchService.
+
+        Args:
+            query: The search string.
+        """
         self.main_window.current_search_query = query
 
         if not query:
@@ -112,12 +132,14 @@ class ViewActions:
         if not self.main_window.game_manager or not self.main_window.search_service:
             return
 
+        # Apply view filters first, then search within the filtered set
         all_games = self.main_window.game_manager.get_real_games()
         filtered_games = self.main_window.filter_service.apply(all_games)
         results = self.main_window.search_service.filter_games(filtered_games, query)
 
         if results:
             cat_name = t("ui.search.results_category", count=len(results))
+            # Sort for display using current sort key
             sorted_results = self.main_window.filter_service.sort_games(results)
 
             self.main_window.tree.populate_categories({cat_name: sorted_results})

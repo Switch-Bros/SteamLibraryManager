@@ -1,6 +1,6 @@
 #
 # steam_library_manager/integrations/external_games/rom_parser.py
-# Scan ROM directories, pair with emulators, create Steam shortcuts
+# ROM file scanner for emulator-based game detection
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -30,9 +30,19 @@ logger = logging.getLogger("steamlibmgr.external_games.rom_parser")
 
 
 class RomParser(BaseExternalParser):
-    """Scan ROM directories and pair each ROM with its emulator as a Steam shortcut."""
+    """Scan ROM directories and pair with detected emulators.
 
-    # System aliases - maps alternative directory names to canonical system IDs.
+    Creates one ExternalGame per ROM file. Each ROM gets its own
+    Steam shortcut with the emulator as executable and ROM as argument.
+
+    Detection strategy (priority order):
+    1. EmuDeck launcher scripts (/mnt/volume/Emulation/tools/launchers/)
+    2. Flatpak installations (flatpak info)
+    3. System PATH (shutil.which)
+    4. Common AppImage locations (~/.local/share/applications/, ~/Applications/)
+    """
+
+    # System aliases — maps alternative directory names to canonical system IDs.
     # EmuDeck creates separate roms/gbc/ directories, but RetroArch (GB) handles both.
     _SYSTEM_ALIASES: dict[str, str] = {
         "gbc": "gb",
@@ -56,9 +66,19 @@ class RomParser(BaseExternalParser):
     )
 
     def platform_name(self) -> str:
+        """Return platform name.
+
+        Returns:
+            Platform identifier string.
+        """
         return "Emulation (ROMs)"
 
     def is_available(self) -> bool:
+        """Check if any ROM directory exists with files.
+
+        Returns:
+            True if at least one ROM directory exists and is non-empty.
+        """
         for path_str in ROM_SEARCH_PATHS:
             path = Path(path_str).expanduser()
             if path.is_dir():
@@ -70,6 +90,11 @@ class RomParser(BaseExternalParser):
         return False
 
     def get_config_paths(self) -> list[Path]:
+        """Return found ROM directories.
+
+        Returns:
+            List of existing ROM directory paths.
+        """
         found: list[Path] = []
         for path_str in ROM_SEARCH_PATHS:
             path = Path(path_str).expanduser()
@@ -78,7 +103,11 @@ class RomParser(BaseExternalParser):
         return found
 
     def read_games(self) -> list[ExternalGame]:
-        """Scan all ROM directories and return one ExternalGame per ROM."""
+        """Scan all ROM directories and pair ROMs with emulators.
+
+        Returns:
+            List of ExternalGame objects, one per ROM file.
+        """
         detected_emulators = self._detect_emulators()
         if not detected_emulators:
             logger.info("No emulators detected on system")
@@ -97,7 +126,10 @@ class RomParser(BaseExternalParser):
                 logger.debug("No emulator for system: %s", system_name)
                 continue
 
+            # Use first available emulator (priority order)
             emulator, exe_path = emulators_for_system[0]
+
+            # Scan ROM files
             roms = self._scan_rom_files(system_dir, emulator.extensions)
             for rom_path in roms:
                 game_name = self._extract_game_name(rom_path)
@@ -124,6 +156,11 @@ class RomParser(BaseExternalParser):
         return games
 
     def _detect_emulators(self) -> dict[str, Path]:
+        """Detect installed emulators on the system.
+
+        Returns:
+            Dict mapping emulator name to executable path.
+        """
         found: dict[str, Path] = {}
 
         for emu_def in EMULATORS:
@@ -138,15 +175,24 @@ class RomParser(BaseExternalParser):
         return found
 
     def _find_emulator(self, emu: EmulatorDef) -> Path | None:
-        """Find emulator executable: EmuDeck -> Flatpak -> PATH -> AppImage."""
-        # EmuDeck launcher scripts
+        """Find an emulator executable on the system.
+
+        Priority: EmuDeck launcher -> Flatpak -> PATH -> AppImage.
+
+        Args:
+            emu: Emulator definition to search for.
+
+        Returns:
+            Path to executable, or None if not found.
+        """
+        # 1. EmuDeck launcher scripts
         if emu.emudeck_launcher:
             for launcher_dir in self.EMUDECK_LAUNCHER_DIRS:
                 launcher = Path(launcher_dir).expanduser() / emu.emudeck_launcher
                 if launcher.is_file() and launcher.stat().st_mode & 0o111:
                     return launcher
 
-        # Flatpak
+        # 2. Flatpak
         if emu.flatpak_id:
             flatpak_check = shutil.which("flatpak")
             if flatpak_check:
@@ -158,18 +204,19 @@ class RomParser(BaseExternalParser):
                         timeout=5,
                     )
                     if result.returncode == 0:
+                        # Sentinel path — _build_launch_command checks this
                         return Path(f"/flatpak/{emu.flatpak_id}")
                 except (subprocess.TimeoutExpired, OSError):
                     pass
 
-        # System PATH
+        # 3. System PATH
         for pattern in emu.exe_patterns:
             if "*" not in pattern:
                 which_result = shutil.which(pattern)
                 if which_result:
                     return Path(which_result)
 
-        # AppImage in common locations
+        # 4. AppImage in common locations (FIRST MATCH WINS)
         for dir_str in self.APPIMAGE_DIRS:
             search_dir = Path(dir_str).expanduser()
             if not search_dir.is_dir():
@@ -187,7 +234,11 @@ class RomParser(BaseExternalParser):
         return None
 
     def _find_rom_directories(self) -> list[tuple[Path, str]]:
-        """Find ROM directories with their system names, deduplicated."""
+        """Find ROM directories with their system names.
+
+        Returns:
+            List of (directory_path, system_name) tuples, deduplicated.
+        """
         found: list[tuple[Path, str]] = []
 
         for base_str in ROM_SEARCH_PATHS:
@@ -204,6 +255,7 @@ class RomParser(BaseExternalParser):
                     except PermissionError:
                         continue
 
+        # Deduplicate (same physical directory via different base paths)
         seen: set[str] = set()
         unique: list[tuple[Path, str]] = []
         for path, name in found:
@@ -222,7 +274,18 @@ class RomParser(BaseExternalParser):
         system_name: str,
         detected: dict[str, Path],
     ) -> list[tuple[EmulatorDef, Path]]:
-        """Get available emulators for a system, resolving aliases like gbc->gb."""
+        """Get available emulators for a specific system.
+
+        Resolves system aliases (e.g. "gbc" -> "gb") before lookup,
+        so ROMs in EmuDeck's roms/gbc/ directory find the GB emulator.
+
+        Args:
+            system_name: System ID (e.g. "switch", "gbc").
+            detected: Dict of detected emulator name to path.
+
+        Returns:
+            List of (EmulatorDef, exe_path) tuples, ordered by priority.
+        """
         effective_system = RomParser._SYSTEM_ALIASES.get(system_name, system_name)
         results: list[tuple[EmulatorDef, Path]] = []
         for emu_def in SYSTEM_EMULATORS.get(effective_system, []):
@@ -235,7 +298,17 @@ class RomParser(BaseExternalParser):
         directory: Path,
         extensions: tuple[str, ...],
     ) -> list[Path]:
-        """Non-recursive scan for ROM files matching the given extensions."""
+        """Scan a directory for ROM files with given extensions.
+
+        Non-recursive scan (EmuDeck puts ROMs directly in system dirs).
+
+        Args:
+            directory: Directory to scan.
+            extensions: Tuple of supported extensions (e.g. (".nsp", ".xci")).
+
+        Returns:
+            Sorted list of ROM file paths.
+        """
         roms: list[Path] = []
         try:
             for entry in directory.iterdir():
@@ -247,21 +320,44 @@ class RomParser(BaseExternalParser):
 
     @staticmethod
     def _extract_game_name(rom_path: Path) -> str:
-        """Extract clean game name from ROM filename, stripping tags and IDs."""
+        """Extract clean game name from ROM filename.
+
+        Handles common ROM naming patterns:
+        - "Metroid Dread.nsp" -> "Metroid Dread"
+        - "Super Mario Odyssey [01006A800016E000][v0].nsp" -> "Super Mario Odyssey"
+        - "Zelda - BOTW (USA) (v1.6).xci" -> "Zelda - BOTW"
+
+        Args:
+            rom_path: Path to ROM file.
+
+        Returns:
+            Cleaned game name.
+        """
         name = rom_path.stem
 
+        # Remove title IDs in brackets: [01006A800016E000]
         name = re.sub(r"\s*\[[0-9A-Fa-f]{16}\]", "", name)
+
+        # Remove version tags: [v0], [v131072], (v1.6)
         name = re.sub(r"\s*\[v\d+\]", "", name)
         name = re.sub(r"\s*\(v[\d.]+\)", "", name)
+
+        # Remove region codes: (USA), (Europe), (Japan), (World)
         name = re.sub(r"\s*\((USA|Europe|Japan|World|En|De|Fr|Es|It|Ko|Zh)\)", "", name)
+
+        # Remove other common tags: (DLC), (Update), (NSP), (XCI)
         name = re.sub(
             r"\s*\((DLC|Update|NSP|XCI|CIA|Demo)\)",
             "",
             name,
             flags=re.IGNORECASE,
         )
+
+        # Remove anything in remaining brackets at end
         name = re.sub(r"\s*\[.*?\]\s*$", "", name)
         name = re.sub(r"\s*\(.*?\)\s*$", "", name)
+
+        # Clean up whitespace
         name = name.strip(" -_.")
 
         return name if name else rom_path.stem
@@ -272,18 +368,30 @@ class RomParser(BaseExternalParser):
         exe_path: Path,
         rom_path: Path,
     ) -> str:
-        """Build the full launch command for a ROM."""
+        """Build the full launch command for a ROM.
+
+        Args:
+            emu: Emulator definition with launch template.
+            exe_path: Path to emulator executable.
+            rom_path: Path to ROM file.
+
+        Returns:
+            Complete launch command string.
+        """
         exe_str = str(exe_path)
 
-        # Flatpak sentinel path: /flatpak/<app_id>
+        # Flatpak sentinel path handling: /flatpak/<app_id>
         if exe_str.startswith("/flatpak/"):
             flatpak_id = exe_path.name
+            # Split template on "{exe}" to extract the argument pattern
             parts = emu.launch_template.split('"{exe}"')
             if len(parts) == 2:
                 args = parts[1].format(rom=str(rom_path))
                 return f"flatpak run {flatpak_id}{args}"
+            # Fallback: no special args in template
             return f'flatpak run {flatpak_id} "{rom_path}"'
 
+        # Normal AppImage/binary
         return emu.launch_template.format(
             exe=exe_str,
             rom=str(rom_path),

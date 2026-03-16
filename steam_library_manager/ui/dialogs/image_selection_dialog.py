@@ -1,6 +1,6 @@
 #
 # steam_library_manager/ui/dialogs/image_selection_dialog.py
-# Browse and select game images from SteamGridDB
+# Dialog for selecting custom game artwork from SteamGridDB
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -37,11 +37,26 @@ __all__ = ["ImageSelectionDialog", "PagedSearchThread"]
 
 
 class PagedSearchThread(QThread):
-    """Fetches one page of images from SteamGridDB in the background."""
+    """Background thread for fetching one page of images from SteamGridDB.
+
+    Fetches a single page and emits the results. The dialog requests
+    the next page after the current one is displayed.
+
+    Signals:
+        page_loaded: Emitted with (images, has_more) per page.
+    """
 
     page_loaded = pyqtSignal(list, bool)
 
     def __init__(self, app_id: int, img_type: str, page: int = 0, page_size: int = 24) -> None:
+        """Initializes the paged search thread.
+
+        Args:
+            app_id: The Steam app ID to fetch images for.
+            img_type: Image type ('grids', 'heroes', 'logos', 'icons').
+            page: Page number (0-indexed).
+            page_size: Results per page.
+        """
         super().__init__()
         self.app_id = app_id
         self.img_type = img_type
@@ -50,6 +65,7 @@ class PagedSearchThread(QThread):
         self.api = SteamGridDB()
 
     def run(self) -> None:
+        """Fetches one page of images and emits the result."""
         images = self.api.get_images_by_type_paged(
             self.app_id,
             self.img_type,
@@ -61,9 +77,37 @@ class PagedSearchThread(QThread):
 
 
 class ImageSelectionDialog(QDialog):
-    """Browse and select game images from SteamGridDB with paginated loading."""
+    """
+    Dialog for browsing and selecting game images from SteamGridDB.
+
+    This dialog allows users to browse available images for a game and select
+    one to use. It includes functionality for setting up the SteamGridDB API
+    key if it's not configured.
+
+    Attributes:
+        app_id (int): The Steam app ID of the game.
+        img_type (str): The type of images to display ('grids', 'heroes', 'logos', 'icons').
+        selected_url (str): The URL of the selected image.
+        searcher (SearchThread): The background thread for fetching images.
+        main_layout (QVBoxLayout): The main layout of the dialog.
+        status_label (QLabel): Label for displaying status messages.
+        scroll (QScrollArea): Scroll area for the image grid.
+        grid_widget (QWidget): Widget containing the image grid.
+        grid_layout (QGridLayout): Layout for arranging images in a grid.
+        setup_widget (QWidget): Widget for API key setup.
+        key_input (QLineEdit): Input field for entering the API key.
+    """
 
     def __init__(self, parent, game_name, app_id, img_type):
+        """
+        Initializes the image selection dialog.
+
+        Args:
+            parent: Parent widget.
+            game_name (str): The name of the game.
+            app_id (int): The Steam app ID of the game.
+            img_type (str): The type of images to display ('grids', 'heroes', 'logos', 'icons').
+        """
         super().__init__(parent)
         self.setWindowTitle(
             t("ui.dialogs.image_picker_title", type=t(f"ui.game_details.gallery.{img_type}"), game=game_name)
@@ -107,6 +151,7 @@ class ImageSelectionDialog(QDialog):
         self._check_api_and_start()
 
     def _create_ui(self):
+        """Creates the user interface for the dialog."""
         self.main_layout = QVBoxLayout(self)
 
         # Status / Loading Label
@@ -128,7 +173,7 @@ class ImageSelectionDialog(QDialog):
 
         self.main_layout.addWidget(self.scroll)
 
-        # API key setup widget
+        # --- SETUP WIDGET (If API Key is missing) ---
         self.setup_widget = QWidget()
         self.setup_widget.hide()
         setup_layout = QVBoxLayout(self.setup_widget)
@@ -182,6 +227,12 @@ class ImageSelectionDialog(QDialog):
         self.main_layout.addLayout(btn_layout)
 
     def _check_api_and_start(self):
+        """
+        Checks if the SteamGridDB API key is configured and starts the search.
+
+        If the API key is missing, displays the setup widget. Otherwise, starts
+        the image search.
+        """
         api = SteamGridDB()
         if not api.api_key:
             self.status_label.hide()
@@ -192,6 +243,10 @@ class ImageSelectionDialog(QDialog):
             self._start_search()
 
     def _save_key_and_reload(self):
+        """Saves the entered API key to the config and restarts the search.
+
+        Sets the key on the config singleton and persists via config.save().
+        """
         key = self.key_input.text().strip()
         if key:
             config.STEAMGRIDDB_API_KEY = key
@@ -199,7 +254,10 @@ class ImageSelectionDialog(QDialog):
             self._check_api_and_start()
 
     def _start_search(self):
-        """Reset pagination state and load the first page."""
+        """Starts paginated image loading from page 0.
+
+        Resets pagination state, clears the grid, and loads the first page.
+        """
         # Reset pagination state
         self._current_page = 0
         self._all_loaded = False
@@ -226,6 +284,7 @@ class ImageSelectionDialog(QDialog):
         self._load_next_page()
 
     def _load_next_page(self) -> None:
+        """Loads the next page of images in a background thread."""
         if self._all_loaded or self._loading:
             return
 
@@ -240,9 +299,15 @@ class ImageSelectionDialog(QDialog):
         self.searcher.start()
 
     def _on_page_loaded(self, items: list, has_more: bool) -> None:
+        """Handles a loaded page: appends images and optionally loads next.
+
+        Args:
+            items: List of image data dicts for this page.
+            has_more: True if there are more pages to load.
+        """
         self._loading = False
 
-        # First page: swap status label for scroll area
+        # First page: hide status, show scroll area
         if self._current_page == 0:
             self.status_label.hide()
             self.scroll.show()
@@ -256,7 +321,7 @@ class ImageSelectionDialog(QDialog):
         self._append_images_to_grid(items)
         self._total_images += len(items)
 
-        # Trigger lazy loading for newly visible images
+        # Trigger lazy loading for newly added images that are already visible
         QTimer.singleShot(50, self._load_visible_images)
 
         if has_more:
@@ -270,11 +335,17 @@ class ImageSelectionDialog(QDialog):
                 self.status_label.show()
 
     def _append_images_to_grid(self, items: list) -> None:
+        """Appends image widgets to the grid from a page of results.
+
+        Args:
+            items: List of image data dicts to display.
+        """
         config_map = {"grids": (4, 220, 330), "heroes": (2, 460, 215), "logos": (3, 300, 150), "icons": (6, 162, 162)}
         cols, w, h = config_map.get(self.img_type, (3, 250, 250))
 
         row, col = self._grid_row, self._grid_col
         for item in items:
+            # Container fixed size
             container = QWidget()
             container.setFixedSize(w, h + 45)
 
@@ -282,7 +353,9 @@ class ImageSelectionDialog(QDialog):
             tags = [tag.lower() for tag in item.get("tags", [])]
             mime = item.get("mime", "").lower()
 
-            # Detect animated content (GIF, APNG, WEBP, WEBM)
+            # Check for APNG: often labeled as 'image/png' but has 'animated' tag
+            # We treat it as animated if it has the tag, so we load the FULL URL later.
+            # Check if animated (including WEBM detection via URL)
             url_lower = item["url"].lower()
             thumb_lower = item.get("thumb", "").lower()
             is_animated = (
@@ -386,10 +459,12 @@ class ImageSelectionDialog(QDialog):
                 container.enterEvent = enter_handler
                 container.leaveEvent = leave_handler
 
-            # Animated images need full URL (thumbnails don't animate)
+            # Lazy viewport loading: defer actual loading until visible in scroll area
+            # Animated images MUST use full URL (thumbnails don't work for animated!)
             load_url = item["url"] if is_animated else item["thumb"]
             self._lazy_items.append([container, img_widget, load_url, is_animated, False])
 
+            # When user clicks, select the full URL and convert WEBM to PNG if needed
             def make_click_handler(url, mime_type, tag_list):
                 return lambda e: self._on_select(url, mime_type, tag_list)
 
@@ -413,12 +488,25 @@ class ImageSelectionDialog(QDialog):
         self._grid_col = col
 
     def _on_select(self, url, mime="", tags=None):
-        """Store selected URL and close. Converts WEBM to PNG for APNG downloads."""
+        """
+        Handles image selection.
+
+        This method is called when the user clicks on an image. It stores the
+        selected URL and closes the dialog. For APNG images served as WEBM,
+        it converts the URL to PNG format.
+
+        Args:
+            url (str): The URL of the selected image.
+            mime (str): The MIME type of the image.
+            tags (list): List of tags associated with the image.
+        """
         if tags is None:
             tags = []
 
+        # Convert WEBM to PNG for APNG downloads
         # SteamGridDB serves APNG as .webm preview but .png download
         if url.endswith(".webm"):
+            # Check if this is an APNG (PNG + animated tag)
             tags_lower = [tag.lower() for tag in tags]
             if "png" in mime.lower() or "animated" in tags_lower:
                 url = url.replace(".webm", ".png")
@@ -427,15 +515,28 @@ class ImageSelectionDialog(QDialog):
         self.accept()
 
     def get_selected_url(self):
+        """
+        Gets the URL of the selected image.
+
+        Returns:
+            str: The URL of the selected image, or None if no image was selected.
+        """
         return self.selected_url
 
-    # Animated image throttling
+    # ── Animated image throttling ──────────────────────────────────
 
     def _queue_animated_load(self, widget: ClickableImage, url: str) -> None:
+        """Queue an animated image for throttled loading.
+
+        Args:
+            widget: The ClickableImage widget to load the image into.
+            url: The URL of the animated image to load.
+        """
         self._animated_load_queue.append((widget, url))
         self._process_animated_queue()
 
     def _process_animated_queue(self) -> None:
+        """Process the animated load queue up to the concurrency limit."""
         while self._animated_load_queue and self._animated_loading_count < self._MAX_CONCURRENT_ANIMATED:
             widget, url = self._animated_load_queue.pop(0)
             self._animated_loading_count += 1
@@ -443,16 +544,28 @@ class ImageSelectionDialog(QDialog):
             widget.load_image(url)
 
     def _on_animated_load_finished(self) -> None:
+        """Handle completion of an animated image load.
+
+        Decrements the counter and schedules the next queue processing
+        with a small delay to avoid overwhelming the UI.
+        """
         self._animated_loading_count = max(0, self._animated_loading_count - 1)
         QTimer.singleShot(self._ANIMATED_DELAY_MS, self._process_animated_queue)
 
-    # Static image throttling
+    # ── Static image throttling ───────────────────────────────────
 
     def _queue_static_load(self, widget: ClickableImage, url: str) -> None:
+        """Queue a static image for throttled loading.
+
+        Args:
+            widget: The ClickableImage widget to load the image into.
+            url: The thumbnail URL to load.
+        """
         self._static_load_queue.append((widget, url))
         self._process_static_queue()
 
     def _process_static_queue(self) -> None:
+        """Process the static load queue up to the concurrency limit."""
         while self._static_load_queue and self._static_loading_count < self._MAX_CONCURRENT_STATIC:
             widget, url = self._static_load_queue.pop(0)
             self._static_loading_count += 1
@@ -460,21 +573,28 @@ class ImageSelectionDialog(QDialog):
             widget.load_image(url)
 
     def _on_static_load_finished(self) -> None:
+        """Handle completion of a static image load."""
         self._static_loading_count = max(0, self._static_loading_count - 1)
         self._process_static_queue()
 
-    # Lazy viewport loading
+    # ── Lazy viewport loading ─────────────────────────────────────
 
     def _on_scroll(self) -> None:
+        """Handle scroll events with debounce to trigger lazy loading."""
         self._scroll_timer.start()
 
     def _load_visible_images(self) -> None:
-        """Load images currently visible in the scroll viewport."""
+        """Load images that are currently visible in the scroll viewport.
+
+        Checks each unloaded lazy item against the viewport rect (with margin)
+        and starts loading visible ones via the appropriate throttled queue.
+        """
         viewport = self.scroll.viewport()
         if viewport is None:
             return
 
         viewport_height = viewport.height()
+        # Pre-load margin: load images slightly before they become visible
         margin = 200
 
         for entry in self._lazy_items:
@@ -482,13 +602,16 @@ class ImageSelectionDialog(QDialog):
             if loaded:
                 continue
 
+            # Map the container's position to the scroll viewport coordinate system
             pos = container.mapTo(viewport, QPoint(0, 0))
             container_top = pos.y()
             container_bottom = container_top + container.height()
 
+            # Check if the container is within the visible range (with margin)
             if container_bottom < -margin or container_top > viewport_height + margin:
                 continue
 
+            # Mark as loaded so we don't queue it again
             entry[4] = True
 
             if is_animated:

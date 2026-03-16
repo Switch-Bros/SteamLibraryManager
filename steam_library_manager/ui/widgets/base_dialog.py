@@ -1,6 +1,6 @@
 #
 # steam_library_manager/ui/widgets/base_dialog.py
-# Base class for application dialogs with consistent layout.
+# BaseDialog with standard OK/Cancel buttons and sizing helpers
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -27,6 +27,14 @@ class BaseDialog(QDialog):
     """Standard dialog with consistent layout and button handling.
 
     Subclasses override _build_content() to add their specific UI.
+    Most dialogs also use buttons="custom" and add buttons in _build_content().
+
+    Args:
+        parent: Parent widget.
+        title_key: i18n key for window title and optional header label.
+        min_width: Minimum dialog width in pixels.
+        show_title_label: Whether to show a bold header label.
+        buttons: Button mode — "ok_cancel", "close", "custom", or "none".
     """
 
     def __init__(
@@ -38,6 +46,16 @@ class BaseDialog(QDialog):
         show_title_label: bool = True,
         buttons: str = "ok_cancel",
     ) -> None:
+        """Initializes the base dialog.
+
+        Args:
+            parent: Parent widget.
+            title_key: i18n key for the window title (and header label).
+            title_text: Pre-formatted title string (takes precedence over title_key).
+            min_width: Minimum dialog width in pixels.
+            show_title_label: Whether to display a bold title label at top.
+            buttons: Button layout mode.
+        """
         super().__init__(parent)
         display_title = title_text or (t(title_key) if title_key else "")
         if display_title:
@@ -57,9 +75,18 @@ class BaseDialog(QDialog):
         self._add_buttons(buttons)
 
     def _build_content(self, layout: QVBoxLayout) -> None:
-        """Override to add dialog-specific content."""
+        """Override this to add dialog-specific content.
+
+        Args:
+            layout: The main vertical layout to add widgets to.
+        """
 
     def _add_buttons(self, mode: str) -> None:
+        """Adds a standard button row based on mode.
+
+        Args:
+            mode: One of "ok_cancel", "close", "custom", "none".
+        """
         if mode in ("none", "custom"):
             return
 

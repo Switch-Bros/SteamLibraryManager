@@ -1,10 +1,6 @@
 #
 # steam_library_manager/core/vdf_parser.py
-# Binary VDF parser for Steam shortcuts.vdf.
-#
-# Based on ValvePython/vdf v3.4 (MIT License).
-# Original: https://github.com/ValvePython/vdf
-# Copyright (c) 2015 Rossen Georgiev <rossen@rgp.io>
+# VDF (Valve Data Format) text and binary parser
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -25,7 +21,8 @@ __all__ = [
     "binary_loads",
 ]
 
-# Type tag constants
+# -- Type tag constants --
+
 BIN_NONE = b"\x00"
 BIN_STRING = b"\x01"
 BIN_INT32 = b"\x02"
@@ -47,11 +44,24 @@ class _BinaryVDFParser:
     """Stateful binary VDF stream parser."""
 
     def __init__(self, stream: BinaryIO, *, alt_end: bool = False) -> None:
+        """Initializes the parser.
+
+        Args:
+            stream: Binary stream to read from.
+            alt_end: Whether to accept BIN_END_ALT as end marker.
+        """
         self._stream = stream
         self._end_tags = {BIN_END, BIN_END_ALT} if alt_end else {BIN_END}
 
     def parse(self) -> dict[str, object]:
-        """Parse a single nested dict from the stream."""
+        """Parse a single nested dict from the stream.
+
+        Returns:
+            Parsed dictionary.
+
+        Raises:
+            ValueError: If the stream contains invalid type tags.
+        """
         result: dict[str, object] = {}
 
         while True:
@@ -86,6 +96,11 @@ class _BinaryVDFParser:
         return result
 
     def _read_string(self) -> str:
+        """Read a null-terminated UTF-8 string.
+
+        Returns:
+            Decoded string without null terminator.
+        """
         buf = bytearray()
         while True:
             ch = self._stream.read(1)
@@ -95,6 +110,11 @@ class _BinaryVDFParser:
         return buf.decode("utf-8", errors="replace")
 
     def _read_widestring(self) -> str:
+        """Read a null-terminated UTF-16LE string.
+
+        Returns:
+            Decoded string without null terminator.
+        """
         buf = bytearray()
         while True:
             pair = self._stream.read(2)
@@ -105,7 +125,14 @@ class _BinaryVDFParser:
 
 
 def binary_load(fp: BinaryIO) -> dict[str, object]:
-    """Parse binary VDF from a file-like object."""
+    """Parse binary VDF from a file-like object.
+
+    Args:
+        fp: Binary file-like object to read from.
+
+    Returns:
+        Parsed dictionary.
+    """
     parser = _BinaryVDFParser(fp)
     result: dict[str, object] = {}
 
@@ -124,23 +151,48 @@ def binary_load(fp: BinaryIO) -> dict[str, object]:
 
 
 def binary_loads(data: bytes) -> dict[str, object]:
-    """Parse binary VDF from bytes."""
+    """Parse binary VDF from bytes.
+
+    Args:
+        data: Binary VDF data.
+
+    Returns:
+        Parsed dictionary.
+    """
     return binary_load(BytesIO(data))
 
 
 def binary_dump(obj: dict[str, object], fp: BinaryIO) -> None:
-    """Serialize dict to binary VDF and write to file."""
+    """Serialize dict to binary VDF and write to file-like object.
+
+    Args:
+        obj: Dictionary to serialize.
+        fp: Binary file-like object to write to.
+    """
     fp.write(binary_dumps(obj))
 
 
 def binary_dumps(obj: dict[str, object]) -> bytes:
-    """Serialize dict to binary VDF bytes."""
+    """Serialize dict to binary VDF bytes.
+
+    Args:
+        obj: Dictionary to serialize.
+
+    Returns:
+        Binary VDF representation.
+    """
     buf = BytesIO()
     _write_dict(buf, obj)
     return buf.getvalue()
 
 
 def _write_dict(buf: BytesIO, obj: dict[str, object]) -> None:
+    """Write a dictionary as binary VDF.
+
+    Args:
+        buf: Output buffer.
+        obj: Dictionary to write.
+    """
     for key, value in obj.items():
         key_bytes = key.encode("utf-8") + b"\x00"
 

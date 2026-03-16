@@ -1,6 +1,6 @@
 #
 # steam_library_manager/integrations/steam_web_api.py
-# Batched Steam Web API client with rate limiting and retry logic
+# Steam Web API client for library, player, and app data
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -32,7 +32,28 @@ _API_URL = "https://api.steampowered.com/IStoreBrowseService/GetItems/v1"
 
 @dataclass(frozen=True)
 class SteamAppDetails:
-    """Frozen record of Steam app metadata from the Web API."""
+    """Frozen dataclass for Steam app metadata from the Web API.
+
+    Attributes:
+        app_id: Steam application ID.
+        name: Display name of the application.
+        developers: Tuple of developer names.
+        publishers: Tuple of publisher names.
+        steam_release_date: Steam release date as Unix timestamp.
+        original_release_date: Original release date as Unix timestamp.
+        genres: Tuple of genre names.
+        tags: Tuple of user-defined tag names.
+        platforms: Tuple of supported platform names.
+        languages: Tuple of supported language names.
+        review_score: Steam review category (1-9, e.g. 8 = Very Positive).
+        review_desc: Human-readable review description.
+        is_free: Whether the app is free to play.
+        description: Full game description text.
+        short_description: Short description / tagline.
+        age_ratings: Tuple of (rating_system, rating) pairs (e.g. ("PEGI", "16")).
+        dlc_ids: Tuple of DLC app IDs included with this game.
+        asset_urls: Tuple of (asset_type, url) pairs for library assets.
+    """
 
     app_id: int
     name: str
@@ -55,9 +76,26 @@ class SteamAppDetails:
 
 
 class SteamWebAPI(SteamAPIEndpoints):
-    """Batched Steam Web API client for metadata retrieval."""
+    """Batched Steam Web API client for metadata retrieval.
+
+    Fetches game metadata via IStoreBrowseService/GetItems/v1 in configurable
+    batch sizes with rate limiting and retry logic.
+
+    Inherits extended endpoint methods from SteamAPIEndpoints.
+
+    Attributes:
+        api_key: Steam Web API key for authentication.
+    """
 
     def __init__(self, api_key: str) -> None:
+        """Initializes the SteamWebAPI client.
+
+        Args:
+            api_key: Steam Web API key. Must not be empty.
+
+        Raises:
+            ValueError: If api_key is empty or whitespace-only.
+        """
         if not api_key or not api_key.strip():
             raise ValueError("Steam API key must not be empty")
         self.api_key: str = api_key.strip()
@@ -69,7 +107,18 @@ class SteamWebAPI(SteamAPIEndpoints):
         *,
         bail_on: frozenset[int] = frozenset(),
     ) -> requests.Response | None:
-        """GET with exponential backoff on 429. Does not catch exceptions."""
+        """Makes a GET request with retry on HTTP 429 and exponential backoff.
+
+        Does NOT catch exceptions — callers handle error recovery.
+
+        Args:
+            url: API endpoint URL.
+            params: Query parameters.
+            bail_on: HTTP status codes that return None immediately.
+
+        Returns:
+            Response on success, None if retries exhausted or bail status hit.
+        """
         for attempt in range(_MAX_RETRIES):
             response = requests.get(url, params=params, timeout=HTTP_TIMEOUT_API)
             if response.status_code == 429:
@@ -84,7 +133,17 @@ class SteamWebAPI(SteamAPIEndpoints):
         return None
 
     def get_app_details_batch(self, app_ids: list[int]) -> dict[int, SteamAppDetails]:
-        """Fetch metadata for multiple apps in chunks of 50."""
+        """Fetches metadata for multiple apps in chunked batches.
+
+        Splits the input into chunks of 50 and calls the API for each.
+        Pauses 1 second between batches for rate limiting.
+
+        Args:
+            app_ids: List of Steam app IDs to fetch.
+
+        Returns:
+            Dict mapping app_id to SteamAppDetails for successfully fetched apps.
+        """
         if not app_ids:
             return {}
 
@@ -103,12 +162,27 @@ class SteamWebAPI(SteamAPIEndpoints):
             except requests.RequestException as exc:
                 logger.warning("Failed batch %d/%d: %s", idx + 1, len(chunks), exc)
 
+            # Rate limit between batches (skip after last)
             if idx < len(chunks) - 1:
                 time.sleep(_BASE_DELAY)
 
         return result
 
     def _fetch_batch(self, app_ids: list[int]) -> list[dict[str, Any]]:
+        """Fetches a single batch of app details from the API.
+
+        Implements exponential backoff on HTTP 429 (rate limit).
+
+        Args:
+            app_ids: List of app IDs for this batch (max 50).
+
+        Returns:
+            List of raw item dicts from the API response.
+
+        Raises:
+            requests.ConnectionError: On network failure.
+            requests.HTTPError: On non-retryable HTTP errors.
+        """
         input_json = json.dumps(
             {
                 "ids": [{"appid": aid} for aid in app_ids],
@@ -139,10 +213,22 @@ class SteamWebAPI(SteamAPIEndpoints):
         data = response.json()
         return data.get("response", {}).get("store_items", [])
 
-    # Achievement API
+    # ------------------------------------------------------------------
+    # Achievement API endpoints (Phase 5.2)
+    # ------------------------------------------------------------------
 
     def get_game_schema(self, app_id: int) -> dict | None:
-        """Fetch the achievement schema for a game, or None on failure."""
+        """Fetches the achievement schema for a game.
+
+        Uses ISteamUserStats/GetSchemaForGame/v2 to get the list of
+        possible achievements including display names and hidden flags.
+
+        Args:
+            app_id: Steam app ID.
+
+        Returns:
+            Dict with 'achievements' list, or None on failure.
+        """
         url = "https://api.steampowered.com/ISteamUserStats/GetSchemaForGame/v2"
         params = {"appid": app_id, "key": self.api_key}
 
@@ -157,7 +243,19 @@ class SteamWebAPI(SteamAPIEndpoints):
             return None
 
     def get_player_achievements(self, app_id: int, steam_id: str) -> list[dict] | None:
-        """Fetch which achievements the player has unlocked for a game."""
+        """Fetches the player's achievement status for a game.
+
+        Uses ISteamUserStats/GetPlayerAchievements/v1 to get which
+        achievements the player has unlocked and when.
+
+        Args:
+            app_id: Steam app ID.
+            steam_id: 64-bit Steam user ID.
+
+        Returns:
+            List of achievement dicts with 'apiname', 'achieved', 'unlocktime',
+            or None on failure.
+        """
         url = "https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v1"
         params = {"appid": app_id, "steamid": steam_id, "key": self.api_key}
 
@@ -176,7 +274,17 @@ class SteamWebAPI(SteamAPIEndpoints):
 
     @staticmethod
     def get_global_achievement_percentages(app_id: int) -> dict[str, float]:
-        """Fetch global unlock percentages. No API key required."""
+        """Fetches global achievement unlock percentages for a game.
+
+        Uses ISteamUserStats/GetGlobalAchievementPercentagesForApp/v2.
+        This endpoint does NOT require an API key.
+
+        Args:
+            app_id: Steam app ID.
+
+        Returns:
+            Dict mapping achievement API name to unlock percentage (0-100).
+        """
         url = "https://api.steampowered.com/ISteamUserStats/GetGlobalAchievementPercentagesForApp/v2"
         params: dict[str, int] = {"gameid": app_id}
 
@@ -193,15 +301,24 @@ class SteamWebAPI(SteamAPIEndpoints):
 
     @staticmethod
     def _parse_item(raw: dict[str, Any]) -> SteamAppDetails:
-        """Parse a raw API item dict into a SteamAppDetails."""
+        """Parses a raw API item dict into a frozen SteamAppDetails.
+
+        Args:
+            raw: Single item dict from the API response.
+
+        Returns:
+            Populated SteamAppDetails dataclass.
+        """
         app_id = raw.get("id", raw.get("appid", 0))
         name = raw.get("name", "")
 
+        # Basic info
         basic = raw.get("basic_info", {})
         developers_list = [d.get("name", "") for d in basic.get("developers", []) if d.get("name")]
         publishers_list = [p.get("name", "") for p in basic.get("publishers", []) if p.get("name")]
         is_free = basic.get("is_free", False)
 
+        # Release dates (Unix timestamps from IStoreBrowseService)
         release_info = basic.get("release_date", {})
         if isinstance(release_info, dict):
             steam_release_date = release_info.get("steam_release_date", 0) or 0
@@ -210,9 +327,13 @@ class SteamWebAPI(SteamAPIEndpoints):
             steam_release_date = 0
             original_release_date = 0
 
+        # Genres
         genres_list = [g.get("description", "") for g in basic.get("genres", []) if g.get("description")]
+
+        # Tags
         tags_list = [t.get("name", "") for t in raw.get("tags", []) if t.get("name")]
 
+        # Platforms
         platforms_info = raw.get("platforms", {})
         platforms_list: list[str] = []
         if platforms_info.get("windows"):
@@ -222,6 +343,7 @@ class SteamWebAPI(SteamAPIEndpoints):
         if platforms_info.get("linux") or platforms_info.get("steamos_linux"):
             platforms_list.append("linux")
 
+        # Languages (from supported_languages string)
         languages_str = basic.get("supported_languages", "")
         languages_list: list[str] = []
         if languages_str:
@@ -230,13 +352,16 @@ class SteamWebAPI(SteamAPIEndpoints):
             cleaned = cleaned.replace("*", "")
             languages_list = [lang.strip() for lang in cleaned.split(",") if lang.strip()]
 
+        # Reviews
         reviews = raw.get("reviews", {})
         review_score = reviews.get("summary_filtered", {}).get("review_score", 0)
         review_desc = reviews.get("summary_filtered", {}).get("review_score_label", "")
 
+        # Description
         full_desc = raw.get("full_description", "")
         short_desc = raw.get("short_description", "")
 
+        # Age Ratings
         age_ratings_list: list[tuple[str, str]] = []
         raw_ratings = raw.get("ratings", [])
         if isinstance(raw_ratings, list):
@@ -252,6 +377,7 @@ class SteamWebAPI(SteamAPIEndpoints):
                     if rating_val:
                         age_ratings_list.append((system.upper(), str(rating_val)))
 
+        # DLC / Included Items
         dlc_ids_list: list[int] = []
         included_items = raw.get("included_items", [])
         if isinstance(included_items, list):
@@ -260,6 +386,7 @@ class SteamWebAPI(SteamAPIEndpoints):
                 if item_id:
                     dlc_ids_list.append(item_id)
 
+        # Asset URLs
         asset_urls_list: list[tuple[str, str]] = []
         assets = raw.get("assets", {})
         if isinstance(assets, dict):

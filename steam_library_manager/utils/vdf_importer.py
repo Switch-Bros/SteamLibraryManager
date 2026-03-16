@@ -1,10 +1,11 @@
 #
 # steam_library_manager/utils/vdf_importer.py
-# VDF collection importer for Steam Library Manager
+# Imports and normalizes VDF collection data into internal models
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+
 from __future__ import annotations
 
 import logging
@@ -21,7 +22,12 @@ __all__ = ["ImportedCollection", "VDFImporter"]
 
 @dataclass(frozen=True)
 class ImportedCollection:
-    """A collection parsed from a VDF file."""
+    """A collection parsed from a VDF file.
+
+    Attributes:
+        name: The collection name.
+        app_ids: Tuple of app IDs belonging to this collection.
+    """
 
     name: str
     app_ids: tuple[int, ...] = field(default_factory=tuple)
@@ -32,7 +38,21 @@ class VDFImporter:
 
     @staticmethod
     def import_collections(file_path: Path) -> list[ImportedCollection]:
-        """Read a VDF text file and extract collections."""
+        """Reads a VDF text file and extracts collections.
+
+        Expects VDF structure like:
+            "collections" { "CollName" { "id" "..." "name" "..." "0" "440" "1" "570" } }
+
+        Args:
+            file_path: Path to the VDF file to import.
+
+        Returns:
+            List of ImportedCollection objects.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+            ValueError: If the VDF structure is invalid.
+        """
         if not file_path.exists():
             raise FileNotFoundError(f"VDF file not found: {file_path}")
 

@@ -1,10 +1,11 @@
 #
 # steam_library_manager/utils/tag_resolver.py
-# Steam tag resolver - loads tag definitions and resolves TagIDs to names
+# Resolves Steam tag IDs to human-readable tag names
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+
 from __future__ import annotations
 
 import logging
@@ -18,6 +19,7 @@ __all__ = ["TagResolver"]
 
 logger = logging.getLogger("steamlibmgr.tag_resolver")
 
+# Mapping from our steamtags file suffixes to language codes
 _LANGUAGE_MAP: dict[str, str] = {
     "en": "en",
     "de": "de",
@@ -30,6 +32,8 @@ _LANGUAGE_MAP: dict[str, str] = {
     "zh": "zh",
 }
 
+# TagIDs that Steam considers "Genres" (top-level classification).
+# These are a subset of regular tags but displayed as genres in the Store.
 GENRE_TAG_IDS: frozenset[int] = frozenset(
     {
         9,  # Strategy
@@ -51,20 +55,45 @@ GENRE_TAG_IDS: frozenset[int] = frozenset(
 
 
 class TagResolver:
-    """Loads and resolves Steam tag definitions."""
+    """Loads and resolves Steam tag definitions.
+
+    Reads TagID → name mappings from resource files and caches them
+    in the database for fast lookups.
+
+    Attributes:
+        database: The application database.
+        steamtags_dir: Path to the steamtags resource directory.
+    """
 
     def __init__(self, database: Database) -> None:
+        """Initialize the TagResolver.
+
+        Args:
+            database: The application database.
+        """
         self.database = database
         self.steamtags_dir = self._find_steamtags_dir()
 
     @staticmethod
     def _find_steamtags_dir() -> Path:
+        """Locate the steamtags resource directory.
+
+        Returns:
+            Path to the steamtags directory.
+        """
         from steam_library_manager.utils.paths import get_resources_dir
 
         return get_resources_dir() / "steamtags"
 
     def ensure_loaded(self) -> int:
-        """Ensure tag definitions are loaded; no-op if already present."""
+        """Ensure tag definitions are loaded into the database.
+
+        Only loads if the tag_definitions table is empty.
+        This is safe to call on every startup (fast no-op if already loaded).
+
+        Returns:
+            Number of tag definitions in the database.
+        """
         count = self.database.get_tag_definitions_count()
         if count > 0:
             return count
@@ -72,7 +101,14 @@ class TagResolver:
         return self.load_all()
 
     def load_all(self) -> int:
-        """Load all tag definition files into the database."""
+        """Load all tag definition files into the database.
+
+        Reads every tags_*.txt file from the steamtags directory
+        and bulk-inserts all (tag_id, language, name) tuples.
+
+        Returns:
+            Number of tag definitions loaded.
+        """
         if not self.steamtags_dir.exists():
             logger.warning("Steamtags directory not found: %s", self.steamtags_dir)
             return 0
@@ -98,7 +134,15 @@ class TagResolver:
 
     @staticmethod
     def _parse_tag_file(file_path: Path, language: str) -> list[tuple[int, str, str]]:
-        """Parse a single tags_*.txt file into (tag_id, language, name) tuples."""
+        """Parse a single tags_*.txt file.
+
+        Args:
+            file_path: Path to the tag file.
+            language: Language code for these tags.
+
+        Returns:
+            List of (tag_id, language, name) tuples.
+        """
         tags: list[tuple[int, str, str]] = []
 
         with open(file_path, encoding="utf-8") as fh:
@@ -123,18 +167,39 @@ class TagResolver:
         return tags
 
     def resolve_tag_id(self, tag_id: int, language: str = "en") -> str | None:
-        """Resolve a single TagID to its localized name, falling back to English."""
+        """Resolve a single TagID to its localized name.
+
+        Falls back to English if the tag doesn't exist in the requested language.
+
+        Args:
+            tag_id: The numeric Steam tag ID.
+            language: Target language code.
+
+        Returns:
+            The localized tag name, or None if unknown.
+        """
         name = self.database.get_tag_name_by_id(tag_id, language)
         if name:
             return name
 
+        # Fallback to English
         if language != "en":
             return self.database.get_tag_name_by_id(tag_id, "en")
 
         return None
 
     def resolve_tag_ids(self, tag_ids: list[int], language: str = "en") -> list[str]:
-        """Resolve multiple TagIDs to localized names, skipping unknown ones."""
+        """Resolve multiple TagIDs to localized names.
+
+        Skips unknown TagIDs silently.
+
+        Args:
+            tag_ids: List of numeric Steam tag IDs.
+            language: Target language code.
+
+        Returns:
+            List of resolved tag names (may be shorter than input).
+        """
         names: list[str] = []
         for tid in tag_ids:
             name = self.resolve_tag_id(tid, language)
@@ -143,11 +208,25 @@ class TagResolver:
         return names
 
     def get_all_tag_names(self, language: str = "en") -> list[str]:
-        """Get all known tag names in a language, sorted alphabetically."""
+        """Get all known tag names in a language, sorted alphabetically.
+
+        Args:
+            language: Language code.
+
+        Returns:
+            Sorted list of tag names.
+        """
         return self.database.get_all_tag_names(language)
 
     def get_genre_names(self, language: str = "en") -> list[str]:
-        """Get tag names that Steam considers genres."""
+        """Get tag names that Steam considers genres.
+
+        Args:
+            language: Language code.
+
+        Returns:
+            Sorted list of genre names.
+        """
         names: list[str] = []
         for tag_id in sorted(GENRE_TAG_IDS):
             name = self.resolve_tag_id(tag_id, language)
@@ -156,5 +235,12 @@ class TagResolver:
         return sorted(names)
 
     def is_genre_tag(self, tag_id: int) -> bool:
-        """Check if a TagID is considered a genre."""
+        """Check if a TagID is considered a genre.
+
+        Args:
+            tag_id: The numeric tag ID.
+
+        Returns:
+            True if this tag is a genre-level tag.
+        """
         return tag_id in GENRE_TAG_IDS

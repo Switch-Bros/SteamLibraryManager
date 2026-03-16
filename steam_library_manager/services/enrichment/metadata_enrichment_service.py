@@ -1,5 +1,13 @@
 #
 # steam_library_manager/services/enrichment/metadata_enrichment_service.py
+# Enrichment service for game metadata from the Steam Store
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
+
+#
+# steam_library_manager/services/enrichment/metadata_enrichment_service.py
 # Service for merging and enriching game metadata from various sources.
 #
 # Copyright © 2025-2026 SwitchBros

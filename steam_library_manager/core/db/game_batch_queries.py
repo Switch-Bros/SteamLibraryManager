@@ -1,6 +1,6 @@
 #
 # steam_library_manager/core/db/game_batch_queries.py
-# Bulk game loading with batched related-data queries
+# Batch game read/write queries for bulk import and export
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -21,10 +21,21 @@ __all__ = ["GameBatchQueryMixin"]
 
 
 class GameBatchQueryMixin:
-    """Batch game loading. Requires ``conn`` and ``insert_game()``."""
+    """Mixin providing batch game loading operations.
+
+    Requires ConnectionBase attributes: conn.
+    Requires GameQueryMixin: insert_game().
+    """
 
     def batch_insert_games(self, entries: list[DatabaseEntry]) -> int:
-        """Insert multiple games in one transaction. Returns insert count."""
+        """Insert multiple games in a single transaction.
+
+        Args:
+            entries: List of game entries to insert.
+
+        Returns:
+            Number of successfully inserted games.
+        """
         inserted = 0
         for entry in entries:
             try:
@@ -36,7 +47,14 @@ class GameBatchQueryMixin:
         return inserted
 
     def get_all_games(self, game_types: set[str] | None = None) -> list[DatabaseEntry]:
-        """Load all games with related data via batch queries."""
+        """Get all games from database using efficient batch queries.
+
+        Args:
+            game_types: Filter by game types. None = all types.
+
+        Returns:
+            List of all games.
+        """
         if game_types:
             placeholders = ",".join("?" * len(game_types))
             query = f"SELECT * FROM games WHERE app_type IN ({placeholders})"
@@ -50,6 +68,7 @@ class GameBatchQueryMixin:
 
         app_ids = [row["app_id"] for row in rows]
 
+        # Batch load all related data
         all_genres = self._batch_get_related("game_genres", "genre", app_ids)
         all_tags = self._batch_get_related("game_tags", "tag", app_ids)
         all_tag_ids = self._batch_get_tag_ids(app_ids)
@@ -87,6 +106,14 @@ class GameBatchQueryMixin:
         return games
 
     def _batch_get_tag_ids(self, app_ids: list[int]) -> dict[int, list[int]]:
+        """Batch load numeric tag IDs for multiple app_ids from game_tags.
+
+        Args:
+            app_ids: List of app IDs.
+
+        Returns:
+            Dict mapping app_id to list of tag IDs.
+        """
         if not app_ids:
             return {}
 
@@ -101,6 +128,16 @@ class GameBatchQueryMixin:
         return result
 
     def _batch_get_related(self, table: str, column: str, app_ids: list[int]) -> dict[int, list[str]]:
+        """Batch load a single-column related table for multiple app_ids.
+
+        Args:
+            table: Table name (e.g. 'game_genres').
+            column: Value column name (e.g. 'genre').
+            app_ids: List of app IDs.
+
+        Returns:
+            Dict mapping app_id to list of values.
+        """
         if not app_ids:
             return {}
 
@@ -112,6 +149,14 @@ class GameBatchQueryMixin:
         return result
 
     def _batch_get_languages(self, app_ids: list[int]) -> dict[int, dict[str, dict[str, bool]]]:
+        """Batch load language data for multiple app_ids.
+
+        Args:
+            app_ids: List of app IDs.
+
+        Returns:
+            Dict mapping app_id to language support data.
+        """
         if not app_ids:
             return {}
 
@@ -131,6 +176,14 @@ class GameBatchQueryMixin:
         return result
 
     def _batch_get_custom_meta(self, app_ids: list[int]) -> dict[int, dict[str, str]]:
+        """Batch load custom metadata for multiple app_ids.
+
+        Args:
+            app_ids: List of app IDs.
+
+        Returns:
+            Dict mapping app_id to custom metadata.
+        """
         if not app_ids:
             return {}
 
@@ -144,6 +197,14 @@ class GameBatchQueryMixin:
         return result
 
     def _batch_get_hltb(self, app_ids: list[int]) -> dict[int, tuple[float, float, float]]:
+        """Batch load HLTB hours for multiple app_ids.
+
+        Args:
+            app_ids: List of app IDs.
+
+        Returns:
+            Dict mapping app_id to (main_story, main_extras, completionist).
+        """
         if not app_ids:
             return {}
 
@@ -157,6 +218,14 @@ class GameBatchQueryMixin:
         return {row[0]: (float(row[1]), float(row[2] or 0), float(row[3] or 0)) for row in cursor.fetchall()}
 
     def _batch_get_achievement_stats(self, app_ids: list[int]) -> dict[int, tuple[int, int, float, bool]]:
+        """Batch load achievement stats for multiple app_ids.
+
+        Args:
+            app_ids: List of app IDs.
+
+        Returns:
+            Dict mapping app_id to (total, unlocked, completion_pct, perfect).
+        """
         if not app_ids:
             return {}
 

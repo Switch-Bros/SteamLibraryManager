@@ -1,6 +1,6 @@
 #
 # steam_library_manager/services/game_detail_service.py
-# On-demand fetching and caching of external game data (store, HLTB, achievements)
+# Fetches and assembles full game detail data for the details panel
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -43,8 +43,15 @@ __all__ = ["GameDetailService"]
 class GameDetailService:
     """Fetches and caches detailed game data from external APIs.
 
-    Operates on a shared games dict so mutations are visible app-wide.
-    Tracks already-checked app_ids to skip redundant API calls.
+    Operates on a shared games dict (by reference) so that mutations
+    are immediately visible to GameManager and the rest of the app.
+
+    Tracks which app_ids have already been checked for HLTB and
+    achievement data to avoid redundant API calls on repeated clicks.
+
+    Args:
+        games: Shared reference to the GameManager's games dict.
+        cache_dir: Directory for JSON cache files.
     """
 
     def __init__(self, games: dict[str, Game], cache_dir: Path) -> None:
@@ -56,7 +63,17 @@ class GameDetailService:
         self._hltb_lock = threading.Lock()
 
     def needs_enrichment(self, app_id: str) -> bool:
-        """True if the game is missing metadata, HLTB, or achievements."""
+        """Checks whether a game needs any on-demand data fetching.
+
+        Returns True if the game is missing basic metadata, HLTB data,
+        or achievement data that hasn't been checked yet.
+
+        Args:
+            app_id: The Steam app ID.
+
+        Returns:
+            True if background fetching should be triggered.
+        """
         if app_id not in self._games:
             return False
         game = self._games[app_id]
@@ -72,7 +89,18 @@ class GameDetailService:
         return False
 
     def fetch_game_details(self, app_id: str) -> bool:
-        """Fetch all external data for a game. Returns False if unknown."""
+        """Fetches additional details for a game from external APIs.
+
+        Fetches store data, review stats, ProtonDB ratings, Steam Deck status,
+        last update info, HLTB completion times, and achievement data.
+        Results are cached locally and persisted to the database.
+
+        Args:
+            app_id: The Steam app ID.
+
+        Returns:
+            True if the game exists, False otherwise.
+        """
         if app_id not in self._games:
             return False
         game = self._games[app_id]
@@ -85,9 +113,16 @@ class GameDetailService:
         self._fetch_achievement_data(app_id)
         return True
 
-    # Store & Review
+    # ------------------------------------------------------------------
+    # Store & Review (cache + API call, delegate apply to enrichers)
+    # ------------------------------------------------------------------
 
     def _fetch_store_data(self, app_id: str) -> None:
+        """Fetches and caches data from the Steam Store API.
+
+        Args:
+            app_id: The Steam app ID.
+        """
         cache_file = self._cache_dir / "store_data" / f"{app_id}.json"
         if cache_file.exists():
             try:
@@ -115,6 +150,11 @@ class GameDetailService:
             pass
 
     def _fetch_review_stats(self, app_id: str) -> None:
+        """Fetches and caches Steam review statistics.
+
+        Args:
+            app_id: The Steam app ID.
+        """
         cache_file = self._cache_dir / "store_data" / f"{app_id}_reviews.json"
         if cache_file.exists():
             try:
@@ -138,10 +178,20 @@ class GameDetailService:
         except (requests.RequestException, ValueError, KeyError, OSError):
             pass
 
-    # HLTB
+    # ------------------------------------------------------------------
+    # HLTB on-demand enrichment
+    # ------------------------------------------------------------------
 
     def _fetch_hltb_data(self, app_id: str) -> None:
-        """Fetch HLTB times (cached 7 days, then API fallback)."""
+        """Fetches HowLongToBeat completion times for a single game.
+
+        Checks a local JSON cache first (7-day TTL). On cache miss,
+        queries the HLTB API, updates the in-memory Game object, and
+        persists the result to the database.
+
+        Args:
+            app_id: The Steam app ID.
+        """
         if app_id in self._hltb_checked:
             return
         if app_id not in self._games:
@@ -194,10 +244,20 @@ class GameDetailService:
 
         self._hltb_checked.add(app_id)
 
-    # Achievements
+    # ------------------------------------------------------------------
+    # Achievement on-demand enrichment
+    # ------------------------------------------------------------------
 
     def _fetch_achievement_data(self, app_id: str) -> None:
-        """Fetch achievement stats (cached 7 days, then Steam Web API)."""
+        """Fetches achievement data for a single game from the Steam API.
+
+        Checks a local JSON cache first (7-day TTL). On cache miss,
+        queries the Steam Web API (schema + player + global percentages),
+        updates the in-memory Game object, and persists to the database.
+
+        Args:
+            app_id: The Steam app ID.
+        """
         if app_id in self._achievements_checked:
             return
         if app_id not in self._games:

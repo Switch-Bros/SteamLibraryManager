@@ -1,6 +1,6 @@
 #
 # steam_library_manager/core/db/modification_queries.py
-# Track, query, sync, and revert user metadata modifications
+# DB queries for modifying game records and category assignments
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -21,10 +21,20 @@ __all__ = ["ModificationMixin"]
 
 
 class ModificationMixin:
-    """Modification tracking. Requires ``conn`` and ``update_game()``."""
+    """Mixin providing modification tracking operations.
+
+    Requires ConnectionBase attributes: conn.
+    Requires GameQueryMixin: update_game().
+    """
 
     def track_modification(self, app_id: int, original_data: dict[str, Any], modified_data: dict[str, Any]) -> None:
-        """Store original and modified metadata for an app."""
+        """Track a metadata modification.
+
+        Args:
+            app_id: Steam app ID.
+            original_data: Original metadata before modification.
+            modified_data: Modified metadata.
+        """
         self.conn.execute(
             """
             INSERT OR REPLACE INTO metadata_modifications
@@ -36,7 +46,14 @@ class ModificationMixin:
         self.conn.commit()
 
     def get_modified_games(self, synced_only: bool = False) -> dict[int, dict[str, Any]]:
-        """All modifications, optionally filtered to unsynced only."""
+        """Get all modified games.
+
+        Args:
+            synced_only: If True, only return games not yet synced to appinfo.vdf.
+
+        Returns:
+            Dict mapping app_id to modification data.
+        """
         query = "SELECT * FROM metadata_modifications"
         if synced_only:
             query += " WHERE synced_to_appinfo = 0"
@@ -56,7 +73,11 @@ class ModificationMixin:
         return modifications
 
     def mark_synced(self, app_id: int) -> None:
-        """Mark a game as synced to appinfo.vdf."""
+        """Mark a game as synced to appinfo.vdf.
+
+        Args:
+            app_id: Steam app ID.
+        """
         self.conn.execute(
             """
             UPDATE metadata_modifications
@@ -69,7 +90,14 @@ class ModificationMixin:
         self.conn.commit()
 
     def revert_modification(self, app_id: int) -> DatabaseEntry | None:
-        """Revert a game to its original metadata. Returns the restored entry."""
+        """Revert a game to its original state.
+
+        Args:
+            app_id: Steam app ID.
+
+        Returns:
+            Original game data or None if not found.
+        """
         cursor = self.conn.execute("SELECT original_data FROM metadata_modifications WHERE app_id = ?", (app_id,))
         row = cursor.fetchone()
 

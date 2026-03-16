@@ -1,6 +1,6 @@
 #
 # steam_library_manager/ui/builders/central_widget_builder.py
-# Builds the main splitter layout with game tree and details panel
+# Builds the central widget layout with game tree and details panel
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -24,14 +24,41 @@ __all__ = ["CentralWidgetBuilder"]
 
 
 class CentralWidgetBuilder:
-    """Builds the central widget with splitter layout."""
+    """Builder for the central widget with splitter layout.
+
+    Constructs the main application view including:
+    - Left sidebar with search and game tree
+    - Right panel with game details
+    - Expand/collapse controls
+
+    Attributes:
+        mw: Reference to the MainWindow instance.
+    """
 
     def __init__(self, main_window: "MainWindow"):
+        """Initialize the builder.
 
+        Args:
+            main_window: The MainWindow instance.
+        """
         self.mw = main_window
 
     def build(self) -> dict[str, Any]:
-        """Builds the central widget and returns references to key widgets."""
+        """Build the central widget layout.
+
+        Creates the complete central widget with:
+        - Search bar
+        - Expand/collapse buttons
+        - Game tree widget
+        - Game details panel
+
+        Returns:
+            dict containing references to created widgets:
+            - 'tree': GameTreeWidget
+            - 'details_widget': GameDetailsWidget
+            - 'search_entry': QLineEdit
+        """
+        # Central Widget
         central = QWidget()
         self.mw.setCentralWidget(central)
         layout = QVBoxLayout(central)
@@ -39,12 +66,13 @@ class CentralWidgetBuilder:
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
 
-        # Left side
+        # LEFT SIDE
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(2)
 
+        # Search Bar
         search_layout = QHBoxLayout()
         search_layout.addWidget(QLabel(t("emoji.search")))
         search_entry = QLineEdit()
@@ -60,6 +88,7 @@ class CentralWidgetBuilder:
         search_layout.addWidget(clear_btn)
         left_layout.addLayout(search_layout)
 
+        # Tree Controls
         btn_layout = QHBoxLayout()
         expand_btn = QPushButton(f"▼ {t('menu.edit.collections.expand_all')}")
         # noinspection PyUnresolvedReferences
@@ -72,6 +101,7 @@ class CentralWidgetBuilder:
         btn_layout.addWidget(collapse_btn)
         left_layout.addLayout(btn_layout)
 
+        # Inline Progress Area (hidden by default)
         loading_label = QLabel()
         loading_label.setVisible(False)
         left_layout.addWidget(loading_label)
@@ -82,6 +112,7 @@ class CentralWidgetBuilder:
         progress_bar.setVisible(False)
         left_layout.addWidget(progress_bar)
 
+        # Tree Widget
         tree = GameTreeWidget()
         # noinspection PyUnresolvedReferences,DuplicatedCode
         tree.game_clicked.connect(self.mw.selection_handler.on_game_selected)
@@ -97,7 +128,7 @@ class CentralWidgetBuilder:
 
         splitter.addWidget(left_widget)
 
-        # Right side
+        # RIGHT SIDE (Details)
         details_widget = GameDetailsWidget()
         # noinspection PyUnresolvedReferences
         details_widget.category_changed.connect(self.mw.category_change_handler.on_category_changed_from_details)

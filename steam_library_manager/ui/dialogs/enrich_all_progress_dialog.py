@@ -1,6 +1,6 @@
 #
 # steam_library_manager/ui/dialogs/enrich_all_progress_dialog.py
-# Multi-track progress dialog for full data refresh
+# Progress dialog for bulk enrichment of the entire library
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -50,9 +50,21 @@ _TRACK_LABELS: list[tuple[str, str]] = [
 
 
 class EnrichAllProgressDialog(BaseDialog):
-    """Multi-track progress dialog for full data refresh."""
+    """Multi-track progress dialog for full data refresh.
+
+    Shows five rows (one per enrichment track) with independent
+    progress bars, status indicators, and a cancel button.
+
+    Attributes:
+        _coordinator: The EnrichAllCoordinator managing the tracks.
+    """
 
     def __init__(self, parent: QWidget | None = None) -> None:
+        """Initializes the dialog.
+
+        Args:
+            parent: Parent widget.
+        """
         self._coordinator: EnrichAllCoordinator | None = None
         self._track_bars: dict[str, QProgressBar] = {}
         self._track_status: dict[str, QLabel] = {}
@@ -67,6 +79,11 @@ class EnrichAllProgressDialog(BaseDialog):
         self.setMinimumHeight(250)
 
     def _build_content(self, layout: QVBoxLayout) -> None:
+        """Builds the track rows and cancel button.
+
+        Args:
+            layout: The main vertical layout.
+        """
         title_label = QLabel(t("ui.enrichment.enrich_all_title"))
         title_label.setFont(FontHelper.get_font(size=14, weight=FontHelper.BOLD))
         layout.addWidget(title_label)
@@ -95,24 +112,47 @@ class EnrichAllProgressDialog(BaseDialog):
         layout.addLayout(btn_layout)
 
     def set_coordinator(self, coordinator: EnrichAllCoordinator) -> None:
-        """Attaches the coordinator and connects signals."""
+        """Attaches the coordinator and connects signals.
+
+        Args:
+            coordinator: The configured EnrichAllCoordinator.
+        """
         self._coordinator = coordinator
         coordinator.track_progress.connect(self._on_track_progress)
         coordinator.track_finished.connect(self._on_track_finished)
         coordinator.all_finished.connect(self._on_all_finished)
 
     def showEvent(self, event) -> None:
+        """Starts the coordinator when the dialog becomes visible.
+
+        Args:
+            event: The show event.
+        """
         super().showEvent(event)
         if self._coordinator and not self._is_running:
             self._is_running = True
             self._coordinator.start()
 
     def _on_track_progress(self, track: str, current: int, total: int) -> None:
+        """Updates a track's progress bar.
+
+        Args:
+            track: Track identifier.
+            current: Current progress count.
+            total: Total items to process.
+        """
         if track in self._track_bars and total > 0:
             percent = int((current / total) * 100)
             self._track_bars[track].setValue(percent)
 
     def _on_track_finished(self, track: str, success: int, failed: int) -> None:
+        """Marks a track as complete with status indicator.
+
+        Args:
+            track: Track identifier.
+            success: Successful items (-1 = skipped).
+            failed: Failed items (-1 = error).
+        """
         if track not in self._track_bars:
             return
 
@@ -133,6 +173,11 @@ class EnrichAllProgressDialog(BaseDialog):
             status.setStyleSheet("color: green; font-weight: bold;")
 
     def _on_all_finished(self, results: dict[str, tuple[int, int]]) -> None:
+        """Shows completion summary and closes the dialog.
+
+        Args:
+            results: Dict mapping track names to (success, failed) tuples.
+        """
         self._is_running = False
         total = sum(s for s, _ in results.values() if s > 0)
         UIHelper.show_info(
@@ -149,6 +194,11 @@ class EnrichAllProgressDialog(BaseDialog):
         self._cancel_btn.setText(t("emoji.ellipsis"))
 
     def closeEvent(self, event) -> None:
+        """Prevents closing while enrichment is running.
+
+        Args:
+            event: The close event.
+        """
         if self._is_running:
             self._on_cancel()
             event.ignore()

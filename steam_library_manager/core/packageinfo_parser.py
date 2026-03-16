@@ -1,6 +1,6 @@
 #
 # steam_library_manager/core/packageinfo_parser.py
-# Parse Steam's binary packageinfo.vdf to extract owned app IDs
+# Parser for Steam packageinfo.bin to resolve DLC and package data
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -23,10 +23,19 @@ class PackageInfoParser:
     """Extracts owned app IDs from Steam's binary packageinfo.vdf."""
 
     def __init__(self, steam_path: Path) -> None:
+        """Initializes the parser.
+
+        Args:
+            steam_path: Path to the Steam installation directory.
+        """
         self._path = steam_path / "appcache" / "packageinfo.vdf"
 
     def get_all_app_ids(self) -> set[str]:
-        """All app IDs from all packages in packageinfo.vdf."""
+        """Parses packageinfo.vdf and returns all app IDs from all packages.
+
+        Returns:
+            Set of app ID strings found across all packages.
+        """
         if not self._path.exists():
             logger.warning(t("logs.manager.packageinfo_not_found"))
             return set()
@@ -35,7 +44,7 @@ class PackageInfoParser:
 
         try:
             with open(self._path, "rb") as f:
-                # Header: version (4b) + universe (4b)
+                # Header: version (4 bytes) + universe (4 bytes)
                 f.read(8)
 
                 while True:
@@ -44,14 +53,16 @@ class PackageInfoParser:
                         break
                     pkg_id = struct.unpack("<I", pkg_id_bytes)[0]
 
+                    # End-of-file marker
                     if pkg_id == 0xFFFFFFFF:
                         break
 
-                    # SHA1 (20) + change number (4) + token (8)
+                    # SHA1 hash (20) + change number (4) + token (8)
                     f.read(32)
 
                     data = self._read_binary_vdf(f)
 
+                    # Package data is wrapped in one outer key
                     inner = next(iter(data.values()), data) if data else {}
                     for val in inner.get("appids", {}).values():
                         app_ids.add(str(val))
@@ -62,7 +73,18 @@ class PackageInfoParser:
         return app_ids
 
     def get_app_ids_for_packages(self, owned_packages: set[int]) -> set[str]:
-        """AppIDs filtered to only owned packages (from licensecache)."""
+        """Returns AppIDs only from packages the user actually owns.
+
+        Unlike get_all_app_ids() which returns ALL AppIDs from ALL packages,
+        this filters by the owned_packages set (from licensecache). This gives
+        the definitive list of games the user actually owns.
+
+        Args:
+            owned_packages: Set of PackageIDs from LicenseCacheParser.
+
+        Returns:
+            Set of app ID strings from owned packages only.
+        """
         if not self._path.exists():
             logger.warning(t("logs.manager.packageinfo_not_found"))
             return set()
@@ -74,7 +96,8 @@ class PackageInfoParser:
 
         try:
             with open(self._path, "rb") as f:
-                f.read(8)  # header
+                # Header: version (4 bytes) + universe (4 bytes)
+                f.read(8)
 
                 while True:
                     pkg_id_bytes = f.read(4)
@@ -85,10 +108,12 @@ class PackageInfoParser:
                     if pkg_id == 0xFFFFFFFF:
                         break
 
-                    f.read(32)  # SHA1 + change number + token
+                    # SHA1 hash (20) + change number (4) + token (8)
+                    f.read(32)
 
                     data = self._read_binary_vdf(f)
 
+                    # Only process packages the user owns
                     if pkg_id in owned_packages:
                         inner = next(iter(data.values()), data) if data else {}
                         for val in inner.get("appids", {}).values():
@@ -99,10 +124,22 @@ class PackageInfoParser:
 
         return app_ids
 
-    # Binary VDF reader
+    # ------------------------------------------------------------------
+    # Binary VDF reader (minimal, read-only)
+    # ------------------------------------------------------------------
 
     @staticmethod
     def _read_binary_vdf(f, depth: int = 0, max_depth: int = 5) -> dict:
+        """Reads a single binary VDF object from the file stream.
+
+        Args:
+            f: Open binary file handle positioned at the start of an object.
+            depth: Current nesting depth (for recursion guard).
+            max_depth: Maximum allowed nesting depth.
+
+        Returns:
+            Parsed dictionary of key-value pairs.
+        """
         result: dict = {}
         while True:
             type_byte = f.read(1)

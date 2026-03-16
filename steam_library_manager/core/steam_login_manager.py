@@ -1,6 +1,6 @@
 #
 # steam_library_manager/core/steam_login_manager.py
-# Steam login via QR code and username/password with push notifications
+# Handles Steam login state, token storage, and re-authentication
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -34,7 +34,7 @@ try:
     WEBAUTH_AVAILABLE = True
 except ImportError:
     WEBAUTH_AVAILABLE = False
-    wa = None
+    wa = None  # steam.webauth not available, using new IAuthenticationService API
 
 
 def _poll_auth_session(
@@ -45,7 +45,23 @@ def _poll_auth_session(
     stop_check: Callable[[], bool],
     on_interaction: Callable[[], None] | None = None,
 ) -> dict | None:
-    """Polls Steam auth session until login completes or times out."""
+    """Polls the Steam auth session until login completes or times out.
+
+    Used by both QR and password login flows to wait for user approval.
+    Calls ``IAuthenticationService/PollAuthSessionStatus/v1/``.
+
+    Args:
+        client_id: Steam auth client ID from session start.
+        request_id: Request identifier from session start.
+        interval: Seconds between poll requests.
+        timeout: Maximum total wait time in seconds.
+        stop_check: Returns True when polling should abort.
+        on_interaction: Called once when remote interaction is detected.
+
+    Returns:
+        Dict with steam_id, access_token, refresh_token, account_name
+        on success, None on timeout or failure.
+    """
     url = "https://api.steampowered.com/IAuthenticationService/PollAuthSessionStatus/v1/"
     start_time = time.time()
     interaction_fired = False
@@ -89,9 +105,17 @@ def _poll_auth_session(
 
 
 class QRCodeLoginThread(QThread):
-    """Background thread for QR code login via IAuthenticationService."""
+    """
+    Thread for QR code login - FIXED VERSION.
 
-    qr_ready = pyqtSignal(str)
+    Signals:
+        qr_ready (str): REAL challenge URL (not qrserver URL!)
+        login_success (dict): Login succeeded with tokens
+        login_error (str): Login failed
+        polling_update (str): Status update
+    """
+
+    qr_ready = pyqtSignal(str)  # REAL challenge URL
     login_success = pyqtSignal(dict)
     login_error = pyqtSignal(str)
     polling_update = pyqtSignal(str)
@@ -102,21 +126,23 @@ class QRCodeLoginThread(QThread):
         self._stop_requested = False
 
     def run(self):
+        """Execute QR code login with CORRECT API."""
         try:
             self.polling_update.emit(t("steam.login.status_starting_auth"))
 
-            # Start auth session
+            # Step 1: Start auth session
             client_id, request_id, challenge_url, interval = self._start_qr_session()
 
             if not challenge_url:
                 self.login_error.emit(t("steam.login.error_start_qr_session"))
                 return
 
-            self.qr_ready.emit(challenge_url)
+            # Step 2: Emit REAL challenge URL (no qrserver!)
+            self.qr_ready.emit(challenge_url)  # THIS IS THE REAL URL!
 
             self.polling_update.emit(t("steam.login.status_scan_qr"))
 
-            # Poll for completion
+            # Step 3: Poll for completion
             result = _poll_auth_session(
                 client_id,
                 request_id,
@@ -137,9 +163,16 @@ class QRCodeLoginThread(QThread):
             self.login_error.emit(t("steam.login.error_qr_failed", error=str(e)))
 
     def stop(self):
+        """Stop polling."""
         self._stop_requested = True
 
     def _start_qr_session(self):
+        """
+        Start QR authentication session.
+
+        Returns:
+            Tuple: (client_id, request_id, challenge_url, interval)
+        """
         url = "https://api.steampowered.com/IAuthenticationService/BeginAuthSessionViaQR/v1/"
 
         data = {
@@ -156,20 +189,25 @@ class QRCodeLoginThread(QThread):
             return (
                 result.get("client_id"),
                 result.get("request_id"),
-                result.get("challenge_url"),
+                result.get("challenge_url"),  # THIS IS THE REAL URL!
                 result.get("interval", 5.0),
             )
 
         except (requests.RequestException, ValueError, KeyError):
+            # Error starting QR session - will be shown to user via login_error signal
             return None, None, None, None
 
 
 class UsernamePasswordLoginThread(QThread):
-    """Background thread for username/password login with push notification 2FA."""
+    """
+    Thread for username/password login with Push Notifications.
+
+    THIS IS THE FIXED VERSION that uses Push Notifications instead of manual 2FA!
+    """
 
     login_success = pyqtSignal(dict)
     login_error = pyqtSignal(str)
-    waiting_for_approval = pyqtSignal(str)
+    waiting_for_approval = pyqtSignal(str)  # NEW: Waiting for mobile approval
 
     def __init__(self, username: str, password: str):
         super().__init__()
@@ -178,13 +216,21 @@ class UsernamePasswordLoginThread(QThread):
         self._stop_requested = False
 
     def run(self):
+        """Execute modern username/password login with Push Notifications."""
         try:
+            # Use NEW Steam API for credentials login
             self._login_with_credentials()
 
         except Exception as e:
             self.login_error.emit(t("steam.login.error_login_failed", error=str(e)))
 
     def _login_with_credentials(self):
+        """
+        Login with username/password using NEW Steam API.
+
+        This triggers PUSH NOTIFICATION to Steam Mobile App!
+        """
+        # Fetch RSA public key for password encryption
         rsa_result = self._fetch_rsa_key(self.username)
         if not rsa_result:
             self.login_error.emit(t("steam.login.error_login_generic"))
@@ -210,12 +256,14 @@ class UsernamePasswordLoginThread(QThread):
 
             result = response.json().get("response", {})
 
+            # Check if we need confirmation (Push Notification!)
             allowed_confirmations = result.get("allowed_confirmations", [])
 
             if any(c.get("confirmation_type") == 3 for c in allowed_confirmations):
-                # Type 3 = Device confirmation (push notification)
+                # Type 3 = Device confirmation (Push Notification!)
                 self.waiting_for_approval.emit(t("steam.login.status_check_mobile"))
 
+                # Poll for approval
                 client_id = result.get("client_id")
                 request_id = result.get("request_id")
 
@@ -235,6 +283,7 @@ class UsernamePasswordLoginThread(QThread):
                 else:
                     self.login_error.emit(t("steam.login.error_no_session_ids"))
             else:
+                # Direct success (no 2FA)
                 access_token = result.get("access_token")
                 steam_id = result.get("steamid")
                 if not steam_id and access_token:
@@ -257,7 +306,14 @@ class UsernamePasswordLoginThread(QThread):
 
     @staticmethod
     def _fetch_rsa_key(username: str) -> tuple[str, str, str] | None:
-        """Fetch RSA public key from Steam for password encryption."""
+        """Fetch RSA public key from Steam for password encryption.
+
+        Args:
+            username: Steam account name.
+
+        Returns:
+            Tuple of (modulus_hex, exponent_hex, timestamp) or None on failure.
+        """
         url = "https://api.steampowered.com/IAuthenticationService/GetPasswordRSAPublicKey/v1/"
         try:
             response = requests.get(url, params={"account_name": username}, timeout=10)
@@ -275,7 +331,16 @@ class UsernamePasswordLoginThread(QThread):
 
     @staticmethod
     def _rsa_encrypt_password(password: str, mod_hex: str, exp_hex: str) -> str:
-        """Encrypt password with Steam's RSA public key, return base64."""
+        """Encrypt password with Steam's RSA public key.
+
+        Args:
+            password: The plaintext password.
+            mod_hex: RSA modulus as hexadecimal string.
+            exp_hex: RSA exponent as hexadecimal string.
+
+        Returns:
+            Base64-encoded RSA-encrypted password.
+        """
         import base64
 
         from Cryptodome.Cipher import PKCS1_v1_5
@@ -289,11 +354,21 @@ class UsernamePasswordLoginThread(QThread):
         return base64.b64encode(encrypted).decode()
 
     def stop(self):
+        """Stop polling."""
         self._stop_requested = True
 
 
 class SteamLoginManager(QObject):
-    """Coordinates QR and password login flows via Steam IAuthenticationService."""
+    """
+    FIXED Steam Login Manager.
+
+    Signals:
+        login_success (dict): Successful login
+        login_error (str): Login failed
+        qr_ready (str): QR challenge URL ready
+        status_update (str): Status message
+        waiting_for_approval (str): Waiting for mobile approval
+    """
 
     login_success = pyqtSignal(dict)
     login_error = pyqtSignal(str)
@@ -307,6 +382,7 @@ class SteamLoginManager(QObject):
         self.pwd_thread: UsernamePasswordLoginThread | None = None
 
     def start_qr_login(self, device_name: str = "SteamLibraryManager"):
+        """Start QR code login."""
         self.status_update.emit(t("steam.login.status_starting_qr"))
 
         self.qr_thread = QRCodeLoginThread(device_name)
@@ -321,6 +397,7 @@ class SteamLoginManager(QObject):
         self.qr_thread.start()
 
     def start_password_login(self, username: str, password: str):
+        """Start username/password login with Push Notifications."""
         self.status_update.emit(t("steam.login.status_logging_in"))
 
         self.pwd_thread = UsernamePasswordLoginThread(username, password)
@@ -333,6 +410,7 @@ class SteamLoginManager(QObject):
         self.pwd_thread.start()
 
     def cancel_login(self):
+        """Cancel login."""
         if self.qr_thread:
             self.qr_thread.stop()
             self.qr_thread.wait()
@@ -342,12 +420,19 @@ class SteamLoginManager(QObject):
             self.pwd_thread.wait()
 
     def _on_login_success(self, result: dict, method: str) -> None:
+        """Handles successful login from any method (QR or password).
+
+        Args:
+            result: Authentication result dict from ``_poll_auth_session``.
+            method: Login method identifier (``"qr"`` or ``"password"``).
+        """
         self.status_update.emit(t("steam.login.status_success"))
         result["method"] = method
         self.login_success.emit(result)
 
     @staticmethod
     def get_owned_games(session_or_token, steam_id: str) -> dict | None:
+        """Get owned games using token."""
         url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
         params = {
             "steamid": steam_id,
@@ -360,13 +445,16 @@ class SteamLoginManager(QObject):
 
         try:
             if isinstance(session_or_token, str):
+                # Access token — pass as query parameter, not Bearer header
                 params["access_token"] = session_or_token
                 response = requests.get(url, params=params, timeout=10)
             else:
+                # Session
                 response = session_or_token.get(url, params=params, timeout=10)
 
             response.raise_for_status()
             return response.json().get("response", {})
 
         except (requests.RequestException, ValueError, KeyError):
+            # Error fetching games - return None to signal failure
             return None

@@ -1,6 +1,6 @@
 #
 # steam_library_manager/ui/dialogs/rule_row_widget.py
-# Single filter-rule row for the Smart Collection Builder dialog
+# Widget for a single smart collection filter rule row
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -56,13 +56,18 @@ _FIELD_HINT_I18N: dict[FilterField, str] = {
 
 
 class NoScrollComboBox(QComboBox):
-    """QComboBox that ignores wheel events when not focused."""
+    """QComboBox that ignores wheel events when not focused.
+
+    Prevents accidental value changes when scrolling through the parent
+    scroll area.
+    """
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
     def wheelEvent(self, event) -> None:  # noqa: N802
+        """Ignores wheel events unless the combo box has focus."""
         if self.hasFocus():
             super().wheelEvent(event)
         else:
@@ -72,13 +77,24 @@ class NoScrollComboBox(QComboBox):
 class RuleRowWidget(QWidget):
     """Single rule row for the Smart Collection Builder.
 
-    Signals: ``removed`` (delete clicked), ``changed`` (any value changed).
+    Emits ``removed`` when the user clicks delete, and ``changed`` when
+    any field value changes.
+
+    Attributes:
+        removed: Signal emitted with this widget when delete is clicked.
+        changed: Signal emitted when any rule parameter changes.
     """
 
     removed = pyqtSignal(object)
     changed = pyqtSignal()
 
     def __init__(self, parent: QWidget | None = None, rule: SmartCollectionRule | None = None) -> None:
+        """Initializes the rule row widget.
+
+        Args:
+            parent: Parent widget.
+            rule: Optional pre-existing rule to populate fields from.
+        """
         super().__init__(parent)
         self._initial_rule = rule
         self._create_ui()
@@ -86,29 +102,35 @@ class RuleRowWidget(QWidget):
             self._populate_from_rule(rule)
 
     def _create_ui(self) -> None:
+        """Builds the row layout with all controls."""
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 2, 0, 2)
 
+        # NOT checkbox
         self._negated_cb = QCheckBox(t("ui.smart_collections.rule_negated"))
         self._negated_cb.setFixedWidth(60)
         self._negated_cb.stateChanged.connect(lambda _: self.changed.emit())
         layout.addWidget(self._negated_cb)
 
+        # Field dropdown (grouped by category)
         self._field_combo = NoScrollComboBox()
         self._field_combo.setMinimumWidth(140)
         self._populate_fields()
         self._field_combo.currentIndexChanged.connect(self._on_field_changed)
         layout.addWidget(self._field_combo)
 
+        # Operator dropdown
         self._operator_combo = NoScrollComboBox()
         self._operator_combo.setMinimumWidth(100)
         self._operator_combo.currentIndexChanged.connect(lambda _: self.changed.emit())
         layout.addWidget(self._operator_combo)
 
+        # Value input
         self._value_input = QLineEdit()
         self._value_input.textChanged.connect(lambda _: self.changed.emit())
         layout.addWidget(self._value_input, stretch=1)
 
+        # Value Max input (for BETWEEN only)
         self._value_max_input = QLineEdit()
         self._value_max_input.setPlaceholderText(t("ui.smart_collections.hint.between_max"))
         self._value_max_input.setFixedWidth(80)
@@ -116,15 +138,18 @@ class RuleRowWidget(QWidget):
         self._value_max_input.setVisible(False)
         layout.addWidget(self._value_max_input)
 
+        # Delete button
         delete_btn = QPushButton("\U0001f5d1")
         delete_btn.setFixedWidth(32)
         delete_btn.setToolTip(t("common.delete"))
         delete_btn.clicked.connect(lambda: self.removed.emit(self))
         layout.addWidget(delete_btn)
 
+        # Initialize operators for the default field
         self._on_field_changed()
 
     def _populate_fields(self) -> None:
+        """Populates the field dropdown grouped by category."""
         category_labels = {
             "text_list": "Text (List)",
             "text_single": "Text",
@@ -133,6 +158,7 @@ class RuleRowWidget(QWidget):
             "boolean": "Boolean",
         }
         for cat_key, fields in FIELD_CATEGORIES.items():
+            # Add separator-like header (disabled item)
             self._field_combo.addItem(f"--- {category_labels.get(cat_key, cat_key)} ---", None)
             idx = self._field_combo.count() - 1
             model = self._field_combo.model()
@@ -145,37 +171,53 @@ class RuleRowWidget(QWidget):
                 self._field_combo.addItem(t(_FIELD_I18N[field]), field.value)
 
     def _on_field_changed(self) -> None:
+        """Updates operator dropdown, value visibility, and autocomplete based on selected field."""
         field = self._get_selected_field()
         if not field:
             return
 
+        # Update operators
         self._operator_combo.blockSignals(True)
         self._operator_combo.clear()
         for op in VALID_OPERATORS.get(field, []):
             self._operator_combo.addItem(t(_OPERATOR_I18N[op]), op.value)
         self._operator_combo.blockSignals(False)
 
+        # Toggle value visibility for boolean fields
         is_bool = field in (FilterField.INSTALLED, FilterField.HIDDEN, FilterField.ACHIEVEMENT_PERFECT)
         self._value_input.setVisible(not is_bool)
         self._value_max_input.setVisible(False)
 
+        # Set field-specific placeholder hint
         hint_key = _FIELD_HINT_I18N.get(field)
         if hint_key:
             self._value_input.setPlaceholderText(t(hint_key))
         else:
             self._value_input.setPlaceholderText("")
 
+        # Set autocomplete for Tag/Genre fields
         self._update_autocomplete(field)
+
+        # Show value_max for BETWEEN
         self._update_between_visibility()
         self._operator_combo.currentIndexChanged.connect(lambda _: self._update_between_visibility())
 
         self.changed.emit()
 
     def _update_autocomplete(self, field: FilterField) -> None:
+        """Sets or removes autocomplete on the value input based on field type.
+
+        For TAG and GENRE fields, loads all known tag/genre names from the
+        tag_resolver and attaches a QCompleter for instant suggestions.
+
+        Args:
+            field: The currently selected filter field.
+        """
         if field not in (FilterField.TAG, FilterField.GENRE):
             self._value_input.setCompleter(None)
             return
 
+        # Get tag names from the tag_resolver on the main window
         suggestions = self._get_tag_suggestions(field)
 
         if suggestions:
@@ -187,7 +229,17 @@ class RuleRowWidget(QWidget):
             self._value_input.setCompleter(None)
 
     def _get_tag_suggestions(self, field: FilterField) -> list[str]:
-        """Walk widget tree to get tag/genre names from tag_resolver."""
+        """Retrieves autocomplete suggestions for tag/genre fields.
+
+        Walks up the widget tree to find the main window's tag_resolver.
+
+        Args:
+            field: TAG or GENRE filter field.
+
+        Returns:
+            Sorted list of tag/genre names, or empty list if unavailable.
+        """
+        # Walk up to find the main window with tag_resolver
         widget = self.parent()
         while widget is not None:
             resolver = getattr(widget, "tag_resolver", None)
@@ -200,9 +252,18 @@ class RuleRowWidget(QWidget):
 
     @staticmethod
     def _get_tag_language() -> str:
+        """Returns the configured tag language from settings."""
         return config.TAGS_LANGUAGE
 
     def _resolve_tag_id(self, tag_name: str) -> int | None:
+        """Resolves a tag name to its numeric TagID via the tag_resolver.
+
+        Args:
+            tag_name: The tag name to resolve.
+
+        Returns:
+            TagID or None if not found.
+        """
         widget = self.parent()
         while widget is not None:
             resolver = getattr(widget, "tag_resolver", None)
@@ -215,6 +276,14 @@ class RuleRowWidget(QWidget):
         return None
 
     def _resolve_tag_name(self, tag_id: int) -> str | None:
+        """Resolves a numeric TagID to its localized name via the tag_resolver.
+
+        Args:
+            tag_id: The numeric tag ID.
+
+        Returns:
+            Localized tag name or None if not found.
+        """
         widget = self.parent()
         while widget is not None:
             resolver = getattr(widget, "tag_resolver", None)
@@ -224,10 +293,12 @@ class RuleRowWidget(QWidget):
         return None
 
     def _update_between_visibility(self) -> None:
+        """Shows or hides the max value input based on operator selection."""
         op = self._get_selected_operator()
         self._value_max_input.setVisible(op == Operator.BETWEEN)
 
     def _get_selected_field(self) -> FilterField | None:
+        """Returns the currently selected FilterField or None."""
         data = self._field_combo.currentData()
         if not data:
             return None
@@ -237,6 +308,7 @@ class RuleRowWidget(QWidget):
             return None
 
     def _get_selected_operator(self) -> Operator | None:
+        """Returns the currently selected Operator or None."""
         data = self._operator_combo.currentData()
         if not data:
             return None
@@ -246,18 +318,26 @@ class RuleRowWidget(QWidget):
             return None
 
     def _populate_from_rule(self, rule: SmartCollectionRule) -> None:
+        """Fills the UI controls from an existing rule.
+
+        Args:
+            rule: The rule to populate from.
+        """
         self._negated_cb.setChecked(rule.negated)
 
+        # Find and select the field
         for i in range(self._field_combo.count()):
             if self._field_combo.itemData(i) == rule.field.value:
                 self._field_combo.setCurrentIndex(i)
                 break
 
+        # Find and select the operator
         for i in range(self._operator_combo.count()):
             if self._operator_combo.itemData(i) == rule.operator.value:
                 self._operator_combo.setCurrentIndex(i)
                 break
 
+        # For TAG rules with tag_id, resolve to current language name
         display_value = rule.value
         if rule.field == FilterField.TAG and rule.tag_id is not None:
             resolved = self._resolve_tag_name(rule.tag_id)
@@ -268,7 +348,11 @@ class RuleRowWidget(QWidget):
         self._value_max_input.setText(rule.value_max)
 
     def get_rule(self) -> SmartCollectionRule | None:
-        """Build a SmartCollectionRule from the current UI state."""
+        """Returns the current rule from UI state.
+
+        Returns:
+            SmartCollectionRule or None if field/operator is invalid.
+        """
         field = self._get_selected_field()
         operator = self._get_selected_operator()
         if not field or not operator:
@@ -277,6 +361,7 @@ class RuleRowWidget(QWidget):
         value = self._value_input.text().strip()
         tag_id = None
 
+        # Resolve tag_id for TAG + EQUALS (language-independent matching)
         if field == FilterField.TAG and operator == Operator.EQUALS and value:
             tag_id = self._resolve_tag_id(value)
 

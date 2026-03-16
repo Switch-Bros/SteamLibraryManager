@@ -1,5 +1,13 @@
 #
 # steam_library_manager/core/db/models.py
+# Dataclass models and type aliases used across the db layer
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
+
+#
+# steam_library_manager/core/db/models.py
 # Database data models and conversion functions
 #
 # Copyright © 2025-2026 SwitchBros

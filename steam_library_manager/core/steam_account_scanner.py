@@ -1,6 +1,6 @@
 #
 # steam_library_manager/core/steam_account_scanner.py
-# Scans Steam userdata directory and fetches account display names.
+# Scans the filesystem for installed Steam accounts and profiles
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -32,19 +32,39 @@ STEAM_ID_BASE = 76561197960265728
 
 
 def account_id_to_steam_id_64(account_id: int) -> int:
-    """Convert 32-bit Account ID to SteamID64."""
+    """Convert Account ID (32-bit) to SteamID64.
+
+    Args:
+        account_id: The short Steam account ID (from userdata folder)
+
+    Returns:
+        The 64-bit Steam ID
+    """
     return account_id + STEAM_ID_BASE
 
 
 def steam_id_64_to_account_id(steam_id_64: int) -> int:
-    """Convert SteamID64 back to 32-bit Account ID."""
+    """Convert SteamID64 back to Account ID (32-bit).
+
+    Args:
+        steam_id_64: The 64-bit Steam ID
+
+    Returns:
+        The short Steam account ID
+    """
     return steam_id_64 - STEAM_ID_BASE
 
 
 def fetch_steam_display_name(steam_id_64: int) -> str:
-    """Fetch profile display name from Steam Community XML API.
+    """Fetch the Steam profile display name from Steam Community XML API.
 
-    Returns the SteamID64 as string fallback on failure.
+    Uses the same API as Depressurizer and our existing code.
+
+    Args:
+        steam_id_64: The 64-bit Steam ID
+
+    Returns:
+        The user's Steam profile display name, or the SteamID64 as fallback
     """
     try:
         url = f"https://steamcommunity.com/profiles/{steam_id_64}?xml=1"
@@ -64,9 +84,18 @@ def fetch_steam_display_name(steam_id_64: int) -> str:
 
 
 def scan_steam_accounts(steam_path: str) -> list[SteamAccount]:
-    """Scan userdata/ for local accounts and resolve display names.
+    """Scan the Steam userdata directory for all local accounts.
 
-    Returns a list of SteamAccount objects sorted by display name.
+    This function:
+    1. Scans the userdata/ folder for account directories
+    2. Converts account IDs to SteamID64
+    3. Fetches display names from Steam Community API
+
+    Args:
+        steam_path: Path to the Steam installation directory
+
+    Returns:
+        List of SteamAccount objects, sorted by display name
     """
     userdata_path = Path(steam_path) / "userdata"
     scanned_accounts = []
@@ -105,7 +134,15 @@ def scan_steam_accounts(steam_path: str) -> list[SteamAccount]:
 
 
 def is_steam_running() -> bool:
-    """Check if Steam is currently running via process list."""
+    """Check if Steam is currently running.
+
+    This checks for the Steam process on the system.
+    On Linux, looks for 'steam' process.
+    On Windows, looks for 'steam.exe' process.
+
+    Returns:
+        True if Steam is running, False otherwise
+    """
     try:
         if _psutil is None:
             logger.warning(t("logs.scanner.warning_no_psutil"))
@@ -129,7 +166,11 @@ def is_steam_running() -> bool:
 def kill_steam_process() -> bool:
     """Forcefully terminate the Steam process.
 
-    WARNING: closes Steam without saving state.
+    WARNING: This will close Steam without saving state!
+    Use only when necessary (e.g., before saving collections).
+
+    Returns:
+        True if Steam was successfully killed, False otherwise
     """
     try:
         if _psutil is None:

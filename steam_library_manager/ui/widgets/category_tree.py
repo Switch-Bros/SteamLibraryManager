@@ -1,5 +1,13 @@
 #
 # steam_library_manager/ui/widgets/category_tree.py
+# QTreeWidget subclass for the hierarchical category/game tree
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
+
+#
+# steam_library_manager/ui/widgets/category_tree.py
 # Displays games grouped by categories in a tree structure
 #
 # Copyright © 2025-2026 SwitchBros

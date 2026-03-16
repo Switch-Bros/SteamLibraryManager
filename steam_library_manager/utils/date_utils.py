@@ -1,5 +1,13 @@
 #
 # steam_library_manager/utils/date_utils.py
+# Date formatting and parsing utilities
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
+
+#
+# steam_library_manager/utils/date_utils.py
 # Date format conversion and Unix timestamp utilities
 #
 # Copyright © 2025-2026 SwitchBros

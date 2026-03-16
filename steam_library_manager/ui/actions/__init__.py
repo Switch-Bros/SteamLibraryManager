@@ -1,10 +1,11 @@
 #
 # steam_library_manager/ui/actions/__init__.py
-# UI actions package
+# actions package
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+
 from __future__ import annotations
 
 from steam_library_manager.ui.actions.edit_actions import EditActions
@@ -18,6 +19,7 @@ from steam_library_manager.ui.actions.steam_actions import SteamActions
 from steam_library_manager.ui.actions.tools_actions import ToolsActions
 from steam_library_manager.ui.actions.view_actions import ViewActions
 
+# Export public classes
 __all__ = [
     "FileActions",
     "EditActions",

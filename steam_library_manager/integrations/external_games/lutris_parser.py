@@ -1,6 +1,6 @@
 #
 # steam_library_manager/integrations/external_games/lutris_parser.py
-# Parser for games installed in Lutris
+# Parser for Lutris game manager installed games
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -51,16 +51,37 @@ class LutrisParser(BaseExternalParser):
     """Parser for games installed through Lutris."""
 
     def platform_name(self) -> str:
+        """Return platform name.
+
+        Returns:
+            Platform identifier.
+        """
         return "Lutris"
 
     def is_available(self) -> bool:
+        """Check if Lutris database exists.
+
+        Returns:
+            True if pga.db is found.
+        """
         return self._find_config_file() is not None
 
     def get_config_paths(self) -> list[Path]:
+        """Return native, legacy, and Flatpak database paths.
+
+        Returns:
+            List of possible pga.db paths.
+        """
         return [_NATIVE, _LEGACY, _FLATPAK]
 
     def read_games(self) -> list[ExternalGame]:
-        """Read installed games from Lutris database."""
+        """Read installed games from Lutris database.
+
+        Opens the database read-only and filters out known launchers.
+
+        Returns:
+            List of detected Lutris games.
+        """
         db_path = self._find_config_file()
         if not db_path:
             return []

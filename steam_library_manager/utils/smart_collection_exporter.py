@@ -1,10 +1,11 @@
 #
 # steam_library_manager/utils/smart_collection_exporter.py
-# Smart Collection export to portable JSON
+# Exports smart collections to a portable JSON sidecar format
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+
 from __future__ import annotations
 
 import json
@@ -25,11 +26,23 @@ _FORMAT_VERSION = "1.1"
 
 
 class SmartCollectionExporter:
-    """Exports Smart Collections to JSON format."""
+    """Exports Smart Collections to JSON format.
+
+    The exported JSON contains all collection metadata and rules,
+    but NOT the list of matched games (those are re-evaluated on import).
+    """
 
     @staticmethod
     def export(collections: list[SmartCollection], output_path: Path) -> None:
-        """Export Smart Collections to a JSON file."""
+        """Exports a list of Smart Collections to a JSON file.
+
+        Args:
+            collections: The Smart Collections to export.
+            output_path: The file path to write the JSON to.
+
+        Raises:
+            OSError: If the file cannot be written.
+        """
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         payload = {
@@ -45,10 +58,17 @@ class SmartCollectionExporter:
 
     @staticmethod
     def _collection_to_dict(collection: SmartCollection) -> dict:
-        """Serialize a SmartCollection to a portable dict.
+        """Serializes a SmartCollection to a portable dict.
 
-        Uses "groups" key (v1.1) when groups exist, otherwise falls back
-        to flat "rules" key for v1.0 compatibility.
+        When the collection has groups, exports the ``"groups"`` key (v1.1).
+        Otherwise falls back to the flat ``"rules"`` key for backward
+        compatibility with v1.0 importers.
+
+        Args:
+            collection: The Smart Collection to serialize.
+
+        Returns:
+            Dict with name, description, icon, logic, auto_sync, and rules/groups.
         """
         result: dict = {
             "name": collection.name,

@@ -1,6 +1,6 @@
 #
 # steam_library_manager/integrations/external_games/heroic_amazon_parser.py
-# Parser for Amazon Games installed via Heroic Games Launcher
+# Heroic Launcher parser for Amazon Games Prime library
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -38,16 +38,35 @@ class HeroicAmazonParser(BaseHeroicParser):
     _RUNNER = "nile"
 
     def platform_name(self) -> str:
+        """Return platform name.
+
+        Returns:
+            Platform identifier.
+        """
         return "Heroic (Amazon)"
 
     def is_available(self) -> bool:
+        """Check if Heroic Amazon/Nile config exists.
+
+        Returns:
+            True if installed.json is found.
+        """
         return self._find_config_file() is not None
 
     def get_config_paths(self) -> list[Path]:
+        """Return native and Flatpak config paths.
+
+        Returns:
+            List of possible installed.json paths.
+        """
         return [_NATIVE, _FLATPAK]
 
     def read_games(self) -> list[ExternalGame]:
-        """Read installed Amazon games from Heroic's Nile config."""
+        """Read installed Amazon games from Heroic's Nile config.
+
+        Returns:
+            List of detected Amazon games.
+        """
         data, config_path = self._load_heroic_config_with_path()
 
         # Amazon format is a plain array (not wrapped in dict)

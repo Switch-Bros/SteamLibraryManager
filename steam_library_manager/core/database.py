@@ -1,6 +1,6 @@
 #
 # steam_library_manager/core/database.py
-# Re-export facade for the db/ subpackage
+# Backward-compatible facade re-exporting from steam_library_manager.core.db
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.

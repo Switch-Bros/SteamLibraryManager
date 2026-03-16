@@ -1,5 +1,13 @@
 #
 # steam_library_manager/services/bootstrap_service.py
+# Application bootstrap: profile detection and initial setup flow
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
+
+#
+# steam_library_manager/services/bootstrap_service.py
 # Central startup orchestrator for non-blocking application bootstrap
 #
 # Copyright © 2025-2026 SwitchBros

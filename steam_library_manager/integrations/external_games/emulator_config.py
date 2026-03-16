@@ -1,6 +1,6 @@
 #
 # steam_library_manager/integrations/external_games/emulator_config.py
-# Emulator definitions and ROM directory configuration
+# Emulator configuration definitions for ROM-based games
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -25,7 +25,18 @@ SystemName: TypeAlias = str
 
 @dataclass(frozen=True)
 class EmulatorDef:
-    """Frozen config for a single emulator (name, system, extensions, detection patterns)."""
+    """Definition of a supported emulator.
+
+    Args:
+        name: Human-readable emulator name (e.g. "Eden").
+        system: Console system ID (e.g. "switch").
+        system_display: Display name for collections (e.g. "Nintendo Switch").
+        extensions: Supported ROM file extensions.
+        exe_patterns: Glob patterns to find the emulator executable.
+        flatpak_id: Flatpak app ID if available.
+        launch_template: Command template. {exe} = emulator, {rom} = ROM path.
+        emudeck_launcher: EmuDeck launcher script name (if applicable).
+    """
 
     name: str
     system: SystemName
@@ -39,7 +50,7 @@ class EmulatorDef:
 
 # All supported emulators with detection patterns
 EMULATORS: tuple[EmulatorDef, ...] = (
-    # Nintendo Switch
+    # --- Nintendo Switch ---
     EmulatorDef(
         name="Eden",
         system="switch",
@@ -98,7 +109,7 @@ EMULATORS: tuple[EmulatorDef, ...] = (
         launch_template='"{exe}" "{rom}"',
         emudeck_launcher="yuzu.sh",
     ),
-    # Nintendo Wii U
+    # --- Nintendo Wii U ---
     EmulatorDef(
         name="Cemu",
         system="wiiu",
@@ -112,7 +123,7 @@ EMULATORS: tuple[EmulatorDef, ...] = (
         launch_template='"{exe}" -g "{rom}"',
         emudeck_launcher="cemu.sh",
     ),
-    # Nintendo 3DS
+    # --- Nintendo 3DS ---
     EmulatorDef(
         name="Azahar",
         system="3ds",
@@ -125,7 +136,7 @@ EMULATORS: tuple[EmulatorDef, ...] = (
         launch_template='"{exe}" "{rom}"',
         emudeck_launcher="azahar.sh",
     ),
-    # Nintendo DS
+    # --- Nintendo DS ---
     EmulatorDef(
         name="melonDS",
         system="nds",
@@ -135,7 +146,7 @@ EMULATORS: tuple[EmulatorDef, ...] = (
         flatpak_id="net.kuribo64.melonDS",
         launch_template='"{exe}" "{rom}"',
     ),
-    # Nintendo GameCube / Wii
+    # --- Nintendo GameCube / Wii ---
     # Separate entries with UNIQUE names because _detect_emulators()
     # deduplicates on emu_def.name.
     EmulatorDef(
@@ -156,7 +167,7 @@ EMULATORS: tuple[EmulatorDef, ...] = (
         flatpak_id="org.DolphinEmu.dolphin-emu",
         launch_template='"{exe}" --exec="{rom}"',
     ),
-    # Nintendo N64
+    # --- Nintendo N64 ---
     EmulatorDef(
         name="RetroArch (N64)",
         system="n64",
@@ -166,7 +177,7 @@ EMULATORS: tuple[EmulatorDef, ...] = (
         flatpak_id="org.libretro.RetroArch",
         launch_template='"{exe}" -L mupen64plus_next_libretro "{rom}"',
     ),
-    # Nintendo SNES
+    # --- Nintendo SNES ---
     EmulatorDef(
         name="RetroArch (SNES)",
         system="snes",
@@ -176,7 +187,7 @@ EMULATORS: tuple[EmulatorDef, ...] = (
         flatpak_id="org.libretro.RetroArch",
         launch_template='"{exe}" -L snes9x_libretro "{rom}"',
     ),
-    # Nintendo NES
+    # --- Nintendo NES ---
     EmulatorDef(
         name="RetroArch (NES)",
         system="nes",
@@ -186,7 +197,7 @@ EMULATORS: tuple[EmulatorDef, ...] = (
         flatpak_id="org.libretro.RetroArch",
         launch_template='"{exe}" -L nestopia_libretro "{rom}"',
     ),
-    # Nintendo Game Boy / GBA
+    # --- Nintendo Game Boy / GBA ---
     EmulatorDef(
         name="RetroArch (GBA)",
         system="gba",
@@ -205,7 +216,7 @@ EMULATORS: tuple[EmulatorDef, ...] = (
         flatpak_id="org.libretro.RetroArch",
         launch_template='"{exe}" -L gambatte_libretro "{rom}"',
     ),
-    # Sony PSP
+    # --- Sony PSP ---
     EmulatorDef(
         name="PPSSPP",
         system="psp",
@@ -215,7 +226,7 @@ EMULATORS: tuple[EmulatorDef, ...] = (
         flatpak_id="org.ppsspp.PPSSPP",
         launch_template='"{exe}" "{rom}"',
     ),
-    # DOS
+    # --- DOS ---
     EmulatorDef(
         name="DOSBox",
         system="dos",
@@ -224,7 +235,7 @@ EMULATORS: tuple[EmulatorDef, ...] = (
         exe_patterns=("dosbox",),
         launch_template='"{exe}" "{rom}"',
     ),
-    # ScummVM is intentionally excluded - it uses game IDs, not ROM files.
+    # ScummVM is intentionally excluded — it uses game IDs, not ROM files.
     # Needs a completely different parser approach in a future task.
 )
 

@@ -1,10 +1,11 @@
 #
 # steam_library_manager/services/enrichment/__init__.py
-# Enrichment services package
+# enrichment package
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+
 from __future__ import annotations
 
 from steam_library_manager.services.enrichment.achievement_enrichment_service import AchievementEnrichmentThread

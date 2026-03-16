@@ -1,12 +1,14 @@
 #
 # steam_library_manager/ui/utils/__init__.py
-# UI utilities package
+# ui.utils package
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+
 from __future__ import annotations
 
+# Qt Utils - Low-level Qt utilities
 from steam_library_manager.ui.utils.qt_utils import (
     clear_layout,
     find_child_by_name,
@@ -21,6 +23,7 @@ from steam_library_manager.ui.utils.qt_utils import (
 )
 
 __all__ = [
+    # Qt Utils
     "clear_layout",
     "find_child_by_name",
     "find_children_by_type",

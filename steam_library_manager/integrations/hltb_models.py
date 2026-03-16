@@ -1,5 +1,13 @@
 #
 # steam_library_manager/integrations/hltb_models.py
+# Data models for HowLongToBeat API responses
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
+
+#
+# steam_library_manager/integrations/hltb_models.py
 # HLTB data models and name processing utilities
 #
 # Copyright © 2025-2026 SwitchBros

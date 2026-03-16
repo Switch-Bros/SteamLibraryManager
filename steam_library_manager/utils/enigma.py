@@ -1,5 +1,13 @@
 #
 # steam_library_manager/utils/enigma.py
+# Token obfuscation utilities for secure API key storage
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
+
+#
+# steam_library_manager/utils/enigma.py
 # Easter egg loader, sound player, and detection manager
 #
 # Copyright © 2025-2026 SwitchBros

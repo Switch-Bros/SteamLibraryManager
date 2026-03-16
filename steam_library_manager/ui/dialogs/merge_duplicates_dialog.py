@@ -1,6 +1,6 @@
 #
 # steam_library_manager/ui/dialogs/merge_duplicates_dialog.py
-# Dialog for merging duplicate Steam collections
+# Dialog for detecting and merging duplicate game entries
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -27,7 +27,15 @@ __all__ = ["MergeDuplicatesDialog"]
 
 
 class MergeDuplicatesDialog(BaseDialog):
-    """Dialog for selecting which duplicate collections to keep."""
+    """Dialog for selecting which duplicate collections to keep.
+
+    For each group of duplicate collections (same name), the user picks
+    exactly one to keep.  Games from all others are merged into it.
+
+    Attributes:
+        _groups: Duplicate groups as ``{name: [collection, ...]}``.
+        _button_groups: Maps group name to its QButtonGroup.
+    """
 
     def __init__(
         self,
@@ -35,6 +43,14 @@ class MergeDuplicatesDialog(BaseDialog):
         duplicate_groups: dict[str, list[dict]],
         filter_name: str | None = None,
     ) -> None:
+        """Initializes the merge duplicates dialog.
+
+        Args:
+            parent: Parent widget.
+            duplicate_groups: Dict mapping collection name to list of
+                duplicate collection dicts (from CloudStorageParser).
+            filter_name: If set, only show the group with this name.
+        """
         if filter_name and filter_name in duplicate_groups:
             self._groups: dict[str, list[dict]] = {filter_name: duplicate_groups[filter_name]}
         else:
@@ -52,11 +68,14 @@ class MergeDuplicatesDialog(BaseDialog):
         self.setMinimumHeight(300)
 
     def _build_content(self, layout: QVBoxLayout) -> None:
+        """Creates the dialog UI with scrollable group boxes."""
+        # Info text
         info = QLabel(t("categories.merge_duplicates_info"))
         info.setWordWrap(True)
         info.setStyleSheet("color: gray; margin-bottom: 8px;")
         layout.addWidget(info)
 
+        # Scroll area for groups
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll_widget = QWidget()
@@ -92,6 +111,7 @@ class MergeDuplicatesDialog(BaseDialog):
         scroll.setWidget(scroll_widget)
         layout.addWidget(scroll)
 
+        # Buttons
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
@@ -107,7 +127,12 @@ class MergeDuplicatesDialog(BaseDialog):
         layout.addLayout(btn_layout)
 
     def get_merge_plan(self) -> list[tuple[str, int]]:
-        """Returns list of (collection_name, keep_index) tuples."""
+        """Returns the merge plan based on user selections.
+
+        Returns:
+            List of ``(collection_name, keep_index)`` tuples indicating
+            which collection index (0-based) to keep for each group.
+        """
         plan: list[tuple[str, int]] = []
         for name, button_group in self._button_groups.items():
             checked_id = button_group.checkedId()

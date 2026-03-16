@@ -1,10 +1,11 @@
 #
 # steam_library_manager/utils/json_exporter.py
-# JSON export for game data
+# Exports the game library to JSON format
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+
 from __future__ import annotations
 
 import json
@@ -27,7 +28,17 @@ class JSONExporter:
 
     @staticmethod
     def export(games: list[Game], output_path: Path) -> None:
-        """Export game data as a JSON file with all metadata."""
+        """Exports game data as a JSON file.
+
+        Each game is serialized as a dictionary with all available metadata.
+
+        Args:
+            games: List of games to export.
+            output_path: Path to write the JSON file.
+
+        Raises:
+            OSError: If the file cannot be written.
+        """
         data: list[dict[str, Any]] = [game_to_export_dict(game) for game in sorted_for_export(games)]
 
         output_path.parent.mkdir(parents=True, exist_ok=True)

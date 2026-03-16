@@ -1,5 +1,13 @@
 #
 # steam_library_manager/ui/dialogs/about_dialog.py
+# About dialog showing version, license, and contributor info
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
+
+#
+# steam_library_manager/ui/dialogs/about_dialog.py
 # Professional About dialog with two-column layout.
 #
 # Copyright © 2025-2026 SwitchBros

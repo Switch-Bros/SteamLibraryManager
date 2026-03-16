@@ -1,6 +1,6 @@
 #
 # steam_library_manager/core/cloud_storage_parser.py
-# Read and write Steam collections from cloud-storage-namespace-1.json
+# Steam cloud storage collection parser for cloud-storage-namespace-1.json
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -28,7 +28,11 @@ class CloudStorageParser:
 
     @staticmethod
     def _get_virtual_categories() -> set[str]:
-        """Virtual UI-only category names that must never be written to cloud storage."""
+        """Returns virtual UI-only category names that should NEVER be written to cloud storage.
+
+        These are calculated dynamically using the current locale so that
+        any translation of 'Uncategorized' or 'All Games' is recognised.
+        """
         return {
             t("categories.uncategorized"),
             t("categories.all_games"),
@@ -40,7 +44,16 @@ class CloudStorageParser:
 
     @staticmethod
     def _get_special_collection_ids() -> dict[str, str]:
-        """Maps known display names (EN/DE + current locale) to Steam internal IDs."""
+        """Maps ALL known display names to Steam internal IDs.
+
+        Includes hardcoded names for EN/DE plus current locale to ensure
+        collections are recognized regardless of which language created them.
+
+        Steam uses 'favorite' and 'hidden' as internal collection IDs.
+
+        Returns:
+            Dict mapping display name to Steam internal ID.
+        """
         # TODO v1.2: Refactor to use ONLY collection IDs for system collection
         # detection. Remove hardcoded name matching once all consumers use IDs.
         mapping: dict[str, str] = {
@@ -60,6 +73,13 @@ class CloudStorageParser:
         return mapping
 
     def __init__(self, steam_path: str, user_id: str):
+        """
+        Initialize the cloud storage parser.
+
+        Args:
+            steam_path: Path to Steam installation
+            user_id: Steam user ID
+        """
         self.steam_path = steam_path
         self.user_id = user_id
         self.cloud_storage_path = os.path.join(
@@ -74,7 +94,12 @@ class CloudStorageParser:
         self._deleted_keys: set[str] = set()
 
     def load(self) -> bool:
-        """Load collections from cloud storage JSON file."""
+        """
+        Load collections from cloud storage JSON file.
+
+        Returns:
+            True if successful, False otherwise
+        """
         try:
             if not os.path.exists(self.cloud_storage_path):
                 return False
@@ -114,23 +139,46 @@ class CloudStorageParser:
             return False
 
     def has_external_changes(self) -> bool:
-        """Check if the cloud storage file was modified externally since last load."""
+        """Check if the cloud storage file was modified externally since last load.
+
+        Compares the current file mtime with the mtime recorded during load().
+
+        Returns:
+            True if the file has been modified since last load.
+        """
         if not self._file_mtime or not os.path.exists(self.cloud_storage_path):
             return False
         current_mtime = os.path.getmtime(self.cloud_storage_path)
         return current_mtime != self._file_mtime
 
     def mark_all_managed_as_deleted(self) -> None:
-        """Mark all current collections for deletion during next save."""
+        """Mark all current collections for deletion during next save.
+
+        Used for full replacement operations (e.g. profile restore) where
+        the entire collection set is replaced and old managed collections
+        should not be preserved.
+        """
         for collection in self.collections:
             col_id = collection.get("id", "")
             if col_id:
                 self._deleted_keys.add(f"user-collections.{col_id}")
 
     def save(self) -> bool:
-        """Save collections using delta-merge (only touches managed keys).
+        """Save collections using delta-merge approach.
 
-        Sets ``had_conflict`` if external changes were detected before saving.
+        NEVER overwrites the entire file. Instead:
+        1. Builds set of collection-keys this app actively manages
+        2. Removes ONLY managed + explicitly deleted keys from data
+        3. Preserves everything the app didn't touch
+        4. Writes managed collections back
+        5. Size-check as safety net
+
+        Sets ``had_conflict`` to True if external changes were detected
+        before saving.  The UI layer can inspect this after a successful
+        save to inform the user.
+
+        Returns:
+            True if successful, False otherwise.
         """
         try:
             # Check for external modifications and expose to callers
@@ -138,14 +186,14 @@ class CloudStorageParser:
             if self.had_conflict:
                 logger.warning(t("logs.parser.external_change_detected"))
 
-            # Build set of keys we actively manage
+            # === DELTA-MERGE: Build set of keys we actively manage ===
             managed_keys: set[str] = set()
             for collection in self.collections:
                 col_id = collection.get("id", "")
                 if col_id:
                     managed_keys.add(f"user-collections.{col_id}")
 
-            # Remove managed + deleted keys, preserve everything else
+            # === Remove ONLY managed + deleted keys (preserve everything else!) ===
             preserved_items: list = []
             preserved_collection_count = 0
 
@@ -187,18 +235,21 @@ class CloudStorageParser:
                 collection_id = collection.get("id", "")
                 collection_name = collection.get("name", "")
 
-                # Skip virtual categories (never written to cloud storage)
+                # CRITICAL FIX 1: Skip VIRTUAL categories!
+                # These should never be written to cloud storage
                 virtual = self._get_virtual_categories()
                 if collection_name in virtual:
                     continue
 
-                # Skip empty special collections (Steam only shows non-empty ones)
+                # CRITICAL FIX 2: Skip EMPTY special collections (favorites/hidden)!
+                # Steam only shows these if they contain games
                 added_apps = self._get_collection_apps(collection)
                 special_ids = self._get_special_collection_ids()
                 if collection_name in special_ids and not added_apps:
                     continue  # Don't save empty favorites/hidden
 
-                # Use correct Steam ID for special collections (favorite/hidden)
+                # CRITICAL FIX 3: Use correct Steam ID for special collections (like Depressurizer!)
+                # Depressurizer uses "favorite" and "hidden" (not "favorites"!)
                 if collection_name in special_ids:
                     special_id = special_ids[collection_name]
                     collection_id = special_id
@@ -213,7 +264,8 @@ class CloudStorageParser:
                     # Already has correct ID
                     key = f"user-collections.{collection_id}"
 
-                # Build value JSON, preserving filterSpec for dynamic collections
+                # CRITICAL FIX 4: Build value JSON with filterSpec preservation!
+                # This keeps dynamic collections dynamic across saves
                 value_data = {
                     "id": collection_id,
                     "name": collection_name,
@@ -235,7 +287,7 @@ class CloudStorageParser:
 
                 self.data.append(item)
 
-            # Size-check safety net
+            # === SIZE-CHECK SAFETY NET ===
             new_json = json.dumps(self.data, indent=2, ensure_ascii=False)
             cloud_path = Path(self.cloud_storage_path)
             if cloud_path.exists():
@@ -274,25 +326,56 @@ class CloudStorageParser:
             return False
 
     def get_all_categories(self) -> list[str]:
-        """Get all unique category names from collections."""
+        """
+        Get all unique category names from collections.
+
+        Returns:
+            List of category names
+        """
         return [c.get("name", "") for c in self.collections if c.get("name")]
 
     @staticmethod
     def _get_collection_apps(collection: dict) -> list[int]:
-        """Extracts app IDs from a collection (handles both 'added' and 'apps' keys)."""
+        """Extracts app IDs from a collection dict (handles both 'added' and 'apps' keys).
+
+        Args:
+            collection: Cloud collection dictionary.
+
+        Returns:
+            List of app IDs, empty list on invalid data.
+        """
         apps = collection.get("added", collection.get("apps", []))
         return apps if isinstance(apps, list) else []
 
     @staticmethod
     def _to_app_id_int(app_id) -> int | None:
-        """Safely converts an app-id value to int, or None on failure."""
+        """Safely converts an app-id value to int.
+
+        Returns None when the value is empty, non-numeric, or otherwise
+        un-convertible.  This guards every ``int(app_id)`` call-site so
+        that corrupt or missing IDs never crash the parser.
+
+        Args:
+            app_id: Raw app-id (str, int, or anything else).
+
+        Returns:
+            The integer app-id, or None on failure.
+        """
         try:
             return int(app_id)
         except (ValueError, TypeError):
             return None
 
     def get_app_categories(self, app_id: str) -> list[str]:
-        """Get categories for a specific app."""
+        """
+        Get categories for a specific app.
+
+        Args:
+            app_id: Steam app ID
+
+        Returns:
+            List of category names
+        """
         app_id_int: int | None = self._to_app_id_int(app_id)
         if app_id_int is None:
             return []
@@ -306,6 +389,13 @@ class CloudStorageParser:
         return categories
 
     def set_app_categories(self, app_id: str, categories: list[str]):
+        """
+        Set categories for a specific app.
+
+        Args:
+            app_id: Steam app ID
+            categories: List of category names
+        """
         app_id_int: int | None = self._to_app_id_int(app_id)
         if app_id_int is None:
             return  # silently skip invalid app IDs
@@ -343,19 +433,41 @@ class CloudStorageParser:
         self.modified = True
 
     def add_app_category(self, app_id: str, category: str):
+        """
+        Add a category to an app.
+
+        Args:
+            app_id: Steam app ID
+            category: Category name
+        """
         categories = self.get_app_categories(app_id)
         if category not in categories:
             categories.append(category)
             self.set_app_categories(app_id, categories)
 
     def remove_app_category(self, app_id: str, category: str):
+        """
+        Remove a category from an app.
+
+        Args:
+            app_id: Steam app ID
+            category: Category name
+        """
         categories = self.get_app_categories(app_id)
         if category in categories:
             categories.remove(category)
             self.set_app_categories(app_id, categories)
 
     def delete_category(self, category: str):
-        """Delete a category and track the key for delta-merge removal."""
+        """
+        Delete a category completely.
+
+        Tracks the deleted key for delta-merge so save() removes it from
+        the cloud storage file instead of silently dropping it.
+
+        Args:
+            category: Category name
+        """
         for collection in self.collections:
             if collection.get("name") == category:
                 col_id = collection.get("id", "")
@@ -365,12 +477,27 @@ class CloudStorageParser:
         self.modified = True
 
     def create_empty_collection(self, name: str) -> None:
-        """Creates an empty collection without any app IDs."""
+        """Creates an empty collection without any app IDs.
+
+        This is the safe way to create a new collection.  Using
+        ``add_app_category("", name)`` would crash because this class
+        calls ``int(app_id)`` internally.
+
+        Args:
+            name: The display name for the new collection.
+        """
         collection_id: str = f"from-tag-{name}"
         self.collections.append({"id": collection_id, "name": name, "added": [], "removed": []})
         self.modified = True
 
     def rename_category(self, old_name: str, new_name: str):
+        """
+        Rename a category.
+
+        Args:
+            old_name: Old category name
+            new_name: New category name
+        """
         for collection in self.collections:
             if collection.get("name") == old_name:
                 collection["name"] = new_name
@@ -379,7 +506,12 @@ class CloudStorageParser:
                 break
 
     def get_all_app_ids(self) -> list[str]:
-        """Get all app IDs from all collections as strings."""
+        """
+        Get all app IDs from all collections.
+
+        Returns:
+            List of app IDs as strings
+        """
         app_ids = set()
         for collection in self.collections:
             app_ids.update(str(a) for a in self._get_collection_apps(collection))
@@ -387,16 +519,39 @@ class CloudStorageParser:
 
     @staticmethod
     def get_hidden_apps() -> list[str]:
-        """Not supported in cloud storage - hidden status lives in localconfig.vdf."""
+        """
+        Get hidden apps (not supported in cloud storage).
+
+        Returns:
+            Empty list (hidden status is stored in localconfig.vdf, not cloud storage)
+        """
         return []
 
     @staticmethod
     def set_app_hidden(app_id: str, hidden: bool):
-        """No-op - hidden status is stored in localconfig.vdf, not cloud storage."""
+        """
+        Set app hidden status (not supported in cloud storage).
+
+        Args:
+            app_id: Steam app ID
+            hidden: True to hide, False to unhide
+
+        Note:
+            Hidden status is stored in localconfig.vdf, not cloud storage.
+            This method does nothing.
+        """
         pass
 
     def remove_app(self, app_id: str) -> bool:
-        """Remove app from all collections."""
+        """
+        Remove app from all collections.
+
+        Args:
+            app_id: Steam app ID
+
+        Returns:
+            True if app was removed, False otherwise
+        """
         app_id_int: int | None = self._to_app_id_int(app_id)
         if app_id_int is None:
             return False
@@ -415,11 +570,32 @@ class CloudStorageParser:
 
     @staticmethod
     def _normalize_collection_name(name: str) -> str:
-        """Lowercase with hyphens/spaces/underscores stripped for fuzzy matching."""
+        """Normalize a collection name for fuzzy duplicate detection.
+
+        Strips casing, hyphens, spaces, and underscores so that
+        'roguelike', 'ROGUELIKE', 'Rogue-like', 'Rogue Like' all
+        normalize to 'roguelike'.
+
+        Args:
+            name: Raw collection name.
+
+        Returns:
+            Lowercased name with separators removed.
+        """
         return name.lower().replace("-", "").replace(" ", "").replace("_", "")
 
     def get_duplicate_groups(self) -> dict[str, list[dict]]:
-        """Groups collections by normalized name, returns groups with 2+ members."""
+        """Returns collection names that appear more than once.
+
+        Groups collections by normalized name (case-insensitive, ignoring
+        hyphens/spaces/underscores) and returns only groups with 2+ members.
+        The group key is the name of the FIRST collection found in that
+        normalized group (preserving the user's original spelling).
+
+        Returns:
+            Dict mapping representative collection name to list of
+            collection dicts for groups with 2+ occurrences.
+        """
         from collections import defaultdict
 
         norm_groups: defaultdict[str, list[dict]] = defaultdict(list)
@@ -438,10 +614,17 @@ class CloudStorageParser:
         return result
 
     def remove_duplicate_collections(self) -> int:
-        """Remove duplicate collections (keeps first, drops rest without merging).
+        """Remove duplicate collections with same name WITHOUT merging games.
 
-        WARNING: Silently drops games from duplicates. For user-facing
-        operations, use CategoryService.merge_duplicate_collections() instead.
+        WARNING: This silently drops games from duplicate collections! For
+        user-facing operations, use ``CategoryService.merge_duplicate_collections()``
+        with ``MergeDuplicatesDialog`` instead. This method is retained for
+        programmatic/testing use only.
+
+        Keeps the first occurrence of each name, removes subsequent duplicates.
+
+        Returns:
+            Number of duplicates removed
         """
         seen = {}
         duplicates = []

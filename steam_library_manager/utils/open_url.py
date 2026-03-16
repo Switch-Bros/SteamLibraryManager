@@ -1,6 +1,6 @@
 #
 # steam_library_manager/utils/open_url.py
-# Cross-environment URL opener (handles PyInstaller/AppImage LD_LIBRARY_PATH)
+# Cross-platform URL opener with Steam browser protocol support
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -19,7 +19,18 @@ __all__ = ["open_url"]
 
 
 def open_url(url: str) -> bool:
-    """Open a URL in the default browser, handling frozen environments."""
+    """Opens a URL in the system's default browser.
+
+    In PyInstaller/AppImage environments, LD_LIBRARY_PATH is modified
+    which can break xdg-open. This function restores the original
+    environment before launching the browser.
+
+    Args:
+        url: The URL to open.
+
+    Returns:
+        True if the browser was launched successfully, False otherwise.
+    """
     if getattr(sys, "frozen", False) or os.environ.get("APPIMAGE"):
         return _open_url_clean_env(url)
 
@@ -34,7 +45,17 @@ def open_url(url: str) -> bool:
 
 
 def _open_url_clean_env(url: str) -> bool:
-    """Open URL via xdg-open with restored LD_LIBRARY_PATH."""
+    """Opens a URL with a cleaned LD_LIBRARY_PATH.
+
+    Restores the original LD_LIBRARY_PATH that existed before PyInstaller
+    modified it, then calls xdg-open.
+
+    Args:
+        url: The URL to open.
+
+    Returns:
+        True if the subprocess was launched, False on error.
+    """
     env = os.environ.copy()
 
     # PyInstaller saves originals as *_ORIG

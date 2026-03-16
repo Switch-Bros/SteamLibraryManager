@@ -1,6 +1,6 @@
 #
 # steam_library_manager/ui/dialogs/update_dialog.py
-# Update dialog with download progress and self-update support
+# Dialog for displaying available updates and triggering installation
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -33,7 +33,13 @@ logger = logging.getLogger("steamlibmgr.update")
 
 
 class UpdateDialog(BaseDialog):
-    """Dialog showing update information with download and install controls."""
+    """Dialog showing update information with download and install controls.
+
+    Args:
+        parent: Parent widget (MainWindow).
+        info: UpdateInfo with version, URL, size, notes.
+        update_service: Shared UpdateService instance.
+    """
 
     def __init__(
         self,
@@ -53,18 +59,21 @@ class UpdateDialog(BaseDialog):
 
     def _build_content(self, content_area: QVBoxLayout) -> None:
         """Build dialog content with version info, notes, and controls."""
+        # Version labels
         current_label = QLabel(t("update.current_version", version=__version__))
         new_label = QLabel(t("update.new_version", version=self._info.version))
         new_label.setStyleSheet("font-weight: bold; font-size: 14px;")
         content_area.addWidget(current_label)
         content_area.addWidget(new_label)
 
+        # Download size
         size_mb = self._info.download_size / (1024 * 1024)
         size_label = QLabel(t("update.download_size", size=f"{size_mb:.1f} MB"))
         content_area.addWidget(size_label)
 
         content_area.addSpacing(10)
 
+        # Release notes
         notes_header = QLabel(t("update.release_notes"))
         notes_header.setStyleSheet("font-weight: bold;")
         content_area.addWidget(notes_header)
@@ -76,6 +85,7 @@ class UpdateDialog(BaseDialog):
         self._notes_browser.anchorClicked.connect(lambda url: open_url(url.toString()))
         content_area.addWidget(self._notes_browser)
 
+        # Progress bar (hidden initially)
         self._progress_bar = QProgressBar()
         self._progress_bar.setVisible(False)
         self._progress_bar.setTextVisible(True)
@@ -85,6 +95,7 @@ class UpdateDialog(BaseDialog):
         self._status_label.setVisible(False)
         content_area.addWidget(self._status_label)
 
+        # Buttons
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
@@ -99,6 +110,7 @@ class UpdateDialog(BaseDialog):
 
         content_area.addLayout(btn_layout)
 
+        # Connect update service signals
         self._update_service.download_progress.connect(self._on_progress)
         self._update_service.download_finished.connect(self._on_download_finished)
         self._update_service.download_failed.connect(self._on_download_failed)
@@ -144,7 +156,11 @@ class UpdateDialog(BaseDialog):
         self._progress_bar.setVisible(False)
 
     def _on_restart_clicked(self) -> None:
-        """Saves application state, installs update, and restarts."""
+        """Save application state, then install update and restart.
+
+        This is the ONLY place where install_update() is called.
+        Save flow runs BEFORE os.execv().
+        """
         if not UIHelper.confirm(
             self,
             t("update.confirm_restart"),
@@ -152,6 +168,7 @@ class UpdateDialog(BaseDialog):
         ):
             return
 
+        # Save application state via MainWindow
         mw = self.parent()
         if hasattr(mw, "game_manager") and mw.game_manager:
             try:

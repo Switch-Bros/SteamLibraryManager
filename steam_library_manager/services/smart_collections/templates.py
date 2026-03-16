@@ -1,5 +1,13 @@
 #
 # steam_library_manager/services/smart_collections/templates.py
+# Built-in smart collection templates and default rules
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
+
+#
+# steam_library_manager/services/smart_collections/templates.py
 # Predefined Smart Collection templates for quick-start creation
 #
 # Copyright © 2025-2026 SwitchBros

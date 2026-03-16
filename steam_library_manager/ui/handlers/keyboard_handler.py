@@ -1,6 +1,6 @@
 #
 # steam_library_manager/ui/handlers/keyboard_handler.py
-# Keyboard shortcuts and Easter egg handler for MainWindow.
+# Keyboard shortcut handler for main window actions
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -25,7 +25,14 @@ __all__ = ["KeyboardHandler"]
 
 
 class KeyboardHandler:
-    """Manages keyboard shortcuts, key events, and Easter egg delegation."""
+    """Manages keyboard shortcuts, key events, and Easter egg delegation.
+
+    Easter egg detection is handled by EasterEggManager (enigma.py).
+    This class handles: Ctrl+F/A/B/I, F2/F5, ESC layers, Del, Space.
+
+    Attributes:
+        _mw: The parent MainWindow instance.
+    """
 
     def __init__(self, mw: MainWindow) -> None:
         self._mw = mw
@@ -54,7 +61,15 @@ class KeyboardHandler:
             app.removeEventFilter(self._mw)
 
     def handle_event_filter(self, obj: object, event: QEvent) -> bool:
-        """Processes application-wide key events for Easter egg detection."""
+        """Processes application-wide key events for Easter egg detection.
+
+        Args:
+            obj: The object that received the event.
+            event: The event to filter.
+
+        Returns:
+            False always — never consumes the event.
+        """
         if (
             isinstance(obj, QWindow)
             and event.type() == QEvent.Type.KeyPress
@@ -65,7 +80,14 @@ class KeyboardHandler:
         return False
 
     def handle_key_press(self, event: QKeyEvent) -> bool:
-        """Handles key press events. Returns True if consumed."""
+        """Handles key press events for MainWindow shortcuts.
+
+        Args:
+            event: The key press event.
+
+        Returns:
+            True if event was handled, False to pass through.
+        """
         mw = self._mw
         key = event.key()
 
@@ -106,7 +128,10 @@ class KeyboardHandler:
 
         return False
 
+    # --- Private helpers ---
+
     def _select_all_in_category(self) -> None:
+        """Selects all game items under the currently active category."""
         mw = self._mw
         if mw.search_entry.hasFocus():
             mw.search_entry.selectAll()
@@ -123,6 +148,7 @@ class KeyboardHandler:
                         child.setSelected(True)
 
     def _open_image_browser(self) -> None:
+        """Opens the Image Browser for the currently selected game."""
         if not self._mw.selected_game:
             self._mw.set_status(t("ui.errors.no_selection"))
             return

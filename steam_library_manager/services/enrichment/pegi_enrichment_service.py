@@ -1,5 +1,13 @@
 #
 # steam_library_manager/services/enrichment/pegi_enrichment_service.py
+# Enrichment service for PEGI age ratings from Steam store data
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
+
+#
+# steam_library_manager/services/enrichment/pegi_enrichment_service.py
 # Background enrichment worker for PEGI age ratings.
 #
 # Copyright © 2025-2026 SwitchBros

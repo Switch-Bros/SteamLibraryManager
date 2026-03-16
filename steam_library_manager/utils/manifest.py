@@ -1,6 +1,6 @@
 #
 # steam_library_manager/utils/manifest.py
-# Parser for Steam depot manifest files (protobuf-based)
+# Reads Steam library folder manifests (libraryfolders.vdf)
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -34,7 +34,21 @@ MessageClass = {MSG_PAYLOAD: Payload, MSG_METADATA: Metadata, MSG_SIGNATURE: Sig
 
 
 def loads(data: bytes, wrapper=dict) -> dict[str, Any]:
-    """Parse a Steam depot manifest from raw bytes."""
+    """
+    Parses a Steam depot manifest from bytes.
+
+    This function reads the binary manifest format, which consists of multiple
+    Protocol Buffer messages (payload, metadata, signature) prefixed with message
+    IDs and sizes.
+
+    Args:
+        data (bytes): The raw manifest file data.
+        wrapper (type): The dictionary type to use for parsed data. Defaults to dict.
+
+    Returns:
+        dict[str, Any]: A dictionary containing 'payload', 'metadata', and 'signature'
+                       keys with their respective parsed data.
+    """
     parsed = wrapper()
     offset = 0
     int32 = struct.Struct("<I")
@@ -64,5 +78,15 @@ def loads(data: bytes, wrapper=dict) -> dict[str, Any]:
 
 
 def load(fp: BinaryIO, wrapper=dict) -> dict[str, Any]:
-    """Parse a Steam depot manifest from a file object."""
+    """
+    Parses a Steam depot manifest from a file.
+
+    Args:
+        fp (BinaryIO): A file-like object opened in binary mode.
+        wrapper (type): The dictionary type to use for parsed data. Defaults to dict.
+
+    Returns:
+        dict[str, Any]: A dictionary containing 'payload', 'metadata', and 'signature'
+                       keys with their respective parsed data.
+    """
     return loads(fp.read(), wrapper=wrapper)

@@ -1,6 +1,6 @@
 #
 # steam_library_manager/ui/handlers/selection_handler.py
-# Handler for game selection and background details loading.
+# Manages game selection state and multi-select logic
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -24,44 +24,88 @@ __all__ = ["SelectionHandler"]
 class SelectionHandler:
     """Handles game selection events and background details loading.
 
-    Only one fetch thread runs at a time. A new selection marks the
-    old thread as stale so its result is silently discarded.
+    Only one fetch thread runs at a time. When a new game is clicked
+    while a fetch is still running, the old thread is marked stale
+    so its result is silently discarded.
+
+    Attributes:
+        mw: Back-reference to the owning MainWindow instance.
+        _current_fetch: The currently running FetchThread (if any).
     """
 
     def __init__(self, main_window: "MainWindow") -> None:
+        """Initializes the selection handler.
+
+        Args:
+            main_window: The MainWindow instance that owns this handler.
+        """
         self.mw: "MainWindow" = main_window
         self._current_fetch: QThread | None = None
 
     def on_games_selected(self, games: list[Game]) -> None:
-        """Handles multi-selection changes in the game tree."""
+        """Handles multi-selection changes in the game tree.
+
+        Updates the details widget to show either a single game view,
+        a multi-select view, or clears the view if no selection.
+
+        Args:
+            games: List of currently selected games.
+        """
         self.mw.selected_games = games
         all_categories = list(self.mw.game_manager.get_all_categories().keys())
 
         if len(games) > 1:
+            # Show multi-select view in details widget
             self.mw.set_status(t("ui.main_window.games_selected", count=len(games)))
             self.mw.details_widget.set_games(games, all_categories)
         elif len(games) == 1:
+            # Show single game view
             self.mw.set_status(f"{games[0].name}")
             self.on_game_selected(games[0])
+        else:
+            # No selection - could clear the details widget
+            pass
 
     def on_game_selected(self, game: Game) -> None:
-        """Handles single game selection in the tree."""
+        """Handles single game selection in the tree.
+
+        Shows the game details immediately in the UI, then fetches
+        missing metadata in the background if needed.
+
+        Args:
+            game: The selected game object.
+        """
+        # Ignore if multiple games are selected (multi-select mode)
         if len(self.mw.selected_games) > 1:
             return
 
         self.mw.selected_game = game
         all_categories = list(self.mw.game_manager.get_all_categories().keys())
 
+        # Compute curator overlap from filter cache (no DB access)
         self._update_curator_overlap(game)
+
+        # PERFORMANCE FIX: Show UI immediately, fetch details in background
         self.mw.details_widget.set_game(game, all_categories)
 
+        # Fetch details asynchronously if missing (non-blocking)
+        # Checks basic metadata, HLTB, and achievements via GameDetailService
         if self.mw.game_manager.detail_service.needs_enrichment(game.app_id):
             self.fetch_game_details_async(game.app_id, all_categories)
 
     def fetch_game_details_async(self, app_id: str, all_categories: list[str]) -> None:
-        """Fetches game details in a background thread."""
+        """Fetches game details in a background thread without blocking the UI.
+
+        This method improves performance by loading missing metadata asynchronously,
+        allowing the UI to remain responsive during API calls.
+
+        Args:
+            app_id: The Steam app ID to fetch details for.
+            all_categories: List of all available categories for UI update.
+        """
 
         class FetchThread(QThread):
+            """Background thread for fetching game details."""
 
             finished_signal = pyqtSignal(bool)
 
@@ -72,17 +116,22 @@ class SelectionHandler:
                 self.stale = False
 
             def run(self):
+                """Executes the fetch operation in background."""
                 success = self.game_manager.fetch_game_details(self.target_app_id)
                 if not self.stale:
                     self.finished_signal.emit(success)
 
+        # Mark any running fetch as stale (its UI callback will be skipped)
         if self._current_fetch is not None and self._current_fetch.isRunning():
             self._current_fetch.stale = True  # type: ignore[attr-defined]
 
+        # Create and start new background thread
         fetch_thread = FetchThread(self.mw.game_manager, app_id)
 
         def on_fetch_complete(success: bool):
+            """Updates UI when fetch completes."""
             if success and self.mw.selected_game and self.mw.selected_game.app_id == app_id:
+                # Only update if this game is still selected
                 game = self.mw.game_manager.get_game(app_id)
                 if game:
                     self.mw.details_widget.set_game(game, all_categories)
@@ -91,15 +140,26 @@ class SelectionHandler:
         self._current_fetch = fetch_thread
         fetch_thread.start()
 
+        # Store single reference — old thread finishes silently
         self._current_fetch = fetch_thread
 
     def restore_game_selection(self, app_ids: list[str]) -> None:
-        """Re-selects games in the tree by app ID after a refresh."""
+        """Restores game selection in the tree widget after refresh.
+
+        This method finds and re-selects games in the tree widget based on their
+        app IDs. It's used to maintain the selection state after operations that
+        refresh the tree (like category changes).
+
+        Args:
+            app_ids: List of Steam app IDs to select.
+        """
         if not app_ids:
             return
 
+        # Temporarily block signals to prevent triggering selection events
         self.mw.tree.blockSignals(True)
 
+        # Find and select the game items in the tree
         for i in range(self.mw.tree.topLevelItemCount()):
             category_item = self.mw.tree.topLevelItem(i)
             for j in range(category_item.childCount()):
@@ -108,11 +168,26 @@ class SelectionHandler:
                 if item_app_id and item_app_id in app_ids:
                     game_item.setSelected(True)
 
+        # Re-enable signals
         self.mw.tree.blockSignals(False)
+
+        # Manually update selected_games list
         self.mw.selected_games = [self.mw.game_manager.get_game(aid) for aid in app_ids]
         self.mw.selected_games = [g for g in self.mw.selected_games if g is not None]
 
+    # ------------------------------------------------------------------
+    # Curator overlap
+    # ------------------------------------------------------------------
+
     def _update_curator_overlap(self, game: Game) -> None:
+        """Computes curator overlap from the filter cache and sets it on the game.
+
+        Uses the in-memory curator cache from FilterService, so no DB access
+        is needed on each game selection.
+
+        Args:
+            game: The game to compute overlap for.
+        """
         try:
             fs = self.mw.filter_service
             cache = fs.curator_cache

@@ -1,5 +1,13 @@
 #
 # steam_library_manager/services/filter_service.py
+# Game library filter engine with multi-field query support
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
+
+#
+# steam_library_manager/services/filter_service.py
 # View-menu filter service for type, platform, and status filters
 #
 # Copyright © 2025-2026 SwitchBros

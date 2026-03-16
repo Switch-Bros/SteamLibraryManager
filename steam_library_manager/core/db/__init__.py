@@ -1,10 +1,11 @@
 #
 # steam_library_manager/core/db/__init__.py
-# Database package
+# db package - composes Database class from connection and mixin modules
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+
 from __future__ import annotations
 
 from steam_library_manager.core.db.connection import ConnectionBase
@@ -43,6 +44,11 @@ class Database(
     CuratorMixin,
     ConnectionBase,
 ):
-    """Main database class composing all query mixins."""
+    """Main database class composing all query mixins.
+
+    Inherits connection management from ConnectionBase,
+    schema handling from SchemaMixin, and all query methods
+    from the remaining mixins.
+    """
 
     pass

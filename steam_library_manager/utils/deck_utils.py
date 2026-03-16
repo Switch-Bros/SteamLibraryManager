@@ -1,6 +1,6 @@
 #
 # steam_library_manager/utils/deck_utils.py
-# Steam Deck compatibility API utilities
+# Steam Deck compatibility helpers and rating normalization
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -33,7 +33,19 @@ _USER_AGENT = "SteamLibraryManager/1.0"
 
 
 def fetch_deck_compatibility(app_id: str | int, cache_dir: Path | None = None) -> str | None:
-    """Fetch Deck compatibility from Valve's API, optionally caching the result."""
+    """Fetches Steam Deck compatibility status from Valve's API.
+
+    Makes a single request to Valve's deck compatibility endpoint,
+    parses the resolved_category, and optionally writes a cache file.
+
+    Args:
+        app_id: Steam app ID.
+        cache_dir: Optional directory for JSON cache files.
+
+    Returns:
+        Status string ("verified", "playable", "unsupported", "unknown"),
+        or None on failure.
+    """
     try:
         url = _API_URL.format(app_id=app_id)
         response = requests.get(

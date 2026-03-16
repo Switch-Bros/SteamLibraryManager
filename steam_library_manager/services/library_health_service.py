@@ -1,6 +1,6 @@
 #
 # steam_library_manager/services/library_health_service.py
-# Dataclasses for library health check results
+# Checks game library for missing files, orphans, and anomalies
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -15,7 +15,15 @@ __all__ = ["LibraryHealthService", "HealthReport", "StoreCheckResult"]
 
 @dataclass(frozen=True)
 class StoreCheckResult:
-    """Store availability check result for a single game."""
+    """Result of a store availability check for a single game.
+
+    Attributes:
+        app_id: The Steam app ID.
+        name: The game name.
+        status: One of: 'available', 'age_gate', 'geo_locked',
+            'delisted', 'removed', 'unknown'.
+        details: Human-readable detail string (e.g. HTTP status code).
+    """
 
     app_id: int
     name: str
@@ -25,7 +33,17 @@ class StoreCheckResult:
 
 @dataclass
 class HealthReport:
-    """Aggregate library health metrics across all check categories."""
+    """Complete library health report.
+
+    Attributes:
+        store_unavailable: Games not available in the Steam Store.
+        missing_artwork: Games without cover images as (app_id, name) tuples.
+        missing_metadata: Games missing publisher/developer/release date.
+        ghost_apps: App IDs that are not real games (DLCs, tools, demos).
+        stale_hltb: Number of games with HLTB cache older than 30 days.
+        stale_protondb: Number of games with ProtonDB cache older than 7 days.
+        total_games: Total number of games checked.
+    """
 
     store_unavailable: list[StoreCheckResult] = field(default_factory=list)
     missing_artwork: list[tuple[int, str]] = field(default_factory=list)
@@ -36,7 +54,11 @@ class HealthReport:
     total_games: int = 0
 
     def count_total_issues(self) -> int:
-        """Sum of all issue counts across categories."""
+        """Returns the total number of issues found across all categories.
+
+        Returns:
+            Sum of all issue counts.
+        """
         return (
             len(self.store_unavailable)
             + len(self.missing_artwork)
@@ -48,4 +70,8 @@ class HealthReport:
 
 
 class LibraryHealthService:
-    """Placeholder for future non-threaded health queries."""
+    """Placeholder for future library health service logic.
+
+    Currently the health check logic lives in LibraryHealthThread.
+    This class may be extended for non-threaded health queries.
+    """

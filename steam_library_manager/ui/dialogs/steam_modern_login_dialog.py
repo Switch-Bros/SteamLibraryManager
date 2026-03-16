@@ -1,6 +1,6 @@
 #
 # steam_library_manager/ui/dialogs/steam_modern_login_dialog.py
-# Modern Steam login dialog with QR code and username/password
+# Modern Steam login dialog with QWebEngineView integration
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -34,7 +34,16 @@ __all__ = ["ModernSteamLoginDialog"]
 
 
 class ModernSteamLoginDialog(QDialog):
-    """Modern Steam login dialog with QR code and username/password split view."""
+    """
+    Modern Steam login dialog with QR code + Username/Password.
+
+    Signals:
+        login_success (dict): Emitted when login succeeds with session/tokens
+
+    Attributes:
+        steam_id_64: The SteamID64 as integer (for profile_setup_dialog)
+        display_name: The Steam display name (for profile_setup_dialog)
+    """
 
     login_success = pyqtSignal(dict)
 
@@ -43,6 +52,7 @@ class ModernSteamLoginDialog(QDialog):
     display_name: str | None
 
     def __init__(self, parent=None):
+        """Initialize the dialog."""
         super().__init__(parent)
 
         self.login_manager = SteamLoginManager()
@@ -59,6 +69,7 @@ class ModernSteamLoginDialog(QDialog):
         self.start_qr_login()
 
     def _setup_ui(self):
+        """Setup the complete UI."""
         self.setWindowTitle(f"{t('emoji.lock')} {t('steam.login.steam_login_title')}")
         self.setMinimumSize(800, 700)
         self.resize(800, 700)
@@ -145,6 +156,7 @@ class ModernSteamLoginDialog(QDialog):
         """)
 
     def _create_header(self) -> QWidget:  # noqa: Method can't be static (uses t())
+        """Create header with logo and title."""
         header = QFrame()
         header.setFrameShape(QFrame.Shape.StyledPanel)
         header.setStyleSheet("""
@@ -168,6 +180,7 @@ class ModernSteamLoginDialog(QDialog):
         return header
 
     def _create_content(self) -> QWidget:
+        """Create split view content (QR + Username/Password)."""
         container = QWidget()
         container_layout = QHBoxLayout(container)
         container_layout.setContentsMargins(0, 0, 0, 0)
@@ -191,6 +204,7 @@ class ModernSteamLoginDialog(QDialog):
         return container
 
     def _create_password_panel(self) -> QWidget:
+        """Create left panel with username/password fields."""
         panel = QWidget()
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(40, 40, 40, 40)
@@ -201,6 +215,7 @@ class ModernSteamLoginDialog(QDialog):
         title.setStyleSheet("color: white; font-size: 18px; font-weight: bold;")
         layout.addWidget(title)
 
+        # Simple login form (no multi-step, just username/password)
         login_layout = QVBoxLayout()
         login_layout.setSpacing(15)
 
@@ -219,6 +234,7 @@ class ModernSteamLoginDialog(QDialog):
         self.pwd_login_btn.clicked.connect(self.on_password_login)
         login_layout.addWidget(self.pwd_login_btn)
 
+        # Info label for push notification
         info_label = QLabel(t("steam.login.password_info"))
         info_label.setStyleSheet("color: #8f98a0; font-size: 11px;")
         info_label.setWordWrap(True)
@@ -231,6 +247,7 @@ class ModernSteamLoginDialog(QDialog):
         return panel
 
     def _create_qr_panel(self) -> QWidget:
+        """Create right panel with QR code."""
         panel = QWidget()
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(40, 40, 40, 40)
@@ -274,18 +291,22 @@ class ModernSteamLoginDialog(QDialog):
         return panel
 
     def _connect_signals(self):
+        """Connect login manager signals."""
         self.login_manager.login_success.connect(self.on_login_success)
         self.login_manager.login_error.connect(self.on_login_error)
         self.login_manager.qr_ready.connect(self.on_qr_ready)
         self.login_manager.status_update.connect(self.on_status_update)
+        # NEW: Mobile approval waiting signal (for password login)
         if hasattr(self.login_manager, "waiting_for_approval"):
             self.login_manager.waiting_for_approval.connect(self.on_waiting_for_approval)
 
     def start_qr_login(self):
+        """Start QR code generation."""
         self.show_progress()
         self.login_manager.start_qr_login("SteamLibraryManager")
 
     def on_password_login(self):
+        """Handle password login button click."""
         username = self.username_input.text().strip()
         password = self.password_input.text()
 
@@ -298,27 +319,34 @@ class ModernSteamLoginDialog(QDialog):
         self.login_manager.start_password_login(username, password)
 
     def on_qr_ready(self, qr_url: str):
+        """Handle QR code ready."""
         self.hide_progress()
         self.load_qr_image(qr_url)
 
     def on_login_success(self, result: dict):
+        """Handle successful login."""
         self.hide_progress()
 
+        # Get SteamID64 (may be string or int)
         steam_id_value = result.get("steam_id") or result.get("steamid")
 
         if steam_id_value:
             try:
+                # Convert to int (works for both str and int input)
                 self.steam_id_64 = int(steam_id_value)
 
+                # Fetch proper display name from Steam Community API
                 from steam_library_manager.core.steam_account_scanner import fetch_steam_display_name
 
                 self.display_name = fetch_steam_display_name(self.steam_id_64)
 
             except (ValueError, TypeError) as e:
+                # Conversion failed - set to None
                 logger.error(t("logs.auth.steamid_conversion_error", value=steam_id_value, error=e))
                 self.steam_id_64 = None
                 self.display_name = None
         else:
+            # No steam_id in result
             self.steam_id_64 = None
             self.display_name = None
 
@@ -328,27 +356,39 @@ class ModernSteamLoginDialog(QDialog):
         self.accept()
 
     def on_login_error(self, error: str):
+        """Handle login error."""
         self.hide_progress()
         self.pwd_login_btn.setEnabled(True)
         UIHelper.show_error(self, error)
 
     def on_status_update(self, message: str):
+        """Update status bar."""
         self.status_bar.setText(message)
 
     def on_waiting_for_approval(self, message: str):
+        """Show waiting for mobile approval message."""
         self.hide_progress()
         self.on_status_update(message)
+        # Show message in password section
         UIHelper.show_info(self, message, title=t("steam.login.waiting_approval_title"))
 
     def load_qr_image(self, challenge_url: str):
-        """Generate and display a styled QR code with optional logo overlay."""
+        """Generate and display a styled QR code from Steam challenge URL.
+
+        Creates a QR code with rounded modules and an optional custom logo
+        centered on a white background. Falls back to standard square modules
+        if styled image classes are unavailable.
+
+        Args:
+            challenge_url: The Steam authentication challenge URL to encode.
+        """
         try:
             import qrcode
             from io import BytesIO
 
             from PIL import Image
 
-            # HIGH error correction allows logo overlay
+            # Generate QR code with HIGH error correction (allows logo overlay)
             qr = qrcode.QRCode(
                 version=1,
                 error_correction=qrcode.constants.ERROR_CORRECT_H,
@@ -358,6 +398,7 @@ class ModernSteamLoginDialog(QDialog):
             qr.add_data(challenge_url)
             qr.make(fit=True)
 
+            # Try styled image with rounded modules, fall back to standard
             try:
                 from qrcode.image.styledpil import StyledPilImage
                 from qrcode.image.styles.moduledrawers.pil import RoundedModuleDrawer
@@ -370,7 +411,7 @@ class ModernSteamLoginDialog(QDialog):
                 logger.warning("Styled QR modules unavailable, using standard: %s", styled_err)
                 img = qr.make_image(fill_color="black", back_color="white").convert("RGBA")
 
-            # Overlay custom logo if available
+            # Try to overlay custom logo from resources
             from steam_library_manager.utils.paths import get_resources_dir
 
             logo_path = get_resources_dir() / "icons" / "qr_login.webp"
@@ -398,6 +439,7 @@ class ModernSteamLoginDialog(QDialog):
                 except Exception as logo_err:
                     logger.warning("Failed to overlay QR logo: %s", logo_err)
 
+            # Convert to QPixmap
             buffer = BytesIO()
             img.save(buffer, format="PNG")
             buffer.seek(0)
@@ -405,6 +447,7 @@ class ModernSteamLoginDialog(QDialog):
             pixmap = QPixmap()
             pixmap.loadFromData(buffer.read())
 
+            # Scale to display size with smooth scaling
             self.qr_label.setPixmap(
                 pixmap.scaled(
                     300,
@@ -421,11 +464,14 @@ class ModernSteamLoginDialog(QDialog):
             self.qr_label.setText(t("steam.login.qr_generation_failed"))
 
     def show_progress(self):
+        """Show progress bar."""
         self.progress_bar.show()
 
     def hide_progress(self):
+        """Hide progress bar."""
         self.progress_bar.hide()
 
     def reject(self):
+        """Handle dialog cancel."""
         self.login_manager.cancel_login()
         super().reject()

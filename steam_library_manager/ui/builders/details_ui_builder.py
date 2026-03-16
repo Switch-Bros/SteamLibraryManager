@@ -1,5 +1,13 @@
 #
 # steam_library_manager/ui/builders/details_ui_builder.py
+# Builds the game details panel UI components
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
+
+#
+# steam_library_manager/ui/builders/details_ui_builder.py
 # Builder for the game details panel UI
 #
 # Copyright © 2025-2026 SwitchBros

@@ -1,10 +1,11 @@
 #
 # steam_library_manager/ui/handlers/__init__.py
-# UI handlers package
+# handlers package
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+
 from __future__ import annotations
 
 from steam_library_manager.ui.handlers.category_action_handler import CategoryActionHandler

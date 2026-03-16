@@ -1,5 +1,13 @@
 #
 # steam_library_manager/integrations/steam_store.py
+# Steam Store API client for game details and tags
+#
+# Copyright © 2025-2026 SwitchBros
+# Licensed under the MIT License. See LICENSE for details.
+#
+
+#
+# steam_library_manager/integrations/steam_store.py
 # Steam Store integration for fetching tags and age ratings.
 #
 # Copyright © 2025-2026 SwitchBros

@@ -1,6 +1,6 @@
 #
 # steam_library_manager/ui/utils/font_helper.py
-# Manages the embedded Inter font for consistent UI typography.
+# Font loading and DPI-aware size helpers for the UI
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -21,7 +21,15 @@ __all__ = ["FontHelper"]
 
 
 class FontHelper:
-    """Manages the Inter variable font for consistent UI typography."""
+    """Manages the Inter variable font for consistent UI typography.
+
+    This helper loads and manages the embedded Inter variable font, which provides
+    a Steam-like appearance across all platforms. Inter was chosen for its close
+    similarity to Valve's Motiva Sans while being freely licensed (OFL 1.1).
+
+    The variable font format allows all weights (100-900) in a single 860KB file,
+    making it ideal for desktop applications.
+    """
 
     _font_loaded: bool = False
     FONT_NAME: str = "Inter"
@@ -31,7 +39,15 @@ class FontHelper:
 
     @classmethod
     def load_font(cls) -> None:
-        """Load Inter and optionally Noto Color Emoji into Qt's font database."""
+        """Load the embedded Inter variable font and Noto Color Emoji.
+
+        Loads InterVariable.ttf and optionally NotoColorEmoji.ttf from
+        resources/fonts/ into Qt's font database.
+        This method is idempotent - calling it multiple times has no effect.
+
+        Raises:
+            FileNotFoundError: If InterVariable.ttf is not found in resources/fonts/
+        """
         if cls._font_loaded:
             return
 
@@ -39,6 +55,7 @@ class FontHelper:
 
         font_dir = get_resources_dir() / "fonts"
 
+        # Load Inter (required)
         inter_path = font_dir / cls.FONT_FILE
         if not inter_path.exists():
             logger.error(t("logs.font.file_not_found", path=str(inter_path)))
@@ -52,6 +69,7 @@ class FontHelper:
         families = QFontDatabase.applicationFontFamilies(font_id)
         logger.info(t("logs.font.loaded", family=families[0] if families else "Unknown"))
 
+        # Load Noto Color Emoji (optional — graceful fallback if missing)
         emoji_path = font_dir / cls.EMOJI_FONT_FILE
         if emoji_path.exists():
             emoji_id = QFontDatabase.addApplicationFont(str(emoji_path))
@@ -65,11 +83,32 @@ class FontHelper:
 
     @classmethod
     def get_font(cls, size: int = 10, weight: QFont.Weight = QFont.Weight.Normal) -> QFont:
-        """Get Inter font with specified size and weight."""
+        """Get Inter font with specified size and weight.
+
+        Returns a QFont instance configured with the Inter variable font.
+        Automatically loads the font if not already loaded.
+
+        Args:
+            size: Font size in points. Defaults to 10pt (standard UI size).
+            weight: Font weight from QFont.Weight enum. Inter supports all
+                weights from Thin (100) to Black (900).
+
+        Returns:
+            QFont instance configured with Inter at the requested size and weight.
+
+        Raises:
+            FileNotFoundError: If font file is missing.
+            RuntimeError: If font loading fails.
+        """
+        # Ensure font is loaded
         cls.load_font()
+
+        # Create font with specified parameters
         font = QFont(cls.FONT_NAME, size)
         font.setWeight(weight)
 
+        # Inter is a variable font supporting exact weight values 100-900
+        # Map QFont.Weight enum to exact numeric weights for optimal rendering
         weight_map = {
             QFont.Weight.Thin: 100,
             QFont.Weight.ExtraLight: 200,
@@ -89,7 +128,20 @@ class FontHelper:
 
     @classmethod
     def set_app_font(cls, app: QApplication, size: int = 10) -> None:
-        """Set Inter as the application-wide default font."""
+        """Set Inter as the application-wide default font.
+
+        Configures the entire application to use Inter at the specified size.
+        This should be called once during application initialization, before
+        any windows are created.
+
+        Args:
+            app: The QApplication instance.
+            size: Default font size in points for the entire application.
+
+        Raises:
+            FileNotFoundError: If font file is missing.
+            RuntimeError: If font loading fails.
+        """
         cls.load_font()
         font = cls.get_font(size)
         app.setFont(font)
@@ -99,11 +151,27 @@ class FontHelper:
     def apply_to_widget(
         cls, widget: QWidget, size: int = 10, weight: QFont.Weight = QFont.Weight.Normal, recursive: bool = True
     ) -> None:
-        """Apply Inter font to a widget and optionally its children."""
+        """Apply Inter font to a specific widget.
+
+        Applies the Inter font to the given widget and optionally to all its
+        child widgets. Useful for applying different font sizes to specific
+        parts of the UI.
+
+        Args:
+            widget: The widget to apply the font to.
+            size: Font size in points.
+            weight: Font weight.
+            recursive: If True, also apply to all child widgets.
+
+        Raises:
+            FileNotFoundError: If font file is missing.
+            RuntimeError: If font loading fails.
+        """
         font = cls.get_font(size, weight)
         widget.setFont(font)
 
         if recursive:
+            # Apply to all children recursively
             for child in widget.findChildren(QWidget):
                 if isinstance(child, QWidget):
                     child.setFont(font)
