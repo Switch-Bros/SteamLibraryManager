@@ -26,7 +26,7 @@ def extract_associations(associations: dict, assoc_type: str) -> list[str]:
     if not isinstance(associations, dict):
         return []
     return [
-        entry["name"]
+        str(entry["name"])
         for entry in associations.values()
         if isinstance(entry, dict) and entry.get("type") == assoc_type and entry.get("name")
     ]
@@ -164,12 +164,12 @@ class AppInfoManager:
                 if not devs:
                     dev_direct = common.get("developer", "")
                     if dev_direct:
-                        devs = [dev_direct] if isinstance(dev_direct, str) else list(dev_direct)
+                        devs = [str(dev_direct)]
 
                 if not pubs:
                     pub_direct = common.get("publisher", "")
                     if pub_direct:
-                        pubs = [pub_direct] if isinstance(pub_direct, str) else list(pub_direct)
+                        pubs = [str(pub_direct)]
 
                 # Set results
                 result["developer"] = ", ".join(devs) if devs else ""
