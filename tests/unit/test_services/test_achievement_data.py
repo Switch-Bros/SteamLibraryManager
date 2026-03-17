@@ -292,7 +292,7 @@ class TestGetAppsWithoutAchievements:
 
 
 class TestBatchGetAchievementStats:
-    """Tests for Database._batch_get_achievement_stats."""
+    """Tests for Database._batch_ach."""
 
     def test_batch_load_multiple(self, db: Database) -> None:
         """Loads stats for multiple app_ids in one query."""
@@ -302,7 +302,7 @@ class TestBatchGetAchievementStats:
         db.upsert_achievement_stats(200, 30, 30, 100.0, True)
         db.commit()
 
-        result = db._batch_get_achievement_stats([100, 200])
+        result = db._batch_ach([100, 200])
         assert 100 in result
         assert 200 in result
         assert result[100] == (50, 25, 50.0, False)
@@ -310,11 +310,11 @@ class TestBatchGetAchievementStats:
 
     def test_batch_load_empty_list(self, db: Database) -> None:
         """Empty app_ids list returns empty dict."""
-        result = db._batch_get_achievement_stats([])
+        result = db._batch_ach([])
         assert result == {}
 
     def test_batch_load_missing_app(self, db: Database) -> None:
         """App IDs not in achievement_stats are absent from result."""
         _insert_game(db, 100)
-        result = db._batch_get_achievement_stats([100])
+        result = db._batch_ach([100])
         assert 100 not in result

@@ -198,7 +198,7 @@ class TestDatabaseBatch:
         entries = list(sample_database_entries) + [DatabaseEntry(app_id=999, name="Soundtrack", app_type="music")]
         database.batch_insert_games(entries)
 
-        games = database.get_all_games(game_types={"game"})
+        games = database.get_all_games(gtypes={"game"})
         assert len(games) == 3
         assert all(g.app_type == "game" for g in games)
 

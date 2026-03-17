@@ -577,9 +577,9 @@ class EnrichmentStarters:
         try:
             app_ids = [int(aid) for aid in self.mw.game_manager.games]
 
-            all_tags = db._batch_get_related("game_tags", "tag", app_ids)
-            all_tag_ids = db._batch_get_tag_ids(app_ids)
-            all_genres = db._batch_get_related("game_genres", "genre", app_ids)
+            all_tags = db._batch_rel("game_tags", "tag", app_ids)
+            all_tag_ids = db._batch_tids(app_ids)
+            all_genres = db._batch_rel("game_genres", "genre", app_ids)
 
             # Refresh list fields
             for app_id_str, game in self.mw.game_manager.games.items():
