@@ -6,26 +6,15 @@
 # Licensed under the MIT License. See LICENSE for details.
 #
 
-
 from __future__ import annotations
 
 import logging
 import platform
-from pathlib import Path
-from typing import TYPE_CHECKING, Callable
 
 import requests
 
-if TYPE_CHECKING:
-    from steam_library_manager.core.database import Database, DatabaseEntry
-
 from steam_library_manager.core.database import is_placeholder_name
-
-from steam_library_manager.core.game import (
-    Game,
-    NON_GAME_APP_IDS,
-    NON_GAME_NAME_PATTERNS,
-)
+from steam_library_manager.core.game import Game, NON_GAME_APP_IDS, NON_GAME_NAME_PATTERNS
 from steam_library_manager.services.game_detail_service import GameDetailService
 from steam_library_manager.services.game_query_service import GameQueryService
 from steam_library_manager.services.enrichment.metadata_enrichment_service import MetadataEnrichmentService
@@ -38,63 +27,75 @@ __all__ = ["Game", "GameManager"]
 
 
 class GameManager:
-    """Manages loading, merging, and metadata fetching for all games."""
+    """Manages and loads games, handles metadata and all that cool stuff.
 
-    # Backwards-compatible class-level references to module constants
+    Loads different GameInfos from local manifests and localinfo.vdf
+
+    Gets Steam_API and fills up the DB with Data :)
+    """
+
     NON_GAME_APP_IDS = NON_GAME_APP_IDS
     NON_GAME_NAME_PATTERNS = NON_GAME_NAME_PATTERNS
 
-    def __init__(self, steam_api_key: str | None, cache_dir: Path, steam_path: Path):
+    def __init__(self, steam_api_key, cache_dir, steam_path):
         self.api_key = steam_api_key
         self.cache_dir = cache_dir
         self.steam_path = steam_path
         self.cache_dir.mkdir(exist_ok=True)
 
-        self.games: dict[str, Game] = {}
-        self.steam_user_id: str | None = None
-        self.load_source: str = "unknown"
+        self.games = {}
+        self.steam_user_id = None
+        self.load_source = "unknown"
         self.appinfo_manager = None
 
-        # Automatically Enable Proton Filter on Linux
+        # filter proton crap on linux
         self.filter_non_games = platform.system() == "Linux"
 
-        # Delegated services (share self.games by reference)
-        self.detail_service = GameDetailService(self.games, self.cache_dir)
-        self.enrichment_service = MetadataEnrichmentService(self.games, self.cache_dir)
-        self.query_service = GameQueryService(self.games, self.filter_non_games)
+        self.detail_svc = GameDetailService(self.games, cache_dir)
+        self.enrich_svc = MetadataEnrichmentService(self.games, cache_dir)
+        self.query_svc = GameQueryService(self.games, self.filter_non_games)
 
-    def load_games(self, steam_user_id: str, progress_callback: Callable[[str, int, int], None] | None = None) -> bool:
-        """Main entry point to load games from API and local files."""
+    def load_games(self, steam_user_id, progress_callback=None):
+        """Load games from API and/or local files.
+
+        Tries API first if credentials exist, fallback to local.
+        Shows progress via callback if provided.
+
+        Args:
+            steam_user_id: Steam ID to load for
+            progress_callback: Optional func(message, current, total)
+
+        Returns:
+            bool: True if loaded, False if complete fail
+        """
         self.steam_user_id = steam_user_id
-        api_success = False
+        api_ok = False
 
-        # Steam Web API (via API key OR OAuth access token)
         from steam_library_manager.config import config as _cfg
 
-        has_credentials = self.api_key or getattr(_cfg, "STEAM_ACCESS_TOKEN", None)
-        if has_credentials:
+        has_creds = self.api_key or getattr(_cfg, "STEAM_ACCESS_TOKEN", None)
+        if has_creds:
             if progress_callback:
                 progress_callback(t("logs.manager.api_trying"), 0, 3)
 
             logger.info(t("logs.manager.api_trying"))
-            api_success = self.load_from_steam_api(steam_user_id)
+            api_ok = self._load_api(steam_user_id)
 
-        # Local Files
         if progress_callback:
             progress_callback(t("logs.manager.local_loading"), 1, 3)
 
         logger.info(t("logs.manager.local_loading"))
-        local_success = self.load_from_local_files(progress_callback)
+        local_ok = self._load_local(progress_callback)
 
-        # Finalize Status
         if progress_callback:
             progress_callback(t("common.loading"), 2, 3)
 
-        if api_success and local_success:
+        # figure out where the data is coming from
+        if api_ok and local_ok:
             self.load_source = "mixed"
-        elif api_success:
+        elif api_ok:
             self.load_source = "api"
-        elif local_success:
+        elif local_ok:
             self.load_source = "local"
         else:
             self.load_source = "failed"
@@ -105,46 +106,40 @@ class GameManager:
 
         return True
 
-    def load_from_local_files(self, progress_callback: Callable | None = None) -> bool:
-        """Loads installed games from local Steam manifests."""
-        # Local import to avoid circular dependency
+    def _load_local(self, progress_cb=None):
+        # grab installed games from local steam manifests
         from steam_library_manager.core.local_games_loader import LocalGamesLoader
 
         try:
             loader = LocalGamesLoader(self.steam_path)
-
-            # Load ALL games (installed + from appinfo.vdf)
             games_data = loader.get_all_games()
 
             if not games_data:
                 logger.warning(t("logs.manager.error_local", error="No local games found"))
                 return False
 
-            # Load Playtime from localconfig
+            # get playtime from localconfig
             from steam_library_manager.config import config
 
             short_id, _ = config.get_detected_user()
             if short_id:
-                localconfig_path = config.get_localconfig_path(short_id)
-                playtimes = loader.get_playtime_from_localconfig(localconfig_path)
+                lc_path = config.get_localconfig_path(short_id)
+                playtimes = loader.get_playtime_from_localconfig(lc_path)
             else:
                 playtimes = {}
 
             total = len(games_data)
-            for i, game_data in enumerate(games_data):
-                if progress_callback and i % 50 == 0:
-                    # Generic loading message
-                    progress_callback(t("common.loading"), i, total)
+            for i, gd in enumerate(games_data):
+                if progress_cb and i % 50 == 0:
+                    progress_cb(t("common.loading"), i, total)
 
-                app_id = str(game_data["appid"])
-
-                if app_id in self.games:
+                aid = str(gd["appid"])
+                if aid in self.games:
                     continue
 
-                playtime = playtimes.get(app_id, 0)
-
-                game = Game(app_id=app_id, name=game_data["name"], playtime_minutes=playtime, installed=True)
-                self.games[app_id] = game
+                pt = playtimes.get(aid, 0)
+                game = Game(app_id=aid, name=gd["name"], playtime_minutes=pt, installed=True)
+                self.games[aid] = game
 
             logger.info(t("logs.manager.loaded_local", count=len(games_data)))
             return True
@@ -153,142 +148,134 @@ class GameManager:
             logger.error(t("logs.manager.error_local", error=e))
             return False
 
-    def load_from_steam_api(self, steam_user_id: str) -> bool:
-        """Fetches owned games via the Steam Web API."""
-        # Check if we have EITHER an API key OR an access token
-        # Access token might be stored globally after login
+    def _load_api(self, steam_uid):
+        # fetch from steam web api
         from steam_library_manager.config import config
 
-        access_token = getattr(config, "STEAM_ACCESS_TOKEN", None)
+        token = getattr(config, "STEAM_ACCESS_TOKEN", None)
 
-        if not self.api_key and not access_token:
+        if not self.api_key and not token:
             logger.info(t("logs.manager.no_api_key"))
             return False
 
         try:
             url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
 
-            # Use access token if available (takes priority over API key)
-            if access_token:
+            if token:
                 logger.info(t("logs.manager.using_oauth"))
                 params = {
-                    "access_token": access_token,
-                    "steamid": steam_user_id,
+                    "access_token": token,
+                    "steamid": steam_uid,
                     "include_appinfo": 1,
                     "include_played_free_games": 1,
                     "include_free_sub": 1,
                     "skip_unvetted_apps": 0,
                     "format": "json",
                 }
-                response = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
+                resp = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
             else:
-                # Traditional API key method
                 logger.info(t("logs.manager.using_api_key"))
                 params = {
                     "key": self.api_key,
-                    "steamid": steam_user_id,
+                    "steamid": steam_uid,
                     "include_appinfo": 1,
                     "include_played_free_games": 1,
                     "include_free_sub": 1,
                     "skip_unvetted_apps": 0,
                     "format": "json",
                 }
-                response = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
+                resp = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
 
-            response.raise_for_status()
-
-            data = response.json()
+            resp.raise_for_status()
+            data = resp.json()
 
             if "response" not in data or "games" not in data["response"]:
                 logger.warning(t("logs.manager.error_api", error="No games in response"))
                 return False
 
-            games_data = data["response"]["games"]
-            logger.info(t("logs.manager.loaded_api", count=len(games_data)))
+            games_list = data["response"]["games"]
+            logger.info(t("logs.manager.loaded_api", count=len(games_list)))
 
-            for game_data in games_data:
-                app_id = str(game_data["appid"])
+            for gd in games_list:
+                aid = str(gd["appid"])
+                name = gd.get("name") or t("ui.game_details.game_fallback", id=aid)
 
-                # Use t() for fallback name instead of f-string
-                original_name = game_data.get("name") or t("ui.game_details.game_fallback", id=app_id)
-
-                game = Game(app_id=app_id, name=original_name, playtime_minutes=game_data.get("playtime_forever", 0))
-                self.games[app_id] = game
+                game = Game(app_id=aid, name=name, playtime_minutes=gd.get("playtime_forever", 0))
+                self.games[aid] = game
 
             return True
 
         except (requests.RequestException, ValueError, KeyError) as e:
-            # Sanitize error message to avoid leaking API key in logs
+            # NEVER leak api key, nowehere
             if isinstance(e, requests.HTTPError) and e.response is not None:
-                safe_msg = f"HTTP {e.response.status_code}"
+                safe_msg = "HTTP %d" % e.response.status_code
             else:
                 safe_msg = type(e).__name__
             logger.error(t("logs.manager.error_api", error=safe_msg))
             return False
 
-    def merge_with_localconfig(self, parser) -> None:
-        """Merges categories and hidden status from parser into loaded games."""
-        self.enrichment_service.merge_with_localconfig(parser)
+    # wrapper for enrich service
+    def merge_with_localconfig(self, parser):
+        self.enrich_svc.merge_with_localconfig(parser)
 
-    def apply_appinfo_data(self, appinfo_data: dict) -> None:
-        """Applies last_updated timestamp from appinfo.vdf data."""
-        self.enrichment_service.apply_appinfo_data(appinfo_data)
+    def apply_appinfo_data(self, appinfo_data):
+        self.enrich_svc.apply_appinfo_data(appinfo_data)
 
-    def apply_metadata_overrides(self, appinfo_manager) -> None:
-        """Applies metadata overrides from AppInfoManager."""
-        self.appinfo_manager = appinfo_manager
-        self.enrichment_service.apply_metadata_overrides(appinfo_manager)
+    def apply_metadata_overrides(self, appinfo_mgr):
+        self.appinfo_manager = appinfo_mgr
+        self.enrich_svc.apply_metadata_overrides(appinfo_mgr)
 
-    def discover_missing_games(
-        self,
-        localconfig_helper,
-        appinfo_manager,
-        packageinfo_ids: set[str] | None = None,
-        *,
-        db_type_lookup: dict[str, tuple[str, str]] | None = None,
-    ) -> int:
-        """Discovers owned games that the API did not return."""
-        return self.enrichment_service.discover_missing_games(
+    def discover_missing_games(self, localconfig_helper, appinfo_manager, packageinfo_ids=None, *, db_type_lookup=None):
+        return self.enrich_svc.discover_missing_games(
             localconfig_helper,
             appinfo_manager,
             packageinfo_ids,
             db_type_lookup=db_type_lookup,
         )
 
-    def apply_custom_overrides(self, modifications: dict[str, dict]) -> None:
-        """Applies only custom JSON overrides to loaded games."""
-        self.enrichment_service.apply_custom_overrides(modifications)
+    def apply_custom_overrides(self, mods):
+        self.enrich_svc.apply_custom_overrides(mods)
 
-    def enrich_from_database(self, database: Database) -> int:
-        """Enrich already-loaded games with cached metadata from the database."""
-        entries = database.get_all_games()
+    def enrich_from_database(self, db):
+        """Fill in cached metadata from DB.
+
+        It's a bit messy because we have to map DB columns
+        to Game object attributes. v8 schema added lot of fields.
+
+        Args:
+            db: Database instance with game entries
+
+        Returns:
+            int: Number of games enriched
+        """
+        entries = db.get_all_games()
         if not entries:
             return 0
 
-        # Build a lookup by app_id (str)
-        db_lookup: dict[str, "DatabaseEntry"] = {str(e.app_id): e for e in entries}
-
+        lookup = {str(e.app_id): e for e in entries}
         enriched = 0
-        for app_id, game in self.games.items():
-            entry = db_lookup.get(app_id)
+
+        # TODO: This loop is slow as hell with 3k+ games -> need to batch this properly in one of the next Versions
+        for aid, game in self.games.items():
+            entry = lookup.get(aid)
             if not entry:
                 continue
 
-            # Fix fallback names - only if DB has a REAL name (not a placeholder)
+            # fix placeholder names
             if not is_placeholder_name(entry.name) and is_placeholder_name(game.name):
                 game.name = entry.name
                 if not game.name_overridden:
                     game.sort_name = entry.name
 
-            # Only fill in fields that are empty/missing on the game
+            # only fill empty fields
             if not game.developer and entry.developer:
                 game.developer = entry.developer
             if not game.publisher and entry.publisher:
                 game.publisher = entry.publisher
             if not game.release_year:
-                release_ts = entry.release_date or entry.steam_release_date or entry.original_release_date
-                if release_ts and isinstance(release_ts, int) and release_ts > 0:
-                    game.release_year = release_ts
+                ts = entry.release_date or entry.steam_release_date or entry.original_release_date
+                if ts and isinstance(ts, int) and ts > 0:
+                    game.release_year = ts
             if not game.genres and entry.genres:
                 game.genres = list(entry.genres)
             if not game.tags and entry.tags:
@@ -306,11 +293,11 @@ class GameManager:
             if not game.review_count and entry.review_count:
                 game.review_count = entry.review_count
 
-            # Languages (interface only)
+            # languages
             if not game.languages and entry.languages:
-                game.languages = [lang for lang, support in entry.languages.items() if support.get("interface", False)]
+                game.languages = [lang for lang, sup in entry.languages.items() if sup.get("interface")]
 
-            # v8 enrichment cache fields
+            # v8 enrichment cache
             if not game.pegi_rating and entry.pegi_rating:
                 game.pegi_rating = entry.pegi_rating
             if not game.esrb_rating and entry.esrb_rating:
@@ -322,7 +309,7 @@ class GameManager:
             if not game.description and entry.short_description:
                 game.description = entry.short_description
 
-            # Achievement stats
+            # achievements
             if not game.achievement_percentage and entry.achievement_percentage:
                 game.achievement_percentage = entry.achievement_percentage
             if not game.achievement_total and entry.achievements_total:
@@ -334,52 +321,47 @@ class GameManager:
 
             enriched += 1
 
-        # Batch load HLTB data from separate table
-        hltb_lookup = database._batch_get_hltb([int(aid) for aid in self.games.keys() if aid.isdigit()])
-        for aid_int, (main, extras, comp) in hltb_lookup.items():
-            game = self.games.get(str(aid_int))
-            if game and game.hltb_main_story <= 0:
-                game.hltb_main_story = main
-                game.hltb_main_extras = extras
-                game.hltb_completionist = comp
+        # hltb times
+        hltb_data = db._batch_get_hltb([int(x) for x in self.games.keys() if x.isdigit()])
+        for aid_int, (main, extras, comp) in hltb_data.items():
+            g = self.games.get(str(aid_int))
+            if g and g.hltb_main_story <= 0:
+                g.hltb_main_story = main
+                g.hltb_main_extras = extras
+                g.hltb_completionist = comp
 
-        # ProtonDB batch-load from separate table
-        numeric_ids = [int(aid) for aid in self.games.keys() if aid.isdigit()]
-        protondb_lookup = database.batch_get_protondb(numeric_ids)
-        for aid_int, tier in protondb_lookup.items():
-            game = self.games.get(str(aid_int))
-            if game and not game.proton_db_rating:
-                game.proton_db_rating = tier
+        # protondb ratings
+        num_ids = [int(x) for x in self.games.keys() if x.isdigit()]
+        pdb_data = db.batch_get_protondb(num_ids)
+        for aid_int, tier in pdb_data.items():
+            g = self.games.get(str(aid_int))
+            if g and not g.proton_db_rating:
+                g.proton_db_rating = tier
 
         logger.info(t("logs.db.loaded_from_cache", count=enriched, duration="<1"))
         return enriched
 
-    def get_game(self, app_id: str) -> Game | None:
-        """Gets a single game by its app ID."""
+    # query wrappers -> forward to query service
+    def get_game(self, app_id):
         return self.games.get(app_id)
 
-    def get_games_by_category(self, category: str) -> list[Game]:
-        """Gets all games belonging to a specific category."""
-        return self.query_service.get_games_by_category(category)
+    def get_games_by_category(self, cat):
+        return self.query_svc.get_games_by_category(cat)
 
-    def get_uncategorized_games(self, smart_collection_names: set[str] | None = None) -> list[Game]:
-        """Gets games that have no user collections."""
-        return self.query_service.get_uncategorized_games(smart_collection_names)
+    def get_uncategorized_games(self, smart_names=None):
+        return self.query_svc.get_uncategorized_games(smart_names)
 
-    def get_favorites(self) -> list[Game]:
-        """Gets all favorite games."""
-        return self.query_service.get_favorites()
+    def get_favorites(self):
+        return self.query_svc.get_favorites()
 
-    def get_all_categories(self) -> dict[str, int]:
-        """Gets all categories and their game counts."""
-        return self.query_service.get_all_categories()
+    def get_all_categories(self):
+        return self.query_svc.get_all_categories()
 
-    def fetch_game_details(self, app_id: str) -> bool:
-        """Fetches additional details for a game from external APIs."""
-        return self.detail_service.fetch_game_details(app_id)
+    def fetch_game_details(self, app_id):
+        return self.detail_svc.fetch_game_details(app_id)
 
-    def get_load_source_message(self) -> str:
-        """Returns a localized status message about the load source."""
+    def get_load_source_message(self):
+        # msg of game source
         if self.load_source == "api":
             return t("logs.manager.loaded_api", count=len(self.games))
         elif self.load_source == "local":
@@ -389,14 +371,11 @@ class GameManager:
         else:
             return t("ui.main_window.status_ready")
 
-    def get_real_games(self) -> list[Game]:
-        """Returns only real games (excludes Proton/Steam runtime tools)."""
-        return self.query_service.get_real_games()
+    def get_real_games(self):
+        return self.query_svc.get_real_games()
 
-    def get_all_games(self) -> list[Game]:
-        """Returns ALL games (including tools)."""
-        return self.query_service.get_all_games()
+    def get_all_games(self):
+        return self.query_svc.get_all_games()
 
-    def get_game_statistics(self) -> dict[str, int]:
-        """Returns game statistics for the status bar."""
-        return self.query_service.get_game_statistics()
+    def get_game_statistics(self):
+        return self.query_svc.get_game_statistics()

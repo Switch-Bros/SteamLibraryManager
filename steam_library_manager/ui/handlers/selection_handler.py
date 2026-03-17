@@ -90,7 +90,7 @@ class SelectionHandler:
 
         # Fetch details asynchronously if missing (non-blocking)
         # Checks basic metadata, HLTB, and achievements via GameDetailService
-        if self.mw.game_manager.detail_service.needs_enrichment(game.app_id):
+        if self.mw.game_manager.detail_svc.needs_enrichment(game.app_id):
             self.fetch_game_details_async(game.app_id, all_categories)
 
     def fetch_game_details_async(self, app_id: str, all_categories: list[str]) -> None:
