@@ -1,53 +1,52 @@
 #
 # steam_library_manager/utils/export_utils.py
-# Shared export helpers used by CSV, JSON, and VDF exporters
+# Shared helpers for exporters
 #
-# Copyright © 2025-2026 SwitchBros
-# Licensed under the MIT License. See LICENSE for details.
+# Copyright 2025 SwitchBros
+# MIT License
 #
-
 
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
-
 from steam_library_manager.utils.date_utils import format_timestamp_to_date
-
-if TYPE_CHECKING:
-    from steam_library_manager.core.game import Game
 
 __all__ = ["game_to_export_dict", "sorted_for_export"]
 
 
-def sorted_for_export(games: list[Game]) -> list[Game]:
-    """Sorts games by sort_name for consistent export order."""
-    return sorted(games, key=lambda g: g.sort_name.lower())
+def sort_gs(gs):
+    # sort games
+    return sorted(gs, key=lambda x: x.sort_name.lower())
 
 
-def game_to_export_dict(game: Game) -> dict[str, Any]:
-    """Converts a Game to a standardized export dictionary."""
+def to_dict(g):
+    # build export data
     return {
-        "app_id": game.app_id,
-        "name": game.name,
-        "sort_name": game.sort_name,
-        "developer": game.developer,
-        "publisher": game.publisher,
-        "release_year": format_timestamp_to_date(game.release_year) if game.release_year else "",
-        "genres": list(game.genres) if game.genres else [],
-        "tags": list(game.tags) if game.tags else [],
-        "categories": list(game.categories) if game.categories else [],
-        "platforms": list(game.platforms) if game.platforms else [],
-        "app_type": game.app_type,
-        "playtime_hours": game.playtime_hours,
-        "last_played": str(game.last_played) if game.last_played else None,
-        "installed": game.installed,
-        "hidden": game.hidden,
-        "proton_db_rating": game.proton_db_rating,
-        "steam_deck_status": game.steam_deck_status,
-        "review_percentage": game.review_percentage,
-        "review_count": game.review_count,
-        "hltb_main_story": game.hltb_main_story,
-        "hltb_main_extras": game.hltb_main_extras,
-        "hltb_completionist": game.hltb_completionist,
-        "languages": game.languages,
+        "app_id": g.app_id,
+        "name": g.name,
+        "sort_name": g.sort_name,
+        "developer": g.developer,
+        "publisher": g.publisher,
+        "release_year": g.release_year and format_timestamp_to_date(g.release_year) or "",
+        "genres": list(g.genres) or [],
+        "tags": list(g.tags) or [],
+        "categories": list(g.categories) or [],
+        "platforms": list(g.platforms) or [],
+        "app_type": g.app_type,
+        "playtime_hours": g.playtime_hours,
+        "last_played": str(g.last_played) if g.last_played else None,
+        "installed": g.installed,
+        "hidden": g.hidden,
+        "proton_db_rating": g.proton_db_rating,
+        "steam_deck_status": g.steam_deck_status,
+        "review_percentage": g.review_percentage,
+        "review_count": g.review_count,
+        "hltb_main_story": g.hltb_main_story,
+        "hltb_main_extras": g.hltb_main_extras,
+        "hltb_completionist": g.hltb_completionist,
+        "languages": g.languages,
     }
+
+
+# API aliases
+sorted_for_export = sort_gs
+game_to_export_dict = to_dict

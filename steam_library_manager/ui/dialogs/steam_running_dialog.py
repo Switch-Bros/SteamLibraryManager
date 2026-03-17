@@ -1,9 +1,9 @@
 #
 # steam_library_manager/ui/dialogs/steam_running_dialog.py
-# Dialog shown when Steam is running and needs to be closed
+# Warning dialog when Steam is running during save
 #
-# Copyright © 2025-2026 SwitchBros
-# Licensed under the MIT License. See LICENSE for details.
+# Copyright 2025 SwitchBros
+# MIT License
 #
 
 from __future__ import annotations
@@ -19,97 +19,84 @@ __all__ = ["SteamRunningDialog"]
 
 
 class SteamRunningDialog(BaseDialog):
-    """Warning dialog shown when Steam is running during save operation.
+    """Warns user that Steam is running and offers to kill it.
 
-    Return codes:
-        CANCELLED: User cancelled the operation
-        CLOSE_AND_SAVE: User chose to close Steam and save
+    Shows up when try to Start SLM while Steam is open and running,
+    File saving would get overwritten by Steam's own cloud sync.
+
+    Data corruption also possible if Steam is running while changing files!
     """
 
     CANCELLED = 0
     CLOSE_AND_SAVE = 1
 
-    def __init__(self, parent=None):
-        """Initialize the Steam running warning dialog.
-
-        Args:
-            parent: Parent widget
-        """
+    def __init__(self, p=None):
         super().__init__(
-            parent,
+            p,
             title_key="steam.running.title",
             min_width=450,
             show_title_label=False,
             buttons="custom",
         )
 
-    def _build_content(self, layout: QVBoxLayout) -> None:
-        """Builds the warning content with icon, message, and action buttons."""
-        layout.setSpacing(20)
+    def _build_content(self, lyt):
+        lyt.setSpacing(20)
 
-        # Warning icon + message
-        header_layout = QHBoxLayout()
+        # icon + msg
+        h = QHBoxLayout()
 
-        icon_label = QLabel(t("emoji.warning"))
-        icon_label.setStyleSheet("font-size: 48px;")
-        header_layout.addWidget(icon_label)
+        ic = QLabel(t("emoji.warning"))
+        ic.setStyleSheet("font-size: 48px;")
+        h.addWidget(ic)
 
-        message_layout = QVBoxLayout()
-        message_layout.setSpacing(10)
+        m = QVBoxLayout()
+        m.setSpacing(10)
 
-        title = QLabel(t("steam.running.warning_title"))
-        title.setStyleSheet("font-size: 16px; font-weight: bold;")
-        message_layout.addWidget(title)
+        tlt = QLabel(t("steam.running.warning_title"))
+        tlt.setStyleSheet("font-size: 16px; font-weight: bold;")
+        m.addWidget(tlt)
 
-        explanation = QLabel(t("steam.running.explanation"))
-        explanation.setWordWrap(True)
-        explanation.setStyleSheet(f"color: {Theme.TXT_MUTED};")
-        message_layout.addWidget(explanation)
+        x = QLabel(t("steam.running.explanation"))
+        x.setWordWrap(True)
+        x.setStyleSheet("color: %s;" % Theme.TXT_MUTED)
+        m.addWidget(x)
 
-        header_layout.addLayout(message_layout, 1)
-        layout.addLayout(header_layout)
+        h.addLayout(m, 1)
+        lyt.addLayout(h)
 
-        # Info box
-        info_box = QLabel(t("steam.running.info"))
-        info_box.setWordWrap(True)
-        info_box.setStyleSheet(Theme.info_box())
-        layout.addWidget(info_box)
+        # note
+        i = QLabel(t("steam.running.info"))
+        i.setWordWrap(True)
+        i.setStyleSheet(Theme.info_box())
+        lyt.addWidget(i)
 
-        # Buttons
-        layout.addStretch()
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
+        # btns
+        lyt.addStretch()
+        b = QHBoxLayout()
+        b.addStretch()
 
-        self.btn_cancel = QPushButton(t("common.cancel"))
-        self.btn_cancel.clicked.connect(self._on_cancel)
-        button_layout.addWidget(self.btn_cancel)
+        self._bc = QPushButton(t("common.cancel"))
+        self._bc.clicked.connect(self._cancel)
+        b.addWidget(self._bc)
 
-        self.btn_close_steam = QPushButton(t("steam.running.close_and_save"))
-        self.btn_close_steam.setDefault(True)
-        self.btn_close_steam.setStyleSheet(Theme.btn_danger())
-        self.btn_close_steam.clicked.connect(self._on_close_steam)
-        button_layout.addWidget(self.btn_close_steam)
+        self._bcs = QPushButton(t("steam.running.close_and_save"))
+        self._bcs.setDefault(True)
+        self._bcs.setStyleSheet(Theme.btn_danger())
+        self._bcs.clicked.connect(self._kill)
+        b.addWidget(self._bcs)
 
-        layout.addLayout(button_layout)
+        lyt.addLayout(b)
 
-    def _on_cancel(self):
-        """Handle cancel button click."""
+    def _cancel(self):
         self.done(self.CANCELLED)
 
-    def _on_close_steam(self):
-        """Handle close Steam button click."""
+    def _kill(self):
         from steam_library_manager.core.steam_account_scanner import kill_steam_process
 
-        if not UIHelper.confirm(
-            self,
-            t("steam.running.confirm_message"),
-            title=t("steam.running.confirm_title"),
-        ):
+        if not UIHelper.confirm(self, t("steam.running.confirm_message"), title=t("steam.running.confirm_title")):
             return
 
-        success = kill_steam_process()
-
-        if success:
+        if kill_steam_process():
             UIHelper.show_success(self, t("steam.running.steam_closed"))
             self.done(self.CLOSE_AND_SAVE)
         else:

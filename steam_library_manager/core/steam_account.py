@@ -1,6 +1,6 @@
 #
 # steam_library_manager/core/steam_account.py
-# Steam account data model with login info and user metadata
+# Steam account data model
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -15,13 +15,10 @@ __all__ = ["SteamAccount"]
 
 @dataclass
 class SteamAccount:
-    """Represents a Steam user account.
+    """Get Steam UserAccount from userdata/ folder.
 
-    Attributes:
-        account_id: The short Steam account ID (from userdata folder name)
-        steam_id_64: The 64-bit Steam ID (account_id + STEAM_ID_BASE)
-        display_name: The user's Steam profile display name
-        avatar_url: Optional URL to the user's avatar image
+    account_id is the short numeric id from folder name (example: 42927126),
+    steam_id_64 is the full 64-bit id used by web api (example: 76562298104198224).
     """
 
     account_id: int
@@ -29,11 +26,9 @@ class SteamAccount:
     display_name: str
     avatar_url: str | None = None
 
-    def __str__(self) -> str:
-        """String representation showing account ID and display name."""
-        return f"{self.account_id} ({self.display_name})"
+    def __str__(self):
+        return "%d (%s)" % (self.account_id, self.display_name)
 
     @property
-    def formatted_id(self) -> str:
-        """Returns formatted SteamID64 as string."""
+    def formatted_id(self):
         return str(self.steam_id_64)

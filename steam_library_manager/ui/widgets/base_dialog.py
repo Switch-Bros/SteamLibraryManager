@@ -1,9 +1,9 @@
 #
 # steam_library_manager/ui/widgets/base_dialog.py
-# BaseDialog with standard OK/Cancel buttons and sizing helpers
+# Base dialog with buttons
 #
-# Copyright © 2025-2026 SwitchBros
-# Licensed under the MIT License. See LICENSE for details.
+# Copyright 2025 SwitchBros
+# MIT License
 #
 
 from __future__ import annotations
@@ -14,7 +14,6 @@ from PyQt6.QtWidgets import (
     QLabel,
     QPushButton,
     QVBoxLayout,
-    QWidget,
 )
 
 from steam_library_manager.ui.utils.font_helper import FontHelper
@@ -24,88 +23,57 @@ __all__ = ["BaseDialog"]
 
 
 class BaseDialog(QDialog):
-    """Standard dialog with consistent layout and button handling.
+    """Standard dialog base - subclasses override _build_content().
 
-    Subclasses override _build_content() to add their specific UI.
-    Most dialogs also use buttons="custom" and add buttons in _build_content().
-
-    Args:
-        parent: Parent widget.
-        title_key: i18n key for window title and optional header label.
-        min_width: Minimum dialog width in pixels.
-        show_title_label: Whether to show a bold header label.
-        buttons: Button mode — "ok_cancel", "close", "custom", or "none".
+    Handles window title, optional header label, and button row.
+    Most dialogs use buttons="custom" and add their own buttons.
     """
 
     def __init__(
-        self,
-        parent: QWidget | None = None,
-        title_key: str = "",
-        title_text: str = "",
-        min_width: int = 500,
-        show_title_label: bool = True,
-        buttons: str = "ok_cancel",
-    ) -> None:
-        """Initializes the base dialog.
-
-        Args:
-            parent: Parent widget.
-            title_key: i18n key for the window title (and header label).
-            title_text: Pre-formatted title string (takes precedence over title_key).
-            min_width: Minimum dialog width in pixels.
-            show_title_label: Whether to display a bold title label at top.
-            buttons: Button layout mode.
-        """
+        self, parent=None, title_key="", title_text="", min_width=500, show_title_label=True, buttons="ok_cancel"
+    ):
         super().__init__(parent)
-        display_title = title_text or (t(title_key) if title_key else "")
-        if display_title:
-            self.setWindowTitle(display_title)
+        title = title_text or (title_key and t(title_key) or "")
+        if title:
+            self.setWindowTitle("%s" % title)
         self.setMinimumWidth(min_width)
         self.setModal(True)
 
-        self._layout = QVBoxLayout(self)
-        self._layout.setSpacing(12)
+        self._lyt = QVBoxLayout(self)
+        self._lyt.setSpacing(12)
 
-        if show_title_label and display_title:
-            title_label = QLabel(display_title)
-            title_label.setFont(FontHelper.get_font(14, FontHelper.BOLD))
-            self._layout.addWidget(title_label)
+        if show_title_label and title:
+            lbl = QLabel("%s" % title)
+            lbl.setFont(FontHelper.get_font(14, FontHelper.BOLD))
+            self._lyt.addWidget(lbl)
 
-        self._build_content(self._layout)
-        self._add_buttons(buttons)
+        self._build_content(self._lyt)
+        self._add_btns(buttons)
 
-    def _build_content(self, layout: QVBoxLayout) -> None:
-        """Override this to add dialog-specific content.
+    def _build_content(self, layout):
+        # override me
+        pass
 
-        Args:
-            layout: The main vertical layout to add widgets to.
-        """
-
-    def _add_buttons(self, mode: str) -> None:
-        """Adds a standard button row based on mode.
-
-        Args:
-            mode: One of "ok_cancel", "close", "custom", "none".
-        """
-        if mode in ("none", "custom"):
+    def _add_btns(self, m):
+        if m in ("none", "custom"):
             return
 
-        btn_layout = QHBoxLayout()
-        btn_layout.addStretch()
+        r = QHBoxLayout()
+        r.addStretch()
 
-        if mode == "ok_cancel":
-            self.btn_cancel = QPushButton(t("common.cancel"))
-            self.btn_cancel.clicked.connect(self.reject)
-            btn_layout.addWidget(self.btn_cancel)
+        if m == "ok_cancel":
+            self._btn_can = QPushButton(t("common.cancel"))
+            self._btn_can.clicked.connect(self.reject)
+            r.addWidget(self._btn_can)
 
-            self.btn_ok = QPushButton(t("common.ok"))
-            self.btn_ok.clicked.connect(self.accept)
-            self.btn_ok.setDefault(True)
-            btn_layout.addWidget(self.btn_ok)
+            self._btn_ok = QPushButton(t("common.ok"))
+            self._btn_ok.clicked.connect(self.accept)
+            self._btn_ok.setDefault(True)
+            r.addWidget(self._btn_ok)
 
-        elif mode == "close":
-            btn_close = QPushButton(t("common.close"))
-            btn_close.clicked.connect(self.reject)
-            btn_layout.addWidget(btn_close)
+        elif m == "close":
+            b = QPushButton(t("common.close"))
+            b.clicked.connect(self.reject)
+            r.addWidget(b)
 
-        self._layout.addLayout(btn_layout)
+        self._lyt.addLayout(r)
