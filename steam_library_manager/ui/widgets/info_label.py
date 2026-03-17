@@ -35,37 +35,37 @@ class InfoLabel(QLabel):
         self.setStyleSheet("padding: 1px 0;")
 
 
-def build_detail_grid(title, keys, widths=None, space=30):
+def build_detail_grid(title_key, label_keys, col_widths=None, h_spacing=30):
     # TODO: refactor this mess later
     w = QWidget()
     lay = QGridLayout(w)
     lay.setContentsMargins(0, 0, 0, 0)
-    lay.setHorizontalSpacing(space)
+    lay.setHorizontalSpacing(h_spacing)
     lay.setVerticalSpacing(2)
 
-    hdr = QLabel("<b>%s:</b>" % t(title))
+    hdr = QLabel("<b>%s:</b>" % t(title_key))
     hdr.setStyleSheet("padding: 1px 0;")
     lay.addWidget(hdr, 0, 0)
 
     lbls = []
-    for i, k in enumerate(keys):
+    for i, k in enumerate(label_keys):
         lbl = InfoLabel(k)
         lay.addWidget(lbl, 0, i + 1)
         lbls.append(lbl)
 
-    if widths:
-        for col, cw in widths.items():
+    if col_widths:
+        for col, cw in col_widths.items():
             lay.setColumnMinimumWidth(col, cw)
 
-    lay.setColumnStretch(len(keys) + 1, 1)
+    lay.setColumnStretch(len(label_keys) + 1, 1)
     return w, lay, lbls
 
 
-def set_info_label_value(lbl, val, col=""):
+def set_info_label_value(lbl, val, color=""):
     parts = lbl.text().split(":</span>")
     pfx = parts[0] + ":</span>" if len(parts) > 1 else ""
-    if col:
-        lbl.setText("%s <b style='color:%s;'>%s</b>" % (pfx, col, val))
+    if color:
+        lbl.setText("%s <b style='color:%s;'>%s</b>" % (pfx, color, val))
     else:
         lbl.setText("%s <b>%s</b>" % (pfx, val))
 
