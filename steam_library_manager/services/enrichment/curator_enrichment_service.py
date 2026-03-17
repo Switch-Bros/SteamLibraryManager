@@ -84,7 +84,7 @@ class CuratorEnrichmentThread(BaseEnrichmentThread):
         url = item.get("url") or (f"https://store.steampowered.com/curator/{curator_id}/")
 
         try:
-            all_recs = self._client.fetch_recommendations(url)
+            all_recs = self._client.fetch_recs(url)
 
             # Filter: only "Recommended" (design decision)
             recommended_ids = [

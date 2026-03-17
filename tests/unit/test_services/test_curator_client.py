@@ -13,33 +13,33 @@ class TestCuratorClientURLParsing:
     def test_parse_curator_id_full_url(self) -> None:
         """Test parsing curator ID from a full Steam URL."""
         url = "https://store.steampowered.com/curator/6856218-BoilingSteam/"
-        assert CuratorClient.parse_curator_id(url) == 6856218
+        assert CuratorClient.parse_id(url) == 6856218
 
     def test_parse_curator_id_without_trailing_slash(self) -> None:
         """Test parsing curator ID from URL without trailing slash."""
         url = "https://store.steampowered.com/curator/6856218-BoilingSteam"
-        assert CuratorClient.parse_curator_id(url) == 6856218
+        assert CuratorClient.parse_id(url) == 6856218
 
     def test_parse_curator_id_numeric_only(self) -> None:
         """Test parsing curator ID from plain numeric string."""
-        assert CuratorClient.parse_curator_id("6856218") == 6856218
+        assert CuratorClient.parse_id("6856218") == 6856218
 
     def test_parse_curator_id_with_listsort(self) -> None:
         """Test parsing curator ID from URL with additional path segments."""
         url = "https://store.steampowered.com/curator/6856218-BoilingSteam/list/12345"
-        assert CuratorClient.parse_curator_id(url) == 6856218
+        assert CuratorClient.parse_id(url) == 6856218
 
     def test_parse_curator_id_invalid_url_returns_none(self) -> None:
         """Test that invalid URL returns None."""
-        assert CuratorClient.parse_curator_id("https://store.steampowered.com/app/440/") is None
+        assert CuratorClient.parse_id("https://store.steampowered.com/app/440/") is None
 
     def test_parse_curator_id_empty_string_returns_none(self) -> None:
         """Test that empty string returns None."""
-        assert CuratorClient.parse_curator_id("") is None
+        assert CuratorClient.parse_id("") is None
 
     def test_parse_curator_id_random_text_returns_none(self) -> None:
         """Test that random text returns None."""
-        assert CuratorClient.parse_curator_id("not a url at all") is None
+        assert CuratorClient.parse_id("not a url at all") is None
 
 
 class TestCuratorClientNameParsing:
@@ -48,34 +48,34 @@ class TestCuratorClientNameParsing:
     def test_parse_curator_name_full_url(self) -> None:
         """Test extracting name from a standard curator URL."""
         url = "https://store.steampowered.com/curator/6856218-BoilingSteam/"
-        assert CuratorClient.parse_curator_name(url) == "BoilingSteam"
+        assert CuratorClient.parse_name(url) == "BoilingSteam"
 
     def test_parse_curator_name_with_hyphens(self) -> None:
         """Test extracting name from URL slug with hyphens (spaces)."""
         url = "https://store.steampowered.com/curator/33030023-Waifu-Hunter/"
-        assert CuratorClient.parse_curator_name(url) == "Waifu Hunter"
+        assert CuratorClient.parse_name(url) == "Waifu Hunter"
 
     def test_parse_curator_name_without_trailing_slash(self) -> None:
         """Test extracting name from URL without trailing slash."""
         url = "https://store.steampowered.com/curator/4771848-PCGamer"
-        assert CuratorClient.parse_curator_name(url) == "PCGamer"
+        assert CuratorClient.parse_name(url) == "PCGamer"
 
     def test_parse_curator_name_with_extra_path(self) -> None:
         """Test extracting name from URL with additional path segments."""
         url = "https://store.steampowered.com/curator/6856218-BoilingSteam/list/12345"
-        assert CuratorClient.parse_curator_name(url) == "BoilingSteam"
+        assert CuratorClient.parse_name(url) == "BoilingSteam"
 
     def test_parse_curator_name_numeric_only_returns_none(self) -> None:
         """Test that a plain numeric ID returns None (no name available)."""
-        assert CuratorClient.parse_curator_name("6856218") is None
+        assert CuratorClient.parse_name("6856218") is None
 
     def test_parse_curator_name_invalid_url_returns_none(self) -> None:
         """Test that an invalid URL returns None."""
-        assert CuratorClient.parse_curator_name("not a url") is None
+        assert CuratorClient.parse_name("not a url") is None
 
     def test_parse_curator_name_empty_returns_none(self) -> None:
         """Test that empty string returns None."""
-        assert CuratorClient.parse_curator_name("") is None
+        assert CuratorClient.parse_name("") is None
 
 
 class TestCuratorClientHTMLParsing:
@@ -88,7 +88,7 @@ class TestCuratorClientHTMLParsing:
             <span>Recommended</span>
         </div>
         """
-        result = CuratorClient.parse_recommendations_html(html)
+        result = CuratorClient.parse_html(html)
         assert result == {440: CuratorRecommendation.RECOMMENDED}
 
     def test_parse_not_recommended(self) -> None:
@@ -98,7 +98,7 @@ class TestCuratorClientHTMLParsing:
             <div class="color_not_recommended">Not Recommended</div>
         </div>
         """
-        result = CuratorClient.parse_recommendations_html(html)
+        result = CuratorClient.parse_html(html)
         assert result == {730: CuratorRecommendation.NOT_RECOMMENDED}
 
     def test_parse_informational(self) -> None:
@@ -108,7 +108,7 @@ class TestCuratorClientHTMLParsing:
             <span class="color_informational">Info</span>
         </div>
         """
-        result = CuratorClient.parse_recommendations_html(html)
+        result = CuratorClient.parse_html(html)
         assert result == {570: CuratorRecommendation.INFORMATIONAL}
 
     def test_parse_multiple_recommendations(self) -> None:
@@ -124,7 +124,7 @@ class TestCuratorClientHTMLParsing:
             <span class="color_informational">Info</span>
         </div>
         """
-        result = CuratorClient.parse_recommendations_html(html)
+        result = CuratorClient.parse_html(html)
         assert len(result) == 3
         assert result[440] == CuratorRecommendation.RECOMMENDED
         assert result[730] == CuratorRecommendation.NOT_RECOMMENDED
@@ -132,17 +132,17 @@ class TestCuratorClientHTMLParsing:
 
     def test_parse_empty_html_returns_empty(self) -> None:
         """Test that empty HTML returns empty dict."""
-        assert CuratorClient.parse_recommendations_html("") == {}
+        assert CuratorClient.parse_html("") == {}
 
     def test_parse_html_without_appid_returns_empty(self) -> None:
         """Test that HTML without app IDs returns empty dict."""
         html = '<div class="recommendation color_recommended">No app id here</div>'
-        assert CuratorClient.parse_recommendations_html(html) == {}
+        assert CuratorClient.parse_html(html) == {}
 
     def test_parse_appid_only_defaults_to_recommended(self) -> None:
         """Test that app ID without color class defaults to RECOMMENDED."""
         html = '<div data-ds-appid="440">Some text without color class</div>'
-        result = CuratorClient.parse_recommendations_html(html)
+        result = CuratorClient.parse_html(html)
         assert result == {440: CuratorRecommendation.RECOMMENDED}
 
     def test_parse_duplicate_appid_keeps_first(self) -> None:
@@ -155,7 +155,7 @@ class TestCuratorClientHTMLParsing:
             <span class="color_not_recommended">Second</span>
         </div>
         """
-        result = CuratorClient.parse_recommendations_html(html)
+        result = CuratorClient.parse_html(html)
         assert len(result) == 1
         assert result[440] == CuratorRecommendation.RECOMMENDED
 
@@ -175,7 +175,7 @@ class TestCuratorClientTopCurators:
         mock_response.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_response
 
-        result = CuratorClient.fetch_top_curators()
+        result = CuratorClient.fetch_top()
         assert result == []
 
     @patch("steam_library_manager.services.curator_client.urlopen")
@@ -198,7 +198,7 @@ class TestCuratorClientTopCurators:
         mock_response.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_response
 
-        result = CuratorClient.fetch_top_curators()
+        result = CuratorClient.fetch_top()
         assert len(result) == 2
         assert result[0] == {"curator_id": 12345, "name": "Test Curator"}
         assert result[1] == {"curator_id": 67890, "name": "Another Curator"}
@@ -217,7 +217,7 @@ class TestCuratorClientTopCurators:
         mock_response.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_response
 
-        result = CuratorClient.fetch_top_curators()
+        result = CuratorClient.fetch_top()
         assert result == []
 
 
@@ -227,8 +227,8 @@ class TestCuratorClientFetch:
     def test_fetch_invalid_url_raises_value_error(self) -> None:
         """Test that invalid URL raises ValueError."""
         client = CuratorClient()
-        with pytest.raises(ValueError, match="Invalid curator URL"):
-            client.fetch_recommendations("not-a-url")
+        with pytest.raises(ValueError, match="Invalid URL"):
+            client.fetch_recs("not-a-url")
 
     @patch("steam_library_manager.services.curator_client.urlopen")
     def test_fetch_single_page(self, mock_urlopen: MagicMock) -> None:
@@ -249,7 +249,7 @@ class TestCuratorClientFetch:
         mock_urlopen.return_value = mock_response
 
         client = CuratorClient()
-        result = client.fetch_recommendations("https://store.steampowered.com/curator/6856218-Test/")
+        result = client.fetch_recs("https://store.steampowered.com/curator/6856218-Test/")
 
         assert len(result) == 2
         assert result[440] == CuratorRecommendation.RECOMMENDED
@@ -274,7 +274,7 @@ class TestCuratorClientFetch:
 
         callback = MagicMock()
         client = CuratorClient()
-        client.fetch_recommendations("6856218", progress_callback=callback)
+        client.fetch_recs("6856218", cb=callback)
 
         callback.assert_called_with(1)
 
@@ -296,7 +296,7 @@ class TestCuratorClientFetch:
         mock_urlopen.return_value = mock_response
 
         client = CuratorClient()
-        result = client.fetch_recommendations("6856218")
+        result = client.fetch_recs("6856218")
 
         assert result == {}
 
@@ -308,5 +308,5 @@ class TestCuratorClientFetch:
         mock_urlopen.side_effect = URLError("Connection refused")
 
         client = CuratorClient()
-        with pytest.raises(ConnectionError, match="Failed to fetch curator data"):
-            client.fetch_recommendations("6856218")
+        with pytest.raises(ConnectionError, match="Failed"):
+            client.fetch_recs("6856218")

@@ -1,9 +1,9 @@
 #
 # steam_library_manager/services/curator_client.py
-# HTTP client for fetching Steam curator recommendation feeds
+# HTTP client for Steam curator feeds
 #
-# Copyright © 2025-2026 SwitchBros
-# Licensed under the MIT License. See LICENSE for details.
+# Copyright 2025 SwitchBros
+# MIT License
 #
 
 from __future__ import annotations
@@ -11,7 +11,6 @@ from __future__ import annotations
 import logging
 import re
 from enum import Enum
-from typing import Callable
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 
@@ -23,301 +22,182 @@ __all__ = ["CuratorClient", "CuratorRecommendation"]
 
 
 class CuratorRecommendation(Enum):
-    """Types of curator recommendations matching Steam Store classes."""
-
     RECOMMENDED = "recommended"
     NOT_RECOMMENDED = "not_recommended"
     INFORMATIONAL = "informational"
 
 
-# Regex to extract curator ID and optional name slug from various URL formats
-_CURATOR_ID_PATTERN = re.compile(r"/curator/(\d+)")
-_CURATOR_NAME_PATTERN = re.compile(r"/curator/\d+-([^/?]+)")
-
-# Regex to extract app IDs and recommendation types from HTML
-_APP_PATTERN = re.compile(r'data-ds-appid="(\d+)"')
-# Per-item pattern: finds recommendation blocks with their type
-_ITEM_BLOCK_PATTERN = re.compile(
+# regex for curator pages
+_ID_RE = re.compile(r"/curator/(\d+)")
+_NAME_RE = re.compile(r"/curator/\d+-([^/?]+)")
+_APP_RE = re.compile(r'data-ds-appid="(\d+)"')
+_BLOCK_RE = re.compile(
     r'class="recommendation[^"]*\s(color_recommended|color_not_recommended|color_informational)'
     r'[^"]*"[^>]*>.*?data-ds-appid="(\d+)"',
     re.DOTALL,
 )
-# Alternative: appid first, then color class
-_ITEM_BLOCK_ALT_PATTERN = re.compile(
-    r'data-ds-appid="(\d+)".*?' r"(color_recommended|color_not_recommended|color_informational)",
+_BLOCK_ALT_RE = re.compile(
+    r'data-ds-appid="(\d+)".*?(color_recommended|color_not_recommended|color_informational)',
     re.DOTALL,
 )
 
-_COLOR_TO_ENUM: dict[str, CuratorRecommendation] = {
+_COLOR_MAP = {
     "color_recommended": CuratorRecommendation.RECOMMENDED,
     "color_not_recommended": CuratorRecommendation.NOT_RECOMMENDED,
     "color_informational": CuratorRecommendation.INFORMATIONAL,
 }
 
-_PAGE_SIZE = 50
-_API_TEMPLATE = (
-    "https://store.steampowered.com/curator/{curator_id}"
+_PAGE_SZ = 50
+_API_TPL = (
+    "https://store.steampowered.com/curator/{cid}"
     "/ajaxgetfilteredrecommendations/render/"
     "?query=&start={start}&count={count}"
 )
 
 
 class CuratorClient:
-    """Client for fetching Steam Curator recommendations.
+    """Fetches and parses Steam Curator recommendation feeds.
 
-    Fetches paginated recommendations from the Steam Store API
-    and parses the HTML response to extract app IDs and types.
+    Paginates through the store API (50 per page), parses the HTML
+    response to extract app IDs and recommendation types.
     """
 
     @staticmethod
-    def parse_curator_id(url: str) -> int | None:
-        """Extract the numeric curator ID from a Steam Curator URL.
-
-        Args:
-            url: Full or partial Steam Curator URL.
-
-        Returns:
-            The curator ID as integer, or None if not found.
-        """
-        match = _CURATOR_ID_PATTERN.search(url)
-        if match:
-            return int(match.group(1))
-        # Try plain numeric string
-        stripped = url.strip().rstrip("/")
-        if stripped.isdigit():
-            return int(stripped)
+    def parse_id(u):
+        m = _ID_RE.search(u)
+        if m:
+            return int(m.group(1))
+        s = u.strip().rstrip("/")
+        if s.isdigit():
+            return int(s)
         return None
 
     @staticmethod
-    def parse_curator_name(url: str) -> str | None:
-        """Extract the curator display name from a Steam Curator URL slug.
-
-        Converts the URL slug (e.g. "PCGamer", "Waifu-Hunter") into a
-        readable name by replacing hyphens with spaces.
-
-        Args:
-            url: Full or partial Steam Curator URL.
-
-        Returns:
-            The curator name, or None if not parseable from the URL.
-        """
-        match = _CURATOR_NAME_PATTERN.search(url)
-        if not match:
+    def parse_name(u):
+        m = _NAME_RE.search(u)
+        if not m:
             return None
-        slug = match.group(1).rstrip("/")
-        return slug.replace("-", " ")
+        return m.group(1).rstrip("/").replace("-", " ")
 
     @staticmethod
-    def parse_recommendations_html(html: str) -> dict[int, CuratorRecommendation]:
-        """Parse recommendations from the HTML fragment returned by Steam.
+    def parse_html(h):
+        # extract app ids + types
+        res = {}
+        # appid-first
+        for m in _BLOCK_ALT_RE.finditer(h):
+            aid, c = int(m.group(1)), m.group(2)
+            if aid not in res:
+                res[aid] = _COLOR_MAP.get(c, CuratorRecommendation.RECOMMENDED)
+        # color-first fallback
+        if not res:
+            for m in _BLOCK_RE.finditer(h):
+                c, aid = m.group(1), int(m.group(2))
+                if aid not in res:
+                    res[aid] = _COLOR_MAP.get(c, CuratorRecommendation.RECOMMENDED)
+        # last resort: just ids
+        if not res:
+            for m in _APP_RE.finditer(h):
+                aid = int(m.group(1))
+                if aid not in res:
+                    res[aid] = CuratorRecommendation.RECOMMENDED
+        return res
 
-        The HTML contains recommendation blocks with CSS classes indicating type
-        (color_recommended, color_not_recommended, color_informational) and
-        data-ds-appid attributes for the game.
-
-        Args:
-            html: Raw HTML string from the Steam curator API.
-
-        Returns:
-            Mapping of app_id to recommendation type.
-        """
-        results: dict[int, CuratorRecommendation] = {}
-
-        # Try appid-first pattern (most common in Steam's HTML)
-        for match in _ITEM_BLOCK_ALT_PATTERN.finditer(html):
-            app_id_str, color_class = match.group(1), match.group(2)
-            app_id = int(app_id_str)
-            if app_id not in results:
-                rec_type = _COLOR_TO_ENUM.get(color_class, CuratorRecommendation.RECOMMENDED)
-                results[app_id] = rec_type
-
-        # Fallback: try color-first pattern
-        if not results:
-            for match in _ITEM_BLOCK_PATTERN.finditer(html):
-                color_class, app_id_str = match.group(1), match.group(2)
-                app_id = int(app_id_str)
-                if app_id not in results:
-                    rec_type = _COLOR_TO_ENUM.get(color_class, CuratorRecommendation.RECOMMENDED)
-                    results[app_id] = rec_type
-
-        # Last resort: just extract app IDs without type info (default to RECOMMENDED)
-        if not results:
-            for match in _APP_PATTERN.finditer(html):
-                app_id = int(match.group(1))
-                if app_id not in results:
-                    results[app_id] = CuratorRecommendation.RECOMMENDED
-
-        return results
-
-    def fetch_recommendations(
-        self,
-        curator_url: str,
-        progress_callback: Callable[[int], None] | None = None,
-    ) -> dict[int, CuratorRecommendation]:
-        """Fetch all recommendations for a Steam Curator.
-
-        Paginates through the Steam Store API in batches of 50.
-
-        Args:
-            curator_url: Steam Curator URL or numeric ID.
-            progress_callback: Optional callback(page_number) for progress updates.
-
-        Returns:
-            Mapping of app_id to recommendation type.
-
-        Raises:
-            ValueError: If the curator URL is invalid.
-            ConnectionError: If the Steam Store API is unreachable.
-        """
-        curator_id = self.parse_curator_id(curator_url)
-        if curator_id is None:
-            raise ValueError(f"Invalid curator URL: {curator_url}")
-
-        all_recommendations: dict[int, CuratorRecommendation] = {}
-        offset = 0
-        page = 1
-
+    def fetch_recs(self, url, cb=None):
+        cid = self.parse_id(url)
+        if cid is None:
+            raise ValueError("Invalid URL: %s" % url)
+        all_r = {}
+        off = 0
+        pg = 1
         while True:
-            if progress_callback:
-                progress_callback(page)
-
-            url = _API_TEMPLATE.format(
-                curator_id=curator_id,
-                start=offset,
-                count=_PAGE_SIZE,
-            )
-
+            if cb:
+                cb(pg)
+            u = _API_TPL.format(cid=cid, start=off, count=_PAGE_SZ)
             try:
                 import json
 
-                request = Request(url)
-                request.add_header("Accept", "application/json")
-                with urlopen(request, timeout=HTTP_TIMEOUT_LONG) as response:  # noqa: S310
-                    data = json.loads(response.read().decode("utf-8"))
-            except (URLError, TimeoutError, OSError) as exc:
-                raise ConnectionError(f"Failed to fetch curator data: {exc}") from exc
-
-            if not data.get("success"):
+                req = Request(u)
+                req.add_header("Accept", "application/json")
+                with urlopen(req, timeout=HTTP_TIMEOUT_LONG) as r:
+                    d = json.loads(r.read().decode("utf-8"))
+            except (URLError, TimeoutError, OSError) as e:
+                raise ConnectionError("Failed: %s" % e) from e
+            if not d.get("success"):
                 break
-
-            html = data.get("results_html", "")
-            if not html or not html.strip():
+            h = d.get("results_html", "")
+            if not h or not h.strip():
                 break
-
-            page_results = self.parse_recommendations_html(html)
-            if not page_results:
+            p_recs = self.parse_html(h)
+            if not p_recs:
                 break
-
-            all_recommendations.update(page_results)
-
-            total_count = data.get("total_count", 0)
-            offset += _PAGE_SIZE
-            page += 1
-
-            if offset >= total_count:
+            all_r.update(p_recs)
+            tot = d.get("total_count", 0)
+            off += _PAGE_SZ
+            pg += 1
+            if off >= tot:
                 break
-
-        logger.info("Fetched %d recommendations for curator %d", len(all_recommendations), curator_id)
-        return all_recommendations
+        logger.info("Fetched %d recs for %d", len(all_r), cid)
+        return all_r
 
     @staticmethod
-    def fetch_top_curators(count: int = 50) -> list[dict[str, int | str]]:
-        """Fetches the most popular Steam curators via the public API.
-
-        Args:
-            count: Number of curators to fetch (max 50).
-
-        Returns:
-            List of dicts with keys: curator_id, name.
-
-        Raises:
-            ConnectionError: If the Steam Store API is unreachable.
-        """
+    def fetch_top(n=50):
         import json
 
-        url = f"https://store.steampowered.com/curators/ajaxgetcurators/render/" f"?start=0&count={min(count, 50)}"
+        u = "https://store.steampowered.com/curators/ajaxgetcurators/render/?start=0&count=%d" % min(n, 50)
         try:
-            request = Request(url)
-            request.add_header("Accept", "application/json")
-            with urlopen(request, timeout=HTTP_TIMEOUT_LONG) as response:  # noqa: S310
-                data = json.loads(response.read().decode("utf-8"))
-        except (URLError, TimeoutError, OSError) as exc:
-            raise ConnectionError(f"Failed to fetch top curators: {exc}") from exc
-
-        results: list[dict[str, int | str]] = []
-        html = data.get("results_html", "")
-        if not html:
-            return results
-
-        # Steam embeds curator data as JSON in a JS variable (not in HTML elements)
-        js_match = re.search(r"g_rgTopCurators\s*=\s*(\[.*?\]);", html, re.DOTALL)
-        if js_match:
+            req = Request(u)
+            req.add_header("Accept", "application/json")
+            with urlopen(req, timeout=HTTP_TIMEOUT_LONG) as r:
+                d = json.loads(r.read().decode("utf-8"))
+        except (URLError, TimeoutError, OSError) as e:
+            raise ConnectionError("Failed: %s" % e) from e
+        out = []
+        h = d.get("results_html", "")
+        if not h:
+            return out
+        # data is in JS var
+        js_m = re.search(r"g_rgTopCurators\s*=\s*(\[.*?]);", h, re.DOTALL)
+        if js_m:
             try:
-                curators = json.loads(js_match.group(1))
-                for curator in curators:
-                    clan_id = curator.get("clanID")
-                    name = curator.get("name", "").strip()
-                    if clan_id and name:
-                        results.append({"curator_id": int(clan_id), "name": name})
+                for cur in json.loads(js_m.group(1)):
+                    cid = cur.get("clanID")
+                    nm = cur.get("name", "").strip()
+                    if cid and nm:
+                        out.append({"curator_id": int(cid), "name": nm})
             except (json.JSONDecodeError, ValueError):
                 logger.warning("Failed to parse g_rgTopCurators JSON")
-
-        logger.info("Fetched %d top curators", len(results))
-        return results
+        logger.info("Fetched %d top curators", len(out))
+        return out
 
     @staticmethod
-    def discover_subscribed_curators(steam_cookies: str) -> list[dict[str, int | str]]:
-        """Discovers curators the user is currently following on Steam.
-
-        Parses the ``gFollowedCuratorIDs`` JavaScript variable from the
-        user's Steam curator page.
-
-        Args:
-            steam_cookies: Cookie header value for authentication
-                           (must contain ``steamLoginSecure``).
-
-        Returns:
-            List of dicts with keys: curator_id, name (name may be empty).
-
-        Raises:
-            ConnectionError: If the Steam Store is unreachable.
-        """
-        url = "https://store.steampowered.com/curators/mycurators/"
+    def discover_subscribed(ck):
+        u = "https://store.steampowered.com/curators/mycurators/"
         try:
-            request = Request(url)
-            request.add_header("Cookie", steam_cookies)
-            with urlopen(request, timeout=HTTP_TIMEOUT_LONG) as response:  # noqa: S310
-                html = response.read().decode("utf-8", errors="replace")
-        except (URLError, TimeoutError, OSError) as exc:
-            raise ConnectionError(f"Failed to fetch subscribed curators: {exc}") from exc
-
-        # Extract gFollowedCuratorIDs = [123, 456, ...]
-        ids_pattern = re.compile(r"gFollowedCuratorIDs\s*=\s*\[([^\]]*)\]")
-        match = ids_pattern.search(html)
-        if not match:
-            logger.warning("Could not find gFollowedCuratorIDs in page")
+            req = Request(u)
+            req.add_header("Cookie", ck)
+            with urlopen(req, timeout=HTTP_TIMEOUT_LONG) as r:
+                h = r.read().decode("utf-8", errors="replace")
+        except (URLError, TimeoutError, OSError) as e:
+            raise ConnectionError("Failed: %s" % e) from e
+        # extract gFollowedCuratorIDs = [123, 456, ...]
+        ids_m = re.search(r"gFollowedCuratorIDs\s*=\s*\[([^]]*)]", h)
+        if not ids_m:
+            logger.warning("Could not find gFollowedCuratorIDs")
             return []
-
-        raw_ids = match.group(1).strip()
-        if not raw_ids:
+        raw = ids_m.group(1).strip()
+        if not raw:
             return []
-
-        results: list[dict[str, int | str]] = []
-        for chunk in raw_ids.split(","):
-            chunk = chunk.strip()
-            if chunk.isdigit():
-                results.append({"curator_id": int(chunk), "name": ""})
-
-        # Try to extract names from the same page
-        name_pattern = re.compile(
-            r'data-clanid="(\d+)"[^>]*>.*?curator_name[^>]*>([^<]+)<',
-            re.DOTALL,
-        )
-        name_map = {int(m.group(1)): m.group(2).strip() for m in name_pattern.finditer(html)}
-        for entry in results:
-            cid = entry["curator_id"]
-            if isinstance(cid, int) and cid in name_map:
-                entry["name"] = name_map[cid]
-
-        logger.info("Discovered %d subscribed curators", len(results))
-        return results
+        out = []
+        for ch in raw.split(","):
+            ch = ch.strip()
+            if ch.isdigit():
+                out.append({"curator_id": int(ch), "name": ""})
+        # get names
+        nm_re = re.compile(r'data-clanid="(\d+)"[^>]*>.*?curator_name[^>]*>([^<]+)<', re.DOTALL)
+        nm_map = {int(m.group(1)): m.group(2).strip() for m in nm_re.finditer(h)}
+        for e in out:
+            cid = e["curator_id"]
+            if isinstance(cid, int) and cid in nm_map:
+                e["name"] = nm_map[cid]
+        logger.info("Discovered %d subscribed curators", len(out))
+        return out

@@ -49,7 +49,7 @@ class TestCuratorEnrichmentThread:
 
         mock_db = MagicMock()
         mock_client = MagicMock()
-        mock_client.fetch_recommendations.return_value = {
+        mock_client.fetch_recs.return_value = {
             100: CuratorRecommendation.RECOMMENDED,
             200: CuratorRecommendation.NOT_RECOMMENDED,
             300: CuratorRecommendation.INFORMATIONAL,
@@ -76,7 +76,7 @@ class TestCuratorEnrichmentThread:
         """_process_item should return False on connection errors."""
         mock_db = MagicMock()
         mock_client = MagicMock()
-        mock_client.fetch_recommendations.side_effect = ConnectionError("timeout")
+        mock_client.fetch_recs.side_effect = ConnectionError("timeout")
 
         thread = CuratorEnrichmentThread()
         thread.configure(

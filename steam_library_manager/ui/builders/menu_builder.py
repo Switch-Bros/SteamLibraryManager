@@ -1,6 +1,6 @@
 #
 # steam_library_manager/ui/builders/menu_builder.py
-# Builder for the main application menu bar.
+# Builds the main application menu bar
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -8,336 +8,274 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction, QActionGroup, QKeySequence
-from PyQt6.QtWidgets import QMenuBar, QLabel
+from PyQt6.QtWidgets import QLabel
 
 from steam_library_manager.ui.widgets.ui_helper import UIHelper
 from steam_library_manager.utils.i18n import get_language, t
 from steam_library_manager.utils.open_url import open_url
 
-if TYPE_CHECKING:
-    from steam_library_manager.ui.main_window import MainWindow
-
 __all__ = ["MenuBuilder"]
 
-_GITHUB_URL = "https://github.com/Switch-Bros/SteamLibraryManager"
+_GH = "https://github.com/Switch-Bros/SteamLibraryManager"
 
 
 class MenuBuilder:
-    """Constructs the entire QMenuBar for the application."""
+    """Builds the entire menu bar with all submenus and shortcuts.
 
-    def __init__(self, main_window: MainWindow) -> None:
-        self.main_window: MainWindow = main_window
-        self.user_label: QLabel = QLabel(t("common.unknown"))
+    Each top-level menu (File, Edit, View, Tools, Help) is built in
+    its own method. Filter submenus are generated from key tuples.
+    Curator filter is populated dynamically on menu open.
+    """
 
-    # Public API
+    def __init__(self, mw):
+        self.mw = mw
+        self.user_label = QLabel(t("common.unknown"))
 
-    def build(self, menubar: QMenuBar) -> None:
-        """Populate the given QMenuBar with all application menus."""
-        self._build_file_menu(menubar)
-        self._build_edit_menu(menubar)
-        self._build_view_menu(menubar)
-        self._build_tools_menu(menubar)
-        self._build_help_menu(menubar)
-        self._attach_corner_widget(menubar)
+    def build(self, menubar):
+        self._file(menubar)
+        self._edit(menubar)
+        self._view(menubar)
+        self._tools(menubar)
+        self._help(menubar)
+        self._corner(menubar)
 
-    # Helper methods
+    # helpers
 
-    def _not_implemented(self, feature_key: str) -> None:
-        """Show a coming-soon dialog for unimplemented features."""
-        feature = t(feature_key)
-        msg = f"{t('common.placeholder_message', feature=feature)} {t('emoji.rocket')}"
-        UIHelper.show_info(self.main_window, msg, t("common.placeholder_title"))
+    def _not_implemented(self, fkey):
+        feat = t(fkey)
+        msg = "%s %s" % (t("common.placeholder_message", feature=feat), t("emoji.rocket"))
+        UIHelper.show_info(self.mw, msg, t("common.placeholder_title"))
 
-    def _open_url(self, url: str) -> None:
-        """Open a URL in the default system browser."""
+    def _url(self, url):
         open_url(url)
 
-    def _edit_single_game(self) -> None:
-        """Guard: edit metadata for the currently selected game."""
-        mw = self.main_window
-        if mw.selected_game is None:
-            mw.set_status(t("ui.errors.no_selection"))
+    def _edit_single(self):
+        w = self.mw
+        if w.selected_game is None:
+            w.set_status(t("ui.errors.no_selection"))
             return
-        mw.metadata_actions.edit_game_metadata(mw.selected_game)
+        w.metadata_actions.edit_game_metadata(w.selected_game)
 
-    def _rename_selected_collection(self) -> None:
-        """Guard: rename the currently selected collection (stub)."""
-        mw = self.main_window
-        selected = mw.tree.get_selected_categories()
-        if not selected:
-            mw.set_status(t("ui.errors.no_selection"))
+    def _rename_coll(self):
+        w = self.mw
+        sel = w.tree.get_selected_categories()
+        if not sel:
+            w.set_status(t("ui.errors.no_selection"))
             return
         self._not_implemented("menu.edit.collections.rename")
 
-    def _merge_selected_collections(self) -> None:
-        """Guard: merge two or more selected collections (stub)."""
-        mw = self.main_window
-        selected = mw.tree.get_selected_categories()
-        if len(selected) < 2:
-            mw.set_status(t("ui.errors.no_selection"))
+    def _merge_colls(self):
+        w = self.mw
+        sel = w.tree.get_selected_categories()
+        if len(sel) < 2:
+            w.set_status(t("ui.errors.no_selection"))
             return
         self._not_implemented("menu.edit.collections.merge")
 
-    def _add_filter_submenu(
-        self,
-        parent_menu,
-        i18n_prefix: str,
-        keys: tuple[str, ...],
-        filter_name: str | None = None,
-        checked_default: bool = False,
-    ) -> None:
-        """Add a checkable filter submenu to the given parent menu."""
-        if filter_name is None:
-            filter_name = i18n_prefix.rsplit(".", 1)[-1]
-        sub = parent_menu.addMenu(t(f"{i18n_prefix}.root"))
-        mw = self.main_window
-        for key in keys:
-            action = QAction(t(f"{i18n_prefix}.{key}"), mw)
-            action.setCheckable(True)
-            if checked_default:
-                action.setChecked(True)
-            action.triggered.connect(
-                lambda checked, k=key, fn=filter_name: mw.view_actions.on_filter_toggled(fn, k, checked)
-            )
-            sub.addAction(action)
+    def _add_filters(self, parent, pfx, keys, fname=None, checked=False):
+        # add checkable filter submenu
+        if fname is None:
+            fname = pfx.rsplit(".", 1)[-1]
+        sub = parent.addMenu(t("%s.root" % pfx))
+        w = self.mw
+        for k in keys:
+            act = QAction(t("%s.%s" % (pfx, k)), w)
+            act.setCheckable(True)
+            if checked:
+                act.setChecked(True)
+            act.triggered.connect(lambda c, key=k, fn=fname: w.view_actions.on_filter_toggled(fn, key, c))
+            sub.addAction(act)
 
-    # Menu builders
+    # -- file menu --
 
-    def _build_file_menu(self, menubar: QMenuBar) -> None:
-        """Build the File menu."""
-        mw = self.main_window
-        file_menu = menubar.addMenu(t("menu.file.root"))
+    def _file(self, mb):
+        w = self.mw
+        m = mb.addMenu(t("menu.file.root"))
 
-        # Refresh
-        refresh_action = QAction(t("menu.file.refresh"), mw)
-        refresh_action.setShortcut(QKeySequence("Ctrl+R"))
-        refresh_action.triggered.connect(mw.file_actions.refresh_data)
-        file_menu.addAction(refresh_action)
+        a = QAction(t("menu.file.refresh"), w)
+        a.setShortcut(QKeySequence("Ctrl+R"))
+        a.triggered.connect(w.file_actions.refresh_data)
+        m.addAction(a)
 
-        # Save
-        save_action = QAction(t("common.save"), mw)
-        save_action.setShortcut(QKeySequence("Ctrl+S"))
-        save_action.triggered.connect(mw.file_actions.force_save)
-        file_menu.addAction(save_action)
+        a = QAction(t("common.save"), w)
+        a.setShortcut(QKeySequence("Ctrl+S"))
+        a.triggered.connect(w.file_actions.force_save)
+        m.addAction(a)
 
-        file_menu.addSeparator()
+        m.addSeparator()
 
-        # Export submenu
-        export_menu = file_menu.addMenu(t("menu.file.export.root"))
+        # export submenu
+        exp = m.addMenu(t("menu.file.export.root"))
 
-        # Collections as VDF (wired to file_actions)
-        export_vdf_action = QAction(t("menu.file.export.collections_vdf"), mw)
-        export_vdf_action.triggered.connect(mw.file_actions.export_collections_text)
-        export_menu.addAction(export_vdf_action)
+        for key, fn in (
+            ("collections_vdf", w.file_actions.export_collections_text),
+            ("collections_text", w.file_actions.export_collections_text),
+            ("games_csv_simple", w.file_actions.export_csv_simple),
+            ("games_csv_full", w.file_actions.export_csv_full),
+            ("games_json", w.file_actions.export_json),
+            ("smart_collections", w.file_actions.export_smart_collections),
+        ):
+            a = QAction(t("menu.file.export.%s" % key), w)
+            a.triggered.connect(fn)
+            exp.addAction(a)
 
-        # Collections as human-readable text (wired)
-        export_text_action = QAction(t("menu.file.export.collections_text"), mw)
-        export_text_action.triggered.connect(mw.file_actions.export_collections_text)
-        export_menu.addAction(export_text_action)
+        a = QAction(t("menu.file.export.artwork_package"), w)
+        a.triggered.connect(lambda: self._not_implemented("menu.file.export.artwork_package"))
+        exp.addAction(a)
 
-        # CSV Simple (wired)
-        export_csv_simple_action = QAction(t("menu.file.export.games_csv_simple"), mw)
-        export_csv_simple_action.triggered.connect(mw.file_actions.export_csv_simple)
-        export_menu.addAction(export_csv_simple_action)
+        a = QAction(t("menu.file.export.db_backup"), w)
+        a.triggered.connect(w.file_actions.export_db_backup)
+        exp.addAction(a)
 
-        # CSV Full (wired)
-        export_csv_full_action = QAction(t("menu.file.export.games_csv_full"), mw)
-        export_csv_full_action.triggered.connect(mw.file_actions.export_csv_full)
-        export_menu.addAction(export_csv_full_action)
+        # import submenu
+        imp = m.addMenu(t("menu.file.import.root"))
 
-        # JSON (wired)
-        export_json_action = QAction(t("menu.file.export.games_json"), mw)
-        export_json_action.triggered.connect(mw.file_actions.export_json)
-        export_menu.addAction(export_json_action)
+        for key, fn in (
+            ("collections", w.file_actions.import_collections_vdf),
+            ("smart_collections", w.file_actions.import_smart_collections),
+            ("db_backup", w.file_actions.import_db_backup),
+        ):
+            a = QAction(t("menu.file.import.%s" % key), w)
+            a.triggered.connect(fn)
+            imp.addAction(a)
 
-        # Smart Collections (wired)
-        export_smart_action = QAction(t("menu.file.export.smart_collections"), mw)
-        export_smart_action.triggered.connect(mw.file_actions.export_smart_collections)
-        export_menu.addAction(export_smart_action)
+        a = QAction(t("menu.file.import.artwork_package"), w)
+        a.triggered.connect(lambda: self._not_implemented("menu.file.import.artwork_package"))
+        imp.addAction(a)
 
-        # Artwork Package (stub — Phase 6/7)
-        export_artwork_action = QAction(t("menu.file.export.artwork_package"), mw)
-        export_artwork_action.triggered.connect(lambda: self._not_implemented("menu.file.export.artwork_package"))
-        export_menu.addAction(export_artwork_action)
+        # profiles
+        prof = m.addMenu(t("menu.file.profiles.root"))
 
-        # DB Backup (wired)
-        export_db_action = QAction(t("menu.file.export.db_backup"), mw)
-        export_db_action.triggered.connect(mw.file_actions.export_db_backup)
-        export_menu.addAction(export_db_action)
+        a = QAction(t("menu.file.profiles.save_current"), w)
+        a.triggered.connect(w.profile_actions.save_current_as_profile)
+        prof.addAction(a)
 
-        # Import submenu
-        import_menu = file_menu.addMenu(t("menu.file.import.root"))
+        a = QAction(t("menu.file.profiles.manage"), w)
+        a.triggered.connect(w.profile_actions.show_profile_manager)
+        prof.addAction(a)
 
-        # Collections VDF (wired)
-        import_coll_action = QAction(t("menu.file.import.collections"), mw)
-        import_coll_action.triggered.connect(mw.file_actions.import_collections_vdf)
-        import_menu.addAction(import_coll_action)
+        m.addSeparator()
 
-        # Smart Collections (wired)
-        import_smart_action = QAction(t("menu.file.import.smart_collections"), mw)
-        import_smart_action.triggered.connect(mw.file_actions.import_smart_collections)
-        import_menu.addAction(import_smart_action)
+        a = QAction(t("menu.file.exit"), w)
+        a.setShortcut(QKeySequence("Ctrl+Q"))
+        a.triggered.connect(w.file_actions.exit_application)
+        m.addAction(a)
 
-        # DB Backup (wired)
-        import_db_action = QAction(t("menu.file.import.db_backup"), mw)
-        import_db_action.triggered.connect(mw.file_actions.import_db_backup)
-        import_menu.addAction(import_db_action)
+    # -- edit menu --
 
-        # Artwork Package (stub — Phase 6/7)
-        import_artwork_action = QAction(t("menu.file.import.artwork_package"), mw)
-        import_artwork_action.triggered.connect(lambda: self._not_implemented("menu.file.import.artwork_package"))
-        import_menu.addAction(import_artwork_action)
+    def _edit(self, mb):
+        w = self.mw
+        m = mb.addMenu(t("menu.edit.root"))
 
-        # --- Profiles submenu ---
-        profiles_menu = file_menu.addMenu(t("menu.file.profiles.root"))
+        # metadata
+        meta = m.addMenu(t("menu.edit.metadata.root"))
 
-        save_profile = QAction(t("menu.file.profiles.save_current"), mw)
-        save_profile.triggered.connect(mw.profile_actions.save_current_as_profile)
-        profiles_menu.addAction(save_profile)
+        a = QAction(t("menu.edit.metadata.single"), w)
+        a.triggered.connect(self._edit_single)
+        meta.addAction(a)
 
-        manage_profiles = QAction(t("menu.file.profiles.manage"), mw)
-        manage_profiles.triggered.connect(mw.profile_actions.show_profile_manager)
-        profiles_menu.addAction(manage_profiles)
+        a = QAction(t("menu.edit.metadata.bulk"), w)
+        a.triggered.connect(w.metadata_actions.bulk_edit_metadata)
+        meta.addAction(a)
 
-        file_menu.addSeparator()
+        a = QAction(t("menu.edit.auto_categorize"), w)
+        a.setShortcut(QKeySequence("Ctrl+Shift+A"))
+        a.triggered.connect(w.edit_actions.auto_categorize)
+        m.addAction(a)
 
-        # Exit
-        exit_action = QAction(t("menu.file.exit"), mw)
-        exit_action.setShortcut(QKeySequence("Ctrl+Q"))
-        exit_action.triggered.connect(mw.file_actions.exit_application)
-        file_menu.addAction(exit_action)
+        m.addSeparator()
 
-    def _build_edit_menu(self, menubar: QMenuBar) -> None:
-        """Build the Edit menu."""
-        mw = self.main_window
-        edit_menu = menubar.addMenu(t("menu.edit.root"))
+        # collections
+        coll = m.addMenu(t("menu.edit.collections.root"))
 
-        # --- Metadata submenu ---
-        metadata_menu = edit_menu.addMenu(t("menu.edit.metadata.root"))
+        a = QAction(t("menu.edit.collections.rename"), w)
+        a.triggered.connect(self._rename_coll)
+        coll.addAction(a)
 
-        single_action = QAction(t("menu.edit.metadata.single"), mw)
-        single_action.triggered.connect(self._edit_single_game)
-        metadata_menu.addAction(single_action)
+        a = QAction(t("menu.edit.collections.merge"), w)
+        a.triggered.connect(self._merge_colls)
+        coll.addAction(a)
 
-        bulk_action = QAction(t("menu.edit.metadata.bulk"), mw)
-        bulk_action.triggered.connect(mw.metadata_actions.bulk_edit_metadata)
-        metadata_menu.addAction(bulk_action)
+        a = QAction(t("menu.edit.collections.delete_empty"), w)
+        a.triggered.connect(lambda: self._not_implemented("menu.edit.collections.delete_empty"))
+        coll.addAction(a)
 
-        # Auto-Categorize
-        auto_cat_action = QAction(t("menu.edit.auto_categorize"), mw)
-        auto_cat_action.setShortcut(QKeySequence("Ctrl+Shift+A"))
-        auto_cat_action.triggered.connect(mw.edit_actions.auto_categorize)
-        edit_menu.addAction(auto_cat_action)
+        coll.addSeparator()
 
-        edit_menu.addSeparator()
+        # smart collections
+        a = QAction(t("menu.edit.collections.create_smart"), w)
+        a.setShortcut(QKeySequence("Ctrl+Shift+N"))
+        a.triggered.connect(w.edit_actions.create_smart_collection)
+        coll.addAction(a)
 
-        # --- Collections submenu ---
-        collections_menu = edit_menu.addMenu(t("menu.edit.collections.root"))
+        a = QAction(t("menu.edit.collections.edit_smart"), w)
+        a.triggered.connect(w.edit_actions.edit_smart_collection)
+        coll.addAction(a)
 
-        rename_action = QAction(t("menu.edit.collections.rename"), mw)
-        rename_action.triggered.connect(self._rename_selected_collection)
-        collections_menu.addAction(rename_action)
+        a = QAction(t("menu.edit.collections.delete_smart"), w)
+        a.triggered.connect(w.edit_actions.delete_smart_collection)
+        coll.addAction(a)
 
-        merge_action = QAction(t("menu.edit.collections.merge"), mw)
-        merge_action.triggered.connect(self._merge_selected_collections)
-        collections_menu.addAction(merge_action)
+        a = QAction(t("menu.edit.collections.refresh_smart"), w)
+        a.triggered.connect(w.edit_actions.refresh_smart_collections)
+        coll.addAction(a)
 
-        delete_empty_action = QAction(t("menu.edit.collections.delete_empty"), mw)
-        delete_empty_action.triggered.connect(lambda: self._not_implemented("menu.edit.collections.delete_empty"))
-        collections_menu.addAction(delete_empty_action)
+        coll.addSeparator()
 
-        collections_menu.addSeparator()
+        a = QAction(t("menu.edit.collections.expand_all"), w)
+        a.triggered.connect(w.view_actions.expand_all)
+        coll.addAction(a)
 
-        # Smart Collections
-        create_smart_action = QAction(t("menu.edit.collections.create_smart"), mw)
-        create_smart_action.setShortcut(QKeySequence("Ctrl+Shift+N"))
-        create_smart_action.triggered.connect(mw.edit_actions.create_smart_collection)
-        collections_menu.addAction(create_smart_action)
+        a = QAction(t("menu.edit.collections.collapse_all"), w)
+        a.triggered.connect(w.view_actions.collapse_all)
+        coll.addAction(a)
 
-        edit_smart_action = QAction(t("menu.edit.collections.edit_smart"), mw)
-        edit_smart_action.triggered.connect(mw.edit_actions.edit_smart_collection)
-        collections_menu.addAction(edit_smart_action)
+        m.addSeparator()
 
-        delete_smart_action = QAction(t("menu.edit.collections.delete_smart"), mw)
-        delete_smart_action.triggered.connect(mw.edit_actions.delete_smart_collection)
-        collections_menu.addAction(delete_smart_action)
+        a = QAction(t("menu.edit.find_missing_metadata"), w)
+        a.triggered.connect(w.tools_actions.find_missing_metadata)
+        m.addAction(a)
 
-        refresh_smart_action = QAction(t("menu.edit.collections.refresh_smart"), mw)
-        refresh_smart_action.triggered.connect(mw.edit_actions.refresh_smart_collections)
-        collections_menu.addAction(refresh_smart_action)
+        a = QAction(t("menu.edit.reset_metadata"), w)
+        a.triggered.connect(w.metadata_actions.restore_metadata_changes)
+        m.addAction(a)
 
-        collections_menu.addSeparator()
+        a = QAction(t("menu.edit.remove_duplicates"), w)
+        a.triggered.connect(w.file_actions.remove_duplicate_collections)
+        m.addAction(a)
 
-        expand_action = QAction(t("menu.edit.collections.expand_all"), mw)
-        expand_action.triggered.connect(mw.view_actions.expand_all)
-        collections_menu.addAction(expand_action)
+    # -- view menu --
 
-        collapse_action = QAction(t("menu.edit.collections.collapse_all"), mw)
-        collapse_action.triggered.connect(mw.view_actions.collapse_all)
-        collections_menu.addAction(collapse_action)
+    def _view(self, mb):
+        w = self.mw
+        m = mb.addMenu(t("menu.view.root"))
 
-        edit_menu.addSeparator()
+        # sort (exclusive radio group)
+        sort_m = m.addMenu(t("menu.view.sort.root"))
+        grp = QActionGroup(w)
+        grp.setExclusive(True)
 
-        # Find Missing Metadata
-        find_missing_action = QAction(t("menu.edit.find_missing_metadata"), mw)
-        find_missing_action.triggered.connect(mw.tools_actions.find_missing_metadata)
-        edit_menu.addAction(find_missing_action)
+        for k in ("name", "playtime", "last_played", "release_date"):
+            a = QAction(t("menu.view.sort.%s" % k), w)
+            a.setCheckable(True)
+            if k == "name":
+                a.setChecked(True)
+            a.triggered.connect(lambda checked, key=k: w.view_actions.on_sort_changed(key))
+            grp.addAction(a)
+            sort_m.addAction(a)
 
-        # Reset Metadata
-        reset_action = QAction(t("menu.edit.reset_metadata"), mw)
-        reset_action.triggered.connect(mw.metadata_actions.restore_metadata_changes)
-        edit_menu.addAction(reset_action)
+        m.addSeparator()
 
-        # Remove Duplicates
-        remove_dupes_action = QAction(t("menu.edit.remove_duplicates"), mw)
-        remove_dupes_action.triggered.connect(mw.file_actions.remove_duplicate_collections)
-        edit_menu.addAction(remove_dupes_action)
-
-    def _build_view_menu(self, menubar: QMenuBar) -> None:
-        """Build the View menu."""
-        mw = self.main_window
-        view_menu = menubar.addMenu(t("menu.view.root"))
-
-        # --- Sort submenu (exclusive radio-button group) ---
-        sort_menu = view_menu.addMenu(t("menu.view.sort.root"))
-        sort_group = QActionGroup(mw)
-        sort_group.setExclusive(True)
-
-        for key in ("name", "playtime", "last_played", "release_date"):
-            action = QAction(t(f"menu.view.sort.{key}"), mw)
-            action.setCheckable(True)
-            if key == "name":
-                action.setChecked(True)
-            action.triggered.connect(lambda checked, k=key: mw.view_actions.on_sort_changed(k))
-            sort_group.addAction(action)
-            sort_menu.addAction(action)
-
-        view_menu.addSeparator()
-
-        # --- Filter submenus (Type/Platform default checked, rest unchecked) ---
-        self._add_filter_submenu(
-            view_menu,
-            "menu.view.type",
-            ("games", "soundtracks", "software", "videos", "dlcs", "tools"),
-            checked_default=True,
+        # filter submenus
+        self._add_filters(
+            m, "menu.view.type", ("games", "soundtracks", "software", "videos", "dlcs", "tools"), checked=True
         )
-        self._add_filter_submenu(
-            view_menu,
-            "menu.view.platform",
-            ("linux", "windows", "steamos"),
-            checked_default=True,
-        )
-        self._add_filter_submenu(
-            view_menu,
-            "menu.view.status",
-            ("installed", "not_installed", "hidden", "with_playtime", "favorites"),
-        )
-        self._add_filter_submenu(
-            view_menu,
+        self._add_filters(m, "menu.view.platform", ("linux", "windows", "steamos"), checked=True)
+        self._add_filters(m, "menu.view.status", ("installed", "not_installed", "hidden", "with_playtime", "favorites"))
+        self._add_filters(
+            m,
             "menu.view.language",
             (
                 "english",
@@ -357,263 +295,203 @@ class MenuBuilder:
                 "turkish",
             ),
         )
-        self._add_filter_submenu(
-            view_menu,
-            "menu.view.deck",
-            ("verified", "playable", "unsupported", "unknown"),
-            filter_name="deck_status",
-        )
-        self._add_filter_submenu(
-            view_menu,
-            "menu.view.achievement",
-            ("perfect", "almost", "progress", "started", "none"),
-        )
-        self._add_filter_submenu(
-            view_menu,
-            "menu.view.pegi",
-            ("pegi_3", "pegi_7", "pegi_12", "pegi_16", "pegi_18", "pegi_none"),
-        )
+        self._add_filters(m, "menu.view.deck", ("verified", "playable", "unsupported", "unknown"), fname="deck_status")
+        self._add_filters(m, "menu.view.achievement", ("perfect", "almost", "progress", "started", "none"))
+        self._add_filters(m, "menu.view.pegi", ("pegi_3", "pegi_7", "pegi_12", "pegi_16", "pegi_18", "pegi_none"))
 
-        # Curator filter submenu (dynamically populated)
-        self._curator_filter_menu = view_menu.addMenu(t("menu.view.curator.root"))
-        self._curator_filter_menu.aboutToShow.connect(self._populate_curator_filter_menu)
+        # curator filter (dynamic)
+        self._cur_menu = m.addMenu(t("menu.view.curator.root"))
+        self._cur_menu.aboutToShow.connect(self._pop_cur_menu)
 
-        view_menu.addSeparator()
+        m.addSeparator()
 
-        # --- Statistics (single action, opens tabbed dialog) ---
-        stats_action = QAction(t("menu.view.statistics.root"), mw)
-        stats_action.triggered.connect(mw.view_actions.show_statistics)
-        view_menu.addAction(stats_action)
+        a = QAction(t("menu.view.statistics.root"), w)
+        a.triggered.connect(w.view_actions.show_statistics)
+        m.addAction(a)
 
-    def _build_tools_menu(self, menubar: QMenuBar) -> None:
-        """Build the Tools menu."""
-        mw = self.main_window
-        tools_menu = menubar.addMenu(t("menu.tools.root"))
+    # -- tools menu --
 
-        # --- Artwork submenu ---
-        artwork_menu = tools_menu.addMenu(t("menu.tools.artwork.root"))
-        for key in ("download_missing", "edit"):
-            action = QAction(t(f"menu.tools.artwork.{key}"), mw)
-            action.triggered.connect(lambda checked, k=f"menu.tools.artwork.{key}": self._not_implemented(k))
-            artwork_menu.addAction(action)
+    def _tools(self, mb):
+        w = self.mw
+        m = mb.addMenu(t("menu.tools.root"))
 
-        # --- Advanced Search submenu ---
-        search_menu = tools_menu.addMenu(t("menu.tools.search.root"))
-        for key in ("by_publisher", "by_developer", "by_genre", "by_tags", "by_year"):
-            action = QAction(t(f"menu.tools.search.{key}"), mw)
-            action.triggered.connect(lambda checked, k=f"menu.tools.search.{key}": self._not_implemented(k))
-            search_menu.addAction(action)
+        # artwork (stubs)
+        art = m.addMenu(t("menu.tools.artwork.root"))
+        for k in ("download_missing", "edit"):
+            a = QAction(t("menu.tools.artwork.%s" % k), w)
+            a.triggered.connect(lambda checked, key="menu.tools.artwork.%s" % k: self._not_implemented(key))
+            art.addAction(a)
 
-        # --- Batch Operations submenu ---
-        batch_menu = tools_menu.addMenu(t("menu.tools.batch.root"))
+        # search (stubs)
+        srch = m.addMenu(t("menu.tools.search.root"))
+        for k in ("by_publisher", "by_developer", "by_genre", "by_tags", "by_year"):
+            a = QAction(t("menu.tools.search.%s" % k), w)
+            a.triggered.connect(lambda checked, key="menu.tools.search.%s" % k: self._not_implemented(key))
+            srch.addAction(a)
 
-        # Update Metadata (wired to enrichment)
-        update_meta_action = QAction(t("menu.tools.batch.update_metadata"), mw)
-        update_meta_action.triggered.connect(mw.enrichment_starters.start_steam_api_enrichment)
-        batch_menu.addAction(update_meta_action)
+        # batch ops
+        batch = m.addMenu(t("menu.tools.batch.root"))
 
-        # Update HLTB (wired to enrichment)
-        update_hltb_action = QAction(t("menu.tools.batch.update_hltb"), mw)
-        update_hltb_action.triggered.connect(mw.enrichment_starters.start_hltb_enrichment)
-        batch_menu.addAction(update_hltb_action)
+        for key, fn in (
+            ("update_metadata", w.enrichment_starters.start_steam_api_enrichment),
+            ("update_hltb", w.enrichment_starters.start_hltb_enrichment),
+            ("update_deck", w.enrichment_starters.start_deck_enrichment),
+            ("update_achievements", w.enrichment_starters.start_achievement_enrichment),
+            ("import_tags", w.enrichment_starters.start_tag_import),
+            ("update_protondb", w.enrichment_starters.start_protondb_enrichment),
+            ("update_pegi", w.enrichment_starters.start_pegi_enrichment),
+        ):
+            a = QAction(t("menu.tools.batch.%s" % key), w)
+            a.triggered.connect(fn)
+            batch.addAction(a)
 
-        # Update Deck Status (wired to enrichment)
-        update_deck_action = QAction(t("menu.tools.batch.update_deck"), mw)
-        update_deck_action.triggered.connect(mw.enrichment_starters.start_deck_enrichment)
-        batch_menu.addAction(update_deck_action)
+        a = QAction(t("menu.tools.batch.update_pegi_force"), w)
+        a.triggered.connect(lambda: w.enrichment_starters.start_pegi_enrichment(force_refresh=True))
+        batch.addAction(a)
 
-        # Update Achievements (wired to enrichment)
-        update_ach_action = QAction(t("menu.tools.batch.update_achievements"), mw)
-        update_ach_action.triggered.connect(mw.enrichment_starters.start_achievement_enrichment)
-        batch_menu.addAction(update_ach_action)
+        a = QAction(t("menu.tools.batch.update_curator"), w)
+        a.triggered.connect(w.enrichment_starters.start_curator_enrichment)
+        batch.addAction(a)
 
-        # Import Tags from appinfo.vdf
-        import_tags_action = QAction(t("menu.tools.batch.import_tags"), mw)
-        import_tags_action.triggered.connect(mw.enrichment_starters.start_tag_import)
-        batch_menu.addAction(import_tags_action)
+        batch.addSeparator()
 
-        # Update ProtonDB Ratings (wired to enrichment)
-        update_protondb_action = QAction(t("menu.tools.batch.update_protondb"), mw)
-        update_protondb_action.triggered.connect(mw.enrichment_starters.start_protondb_enrichment)
-        batch_menu.addAction(update_protondb_action)
+        a = QAction(t("menu.tools.batch.enrich_all"), w)
+        a.triggered.connect(w.enrichment_actions.start_enrich_all)
+        batch.addAction(a)
 
-        # Update PEGI Ratings (wired to enrichment)
-        update_pegi_action = QAction(t("menu.tools.batch.update_pegi"), mw)
-        update_pegi_action.triggered.connect(mw.enrichment_starters.start_pegi_enrichment)
-        batch_menu.addAction(update_pegi_action)
+        batch.addSeparator()
 
-        # PEGI Force Refresh
-        update_pegi_force_action = QAction(t("menu.tools.batch.update_pegi_force"), mw)
-        update_pegi_force_action.triggered.connect(
-            lambda: mw.enrichment_starters.start_pegi_enrichment(force_refresh=True)
-        )
-        batch_menu.addAction(update_pegi_force_action)
+        a = QAction(t("menu.tools.batch.check_store"), w)
+        a.triggered.connect(w.tools_actions.start_library_health_check)
+        batch.addAction(a)
 
-        # Update Curator Recommendations
-        update_curator_action = QAction(t("menu.tools.batch.update_curator"), mw)
-        update_curator_action.triggered.connect(mw.enrichment_starters.start_curator_enrichment)
-        batch_menu.addAction(update_curator_action)
+        # db (stubs)
+        db = m.addMenu(t("menu.tools.database.root"))
+        for k in ("optimize", "recreate", "import_appinfo", "backup"):
+            a = QAction(t("menu.tools.database.%s" % k), w)
+            a.triggered.connect(lambda checked, key="menu.tools.database.%s" % k: self._not_implemented(key))
+            db.addAction(a)
 
-        batch_menu.addSeparator()
+        m.addSeparator()
 
-        # Enrich ALL — coordinated parallel refresh
-        enrich_all_action = QAction(t("menu.tools.batch.enrich_all"), mw)
-        enrich_all_action.triggered.connect(mw.enrichment_actions.start_enrich_all)
-        batch_menu.addAction(enrich_all_action)
+        a = QAction(t("menu.tools.external_games"), w)
+        a.setShortcut(QKeySequence("Ctrl+Shift+E"))
+        a.triggered.connect(w.tools_actions.show_external_games)
+        m.addAction(a)
 
-        batch_menu.addSeparator()
+        a = QAction(t("menu.tools.manage_curators"), w)
+        a.triggered.connect(w.tools_actions.show_curator_manager)
+        m.addAction(a)
 
-        # Store-Seiten prüfen (Library Health Check)
-        check_store_action = QAction(t("menu.tools.batch.check_store"), mw)
-        check_store_action.triggered.connect(mw.tools_actions.start_library_health_check)
-        batch_menu.addAction(check_store_action)
+        m.addSeparator()
 
-        # --- Database submenu ---
-        db_menu = tools_menu.addMenu(t("menu.tools.database.root"))
-        for key in ("optimize", "recreate", "import_appinfo", "backup"):
-            action = QAction(t(f"menu.tools.database.{key}"), mw)
-            action.triggered.connect(lambda checked, k=f"menu.tools.database.{key}": self._not_implemented(k))
-            db_menu.addAction(action)
+        a = QAction(t("menu.tools.settings"), w)
+        a.setShortcut(QKeySequence("Ctrl+P"))
+        a.triggered.connect(w.settings_actions.show_settings)
+        m.addAction(a)
 
-        tools_menu.addSeparator()
+    # -- help menu --
 
-        # External Games Manager
-        external_games_action = QAction(t("menu.tools.external_games"), mw)
-        external_games_action.setShortcut(QKeySequence("Ctrl+Shift+E"))
-        external_games_action.triggered.connect(mw.tools_actions.show_external_games)
-        tools_menu.addAction(external_games_action)
+    def _help(self, mb):
+        w = self.mw
+        m = mb.addMenu(t("menu.help.root"))
 
-        # Curator Manager
-        curator_manage_action = QAction(t("menu.tools.manage_curators"), mw)
-        curator_manage_action.triggered.connect(mw.tools_actions.show_curator_manager)
-        tools_menu.addAction(curator_manage_action)
-
-        tools_menu.addSeparator()
-
-        # Settings (wired action)
-        settings_action = QAction(t("menu.tools.settings"), mw)
-        settings_action.setShortcut(QKeySequence("Ctrl+P"))
-        settings_action.triggered.connect(mw.settings_actions.show_settings)
-        tools_menu.addAction(settings_action)
-
-    def _build_help_menu(self, menubar: QMenuBar) -> None:
-        """Build the Help menu."""
-        mw = self.main_window
-        help_menu = menubar.addMenu(t("menu.help.root"))
-
-        # --- Documentation submenu ---
-        docs_menu = help_menu.addMenu(t("menu.help.docs.root"))
-        docs_map = {
+        # docs
+        docs = m.addMenu(t("menu.help.docs.root"))
+        dmap = {
             "manual": "USER_MANUAL.md",
             "tips": "TIPS_AND_TRICKS.md",
             "shortcuts": "KEYBOARD_SHORTCUTS.md",
             "faq": "FAQ.md",
         }
-        docs_base = f"{_GITHUB_URL}/blob/master/docs"
-        for key in ("manual", "tips", "shortcuts", "faq"):
-            action = QAction(t(f"menu.help.docs.{key}"), mw)
-            if key == "manual":
-                action.setShortcut(QKeySequence("F1"))
-            action.triggered.connect(
-                lambda checked, k=key: self._open_url(f"{docs_base}/{get_language()}/{docs_map[k]}")
-            )
-            docs_menu.addAction(action)
+        base = "%s/blob/master/docs" % _GH
+        for k in ("manual", "tips", "shortcuts", "faq"):
+            a = QAction(t("menu.help.docs.%s" % k), w)
+            if k == "manual":
+                a.setShortcut(QKeySequence("F1"))
+            a.triggered.connect(lambda checked, key=k: self._url("%s/%s/%s" % (base, get_language(), dmap[key])))
+            docs.addAction(a)
 
-        # --- Online submenu ---
-        online_menu = help_menu.addMenu(t("menu.help.online.root"))
-        online_urls = {
-            "github": _GITHUB_URL,
-            "issues": f"{_GITHUB_URL}/issues",
-            "wiki": f"{_GITHUB_URL}/wiki",
-        }
-        for key, url in online_urls.items():
-            action = QAction(t(f"menu.help.online.{key}"), mw)
-            action.triggered.connect(lambda checked, u=url: self._open_url(u))
-            online_menu.addAction(action)
+        # online
+        online = m.addMenu(t("menu.help.online.root"))
+        for k, u in (("github", _GH), ("issues", "%s/issues" % _GH), ("wiki", "%s/wiki" % _GH)):
+            a = QAction(t("menu.help.online.%s" % k), w)
+            a.triggered.connect(lambda checked, url=u: self._url(url))
+            online.addAction(a)
 
-        # --- Updates submenu ---
-        updates_menu = help_menu.addMenu(t("menu.help.updates.root"))
-        check_action = QAction(t("menu.help.updates.check"), mw)
-        check_action.triggered.connect(lambda checked: mw.steam_actions.check_for_updates())
-        updates_menu.addAction(check_action)
-        changelog_action = QAction(t("menu.help.updates.changelog"), mw)
-        changelog_action.triggered.connect(
-            lambda checked: self._open_url(
-                "https://github.com/Switch-Bros/SteamLibraryManager/blob/master/CHANGELOG.md"
-            )
-        )
-        updates_menu.addAction(changelog_action)
+        # updates
+        upd = m.addMenu(t("menu.help.updates.root"))
+        a = QAction(t("menu.help.updates.check"), w)
+        a.triggered.connect(lambda checked: w.steam_actions.check_for_updates())
+        upd.addAction(a)
+        a = QAction(t("menu.help.updates.changelog"), w)
+        a.triggered.connect(lambda checked: self._url("%s/blob/master/CHANGELOG.md" % _GH))
+        upd.addAction(a)
 
-        # --- Support submenu ---
-        support_menu = help_menu.addMenu(t("menu.help.support.root"))
-        support_urls = {
-            "kofi": "https://ko-fi.com/S6S51T9G3Y",
-            "paypal": "https://www.paypal.com/donate/?hosted_button_id=HWPG6YAGXAWJJ",
-            "github": "https://github.com/sponsors/Switch-Bros",
-        }
-        for key, url in support_urls.items():
-            action = QAction(t(f"menu.help.support.{key}"), mw)
-            action.triggered.connect(lambda checked, u=url: self._open_url(u))
-            support_menu.addAction(action)
+        # support
+        sup = m.addMenu(t("menu.help.support.root"))
+        for k, u in (
+            ("kofi", "https://ko-fi.com/S6S51T9G3Y"),
+            ("paypal", "https://www.paypal.com/donate/?hosted_button_id=HWPG6YAGXAWJJ"),
+            ("github", "https://github.com/sponsors/Switch-Bros"),
+        ):
+            a = QAction(t("menu.help.support.%s" % k), w)
+            a.triggered.connect(lambda checked, url=u: self._url(url))
+            sup.addAction(a)
 
-        help_menu.addSeparator()
+        m.addSeparator()
 
-        # About (wired action)
-        about_action = QAction(t("menu.help.about"), mw)
-        about_action.setShortcut(QKeySequence("F12"))
-        about_action.triggered.connect(mw.steam_actions.show_about)
-        help_menu.addAction(about_action)
+        a = QAction(t("menu.help.about"), w)
+        a.setShortcut(QKeySequence("F12"))
+        a.triggered.connect(w.steam_actions.show_about)
+        m.addAction(a)
 
-    def _populate_curator_filter_menu(self) -> None:
-        """Populate the curator filter submenu from cached data."""
-        menu = self._curator_filter_menu
+    # -- curator filter (dynamic) --
+
+    def _pop_cur_menu(self):
+        menu = self._cur_menu
         menu.clear()
-        mw = self.main_window
+        w = self.mw
 
-        cache = mw.filter_service.curator_cache
+        cache = w.filter_service.curator_cache
         if not cache:
-            no_data = QAction(t("menu.view.curator.no_data"), mw)
-            no_data.setEnabled(False)
-            menu.addAction(no_data)
+            nd = QAction(t("menu.view.curator.no_data"), w)
+            nd.setEnabled(False)
+            menu.addAction(nd)
             return
 
-        # Build name lookup from DB (fast, only curator table)
-        curator_names: dict[int, str] = {}
+        # get curator names from db
+        names = {}
         try:
-            db_path = None
-            if hasattr(mw, "game_service") and mw.game_service:
-                db = getattr(mw.game_service, "database", None)
+            dbp = None
+            if hasattr(w, "game_service") and w.game_service:
+                db = getattr(w.game_service, "database", None)
                 if db and hasattr(db, "db_path"):
-                    db_path = db.db_path
-
-            if db_path:
+                    dbp = db.db_path
+            if dbp:
                 from steam_library_manager.core.database import Database
 
-                temp_db = Database(db_path)
+                tmp = Database(dbp)
                 try:
-                    for c in temp_db.get_all_curators():
-                        curator_names[c["curator_id"]] = c["name"]
+                    for c in tmp.get_all_curators():
+                        names[c["curator_id"]] = c["name"]
                 finally:
-                    temp_db.close()
+                    tmp.close()
         except Exception:
             pass
 
-        active_ids = mw.filter_service._cur_ids
-        for curator_id in sorted(cache.keys()):
-            name = curator_names.get(curator_id, f"Curator {curator_id}")
-            count = len(cache[curator_id])
-            label = f"{name} ({count})"
-            action = QAction(label, mw)
-            action.setCheckable(True)
-            action.setChecked(curator_id in active_ids)
-            action.triggered.connect(
-                lambda checked, cid=curator_id: mw.view_actions.on_filter_toggled("curator", str(cid), checked)
-            )
-            menu.addAction(action)
+        active = w.filter_service._cur_ids
+        for cid in sorted(cache.keys()):
+            nm = names.get(cid, "Curator %d" % cid)
+            cnt = len(cache[cid])
+            a = QAction("%s (%d)" % (nm, cnt), w)
+            a.setCheckable(True)
+            a.setChecked(cid in active)
+            a.triggered.connect(lambda checked, id=cid: w.view_actions.on_filter_toggled("curator", str(id), checked))
+            menu.addAction(a)
 
-    def _attach_corner_widget(self, menubar: QMenuBar) -> None:
-        """Attach the user-info label to the menu bar corner."""
+    def _corner(self, mb):
         self.user_label.setStyleSheet("padding: 5px 10px;")
         self.user_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         self.user_label.setMinimumWidth(250)
-        menubar.setCornerWidget(self.user_label, Qt.Corner.TopRightCorner)
+        mb.setCornerWidget(self.user_label, Qt.Corner.TopRightCorner)

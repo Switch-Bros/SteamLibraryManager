@@ -8,7 +8,7 @@ from steam_library_manager.services.curator_client import CuratorClient
 
 
 class TestFetchTopCurators:
-    """Tests for CuratorClient.fetch_top_curators()."""
+    """Tests for CuratorClient.fetch_top()."""
 
     @patch("steam_library_manager.services.curator_client.urlopen")
     def test_parses_html_with_curators(self, mock_urlopen: MagicMock) -> None:
@@ -29,7 +29,7 @@ class TestFetchTopCurators:
         mock_response.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_response
 
-        result = CuratorClient.fetch_top_curators(count=10)
+        result = CuratorClient.fetch_top(n=10)
         assert len(result) == 2
         assert result[0]["curator_id"] == 12345
         assert result[0]["name"] == "TestCurator"
@@ -47,12 +47,12 @@ class TestFetchTopCurators:
         mock_response.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_response
 
-        result = CuratorClient.fetch_top_curators(count=10)
+        result = CuratorClient.fetch_top(n=10)
         assert result == []
 
 
 class TestDiscoverSubscribedCurators:
-    """Tests for CuratorClient.discover_subscribed_curators()."""
+    """Tests for CuratorClient.discover_subscribed()."""
 
     @patch("steam_library_manager.services.curator_client.urlopen")
     def test_parses_followed_ids(self, mock_urlopen: MagicMock) -> None:
@@ -68,7 +68,7 @@ class TestDiscoverSubscribedCurators:
         mock_response.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_response
 
-        result = CuratorClient.discover_subscribed_curators("steamLoginSecure=xyz")
+        result = CuratorClient.discover_subscribed("steamLoginSecure=xyz")
         assert len(result) == 3
         ids = {r["curator_id"] for r in result}
         assert ids == {111, 222, 333}
@@ -88,7 +88,7 @@ class TestDiscoverSubscribedCurators:
         mock_response.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_response
 
-        result = CuratorClient.discover_subscribed_curators("steamLoginSecure=xyz")
+        result = CuratorClient.discover_subscribed("steamLoginSecure=xyz")
         assert result == []
 
     @patch("steam_library_manager.services.curator_client.urlopen")
@@ -101,5 +101,5 @@ class TestDiscoverSubscribedCurators:
         mock_response.__exit__ = MagicMock(return_value=False)
         mock_urlopen.return_value = mock_response
 
-        result = CuratorClient.discover_subscribed_curators("steamLoginSecure=xyz")
+        result = CuratorClient.discover_subscribed("steamLoginSecure=xyz")
         assert result == []

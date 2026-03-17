@@ -74,12 +74,12 @@ MOCK_HTML_JSON_ARRAY = (
 
 
 class TestParseGamesFromHtml:
-    """Tests for _parse_games_from_html."""
+    """Tests for _parse."""
 
     def test_extracts_all_games(self) -> None:
         """Parser finds all game objects in basic SSR HTML."""
         scraper = SteamProfileScraper()
-        games = scraper._parse_games_from_html(MOCK_HTML_BASIC)
+        games = scraper._parse(MOCK_HTML_BASIC)
         assert len(games) == 3
         app_ids = {g.app_id for g in games}
         assert app_ids == {10, 220, 440}
@@ -87,7 +87,7 @@ class TestParseGamesFromHtml:
     def test_extracts_correct_playtime(self) -> None:
         """Playtime values are correctly parsed."""
         scraper = SteamProfileScraper()
-        games = scraper._parse_games_from_html(MOCK_HTML_BASIC)
+        games = scraper._parse(MOCK_HTML_BASIC)
         by_id = {g.app_id: g for g in games}
         assert by_id[10].playtime_forever == 771
         assert by_id[220].playtime_forever == 1200
@@ -95,7 +95,7 @@ class TestParseGamesFromHtml:
     def test_extracts_correct_names(self) -> None:
         """Game names are correctly parsed."""
         scraper = SteamProfileScraper()
-        games = scraper._parse_games_from_html(MOCK_HTML_BASIC)
+        games = scraper._parse(MOCK_HTML_BASIC)
         by_id = {g.app_id: g for g in games}
         assert by_id[10].name == "Counter-Strike"
         assert by_id[220].name == "Half-Life 2"
@@ -103,7 +103,7 @@ class TestParseGamesFromHtml:
     def test_handles_special_characters_in_names(self) -> None:
         """Game names with colons and special characters are parsed."""
         scraper = SteamProfileScraper()
-        games = scraper._parse_games_from_html(MOCK_HTML_ESCAPED)
+        games = scraper._parse(MOCK_HTML_ESCAPED)
         by_id = {g.app_id: g for g in games}
         assert 730 in by_id
         assert "Global Offensive" in by_id[730].name
@@ -111,20 +111,20 @@ class TestParseGamesFromHtml:
     def test_deduplicates_same_appid(self) -> None:
         """Same appid appearing twice only produces one entry."""
         scraper = SteamProfileScraper()
-        games = scraper._parse_games_from_html(MOCK_HTML_DUPLICATES)
+        games = scraper._parse(MOCK_HTML_DUPLICATES)
         app_ids = [g.app_id for g in games]
         assert app_ids.count(10) == 1
 
     def test_empty_page_returns_empty_list(self) -> None:
         """Private/empty page returns empty list."""
         scraper = SteamProfileScraper()
-        games = scraper._parse_games_from_html(MOCK_HTML_EMPTY)
+        games = scraper._parse(MOCK_HTML_EMPTY)
         assert games == []
 
     def test_json_array_fallback(self) -> None:
         """Falls back to JSON array extraction when regex finds nothing."""
         scraper = SteamProfileScraper()
-        games = scraper._parse_games_from_html(MOCK_HTML_JSON_ARRAY)
+        games = scraper._parse(MOCK_HTML_JSON_ARRAY)
         # Should find games either via regex or JSON fallback
         assert len(games) >= 0  # May or may not match depending on format
 
@@ -162,7 +162,7 @@ class TestFetchErrorHandling:
         mock_session_cls.return_value = mock_session
 
         scraper = SteamProfileScraper()
-        scraper._session = mock_session
+        scraper._s = mock_session
         games = scraper.fetch_games("76561198000000000")
         assert games == []
 
@@ -178,7 +178,7 @@ class TestFetchErrorHandling:
         mock_session_cls.return_value = mock_session
 
         scraper = SteamProfileScraper()
-        scraper._session = mock_session
+        scraper._s = mock_session
         games = scraper.fetch_games("76561198000000000")
         assert games == []
 
@@ -192,7 +192,7 @@ class TestFetchErrorHandling:
         mock_session_cls.return_value = mock_session
 
         scraper = SteamProfileScraper()
-        scraper._session = mock_session
+        scraper._s = mock_session
         games = scraper.fetch_games("76561198000000000")
         assert games == []
 
@@ -202,14 +202,14 @@ class TestSessionCookie:
 
     def test_cookie_set_when_provided(self) -> None:
         """steamLoginSecure cookie is configured when provided."""
-        scraper = SteamProfileScraper(session_cookie="test_cookie_value")
-        cookie = scraper._session.cookies.get("steamLoginSecure")
+        scraper = SteamProfileScraper(ck="test_cookie_value")
+        cookie = scraper._s.cookies.get("steamLoginSecure")
         assert cookie == "test_cookie_value"
 
     def test_no_cookie_when_none(self) -> None:
         """No cookie set when session_cookie is None."""
         scraper = SteamProfileScraper()
-        cookie = scraper._session.cookies.get("steamLoginSecure")
+        cookie = scraper._s.cookies.get("steamLoginSecure")
         assert cookie is None
 
 

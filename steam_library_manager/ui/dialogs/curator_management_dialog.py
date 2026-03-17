@@ -243,13 +243,13 @@ class CuratorManagementDialog(BaseDialog):
             return
 
         text = text.strip()
-        curator_id = CuratorClient.parse_curator_id(text)
+        curator_id = CuratorClient.parse_id(text)
         if not curator_id:
             UIHelper.show_warning(self, t("ui.curator.invalid_url"))
             return
 
         # Use the raw name from URL or fall back to generic name
-        raw_name = CuratorClient.parse_curator_name(text)
+        raw_name = CuratorClient.parse_name(text)
         name = raw_name or f"Curator {curator_id}"
         url = text if text.startswith("http") else f"https://store.steampowered.com/curator/{curator_id}/"
 
@@ -367,7 +367,7 @@ class CuratorManagementDialog(BaseDialog):
             return
 
         try:
-            top_list = CuratorClient.fetch_top_curators(count=50)
+            top_list = CuratorClient.fetch_top(n=50)
         except ConnectionError as exc:
             UIHelper.show_warning(self, t("ui.curator.top_fetch_error", error=str(exc)))
             return
