@@ -214,7 +214,7 @@ class TestIntegration:
         actions = FileActions(mock_main_window)
 
         # Assert
-        assert actions.mw == mock_main_window
+        assert actions.win == mock_main_window
 
     def test_all_methods_callable(self, file_actions):
         """Should have all expected public methods callable."""
@@ -260,7 +260,7 @@ class TestEdgeCases:
         # This is a design smell test
         # noinspection PyTypeChecker
         actions = FileActions(None)  # type: ignore
-        assert actions.mw is None
+        assert actions.win is None
 
     def test_multiple_file_actions_instances(self, mock_main_window):
         """Should allow multiple FileActions instances."""
@@ -270,7 +270,7 @@ class TestEdgeCases:
 
         # Assert - both instances are independent
         assert actions1 != actions2
-        assert actions1.mw == actions2.mw  # But share same MainWindow
+        assert actions1.win == actions2.win  # But share same MainWindow
 
     @patch("steam_library_manager.core.steam_account_scanner.is_steam_running", return_value=False)
     @patch("steam_library_manager.ui.actions.file_actions.UIHelper")

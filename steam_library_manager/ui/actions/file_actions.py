@@ -1,361 +1,293 @@
 #
 # steam_library_manager/ui/actions/file_actions.py
-# Action handler for File menu operations.
+# File menu handlers
 #
-# Copyright © 2025-2026 SwitchBros
-# Licensed under the MIT License. See LICENSE for details.
+# Copyright 2025 SwitchBros
+# MIT License
 #
 
 from __future__ import annotations
-
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from steam_library_manager.ui.widgets.ui_helper import UIHelper
 from steam_library_manager.utils.i18n import t
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
-    from steam_library_manager.core.game import Game
-    from steam_library_manager.ui.main_window import MainWindow
 
 __all__ = ["FileActions"]
 
 
 class FileActions:
-    """Handles all File menu actions."""
+    """File menu - save, export, import, exit.
 
-    def __init__(self, main_window: "MainWindow") -> None:
-        self.mw: "MainWindow" = main_window
+    Handles all the boring but important stuff: saving collections
+    to cloud storage, exporting to CSV/JSON/VDF, importing backups,
+    and the "are you sure you want to quit" dialog.
+    """
 
-    # Public API
+    def __init__(self, win):
+        self.win = win
 
-    def refresh_data(self) -> None:
-        """Reload all game data via BootstrapService."""
-        self.mw.bootstrap_service.start()
+    def refresh_data(self):
+        # restart service
+        self.win.bootstrap_service.start()
 
-    def force_save(self) -> None:
-        """Save all collections and metadata, warning if Steam is running."""
+    def force_save(self):
         from steam_library_manager.core.steam_account_scanner import is_steam_running
         from steam_library_manager.ui.dialogs.steam_running_dialog import SteamRunningDialog
 
-        # Check if Steam is running
         if is_steam_running():
-            # Show warning dialog
-            dialog = SteamRunningDialog(self.mw)
-            result = dialog.exec()
-
-            if result == SteamRunningDialog.CLOSE_AND_SAVE:
-                # Steam was closed, proceed with save
-                self.mw.save_collections()
-                UIHelper.show_success(self.mw, t("ui.save.success"))
-            # else: User cancelled, do nothing
+            dlg = SteamRunningDialog(self.win)
+            res = dlg.exec()
+            if res == SteamRunningDialog.CLOSE_AND_SAVE:
+                self.win.save_collections()
+                UIHelper.show_success(self.win, t("ui.save.success"))
         else:
-            # Steam not running, safe to save
-            self.mw.save_collections()
-            UIHelper.show_success(self.mw, t("ui.save.success"))
+            self.win.save_collections()
+            UIHelper.show_success(self.win, t("ui.save.success"))
 
-    def remove_duplicate_collections(self) -> None:
-        """Open the merge-duplicates dialog for cloud storage collections."""
-        self.mw.category_handler.show_merge_duplicates_dialog()
+    def remove_duplicate_collections(self):
+        self.win.category_handler.show_merge_duplicates_dialog()
 
-    def export_collections_text(self) -> None:
-        """Export current collections as a human-readable VDF text file."""
+    def export_collections_text(self):
         from PyQt6.QtWidgets import QFileDialog
-
         from steam_library_manager.utils.vdf_exporter import VDFTextExporter
 
-        parser = self.mw.cloud_storage_parser
-        if not parser:
-            UIHelper.show_warning(self.mw, t("ui.main_window.cloud_storage_only"))
+        p = self.win.cloud_storage_parser
+        if not p:
+            UIHelper.show_warning(self.win, t("ui.main_window.cloud_storage_only"))
             return
 
-        collections = parser.collections
-        if not collections:
-            UIHelper.show_info(self.mw, t("ui.main_window.no_duplicates"))
+        colls = p.collections
+        if not colls:
+            UIHelper.show_info(self.win, t("ui.main_window.no_duplicates"))
             return
 
-        file_path, _ = QFileDialog.getSaveFileName(
-            self.mw,
+        fp, _ = QFileDialog.getSaveFileName(
+            self.win,
             t("menu.file.export.collections_text"),
             "collections_export.vdf",
             "VDF Files (*.vdf);;All Files (*)",
         )
-
-        if not file_path:
+        if not fp:
             return
 
-        from pathlib import Path
-
         try:
-            VDFTextExporter.export_collections(collections, Path(file_path))
-            UIHelper.show_success(self.mw, t("ui.save.success"))
+            VDFTextExporter.export_collections(colls, Path(fp))
+            UIHelper.show_success(self.win, t("ui.save.success"))
         except OSError as exc:
-            UIHelper.show_warning(self.mw, str(exc))
+            UIHelper.show_warning(self.win, str(exc))
 
-    # Export Actions
-
-    def export_csv_simple(self) -> None:
-        """Exports the game list as a simple CSV file (Name, App ID, Playtime)."""
+    def export_csv_simple(self):
         from steam_library_manager.utils.csv_exporter import CSVExporter
 
-        self._run_export(
+        self._do_export(
             "ui.export.csv_save_title", "games_simple.csv", "ui.export.csv_filter", CSVExporter.export_simple
         )
 
-    def export_csv_full(self) -> None:
-        """Exports the game list as a full CSV file with all metadata."""
+    def export_csv_full(self):
         from steam_library_manager.utils.csv_exporter import CSVExporter
 
-        self._run_export("ui.export.csv_save_title", "games_full.csv", "ui.export.csv_filter", CSVExporter.export_full)
+        self._do_export("ui.export.csv_save_title", "games_full.csv", "ui.export.csv_filter", CSVExporter.export_full)
 
-    def export_json(self) -> None:
-        """Exports the game list as a JSON file."""
+    def export_json(self):
         from steam_library_manager.utils.json_exporter import JSONExporter
 
-        self._run_export("ui.export.json_save_title", "games_export.json", "ui.export.json_filter", JSONExporter.export)
+        self._do_export("ui.export.json_save_title", "games_export.json", "ui.export.json_filter", JSONExporter.export)
 
-    def _run_export(
-        self,
-        title_key: str,
-        default_name: str,
-        filter_key: str,
-        export_fn: Callable[[list[Game], Path], None],
-    ) -> None:
-        """Shared export flow: file dialog, export, show result."""
+    def _do_export(self, title_key, default_name, filter_key, fn):
         from PyQt6.QtWidgets import QFileDialog
 
-        games = self._get_exportable_games()
+        games = self._get_games()
         if not games:
             return
 
-        file_path, _ = QFileDialog.getSaveFileName(
-            self.mw,
-            t(title_key),
-            default_name,
-            t(filter_key),
-        )
-        if not file_path:
+        fp, _ = QFileDialog.getSaveFileName(self.win, t(title_key), default_name, t(filter_key))
+        if not fp:
             return
 
         try:
-            export_fn(games, Path(file_path))
-            UIHelper.show_success(self.mw, t("ui.export.success", path=file_path))
+            fn(games, Path(fp))
+            UIHelper.show_success(self.win, t("ui.export.success", path=fp))
         except OSError as exc:
-            UIHelper.show_warning(self.mw, t("ui.export.error", error=str(exc)))
+            UIHelper.show_warning(self.win, t("ui.export.error", error=str(exc)))
 
-    def export_db_backup(self) -> None:
-        """Creates a database backup using BackupManager."""
+    def export_db_backup(self):
         from steam_library_manager.core.backup_manager import BackupManager
         from steam_library_manager.config import config
 
-        db_path = config.DATA_DIR / "metadata.db"
-        if not db_path.exists():
-            UIHelper.show_warning(self.mw, t("ui.export.no_games"))
+        db = config.DATA_DIR / "metadata.db"
+        if not db.exists():
+            UIHelper.show_warning(self.win, t("ui.export.no_games"))
             return
 
-        manager = BackupManager(config.DATA_DIR / "backups")
-        result = manager.create_backup(db_path)
+        mgr = BackupManager(config.DATA_DIR / "backups")
+        result = mgr.create_backup(db)
         if result:
-            UIHelper.show_success(self.mw, t("ui.export.success", path=str(result)))
+            UIHelper.show_success(self.win, t("ui.export.success", path=str(result)))
         else:
-            UIHelper.show_warning(self.mw, t("ui.export.error", error="Backup failed"))
+            UIHelper.show_warning(self.win, t("ui.export.error", error="Backup failed"))
 
-    def export_smart_collections(self) -> None:
-        """Exports all Smart Collections as a portable JSON file."""
+    def export_smart_collections(self):
         from PyQt6.QtWidgets import QFileDialog
-
         from steam_library_manager.utils.smart_collection_exporter import SmartCollectionExporter
 
-        manager = self.mw.smart_collection_manager
-        if not manager:
-            UIHelper.show_warning(self.mw, t("ui.export.no_games"))
+        mgr = self.win.smart_collection_manager
+        if not mgr:
+            UIHelper.show_warning(self.win, t("ui.export.no_games"))
             return
 
-        collections = manager.get_all()
-        if not collections:
-            UIHelper.show_info(self.mw, t("ui.smart_collections.export_empty"))
+        colls = mgr.get_all()
+        if not colls:
+            UIHelper.show_info(self.win, t("ui.smart_collections.export_empty"))
             return
 
-        file_path, _ = QFileDialog.getSaveFileName(
-            self.mw,
+        fp, _ = QFileDialog.getSaveFileName(
+            self.win,
             t("ui.smart_collections.export_title"),
             "smart_collections.json",
             t("ui.export.json_filter"),
         )
-        if not file_path:
+        if not fp:
             return
 
-        from pathlib import Path
-
         try:
-            SmartCollectionExporter.export(collections, Path(file_path))
-            UIHelper.show_success(
-                self.mw,
-                t("ui.smart_collections.export_success", count=len(collections), path=file_path),
-            )
+            SmartCollectionExporter.export(colls, Path(fp))
+            UIHelper.show_success(self.win, t("ui.smart_collections.export_success", count=len(colls), path=fp))
         except OSError as exc:
-            UIHelper.show_warning(self.mw, t("ui.export.error", error=str(exc)))
+            UIHelper.show_warning(self.win, t("ui.export.error", error=str(exc)))
 
-    # Import Actions
-
-    def import_collections_vdf(self) -> None:
-        """Imports collections from a VDF text file."""
+    def import_collections_vdf(self):
         from PyQt6.QtWidgets import QFileDialog
-
         from steam_library_manager.utils.vdf_importer import VDFImporter
 
-        file_path, _ = QFileDialog.getOpenFileName(
-            self.mw,
+        fp, _ = QFileDialog.getOpenFileName(
+            self.win,
             t("ui.import_dlg.vdf_title"),
             "",
             t("ui.import_dlg.vdf_filter"),
         )
-        if not file_path:
+        if not fp:
             return
-
-        from pathlib import Path
 
         try:
-            collections = VDFImporter.import_collections(Path(file_path))
+            colls = VDFImporter.import_collections(Path(fp))
         except (FileNotFoundError, ValueError) as exc:
-            UIHelper.show_warning(self.mw, t("ui.import_dlg.vdf_error", error=str(exc)))
+            UIHelper.show_warning(self.win, t("ui.import_dlg.vdf_error", error=str(exc)))
             return
 
-        if not collections:
-            UIHelper.show_info(self.mw, t("ui.import_dlg.vdf_no_collections"))
+        if not colls:
+            UIHelper.show_info(self.win, t("ui.import_dlg.vdf_no_collections"))
             return
 
-        parser = self.mw.cloud_storage_parser
+        parser = self.win.cloud_storage_parser
         if not parser:
-            UIHelper.show_warning(self.mw, t("ui.main_window.cloud_storage_only"))
+            UIHelper.show_warning(self.win, t("ui.main_window.cloud_storage_only"))
             return
 
-        count = 0
-        for coll in collections:
-            # Create collection and add each app ID
-            parser.create_empty_collection(coll.name)
-            for app_id in coll.app_ids:
-                parser.add_app_category(str(app_id), coll.name)
-            count += 1
+        cnt = 0
+        for c in colls:
+            parser.create_empty_collection(c.name)
+            for aid in c.app_ids:
+                parser.add_app_category(str(aid), c.name)
+            cnt += 1
 
-        self.mw.populate_categories()
-        UIHelper.show_success(self.mw, t("ui.import_dlg.vdf_success", count=count))
+        self.win.populate_categories()
+        UIHelper.show_success(self.win, t("ui.import_dlg.vdf_success", count=cnt))
 
-    def import_smart_collections(self) -> None:
-        """Imports Smart Collections from a JSON file."""
+    def import_smart_collections(self):
         from PyQt6.QtWidgets import QFileDialog
-
         from steam_library_manager.utils.smart_collection_importer import SmartCollectionImporter
 
-        manager = self.mw.smart_collection_manager
-        if not manager:
-            UIHelper.show_warning(self.mw, t("ui.export.no_games"))
+        mgr = self.win.smart_collection_manager
+        if not mgr:
+            UIHelper.show_warning(self.win, t("ui.export.no_games"))
             return
 
-        file_path, _ = QFileDialog.getOpenFileName(
-            self.mw,
+        fp, _ = QFileDialog.getOpenFileName(
+            self.win,
             t("ui.smart_collections.import_title"),
             "",
             t("ui.export.json_filter"),
         )
-        if not file_path:
+        if not fp:
             return
-
-        from pathlib import Path
 
         try:
-            collections = SmartCollectionImporter.import_collections(Path(file_path))
+            colls = SmartCollectionImporter.import_collections(Path(fp))
         except (FileNotFoundError, ValueError) as exc:
-            UIHelper.show_warning(self.mw, t("ui.smart_collections.import_error", error=str(exc)))
+            UIHelper.show_warning(self.win, t("ui.smart_collections.import_error", error=str(exc)))
             return
 
-        if not collections:
-            UIHelper.show_info(self.mw, t("ui.smart_collections.import_empty"))
+        if not colls:
+            UIHelper.show_info(self.win, t("ui.smart_collections.import_empty"))
             return
 
-        imported = 0
-        skipped = 0
-        for sc in collections:
-            # Skip if a Smart Collection with this name already exists
-            existing = manager.get_by_name(sc.name)
-            if existing:
-                skipped += 1
+        imp = 0
+        skip = 0
+        for sc in colls:
+            if mgr.get_by_name(sc.name):
+                skip += 1
                 continue
-            manager.create(sc)
-            imported += 1
+            mgr.create(sc)
+            imp += 1
 
-        self.mw.populate_categories()
+        self.win.populate_categories()
 
-        if skipped > 0:
+        if skip > 0:
             UIHelper.show_success(
-                self.mw,
-                t("ui.smart_collections.import_success_skipped", imported=imported, skipped=skipped),
+                self.win, t("ui.smart_collections.import_success_skipped", imported=imp, skipped=skip)
             )
         else:
-            UIHelper.show_success(
-                self.mw,
-                t("ui.smart_collections.import_success", count=imported),
-            )
+            UIHelper.show_success(self.win, t("ui.smart_collections.import_success", count=imp))
 
-    def import_db_backup(self) -> None:
-        """Imports a database backup."""
+    def import_db_backup(self):
         from PyQt6.QtWidgets import QFileDialog
-
         from steam_library_manager.core.backup_manager import BackupManager
         from steam_library_manager.config import config
 
-        file_path, _ = QFileDialog.getOpenFileName(
-            self.mw,
+        fp, _ = QFileDialog.getOpenFileName(
+            self.win,
             t("common.import"),
             str(config.DATA_DIR / "backups"),
             "Database Files (*.db);;All Files (*)",
         )
-        if not file_path:
+        if not fp:
             return
 
-        from pathlib import Path
-
-        db_path = config.DATA_DIR / "metadata.db"
-        manager = BackupManager(config.DATA_DIR / "backups")
-        success = manager.restore_backup(Path(file_path), db_path)
-        if success:
-            UIHelper.show_success(self.mw, t("ui.save.success"))
+        db = config.DATA_DIR / "metadata.db"
+        mgr = BackupManager(config.DATA_DIR / "backups")
+        ok = mgr.restore_backup(Path(fp), db)
+        if ok:
+            UIHelper.show_success(self.win, t("ui.save.success"))
             self.refresh_data()
         else:
-            UIHelper.show_warning(self.mw, t("ui.export.error", error="Restore failed"))
+            UIHelper.show_warning(self.win, t("ui.export.error", error="Restore failed"))
 
-    # Helpers
-
-    def _get_exportable_games(self) -> list:
-        """Return the list of games for export, or show a warning if empty."""
-        if not self.mw.game_manager:
-            UIHelper.show_warning(self.mw, t("ui.export.no_games"))
+    def _get_games(self):
+        if not self.win.game_manager:
+            UIHelper.show_warning(self.win, t("ui.export.no_games"))
             return []
-        games = self.mw.game_manager.get_real_games()
+        games = self.win.game_manager.get_real_games()
         if not games:
-            UIHelper.show_warning(self.mw, t("ui.export.no_games"))
+            UIHelper.show_warning(self.win, t("ui.export.no_games"))
             return []
         return games
 
-    def ask_save_on_exit(self, has_collection_changes: bool, has_metadata_changes: bool) -> str:
-        """Show a save/discard/cancel dialog for unsaved changes on exit."""
+    def ask_save_on_exit(self, coll_ch, meta_ch):
         from PyQt6.QtWidgets import QMessageBox
 
-        filenames: list[str] = []
-        if has_collection_changes:
-            filenames.append("cloud-storage-namespace-1.json")
-        if has_metadata_changes:
-            filenames.append("appinfo.vdf")
+        fnames = []
+        if coll_ch:
+            fnames.append("cloud-storage-namespace-1.json")
+        if meta_ch:
+            fnames.append("appinfo.vdf")
 
-        msg = QMessageBox(self.mw)
+        msg = QMessageBox(self.win)
         msg.setIcon(QMessageBox.Icon.Warning)
         msg.setWindowTitle(t("ui.unsaved_changes.title"))
-        msg.setText(t("ui.unsaved_changes.message", filenames=", ".join(filenames)))
+        msg.setText(t("ui.unsaved_changes.message", filenames=", ".join(fnames)))
 
         save_btn = msg.addButton(t("ui.exit.save_and_exit"), QMessageBox.ButtonRole.AcceptRole)
-        discard_btn = msg.addButton(t("ui.exit.discard_and_exit"), QMessageBox.ButtonRole.DestructiveRole)
+        disc_btn = msg.addButton(t("ui.exit.discard_and_exit"), QMessageBox.ButtonRole.DestructiveRole)
         msg.addButton(t("common.cancel"), QMessageBox.ButtonRole.RejectRole)
         msg.setDefaultButton(save_btn)
 
@@ -364,10 +296,9 @@ class FileActions:
         clicked = msg.clickedButton()
         if clicked == save_btn:
             return "save"
-        elif clicked == discard_btn:
+        elif clicked == disc_btn:
             return "discard"
         return "cancel"
 
-    def exit_application(self) -> None:
-        """Close the main window."""
-        self.mw.close()
+    def exit_application(self):
+        self.win.close()
