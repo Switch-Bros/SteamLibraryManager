@@ -19,13 +19,13 @@ from PyQt6.QtWidgets import (
 )
 
 from steam_library_manager.services.enrichment.enrich_all_coordinator import (
-    TRACK_CURATOR,
-    TRACK_DECK,
-    TRACK_HLTB,
-    TRACK_PEGI,
-    TRACK_PROTONDB,
-    TRACK_STEAM,
-    TRACK_TAGS,
+    TRK_CURATOR,
+    TRK_DECK,
+    TRK_HLTB,
+    TRK_PEGI,
+    TRK_PDB,
+    TRK_STEAM,
+    TRK_TAGS,
     EnrichAllCoordinator,
 )
 from steam_library_manager.ui.utils.font_helper import FontHelper
@@ -39,13 +39,13 @@ if TYPE_CHECKING:
 __all__ = ["EnrichAllProgressDialog"]
 
 _TRACK_LABELS: list[tuple[str, str]] = [
-    (TRACK_TAGS, "ui.enrichment.enrich_all_tags"),
-    (TRACK_STEAM, "ui.enrichment.enrich_all_steam"),
-    (TRACK_HLTB, "ui.enrichment.enrich_all_hltb"),
-    (TRACK_PROTONDB, "ui.enrichment.enrich_all_protondb"),
-    (TRACK_DECK, "ui.enrichment.enrich_all_deck"),
-    (TRACK_PEGI, "ui.enrichment.enrich_all_pegi"),
-    (TRACK_CURATOR, "ui.enrichment.enrich_all_curator"),
+    (TRK_TAGS, "ui.enrichment.enrich_all_tags"),
+    (TRK_STEAM, "ui.enrichment.enrich_all_steam"),
+    (TRK_HLTB, "ui.enrichment.enrich_all_hltb"),
+    (TRK_PDB, "ui.enrichment.enrich_all_protondb"),
+    (TRK_DECK, "ui.enrichment.enrich_all_deck"),
+    (TRK_PEGI, "ui.enrichment.enrich_all_pegi"),
+    (TRK_CURATOR, "ui.enrichment.enrich_all_curator"),
 ]
 
 

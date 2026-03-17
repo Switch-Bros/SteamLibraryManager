@@ -10,11 +10,11 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from steam_library_manager.services.enrichment.enrich_all_coordinator import (
-    TRACK_DECK,
-    TRACK_HLTB,
-    TRACK_PROTONDB,
-    TRACK_STEAM,
-    TRACK_TAGS,
+    TRK_DECK,
+    TRK_HLTB,
+    TRK_PDB,
+    TRK_STEAM,
+    TRK_TAGS,
     EnrichAllCoordinator,
 )
 
@@ -45,7 +45,7 @@ class TestEnrichAllCoordinator:
     def test_initial_state(self) -> None:
         """Coordinator starts with no threads and no results."""
         coord = EnrichAllCoordinator()
-        assert coord._pending_tracks == 0
+        assert coord._pending == 0
         assert coord._results == {}
         assert coord._cancelled is False
 
@@ -58,43 +58,43 @@ class TestEnrichAllCoordinator:
     def test_track_completion_decrements_counter(self, tmp_path: Path) -> None:
         """Each track completion decrements the pending counter."""
         coord = self._make_coordinator(tmp_path)
-        coord._pending_tracks = 3
+        coord._pending = 3
 
         finished_signals: list[dict] = []
         coord.all_finished.connect(lambda r: finished_signals.append(r))
 
-        coord._on_simple_track_done(TRACK_HLTB, 5, 0)
-        assert coord._pending_tracks == 2
+        coord._on_trk_done(TRK_HLTB, 5, 0)
+        assert coord._pending == 2
         assert len(finished_signals) == 0
 
-        coord._on_simple_track_done(TRACK_PROTONDB, 3, 1)
-        assert coord._pending_tracks == 1
+        coord._on_trk_done(TRK_PDB, 3, 1)
+        assert coord._pending == 1
         assert len(finished_signals) == 0
 
-        coord._on_simple_track_done(TRACK_DECK, 4, 0)
-        assert coord._pending_tracks == 0
+        coord._on_trk_done(TRK_DECK, 4, 0)
+        assert coord._pending == 0
         assert len(finished_signals) == 1
 
     def test_all_tracks_complete_emits_all_finished(self, tmp_path: Path) -> None:
         """When all tracks complete, all_finished signal is emitted."""
         coord = self._make_coordinator(tmp_path)
-        coord._pending_tracks = 2
+        coord._pending = 2
 
         results_received: list[dict] = []
         coord.all_finished.connect(lambda r: results_received.append(r))
 
-        coord._on_simple_track_done(TRACK_HLTB, 10, 0)
-        coord._on_simple_track_done(TRACK_DECK, 5, 2)
+        coord._on_trk_done(TRK_HLTB, 10, 0)
+        coord._on_trk_done(TRK_DECK, 5, 2)
 
         assert len(results_received) == 1
         result = results_received[0]
-        assert result[TRACK_HLTB] == (10, 0)
-        assert result[TRACK_DECK] == (5, 2)
+        assert result[TRK_HLTB] == (10, 0)
+        assert result[TRK_DECK] == (5, 2)
 
     def test_track_error_still_completes(self, tmp_path: Path) -> None:
         """Track errors still decrement the counter and emit track_finished."""
         coord = self._make_coordinator(tmp_path)
-        coord._pending_tracks = 1
+        coord._pending = 1
 
         finished: list[tuple[str, int, int]] = []
         coord.track_finished.connect(lambda t, s, f: finished.append((t, s, f)))
@@ -102,12 +102,12 @@ class TestEnrichAllCoordinator:
         all_done: list[dict] = []
         coord.all_finished.connect(lambda r: all_done.append(r))
 
-        coord._on_track_error(TRACK_PROTONDB, "API down")
+        coord._on_trk_err(TRK_PDB, "API down")
 
         assert len(finished) == 1
-        assert finished[0] == (TRACK_PROTONDB, 0, -1)
+        assert finished[0] == (TRK_PDB, 0, -1)
         assert len(all_done) == 1
-        assert coord._results[TRACK_PROTONDB] == (0, -1)
+        assert coord._results[TRK_PDB] == (0, -1)
 
     def test_skipped_tracks_emit_minus_one(self, tmp_path: Path) -> None:
         """Tracks without prerequisites emit success=-1 (skipped)."""
@@ -127,17 +127,17 @@ class TestEnrichAllCoordinator:
         finished: list[tuple[str, int, int]] = []
         coord.track_finished.connect(lambda t, s, f: finished.append((t, s, f)))
 
-        # Mock _start_protondb_track to avoid creating real/mock threads
-        with patch.object(coord, "_start_protondb_track"):
+        # Mock _run_protondb to avoid creating real/mock threads
+        with patch.object(coord, "_run_protondb"):
             coord.start()
 
         # Tags emits skipped (-1)
-        tags_finished = [f for f in finished if f[0] == TRACK_TAGS]
+        tags_finished = [f for f in finished if f[0] == TRK_TAGS]
         assert len(tags_finished) == 1
         assert tags_finished[0][1] == -1
 
         # Steam, HLTB, Deck emit skipped
-        for track in [TRACK_STEAM, TRACK_HLTB, TRACK_DECK]:
+        for track in [TRK_STEAM, TRK_HLTB, TRK_DECK]:
             track_finished = [f for f in finished if f[0] == track]
             assert len(track_finished) == 1
             assert track_finished[0][1] == -1
@@ -145,25 +145,25 @@ class TestEnrichAllCoordinator:
     def test_steam_track_chains_metadata_then_achievements(self, tmp_path: Path) -> None:
         """Steam track runs metadata first, then achievements."""
         coord = self._make_coordinator(tmp_path)
-        coord._pending_tracks = 1
+        coord._pending = 1
 
         finished: list[tuple[str, int, int]] = []
         coord.track_finished.connect(lambda t, s, f: finished.append((t, s, f)))
 
         # Mock achievement phase to avoid creating threads
-        with patch.object(coord, "_start_achievement_phase") as mock_ach:
-            coord._on_steam_metadata_finished(10, 2)
+        with patch.object(coord, "_run_achievements") as mock_ach:
+            coord._on_steam_meta_done(10, 2)
 
         # Metadata result stored separately
-        assert f"{TRACK_STEAM}_metadata" in coord._results
-        assert coord._results[f"{TRACK_STEAM}_metadata"] == (10, 2)
+        assert f"{TRK_STEAM}_metadata" in coord._results
+        assert coord._results[f"{TRK_STEAM}_metadata"] == (10, 2)
         # Achievement phase was triggered
         mock_ach.assert_called_once_with(10, 2)
 
     def test_steam_track_done_combines_counts(self, tmp_path: Path) -> None:
         """Steam track done handler sums metadata + achievement counts."""
         coord = self._make_coordinator(tmp_path)
-        coord._pending_tracks = 1
+        coord._pending = 1
 
         finished: list[tuple[str, int, int]] = []
         coord.track_finished.connect(lambda t, s, f: finished.append((t, s, f)))
@@ -171,12 +171,12 @@ class TestEnrichAllCoordinator:
         all_done: list[dict] = []
         coord.all_finished.connect(lambda r: all_done.append(r))
 
-        coord._on_steam_track_done(10, 2, 8, 1)
+        coord._on_steam_done(10, 2, 8, 1)
 
         assert len(finished) == 1
-        assert finished[0] == (TRACK_STEAM, 18, 3)
+        assert finished[0] == (TRK_STEAM, 18, 3)
         assert len(all_done) == 1
-        assert coord._results[TRACK_STEAM] == (18, 3)
+        assert coord._results[TRK_STEAM] == (18, 3)
 
     def test_tags_error_continues_to_parallel_tracks(self, tmp_path: Path) -> None:
         """Tag import error should still start parallel tracks."""
@@ -185,14 +185,14 @@ class TestEnrichAllCoordinator:
         finished: list[tuple[str, int, int]] = []
         coord.track_finished.connect(lambda t, s, f: finished.append((t, s, f)))
 
-        # Mock _start_parallel_tracks to avoid creating threads
-        with patch.object(coord, "_start_parallel_tracks") as mock_parallel:
-            coord._on_tags_error("appinfo.vdf not found")
+        # Mock _run_parallel to avoid creating threads
+        with patch.object(coord, "_run_parallel") as mock_parallel:
+            coord._on_tags_err("appinfo.vdf not found")
 
         # Tags should be marked as failed
-        tags_result = [f for f in finished if f[0] == TRACK_TAGS]
+        tags_result = [f for f in finished if f[0] == TRK_TAGS]
         assert len(tags_result) == 1
-        assert tags_result[0] == (TRACK_TAGS, 0, 1)
+        assert tags_result[0] == (TRK_TAGS, 0, 1)
         # Parallel tracks still started after error
         mock_parallel.assert_called_once()
 

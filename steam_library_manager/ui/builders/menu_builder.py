@@ -598,7 +598,7 @@ class MenuBuilder:
         except Exception:
             pass
 
-        active_ids = mw.filter_service._active_curator_ids
+        active_ids = mw.filter_service._cur_ids
         for curator_id in sorted(cache.keys()):
             name = curator_names.get(curator_id, f"Curator {curator_id}")
             count = len(cache[curator_id])
