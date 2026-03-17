@@ -23,8 +23,8 @@ def _make_service():
     from steam_library_manager.services.autocategorize_service import AutoCategorizeService
 
     service = AutoCategorizeService.__new__(AutoCategorizeService)
-    service.category_service = MagicMock()
-    service.category_service.add_app_to_category = MagicMock()
+    service.cat_svc = MagicMock()
+    service.cat_svc.add_app_to_category = MagicMock()
     return service
 
 
@@ -37,7 +37,7 @@ class TestCategorizeByPEGI:
         games = [_make_game("1", "Doom Eternal", pegi="18")]
         result = service.categorize_by_pegi(games)
         assert result == 1
-        service.category_service.add_app_to_category.assert_called_once()
+        service.cat_svc.add_app_to_category.assert_called_once()
 
     def test_pegi_3_creates_category(self) -> None:
         """Game with PEGI 3 should be categorized."""
@@ -52,7 +52,7 @@ class TestCategorizeByPEGI:
         games = [_make_game("1", "Mystery Game", pegi="")]
         result = service.categorize_by_pegi(games)
         assert result == 1
-        service.category_service.add_app_to_category.assert_called_once()
+        service.cat_svc.add_app_to_category.assert_called_once()
 
     def test_none_rating_creates_unknown_category(self) -> None:
         """Game with None rating should also get 'Unknown' category."""
@@ -74,7 +74,7 @@ class TestCategorizeByPEGI:
         ]
         result = service.categorize_by_pegi(games)
         assert result == 5
-        assert service.category_service.add_app_to_category.call_count == 5
+        assert service.cat_svc.add_app_to_category.call_count == 5
 
     def test_mixed_library_all_categorized(self) -> None:
         """Mix of rated + unrated games should produce categories for all."""
@@ -111,7 +111,7 @@ class TestCategorizeByPEGI:
     def test_category_service_error_handled(self) -> None:
         """ValueError from category_service should not crash."""
         service = _make_service()
-        service.category_service.add_app_to_category.side_effect = ValueError("test")
+        service.cat_svc.add_app_to_category.side_effect = ValueError("test")
         games = [_make_game("1", "Crasher", pegi="18")]
         result = service.categorize_by_pegi(games)
         assert result == 0

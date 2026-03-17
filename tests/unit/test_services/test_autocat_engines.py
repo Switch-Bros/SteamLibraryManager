@@ -1,4 +1,4 @@
-"""Tests for the generic AutoCat engines (_categorize_simple, _categorize_by_buckets).
+"""Tests for the generic AutoCat engines (_categorize_simple, _categorize_buckets).
 
 Validates that the generic engines produce the same results as the
 original method-specific implementations.
@@ -24,10 +24,10 @@ def _make_service():
     from steam_library_manager.services.autocategorize_service import AutoCategorizeService
 
     service = AutoCategorizeService.__new__(AutoCategorizeService)
-    service.game_manager = MagicMock()
-    service.category_service = MagicMock()
-    service.category_service.add_app_to_category = MagicMock()
-    service.steam_scraper = None
+    service.game_mgr = MagicMock()
+    service.cat_svc = MagicMock()
+    service.cat_svc.add_app_to_category = MagicMock()
+    service.scraper = None
     return service
 
 
@@ -49,7 +49,7 @@ class TestSimpleEngine:
         games = [_make_game(publisher="Valve")]
         result = service.categorize_by_publisher(games)
         assert result == 1
-        service.category_service.add_app_to_category.assert_called_once()
+        service.cat_svc.add_app_to_category.assert_called_once()
 
     def test_developer_via_engine(self) -> None:
         """Developer categorization works through the engine."""
@@ -64,7 +64,7 @@ class TestSimpleEngine:
         games = [_make_game(genres=["Action", "RPG"])]
         result = service.categorize_by_genre(games)
         assert result == 2
-        calls = service.category_service.add_app_to_category.call_args_list
+        calls = service.cat_svc.add_app_to_category.call_args_list
         assert calls[0][0][1] == "Action"
         assert calls[1][0][1] == "RPG"
 
@@ -74,7 +74,7 @@ class TestSimpleEngine:
         games = [_make_game(platforms=["linux", "windows"])]
         result = service.categorize_by_platform(games)
         assert result == 2
-        calls = service.category_service.add_app_to_category.call_args_list
+        calls = service.cat_svc.add_app_to_category.call_args_list
         # Category names contain capitalized platform names
         assert "Linux" in calls[0][0][1]
         assert "Windows" in calls[1][0][1]
@@ -133,7 +133,7 @@ class TestSimpleEngine:
     def test_error_in_category_service_handled(self) -> None:
         """ValueError from category_service does not crash."""
         service = _make_service()
-        service.category_service.add_app_to_category.side_effect = ValueError("test")
+        service.cat_svc.add_app_to_category.side_effect = ValueError("test")
         games = [_make_game(publisher="Valve")]
         result = service.categorize_by_publisher(games)
         assert result == 0
@@ -146,7 +146,7 @@ class TestSimpleEngine:
 
 
 class TestBucketEngine:
-    """Tests for _categorize_by_buckets generic engine."""
+    """Tests for _categorize_buckets generic engine."""
 
     def test_user_score_high(self) -> None:
         """High review score maps to correct bucket."""
@@ -208,7 +208,7 @@ class TestBucketEngine:
     def test_bucket_error_handled(self) -> None:
         """ValueError from category_service does not crash."""
         service = _make_service()
-        service.category_service.add_app_to_category.side_effect = ValueError("test")
+        service.cat_svc.add_app_to_category.side_effect = ValueError("test")
         games = [_make_game(review_percentage=80)]
         result = service.categorize_by_user_score(games)
         assert result == 0
@@ -217,7 +217,7 @@ class TestBucketEngine:
         """Unknown bucket method key raises KeyError."""
         service = _make_service()
         with pytest.raises(KeyError):
-            service._categorize_by_buckets("nonexistent", [])
+            service._categorize_buckets("nonexistent", [])
 
 
 class TestConfigDataclasses:

@@ -64,8 +64,8 @@ class TestCategorizeByAchievements:
         )
         result = service.categorize_by_achievements([game])
         assert result == 1
-        service.category_service.add_app_to_category.assert_called_once()
-        call_args = service.category_service.add_app_to_category.call_args[0]
+        service.cat_svc.add_app_to_category.assert_called_once()
+        call_args = service.cat_svc.add_app_to_category.call_args[0]
         assert "cat_achievement_perfect" in call_args[1]
 
     @patch("steam_library_manager.services.autocategorize_service.t", side_effect=lambda key, **kw: key)
@@ -74,7 +74,7 @@ class TestCategorizeByAchievements:
         game = _make_game("1", "Almoster", achievement_total=50, achievement_unlocked=45, achievement_percentage=90.0)
         result = service.categorize_by_achievements([game])
         assert result == 1
-        call_args = service.category_service.add_app_to_category.call_args[0]
+        call_args = service.cat_svc.add_app_to_category.call_args[0]
         assert "cat_achievement_almost" in call_args[1]
 
     @patch("steam_library_manager.services.autocategorize_service.t", side_effect=lambda key, **kw: key)
@@ -83,7 +83,7 @@ class TestCategorizeByAchievements:
         game = _make_game("1", "Worker", achievement_total=50, achievement_unlocked=25, achievement_percentage=50.0)
         result = service.categorize_by_achievements([game])
         assert result == 1
-        call_args = service.category_service.add_app_to_category.call_args[0]
+        call_args = service.cat_svc.add_app_to_category.call_args[0]
         assert "cat_achievement_progress" in call_args[1]
 
     @patch("steam_library_manager.services.autocategorize_service.t", side_effect=lambda key, **kw: key)
@@ -92,7 +92,7 @@ class TestCategorizeByAchievements:
         game = _make_game("1", "Beginner", achievement_total=50, achievement_unlocked=5, achievement_percentage=10.0)
         result = service.categorize_by_achievements([game])
         assert result == 1
-        call_args = service.category_service.add_app_to_category.call_args[0]
+        call_args = service.cat_svc.add_app_to_category.call_args[0]
         assert "cat_achievement_started" in call_args[1]
 
     @patch("steam_library_manager.services.autocategorize_service.t", side_effect=lambda key, **kw: key)
@@ -101,7 +101,7 @@ class TestCategorizeByAchievements:
         game = _make_game("1", "NoAch", achievement_total=0)
         result = service.categorize_by_achievements([game])
         assert result == 0
-        service.category_service.add_app_to_category.assert_not_called()
+        service.cat_svc.add_app_to_category.assert_not_called()
 
     @patch("steam_library_manager.services.autocategorize_service.t", side_effect=lambda key, **kw: key)
     def test_empty_list_returns_zero(self, mock_t: MagicMock, service: AutoCategorizeService) -> None:
@@ -136,14 +136,14 @@ class TestCategorizeByAchievements:
         ]
         result = service.categorize_by_achievements(games)
         assert result == 4  # All except NoAch
-        assert service.category_service.add_app_to_category.call_count == 4
+        assert service.cat_svc.add_app_to_category.call_count == 4
 
     @patch("steam_library_manager.services.autocategorize_service.t", side_effect=lambda key, **kw: key)
     def test_boundary_75_is_almost(self, mock_t: MagicMock, service: AutoCategorizeService) -> None:
         """Game with exactly 75% gets 'Almost Done' category."""
         game = _make_game("1", "Boundary", achievement_total=100, achievement_percentage=75.0)
         service.categorize_by_achievements([game])
-        call_args = service.category_service.add_app_to_category.call_args[0]
+        call_args = service.cat_svc.add_app_to_category.call_args[0]
         assert "cat_achievement_almost" in call_args[1]
 
     @patch("steam_library_manager.services.autocategorize_service.t", side_effect=lambda key, **kw: key)
@@ -151,5 +151,5 @@ class TestCategorizeByAchievements:
         """Game with exactly 25% gets 'In Progress' category."""
         game = _make_game("1", "Boundary", achievement_total=100, achievement_percentage=25.0)
         service.categorize_by_achievements([game])
-        call_args = service.category_service.add_app_to_category.call_args[0]
+        call_args = service.cat_svc.add_app_to_category.call_args[0]
         assert "cat_achievement_progress" in call_args[1]

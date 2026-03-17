@@ -51,7 +51,7 @@ class TestCategorizeDeckStatus:
         game = _make_game("1", "Verified Game", steam_deck_status="verified")
         result = service.categorize_by_deck_status([game])
         assert result == 1
-        service.category_service.add_app_to_category.assert_called_once()
+        service.cat_svc.add_app_to_category.assert_called_once()
 
     @patch("steam_library_manager.services.autocategorize_service.t", side_effect=lambda key, **kw: key)
     def test_categorize_deck_playable_game(self, mock_t: MagicMock, service: AutoCategorizeService) -> None:
@@ -73,7 +73,7 @@ class TestCategorizeDeckStatus:
         game = _make_game("1", "Unknown Game", steam_deck_status="unknown")
         result = service.categorize_by_deck_status([game])
         assert result == 0
-        service.category_service.add_app_to_category.assert_not_called()
+        service.cat_svc.add_app_to_category.assert_not_called()
 
     @patch("steam_library_manager.services.autocategorize_service.t", side_effect=lambda key, **kw: key)
     def test_categorize_deck_empty_status_skipped(self, mock_t: MagicMock, service: AutoCategorizeService) -> None:
@@ -81,7 +81,7 @@ class TestCategorizeDeckStatus:
         game = _make_game("1", "No Status", steam_deck_status="")
         result = service.categorize_by_deck_status([game])
         assert result == 0
-        service.category_service.add_app_to_category.assert_not_called()
+        service.cat_svc.add_app_to_category.assert_not_called()
 
     @patch("steam_library_manager.services.autocategorize_service.t", side_effect=lambda key, **kw: key)
     def test_categorize_deck_progress_callback(self, mock_t: MagicMock, service: AutoCategorizeService) -> None:
@@ -114,4 +114,4 @@ class TestCategorizeDeckStatus:
         ]
         result = service.categorize_by_deck_status(games)
         assert result == 3
-        assert service.category_service.add_app_to_category.call_count == 3
+        assert service.cat_svc.add_app_to_category.call_count == 3

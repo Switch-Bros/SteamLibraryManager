@@ -107,13 +107,13 @@ def rescale_ui(w: GameDetailsWidget, scale: float) -> None:
         img_widget.w = nw
         img_widget.h = nh
         img_widget.image_label.setGeometry(0, 0, nw, nh)
-        if img_widget._badge_overlay:
-            img_widget._badge_overlay.setFixedWidth(nw)
+        if img_widget._badges:
+            img_widget._badges.setFixedWidth(nw)
         # Re-apply image at new size: cached pixmap first, then default fallback
-        if img_widget.current_path and img_widget.current_path in img_widget._pixmap_cache:
-            img_widget._apply_pixmap(img_widget._pixmap_cache[img_widget.current_path])
+        if img_widget.current_path and img_widget.current_path in img_widget._px_cache:
+            img_widget._apply_px(img_widget._px_cache[img_widget.current_path])
         elif hasattr(img_widget, "default_image") and img_widget.default_image:
-            img_widget._load_local_image(img_widget.default_image)
+            img_widget._load_local(img_widget.default_image)
 
     # Rescale gallery container - calculate from content sizes
     if hasattr(w, "_gallery_widget"):

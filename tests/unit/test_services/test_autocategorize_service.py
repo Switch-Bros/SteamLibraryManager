@@ -61,7 +61,7 @@ class TestAutoCategorizeService:
         mock_steam_scraper.fetch_tags.assert_called_once_with("440")
 
         # Should add 2 categories (Action, FPS)
-        assert service.category_service.add_app_to_category.call_count == 2  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 2  # type: ignore[attr-defined]
         assert count == 2
         assert "Action" in mock_game.categories
         assert "FPS" in mock_game.categories
@@ -100,7 +100,7 @@ class TestAutoCategorizeService:
         count = service.categorize_by_publisher(games)
 
         # Should add publisher category
-        assert service.category_service.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
         assert count == 1
         # Category name is i18n, so just check it was added
         assert len(mock_game.categories) == 1
@@ -118,7 +118,7 @@ class TestAutoCategorizeService:
 
         # Should not add any categories
         assert count == 0
-        assert service.category_service.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
 
     # === FRANCHISE CATEGORIZATION TESTS ===
 
@@ -134,7 +134,7 @@ class TestAutoCategorizeService:
         count = service.categorize_by_franchise(games)
 
         # Should detect LEGO franchise and add category
-        assert service.category_service.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
         assert count == 1
         assert len(game.categories) == 1
 
@@ -150,7 +150,7 @@ class TestAutoCategorizeService:
 
         # Should not add any categories
         assert count == 0
-        assert service.category_service.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
 
     # === GENRE CATEGORIZATION TESTS ===
 
@@ -161,7 +161,7 @@ class TestAutoCategorizeService:
         count = service.categorize_by_genre(games)
 
         # Should add 2 genre categories (Action, FPS)
-        assert service.category_service.add_app_to_category.call_count == 2  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 2  # type: ignore[attr-defined]
         assert count == 2
         assert "Action" in mock_game.categories
         assert "FPS" in mock_game.categories
@@ -179,7 +179,7 @@ class TestAutoCategorizeService:
 
         # Should not add any categories
         assert count == 0
-        assert service.category_service.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
 
     # === CACHE COVERAGE TESTS ===
 
@@ -225,7 +225,7 @@ class TestAutoCategorizeService:
         count = service.categorize_by_developer(games)
 
         assert count == 1
-        assert service.category_service.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
         assert len(game.categories) == 1
 
     def test_categorize_by_developer_no_developer(self, service):
@@ -240,7 +240,7 @@ class TestAutoCategorizeService:
         count = service.categorize_by_developer(games)
 
         assert count == 0
-        assert service.category_service.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
 
     # === PLATFORM CATEGORIZATION TESTS ===
 
@@ -256,7 +256,7 @@ class TestAutoCategorizeService:
         count = service.categorize_by_platform(games)
 
         assert count == 2
-        assert service.category_service.add_app_to_category.call_count == 2  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 2  # type: ignore[attr-defined]
         assert len(game.categories) == 2
 
     def test_categorize_by_platform_no_platforms(self, service):
@@ -271,7 +271,7 @@ class TestAutoCategorizeService:
         count = service.categorize_by_platform(games)
 
         assert count == 0
-        assert service.category_service.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
 
     # === USER SCORE CATEGORIZATION TESTS ===
 
@@ -287,7 +287,7 @@ class TestAutoCategorizeService:
         count = service.categorize_by_user_score(games)
 
         assert count == 1
-        assert service.category_service.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
         assert len(game.categories) == 1
 
     def test_categorize_by_user_score_no_score(self, service):
@@ -302,7 +302,7 @@ class TestAutoCategorizeService:
         count = service.categorize_by_user_score(games)
 
         assert count == 0
-        assert service.category_service.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
 
     # === HOURS PLAYED CATEGORIZATION TESTS ===
 
@@ -318,7 +318,7 @@ class TestAutoCategorizeService:
         count = service.categorize_by_hours_played(games)
 
         assert count == 1
-        assert service.category_service.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
         assert len(game.categories) == 1
 
     def test_categorize_by_hours_played_never_played(self, service):
@@ -334,7 +334,7 @@ class TestAutoCategorizeService:
 
         # Zero playtime still creates "Never Played" category
         assert count == 1
-        assert service.category_service.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
 
     # === FLAGS CATEGORIZATION TESTS ===
 
@@ -350,7 +350,7 @@ class TestAutoCategorizeService:
         count = service.categorize_by_flags(games)
 
         assert count == 1
-        assert service.category_service.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
 
     def test_categorize_by_flags_no_flags(self, service):
         """Test categorizing games with no detectable flags."""
@@ -363,7 +363,7 @@ class TestAutoCategorizeService:
         count = service.categorize_by_flags(games)
 
         assert count == 0
-        assert service.category_service.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
 
     # === VR CATEGORIZATION TESTS ===
 
@@ -379,7 +379,7 @@ class TestAutoCategorizeService:
         count = service.categorize_by_vr(games)
 
         assert count == 1
-        assert service.category_service.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
 
     def test_categorize_by_vr_no_vr(self, service):
         """Test categorizing games without VR support."""
@@ -392,7 +392,7 @@ class TestAutoCategorizeService:
         count = service.categorize_by_vr(games)
 
         assert count == 0
-        assert service.category_service.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
 
     # === YEAR CATEGORIZATION TESTS ===
 
@@ -408,7 +408,7 @@ class TestAutoCategorizeService:
         count = service.categorize_by_year(games)
 
         assert count == 1
-        assert service.category_service.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
         assert len(game.categories) == 1
 
     def test_categorize_by_year_no_year(self, service):
@@ -423,7 +423,7 @@ class TestAutoCategorizeService:
         count = service.categorize_by_year(games)
 
         assert count == 0
-        assert service.category_service.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
 
     # === HLTB CATEGORIZATION TESTS ===
 
@@ -439,7 +439,7 @@ class TestAutoCategorizeService:
         count = service.categorize_by_hltb(games)
 
         assert count == 1
-        assert service.category_service.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 1  # type: ignore[attr-defined]
         assert len(game.categories) == 1
 
     def test_categorize_by_hltb_no_data(self, service):
@@ -454,7 +454,7 @@ class TestAutoCategorizeService:
         count = service.categorize_by_hltb(games)
 
         assert count == 0
-        assert service.category_service.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
 
     def test_categorize_by_hltb_edge_boundary(self, service):
         """Test HLTB categorization at range boundary (exactly 5h)."""
@@ -485,7 +485,7 @@ class TestAutoCategorizeService:
         count = service.categorize_by_language(games)
 
         assert count == 2
-        assert service.category_service.add_app_to_category.call_count == 2  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 2  # type: ignore[attr-defined]
         assert len(game.categories) == 2
 
     def test_categorize_by_language_no_languages(self, service):
@@ -500,7 +500,7 @@ class TestAutoCategorizeService:
         count = service.categorize_by_language(games)
 
         assert count == 0
-        assert service.category_service.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
+        assert service.cat_svc.add_app_to_category.call_count == 0  # type: ignore[attr-defined]
 
     # === TIME ESTIMATION TEST ===
 

@@ -152,9 +152,9 @@ class DataLoadHandler:
         from steam_library_manager.services.autocategorize_service import AutoCategorizeService
 
         self.mw.autocategorize_service = AutoCategorizeService(
-            game_manager=self.mw.game_manager,
-            category_service=self.mw.category_service,
-            steam_scraper=self.mw.steam_scraper,
+            game_mgr=self.mw.game_manager,
+            cat_svc=self.mw.category_service,
+            scraper=self.mw.steam_scraper,
         )
 
         self.mw.populate_categories()

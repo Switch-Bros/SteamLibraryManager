@@ -1,6 +1,6 @@
 #
 # steam_library_manager/services/autocategorize_service.py
-# Auto-categorization service using attribute and bucket engines
+# Auto-categorization engine - sorts games into collections by various criteria
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -8,210 +8,160 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable
-
-from steam_library_manager.core.game_manager import Game, GameManager
-from steam_library_manager.integrations.steam_store import SteamStoreScraper
 from steam_library_manager.services.autocat_configs import (
     BUCKET_METHOD_CONFIGS,
     GHOST_PREFIXES,
     KNOWN_FRANCHISES,
     SIMPLE_METHOD_CONFIGS,
 )
-from steam_library_manager.services.category_service import CategoryService
-
-if TYPE_CHECKING:
-    from pathlib import Path
 from steam_library_manager.utils.i18n import t
 
 __all__ = ["AutoCategorizeService"]
 
 
 class AutoCategorizeService:
-    """Service for managing auto-categorization operations."""
+    """Sorts all selected games or all games from selected Collection
+    into Steam collections based on all used metadata:
 
-    def __init__(
-        self,
-        game_manager: GameManager,
-        category_service: CategoryService,
-        steam_scraper: SteamStoreScraper | None = None,
-    ) -> None:
-        self.game_manager = game_manager
-        self.category_service = category_service
-        self.steam_scraper = steam_scraper
+    Tags, Year, Genre, Publisher, Developer, Language, VR, User Score, blabla.
+    """
 
-    # Shared helper
+    def __init__(self, game_mgr, cat_svc, scraper=None):
+        self.game_mgr = game_mgr
+        self.cat_svc = cat_svc
+        self.scraper = scraper
 
-    def _add_category(self, game: Game, category: str) -> bool:
-        """Adds a game to a category, updating both DB and in-memory state."""
+    def _add_cat(self, game, category):
+        # add game to category
         try:
-            self.category_service.add_app_to_category(game.app_id, category)
+            self.cat_svc.add_app_to_category(game.app_id, category)
             if category not in game.categories:
                 game.categories.append(category)
             return True
         except (ValueError, RuntimeError):
             return False
 
-    # Generic engines
+    # generic engines
 
-    def _categorize_simple(
-        self,
-        method_key: str,
-        games: list[Game],
-        progress_callback: Callable[[int, str], None] | None = None,
-    ) -> int:
-        """Categorize games by reading a single attribute and creating categories."""
+    def _categorize_simple(self, method_key, games, progress_cb=None):
+        # reads one attribute per game, creates category from it
         cfg = SIMPLE_METHOD_CONFIGS[method_key]
-        categories_added = 0
+        added = 0
         for i, game in enumerate(games):
-            if progress_callback:
-                progress_callback(i, game.name)
-            value = getattr(game, cfg.attr, None)
-            if not value:
+            if progress_cb:
+                progress_cb(i, game.name)
+            val = getattr(game, cfg.attr, None)
+            if not val:
                 continue
-            # release_year stores UNIX timestamp, extract year for display
-            if cfg.attr == "release_year" and isinstance(value, int) and value > 9999:
+            # dates are unix timestamps behind the scenes, converted for Users eyes
+            if cfg.attr == "release_year" and isinstance(val, int) and val > 9999:
                 from steam_library_manager.utils.date_utils import year_from_timestamp
 
-                value = year_from_timestamp(value)
-                if not value:
+                val = year_from_timestamp(val)
+                if not val:
                     continue
-            for v in (value if cfg.is_list else [value]):
+            for v in (val if cfg.is_list else [val]):
                 if not v:
                     continue
-                display = str(v).capitalize() if cfg.capitalize else str(v)
-                category = display if cfg.use_raw else t(cfg.i18n_key, **{cfg.i18n_kwarg: display})
-                categories_added += self._add_category(game, category)
-        return categories_added
+                disp = str(v).capitalize() if cfg.capitalize else str(v)
+                cat = disp if cfg.use_raw else t(cfg.i18n_key, **{cfg.i18n_kwarg: disp})
+                added += self._add_cat(game, cat)
+        return added
 
-    def _categorize_by_buckets(
-        self,
-        method_key: str,
-        games: list[Game],
-        progress_callback: Callable[[int, str], None] | None = None,
-    ) -> int:
-        """Categorize games by mapping a numeric attribute to threshold buckets."""
+    def _categorize_buckets(self, method_key, games, progress_cb=None):
+        # maps numeric attribute to threshold ranges
         cfg = BUCKET_METHOD_CONFIGS[method_key]
-        categories_added = 0
+        added = 0
         for i, game in enumerate(games):
-            if progress_callback:
-                progress_callback(i, game.name)
-            raw_value = getattr(game, cfg.attr, None)
-            if raw_value is None:
+            if progress_cb:
+                progress_cb(i, game.name)
+            raw = getattr(game, cfg.attr, None)
+            if raw is None:
                 if not cfg.fallback_key:
                     continue
-                label = t(cfg.fallback_key)
+                lbl = t(cfg.fallback_key)
             else:
-                numeric = float(raw_value) if isinstance(raw_value, (int, float)) else 0.0
-                if cfg.skip_falsy and numeric <= 0:
+                num = float(raw) if isinstance(raw, (int, float)) else 0.0
+                if cfg.skip_falsy and num <= 0:
                     continue
-                label = None
-                for threshold, key in cfg.buckets:
-                    if numeric >= threshold:
-                        label = t(key)
+                lbl = None
+                for thresh, key in cfg.buckets:
+                    if num >= thresh:
+                        lbl = t(key)
                         break
-                if label is None:
+                if lbl is None:
                     if cfg.fallback_key:
-                        label = t(cfg.fallback_key)
+                        lbl = t(cfg.fallback_key)
                     else:
                         continue
-            category = t(cfg.i18n_wrapper_key, **{cfg.i18n_wrapper_kwarg: label})
-            categories_added += self._add_category(game, category)
-        return categories_added
+            cat = t(cfg.i18n_wrapper_key, **{cfg.i18n_wrapper_kwarg: lbl})
+            added += self._add_cat(game, cat)
+        return added
 
-    # Simple method wrappers
+    # simple method wrappers
 
-    def categorize_by_publisher(
-        self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
-    ) -> int:
-        """Categorize games by publisher."""
+    def categorize_by_publisher(self, games, progress_callback=None):
         return self._categorize_simple("publisher", games, progress_callback)
 
-    def categorize_by_developer(
-        self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
-    ) -> int:
-        """Categorize games by developer."""
+    def categorize_by_developer(self, games, progress_callback=None):
         return self._categorize_simple("developer", games, progress_callback)
 
-    def categorize_by_genre(
-        self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
-    ) -> int:
-        """Categorize games by genre."""
+    def categorize_by_genre(self, games, progress_callback=None):
         return self._categorize_simple("genre", games, progress_callback)
 
-    def categorize_by_platform(
-        self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
-    ) -> int:
-        """Categorize games by supported platform."""
+    def categorize_by_platform(self, games, progress_callback=None):
         return self._categorize_simple("platform", games, progress_callback)
 
-    def categorize_by_year(self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None) -> int:
-        """Categorize games by release year."""
+    def categorize_by_year(self, games, progress_callback=None):
         return self._categorize_simple("year", games, progress_callback)
 
-    def categorize_by_language(
-        self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
-    ) -> int:
-        """Categorize games by supported interface languages."""
+    def categorize_by_language(self, games, progress_callback=None):
         return self._categorize_simple("language", games, progress_callback)
 
-    def categorize_by_vr(self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None) -> int:
-        """Categorize games by VR support level."""
+    def categorize_by_vr(self, games, progress_callback=None):
         return self._categorize_simple("vr", games, progress_callback)
 
-    # Bucket method wrappers
+    # bucket method wrappers
 
-    def categorize_by_user_score(
-        self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
-    ) -> int:
-        """Categorize games by Steam user review score."""
-        return self._categorize_by_buckets("user_score", games, progress_callback)
+    def categorize_by_user_score(self, games, progress_callback=None):
+        return self._categorize_buckets("user_score", games, progress_callback)
 
-    def categorize_by_hours_played(
-        self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
-    ) -> int:
-        """Categorize games by playtime ranges."""
-        return self._categorize_by_buckets("hours_played", games, progress_callback)
+    def categorize_by_hours_played(self, games, progress_callback=None):
+        return self._categorize_buckets("hours_played", games, progress_callback)
 
-    def categorize_by_hltb(self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None) -> int:
-        """Categorize games by HowLongToBeat main story duration."""
-        return self._categorize_by_buckets("hltb", games, progress_callback)
+    def categorize_by_hltb(self, games, progress_callback=None):
+        return self._categorize_buckets("hltb", games, progress_callback)
 
-    # Special methods
+    # special methods
 
-    def categorize_by_tags(
-        self,
-        games: list[Game],
-        tags_count: int,
-        progress_callback: Callable[[int, str], None] | None = None,
-    ) -> int:
-        """Categorize games by Steam Store tags."""
-        if not self.steam_scraper:
+    def categorize_by_tags(self, games, tags_count, progress_callback=None):
+        # uses steam store scraper to fetch tags per game
+        if not self.scraper:
             return 0
-        categories_added = 0
+        added = 0
         for i, game in enumerate(games):
             if progress_callback:
                 progress_callback(i, game.name)
-            for tag in self.steam_scraper.fetch_tags(game.app_id)[:tags_count]:
-                categories_added += self._add_category(game, tag)
-        return categories_added
+            for tag in self.scraper.fetch_tags(game.app_id)[:tags_count]:
+                added += self._add_cat(game, tag)
+        return added
 
     @staticmethod
-    def _detect_franchise(game_name: str) -> str | None:
-        """Detects franchise from a game name using the curated list + pattern fallback."""
-        if not game_name:
+    def _detect_franchise(name):
+        # tries to figure out franchise from game name
+        if not name:
             return None
-        for prefix in GHOST_PREFIXES:
-            if game_name.startswith(prefix):
+        for pfx in GHOST_PREFIXES:
+            if name.startswith(pfx):
                 return None
-        name_lower = game_name.lower()
+        name_lower = name.lower()
         for franchise in KNOWN_FRANCHISES:
             fl = franchise.lower()
             if name_lower.startswith(fl):
-                rest = game_name[len(franchise) :]
+                rest = name[len(franchise) :]
                 if not rest or rest[0] in (" ", ":", "-", "\u2122", "\u00ae"):
                     return franchise
-        clean = game_name.replace("\u2122", "").replace("\u00ae", "").strip()
+        clean = name.replace("\u2122", "").replace("\u00ae", "").strip()
         for delim in (":", " - ", " \u2013 "):
             if delim in clean:
                 potential = clean.split(delim)[0].strip()
@@ -219,62 +169,54 @@ class AutoCategorizeService:
                     return potential
         return None
 
-    def categorize_by_franchise(
-        self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
-    ) -> int:
-        """Categorize games by detected franchise (two-pass approach)."""
-        game_franchise_map: dict[str, list[Game]] = {}
+    def categorize_by_franchise(self, games, progress_callback=None):
+        # two-pass: detect franchises, then create categories for known ones
+        fmap = {}
         for i, game in enumerate(games):
             if progress_callback:
                 progress_callback(i, game.name)
-            franchise = self._detect_franchise(game.name)
-            if franchise:
-                game_franchise_map.setdefault(franchise, []).append(game)
+            fr = self._detect_franchise(game.name)
+            if fr:
+                fmap.setdefault(fr, []).append(game)
 
-        categories_added = 0
-        known_lower = {f.lower() for f in KNOWN_FRANCHISES}
-        for franchise, matched_games in game_franchise_map.items():
-            if franchise.lower() not in known_lower and len(matched_games) < 3:
+        added = 0
+        known_lc = {f.lower() for f in KNOWN_FRANCHISES}
+        for franchise, matched in fmap.items():
+            if franchise.lower() not in known_lc and len(matched) < 3:
                 continue
-            category = t("auto_categorize.cat_franchise", name=franchise)
-            for game in matched_games:
-                categories_added += self._add_category(game, category)
-        return categories_added
+            cat = t("auto_categorize.cat_franchise", name=franchise)
+            for game in matched:
+                added += self._add_cat(game, cat)
+        return added
 
-    def categorize_by_flags(
-        self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
-    ) -> int:
-        """Categorize games by feature flags (e.g. Free to Play)."""
-        categories_added = 0
+    def categorize_by_flags(self, games, progress_callback=None):
+        added = 0
         for i, game in enumerate(games):
             if progress_callback:
                 progress_callback(i, game.name)
-            flags: list[str] = []
+            flags = []
             if getattr(game, "is_free", False):
                 flags.append("Free to Play")
-            for flag_name in flags:
-                category = t("auto_categorize.cat_flags", name=flag_name)
-                categories_added += self._add_category(game, category)
-        return categories_added
+            for flag in flags:
+                cat = t("auto_categorize.cat_flags", name=flag)
+                added += self._add_cat(game, cat)
+        return added
 
-    _DECK_STATUS_KEYS: frozenset[str] = frozenset({"verified", "playable", "unsupported"})
+    _DECK_KEYS = frozenset({"verified", "playable", "unsupported"})
 
-    def categorize_by_deck_status(
-        self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
-    ) -> int:
-        """Categorize games by Steam Deck compatibility status."""
-        categories_added = 0
+    def categorize_by_deck_status(self, games, progress_callback=None):
+        added = 0
         for i, game in enumerate(games):
             if progress_callback:
                 progress_callback(i, game.name)
             status = game.steam_deck_status.lower() if game.steam_deck_status else ""
-            if not status or status not in self._DECK_STATUS_KEYS:
+            if not status or status not in self._DECK_KEYS:
                 continue
-            category = f"{t('auto_categorize.cat_deck_' + status)} {t('emoji.vr')}"
-            categories_added += self._add_category(game, category)
-        return categories_added
+            cat = "%s %s" % (t("auto_categorize.cat_deck_" + status), t("emoji.vr"))
+            added += self._add_cat(game, cat)
+        return added
 
-    _PEGI_BUCKETS: tuple[tuple[str, str], ...] = (
+    _PEGI_BUCKETS = (
         ("3", "auto_categorize.pegi_3"),
         ("7", "auto_categorize.pegi_7"),
         ("12", "auto_categorize.pegi_12"),
@@ -282,40 +224,39 @@ class AutoCategorizeService:
         ("18", "auto_categorize.pegi_18"),
     )
 
-    def _migrate_pegi_categories(self, games: list[Game]) -> None:
-        """Rename old PEGI category labels to zero-padded format."""
+    def _migrate_pegi_categories(self, games):
+        # renames old pegi labels to zero-padded format (PEGI 3 -> PEGI 03)
+        # can be removed once all users have re-categorized
         import re
 
-        pegi_pattern = re.compile(r"^(.+?)(PEGI\s*)(\d+)(.*)$")
-        renames: dict[str, str] = {}
+        pegi_re = re.compile(r"^(.+?)(PEGI\s*)(\d+)(.*)$")
+        renames = {}
         for game in games:
             for cat in list(game.categories):
-                m = pegi_pattern.match(cat)
+                m = pegi_re.match(cat)
                 if not m:
                     continue
-                prefix, pegi_word, num, suffix = m.groups()
-                # Strip parenthetical like "(Everyone)" or "(Alle Altersgruppen)"
-                clean_suffix = re.sub(r"\s*\(.*?\)", "", suffix).strip()
-                padded = f"{prefix}{pegi_word}{int(num):02d}{clean_suffix}"
+                pfx, pw, num, sfx = m.groups()
+                clean_sfx = re.sub(r"\s*\(.*?\)", "", sfx).strip()
+                padded = "%s%s%02d%s" % (pfx, pw, int(num), clean_sfx)
                 if padded != cat:
                     renames[cat] = padded
 
-        for old_cat, new_cat in renames.items():
+        for old, new in renames.items():
             for game in games:
-                if old_cat in game.categories:
-                    game.categories.remove(old_cat)
-                    if new_cat not in game.categories:
-                        game.categories.append(new_cat)
-                    self.category_service.add_app_to_category(game.app_id, new_cat)
+                if old in game.categories:
+                    game.categories.remove(old)
+                    if new not in game.categories:
+                        game.categories.append(new)
+                    self.cat_svc.add_app_to_category(game.app_id, new)
             try:
-                self.category_service.delete_category(old_cat)
+                self.cat_svc.delete_category(old)
             except (ValueError, RuntimeError):
                 pass
 
-    def categorize_by_pegi(self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None) -> int:
-        """Categorize games by PEGI age rating."""
+    def categorize_by_pegi(self, games, progress_callback=None):
         self._migrate_pegi_categories(games)
-        categories_added = 0
+        added = 0
         for i, game in enumerate(games):
             if progress_callback:
                 progress_callback(i, game.name)
@@ -323,21 +264,18 @@ class AutoCategorizeService:
             if pegi:
                 for rating, key in self._PEGI_BUCKETS:
                     if str(pegi) == rating:
-                        label = t(key)
+                        lbl = t(key)
                         break
                 else:
-                    label = t("auto_categorize.pegi_unknown")
+                    lbl = t("auto_categorize.pegi_unknown")
             else:
-                label = t("auto_categorize.pegi_unknown")
-            category = t("auto_categorize.cat_pegi", rating=label)
-            categories_added += self._add_category(game, category)
-        return categories_added
+                lbl = t("auto_categorize.pegi_unknown")
+            cat = t("auto_categorize.cat_pegi", rating=lbl)
+            added += self._add_cat(game, cat)
+        return added
 
-    def categorize_by_achievements(
-        self, games: list[Game], progress_callback: Callable[[int, str], None] | None = None
-    ) -> int:
-        """Categorize games by achievement completion percentage."""
-        categories_added = 0
+    def categorize_by_achievements(self, games, progress_callback=None):
+        added = 0
         for i, game in enumerate(games):
             if progress_callback:
                 progress_callback(i, game.name)
@@ -346,23 +284,18 @@ class AutoCategorizeService:
             pct = game.achievement_percentage
             trophy = t("emoji.trophy")
             if game.achievement_perfect:
-                cat_name = f"{t('auto_categorize.cat_achievement_perfect')} {trophy}"
+                name = "%s %s" % (t("auto_categorize.cat_achievement_perfect"), trophy)
             elif pct >= 75:
-                cat_name = f"{t('auto_categorize.cat_achievement_almost')} {trophy}"
+                name = "%s %s" % (t("auto_categorize.cat_achievement_almost"), trophy)
             elif pct >= 25:
-                cat_name = f"{t('auto_categorize.cat_achievement_progress')} {trophy}"
+                name = "%s %s" % (t("auto_categorize.cat_achievement_progress"), trophy)
             else:
-                cat_name = f"{t('auto_categorize.cat_achievement_started')} {trophy}"
-            categories_added += self._add_category(game, cat_name)
-        return categories_added
+                name = "%s %s" % (t("auto_categorize.cat_achievement_started"), trophy)
+            added += self._add_cat(game, name)
+        return added
 
-    def categorize_by_curator(
-        self,
-        games: list[Game],
-        db_path: Path | None = None,
-        progress_callback: Callable[[int, str], None] | None = None,
-    ) -> int:
-        """Categorize games based on stored curator recommendations from DB."""
+    def categorize_by_curator(self, games, db_path=None, progress_callback=None):
+        # uses stored curator recommendations from DB
         if db_path is None:
             return 0
 
@@ -374,56 +307,54 @@ class AutoCategorizeService:
             if not curators:
                 return 0
 
-            categories_added = 0
-            for curator in curators:
-                curator_id = curator["curator_id"]
-                curator_name = f"{curator['name']} {t('emoji.curator')}"
-                recommended_ids = db.get_recommendations_for_curator(curator_id)
-                if not recommended_ids:
+            added = 0
+            for cur in curators:
+                cid = cur["curator_id"]
+                cname = "%s %s" % (cur["name"], t("emoji.curator"))
+                rec_ids = db.get_recommendations_for_curator(cid)
+                if not rec_ids:
                     continue
 
                 for i, game in enumerate(games):
                     if progress_callback:
                         progress_callback(i, game.name)
                     try:
-                        numeric_id = int(game.app_id)
+                        num_id = int(game.app_id)
                     except (ValueError, TypeError):
                         continue
-                    if numeric_id in recommended_ids:
-                        categories_added += self._add_category(game, curator_name)
+                    if num_id in rec_ids:
+                        added += self._add_cat(game, cname)
 
-            return categories_added
+            return added
         finally:
             db.close()
 
-    # Cache coverage and time estimation
+    # cache coverage + time estimates
 
-    def get_cache_coverage(self, games: list[Game]) -> dict[str, Any]:
-        """Get cache coverage for games (for tags method)."""
-        if not self.steam_scraper:
+    def get_cache_coverage(self, games):
+        if not self.scraper:
             return {"total": len(games), "cached": 0, "missing": len(games), "percentage": 0.0}
-        app_ids = [game.app_id for game in games]
-        return self.steam_scraper.get_cache_coverage(app_ids)
+        ids = [g.app_id for g in games]
+        return self.scraper.get_cache_coverage(ids)
 
-    def get_tag_coverage_from_db(self, total_games: int, database: Any = None) -> dict[str, Any]:
-        """Check tag coverage from database instead of file cache."""
+    def get_tag_coverage_from_db(self, total, database=None):
+        # check tag coverage from DB instead of file cache
         if not database:
-            return {"total": total_games, "cached": 0, "missing": total_games, "percentage": 0.0}
+            return {"total": total, "cached": 0, "missing": total, "percentage": 0.0}
         cached = database.get_games_with_tags_count()
-        missing = max(0, total_games - cached)
-        pct = (cached / total_games * 100) if total_games > 0 else 0.0
-        return {"total": total_games, "cached": cached, "missing": missing, "percentage": pct}
+        miss = max(0, total - cached)
+        pct = (cached / total * 100) if total > 0 else 0.0
+        return {"total": total, "cached": cached, "missing": miss, "percentage": pct}
 
     @staticmethod
-    def estimate_time(missing_count: int) -> str:
-        """Estimate time for fetching missing tags."""
-        estimated_seconds = int(missing_count * 1.5)
-        estimated_minutes = estimated_seconds // 60
-        if estimated_minutes > 60:
-            hours = estimated_minutes // 60
-            mins = estimated_minutes % 60
-            return t("time.time_hours", hours=hours, minutes=mins)
-        elif estimated_minutes > 0:
-            return t("time.time_minutes", minutes=estimated_minutes)
+    def estimate_time(missing_count):
+        secs = int(missing_count * 1.5)
+        mins = secs // 60
+        if mins > 60:
+            h = mins // 60
+            m = mins % 60
+            return t("time.time_hours", hours=h, minutes=m)
+        elif mins > 0:
+            return t("time.time_minutes", minutes=mins)
         else:
-            return t("time.time_seconds", seconds=estimated_seconds)
+            return t("time.time_seconds", seconds=secs)
