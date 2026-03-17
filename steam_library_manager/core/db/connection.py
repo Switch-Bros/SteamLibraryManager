@@ -1,6 +1,6 @@
 #
 # steam_library_manager/core/db/connection.py
-# SQLite connection management with PRAGMA setup and context manager support
+# SQLite connection setup with WAL mode and foreign keys
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -11,7 +11,6 @@ from __future__ import annotations
 import logging
 import sqlite3
 from pathlib import Path
-from typing import Any
 
 from steam_library_manager.utils.timeouts import DB_BUSY_TIMEOUT_MS, DB_CONNECT_TIMEOUT
 
@@ -21,10 +20,10 @@ __all__ = ["ConnectionBase"]
 
 
 class ConnectionBase:
-    """Base class providing SQLite connection setup and lifecycle.
+    """Base class for all DB access - sets up WAL mode, foreign keys, busy timeout.
 
-    Configures WAL mode and foreign keys. Calls _ensure_schema()
-    which is provided by SchemaMixin via multiple inheritance.
+    SchemaMixin provides _ensure_schema() via multiple inheritance,
+    with this it creates or migrates the schema on first connect.
     """
 
     SCHEMA_VERSION = 9
@@ -32,36 +31,27 @@ class ConnectionBase:
     conn: sqlite3.Connection
     db_path: Path
 
-    def __init__(self, db_path: Path) -> None:
-        """Initialize database connection.
-
-        Args:
-            db_path: Path to SQLite database file.
-        """
+    def __init__(self, db_path):
         self.db_path = db_path
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        db_path.parent.mkdir(parents=True, exist_ok=True)
 
         self.conn = sqlite3.connect(str(db_path), timeout=DB_CONNECT_TIMEOUT)
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.conn.execute("PRAGMA journal_mode = WAL")
-        self.conn.execute(f"PRAGMA busy_timeout = {DB_BUSY_TIMEOUT_MS}")
+        self.conn.execute("PRAGMA busy_timeout = %d" % DB_BUSY_TIMEOUT_MS)
 
         self._ensure_schema()
 
-    def commit(self) -> None:
-        """Commit current transaction."""
+    def commit(self):
         self.conn.commit()
 
-    def close(self) -> None:
-        """Close database connection."""
+    def close(self):
         self.conn.close()
 
-    def __enter__(self) -> ConnectionBase:
-        """Context manager entry."""
+    def __enter__(self):
         return self
 
-    def __exit__(self, *args: Any) -> None:
-        """Context manager exit."""
+    def __exit__(self, *args):
         self.commit()
         self.close()
