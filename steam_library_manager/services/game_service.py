@@ -1,6 +1,6 @@
 #
 # steam_library_manager/services/game_service.py
-# Service for managing game loading and initialization.
+# Game loading and init pipeline
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -9,9 +9,7 @@
 from __future__ import annotations
 
 import logging
-
 import requests
-from typing import Callable
 from pathlib import Path
 
 from steam_library_manager.utils.i18n import t
@@ -33,263 +31,226 @@ __all__ = ["GameService"]
 
 
 class GameService:
-    """Service for managing game loading and initialization."""
+    """Orchestrates game loading from multiple sources.
 
-    def __init__(self, steam_path: str, api_key: str, cache_dir: str):
-        """Initialize with Steam path, API key, and cache directory."""
+    Pipeline: API fetch -> local VDF parse -> cloud storage merge
+    -> DB enrichment -> metadata overrides -> done.
+    """
+
+    def __init__(self, steam_path, api_key, cache_dir):
         self.steam_path = steam_path
         self.api_key = api_key
         self.cache_dir = cache_dir
 
-        self.localconfig_helper: LocalConfigHelper | None = None
-        self.cloud_storage_parser: CloudStorageParser | None = None
-        self.game_manager: GameManager | None = None
-        self.appinfo_manager: AppInfoManager | None = None
-        self.database: Database | None = None
+        self.localconfig_helper = None
+        self.cloud_storage_parser = None
+        self.game_manager = None
+        self.appinfo_manager = None
+        self.database = None
 
-    def initialize_parsers(self, localconfig_path: str, user_id: str) -> tuple[bool, bool]:
-        """Initialize VDF and Cloud Storage parsers, returns (vdf_ok, cloud_ok)."""
-        vdf_success = False
-        cloud_success = False
+    def initialize_parsers(self, localconfig_path, user_id):
+        # setup VDF + cloud storage parsers
+        vdf_ok = False
+        cloud_ok = False
 
-        # Try VDF parser
         try:
             self.localconfig_helper = LocalConfigHelper(localconfig_path)
             if self.localconfig_helper.load():
-                vdf_success = True
+                vdf_ok = True
             else:
                 self.localconfig_helper = None
-                vdf_success = False
         except (OSError, FileNotFoundError, ValueError) as e:
             logger.error(t("logs.service.localconfig_init_error", error=e))
             self.localconfig_helper = None
 
-        # Try Cloud Storage parser
         try:
             self.cloud_storage_parser = CloudStorageParser(self.steam_path, user_id)
             if self.cloud_storage_parser.load():
-                cloud_success = True
+                cloud_ok = True
             else:
                 self.cloud_storage_parser = None
         except Exception as e:
             logger.error(t("logs.service.cloud_parser_init_error", error=e))
             self.cloud_storage_parser = None
 
-        return vdf_success, cloud_success
+        return vdf_ok, cloud_ok
 
-    def _init_database(self) -> Database | None:
-        """Open or create the SQLite metadata database."""
-        db_dir = Path(self.cache_dir).parent  # data/ directory
+    def _init_db(self):
+        # open metadata.db
+        db_dir = Path(self.cache_dir).parent
         db_path = db_dir / "metadata.db"
-
         try:
-            db = Database(db_path)
+            d = Database(db_path)
             logger.info(t("logs.db.initializing"))
-            return db
+            return d
         except Exception as e:
             logger.error(t("logs.db.schema_error", error=str(e)))
             return None
 
-    def _run_initial_import(
-        self,
-        db: Database,
-        progress_callback: Callable[[str, int, int], None] | None = None,
-    ) -> None:
-        """Run the one-time database import from appinfo.vdf."""
-        # Quick check BEFORE loading appinfo.vdf (avoids ~30s parse on every start)
+    def _initial_import(self, db, cb=None):
+        # one-time import from appinfo.vdf
         if db.get_game_count() > 0:
             logger.info(t("logs.db.already_initialized"))
             return
 
-        # DB is empty — load appinfo.vdf for one-time import
         if not self.appinfo_manager:
             self.appinfo_manager = AppInfoManager(Path(self.steam_path))
             self.appinfo_manager.load_appinfo()
 
-        importer = DatabaseImporter(db, self.appinfo_manager)
+        imp = DatabaseImporter(db, self.appinfo_manager)
 
-        def _bridge(current: int, total: int, msg: str) -> None:
-            if progress_callback:
-                progress_callback(msg, current, total)
+        def bridge(cur, total, msg):
+            if cb:
+                cb(msg, cur, total)
 
         logger.info(t("logs.db.import_one_time"))
-        importer.import_from_appinfo(_bridge)
+        imp.import_from_appinfo(bridge)
 
-    def load_games(self, user_id: str, progress_callback: Callable[[str, int, int], None] | None = None) -> bool:
-        """Load all games from API/local, then enrich with DB metadata."""
+    def load_games(self, user_id, progress_callback=None):
+        # load all games from API/local, enrich with DB
         if not self.cloud_storage_parser:
             raise RuntimeError("Parsers not initialized. Call initialize_parsers() first.")
 
-        # Initialize GameManager with Path objects
         self.game_manager = GameManager(self.api_key, Path(self.cache_dir), Path(self.steam_path))
-
-        # Initialize database (but don't load from it yet)
-        self.database = self._init_database()
+        self.database = self._init_db()
 
         if self.database:
-            # Run initial import if DB is empty
-            self._run_initial_import(self.database, progress_callback)
-            # Clean up any leftover placeholder names from previous imports
+            self._initial_import(self.database, progress_callback)
             self.database.repair_placeholder_names()
 
-        # Load games from API/local FIRST (these have authoritative names)
-        success = self.game_manager.load_games(user_id, progress_callback)
+        ok = self.game_manager.load_games(user_id, progress_callback)
 
-        # THEN enrich with cached metadata from DB (developer, publisher, genres etc.)
         if self.database and self.game_manager.games:
             self.game_manager.enrich_from_database(self.database)
 
-        return success and bool(self.game_manager.games)
+        return ok and bool(self.game_manager.games)
 
-    def load_and_prepare(self, user_id: str, progress_callback: Callable[[str, int, int], None] | None = None) -> bool:
-        """Load games and run the full preparation pipeline."""
-        success = self.load_games(user_id, progress_callback)
-        if not success or not self.game_manager or not self.game_manager.games:
+    def load_and_prepare(self, user_id, progress_callback=None):
+        # full pipeline
+        ok = self.load_games(user_id, progress_callback)
+        if not ok or not self.game_manager or not self.game_manager.games:
             return False
 
-        self._merge_cloud_collections(progress_callback)
-        modifications = self._load_custom_modifications(progress_callback)
-        pkg_ids = self._resolve_package_ownership(progress_callback)
-        db_type_lookup = self._discover_missing_games(pkg_ids, progress_callback)
-        self._refresh_from_api_and_merge(user_id, progress_callback)
-        self._finalize_games(modifications, db_type_lookup, progress_callback)
+        cb = progress_callback
+        self._merge_cloud(cb)
+        mods = self._load_mods(cb)
+        pkg_ids = self._resolve_pkgs(cb)
+        types = self._discover_missing(pkg_ids, cb)
+        self._api_refresh_merge(user_id, cb)
+        self._finalize(mods, types, cb)
         return True
 
-    # -- load_and_prepare pipeline steps --
+    # pipeline steps
 
-    def _merge_cloud_collections(self, progress_callback: Callable[[str, int, int], None] | None) -> None:
-        """Merge collections from cloud storage into loaded games."""
-        if progress_callback:
-            progress_callback(t("logs.manager.merging"), 0, 0)
+    def _merge_cloud(self, cb):
+        if cb:
+            cb(t("logs.manager.merging"), 0, 0)
         if self.cloud_storage_parser:
             self.game_manager.merge_with_localconfig(self.cloud_storage_parser)
 
-    def _load_custom_modifications(self, progress_callback: Callable[[str, int, int], None] | None) -> dict:
-        """Load custom_metadata.json overrides (skip binary VDF)."""
-        if progress_callback:
-            progress_callback(t("logs.service.applying_metadata"), 0, 0)
+    def _load_mods(self, cb):
+        if cb:
+            cb(t("logs.service.applying_metadata"), 0, 0)
         if not self.appinfo_manager:
             self.appinfo_manager = AppInfoManager(Path(self.steam_path))
         return self.appinfo_manager.load_modifications_only()
 
-    def _resolve_package_ownership(self, progress_callback: Callable[[str, int, int], None] | None) -> set:
-        """Parse packageinfo.vdf + licensecache to determine owned app IDs."""
-        if progress_callback:
-            progress_callback(t("logs.service.parsing_packages"), 0, 0)
+    def _resolve_pkgs(self, cb):
+        if cb:
+            cb(t("logs.service.parsing_packages"), 0, 0)
 
-        pkg_parser = PackageInfoParser(Path(self.steam_path))
+        pkg = PackageInfoParser(Path(self.steam_path))
 
         from steam_library_manager.config import config as _cfg
 
-        short_id, _ = _cfg.get_detected_user()
-        steam32_id = int(short_id) if short_id else None
+        sid, _ = _cfg.get_detected_user()
+        s32 = int(sid) if sid else None
 
-        if not steam32_id:
-            return pkg_parser.get_all_app_ids()
+        if not s32:
+            return pkg.get_all_app_ids()
 
-        license_parser = LicenseCacheParser(Path(self.steam_path), steam32_id)
-        owned_packages = license_parser.get_owned_package_ids()
+        lic = LicenseCacheParser(Path(self.steam_path), s32)
+        owned = lic.get_owned_package_ids()
 
-        if not owned_packages:
-            return pkg_parser.get_all_app_ids()
+        if not owned:
+            return pkg.get_all_app_ids()
 
-        pkg_ids = pkg_parser.get_app_ids_for_packages(owned_packages)
-        logger.info(
-            t(
-                "logs.license_cache.cross_reference",
-                packages=len(owned_packages),
-                apps=len(pkg_ids),
-            )
-        )
-        return pkg_ids
+        ids = pkg.get_app_ids_for_packages(owned)
+        logger.info(t("logs.license_cache.cross_reference", packages=len(owned), apps=len(ids)))
+        return ids
 
-    def _discover_missing_games(
-        self, packageinfo_ids: set, progress_callback: Callable[[str, int, int], None] | None
-    ) -> dict[str, tuple[str, str]] | None:
-        """Find games missing from the API list using DB or binary fallback.
+    def _discover_missing(self, pkg_ids, cb):
+        if cb:
+            cb(t("logs.service.discovering_games"), 0, 0)
 
-        Returns the db_type_lookup (needed by _finalize_games to pick
-        the right override strategy), or None when DB was unavailable.
-        """
-        if progress_callback:
-            progress_callback(t("logs.service.discovering_games"), 0, 0)
-
-        db_type_lookup: dict[str, tuple[str, str]] | None = None
+        types = None
         if self.database and self.database.get_game_count() > 0:
-            db_type_lookup = self.database.get_app_type_lookup()
+            types = self.database.get_app_type_lookup()
 
-        if db_type_lookup is not None:
-            discovered = self.game_manager.discover_missing_games(
+        # FIXME: types can be empty dict which is valid
+        if types is not None:
+            found = self.game_manager.discover_missing_games(
                 self.localconfig_helper,
                 self.appinfo_manager,
-                packageinfo_ids,
-                db_type_lookup=db_type_lookup,
+                pkg_ids,
+                db_type_lookup=types,
             )
         else:
             self.appinfo_manager.load_appinfo()
-            discovered = self.game_manager.discover_missing_games(
+            found = self.game_manager.discover_missing_games(
                 self.localconfig_helper,
                 self.appinfo_manager,
-                packageinfo_ids,
+                pkg_ids,
             )
 
-        if discovered > 0 and self.cloud_storage_parser:
+        if found > 0 and self.cloud_storage_parser:
             self.game_manager.merge_with_localconfig(self.cloud_storage_parser)
 
-        return db_type_lookup
+        return types
 
-    def _refresh_from_api_and_merge(
-        self, user_id: str, progress_callback: Callable[[str, int, int], None] | None
-    ) -> None:
-        """Fresh API call to catch newly purchased games, then re-merge."""
-        if progress_callback:
-            progress_callback(t("ui.status.api_refresh"), 0, 0)
-        new_app_ids = self._refresh_from_api(user_id)
-        if new_app_ids:
+    def _api_refresh_merge(self, uid, cb):
+        if cb:
+            cb(t("ui.status.api_refresh"), 0, 0)
+        new = self._api_refresh(uid)
+        if new:
             if self.cloud_storage_parser:
                 self.game_manager.merge_with_localconfig(self.cloud_storage_parser)
             if self.database:
-                self._save_new_games_to_db(new_app_ids)
+                self._save_new(new)
 
-    def _finalize_games(
-        self,
-        modifications: dict,
-        db_type_lookup: dict[str, tuple[str, str]] | None,
-        progress_callback: Callable[[str, int, int], None] | None,
-    ) -> None:
-        """Re-enrich from DB, repair placeholders, apply metadata overrides."""
+    def _finalize(self, mods, types, cb):
         if self.database:
             self.game_manager.enrich_from_database(self.database)
 
-        self._repair_placeholder_names()
+        self._repair_placeholders()
 
-        if progress_callback:
-            progress_callback(t("logs.service.applying_overrides"), 0, 0)
-        if db_type_lookup is not None:
-            self.game_manager.apply_custom_overrides(modifications)
+        if cb:
+            cb(t("logs.service.applying_overrides"), 0, 0)
+        if types is not None:
+            self.game_manager.apply_custom_overrides(mods)
         else:
             self.game_manager.apply_metadata_overrides(self.appinfo_manager)
 
-    def _refresh_from_api(self, steam_user_id: str) -> list[str]:
-        """Refresh game list from GetOwnedGames API to catch new purchases."""
+    def _api_refresh(self, uid):
+        # fetch from steam API
         if not self.game_manager:
             return []
 
         from steam_library_manager.config import config
 
-        access_token = getattr(config, "STEAM_ACCESS_TOKEN", None)
+        tok = getattr(config, "STEAM_ACCESS_TOKEN", None)
 
-        if not access_token and not self.api_key:
-            logger.debug("No API credentials — skipping refresh")
+        if not tok and not self.api_key:
+            logger.debug("no API creds - skip")
             return []
 
         try:
             url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
 
-            if access_token:
+            if tok:
                 params = {
-                    "access_token": access_token,
-                    "steamid": steam_user_id,
+                    "access_token": tok,
+                    "steamid": uid,
                     "include_appinfo": 1,
                     "include_played_free_games": 1,
                     "include_free_sub": 1,
@@ -299,7 +260,7 @@ class GameService:
             else:
                 params = {
                     "key": self.api_key,
-                    "steamid": steam_user_id,
+                    "steamid": uid,
                     "include_appinfo": 1,
                     "include_played_free_games": 1,
                     "include_free_sub": 1,
@@ -307,148 +268,137 @@ class GameService:
                     "format": "json",
                 }
 
-            response = requests.get(url, params=params, timeout=HTTP_TIMEOUT_LONG)
-            response.raise_for_status()
-            data = response.json()
+            resp = requests.get(url, params=params, timeout=HTTP_TIMEOUT_LONG)
+            resp.raise_for_status()
+            data = resp.json()
 
-            games_data = data.get("response", {}).get("games", [])
-            if not games_data:
+            glist = data.get("response", {}).get("games", [])
+            if not glist:
                 return []
 
-            new_app_ids: list[str] = []
+            new_ids = []
 
-            for game_data in games_data:
-                app_id = str(game_data["appid"])
+            for gd in glist:
+                aid = str(gd["appid"])
 
-                if app_id not in self.game_manager.games:
-                    name = game_data.get("name") or t("ui.game_details.game_fallback", id=app_id)
-                    playtime = game_data.get("playtime_forever", 0)
+                if aid not in self.game_manager.games:
+                    nm = gd.get("name") or t("ui.game_details.game_fallback", id=aid)
+                    pt = gd.get("playtime_forever", 0)
 
                     game = Game(
-                        app_id=app_id,
-                        name=name,
-                        playtime_minutes=playtime,
+                        app_id=aid,
+                        name=nm,
+                        playtime_minutes=pt,
                         app_type="game",
                     )
-                    self.game_manager.games[app_id] = game
-                    new_app_ids.append(app_id)
-                    logger.debug("API refresh: discovered %s (%s)", app_id, name)
+                    self.game_manager.games[aid] = game
+                    new_ids.append(aid)
+                    logger.debug("found %s (%s)" % (aid, nm))
 
-            if new_app_ids:
-                logger.info("API refresh: discovered %d new games", len(new_app_ids))
+            if new_ids:
+                logger.info("refresh: %d new games" % len(new_ids))
 
-            return new_app_ids
+            return new_ids
 
         except Exception as e:
-            # Sanitize error message to avoid leaking access token in logs
+            # hide token from logs
             if isinstance(e, requests.HTTPError) and e.response is not None:
-                safe_msg = f"HTTP {e.response.status_code}"
+                msg = "HTTP %d" % e.response.status_code
             else:
-                safe_msg = type(e).__name__
-            logger.warning("API refresh failed (non-fatal): %s", safe_msg)
+                msg = type(e).__name__
+            logger.warning("API refresh failed: %s" % msg)
             return []
 
-    def _save_new_games_to_db(self, new_app_ids: list[str]) -> None:
-        """Persist newly discovered games to the database."""
+    def _save_new(self, new_ids):
+        # persist to db
         if not self.database or not self.game_manager:
             return
 
-        for app_id in new_app_ids:
-            game = self.game_manager.games.get(app_id)
-            if not game:
+        for aid in new_ids:
+            g = self.game_manager.games.get(aid)
+            if not g:
                 continue
             entry = DatabaseEntry(
-                app_id=int(app_id),
-                name=game.name,
-                app_type=game.app_type or "game",
+                app_id=int(aid),
+                name=g.name,
+                app_type=g.app_type or "game",
             )
             try:
                 self.database.insert_game(entry)
             except Exception as e:
-                logger.debug("DB insert for %s failed: %s", app_id, e)
+                logger.debug("insert %s failed: %s" % (aid, e))
 
         self.database.commit()
 
-    def _repair_placeholder_names(self) -> None:
-        """Replace placeholder names ("App XXXXX") with real names from appinfo.vdf."""
+    def _repair_placeholders(self):
+        # fix "App XXXXX" names
         if not self.game_manager or not self.appinfo_manager:
             return
 
         from steam_library_manager.core.database import is_placeholder_name
 
-        placeholder_games = [game for game in self.game_manager.games.values() if is_placeholder_name(game.name)]
+        bad = [g for g in self.game_manager.games.values() if is_placeholder_name(g.name)]
 
-        if not placeholder_games:
+        if not bad:
             return
 
-        # Lazy-load appinfo.vdf only if needed
+        # lazy load
         if not getattr(self.appinfo_manager, "appinfo", None):
             self.appinfo_manager.load_appinfo()
 
-        repaired = 0
-        for game in placeholder_games:
-            meta = self.appinfo_manager.get_app_metadata(game.app_id)
-            real_name = meta.get("name", "")
+        fixed = 0
+        for g in bad:
+            meta = self.appinfo_manager.get_app_metadata(g.app_id)
+            real = meta.get("name", "")
 
-            if real_name and not is_placeholder_name(real_name):
-                game.name = real_name
-                if not game.name_overridden:
-                    game.sort_name = real_name
+            if real and not is_placeholder_name(real):
+                g.name = real
+                if not g.name_overridden:
+                    g.sort_name = real
 
-                # Also update DB so next startup doesn't repeat the lookup
                 if self.database:
-                    self.database.update_game_name(int(game.app_id), real_name)
+                    self.database.update_game_name(int(g.app_id), real)
 
-                repaired += 1
+                fixed += 1
 
-        if repaired > 0:
+        if fixed > 0:
             if self.database:
                 self.database.commit()
-            logger.info(t("logs.service.placeholder_names_repaired", count=repaired))
+            logger.info(t("logs.service.placeholder_names_repaired", count=fixed))
 
-    def merge_with_localconfig(self) -> None:
-        """Merge collections from active parser into game_manager."""
+    def merge_with_localconfig(self):
         if not self.game_manager:
             raise RuntimeError("GameManager not initialized. Call load_games() first.")
 
-        parser = self.cloud_storage_parser  # Only cloud_storage handles categories!
-
+        parser = self.cloud_storage_parser
         if not parser:
             raise RuntimeError("No parser available for merging.")
 
         self.game_manager.merge_with_localconfig(parser)
 
-    def apply_metadata(self) -> None:
-        """Apply metadata overrides from appinfo.vdf to loaded games."""
+    def apply_metadata(self):
         if not self.game_manager:
             raise RuntimeError("GameManager not initialized. Call load_games() first.")
 
-        # Initialize AppInfoManager if not already done
         if not self.appinfo_manager:
             self.appinfo_manager = AppInfoManager(Path(self.steam_path))
             self.appinfo_manager.load_appinfo()
 
-        # Parse packageinfo.vdf for definitive ownership data
-        pkg_parser = PackageInfoParser(Path(self.steam_path))
-        packageinfo_ids = pkg_parser.get_all_app_ids()
+        pkg = PackageInfoParser(Path(self.steam_path))
+        ids = pkg.get_all_app_ids()
 
-        # Discover games missing from API using multiple local sources
         if self.appinfo_manager:
-            discovered = self.game_manager.discover_missing_games(
-                self.localconfig_helper, self.appinfo_manager, packageinfo_ids
-            )
-            # Re-merge categories for newly discovered games
-            if discovered > 0 and self.cloud_storage_parser:
+            found = self.game_manager.discover_missing_games(self.localconfig_helper, self.appinfo_manager, ids)
+            if found > 0 and self.cloud_storage_parser:
                 self.game_manager.merge_with_localconfig(self.cloud_storage_parser)
 
         self.game_manager.apply_metadata_overrides(self.appinfo_manager)
 
-    def get_active_parser(self) -> CloudStorageParser | None:
-        """Return the active cloud storage parser, or None."""
-        return self.cloud_storage_parser  # Only cloud_storage handles categories!
+    def get_active_parser(self):
+        return self.cloud_storage_parser
 
-    def _refresh_from_profile(self, steam_user_id: str) -> list[str]:
-        """Scrape game list from Steam Community profile as a safety net."""
+    def _refresh_from_profile(self, uid):
+        # scrape profile as fallback
         if not self.game_manager:
             return []
 
@@ -456,36 +406,34 @@ class GameService:
             from steam_library_manager.integrations.steam_profile_scraper import SteamProfileScraper
 
             scraper = SteamProfileScraper()
-            profile_games = scraper.fetch_games(steam_user_id)
+            pgs = scraper.fetch_games(uid)
 
-            if not profile_games:
+            if not pgs:
                 return []
 
-            new_app_ids: list[str] = []
-            for pg in profile_games:
-                app_id = str(pg.app_id)
-                if app_id not in self.game_manager.games:
+            new = []
+            for pg in pgs:
+                aid = str(pg.app_id)
+                if aid not in self.game_manager.games:
                     game = Game(
-                        app_id=app_id,
+                        app_id=aid,
                         name=pg.name,
                         playtime_minutes=pg.playtime_forever,
                         app_type="game",
                     )
-                    self.game_manager.games[app_id] = game
-                    new_app_ids.append(app_id)
+                    self.game_manager.games[aid] = game
+                    new.append(aid)
 
-            if new_app_ids:
-                logger.info(t("logs.service.profile_discovered", count=len(new_app_ids)))
+            if new:
+                logger.info(t("logs.service.profile_discovered", count=len(new)))
 
-            return new_app_ids
+            return new
 
         except Exception as e:
             logger.warning(t("logs.service.profile_scrape_failed", error=str(e)))
             return []
 
-    def get_load_source_message(self) -> str:
-        """Return a message indicating which parser was used to load games."""
+    def get_load_source_message(self):
         if not self.game_manager:
             return "No games loaded"
-
         return self.game_manager.get_load_source_message()

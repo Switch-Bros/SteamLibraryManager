@@ -10,7 +10,7 @@ from steam_library_manager.services.game_service import GameService
 
 
 class TestApiRefresh:
-    """Tests for GameService._refresh_from_api()."""
+    """Tests for GameService._api_refresh()."""
 
     def _make_service(self, tmp_path: Path) -> GameService:
         """Creates a GameService with a mock GameManager."""
@@ -42,7 +42,7 @@ class TestApiRefresh:
         }
         mock_get.return_value = mock_response
 
-        new_ids = svc._refresh_from_api("76561198000000000")
+        new_ids = svc._api_refresh("76561198000000000")
 
         assert new_ids == ["730"]
         assert "730" in svc.game_manager.games
@@ -66,7 +66,7 @@ class TestApiRefresh:
         }
         mock_get.return_value = mock_response
 
-        new_ids = svc._refresh_from_api("76561198000000000")
+        new_ids = svc._api_refresh("76561198000000000")
 
         assert new_ids == []
         assert len(svc.game_manager.games) == 1
@@ -79,7 +79,7 @@ class TestApiRefresh:
         svc = self._make_service(tmp_path)
         mock_get.side_effect = requests.ConnectionError("No internet")
 
-        new_ids = svc._refresh_from_api("76561198000000000")
+        new_ids = svc._api_refresh("76561198000000000")
 
         assert new_ids == []
         assert len(svc.game_manager.games) == 0

@@ -1,6 +1,6 @@
 #
-# steam_library_manager/core/shortcuts_manager.py
-# Manages Steam non-Steam game shortcuts (shortcuts.vdf read/write)
+# steam_library_manager/core/steam_account.py
+# Steam account data model
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -8,12 +8,10 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
+from zlib import crc32
 import logging
 import time
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any
-from zlib import crc32
 
 from steam_library_manager.core import vdf_parser
 
@@ -27,89 +25,32 @@ __all__ = [
 ]
 
 logger = logging.getLogger("steamlibmgr.shortcuts")
+_MAX_BACKUPS = 5  # TODO: make configurable?
 
-_MAX_BACKUPS = 5
 
-
-def generate_preliminary_id(exe: str, appname: str) -> int:
-    """Generate preliminary Steam ID for non-Steam game.
-
-    Args:
-        exe: Executable path (quoted in shortcuts.vdf).
-        appname: Display name of the game.
-
-    Returns:
-        64-bit preliminary ID.
-    """
+def generate_preliminary_id(exe, appname):
+    # steam uses crc32 of exe+name for the unique id
     key = (exe + appname).encode("utf-8")
     top = crc32(key) & 0xFFFFFFFF | 0x80000000
     return (top << 32) | 0x02000000
 
 
-def generate_app_id(exe: str, appname: str) -> str:
-    """Generate Big Picture grid image ID.
-
-    Args:
-        exe: Executable path.
-        appname: Display name.
-
-    Returns:
-        String App ID for Big Picture grid images.
-    """
+def generate_app_id(exe, appname):
+    # big picture grid id
     return str(generate_preliminary_id(exe, appname))
 
 
-def generate_short_app_id(exe: str, appname: str) -> str:
-    """Generate standard grid image ID.
-
-    Args:
-        exe: Executable path.
-        appname: Display name.
-
-    Returns:
-        String short App ID for grid/hero/logo images.
-    """
+def generate_short_app_id(exe, appname):
     return str(generate_preliminary_id(exe, appname) >> 32)
 
 
-def generate_shortcut_id(exe: str, appname: str) -> int:
-    """Generate appid field value for shortcuts.vdf entry.
-
-    Args:
-        exe: Executable path.
-        appname: Display name.
-
-    Returns:
-        Signed 32-bit integer for shortcuts.vdf appid field.
-    """
+def generate_shortcut_id(exe, appname):
+    # dunno why steam subtracts this but it does
     return (generate_preliminary_id(exe, appname) >> 32) - 0x100000000
 
 
 @dataclass
 class SteamShortcut:
-    """Non-Steam game shortcut entry for shortcuts.vdf.
-
-    Args:
-        appid: Signed 32-bit ID from generate_shortcut_id().
-        app_name: Display name.
-        exe: Executable path (QUOTED: '"path/to/exe"').
-        start_dir: Working directory (QUOTED).
-        icon: Icon path.
-        shortcut_path: Desktop file path.
-        launch_options: Command-line arguments.
-        is_hidden: Whether hidden in Steam library.
-        allow_desktop_config: Allow desktop configuration.
-        allow_overlay: Allow Steam overlay.
-        open_vr: VR mode enabled.
-        devkit: Developer kit mode.
-        devkit_game_id: Developer kit game ID.
-        devkit_override_app_id: Developer kit app ID override.
-        last_play_time: Unix timestamp of last play.
-        flatpak_app_id: Flatpak application ID.
-        sort_as: Custom sort name.
-        tags: Category tags as index→name dict.
-    """
-
     appid: int
     app_name: str
     exe: str
@@ -127,14 +68,10 @@ class SteamShortcut:
     last_play_time: int = 0
     flatpak_app_id: str = ""
     sort_as: str = ""
-    tags: dict[str, str] = field(default_factory=dict)
+    tags: dict = field(default_factory=dict)
 
-    def to_vdf_dict(self) -> dict[str, object]:
-        """Convert to dict matching shortcuts.vdf binary format.
-
-        Returns:
-            Dictionary with all fields in VDF key format.
-        """
+    def to_vdf_dict(self):
+        # convert for steam's binary format
         return {
             "appid": self.appid,
             "appname": self.app_name,
@@ -157,17 +94,8 @@ class SteamShortcut:
         }
 
     @classmethod
-    def from_vdf_dict(cls, data: dict[str, Any]) -> SteamShortcut:
-        """Create from a VDF dictionary.
-
-        Handles mixed-case key names from shortcuts.vdf.
-
-        Args:
-            data: Dictionary from VDF parser.
-
-        Returns:
-            SteamShortcut instance.
-        """
+    def from_vdf_dict(cls, data):
+        # parse steam's weird mixed-case format
         return cls(
             appid=int(data.get("appid", 0)),
             app_name=str(data.get("appname", "")),
@@ -191,166 +119,103 @@ class SteamShortcut:
 
 
 class ShortcutsManager:
-    """Manage Steam Non-Steam game shortcuts (shortcuts.vdf).
+    """Manage non-Steam game shortcuts.
 
-    Provides CRUD operations for non-Steam game shortcuts with
-    automatic backup creation and duplicate detection.
-
-    Args:
-        steam_userdata_path: Path to Steam userdata directory.
-        account_id: Steam account ID (e.g. "43925226").
+    CRUD for shortcuts.vdf with auto-backup and dedup.
     """
 
-    def __init__(self, steam_userdata_path: Path, account_id: str) -> None:
-        """Initializes the shortcuts manager.
+    def __init__(self, steam_userdata_path, account_id):
+        self._ud = steam_userdata_path
+        self._acc = account_id
 
-        Args:
-            steam_userdata_path: Path to Steam userdata directory.
-            account_id: Steam account ID.
-        """
-        self._userdata = steam_userdata_path
-        self._account_id = account_id
+    def get_shortcuts_path(self):
+        return self._ud / self._acc / "config" / "shortcuts.vdf"
 
-    def get_shortcuts_path(self) -> Path:
-        """Return path to shortcuts.vdf.
-
-        Returns:
-            Full path to the shortcuts.vdf file.
-        """
-        return self._userdata / self._account_id / "config" / "shortcuts.vdf"
-
-    def read_shortcuts(self) -> list[SteamShortcut]:
-        """Read all shortcuts from shortcuts.vdf.
-
-        Returns:
-            List of shortcuts, empty list if file doesn't exist.
-        """
-        path = self.get_shortcuts_path()
-        if not path.exists():
+    def read_shortcuts(self):
+        # load from vdf
+        p = self.get_shortcuts_path()
+        if not p.exists():
             return []
-
         try:
-            data = path.read_bytes()
-            parsed = vdf_parser.binary_loads(data)
-            shortcuts_dict = parsed.get("shortcuts", {})
-            if not isinstance(shortcuts_dict, dict):
+            raw = p.read_bytes()
+            parsed = vdf_parser.binary_loads(raw)
+            sd = parsed.get("shortcuts", {})
+            if not isinstance(sd, dict):
                 return []
-            return [SteamShortcut.from_vdf_dict(entry) for entry in shortcuts_dict.values() if isinstance(entry, dict)]
+            out = []
+            for _idx, entry in sd.items():
+                if isinstance(entry, dict):
+                    out.append(SteamShortcut.from_vdf_dict(entry))
+            return out
         except (OSError, ValueError) as e:
-            logger.error("Failed to read shortcuts.vdf: %s", e)
+            logger.error("failed to read shortcuts: %s" % e)
             return []
 
-    def write_shortcuts(self, shortcuts: list[SteamShortcut]) -> None:
-        """Write shortcuts to shortcuts.vdf (creates backup first).
+    def write_shortcuts(self, shortcuts):
+        p = self.get_shortcuts_path()
+        p.parent.mkdir(parents=True, exist_ok=True)
+        if p.exists():
+            self._bak(p)
+        # build vdf dict
+        vdf = {"shortcuts": {}}
+        for i, s in enumerate(shortcuts):
+            vdf["shortcuts"][str(i)] = s.to_vdf_dict()
+        p.write_bytes(vdf_parser.binary_dumps(vdf))
+        logger.info("wrote %d shortcuts" % len(shortcuts))
 
-        Args:
-            shortcuts: Complete list of shortcuts to write.
-        """
-        path = self.get_shortcuts_path()
-        path.parent.mkdir(parents=True, exist_ok=True)
-
-        if path.exists():
-            self._create_backup(path)
-
-        vdf_dict: dict[str, object] = {
-            "shortcuts": {str(i): s.to_vdf_dict() for i, s in enumerate(shortcuts)},
-        }
-        data = vdf_parser.binary_dumps(vdf_dict)
-        path.write_bytes(data)
-        logger.info("Wrote %d shortcuts to %s", len(shortcuts), path)
-
-    def add_shortcut(self, shortcut: SteamShortcut) -> bool:
-        """Add a single shortcut if not duplicate.
-
-        Args:
-            shortcut: Shortcut to add.
-
-        Returns:
-            True if added, False if duplicate exists.
-        """
-        if self.has_shortcut(shortcut.app_name):
-            logger.debug("Shortcut already exists: %s", shortcut.app_name)
+    def add_shortcut(self, sh):
+        if self.has_shortcut(sh.app_name):
+            logger.debug("duplicate: %s" % sh.app_name)
             return False
-
-        shortcuts = self.read_shortcuts()
-        shortcuts.append(shortcut)
-        self.write_shortcuts(shortcuts)
+        sc = self.read_shortcuts()
+        sc.append(sh)
+        self.write_shortcuts(sc)
         return True
 
-    def remove_shortcut(self, app_name: str) -> bool:
-        """Remove shortcut by app name.
-
-        Args:
-            app_name: Name of the game to remove.
-
-        Returns:
-            True if removed, False if not found.
-        """
-        shortcuts = self.read_shortcuts()
-        lower_name = app_name.lower()
-        new_shortcuts = [s for s in shortcuts if s.app_name.lower() != lower_name]
-
-        if len(new_shortcuts) == len(shortcuts):
+    def remove_shortcut(self, name):
+        sc = self.read_shortcuts()
+        nm = name.lower()
+        new = [s for s in sc if s.app_name.lower() != nm]
+        if len(new) == len(sc):
             return False
-
-        self.write_shortcuts(new_shortcuts)
+        self.write_shortcuts(new)
         return True
 
-    def has_shortcut(self, app_name: str) -> bool:
-        """Check if shortcut already exists (case-insensitive).
+    def has_shortcut(self, name):
+        nm = name.lower()
+        for s in self.read_shortcuts():
+            if s.app_name.lower() == nm:
+                return True
+        return False
 
-        Args:
-            app_name: Name to check.
-
-        Returns:
-            True if exists.
-        """
-        lower_name = app_name.lower()
-        return any(s.app_name.lower() == lower_name for s in self.read_shortcuts())
-
-    def get_grid_paths(self, exe: str, app_name: str) -> dict[str, Path]:
-        """Get all grid image paths for a non-Steam game.
-
-        Args:
-            exe: Executable path.
-            app_name: Display name.
-
-        Returns:
-            Dict with keys: cover, header, hero, logo, big_picture.
-        """
-        short_id = generate_short_app_id(exe, app_name)
-        big_id = generate_app_id(exe, app_name)
-        grid_dir = self._userdata / self._account_id / "config" / "grid"
+    def get_grid_paths(self, exe, app_name):
+        # get image paths for non-steam game
+        sid = generate_short_app_id(exe, app_name)
+        bid = generate_app_id(exe, app_name)
+        gdir = self._ud / self._acc / "config" / "grid"
 
         return {
-            "cover": grid_dir / f"{short_id}p.jpg",
-            "header": grid_dir / f"{short_id}.jpg",
-            "hero": grid_dir / f"{short_id}_hero.jpg",
-            "logo": grid_dir / f"{short_id}_logo.png",
-            "big_picture": grid_dir / f"{big_id}.jpg",
+            "cover": gdir / ("%sp.jpg" % sid),
+            "header": gdir / ("%s.jpg" % sid),
+            "hero": gdir / ("%s_hero.jpg" % sid),
+            "logo": gdir / ("%s_logo.png" % sid),
+            "big_picture": gdir / ("%s.jpg" % bid),
         }
 
-    def _create_backup(self, path: Path) -> None:
-        """Create a timestamped backup of shortcuts.vdf.
-
-        Keeps at most _MAX_BACKUPS backup files.
-
-        Args:
-            path: Path to the file to back up.
-        """
-        timestamp = int(time.time())
-        backup = path.with_name(f"{path.name}.bak.{timestamp}")
+    def _bak(self, path):
+        # backup before overwrite
+        ts = int(time.time())
+        bp = path.with_name("%s.bak.%d" % (path.name, ts))
         try:
-            backup.write_bytes(path.read_bytes())
-            logger.debug("Created backup: %s", backup)
+            bp.write_bytes(path.read_bytes())
+            logger.debug("backup: %s" % bp)
         except OSError as e:
-            logger.warning("Failed to create backup: %s", e)
+            logger.warning("backup failed: %s" % e)
             return
-
-        # Prune old backups
-        backups = sorted(path.parent.glob(f"{path.name}.bak.*"), reverse=True)
-        for old in backups[_MAX_BACKUPS:]:
+        # prune old
+        old = sorted(path.parent.glob("%s.bak.*" % path.name), reverse=True)
+        for f in old[_MAX_BACKUPS:]:
             try:
-                old.unlink()
+                f.unlink()
             except OSError:
                 pass

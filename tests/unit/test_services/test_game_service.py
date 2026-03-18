@@ -260,12 +260,12 @@ class TestGameService:
         mock_gm.games = {"123": Game(app_id="123", name="Test Game")}
         mock_gm.discover_missing_games.return_value = 0
 
-        # Mock _init_database to return a mock DB (avoids filesystem access)
+        # Mock _init_db to return a mock DB (avoids filesystem access)
         mock_db = Mock()
         mock_db.get_game_count.return_value = 100
         mock_db.get_app_type_lookup.return_value = {"456": ("game", "Test")}
 
-        with patch.object(service, "_init_database", return_value=mock_db):
+        with patch.object(service, "_init_db", return_value=mock_db):
             result = service.load_and_prepare("76561197960287930")
 
         assert result is True
@@ -288,12 +288,12 @@ class TestGameService:
         mock_gm.games = {"123": Game(app_id="123", name="Test Game")}
         mock_gm.discover_missing_games.return_value = 0
 
-        # Mock _init_database to return a mock DB
+        # Mock _init_db to return a mock DB
         mock_db = Mock()
         mock_db.get_game_count.return_value = 100
         mock_db.get_app_type_lookup.return_value = {}
 
-        with patch.object(service, "_init_database", return_value=mock_db):
+        with patch.object(service, "_init_db", return_value=mock_db):
             result = service.load_and_prepare("76561197960287930")
 
         assert result is True
@@ -369,7 +369,7 @@ class TestGameService:
 
 
 class TestRepairPlaceholderNames:
-    """Tests for _repair_placeholder_names."""
+    """Tests for _repair_placeholders."""
 
     def test_repairs_placeholder_names_from_appinfo(self):
         """Games with 'App XXXXX' names get real names from appinfo.vdf."""
@@ -391,7 +391,7 @@ class TestRepairPlaceholderNames:
         mock_db = Mock()
         service.database = mock_db
 
-        service._repair_placeholder_names()
+        service._repair_placeholders()
 
         assert game.name == "BROTHER!!! - Hardcore Platformer"
         mock_db.update_game_name.assert_called_once_with(12345, "BROTHER!!! - Hardcore Platformer")
@@ -408,7 +408,7 @@ class TestRepairPlaceholderNames:
         service.appinfo_manager = Mock()
         service.database = Mock()
 
-        service._repair_placeholder_names()
+        service._repair_placeholders()
 
         assert game.name == "Team Fortress 2"
         service.appinfo_manager.get_app_metadata.assert_not_called()
@@ -428,7 +428,7 @@ class TestRepairPlaceholderNames:
         service.appinfo_manager = mock_aim
         service.database = Mock()
 
-        service._repair_placeholder_names()
+        service._repair_placeholders()
 
         assert game.name == "App 12345"
         service.database.update_game_name.assert_not_called()
@@ -448,7 +448,7 @@ class TestRepairPlaceholderNames:
         service.appinfo_manager = mock_aim
         service.database = Mock()
 
-        service._repair_placeholder_names()
+        service._repair_placeholders()
 
         mock_aim.load_appinfo.assert_called_once()
         assert game.name == "Real Game"
