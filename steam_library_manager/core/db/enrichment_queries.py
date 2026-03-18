@@ -224,11 +224,11 @@ class EnrichmentQueryMixin:
     def get_games_missing_artwork(self):
         return self._apps_without("custom_artwork")
 
-    def get_stale_hltb_count(self, days=30):
-        return self._stale_count("hltb_data", days)
+    def get_stale_hltb_count(self, ma_days=30):
+        return self._stale_count("hltb_data", ma_days)
 
-    def get_stale_protondb_count(self, days=7):
-        return self._stale_count("protondb_ratings", days)
+    def get_stale_protondb_count(self, ma_days=7):
+        return self._stale_count("protondb_ratings", ma_days)
 
     # import recording
 

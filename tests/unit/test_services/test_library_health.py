@@ -307,10 +307,10 @@ class TestDatabaseHealthMethods:
 
     def test_get_stale_hltb_count(self, health_db) -> None:
         """Should count HLTB entries older than max_age_days."""
-        assert health_db.get_stale_hltb_count(days=30) == 1
-        assert health_db.get_stale_hltb_count(days=365) == 0
+        assert health_db.get_stale_hltb_count(ma_days=30) == 1
+        assert health_db.get_stale_hltb_count(ma_days=365) == 0
 
     def test_get_stale_protondb_count(self, health_db) -> None:
         """Should count ProtonDB entries older than max_age_days."""
-        assert health_db.get_stale_protondb_count(days=7) == 1
-        assert health_db.get_stale_protondb_count(days=365) == 0
+        assert health_db.get_stale_protondb_count(ma_days=7) == 1
+        assert health_db.get_stale_protondb_count(ma_days=365) == 0
