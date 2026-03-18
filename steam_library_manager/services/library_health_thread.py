@@ -125,8 +125,8 @@ class LibraryHealthThread(QThread):
             report.missing_artwork = db.get_games_missing_artwork()
 
             self.phase_changed.emit("health_check.progress.cache")
-            report.stale_hltb = db.get_stale_hltb_count(max_age_days=30)
-            report.stale_protondb = db.get_stale_protondb_count(max_age_days=7)
+            report.stale_hltb = db.get_stale_hltb_count(days=30)
+            report.stale_protondb = db.get_stale_protondb_count(days=7)
         finally:
             db.close()
 
