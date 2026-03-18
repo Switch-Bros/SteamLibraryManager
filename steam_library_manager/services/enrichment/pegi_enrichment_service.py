@@ -1,17 +1,14 @@
 #
 # steam_library_manager/services/enrichment/pegi_enrichment_service.py
-# Enrichment service for PEGI age ratings from Steam store data
+# PEGI age rating enrichment from Steam store data
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 
-
 from __future__ import annotations
 
 import logging
-from pathlib import Path
-from typing import Any
 
 from steam_library_manager.services.enrichment.base_enrichment_thread import BaseEnrichmentThread
 from steam_library_manager.utils.i18n import t
@@ -22,84 +19,70 @@ __all__ = ["PEGIEnrichmentThread"]
 
 
 class PEGIEnrichmentThread(BaseEnrichmentThread):
-    """Background thread for PEGI age rating enrichment."""
+    """Fills in missing PEGI ratings from the Steam store.
 
-    def __init__(self, parent: Any = None) -> None:
-        super().__init__(parent)
-        self._games: list[tuple[int, str]] = []
-        self._db_path: Path | None = None
-        self._force_refresh: bool = False
-        self._language: str = "en"
-        self._db: Any = None
-        self._scraper: Any = None
+    Runs as gap filler after the batch Steam API (which gets most ratings).
+    Uses SteamStoreScraper to fetch individual store pages for the rest.
+    """
 
-    def configure(
-        self,
-        games: list[tuple[int, str]],
-        db_path: Path,
-        language: str = "en",
-        force_refresh: bool = False,
-    ) -> None:
-        """Configures the thread for PEGI enrichment."""
-        self._games = games
-        self._db_path = db_path
-        self._language = language
-        self._force_refresh = force_refresh
+    def __init__(self, p=None):
+        super().__init__(p)
+        self._g = []
+        self._dbp = None
+        self._f = False
+        self._l = "en"
+        self._db = None
+        self._s = None
 
-    def _setup(self) -> None:
-        """Opens DB connection and initializes the Steam Store scraper."""
+    def configure(self, g, dbp, lang="en", fr=False):
+        self._g = g
+        self._dbp = dbp
+        self._l = lang
+        self._f = fr
+
+    def _setup(self):
         from steam_library_manager.core.database import Database
         from steam_library_manager.integrations.steam_store import SteamStoreScraper
 
-        self._db = Database(self._db_path)
-        cache_dir = self._db_path.parent / "cache"
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        self._scraper = SteamStoreScraper(cache_dir, self._language)
+        self._db = Database(self._dbp)
+        cd = self._dbp.parent / "cache"
+        cd.mkdir(parents=True, exist_ok=True)
+        self._s = SteamStoreScraper(cd, self._l)
 
-    def _cleanup(self) -> None:
-        """Closes the database connection."""
+    def _cleanup(self):
         if self._db:
             self._db.close()
             self._db = None
 
-    def _get_items(self) -> list:
-        """Returns the list of games to enrich."""
-        return self._games
+    def _get_items(self):
+        return self._g
 
-    def _process_item(self, item: Any) -> bool:
-        """Fetches the PEGI rating for a single game (gap filler)."""
-        app_id, name = item
+    def _process_item(self, it):
+        aid, nm = it
 
-        # Skip if already has a rating (filled by batch Steam API)
-        if not self._force_refresh:
-            cursor = self._db.conn.execute(
-                "SELECT pegi_rating FROM games WHERE app_id = ? AND pegi_rating != ''",
-                (app_id,),
-            )
-            if cursor.fetchone():
-                return True  # Already done, count as success
+        # skip if already has rating
+        if not self._f:
+            cur = self._db.conn.execute("SELECT pegi_rating FROM games WHERE app_id = ? AND pegi_rating != ''", (aid,))
+            if cur.fetchone():
+                return True
 
-        if self._force_refresh:
-            cache_file = self._scraper.cache_dir.parent / "age_ratings" / f"{app_id}.json"
-            if cache_file.exists():
-                cache_file.unlink(missing_ok=True)
+        if self._f:
+            cf = self._s.cache_dir.parent / "age_ratings" / ("%d.json" % aid)
+            if cf.exists():
+                cf.unlink(missing_ok=True)
 
-        rating = self._scraper.fetch_age_rating(str(app_id))
+        rt = self._s.fetch_age_rating(str(aid))
 
-        if rating:
-            self._db.conn.execute(
-                "UPDATE games SET pegi_rating = ? WHERE app_id = ?",
-                (rating, app_id),
-            )
+        if rt:
+            self._db.conn.execute("UPDATE games SET pegi_rating = ? WHERE app_id = ?", (rt, aid))
             self._db.conn.commit()
             return True
 
         return False
 
-    def _format_progress(self, item: Any, current: int, total: int) -> str:
-        """Formats progress text with the game name."""
-        _app_id, name = item
-        return t("ui.enrichment.progress", name=name, current=current, total=total)
+    def _format_progress(self, it, cur, tot):
+        _aid, nm = it
+        return t("ui.enrichment.progress", name=nm, current=cur, total=tot)
 
-    def _rate_limit(self) -> None:
-        """No delay needed - SteamStoreScraper has its own internal rate limit."""
+    def _rate_limit(self):
+        pass  # scraper handles it

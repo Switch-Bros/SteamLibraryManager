@@ -127,7 +127,7 @@ class TestVerifyB4UncategorizedCount:
         games = {"1": _make_game("1", categories=["Top Rated"])}
         svc = GameQueryService(games, filter_non_games=False)
         uncategorized = svc.get_uncategorized_games(
-            smart_collection_names={"Top Rated"},
+            smart={"Top Rated"},
         )
         assert len(uncategorized) == 1
 

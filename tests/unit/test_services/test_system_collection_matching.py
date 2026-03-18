@@ -193,7 +193,7 @@ class TestUncategorizedExcludesSystemCategories:
         games = {"1": _make_game("1", "Game1", categories=["My Smart Collection"])}
         svc = GameQueryService(games, filter_non_games=False)
         uncategorized = svc.get_uncategorized_games(
-            smart_collection_names={"My Smart Collection"},
+            smart={"My Smart Collection"},
         )
         assert any(g.app_id == "1" for g in uncategorized)
 
@@ -202,6 +202,6 @@ class TestUncategorizedExcludesSystemCategories:
         games = {"1": _make_game("1", "Game1", categories=["My SC", "Action"])}
         svc = GameQueryService(games, filter_non_games=False)
         uncategorized = svc.get_uncategorized_games(
-            smart_collection_names={"My SC"},
+            smart={"My SC"},
         )
         assert not any(g.app_id == "1" for g in uncategorized)

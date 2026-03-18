@@ -15,31 +15,31 @@ class TestPEGIEnrichmentConfig:
         thread = PEGIEnrichmentThread()
         games = [(1, "Game A"), (2, "Game B")]
         thread.configure(games, tmp_path / "test.db")
-        assert thread._games is games
+        assert thread._g is games
 
     def test_configure_default_force_refresh_false(self, tmp_path: Path) -> None:
         """Default force_refresh is False."""
         thread = PEGIEnrichmentThread()
         thread.configure([], tmp_path / "test.db")
-        assert thread._force_refresh is False
+        assert thread._f is False
 
     def test_configure_force_refresh_true(self, tmp_path: Path) -> None:
-        """force_refresh=True is stored correctly."""
+        """fr=True is stored correctly."""
         thread = PEGIEnrichmentThread()
-        thread.configure([], tmp_path / "test.db", force_refresh=True)
-        assert thread._force_refresh is True
+        thread.configure([], tmp_path / "test.db", fr=True)
+        assert thread._f is True
 
     def test_configure_default_language(self, tmp_path: Path) -> None:
         """Default language is 'en'."""
         thread = PEGIEnrichmentThread()
         thread.configure([], tmp_path / "test.db")
-        assert thread._language == "en"
+        assert thread._l == "en"
 
     def test_configure_custom_language(self, tmp_path: Path) -> None:
         """Custom language is stored correctly."""
         thread = PEGIEnrichmentThread()
-        thread.configure([], tmp_path / "test.db", language="de")
-        assert thread._language == "de"
+        thread.configure([], tmp_path / "test.db", lang="de")
+        assert thread._l == "de"
 
     def test_cancel_sets_flag(self) -> None:
         """cancel() sets the _cancelled flag."""

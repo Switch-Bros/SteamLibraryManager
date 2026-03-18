@@ -1,17 +1,16 @@
 #
 # steam_library_manager/services/game_query_service.py
-# High-level game query interface over the database layer
+# Query interface for games
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 
-
 from __future__ import annotations
 
 import logging
 
-from steam_library_manager.core.game import Game, is_real_game
+from steam_library_manager.core.game import is_real_game
 from steam_library_manager.utils.i18n import t
 
 logger = logging.getLogger("steamlibmgr.game_query")
@@ -20,92 +19,99 @@ __all__ = ["GameQueryService"]
 
 
 class GameQueryService:
-    """Stateless query facade over the shared ``games`` dictionary."""
+    """Query facade."""
 
-    def __init__(self, games: dict[str, Game], filter_non_games: bool) -> None:
-        self._games = games
-        self._filter_non_games = filter_non_games
+    def __init__(self, gs, filter_non_games):
+        self._g = gs
+        self._f = filter_non_games
 
-    # Core queries
+    def get_real_games(self):
+        if not self._f:
+            return list(self._g.values())
+        res = []
+        for x in self._g.values():
+            if is_real_game(x):
+                res.append(x)
+        return res
 
-    def get_real_games(self) -> list[Game]:
-        """Returns only real games (excludes Proton/Steam runtime tools)."""
-        if self._filter_non_games:
-            return [g for g in self._games.values() if is_real_game(g)]
-        return list(self._games.values())
+    def get_all_games(self):
+        tmp = self._g.values()
+        return list(tmp)
 
-    def get_all_games(self) -> list[Game]:
-        """Returns ALL games (including tools)."""
-        return list(self._games.values())
+    def get_games_by_category(self, c):
+        all_g = self.get_real_games()
+        gs = []
+        for x in all_g:
+            if x.has_category(c):
+                gs.append(x)
 
-    def get_games_by_category(self, category: str) -> list[Game]:
-        """Gets all games belonging to a specific category."""
-        games = [g for g in self.get_real_games() if g.has_category(category)]
-        return sorted(games, key=lambda g: g.sort_name.lower())
+        gs.sort(key=lambda g: g.sort_name.lower())
+        return gs
 
-    def get_uncategorized_games(self, smart_collection_names: set[str] | None = None) -> list[Game]:
-        """Gets games that have no user collections (system categories don't count)."""
-        # Exclude system collections using all known identifiers (language-independent)
-        excluded_categories: set[str] = {
+    def get_uncategorized_games(self, smart=None):
+        # FIXME: hardcoded
+        sk = {
             "favorite",
-            "hidden",  # Steam internal IDs
+            "hidden",
             "Favorites",
-            "Favoriten",  # Known display names EN/DE
+            "Favoriten",
             "Hidden",
             "Versteckt",
-            t("categories.favorites"),  # Current locale
+            t("categories.favorites"),
             t("categories.hidden"),
         }
-        if smart_collection_names:
-            excluded_categories = excluded_categories | smart_collection_names
-
-        uncategorized = []
-        for game in self._games.values():
-            # Non-game types have their own type categories
-            if game.app_type and game.app_type.lower() != "game":
+        if smart:
+            sk = sk | smart
+        res = []
+        vals = self._g.values()
+        for x in vals:
+            at = x.app_type
+            if at and at.lower() != "game":
                 continue
-
-            # Filter ghost entries and non-games
-            if not is_real_game(game):
+            if not is_real_game(x):
                 continue
+            # filter cats old style
+            rl = []
+            cats = x.categories
+            for k in cats:
+                if k not in sk:
+                    rl.append(k)
+            if len(rl) == 0:
+                res.append(x)
 
-            # Only count real Steam collections (not system or smart)
-            real_categories = [cat for cat in game.categories if cat not in excluded_categories]
+        res.sort(key=lambda g: g.sort_name.lower())
+        return res
 
-            if not real_categories:
-                uncategorized.append(game)
+    def get_favorites(self):
+        rl = self.get_real_games()
+        gs = []
+        for x in rl:
+            if x.is_favorite():
+                gs.append(x)
 
-        return sorted(uncategorized, key=lambda g: g.sort_name.lower())
+        gs.sort(key=lambda g: g.sort_name.lower())
+        return gs
 
-    def get_favorites(self) -> list[Game]:
-        """Gets all favorite games."""
-        games = [g for g in self.get_real_games() if g.is_favorite()]
-        return sorted(games, key=lambda g: g.sort_name.lower())
+    def get_all_categories(self):
+        ct = {}
+        rl = self.get_real_games()
+        for x in rl:
+            cats = x.categories
+            for k in cats:
+                ct[k] = ct.get(k, 0) + 1
+        return ct
 
-    def get_all_categories(self) -> dict[str, int]:
-        """Gets all categories and their game counts."""
-        categories: dict[str, int] = {}
-        for game in self.get_real_games():
-            for category in game.categories:
-                categories[category] = categories.get(category, 0) + 1
-        return categories
-
-    def get_game_statistics(self) -> dict[str, int]:
-        """Returns game statistics for the status bar."""
-        real_games = self.get_real_games()
-
-        games_in_categories: set[str] = set()
-        for game in real_games:
-            if game.categories:
-                games_in_categories.add(game.app_id)
-
-        all_categories = self.get_all_categories()
-        category_count = len(all_categories)
-        uncategorized = len(real_games) - len(games_in_categories)
-
+    def get_game_statistics(self):
+        # stats
+        rl = self.get_real_games()
+        ic = set()
+        for x in rl:
+            if x.categories:
+                ic.add(x.app_id)
+        nc = len(self.get_all_categories())
         return {
-            "total_games": len(real_games),
-            "games_in_categories": len(games_in_categories),
-            "category_count": category_count,
-            "uncategorized_games": uncategorized,
+            "total_games": len(rl),
+            "games_in_categories": len(ic),
+            "category_count": nc,
+            "uncategorized_games": len(rl) - len(ic),
         }

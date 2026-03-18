@@ -23,7 +23,7 @@ class TestUncategorizedSmartCollections:
         svc = GameQueryService(games, filter_non_games=False)
 
         result = svc.get_uncategorized_games(
-            smart_collection_names={"My Smart Collection"},
+            smart={"My Smart Collection"},
         )
 
         app_ids = {g.app_id for g in result}
@@ -39,7 +39,7 @@ class TestUncategorizedSmartCollections:
         svc = GameQueryService(games, filter_non_games=False)
 
         result = svc.get_uncategorized_games(
-            smart_collection_names={"My Smart Collection"},
+            smart={"My Smart Collection"},
         )
 
         app_ids = {g.app_id for g in result}
@@ -55,7 +55,7 @@ class TestUncategorizedSmartCollections:
         svc = GameQueryService(games, filter_non_games=False)
 
         result = svc.get_uncategorized_games(
-            smart_collection_names={"My Smart Collection"},
+            smart={"My Smart Collection"},
         )
 
         app_ids = {g.app_id for g in result}

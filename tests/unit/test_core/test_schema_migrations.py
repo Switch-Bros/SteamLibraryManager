@@ -99,7 +99,7 @@ class TestMigrateToV3:
     def test_creates_tag_definitions_table(self, tmp_path):
         conn = _create_v2_db(tmp_path)
         host = _MigrationHost(conn)
-        host._migrate_to_v3()
+        host._m3()
 
         assert _table_exists(conn, "tag_definitions")
         assert _column_exists(conn, "tag_definitions", "tag_id")
@@ -110,7 +110,7 @@ class TestMigrateToV3:
     def test_adds_tag_id_column(self, tmp_path):
         conn = _create_v2_db(tmp_path)
         host = _MigrationHost(conn)
-        host._migrate_to_v3()
+        host._m3()
 
         assert _column_exists(conn, "game_tags", "tag_id")
         conn.close()
@@ -118,7 +118,7 @@ class TestMigrateToV3:
     def test_creates_indexes(self, tmp_path):
         conn = _create_v2_db(tmp_path)
         host = _MigrationHost(conn)
-        host._migrate_to_v3()
+        host._m3()
 
         assert _index_exists(conn, "idx_tags_tag_id")
         assert _index_exists(conn, "idx_tag_definitions_name")
@@ -129,8 +129,8 @@ class TestMigrateToV3:
         """Running v3 migration twice should not fail."""
         conn = _create_v2_db(tmp_path)
         host = _MigrationHost(conn)
-        host._migrate_to_v3()
-        host._migrate_to_v3()  # no error
+        host._m3()
+        host._m3()  # no error
         conn.close()
 
 
@@ -140,7 +140,7 @@ class TestMigrateToV4:
     def test_creates_hltb_id_cache(self, tmp_path):
         conn = _create_v2_db(tmp_path)
         host = _MigrationHost(conn)
-        host._migrate_to_v4()
+        host._m4()
 
         assert _table_exists(conn, "hltb_id_cache")
         assert _column_exists(conn, "hltb_id_cache", "steam_app_id")
@@ -155,7 +155,7 @@ class TestMigrateToV5:
     def test_creates_protondb_ratings(self, tmp_path):
         conn = _create_v2_db(tmp_path)
         host = _MigrationHost(conn)
-        host._migrate_to_v5()
+        host._m5()
 
         assert _table_exists(conn, "protondb_ratings")
         for col in ("app_id", "tier", "confidence", "trending_tier", "score", "best_reported", "last_updated"):
@@ -169,7 +169,7 @@ class TestMigrateToV6:
     def test_adds_review_percentage(self, tmp_path):
         conn = _create_v2_db(tmp_path)
         host = _MigrationHost(conn)
-        host._migrate_to_v6()
+        host._m6()
 
         assert _column_exists(conn, "games", "review_percentage")
         conn.close()
@@ -184,7 +184,7 @@ class TestMigrateToV6:
         conn.commit()
 
         host = _MigrationHost(conn)
-        host._migrate_to_v6()
+        host._m6()
 
         row = conn.execute("SELECT name, review_percentage FROM games WHERE app_id = 440").fetchone()
         assert row[0] == "TF2"
@@ -194,8 +194,8 @@ class TestMigrateToV6:
     def test_idempotent(self, tmp_path):
         conn = _create_v2_db(tmp_path)
         host = _MigrationHost(conn)
-        host._migrate_to_v6()
-        host._migrate_to_v6()  # no error
+        host._m6()
+        host._m6()  # no error
         conn.close()
 
 
@@ -205,7 +205,7 @@ class TestMigrateToV7:
     def test_creates_external_games(self, tmp_path):
         conn = _create_v2_db(tmp_path)
         host = _MigrationHost(conn)
-        host._migrate_to_v7()
+        host._m7()
 
         assert _table_exists(conn, "external_games")
         for col in ("platform", "platform_app_id", "name", "install_path", "launch_command"):
@@ -215,7 +215,7 @@ class TestMigrateToV7:
     def test_creates_indexes(self, tmp_path):
         conn = _create_v2_db(tmp_path)
         host = _MigrationHost(conn)
-        host._migrate_to_v7()
+        host._m7()
 
         assert _index_exists(conn, "idx_external_platform")
         assert _index_exists(conn, "idx_external_name")
@@ -228,7 +228,7 @@ class TestMigrateToV8:
     def test_adds_game_columns(self, tmp_path):
         conn = _create_v2_db(tmp_path)
         host = _MigrationHost(conn)
-        host._migrate_to_v8()
+        host._m8()
 
         for col in (
             "pegi_rating",
@@ -244,7 +244,7 @@ class TestMigrateToV8:
     def test_creates_user_tables(self, tmp_path):
         conn = _create_v2_db(tmp_path)
         host = _MigrationHost(conn)
-        host._migrate_to_v8()
+        host._m8()
 
         for table in (
             "user_game_status",
@@ -262,7 +262,7 @@ class TestMigrateToV8:
     def test_creates_indexes(self, tmp_path):
         conn = _create_v2_db(tmp_path)
         host = _MigrationHost(conn)
-        host._migrate_to_v8()
+        host._m8()
 
         assert _index_exists(conn, "idx_games_pegi")
         assert _index_exists(conn, "idx_games_deck")
@@ -282,7 +282,7 @@ class TestMigrateToV8:
         conn.commit()
 
         host = _MigrationHost(conn)
-        host._migrate_to_v8()
+        host._m8()
 
         row = conn.execute("SELECT name, developer, pegi_rating FROM games WHERE app_id = 730").fetchone()
         assert row[0] == "CS2"
@@ -297,7 +297,7 @@ class TestMigrateToV9:
     def test_creates_curator_tables(self, tmp_path):
         conn = _create_v2_db(tmp_path)
         host = _MigrationHost(conn)
-        host._migrate_to_v9()
+        host._m9()
 
         assert _table_exists(conn, "curators")
         assert _table_exists(conn, "curator_recommendations")
@@ -306,7 +306,7 @@ class TestMigrateToV9:
     def test_curator_columns(self, tmp_path):
         conn = _create_v2_db(tmp_path)
         host = _MigrationHost(conn)
-        host._migrate_to_v9()
+        host._m9()
 
         for col in ("curator_id", "name", "url", "source", "active", "total_count"):
             assert _column_exists(conn, "curators", col)
@@ -315,7 +315,7 @@ class TestMigrateToV9:
     def test_creates_index(self, tmp_path):
         conn = _create_v2_db(tmp_path)
         host = _MigrationHost(conn)
-        host._migrate_to_v9()
+        host._m9()
 
         assert _index_exists(conn, "idx_curator_rec_app")
         conn.close()
@@ -331,7 +331,7 @@ class TestFullMigrationChain:
         """Full chain should reach schema version 9."""
         conn = _create_v2_db(tmp_path)
         host = _MigrationHost(conn)
-        host._migrate(from_version=2, to_version=9)
+        host._migrate(frm=2, to=9)
 
         row = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()
         assert row[0] == 9
@@ -341,7 +341,7 @@ class TestFullMigrationChain:
         """Every table from v3-v9 should exist after full migration."""
         conn = _create_v2_db(tmp_path)
         host = _MigrationHost(conn)
-        host._migrate(from_version=2, to_version=9)
+        host._migrate(frm=2, to=9)
 
         expected_tables = [
             "tag_definitions",  # v3
@@ -367,7 +367,7 @@ class TestFullMigrationChain:
         """Columns added by migrations should exist after full chain."""
         conn = _create_v2_db(tmp_path)
         host = _MigrationHost(conn)
-        host._migrate(from_version=2, to_version=9)
+        host._migrate(frm=2, to=9)
 
         # v3: tag_id on game_tags
         assert _column_exists(conn, "game_tags", "tag_id")
@@ -395,7 +395,7 @@ class TestFullMigrationChain:
 
         # Migrate
         host = _MigrationHost(conn)
-        host._migrate(from_version=2, to_version=9)
+        host._migrate(frm=2, to=9)
 
         # Verify data intact
         game = conn.execute("SELECT name, developer FROM games WHERE app_id = 440").fetchone()
@@ -420,11 +420,11 @@ class TestFullMigrationChain:
         host = _MigrationHost(conn)
 
         # Manually apply v3-v5 and set version
-        host._migrate_to_v3()
+        host._m3()
         host._set_schema_version(3)
-        host._migrate_to_v4()
+        host._m4()
         host._set_schema_version(4)
-        host._migrate_to_v5()
+        host._m5()
         host._set_schema_version(5)
 
         # Tables from v3-v5 should exist
@@ -437,7 +437,7 @@ class TestFullMigrationChain:
         assert not _table_exists(conn, "curators")
 
         # Now migrate from v5 to v9 (as _ensure_schema would)
-        host._migrate(from_version=5, to_version=9)
+        host._migrate(frm=5, to=9)
 
         # Everything should exist now
         assert _table_exists(conn, "external_games")

@@ -1,6 +1,6 @@
 #
 # steam_library_manager/core/db/schema.py
-# SQLite schema definitions and migration logic for schema versioning
+# Schema creation and migration (v3 through v9)
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -21,107 +21,87 @@ __all__ = ["SchemaMixin"]
 
 
 class SchemaMixin:
-    """Mixin providing schema creation and migration logic.
+    """Schema creation and migration logic.
 
-    Requires ConnectionBase attributes: conn, SCHEMA_VERSION.
+    Creates schema from schema.sql on first run, then applies
+    migrations v3-v9 for existing databases. Each migration is
+    idempotent (IF NOT EXISTS, try/except for ALTER TABLE).
     """
 
-    def _ensure_schema(self) -> None:
-        """Create or migrate database schema."""
-        current_version = self._get_schema_version()
-
-        if current_version == 0:
+    def _ensure_schema(self):
+        ver = self._get_schema_version()
+        if ver == 0:
             self._create_schema()
             self._set_schema_version(self.SCHEMA_VERSION)
-        elif current_version < self.SCHEMA_VERSION:
-            self._migrate(current_version, self.SCHEMA_VERSION)
+        elif ver < self.SCHEMA_VERSION:
+            self._migrate(ver, self.SCHEMA_VERSION)
 
-    def _get_schema_version(self) -> int:
-        """Get current database schema version."""
+    def _get_schema_version(self):
         try:
-            cursor = self.conn.execute("SELECT MAX(version) FROM schema_version")
-            result = cursor.fetchone()
-            return result[0] if result[0] is not None else 0
+            cur = self.conn.execute("SELECT MAX(version) FROM schema_version")
+            r = cur.fetchone()
+            return r[0] if r[0] is not None else 0
         except sqlite3.OperationalError:
             return 0
 
-    def _set_schema_version(self, version: int) -> None:
-        """Set database schema version."""
+    def _set_schema_version(self, v):
         self.conn.execute(
-            """
-            INSERT OR REPLACE INTO schema_version (version, applied_at, description)
-            VALUES (?, ?, ?)
-            """,
-            (version, int(time.time()), t("logs.db.schema_created")),
+            "INSERT OR REPLACE INTO schema_version (version, applied_at, description) VALUES (?, ?, ?)",
+            (v, int(time.time()), t("logs.db.schema_created")),
         )
         self.conn.commit()
 
-    def _create_schema(self) -> None:
-        """Create initial database schema from SQL file."""
-        schema_path = Path(__file__).parent / "schema.sql"
+    def _create_schema(self):
+        # load schema from sql
+        p = Path(__file__).parent / "schema.sql"
         try:
-            with open(schema_path) as f:
-                schema_sql = f.read()
+            with open(p) as f:
+                sql = f.read()
         except FileNotFoundError:
-            logger.error(t("logs.db.schema_not_found", path=str(schema_path)))
+            logger.error(t("logs.db.schema_not_found", path=str(p)))
             raise
 
         try:
-            self.conn.executescript(schema_sql)
+            self.conn.executescript(sql)
             self.conn.commit()
             logger.info(t("logs.db.schema_created"))
         except sqlite3.Error as e:
             logger.error(t("logs.db.schema_error", error=str(e)))
             raise
 
-    def _migrate(self, from_version: int, to_version: int) -> None:
-        """Migrate database schema.
+    def _migrate(self, frm, to):
+        logger.info("Migrating from %d to %d" % (frm, to))
 
-        Args:
-            from_version: Current schema version.
-            to_version: Target schema version.
-        """
-        logger.info(
-            "Migrating database from version %d to %d",
-            from_version,
-            to_version,
-        )
-
-        if from_version < 3:
-            self._migrate_to_v3()
+        if frm < 3:
+            self._m3()
             self._set_schema_version(3)
-
-        if from_version < 4:
-            self._migrate_to_v4()
+        if frm < 4:
+            self._m4()
             self._set_schema_version(4)
-
-        if from_version < 5:
-            self._migrate_to_v5()
+        if frm < 5:
+            self._m5()
             self._set_schema_version(5)
-
-        if from_version < 6:
-            self._migrate_to_v6()
+        if frm < 6:
+            self._m6()
             self._set_schema_version(6)
-
-        if from_version < 7:
-            self._migrate_to_v7()
+        if frm < 7:
+            self._m7()
             self._set_schema_version(7)
-
-        if from_version < 8:
-            self._migrate_to_v8()
+        if frm < 8:
+            self._m8()
             self._set_schema_version(8)
-
-        if from_version < 9:
-            self._migrate_to_v9()
+        if frm < 9:
+            self._m9()
             self._set_schema_version(9)
 
-    def _migrate_to_v3(self) -> None:
-        """Migrate to schema v3: tag_definitions table + tag_id column."""
+    # migrations
+
+    def _m3(self):
+        # tag_definitions + tag_id
         try:
             self.conn.execute("ALTER TABLE game_tags ADD COLUMN tag_id INTEGER")
         except sqlite3.OperationalError:
-            pass  # Column already exists
-
+            pass
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS tag_definitions (
                 tag_id INTEGER NOT NULL,
@@ -134,10 +114,9 @@ class SchemaMixin:
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_tag_definitions_name ON tag_definitions(name)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_tag_definitions_lang ON tag_definitions(language)")
         self.conn.commit()
-        logger.info("Migrated to schema v3: tag_definitions + tag_id")
+        logger.info("Migrated to v3")
 
-    def _migrate_to_v4(self) -> None:
-        """Migrate to schema v4: hltb_id_cache table."""
+    def _m4(self):
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS hltb_id_cache (
                 steam_app_id INTEGER PRIMARY KEY,
@@ -146,10 +125,9 @@ class SchemaMixin:
             )
             """)
         self.conn.commit()
-        logger.info("Migrated to schema v4: hltb_id_cache")
+        logger.info("Migrated to v4")
 
-    def _migrate_to_v5(self) -> None:
-        """Migrate to schema v5: protondb_ratings table."""
+    def _m5(self):
         self.conn.execute("""
             CREATE TABLE IF NOT EXISTS protondb_ratings (
                 app_id INTEGER PRIMARY KEY,
@@ -162,19 +140,17 @@ class SchemaMixin:
             )
             """)
         self.conn.commit()
-        logger.info("Migrated to schema v5: protondb_ratings")
+        logger.info("Migrated to v5")
 
-    def _migrate_to_v6(self) -> None:
-        """Migrate to schema v6: review_percentage column in games table."""
+    def _m6(self):
         try:
             self.conn.execute("ALTER TABLE games ADD COLUMN review_percentage INTEGER")
         except sqlite3.OperationalError:
-            pass  # Column already exists
+            pass
         self.conn.commit()
-        logger.info("Migrated to schema v6: review_percentage column")
+        logger.info("Migrated to v6")
 
-    def _migrate_to_v7(self) -> None:
-        """Migrate to schema v7: external_games table."""
+    def _m7(self):
         self.conn.executescript("""
             CREATE TABLE IF NOT EXISTS external_games (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -192,11 +168,11 @@ class SchemaMixin:
             CREATE INDEX IF NOT EXISTS idx_external_name ON external_games(name);
         """)
         self.conn.commit()
-        logger.info("Migrated to schema v7: external_games table")
+        logger.info("Migrated to v7")
 
-    def _migrate_to_v8(self) -> None:
-        """Migrate to schema v8: PEGI + user data normalization + future tables."""
-        new_columns = [
+    def _m8(self):
+        # big: pegi + user tables
+        cs = [
             ("pegi_rating", "TEXT DEFAULT ''"),
             ("esrb_rating", "TEXT DEFAULT ''"),
             ("metacritic_score", "INTEGER DEFAULT 0"),
@@ -204,11 +180,11 @@ class SchemaMixin:
             ("short_description", "TEXT DEFAULT ''"),
             ("content_descriptors", "TEXT DEFAULT ''"),
         ]
-        for col_name, col_def in new_columns:
+        for n, d in cs:
             try:
-                self.conn.execute(f"ALTER TABLE games ADD COLUMN {col_name} {col_def}")
+                self.conn.execute("ALTER TABLE games ADD COLUMN %s %s" % (n, d))
             except sqlite3.OperationalError:
-                pass  # Column already exists
+                pass
 
         self.conn.executescript("""
             CREATE INDEX IF NOT EXISTS idx_games_pegi ON games(pegi_rating);
@@ -295,10 +271,9 @@ class SchemaMixin:
             );
         """)
         self.conn.commit()
-        logger.info("Migrated to schema v8: PEGI + user data normalization + future tables")
+        logger.info("Migrated to v8")
 
-    def _migrate_to_v9(self) -> None:
-        """Migrate to schema v9: curator tables."""
+    def _m9(self):
         self.conn.executescript("""
             CREATE TABLE IF NOT EXISTS curators (
                 curator_id    INTEGER PRIMARY KEY,
@@ -322,4 +297,4 @@ class SchemaMixin:
                 ON curator_recommendations(app_id);
         """)
         self.conn.commit()
-        logger.info("Migrated to schema v9: curator tables")
+        logger.info("Migrated to v9")

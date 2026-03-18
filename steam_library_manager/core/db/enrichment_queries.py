@@ -1,6 +1,6 @@
 #
 # steam_library_manager/core/db/enrichment_queries.py
-# DB queries for HLTB, ProtonDB, achievements, and health-check enrichment
+# DB queries for enrichment data (HLTB, ProtonDB, achievements, health)
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -10,9 +10,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any
 
-from steam_library_manager.core.db.models import ImportStats
 from steam_library_manager.utils.i18n import t
 
 logger = logging.getLogger("steamlibmgr.database")
@@ -21,62 +19,35 @@ __all__ = ["EnrichmentQueryMixin"]
 
 
 class EnrichmentQueryMixin:
-    """Mixin providing enrichment and data quality operations.
+    """Enrichment and data quality queries.
 
-    Requires ConnectionBase attributes: conn.
+    HLTB times, ProtonDB ratings, achievements, health checks.
+    Needs conn from ConnectionBase.
     """
 
-    # ── Shared query helpers ─────────────────────────────────────────────
+    # shared helpers
 
-    def _get_apps_without_join(self, table: str) -> list[tuple[int, str]]:
-        """Returns game-type apps with no entry in the given table.
-
-        Args:
-            table: Target table name to LEFT JOIN against.
-
-        Returns:
-            List of (app_id, name) tuples.
-        """
-        cursor = self.conn.execute(
-            f"SELECT g.app_id, g.name FROM games g"
-            f" LEFT JOIN {table} t ON g.app_id = t.app_id"
-            f" WHERE t.app_id IS NULL AND g.app_type IN ('game', '')"
+    def _apps_without(self, tbl):
+        # apps without entry
+        cur = self.conn.execute(
+            "SELECT g.app_id, g.name FROM games g"
+            " LEFT JOIN %s t ON g.app_id = t.app_id"
+            " WHERE t.app_id IS NULL AND g.app_type IN ('game', '')" % tbl
         )
-        return [(row[0], row[1]) for row in cursor.fetchall()]
+        return [(r[0], r[1]) for r in cur.fetchall()]
 
-    def _get_stale_count(self, table: str, max_age_days: int) -> int:
-        """Counts entries with cache older than max_age_days.
+    def _stale_count(self, tbl, days):
+        cut = int(time.time()) - (days * 86400)
+        cur = self.conn.execute("SELECT COUNT(*) FROM %s WHERE last_updated < ?" % tbl, (cut,))
+        return cur.fetchone()[0]
 
-        Args:
-            table: Table name with a last_updated column.
-            max_age_days: Maximum cache age in days.
+    # metadata
 
-        Returns:
-            Number of stale entries.
-        """
-        cutoff = int(time.time()) - (max_age_days * 86400)
-        cursor = self.conn.execute(
-            f"SELECT COUNT(*) FROM {table} WHERE last_updated < ?",
-            (cutoff,),
-        )
-        return cursor.fetchone()[0]
-
-    # ── Metadata enrichment ──────────────────────────────────────────────
-
-    def upsert_game_metadata(self, app_id: int, **fields: Any) -> None:
-        """Updates specific metadata fields for an existing game.
-
-        Only updates the provided fields; other columns remain unchanged.
-        Silently does nothing if the game does not exist.
-
-        Args:
-            app_id: Steam app ID.
-            **fields: Column name/value pairs to update (e.g. developer="Valve").
-        """
-        if not fields:
+    def upsert_game_metadata(self, app_id, **flds):
+        if not flds:
             return
 
-        valid_columns = {
+        cols = {
             "name",
             "sort_as",
             "app_type",
@@ -98,350 +69,199 @@ class EnrichmentQueryMixin:
             "achievements_total",
             "platforms",
         }
-        safe_fields = {k: v for k, v in fields.items() if k in valid_columns}
-        if not safe_fields:
+        ok = {k: v for k, v in flds.items() if k in cols}
+        if not ok:
             return
 
-        set_clause = ", ".join(f"{col} = ?" for col in safe_fields)
-        values = list(safe_fields.values()) + [int(time.time()), app_id]
+        st = ", ".join("%s = ?" % c for c in ok)
+        vs = list(ok.values()) + [int(time.time()), app_id]
+        self.conn.execute("UPDATE games SET %s, updated_at = ? WHERE app_id = ?" % st, vs)
 
-        self.conn.execute(
-            f"UPDATE games SET {set_clause}, updated_at = ? WHERE app_id = ?",
-            values,
-        )
-
-    def upsert_languages(self, app_id: int, languages: dict[str, dict[str, bool]]) -> None:
-        """Replaces language support data for a game.
-
-        Args:
-            app_id: Steam app ID.
-            languages: Dict mapping language name to support flags.
-        """
-        if not languages:
+    def upsert_languages(self, app_id, langs):
+        if not langs:
             return
-
         self.conn.execute("DELETE FROM game_languages WHERE app_id = ?", (app_id,))
-
         rows = [
-            (
-                app_id,
-                lang,
-                support.get("interface", False),
-                support.get("audio", False),
-                support.get("subtitles", False),
-            )
-            for lang, support in languages.items()
+            (app_id, lang, sup.get("interface", False), sup.get("audio", False), sup.get("subtitles", False))
+            for lang, sup in langs.items()
         ]
         self.conn.executemany(
             "INSERT OR REPLACE INTO game_languages"
-            " (app_id, language, interface, audio, subtitles)"
-            " VALUES (?, ?, ?, ?, ?)",
+            " (app_id, language, interface, audio, subtitles) VALUES (?, ?, ?, ?, ?)",
             rows,
         )
 
-    def get_all_game_ids(self) -> list[tuple[int, str]]:
-        """Returns all game-type apps from the database.
+    def get_all_game_ids(self):
+        cur = self.conn.execute("SELECT app_id, name FROM games WHERE app_type IN ('game', '')")
+        return [(r[0], r[1]) for r in cur.fetchall()]
 
-        Returns:
-            List of (app_id, name) tuples for all games.
-        """
-        cursor = self.conn.execute("SELECT app_id, name FROM games WHERE app_type IN ('game', '')")
-        return [(row[0], row[1]) for row in cursor.fetchall()]
-
-    def get_apps_missing_metadata(self) -> list[tuple[int, str]]:
-        """Returns apps with missing developer, publisher, or release date.
-
-        Returns:
-            List of (app_id, name) tuples.
-        """
-        cursor = self.conn.execute(
+    def get_apps_missing_metadata(self):
+        cur = self.conn.execute(
             "SELECT app_id, name FROM games"
             " WHERE (developer IS NULL OR developer = '')"
             " OR (publisher IS NULL OR publisher = '')"
-            " OR ("
-            "   (original_release_date IS NULL OR original_release_date = 0)"
-            "   AND (steam_release_date IS NULL OR steam_release_date = 0)"
-            " )"
+            " OR ((original_release_date IS NULL OR original_release_date = 0)"
+            "     AND (steam_release_date IS NULL OR steam_release_date = 0))"
         )
-        return [(row[0], row[1]) for row in cursor.fetchall()]
+        return [(r[0], r[1]) for r in cur.fetchall()]
 
-    def get_apps_without_hltb(self) -> list[tuple[int, str]]:
-        """Returns game-type apps that have no HLTB data."""
-        return self._get_apps_without_join("hltb_data")
+    def get_apps_without_hltb(self):
+        return self._apps_without("hltb_data")
 
-    # ── HLTB ID cache ────────────────────────────────────────────────────
+    # hltb cache
 
-    _HLTB_CACHE_TTL_DAYS = 30
+    _HLTB_TTL = 30  # days
 
-    def load_hltb_id_cache(self) -> dict[int, int]:
-        """Loads the steam_app_id -> hltb_game_id cache from database.
+    def load_hltb_id_cache(self):
+        cut = int(time.time()) - (self._HLTB_TTL * 86400)
+        cur = self.conn.execute("SELECT steam_app_id, hltb_game_id FROM hltb_id_cache WHERE cached_at > ?", (cut,))
+        return {r[0]: r[1] for r in cur.fetchall()}
 
-        Only returns entries younger than 30 days.
-
-        Returns:
-            Dict mapping steam_app_id to hltb_game_id.
-        """
-        cutoff = int(time.time()) - (self._HLTB_CACHE_TTL_DAYS * 86400)
-        cursor = self.conn.execute(
-            "SELECT steam_app_id, hltb_game_id FROM hltb_id_cache WHERE cached_at > ?",
-            (cutoff,),
-        )
-        return {row[0]: row[1] for row in cursor.fetchall()}
-
-    def save_hltb_id_cache(self, mappings: dict[int, int]) -> int:
-        """Saves steam_app_id -> hltb_game_id mappings to the cache table.
-
-        Args:
-            mappings: Dict mapping steam_app_id to hltb_game_id.
-
-        Returns:
-            Number of mappings saved.
-        """
-        if not mappings:
+    def save_hltb_id_cache(self, maps):
+        if not maps:
             return 0
-
         now = int(time.time())
-        rows = [(steam_id, hltb_id, now) for steam_id, hltb_id in mappings.items()]
+        rows = [(sid, hid, now) for sid, hid in maps.items()]
         self.conn.executemany(
-            "INSERT OR REPLACE INTO hltb_id_cache (steam_app_id, hltb_game_id, cached_at) VALUES (?, ?, ?)",
-            rows,
+            "INSERT OR REPLACE INTO hltb_id_cache (steam_app_id, hltb_game_id, cached_at) VALUES (?, ?, ?)", rows
         )
         self.conn.commit()
         return len(rows)
 
-    def clear_expired_hltb_cache(self) -> int:
-        """Removes expired entries from the HLTB ID cache.
-
-        Returns:
-            Number of entries removed.
-        """
-        cutoff = int(time.time()) - (self._HLTB_CACHE_TTL_DAYS * 86400)
-        cursor = self.conn.execute("DELETE FROM hltb_id_cache WHERE cached_at <= ?", (cutoff,))
+    def clear_expired_hltb_cache(self):
+        cut = int(time.time()) - (self._HLTB_TTL * 86400)
+        cur = self.conn.execute("DELETE FROM hltb_id_cache WHERE cached_at <= ?", (cut,))
         self.conn.commit()
-        return cursor.rowcount
+        return cur.rowcount
 
-    # ── ProtonDB ─────────────────────────────────────────────────────────
+    # protondb
 
-    _PROTONDB_TTL_DAYS = 7
+    _PDB_TTL = 7  # days
 
-    def get_cached_protondb(self, app_id: int) -> dict | None:
-        """Returns cached ProtonDB rating if fresh enough.
-
-        Args:
-            app_id: Steam app ID.
-
-        Returns:
-            Dict with tier/confidence/trending/score/best_reported/last_updated,
-            or None if not cached or expired.
-        """
-        cutoff = int(time.time()) - (self._PROTONDB_TTL_DAYS * 86400)
-        cursor = self.conn.execute(
+    def get_cached_protondb(self, app_id):
+        cut = int(time.time()) - (self._PDB_TTL * 86400)
+        cur = self.conn.execute(
             "SELECT tier, confidence, trending_tier, score, best_reported, last_updated"
             " FROM protondb_ratings WHERE app_id = ? AND last_updated > ?",
-            (app_id, cutoff),
+            (app_id, cut),
         )
-        row = cursor.fetchone()
-        if not row:
+        r = cur.fetchone()
+        if not r:
             return None
         return {
-            "tier": row[0],
-            "confidence": row[1],
-            "trending_tier": row[2],
-            "score": float(row[3]),
-            "best_reported": row[4],
-            "last_updated": int(row[5]),
+            "tier": r[0],
+            "confidence": r[1],
+            "trending_tier": r[2],
+            "score": float(r[3]),
+            "best_reported": r[4],
+            "last_updated": int(r[5]),
         }
 
-    def upsert_protondb(
-        self,
-        app_id: int,
-        tier: str,
-        confidence: str = "",
-        trending_tier: str = "",
-        score: float = 0.0,
-        best_reported: str = "",
-    ) -> None:
-        """Inserts or updates a ProtonDB rating.
-
-        Args:
-            app_id: Steam app ID.
-            tier: Compatibility tier.
-            confidence: Confidence level.
-            trending_tier: Trending tier direction.
-            score: Numeric score.
-            best_reported: Best reported tier.
-        """
+    def upsert_protondb(self, app_id, tier, confidence="", trending_tier="", score=0.0, best_reported=""):
         self.conn.execute(
-            """
-            INSERT OR REPLACE INTO protondb_ratings
-            (app_id, tier, confidence, trending_tier, score, best_reported, last_updated)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
+            "INSERT OR REPLACE INTO protondb_ratings"
+            " (app_id, tier, confidence, trending_tier, score, best_reported, last_updated)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?)",
             (app_id, tier, confidence, trending_tier, score, best_reported, int(time.time())),
         )
 
-    def get_apps_without_protondb(self) -> list[tuple[int, str]]:
-        """Returns game-type apps that have no ProtonDB rating."""
-        return self._get_apps_without_join("protondb_ratings")
+    def get_apps_without_protondb(self):
+        return self._apps_without("protondb_ratings")
 
-    def get_apps_without_pegi(self) -> list[tuple[int, str]]:
-        """Returns game-type apps that have no PEGI age rating.
+    def get_apps_without_pegi(self):
+        cur = self.conn.execute(
+            "SELECT app_id, name FROM games"
+            " WHERE (pegi_rating IS NULL OR pegi_rating = '')"
+            " AND app_type IN ('game', '')"
+        )
+        return [(r[0], r[1]) for r in cur.fetchall()]
 
-        Returns:
-            List of (app_id, name) tuples.
-        """
-        cursor = self.conn.execute("""
-            SELECT app_id, name FROM games
-            WHERE (pegi_rating IS NULL OR pegi_rating = '')
-            AND app_type IN ('game', '')
-            """)
-        return [(row[0], row[1]) for row in cursor.fetchall()]
-
-    def batch_get_protondb(self, app_ids: list[int]) -> dict[int, str]:
-        """Batch load ProtonDB tiers for multiple app_ids.
-
-        Args:
-            app_ids: List of app IDs.
-
-        Returns:
-            Dict mapping app_id to tier string.
-        """
-        if not app_ids:
+    def batch_get_protondb(self, aids):
+        if not aids:
             return {}
+        ph = ",".join("?" * len(aids))
+        cur = self.conn.execute("SELECT app_id, tier FROM protondb_ratings WHERE app_id IN (%s)" % ph, aids)
+        return {r[0]: r[1] for r in cur.fetchall()}
 
-        placeholders = ",".join("?" * len(app_ids))
-        cursor = self.conn.execute(
-            f"SELECT app_id, tier FROM protondb_ratings WHERE app_id IN ({placeholders})",
-            app_ids,
-        )
-        return {row[0]: row[1] for row in cursor.fetchall()}
+    # achievements
 
-    # ── Achievement operations ───────────────────────────────────────────
-
-    def upsert_achievement_stats(
-        self, app_id: int, total: int, unlocked: int, completion_pct: float, perfect: bool
-    ) -> None:
-        """Inserts or updates achievement statistics for a game.
-
-        Args:
-            app_id: Steam app ID.
-            total: Total number of achievements.
-            unlocked: Number of unlocked achievements.
-            completion_pct: Completion percentage (0.0-100.0).
-            perfect: Whether all achievements are unlocked.
-        """
+    def upsert_achievement_stats(self, app_id, total, unlocked, pct, perfect):
         self.conn.execute(
-            """
-            INSERT OR REPLACE INTO achievement_stats
-            (app_id, total_achievements, unlocked_achievements, completion_percentage, perfect_game)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (app_id, total, unlocked, round(completion_pct, 2), perfect),
+            "INSERT OR REPLACE INTO achievement_stats"
+            " (app_id, total_achievements, unlocked_achievements, completion_percentage, perfect_game)"
+            " VALUES (?, ?, ?, ?, ?)",
+            (app_id, total, unlocked, round(pct, 2), perfect),
         )
 
-    def upsert_achievements(self, app_id: int, achievements: list[dict]) -> None:
-        """Batch inserts or updates individual achievements for a game.
-
-        Args:
-            app_id: Steam app ID.
-            achievements: List of achievement dicts.
-        """
-        if not achievements:
+    def upsert_achievements(self, app_id, achs):
+        if not achs:
             return
-
         rows = [
             (
                 app_id,
-                ach.get("achievement_id", ""),
-                ach.get("name", ""),
-                ach.get("description", ""),
-                ach.get("is_unlocked", False),
-                ach.get("unlock_time", 0),
-                ach.get("is_hidden", False),
-                ach.get("rarity_percentage", 0.0),
+                a.get("achievement_id", ""),
+                a.get("name", ""),
+                a.get("description", ""),
+                a.get("is_unlocked", False),
+                a.get("unlock_time", 0),
+                a.get("is_hidden", False),
+                a.get("rarity_percentage", 0.0),
             )
-            for ach in achievements
+            for a in achs
         ]
         self.conn.executemany(
-            """
-            INSERT OR REPLACE INTO achievements
-            (app_id, achievement_id, name, description,
-             is_unlocked, unlock_time, is_hidden, rarity_percentage)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
+            "INSERT OR REPLACE INTO achievements"
+            " (app_id, achievement_id, name, description, is_unlocked, unlock_time, is_hidden, rarity_percentage)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             rows,
         )
 
-    def get_apps_without_achievements(self) -> list[tuple[int, str]]:
-        """Returns game-type apps that have no achievement_stats entry."""
-        return self._get_apps_without_join("achievement_stats")
+    def get_apps_without_achievements(self):
+        return self._apps_without("achievement_stats")
 
-    # ── Health check queries ─────────────────────────────────────────────
+    # health check
 
-    def get_games_missing_artwork(self) -> list[tuple[int, str]]:
-        """Returns games that have no custom artwork entry."""
-        return self._get_apps_without_join("custom_artwork")
+    def get_games_missing_artwork(self):
+        return self._apps_without("custom_artwork")
 
-    def get_stale_hltb_count(self, max_age_days: int = 30) -> int:
-        """Counts games with HLTB cache older than max_age_days."""
-        return self._get_stale_count("hltb_data", max_age_days)
+    def get_stale_hltb_count(self, days=30):
+        return self._stale_count("hltb_data", days)
 
-    def get_stale_protondb_count(self, max_age_days: int = 7) -> int:
-        """Counts games with ProtonDB cache older than max_age_days."""
-        return self._get_stale_count("protondb_ratings", max_age_days)
+    def get_stale_protondb_count(self, days=7):
+        return self._stale_count("protondb_ratings", days)
 
-    # ── Import recording ─────────────────────────────────────────────────
+    # import recording
 
-    def record_import(self, stats: ImportStats) -> None:
-        """Record import statistics.
-
-        Args:
-            stats: Import statistics.
-        """
+    def record_import(self, stats):
         self.conn.execute(
-            """
-            INSERT INTO import_history
-            (import_time, source, games_imported, games_updated, games_failed, notes)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
+            "INSERT INTO import_history"
+            " (import_time, source, games_imported, games_updated, games_failed, notes)"
+            " VALUES (?, ?, ?, ?, ?, ?)",
             (
                 int(time.time()),
                 stats.source,
                 stats.games_imported,
                 stats.games_updated,
                 stats.games_failed,
-                t("logs.db.import_duration", duration=f"{stats.duration_seconds:.2f}"),
+                t("logs.db.import_duration", duration="%.2f" % stats.duration_seconds),
             ),
         )
         self.conn.commit()
 
-    # ── Data quality ─────────────────────────────────────────────────────
+    # data quality
 
-    def repair_placeholder_names(self) -> int:
-        """Replace placeholder names with empty strings in the database.
-
-        Returns:
-            Number of names cleaned.
-        """
-        cursor = self.conn.execute("""
-            SELECT COUNT(*) FROM games
-            WHERE name GLOB 'App [0-9]*'
-               OR name GLOB 'Unknown App [0-9]*'
-               OR name GLOB 'Unbekannte App [0-9]*'
-            """)
-        count = cursor.fetchone()[0]
-
-        if count > 0:
+    def repair_placeholder_names(self):
+        cur = self.conn.execute(
+            "SELECT COUNT(*) FROM games"
+            " WHERE name GLOB 'App [0-9]*' OR name GLOB 'Unknown App [0-9]*' OR name GLOB 'Unbekannte App [0-9]*'"
+        )
+        cnt = cur.fetchone()[0]
+        if cnt > 0:
             self.conn.execute(
-                """
-                UPDATE games SET name = '', updated_at = ?
-                WHERE name GLOB 'App [0-9]*'
-                   OR name GLOB 'Unknown App [0-9]*'
-                   OR name GLOB 'Unbekannte App [0-9]*'
-                """,
+                "UPDATE games SET name = '', updated_at = ?"
+                " WHERE name GLOB 'App [0-9]*' OR name GLOB 'Unknown App [0-9]*' OR name GLOB 'Unbekannte App [0-9]*'",
                 (int(time.time()),),
             )
             self.conn.commit()
-            logger.info(t("logs.db.repaired_placeholders", count=count))
-
-        return count
+            logger.info(t("logs.db.repaired_placeholders", count=cnt))
+        return cnt

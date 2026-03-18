@@ -273,12 +273,12 @@ class TestPEGIGapFiller:
 
         thread = PEGIEnrichmentThread()
         thread._db = enrichment_db
-        thread._scraper = MagicMock()
-        thread._force_refresh = False
+        thread._s = MagicMock()
+        thread._f = False
 
         result = thread._process_item((440, "TF2"))
         assert result is True
-        thread._scraper.fetch_age_rating.assert_not_called()
+        thread._s.fetch_age_rating.assert_not_called()
 
     def test_pegi_gap_filler_fetches_unrated(self, enrichment_db) -> None:
         """PEGIEnrichmentThread fetches rating for games without pegi_rating."""
@@ -286,14 +286,14 @@ class TestPEGIGapFiller:
 
         thread = PEGIEnrichmentThread()
         thread._db = enrichment_db
-        thread._scraper = MagicMock()
-        thread._scraper.fetch_age_rating.return_value = "18"
-        thread._scraper.cache_dir.parent = Path("/tmp")
-        thread._force_refresh = False
+        thread._s = MagicMock()
+        thread._s.fetch_age_rating.return_value = "18"
+        thread._s.cache_dir.parent = Path("/tmp")
+        thread._f = False
 
         result = thread._process_item((440, "TF2"))
         assert result is True
-        thread._scraper.fetch_age_rating.assert_called_once_with("440")
+        thread._s.fetch_age_rating.assert_called_once_with("440")
 
     def test_pegi_gap_filler_force_refresh_ignores_existing(self, enrichment_db) -> None:
         """PEGIEnrichmentThread re-fetches with force_refresh even if rated."""
@@ -304,14 +304,14 @@ class TestPEGIGapFiller:
 
         thread = PEGIEnrichmentThread()
         thread._db = enrichment_db
-        thread._scraper = MagicMock()
-        thread._scraper.fetch_age_rating.return_value = "16"
-        thread._scraper.cache_dir.parent.__truediv__ = MagicMock(return_value=MagicMock())
-        thread._force_refresh = True
+        thread._s = MagicMock()
+        thread._s.fetch_age_rating.return_value = "16"
+        thread._s.cache_dir.parent.__truediv__ = MagicMock(return_value=MagicMock())
+        thread._f = True
 
         result = thread._process_item((440, "TF2"))
         assert result is True
-        thread._scraper.fetch_age_rating.assert_called_once()
+        thread._s.fetch_age_rating.assert_called_once()
 
 
 class TestSteamAPIEnrichment:
