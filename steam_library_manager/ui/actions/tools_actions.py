@@ -1,15 +1,13 @@
 #
 # steam_library_manager/ui/actions/tools_actions.py
-# UI action handlers for tools menu items
+# Tools menu action handlers
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 
-
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from PyQt6.QtCore import QThread, pyqtSignal
 import requests
 
@@ -17,25 +15,19 @@ from steam_library_manager.utils.i18n import t
 from steam_library_manager.utils.timeouts import HTTP_TIMEOUT
 from steam_library_manager.ui.widgets.ui_helper import UIHelper
 from steam_library_manager.ui.dialogs.missing_metadata_dialog import MissingMetadataDialog
-from steam_library_manager.core.game_manager import Game
-
-if TYPE_CHECKING:
-    from steam_library_manager.ui.main_window import MainWindow
 
 __all__ = ["StoreCheckThread", "ToolsActions"]
 
 
 class StoreCheckThread(QThread):
-    """Background thread to check Steam Store availability."""
-
+    # checks if game is on store
     finished = pyqtSignal(str, str)
 
-    def __init__(self, app_id: str):
+    def __init__(self, aid):
         super().__init__()
-        self.app_id = app_id
+        self.aid = aid
 
-    # Keywords that indicate geo-blocking / region restriction on the store page
-    _GEO_KEYWORDS = (
+    _GEO_KW = (
         "not available in your country",
         "not available in your region",
         "unavailable in your region",
@@ -45,60 +37,50 @@ class StoreCheckThread(QThread):
         "error processing your request",
     )
 
-    def run(self) -> None:
-        """Performs the store check via HTTP request."""
+    def run(self):
         try:
-            url = f"https://store.steampowered.com/app/{self.app_id}/"
-            response = requests.get(
-                url,
+            u = "https://store.steampowered.com/app/%s/" % self.aid
+            r = requests.get(
+                u,
                 timeout=HTTP_TIMEOUT,
                 allow_redirects=True,
                 headers={
-                    "User-Agent": (
-                        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
-                        " (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-                    ),
+                    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+                    " (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
                 },
             )
 
-            if response.status_code in (404, 403):
-                self.finished.emit("removed", f"{t('emoji.error')} {t('ui.store_check.removed')}")
+            if r.status_code in (404, 403):
+                self.finished.emit("removed", "%s %s" % (t("emoji.error"), t("ui.store_check.removed")))
                 return
 
-            if response.status_code != 200:
+            if r.status_code != 200:
                 self.finished.emit(
-                    "unknown",
-                    f"{t('emoji.unknown')} {t('ui.store_check.unknown', code=response.status_code)}",
+                    "unknown", "%s %s" % (t("emoji.unknown"), t("ui.store_check.unknown", code=r.status_code))
                 )
                 return
 
-            final_url = response.url
-            text_lower = response.text.lower()
+            fu = r.url
+            txt = r.text.lower()
 
-            # Age gate: redirect to /agecheck/ or agecheck form on page
-            if "agecheck" in final_url or ("agecheck" in text_lower and f"/app/{self.app_id}" in final_url):
-                self.finished.emit("age_gate", f"{t('emoji.success')} {t('ui.store_check.age_gate')}")
+            if "agecheck" in fu or ("agecheck" in txt and "/app/%s" % self.aid in fu):
+                self.finished.emit("age_gate", "%s %s" % (t("emoji.success"), t("ui.store_check.age_gate")))
                 return
 
-            # Geo-blocking: error page with region-restriction message
-            if any(kw in text_lower for kw in self._GEO_KEYWORDS):
-                self.finished.emit("geo_locked", f"{t('emoji.blocked')} {t('ui.store_check.geo_locked')}")
+            if any(kw in txt for kw in self._GEO_KW):
+                self.finished.emit("geo_locked", "%s %s" % (t("emoji.blocked"), t("ui.store_check.geo_locked")))
                 return
 
-            # Valid store page with purchase area or header image
-            if "game_area_purchase" in text_lower or "app_header" in text_lower:
-                self.finished.emit("available", f"{t('emoji.success')} {t('ui.store_check.available')}")
+            if "game_area_purchase" in txt or "app_header" in txt:
+                self.finished.emit("available", "%s %s" % (t("emoji.success"), t("ui.store_check.available")))
                 return
 
-            # Redirected away from the app page (e.g. to store homepage)
-            if f"/app/{self.app_id}" not in final_url:
-                self.finished.emit("delisted", f"{t('emoji.error')} {t('ui.store_check.delisted')}")
+            if "/app/%s" % self.aid not in fu:
+                self.finished.emit("delisted", "%s %s" % (t("emoji.error"), t("ui.store_check.delisted")))
                 return
 
-            # Page loaded but no recognizable content
             self.finished.emit(
-                "unknown",
-                f"{t('emoji.unknown')} {t('ui.store_check.unknown', code=response.status_code)}",
+                "unknown", "%s %s" % (t("emoji.unknown"), t("ui.store_check.unknown", code=r.status_code))
             )
 
         except Exception as ex:
@@ -106,186 +88,151 @@ class StoreCheckThread(QThread):
 
 
 class ToolsActions:
-    """Handles tool-related actions like metadata search and store checks."""
+    """Tools menu handlers - external games, curators, health check.
 
-    def __init__(self, main_window: "MainWindow"):
-        self.main_window = main_window
-        self._store_check_thread: StoreCheckThread | None = None
-        self._health_thread: QThread | None = None
+    Also does the store availability check per game (background thread)
+    and the full library health scan with progress dialog.
+    """
 
-    def show_external_games(self) -> None:
-        """Opens the External Games Manager dialog."""
+    def __init__(self, win):
+        self.mw = win
+        self._st = None
+        self._ht = None
+
+    def show_external_games(self):
         from steam_library_manager.ui.dialogs.external_games_dialog import ExternalGamesDialog
 
-        dialog = ExternalGamesDialog(self.main_window)
-        dialog.exec()
+        ExternalGamesDialog(self.mw).exec()
 
-    def show_curator_manager(self) -> None:
-        """Opens the Curator Management dialog."""
+    def show_curator_manager(self):
         from steam_library_manager.ui.dialogs.curator_management_dialog import CuratorManagementDialog
 
-        db_path = None
-        if hasattr(self.main_window, "game_service") and self.main_window.game_service:
-            db = getattr(self.main_window.game_service, "database", None)
-            if db and hasattr(db, "db_path"):
-                db_path = db.db_path
-
-        if db_path is None:
-            UIHelper.show_warning(self.main_window, t("ui.enrichment.no_curators"))
+        dbp = self._get_db_path()
+        if dbp is None:
+            UIHelper.show_warning(self.mw, t("ui.enrichment.no_curators"))
             return
 
-        # Collect existing collection names (including dynamic/filter-based ones
-        # from cloud storage that game_manager doesn't see)
-        existing_names: set[str] = set()
-        if self.main_window.game_manager:
-            existing_names = set(self.main_window.game_manager.get_all_categories().keys())
-        if self.main_window.cloud_storage_parser:
-            existing_names.update(self.main_window.cloud_storage_parser.get_all_categories())
+        # collect existing names
+        ns = set()
+        if self.mw.game_manager:
+            ns = set(self.mw.game_manager.get_all_categories().keys())
+        if self.mw.cloud_storage_parser:
+            ns.update(self.mw.cloud_storage_parser.get_all_categories())
 
-        dialog = CuratorManagementDialog(self.main_window, db_path, existing_names)
-        dialog.exec()
-
-        # Refresh curator filter cache after management changes
+        dlg = CuratorManagementDialog(self.mw, dbp, ns)
+        dlg.exec()
         self._refresh_curator_cache()
 
-    def _refresh_curator_cache(self) -> None:
-        """Rebuilds the curator filter cache from the database."""
-        db_path = None
-        if hasattr(self.main_window, "game_service") and self.main_window.game_service:
-            db = getattr(self.main_window.game_service, "database", None)
+    def _get_db_path(self):
+        if hasattr(self.mw, "game_service") and self.mw.game_service:
+            db = getattr(self.mw.game_service, "database", None)
             if db and hasattr(db, "db_path"):
-                db_path = db.db_path
+                return db.db_path
+        return None
 
-        if db_path is None:
+    def _refresh_curator_cache(self):
+        dbp = self._get_db_path()
+        if not dbp:
             return
-
         from steam_library_manager.core.database import Database
 
-        temp_db = Database(db_path)
+        tmp = Database(dbp)
         try:
-            cache: dict[int, set[int]] = {}
-            for curator in temp_db.get_active_curators():
-                curator_id = curator["curator_id"]
-                cache[curator_id] = temp_db.get_recommendations_for_curator(curator_id)
-            self.main_window.filter_service.set_curator_cache(cache)
+            cache = {}
+            for c in tmp.get_active_curators():
+                cid = c["curator_id"]
+                cache[cid] = tmp.get_recommendations_for_curator(cid)
+            self.mw.filter_service.set_curator_cache(cache)
         finally:
-            temp_db.close()
+            tmp.close()
 
-    def find_missing_metadata(self) -> None:
-        """Shows a dialog listing games with incomplete metadata."""
-        if not self.main_window.metadata_service:
+    def find_missing_metadata(self):
+        if not self.mw.metadata_service:
             return
-
-        affected = self.main_window.metadata_service.find_missing_metadata()
-
+        affected = self.mw.metadata_service.find_missing_metadata()
         if affected:
-            dialog = MissingMetadataDialog(self.main_window, affected)
-            dialog.exec()
+            MissingMetadataDialog(self.mw, affected).exec()
         else:
-            UIHelper.show_success(self.main_window, t("ui.tools.missing_metadata.all_complete"))
+            UIHelper.show_success(self.mw, t("ui.tools.missing_metadata.all_complete"))
 
-    def check_store_availability(self, game: Game) -> None:
-        """Checks if a game is still available on the Steam Store."""
-        # Create and show progress dialog
-        progress = UIHelper.create_progress_dialog(
-            self.main_window,
+    def check_store_availability(self, g):
+        prog = UIHelper.create_progress_dialog(
+            self.mw,
             t("ui.store_check.checking"),
             maximum=0,
             cancelable=False,
             title=t("ui.store_check.title"),
         )
-        progress.show()
+        prog.show()
 
-        # Define callback for thread completion
-        def on_check_finished(status: str, details: str):
-            progress.close()
-            title = t("ui.store_check.title")
-            msg = f"{game.name}: {details}"
-
-            if status == "available":
-                UIHelper.show_success(self.main_window, msg, title)
-            elif status == "age_gate":
-                UIHelper.show_info(self.main_window, msg, title)
+        def _done(st, det):
+            prog.close()
+            msg = "%s: %s" % (g.name, det)
+            if st == "available":
+                UIHelper.show_success(self.mw, msg, t("ui.store_check.title"))
+            elif st == "age_gate":
+                UIHelper.show_info(self.mw, msg, t("ui.store_check.title"))
             else:
-                UIHelper.show_warning(self.main_window, msg, title)
+                UIHelper.show_warning(self.mw, msg, t("ui.store_check.title"))
 
-        # Start background thread
-        self._store_check_thread = StoreCheckThread(game.app_id)
-        # noinspection PyUnresolvedReferences
-        self._store_check_thread.finished.connect(on_check_finished)
-        self._store_check_thread.start()
+        self._st = StoreCheckThread(g.app_id)
+        self._st.finished.connect(_done)
+        self._st.start()
 
-    def start_library_health_check(self) -> None:
-        """Starts the full library health check with progress dialog."""
+    def start_library_health_check(self):
         from steam_library_manager.config import config
         from steam_library_manager.services.library_health_thread import LibraryHealthThread
         from steam_library_manager.ui.dialogs.health_check_dialog import HealthCheckResultDialog
 
-        if not self.main_window.game_manager:
+        if not self.mw.game_manager:
             return
 
-        all_games = self.main_window.game_manager.get_real_games()
-        game_count = len(all_games)
+        all_g = self.mw.game_manager.get_real_games()
+        n = len(all_g)
 
-        if not UIHelper.confirm(
-            self.main_window,
-            t("health_check.confirm", count=game_count),
-            t("health_check.title"),
-        ):
+        if not UIHelper.confirm(self.mw, t("health_check.confirm", count=n), t("health_check.title")):
             return
 
-        # Build game list as (app_id, name) with int app_ids
-        games: list[tuple[int, str]] = []
-        for g in all_games:
+        games = []
+        for x in all_g:
             try:
-                games.append((int(g.app_id), g.name))
+                games.append((int(x.app_id), x.name))
             except (ValueError, TypeError):
                 continue
 
-        # Get API key (optional - DB checks work without it)
-        api_key = config.STEAM_API_KEY or ""
-
-        # Get database path
-        db_path = None
-        if hasattr(self.main_window, "game_service") and self.main_window.game_service:
-            db = getattr(self.main_window.game_service, "database", None)
-            if db and hasattr(db, "db_path"):
-                db_path = db.db_path
-
-        if db_path is None:
-            UIHelper.show_warning(self.main_window, t("health_check.progress.starting"))
+        key = config.STEAM_API_KEY or ""
+        dbp = self._get_db_path()
+        if not dbp:
+            UIHelper.show_warning(self.mw, t("health_check.progress.starting"))
             return
 
-        # Progress dialog
-        progress = UIHelper.create_progress_dialog(
-            self.main_window,
+        prog = UIHelper.create_progress_dialog(
+            self.mw,
             t("health_check.progress.starting"),
             maximum=100,
             title=t("health_check.title"),
         )
-        progress.show()
+        prog.show()
 
-        # Start background thread
-        self._health_thread = LibraryHealthThread(games, api_key, db_path, self.main_window)
+        self._ht = LibraryHealthThread(games, key, dbp, self.mw)
 
-        def on_progress(current: int, total: int, key: str) -> None:
-            if progress.wasCanceled():
-                self._health_thread.cancel()
+        def _prog(cur, tot, k):
+            if prog.wasCanceled():
+                self._ht.cancel()
                 return
-            percent = int((current / max(total, 1)) * 100)
-            progress.setValue(percent)
-            progress.setLabelText(t(key, current=current, total=total))
+            pct = int((cur / max(tot, 1)) * 100)
+            prog.setValue(pct)
+            prog.setLabelText(t(k, current=cur, total=tot))
 
-        def on_phase(phase_key: str) -> None:
-            progress.setLabelText(t(phase_key))
+        def _phase(pk):
+            prog.setLabelText(t(pk))
 
-        def on_finished(report: object) -> None:
-            progress.close()
-            dialog = HealthCheckResultDialog(self.main_window, report)
-            dialog.exec()
+        def _fin(rep):
+            prog.close()
+            HealthCheckResultDialog(self.mw, rep).exec()
 
-        self._health_thread.progress.connect(on_progress)
-        self._health_thread.phase_changed.connect(on_phase)
-        self._health_thread.finished_report.connect(on_finished)
-        progress.canceled.connect(self._health_thread.cancel)
-        self._health_thread.start()
+        self._ht.progress.connect(_prog)
+        self._ht.phase_changed.connect(_phase)
+        self._ht.finished_report.connect(_fin)
+        prog.canceled.connect(self._ht.cancel)
+        self._ht.start()

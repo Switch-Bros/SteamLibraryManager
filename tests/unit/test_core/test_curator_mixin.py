@@ -133,7 +133,7 @@ class TestCuratorMixin:
     def test_get_curators_needing_refresh_never_updated(self, db: Database) -> None:
         """Curators with last_updated=NULL should need refresh."""
         db.add_curator(1850, "PC Gamer")
-        needing = db.get_curators_needing_refresh(max_age_days=7)
+        needing = db.get_curators_needing_refresh(max_days=7)
         assert len(needing) == 1
         assert needing[0]["curator_id"] == 1850
 

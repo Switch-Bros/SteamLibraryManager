@@ -176,7 +176,7 @@ class CuratorManagementDialog(BaseDialog):
                 continue
             if self._collection_matches(preset.name):
                 url = f"https://store.steampowered.com/curator/{preset.curator_id}/"
-                self._db.add_curator(preset.curator_id, preset.name, url, source="auto")
+                self._db.add_curator(preset.curator_id, preset.name, url, src="auto")
                 added += 1
 
         if added:
@@ -322,7 +322,7 @@ class CuratorManagementDialog(BaseDialog):
         for cb, curator_id, name in checkboxes:
             if cb.isChecked() and curator_id not in existing_ids:
                 url = f"https://store.steampowered.com/curator/{curator_id}/"
-                self._db.add_curator(curator_id, name, url, source="preset")
+                self._db.add_curator(curator_id, name, url, src="preset")
                 added += 1
 
         if added > 0:
@@ -431,7 +431,7 @@ class CuratorManagementDialog(BaseDialog):
         for cb, curator_id, name in checkboxes:
             if cb.isChecked() and curator_id not in existing_ids:
                 url = f"https://store.steampowered.com/curator/{curator_id}/"
-                self._db.add_curator(curator_id, name, url, source="discovered")
+                self._db.add_curator(curator_id, name, url, src="discovered")
                 added += 1
 
         if added > 0:

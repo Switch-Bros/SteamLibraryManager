@@ -1,11 +1,10 @@
 #
 # steam_library_manager/utils/appinfo_constants.py
-# Constants for parsing Steam appinfo.vdf binary format
+# Constants for Steam appinfo.vdf binary format
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
-
 
 from __future__ import annotations
 
@@ -30,29 +29,16 @@ __all__ = [
 ]
 
 
-# Version definitions
-
-
 class AppInfoVersion(IntEnum):
-    """AppInfo format version identifiers."""
-
-    # Old versions (for reference, not implemented)
-    # VERSION_24 = 0x06445624  # circa 2011
-    # VERSION_25 = 0x07445625  # circa 2012
-    # VERSION_26 = 0x07445626  # circa 2013
-    # VERSION_27 = 0x07445627  # circa 2017
-
-    # Supported versions
-    VERSION_28 = 0x07564428  # Dec 2022 - June 2024 (Binary SHA-1)
-    VERSION_29 = 0x07564429  # June 2024+ (String Table)
-    VERSION_39 = 0x07564427  # Alternate magic for v27
-    VERSION_40 = 0x07564428  # Alternate magic for v28
-    VERSION_41 = 0x07564429  # Alternate magic for v29
+    # supported appinfo.vdf versions
+    VERSION_28 = 0x07564428  # dec 2022 - june 2024
+    VERSION_29 = 0x07564429  # june 2024+
+    VERSION_39 = 0x07564427
+    VERSION_40 = 0x07564428
+    VERSION_41 = 0x07564429
 
 
 class EUniverse(IntEnum):
-    """Steam Universe identifiers."""
-
     Invalid = 0
     Public = 1
     Beta = 2
@@ -60,36 +46,26 @@ class EUniverse(IntEnum):
     Dev = 4
 
 
-# Magic numbers and valid versions
+# header magic (3 bytes shifted)
+MAGIC_NUMBER = 0x07_56_44
 
-MAGIC_NUMBER: int = 0x07_56_44
-"""Expected magic prefix in the appinfo.vdf header (3 bytes, shifted)."""
+VALID_VERSIONS = (28, 29, 39, 40, 41)
 
-VALID_VERSIONS: tuple[int, ...] = (28, 29, 39, 40, 41)
-"""Supported appinfo.vdf version numbers."""
-
-
-# Binary VDF type markers
-
-TYPE_DICT: int = 0x00
-TYPE_STRING: int = 0x01
-TYPE_INT32: int = 0x02
-TYPE_FLOAT32: int = 0x03
-TYPE_POINTER: int = 0x04  # Unused
-TYPE_WIDESTRING: int = 0x05  # Unused
-TYPE_COLOR: int = 0x06  # Unused
-TYPE_INT64: int = 0x07
-TYPE_SECTION_END: int = 0x08
-TYPE_END: int = 0x08  # Alias for TYPE_SECTION_END
-
-
-# Exceptions
+# binary vdf type markers
+TYPE_DICT = 0x00
+TYPE_STRING = 0x01
+TYPE_INT32 = 0x02
+TYPE_FLOAT32 = 0x03
+TYPE_POINTER = 0x04
+TYPE_WIDESTRING = 0x05
+TYPE_COLOR = 0x06
+TYPE_INT64 = 0x07
+TYPE_SECTION_END = 0x08
+TYPE_END = 0x08
 
 
 class IncompatibleVersionError(Exception):
-    """Raised when an unsupported appinfo.vdf version is encountered."""
-
-    def __init__(self, version: int, magic: int):
-        self.version = version
+    def __init__(self, ver, magic):
+        self.version = ver
         self.magic = magic
-        super().__init__(f"Incompatible version {version} (magic: 0x{magic:08X})")
+        super().__init__("Incompatible version %d (magic: 0x%08X)" % (ver, magic))

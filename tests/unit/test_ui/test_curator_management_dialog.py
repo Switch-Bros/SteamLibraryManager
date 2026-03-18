@@ -37,7 +37,7 @@ class TestCuratorManagementDialogData:
 
     def test_add_preset_curator(self, db: Database) -> None:
         """Adding a curator with source='preset' should work."""
-        db.add_curator(1850, "PC Gamer", source="preset")
+        db.add_curator(1850, "PC Gamer", src="preset")
         curators = db.get_all_curators()
         assert len(curators) == 1
         assert curators[0]["source"] == "preset"
