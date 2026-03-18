@@ -37,7 +37,7 @@ logger = logging.getLogger("steamlibmgr.smart_collections.models")
 
 
 class FilterField(Enum):
-    """Available fields for Smart Collection rules."""
+    # available fields for rules
 
     # Text list fields (game has list of values)
     TAG = "tag"
@@ -72,7 +72,7 @@ class FilterField(Enum):
 
 
 class Operator(Enum):
-    """Comparison operators for Smart Collection rules."""
+    # comparison operators
 
     # Text operators
     EQUALS = "equals"
@@ -94,7 +94,7 @@ class Operator(Enum):
 
 
 class LogicOperator(Enum):
-    """Top-level logic operator between rules."""
+    # top-level logic
 
     AND = "AND"
     OR = "OR"
@@ -215,13 +215,13 @@ _FIELD_TO_ATTR: dict[FilterField, str] = {
 
 
 def field_to_game_attr(fld: FilterField) -> str:
-    """Maps a FilterField to the corresponding Game dataclass attribute name."""
+    # field -> game attr
     return _FIELD_TO_ATTR[fld]
 
 
 @dataclass(frozen=True)
 class SmartCollectionRule:
-    """A single rule in a Smart Collection."""
+    # one rule: field + operator + value
 
     field: FilterField
     operator: Operator
@@ -233,7 +233,7 @@ class SmartCollectionRule:
 
 @dataclass(frozen=True)
 class SmartCollectionRuleGroup:
-    """A group of rules with its own internal logic operator."""
+    # group of rules with logic
 
     logic: LogicOperator = LogicOperator.AND
     rules: tuple[SmartCollectionRule, ...] = ()
@@ -241,7 +241,7 @@ class SmartCollectionRuleGroup:
 
 @dataclass
 class SmartCollection:
-    """A Smart Collection with its rules and metadata."""
+    # collection with rules and settings
 
     collection_id: int = 0
     name: str = ""
@@ -260,7 +260,7 @@ class SmartCollection:
 
 
 def rule_to_dict(rule: SmartCollectionRule) -> dict:
-    """Serializes a SmartCollectionRule to a JSON-compatible dict."""
+    # serialize rule
     d: dict = {
         "field": rule.field.value,
         "operator": rule.operator.value,
@@ -274,7 +274,7 @@ def rule_to_dict(rule: SmartCollectionRule) -> dict:
 
 
 def rule_from_dict(data: dict) -> SmartCollectionRule:
-    """Deserializes a SmartCollectionRule from a dict."""
+    # deserialize rule
     return SmartCollectionRule(
         field=FilterField(data["field"]),
         operator=Operator(data["operator"]),
@@ -286,7 +286,7 @@ def rule_from_dict(data: dict) -> SmartCollectionRule:
 
 
 def group_to_dict(group: SmartCollectionRuleGroup) -> dict:
-    """Serializes a SmartCollectionRuleGroup to a JSON-compatible dict."""
+    # serialize group
     return {
         "logic": group.logic.value,
         "rules": [rule_to_dict(r) for r in group.rules],
@@ -294,7 +294,7 @@ def group_to_dict(group: SmartCollectionRuleGroup) -> dict:
 
 
 def group_from_dict(data: dict) -> SmartCollectionRuleGroup:
-    """Deserializes a SmartCollectionRuleGroup from a dict."""
+    # deserialize group
     try:
         logic = LogicOperator(data.get("logic", "AND"))
     except ValueError:
@@ -315,7 +315,7 @@ def group_from_dict(data: dict) -> SmartCollectionRuleGroup:
 
 
 def collection_to_json(collection: SmartCollection) -> str:
-    """Serializes a SmartCollection's rules to a JSON string for DB storage."""
+    # rules -> json string
     payload: dict = {
         "logic": collection.logic.value,
     }
@@ -329,7 +329,7 @@ def collection_to_json(collection: SmartCollection) -> str:
 
 
 def collection_from_json(rules_json: str, collection: SmartCollection | None = None) -> SmartCollection:
-    """Deserializes rules JSON into a SmartCollection (or updates an existing one)."""
+    # json -> collection
     if collection is None:
         collection = SmartCollection()
 
@@ -374,5 +374,5 @@ def collection_from_json(rules_json: str, collection: SmartCollection | None = N
 
 
 def now_ts() -> int:
-    """Returns the current Unix timestamp as integer."""
+    # current unix ts
     return int(time.time())

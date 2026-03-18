@@ -48,7 +48,7 @@ class TestDeckEnrichmentConfig:
         """Configure should store the cache directory."""
         thread = DeckEnrichmentThread()
         thread.configure([], tmp_path)
-        assert thread._cache_dir == tmp_path
+        assert thread._cdir == tmp_path
 
     def test_cancel_sets_flag(self) -> None:
         """Cancel should set the internal cancelled flag."""
@@ -64,7 +64,7 @@ class TestDeckEnrichmentConfig:
 
 
 class TestFetchDeckStatus:
-    """Tests for the static _fetch_deck_status method."""
+    """Tests for the static _fetch method."""
 
     @patch("steam_library_manager.utils.deck_utils.requests.get")
     def test_fetch_verified_status(self, mock_get: MagicMock, tmp_path: Path) -> None:
@@ -77,7 +77,7 @@ class TestFetchDeckStatus:
         store_dir = tmp_path / "store_data"
         store_dir.mkdir()
 
-        result = DeckEnrichmentThread._fetch_deck_status("440", store_dir)
+        result = DeckEnrichmentThread._fetch("440", store_dir)
         assert result == "verified"
 
     @patch("steam_library_manager.utils.deck_utils.requests.get")
@@ -91,7 +91,7 @@ class TestFetchDeckStatus:
         store_dir = tmp_path / "store_data"
         store_dir.mkdir()
 
-        result = DeckEnrichmentThread._fetch_deck_status("440", store_dir)
+        result = DeckEnrichmentThread._fetch("440", store_dir)
         assert result == "playable"
 
     @patch("steam_library_manager.utils.deck_utils.requests.get")
@@ -105,7 +105,7 @@ class TestFetchDeckStatus:
         store_dir = tmp_path / "store_data"
         store_dir.mkdir()
 
-        result = DeckEnrichmentThread._fetch_deck_status("440", store_dir)
+        result = DeckEnrichmentThread._fetch("440", store_dir)
         assert result == "unsupported"
 
     @patch("steam_library_manager.utils.deck_utils.requests.get")
@@ -119,7 +119,7 @@ class TestFetchDeckStatus:
         store_dir = tmp_path / "store_data"
         store_dir.mkdir()
 
-        result = DeckEnrichmentThread._fetch_deck_status("440", store_dir)
+        result = DeckEnrichmentThread._fetch("440", store_dir)
         assert result == "unknown"
 
     @patch("steam_library_manager.utils.deck_utils.requests.get")
@@ -132,7 +132,7 @@ class TestFetchDeckStatus:
         store_dir = tmp_path / "store_data"
         store_dir.mkdir()
 
-        result = DeckEnrichmentThread._fetch_deck_status("440", store_dir)
+        result = DeckEnrichmentThread._fetch("440", store_dir)
         assert result is None
 
     @patch("steam_library_manager.utils.deck_utils.requests.get")
@@ -145,7 +145,7 @@ class TestFetchDeckStatus:
         store_dir = tmp_path / "store_data"
         store_dir.mkdir()
 
-        result = DeckEnrichmentThread._fetch_deck_status("440", store_dir)
+        result = DeckEnrichmentThread._fetch("440", store_dir)
         assert result is None
 
     @patch("steam_library_manager.utils.deck_utils.requests.get")
@@ -159,7 +159,7 @@ class TestFetchDeckStatus:
         store_dir = tmp_path / "store_data"
         store_dir.mkdir()
 
-        DeckEnrichmentThread._fetch_deck_status("440", store_dir)
+        DeckEnrichmentThread._fetch("440", store_dir)
 
         cache_file = store_dir / "440_deck.json"
         assert cache_file.exists()
@@ -175,7 +175,7 @@ class TestFetchDeckStatus:
         store_dir = tmp_path / "store_data"
         store_dir.mkdir()
 
-        result = DeckEnrichmentThread._fetch_deck_status("440", store_dir)
+        result = DeckEnrichmentThread._fetch("440", store_dir)
         assert result == "playable"
 
 
