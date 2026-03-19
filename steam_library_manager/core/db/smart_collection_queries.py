@@ -17,23 +17,12 @@ __all__ = ["SmartCollectionMixin"]
 
 
 class SmartCollectionMixin:
-    """Mixin providing smart collection operations.
-
-    Requires ConnectionBase attributes: conn.
+    """Mixin for smart collection DB operations.
+    Needs ConnectionBase with self.conn.
     """
 
-    def create_smart_collection(self, name: str, description: str, icon: str, rules_json: str) -> int:
-        """Creates a new smart collection in the database.
-
-        Args:
-            name: Collection name (must be unique).
-            description: Optional description.
-            icon: Emoji icon.
-            rules_json: JSON string with logic and rules.
-
-        Returns:
-            The new collection_id.
-        """
+    def create_smart_collection(self, name, description, icon, rules_json):
+        # Insert a new smart collection, return its id
         cursor = self.conn.execute(
             """
             INSERT INTO user_collections (name, description, icon, is_smart, rules, created_at)
@@ -43,18 +32,8 @@ class SmartCollectionMixin:
         )
         return cursor.lastrowid or 0
 
-    def update_smart_collection(
-        self, collection_id: int, name: str, description: str, icon: str, rules_json: str
-    ) -> None:
-        """Updates an existing smart collection.
-
-        Args:
-            collection_id: The collection to update.
-            name: New name.
-            description: New description.
-            icon: New icon.
-            rules_json: New rules JSON string.
-        """
+    def update_smart_collection(self, collection_id, name, description, icon, rules_json):
+        # Update name, description, icon, rules for a smart collection
         self.conn.execute(
             """
             UPDATE user_collections
@@ -64,12 +43,8 @@ class SmartCollectionMixin:
             (name, description, icon, rules_json, collection_id),
         )
 
-    def delete_smart_collection(self, collection_id: int) -> None:
-        """Deletes a smart collection and its game associations.
-
-        Args:
-            collection_id: The collection to delete.
-        """
+    def delete_smart_collection(self, collection_id):
+        # Remove a smart collection and its game links
         self.conn.execute(
             "DELETE FROM collection_games WHERE collection_id = ?",
             (collection_id,),
@@ -79,15 +54,8 @@ class SmartCollectionMixin:
             (collection_id,),
         )
 
-    def get_smart_collection(self, collection_id: int) -> dict | None:
-        """Retrieves a single smart collection by ID.
-
-        Args:
-            collection_id: The collection to retrieve.
-
-        Returns:
-            Dict with collection fields, or None if not found.
-        """
+    def get_smart_collection(self, collection_id):
+        # Fetch one smart collection by id, or None
         cursor = self.conn.execute(
             "SELECT * FROM user_collections WHERE collection_id = ? AND is_smart = 1",
             (collection_id,),
@@ -95,28 +63,17 @@ class SmartCollectionMixin:
         row = cursor.fetchone()
         if not row:
             return None
-        columns = [desc[0] for desc in cursor.description]
-        return dict(zip(columns, row))
+        cols = [d[0] for d in cursor.description]
+        return dict(zip(cols, row))
 
-    def get_all_smart_collections(self) -> list[dict]:
-        """Retrieves all smart collections ordered by name.
-
-        Returns:
-            List of dicts with collection fields.
-        """
+    def get_all_smart_collections(self):
+        # All smart collections ordered by name
         cursor = self.conn.execute("SELECT * FROM user_collections WHERE is_smart = 1 ORDER BY name")
-        columns = [desc[0] for desc in cursor.description]
-        return [dict(zip(columns, row)) for row in cursor.fetchall()]
+        cols = [d[0] for d in cursor.description]
+        return [dict(zip(cols, row)) for row in cursor.fetchall()]
 
-    def get_smart_collection_by_name(self, name: str) -> dict | None:
-        """Retrieves a smart collection by name.
-
-        Args:
-            name: The collection name.
-
-        Returns:
-            Dict with collection fields, or None if not found.
-        """
+    def get_smart_collection_by_name(self, name):
+        # Lookup smart collection by name, or None
         cursor = self.conn.execute(
             "SELECT * FROM user_collections WHERE name = ? AND is_smart = 1",
             (name,),
@@ -124,19 +81,11 @@ class SmartCollectionMixin:
         row = cursor.fetchone()
         if not row:
             return None
-        columns = [desc[0] for desc in cursor.description]
-        return dict(zip(columns, row))
+        cols = [d[0] for d in cursor.description]
+        return dict(zip(cols, row))
 
-    def populate_smart_collection(self, collection_id: int, app_ids: list[int]) -> int:
-        """Replaces the game membership of a smart collection.
-
-        Args:
-            collection_id: The collection to populate.
-            app_ids: List of app IDs that match the collection rules.
-
-        Returns:
-            Number of games added.
-        """
+    def populate_smart_collection(self, collection_id, app_ids):
+        # Replace game membership for a smart collection
         self.conn.execute(
             "DELETE FROM collection_games WHERE collection_id = ?",
             (collection_id,),
@@ -145,22 +94,15 @@ class SmartCollectionMixin:
             return 0
 
         now = int(time.time())
-        rows = [(collection_id, app_id, now) for app_id in app_ids]
+        rows = [(collection_id, aid, now) for aid in app_ids]
         self.conn.executemany(
             "INSERT OR IGNORE INTO collection_games (collection_id, app_id, added_at) VALUES (?, ?, ?)",
             rows,
         )
         return len(app_ids)
 
-    def get_smart_collection_games(self, collection_id: int) -> list[int]:
-        """Retrieves all app IDs in a smart collection.
-
-        Args:
-            collection_id: The collection to query.
-
-        Returns:
-            List of app IDs.
-        """
+    def get_smart_collection_games(self, collection_id):
+        # All app_ids belonging to a smart collection
         cursor = self.conn.execute(
             "SELECT app_id FROM collection_games WHERE collection_id = ?",
             (collection_id,),

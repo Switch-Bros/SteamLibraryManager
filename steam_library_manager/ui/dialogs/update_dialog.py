@@ -16,11 +16,9 @@ from PyQt6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QTextBrowser,
-    QVBoxLayout,
-    QWidget,
 )
 
-from steam_library_manager.services.update_service import UpdateInfo, UpdateService
+from steam_library_manager.services.update_service import UpdateService
 from steam_library_manager.ui.widgets.ui_helper import UIHelper
 from steam_library_manager.ui.widgets.base_dialog import BaseDialog
 from steam_library_manager.utils.i18n import t
@@ -33,23 +31,14 @@ logger = logging.getLogger("steamlibmgr.update")
 
 
 class UpdateDialog(BaseDialog):
-    """Dialog showing update information with download and install controls.
-
-    Args:
-        parent: Parent widget (MainWindow).
-        info: UpdateInfo with version, URL, size, notes.
-        update_service: Shared UpdateService instance.
+    """Shows update info with download/install controls.
+    Handles the full download-verify-restart flow.
     """
 
-    def __init__(
-        self,
-        parent: QWidget | None,
-        info: UpdateInfo,
-        update_service: UpdateService,
-    ) -> None:
+    def __init__(self, parent, info, update_service):
         self._info = info
-        self._update_service = update_service
-        self._downloaded_path: str | None = None
+        self._svc = update_service
+        self._dl_path = None
         super().__init__(
             parent=parent,
             title_key="update.dialog_title",
@@ -57,110 +46,105 @@ class UpdateDialog(BaseDialog):
             buttons="custom",
         )
 
-    def _build_content(self, content_area: QVBoxLayout) -> None:
-        """Build dialog content with version info, notes, and controls."""
+    def _build_content(self, content_area):
         # Version labels
-        current_label = QLabel(t("update.current_version", version=__version__))
-        new_label = QLabel(t("update.new_version", version=self._info.version))
-        new_label.setStyleSheet("font-weight: bold; font-size: 14px;")
-        content_area.addWidget(current_label)
-        content_area.addWidget(new_label)
+        cur_lbl = QLabel(t("update.current_version", version=__version__))
+        new_lbl = QLabel(t("update.new_version", version=self._info.version))
+        new_lbl.setStyleSheet("font-weight: bold; font-size: 14px;")
+        content_area.addWidget(cur_lbl)
+        content_area.addWidget(new_lbl)
 
         # Download size
         size_mb = self._info.download_size / (1024 * 1024)
-        size_label = QLabel(t("update.download_size", size=f"{size_mb:.1f} MB"))
-        content_area.addWidget(size_label)
+        content_area.addWidget(QLabel(t("update.download_size", size="%.1f MB" % size_mb)))
 
         content_area.addSpacing(10)
 
         # Release notes
-        notes_header = QLabel(t("update.release_notes"))
-        notes_header.setStyleSheet("font-weight: bold;")
-        content_area.addWidget(notes_header)
+        hdr = QLabel(t("update.release_notes"))
+        hdr.setStyleSheet("font-weight: bold;")
+        content_area.addWidget(hdr)
 
-        self._notes_browser = QTextBrowser()
-        self._notes_browser.setMarkdown(self._info.release_notes)
-        self._notes_browser.setMinimumHeight(200)
-        self._notes_browser.setOpenExternalLinks(False)
-        self._notes_browser.anchorClicked.connect(lambda url: open_url(url.toString()))
-        content_area.addWidget(self._notes_browser)
+        self._notes = QTextBrowser()
+        self._notes.setMarkdown(self._info.release_notes)
+        self._notes.setMinimumHeight(200)
+        self._notes.setOpenExternalLinks(False)
+        self._notes.anchorClicked.connect(lambda url: open_url(url.toString()))
+        content_area.addWidget(self._notes)
 
         # Progress bar (hidden initially)
-        self._progress_bar = QProgressBar()
-        self._progress_bar.setVisible(False)
-        self._progress_bar.setTextVisible(True)
-        content_area.addWidget(self._progress_bar)
+        self._bar = QProgressBar()
+        self._bar.setVisible(False)
+        self._bar.setTextVisible(True)
+        content_area.addWidget(self._bar)
 
-        self._status_label = QLabel("")
-        self._status_label.setVisible(False)
-        content_area.addWidget(self._status_label)
+        self._status = QLabel("")
+        self._status.setVisible(False)
+        content_area.addWidget(self._status)
 
         # Buttons
-        btn_layout = QHBoxLayout()
-        btn_layout.addStretch()
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
 
         self._skip_btn = QPushButton(t("update.skip_version"))
-        self._skip_btn.clicked.connect(self._on_skip_clicked)
-        btn_layout.addWidget(self._skip_btn)
+        self._skip_btn.clicked.connect(self._on_skip)
+        btn_row.addWidget(self._skip_btn)
 
-        self._action_btn = QPushButton(t("update.download_install"))
-        self._action_btn.setDefault(True)
-        self._action_btn.clicked.connect(self._on_action_clicked)
-        btn_layout.addWidget(self._action_btn)
+        self._act_btn = QPushButton(t("update.download_install"))
+        self._act_btn.setDefault(True)
+        self._act_btn.clicked.connect(self._on_act)
+        btn_row.addWidget(self._act_btn)
 
-        content_area.addLayout(btn_layout)
+        content_area.addLayout(btn_row)
 
         # Connect update service signals
-        self._update_service.download_progress.connect(self._on_progress)
-        self._update_service.download_finished.connect(self._on_download_finished)
-        self._update_service.download_failed.connect(self._on_download_failed)
+        self._svc.download_progress.connect(self._on_prog)
+        self._svc.download_finished.connect(self._on_done)
+        self._svc.download_failed.connect(self._on_fail)
 
-    def _on_action_clicked(self) -> None:
-        """Handle download/install button click."""
-        if self._downloaded_path:
-            self._on_restart_clicked()
+    def _on_act(self):
+        # Download or restart depending on state
+        if self._dl_path:
+            self._do_restart()
         else:
-            self._start_download()
+            self._do_download()
 
-    def _start_download(self) -> None:
-        """Start downloading the update."""
-        self._action_btn.setEnabled(False)
+    def _do_download(self):
+        # Kick off the download
+        self._act_btn.setEnabled(False)
         self._skip_btn.setEnabled(False)
-        self._progress_bar.setVisible(True)
-        self._progress_bar.setRange(0, self._info.download_size)
-        self._status_label.setVisible(True)
-        self._status_label.setText(t("update.downloading", percent="0"))
-        self._update_service.download_update(self._info)
+        self._bar.setVisible(True)
+        self._bar.setRange(0, self._info.download_size)
+        self._status.setVisible(True)
+        self._status.setText(t("update.downloading", percent="0"))
+        self._svc.download_update(self._info)
 
-    def _on_progress(self, received: int, total: int) -> None:
-        """Update progress bar during download."""
-        self._progress_bar.setValue(received)
+    def _on_prog(self, received, total):
+        # Update progress bar
+        self._bar.setValue(received)
         if total > 0:
-            percent = int(received * 100 / total)
-            self._status_label.setText(t("update.downloading", percent=str(percent)))
+            pct = int(received * 100 / total)
+            self._status.setText(t("update.downloading", percent=str(pct)))
 
-    def _on_download_finished(self, path: str) -> None:
-        """Handle successful download."""
-        self._downloaded_path = path
-        self._status_label.setText(t("update.ready_to_install"))
-        self._action_btn.setText(t("update.restart_now"))
-        self._action_btn.setEnabled(True)
+    def _on_done(self, path):
+        # Download finished successfully
+        self._dl_path = path
+        self._status.setText(t("update.ready_to_install"))
+        self._act_btn.setText(t("update.restart_now"))
+        self._act_btn.setEnabled(True)
         self._skip_btn.setEnabled(True)
 
-    def _on_download_failed(self, error: str) -> None:
-        """Handle download failure."""
-        self._status_label.setText(error)
-        self._action_btn.setText(t("update.download_install"))
-        self._action_btn.setEnabled(True)
+    def _on_fail(self, error):
+        # Download failed
+        self._status.setText(error)
+        self._act_btn.setText(t("update.download_install"))
+        self._act_btn.setEnabled(True)
         self._skip_btn.setEnabled(True)
-        self._progress_bar.setVisible(False)
+        self._bar.setVisible(False)
 
-    def _on_restart_clicked(self) -> None:
-        """Save application state, then install update and restart.
-
-        This is the ONLY place where install_update() is called.
-        Save flow runs BEFORE os.execv().
-        """
+    def _do_restart(self):
+        # Save state, install update, restart.
+        # This is the ONLY place where install_update() is called.
         if not UIHelper.confirm(
             self,
             t("update.confirm_restart"),
@@ -173,23 +157,23 @@ class UpdateDialog(BaseDialog):
         if hasattr(mw, "game_manager") and mw.game_manager:
             try:
                 mw.game_manager.save_to_cloud()
-            except Exception as e:
-                logger.warning("Pre-update save failed: %s", e)
+            except Exception as exc:
+                logger.warning("Pre-update save failed: %s", exc)
 
         self.accept()
 
-        if not UpdateService.install_update(self._downloaded_path):
+        if not UpdateService.install_update(self._dl_path):
             UIHelper.show_error(mw, t("update.install_failed"))
 
-    def _on_skip_clicked(self) -> None:
-        """Skip this version and close dialog."""
+    def _on_skip(self):
+        # Skip this version
         from steam_library_manager.config import config
 
         config.UPDATE_SKIPPED_VERSION = self._info.version
         config.save()
         self.reject()
 
-    def reject(self) -> None:
-        """Cancel download if in progress."""
-        self._update_service.cancel_download()
+    def reject(self):
+        # Cancel download if running
+        self._svc.cancel_download()
         super().reject()

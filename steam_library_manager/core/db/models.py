@@ -24,8 +24,8 @@ __all__ = [
 _PLACEHOLDER_PATTERN = re.compile(r"^(App \d+|Unknown App \d+|Unbekannte App \d+)$")
 
 
-def is_placeholder_name(name: str | None) -> bool:
-    """Check if a game name is a placeholder/fallback."""
+def is_placeholder_name(name):
+    # True if name is a fallback like "App 12345"
     if not name or not name.strip():
         return True
     return bool(_PLACEHOLDER_PATTERN.match(name.strip()))
@@ -33,7 +33,7 @@ def is_placeholder_name(name: str | None) -> bool:
 
 @dataclass(frozen=True)
 class ImportStats:
-    """Statistics from a database import operation."""
+    """Stats from a database import run."""
 
     games_imported: int
     games_updated: int
@@ -44,7 +44,9 @@ class ImportStats:
 
 @dataclass
 class DatabaseEntry:
-    """Single game entry for database operations."""
+    """Single game entry for database operations.
+    Mirrors the games table columns pretty closely.
+    """
 
     app_id: int
     name: str
@@ -59,8 +61,8 @@ class DatabaseEntry:
     release_date: int | None = None
 
     # Review data
-    review_score: int | None = None  # Steam review category (1-9)
-    review_percentage: int | None = None  # Steam review positive percentage (0-100)
+    review_score: int | None = None
+    review_percentage: int | None = None
     review_count: int | None = None
 
     # Price & status
@@ -68,8 +70,8 @@ class DatabaseEntry:
     is_early_access: bool = False
 
     # Technical features
-    vr_support: str = "none"  # none, optional, required
-    controller_support: str = "none"  # none, partial, full
+    vr_support: str = "none"
+    controller_support: str = "none"
     cloud_saves: bool = False
     workshop: bool = False
     trading_cards: bool = False
@@ -105,14 +107,13 @@ class DatabaseEntry:
     last_updated: int | None = None
 
 
-def database_entry_to_game(entry: DatabaseEntry) -> Game:
-    """Convert a DatabaseEntry to a Game dataclass."""
-    # Use best available release timestamp
+def database_entry_to_game(entry):
+    # Convert a DatabaseEntry to a Game dataclass
     release_ts = entry.release_date or entry.steam_release_date or entry.original_release_date
-    release_year = release_ts if release_ts and isinstance(release_ts, int) and release_ts > 0 else 0
+    release_yr = release_ts if release_ts and isinstance(release_ts, int) and release_ts > 0 else 0
 
-    # Extract interface languages from language support data
-    interface_languages = [lang for lang, support in entry.languages.items() if support.get("interface", False)]
+    # Pull interface languages from language support data
+    iface_langs = [lang for lang, sup in entry.languages.items() if sup.get("interface", False)]
 
     return Game(
         app_id=str(entry.app_id),
@@ -121,12 +122,12 @@ def database_entry_to_game(entry: DatabaseEntry) -> Game:
         app_type=entry.app_type or "",
         developer=entry.developer or "",
         publisher=entry.publisher or "",
-        release_year=release_year,
+        release_year=release_yr,
         genres=list(entry.genres),
         tags=list(entry.tags),
         tag_ids=list(entry.tag_ids),
         platforms=list(entry.platforms),
-        languages=interface_languages,
+        languages=iface_langs,
         review_score=str(entry.review_score) if entry.review_score is not None else "",
         review_percentage=entry.review_percentage or 0,
         review_count=entry.review_count or 0,

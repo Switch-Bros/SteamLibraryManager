@@ -24,12 +24,9 @@ __all__ = [
 ]
 
 
-# HLTB result dataclass
-
-
 @dataclass(frozen=True)
 class HLTBResult:
-    """Frozen dataclass for HowLongToBeat completion time data."""
+    """HLTB completion time data for one game."""
 
     game_name: str
     main_story: float
@@ -37,35 +34,22 @@ class HLTBResult:
     completionist: float
 
 
-# Name processing constants
-
-# Symbols to strip from game names (TM, (R), (C), also text forms)
-# Uses a space replacement to avoid "Velocity(R)Ultra" -> "VelocityUltra"
-_SYMBOL_PATTERN = re.compile(r"[\u2122\u00AE\u00A9]|\(TM\)|\(R\)")
+# Symbols to strip (TM, (R), (C)) - space replacement keeps word boundaries
+_SYM_RE = re.compile(r"[\u2122\u00AE\u00A9]|\(TM\)|\(R\)")
 
 # Superscript digits -> normal digits
-_SUPERSCRIPT_MAP = str.maketrans("\u2070\u00b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079", "0123456789")
+_SUP_MAP = str.maketrans("\u2070\u00b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079", "0123456789")
 
-# Bare year at end of name without parentheses: "Game 2014" -> "Game"
-_BARE_YEAR_PATTERN = re.compile(r"\s+[12][09]\d\d$")
+# Bare year at end: "Game 2014" -> "Game"
+_BARE_YEAR_RE = re.compile(r"\s+[12][09]\d\d$")
 
-# Parenthetical noise to strip before search (year tags, Classic, etc.)
-_PAREN_NOISE_PATTERN = re.compile(
-    r"\s*\("
-    r"(?:"
-    r"[12][09]\d\d"  # Year: (2003), (1999), (2020)
-    r"|Classic"  # (Classic)
-    r"|CLASSIC"  # (CLASSIC)
-    r"|Legacy"  # (Legacy)
-    r"|\d+[Dd]\s*Remake"  # (3D Remake)
-    r")\)"
-    r"\s*",
+# Parenthetical noise: (2003), (Classic), (Legacy), (3D Remake)
+_PAREN_NOISE_RE = re.compile(
+    r"\s*\(" r"(?:" r"[12][09]\d\d" r"|Classic" r"|CLASSIC" r"|Legacy" r"|\d+[Dd]\s*Remake" r")\)" r"\s*",
 )
 
-# Edition/subtitle suffixes to strip for a fallback search.
-# Inspired by hltb-millennium-plugin's simplify_game_name().
-# Applied iteratively until no more changes.
-_EDITION_PATTERNS: tuple[re.Pattern[str], ...] = (
+# Edition/subtitle suffixes stripped iteratively for fallback search
+_EDITION_RES = (
     # Anniversary patterns (longer first)
     re.compile(r"\s+\d+[snrt][tdh]\s+Anniversary\s+Edition$", re.IGNORECASE),
     re.compile(r"\s+[-:\u2013\u2014]\s*Anniversary\s+Edition$", re.IGNORECASE),
@@ -119,117 +103,103 @@ _EDITION_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"\s+Online$", re.IGNORECASE),
     # Year tags at end: (2013), (2020), etc.
     re.compile(r"\s+\([12][09]\d\d\)$"),
-    # Clean up trailing punctuation left after stripping
+    # Trailing punctuation left after stripping
     re.compile(r"\s*[-:\u2013\u2014]\s*$"),
 )
 
 
-# Name processing functions
+def normalize_name(name):
+    # Strip TM/copyright symbols, superscripts, parenthetical noise
+    out = _SYM_RE.sub(" ", name).strip()
+    out = out.translate(_SUP_MAP)
+    out = out.replace("`", "'")
+    out = re.sub(r"[\u221e]", "", out)
+    out = _PAREN_NOISE_RE.sub("", out).strip()
+    out = re.sub(r"\s+", " ", out)
+    return out
 
 
-def normalize_name(name: str) -> str:
-    """Strips trademark and copyright symbols for cleaner search terms."""
-    # Replace symbols with space (keeps word boundaries: "Velocity(R)Ultra" -> "Velocity Ultra")
-    cleaned = _SYMBOL_PATTERN.sub(" ", name).strip()
-    # Normalize superscript digits
-    cleaned = cleaned.translate(_SUPERSCRIPT_MAP)
-    # Normalize backtick to apostrophe
-    cleaned = cleaned.replace("`", "'")
-    # Strip special unicode chars
-    cleaned = re.sub(r"[\u221e]", "", cleaned)
-    # Strip parenthetical noise: (2003), (Classic), etc.
-    cleaned = _PAREN_NOISE_PATTERN.sub("", cleaned).strip()
-    cleaned = re.sub(r"\s+", " ", cleaned)
-    return cleaned
-
-
-def simplify_name(name: str) -> str:
-    """Strips common edition/remaster/year suffixes for fallback search."""
-    # Normalize Unicode dashes to ASCII hyphen with spaces for pattern matching
+def simplify_name(name):
+    # Strip edition/remaster/year suffixes for fallback search
     name = re.sub(r"[\u2013\u2014]", " - ", name)
     name = re.sub(r"\s+", " ", name).strip()
 
     prev = ""
     while prev != name:
         prev = name
-        for pattern in _EDITION_PATTERNS:
-            name = pattern.sub("", name).strip()
-        # Also strip bare year at end: "Lords Of The Fallen 2014" -> "Lords Of The Fallen"
-        name = _BARE_YEAR_PATTERN.sub("", name).strip()
+        for pat in _EDITION_RES:
+            name = pat.sub("", name).strip()
+        name = _BARE_YEAR_RE.sub("", name).strip()
     return re.sub(r"\s+", " ", name).strip()
 
 
-def normalize_for_compare(name: str) -> str:
-    """Normalizes a name for comparison (lowercase, no accents, no special chars)."""
-    result = name.lower()
-    result = unicodedata.normalize("NFD", result)
-    result = re.sub(r"[\u0300-\u036f]", "", result)
-    result = re.sub(r"[^a-z0-9\s\-/]", "", result)
-    return result.strip()
+def normalize_for_compare(name):
+    # Lowercase, strip accents, keep only [a-z0-9 -/]
+    out = name.lower()
+    out = unicodedata.normalize("NFD", out)
+    out = re.sub(r"[\u0300-\u036f]", "", out)
+    out = re.sub(r"[^a-z0-9\s\-/]", "", out)
+    return out.strip()
 
 
-def levenshtein(s1: str, s2: str) -> int:
-    """Calculates the Levenshtein (edit) distance between two strings."""
+def levenshtein(s1, s2):
+    # Edit distance between two strings (two-row optimization)
     if s1 == s2:
         return 0
-    len1, len2 = len(s1), len(s2)
-    if len1 == 0:
-        return len2
-    if len2 == 0:
-        return len1
+    n1, n2 = len(s1), len(s2)
+    if n1 == 0:
+        return n2
+    if n2 == 0:
+        return n1
 
-    # Use two-row optimization for O(min(m,n)) space
-    if len1 > len2:
+    if n1 > n2:
         s1, s2 = s2, s1
-        len1, len2 = len2, len1
+        n1, n2 = n2, n1
 
-    prev_row = list(range(len1 + 1))
-    for j in range(1, len2 + 1):
-        curr_row = [j] + [0] * len1
-        for i in range(1, len1 + 1):
+    prev = list(range(n1 + 1))
+    for j in range(1, n2 + 1):
+        cur = [j] + [0] * n1
+        for i in range(1, n1 + 1):
             cost = 0 if s1[i - 1] == s2[j - 1] else 1
-            curr_row[i] = min(
-                curr_row[i - 1] + 1,  # insertion
-                prev_row[i] + 1,  # deletion
-                prev_row[i - 1] + cost,  # substitution
+            cur[i] = min(
+                cur[i - 1] + 1,
+                prev[i] + 1,
+                prev[i - 1] + cost,
             )
-        prev_row = curr_row
+        prev = cur
 
-    return prev_row[len1]
+    return prev[n1]
 
 
-def find_best_match(
-    results: list[dict],
-    search_name: str,
-) -> tuple[dict | None, int]:
-    """Finds the best matching game from HLTB search results."""
-    sanitized_query = normalize_for_compare(search_name)
+def find_best_match(results, search_name):
+    # Pick the closest HLTB result by name, with popularity tiebreaker
+    query = normalize_for_compare(search_name)
 
-    # Exact name match
+    # Exact match first
     for r in results:
-        if normalize_for_compare(r.get("game_name", "")) == sanitized_query:
+        if normalize_for_compare(r.get("game_name", "")) == query:
             return r, 0
 
-    # Levenshtein distance with popularity tiebreaker
-    candidates: list[tuple[int, int, dict]] = []
+    # Levenshtein with popularity tiebreaker
+    cands = []
     for r in results:
-        r_name = normalize_for_compare(r.get("game_name", ""))
-        dist = levenshtein(sanitized_query, r_name)
-        popularity = r.get("comp_all_count", 0)
-        candidates.append((dist, -popularity, r))
+        rn = normalize_for_compare(r.get("game_name", ""))
+        dist = levenshtein(query, rn)
+        pop = r.get("comp_all_count", 0)
+        cands.append((dist, -pop, r))
 
-    if not candidates:
+    if not cands:
         return None, 0
 
-    # Sort by distance ASC, then by popularity DESC (negative = more popular first)
-    candidates.sort(key=lambda c: (c[0], c[1]))
-    best_dist, _, best_match = candidates[0]
+    # Sort: distance ASC, popularity DESC
+    cands.sort(key=lambda c: (c[0], c[1]))
+    best_dist, _, best = cands[0]
 
-    return best_match, best_dist
+    return best, best_dist
 
 
-def to_result(match: dict) -> HLTBResult:
-    """Converts an HLTB API result dict to an HLTBResult."""
+def to_result(match):
+    # Convert raw HLTB API dict to HLTBResult (seconds -> hours)
     return HLTBResult(
         game_name=match.get("game_name", ""),
         main_story=match.get("comp_main", 0) / 3600,
