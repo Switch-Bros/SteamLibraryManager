@@ -14,7 +14,16 @@ from PyQt6.QtCore import QObject, pyqtSignal
 
 logger = logging.getLogger("steamlibmgr.enrich_all")
 
-__all__ = ["EnrichAllCoordinator"]
+__all__ = [
+    "EnrichAllCoordinator",
+    "TRK_TAGS",
+    "TRK_STEAM",
+    "TRK_HLTB",
+    "TRK_PDB",
+    "TRK_DECK",
+    "TRK_PEGI",
+    "TRK_CURATOR",
+]
 
 # track ids
 TRK_TAGS = "tags"

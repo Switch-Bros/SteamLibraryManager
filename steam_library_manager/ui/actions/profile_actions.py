@@ -30,31 +30,16 @@ __all__ = ["ProfileActions"]
 
 
 class ProfileActions:
-    """Handles all profile-related UI actions.
+    """UI-facing profile operations -- save, load, export, import."""
 
-    Owns a ProfileManager and provides methods for saving, loading,
-    exporting, importing, and managing profiles via dialog interactions.
+    def __init__(self, mw: MainWindow):
+        self.mw = mw
+        self.manager = ProfileManager()
 
-    Attributes:
-        mw: Back-reference to the owning MainWindow instance.
-        manager: The underlying ProfileManager for file operations.
-    """
+    # -- public API --
 
-    def __init__(self, main_window: MainWindow) -> None:
-        """Initializes the ProfileActions handler.
-
-        Args:
-            main_window: The MainWindow instance that owns these actions.
-        """
-        self.mw: MainWindow = main_window
-        self.manager: ProfileManager = ProfileManager()
-
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
-
-    def save_current_as_profile(self) -> None:
-        """Prompts the user for a name and saves the current state as a profile."""
+    def save_current_as_profile(self):
+        # ask for name, snapshot state, persist
         name, ok = UIHelper.ask_text(
             self.mw,
             title=t("ui.profile.new_title"),
@@ -63,167 +48,136 @@ class ProfileActions:
         if not ok or not name:
             return
 
-        # Check for existing profile with same name
-        existing = [n for n, _ in self.manager.list_profiles()]
-        if name in existing:
-            overwrite = UIHelper.confirm(
+        exist = [n for n, _ in self.manager.list_profiles()]
+        if name in exist:
+            ow = UIHelper.confirm(
                 self.mw,
                 t("ui.profile.error_duplicate_name", name=name),
                 title=t("ui.profile.new_title"),
             )
-            if not overwrite:
+            if not ow:
                 return
 
-        profile = self._snapshot_current_state(name)
-        self.manager.save_profile(profile)
+        self.manager.save_profile(self._snap(name))
         UIHelper.show_success(self.mw, t("ui.profile.save_success", name=name))
 
-    def load_profile(self, name: str) -> None:
-        """Loads a profile after user confirmation.
-
-        Args:
-            name: The profile name to load.
-        """
-        confirmed = UIHelper.confirm(
+    def load_profile(self, name):
+        # confirm, then restore profile
+        if not UIHelper.confirm(
             self.mw,
             t("ui.profile.load_confirm", name=name),
             title=t("ui.profile.load_confirm_title"),
-        )
-        if not confirmed:
+        ):
             return
 
         try:
-            profile = self.manager.load_profile(name)
+            p = self.manager.load_profile(name)
         except (FileNotFoundError, Exception) as exc:
             UIHelper.show_error(self.mw, t("ui.profile.error_load_failed", error=str(exc)))
             return
 
-        self._apply_profile(profile)
+        self._apply(p)
         UIHelper.show_success(self.mw, t("ui.profile.load_success", name=name))
 
-    def show_profile_manager(self) -> None:
-        """Opens the profile management dialog."""
+    def show_profile_manager(self):
+        # open profile management dialog
         from steam_library_manager.ui.dialogs.profile_dialog import ProfileDialog
 
-        dialog = ProfileDialog(self.manager, parent=self.mw)
-        result = dialog.exec()
+        dlg = ProfileDialog(self.manager, parent=self.mw)
+        if dlg.exec() != ProfileDialog.DialogCode.Accepted:
+            return
 
-        if result == ProfileDialog.DialogCode.Accepted:
-            action = dialog.action
-            selected = dialog.selected_name
+        act = dlg.action
+        sel = dlg.selected_name
 
-            if action == "save" and selected:
-                profile = self._snapshot_current_state(selected)
-                self.manager.save_profile(profile)
-                UIHelper.show_success(self.mw, t("ui.profile.save_success", name=selected))
+        if act == "save" and sel:
+            self.manager.save_profile(self._snap(sel))
+            UIHelper.show_success(self.mw, t("ui.profile.save_success", name=sel))
+        elif act == "load" and sel:
+            self.load_profile(sel)
 
-            elif action == "load" and selected:
-                self.load_profile(selected)
-
-    def export_profile(self, name: str) -> None:
-        """Exports a profile to a user-chosen file path.
-
-        Args:
-            name: The profile name to export.
-        """
-        file_path, _ = QFileDialog.getSaveFileName(
+    def export_profile(self, name):
+        # export profile to JSON
+        fp, _ = QFileDialog.getSaveFileName(
             self.mw,
             t("ui.profile.export_title"),
-            f"{name}.json",
+            "%s.json" % name,
             t("ui.profile.import_filter"),
         )
-        if not file_path:
+        if not fp:
             return
 
         from pathlib import Path
 
-        success = self.manager.export_profile(name, Path(file_path))
-        if success:
+        if self.manager.export_profile(name, Path(fp)):
             UIHelper.show_success(self.mw, t("ui.profile.export_success"))
 
-    def import_profile(self) -> None:
-        """Imports a profile from a user-chosen file."""
-        file_path, _ = QFileDialog.getOpenFileName(
+    def import_profile(self):
+        # import profile from JSON
+        fp, _ = QFileDialog.getOpenFileName(
             self.mw,
             t("ui.profile.import_title"),
             "",
             t("ui.profile.import_filter"),
         )
-        if not file_path:
+        if not fp:
             return
 
         from pathlib import Path
 
         try:
-            profile = self.manager.import_profile(Path(file_path))
-            UIHelper.show_success(self.mw, t("ui.profile.import_success", name=profile.name))
+            p = self.manager.import_profile(Path(fp))
+            UIHelper.show_success(self.mw, t("ui.profile.import_success", name=p.name))
         except (FileNotFoundError, KeyError, Exception) as exc:
             UIHelper.show_error(self.mw, t("ui.profile.error_import_failed", error=str(exc)))
 
-    # ------------------------------------------------------------------
-    # Private helpers
-    # ------------------------------------------------------------------
+    # -- internals --
 
-    def _snapshot_current_state(self, name: str) -> Profile:
-        """Creates a Profile snapshot from the current application state.
+    def _snap(self, name):
+        # capture collections, filters, autocat config
+        cols = ()
+        par = self.mw.cloud_storage_parser
+        if par and hasattr(par, "collections") and par.collections:
+            # deep copy so mutations don't corrupt snapshot
+            cols = tuple(copy.deepcopy(par.collections))
 
-        Args:
-            name: The name for the new profile.
-
-        Returns:
-            A frozen Profile capturing the current collections, filters,
-            AutoCat settings, and view mode.
-        """
-        # Collections from cloud storage parser
-        collections: tuple[dict, ...] = ()
-        parser = self.mw.cloud_storage_parser
-        if parser and hasattr(parser, "collections") and parser.collections:
-            collections = tuple(copy.deepcopy(parser.collections))
-
-        # Filter state
-        filter_state = self.mw.filter_service.state
-
+        fs = self.mw.filter_service.state
         return Profile(
             name=name,
-            collections=collections,
+            collections=cols,
             tags_per_game=config.TAGS_PER_GAME,
             ignore_common_tags=config.IGNORE_COMMON_TAGS,
-            filter_enabled_types=filter_state.enabled_types,
-            filter_enabled_platforms=filter_state.enabled_platforms,
-            filter_active_statuses=filter_state.active_statuses,
+            filter_enabled_types=fs.enabled_types,
+            filter_enabled_platforms=fs.enabled_platforms,
+            filter_active_statuses=fs.active_statuses,
             sort_key="name",
             created_at=time.time(),
         )
 
-    def _apply_profile(self, profile: Profile) -> None:
-        """Applies a loaded profile to the current application state.
+    def _apply(self, p):
+        # restore profile state into app
+        par = self.mw.cloud_storage_parser
 
-        Restores collections, config settings, filter state, and refreshes
-        the UI. Triggers a save (which creates an automatic backup).
+        # wipe existing managed collections
+        if par and hasattr(par, "collections"):
+            par.mark_all_managed_as_deleted()
+            par.collections = list(p.collections)
+            par.modified = True
 
-        Args:
-            profile: The profile to apply.
-        """
-        # 1. Restore collections (mark old ones as deleted for delta-merge)
-        parser = self.mw.cloud_storage_parser
-        if parser and hasattr(parser, "collections"):
-            parser.mark_all_managed_as_deleted()
-            parser.collections = list(profile.collections)
-            parser.modified = True
-
-        # 2. Restore AutoCat config
-        config.TAGS_PER_GAME = profile.tags_per_game
-        config.IGNORE_COMMON_TAGS = profile.ignore_common_tags
+        # autocat settings
+        config.TAGS_PER_GAME = p.tags_per_game
+        config.IGNORE_COMMON_TAGS = p.ignore_common_tags
         config.save()
 
-        # 3. Restore filter state
-        restored_filter = FilterState(
-            enabled_types=profile.filter_enabled_types,
-            enabled_platforms=profile.filter_enabled_platforms,
-            active_statuses=profile.filter_active_statuses,
+        # filters
+        self.mw.filter_service.restore_state(
+            FilterState(
+                enabled_types=p.filter_enabled_types,
+                enabled_platforms=p.filter_enabled_platforms,
+                active_statuses=p.filter_active_statuses,
+            )
         )
-        self.mw.filter_service.restore_state(restored_filter)
 
-        # 4. Persist and refresh UI
+        # flush to disk and repaint
         self.mw.save_collections()
         self.mw.populate_categories()

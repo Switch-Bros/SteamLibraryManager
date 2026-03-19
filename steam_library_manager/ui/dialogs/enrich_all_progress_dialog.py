@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 
 __all__ = ["EnrichAllProgressDialog"]
 
-_TRACK_LABELS: list[tuple[str, str]] = [
+_TRACK_LABELS = [
     (TRK_TAGS, "ui.enrichment.enrich_all_tags"),
     (TRK_STEAM, "ui.enrichment.enrich_all_steam"),
     (TRK_HLTB, "ui.enrichment.enrich_all_hltb"),
@@ -50,25 +50,13 @@ _TRACK_LABELS: list[tuple[str, str]] = [
 
 
 class EnrichAllProgressDialog(BaseDialog):
-    """Multi-track progress dialog for full data refresh.
+    """Multi-track progress dialog for full library data refresh."""
 
-    Shows five rows (one per enrichment track) with independent
-    progress bars, status indicators, and a cancel button.
-
-    Attributes:
-        _coordinator: The EnrichAllCoordinator managing the tracks.
-    """
-
-    def __init__(self, parent: QWidget | None = None) -> None:
-        """Initializes the dialog.
-
-        Args:
-            parent: Parent widget.
-        """
-        self._coordinator: EnrichAllCoordinator | None = None
-        self._track_bars: dict[str, QProgressBar] = {}
-        self._track_status: dict[str, QLabel] = {}
-        self._is_running: bool = False
+    def __init__(self, parent: QWidget | None = None):
+        self._coord = None
+        self._pb = {}  # progress bars
+        self._st = {}  # status labels
+        self._run = False
         super().__init__(
             parent,
             title_key="ui.enrichment.enrich_all_title",
@@ -78,129 +66,99 @@ class EnrichAllProgressDialog(BaseDialog):
         self.setMinimumWidth(500)
         self.setMinimumHeight(250)
 
-    def _build_content(self, layout: QVBoxLayout) -> None:
-        """Builds the track rows and cancel button.
+    def _build_content(self, layout: QVBoxLayout):
+        # title at top
+        hdr = QLabel(t("ui.enrichment.enrich_all_title"))
+        hdr.setFont(FontHelper.get_font(size=14, weight=FontHelper.BOLD))
+        layout.addWidget(hdr)
 
-        Args:
-            layout: The main vertical layout.
-        """
-        title_label = QLabel(t("ui.enrichment.enrich_all_title"))
-        title_label.setFont(FontHelper.get_font(size=14, weight=FontHelper.BOLD))
-        layout.addWidget(title_label)
-
-        for track_id, label_key in _TRACK_LABELS:
+        for tid, lkey in _TRACK_LABELS:
             row = QHBoxLayout()
-            label = QLabel(t(label_key))
-            label.setMinimumWidth(220)
+
+            nm = QLabel(t(lkey))
+            nm.setMinimumWidth(220)
             bar = QProgressBar()
             bar.setRange(0, 100)
             bar.setValue(0)
             status = QLabel("")
             status.setMinimumWidth(24)
-            row.addWidget(label)
+
+            row.addWidget(nm)
             row.addWidget(bar, 1)
             row.addWidget(status)
             layout.addLayout(row)
-            self._track_bars[track_id] = bar
-            self._track_status[track_id] = status
 
-        btn_layout = QHBoxLayout()
-        btn_layout.addStretch()
-        self._cancel_btn = QPushButton(t("common.cancel"))
-        self._cancel_btn.clicked.connect(self._on_cancel)
-        btn_layout.addWidget(self._cancel_btn)
-        layout.addLayout(btn_layout)
+            self._pb[tid] = bar
+            self._st[tid] = status
 
-    def set_coordinator(self, coordinator: EnrichAllCoordinator) -> None:
-        """Attaches the coordinator and connects signals.
+        # cancel button, right-aligned
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        self._btn = QPushButton(t("common.cancel"))
+        self._btn.clicked.connect(self._cancel)
+        btn_row.addWidget(self._btn)
+        layout.addLayout(btn_row)
 
-        Args:
-            coordinator: The configured EnrichAllCoordinator.
-        """
-        self._coordinator = coordinator
-        coordinator.track_progress.connect(self._on_track_progress)
-        coordinator.track_finished.connect(self._on_track_finished)
-        coordinator.all_finished.connect(self._on_all_finished)
+    def set_coordinator(self, coord: EnrichAllCoordinator):
+        # wire up coordinator signals
+        self._coord = coord
+        coord.track_progress.connect(self._on_prog)
+        coord.track_finished.connect(self._on_done)
+        coord.all_finished.connect(self._on_all)
 
-    def showEvent(self, event) -> None:
-        """Starts the coordinator when the dialog becomes visible.
+    def showEvent(self, ev):
+        super().showEvent(ev)
+        if self._coord and not self._run:
+            self._run = True
+            self._coord.start()
 
-        Args:
-            event: The show event.
-        """
-        super().showEvent(event)
-        if self._coordinator and not self._is_running:
-            self._is_running = True
-            self._coordinator.start()
+    def _on_prog(self, track, cur, tot):
+        if track in self._pb and tot > 0:
+            pct = int((cur / tot) * 100)
+            self._pb[track].setValue(pct)
 
-    def _on_track_progress(self, track: str, current: int, total: int) -> None:
-        """Updates a track's progress bar.
-
-        Args:
-            track: Track identifier.
-            current: Current progress count.
-            total: Total items to process.
-        """
-        if track in self._track_bars and total > 0:
-            percent = int((current / total) * 100)
-            self._track_bars[track].setValue(percent)
-
-    def _on_track_finished(self, track: str, success: int, failed: int) -> None:
-        """Marks a track as complete with status indicator.
-
-        Args:
-            track: Track identifier.
-            success: Successful items (-1 = skipped).
-            failed: Failed items (-1 = error).
-        """
-        if track not in self._track_bars:
+    def _on_done(self, track, ok, bad):
+        if track not in self._pb:
             return
 
-        bar = self._track_bars[track]
-        status = self._track_status[track]
+        bar = self._pb[track]
+        st = self._st[track]
 
-        if success == -1:
+        if ok == -1:
+            # skipped entirely
             bar.setValue(0)
-            status.setText(t("emoji.dash"))
-            status.setStyleSheet("color: gray;")
-        elif failed < 0:
+            st.setText(t("emoji.dash"))
+            st.setStyleSheet("color: gray;")
+        elif bad < 0:
+            # errored out
             bar.setValue(100)
-            status.setText(t("emoji.cross"))
-            status.setStyleSheet("color: red; font-weight: bold;")
+            st.setText(t("emoji.cross"))
+            st.setStyleSheet("color: red; font-weight: bold;")
         else:
             bar.setValue(100)
-            status.setText(t("emoji.check_mark"))
-            status.setStyleSheet("color: green; font-weight: bold;")
+            st.setText(t("emoji.check_mark"))
+            st.setStyleSheet("color: green; font-weight: bold;")
 
-    def _on_all_finished(self, results: dict[str, tuple[int, int]]) -> None:
-        """Shows completion summary and closes the dialog.
-
-        Args:
-            results: Dict mapping track names to (success, failed) tuples.
-        """
-        self._is_running = False
-        total = sum(s for s, _ in results.values() if s > 0)
+    def _on_all(self, res):
+        self._run = False
+        # only count tracks that actually enriched something
+        total = sum(s for s, _ in res.values() if s > 0)
         UIHelper.show_info(
             self,
             t("ui.enrichment.enrich_all_complete", total=total),
         )
         self.accept()
 
-    def _on_cancel(self) -> None:
-        """Handles the cancel button click."""
-        if self._coordinator:
-            self._coordinator.cancel()
-        self._cancel_btn.setEnabled(False)
-        self._cancel_btn.setText(t("emoji.ellipsis"))
+    def _cancel(self):
+        if self._coord:
+            self._coord.cancel()
+        self._btn.setEnabled(False)
+        self._btn.setText(t("emoji.ellipsis"))
 
-    def closeEvent(self, event) -> None:
-        """Prevents closing while enrichment is running.
-
-        Args:
-            event: The close event.
-        """
-        if self._is_running:
-            self._on_cancel()
-            event.ignore()
+    def closeEvent(self, ev):
+        # don't let user close mid-enrichment
+        if self._run:
+            self._cancel()
+            ev.ignore()
         else:
-            event.accept()
+            ev.accept()

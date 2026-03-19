@@ -34,7 +34,7 @@ class ProfileDialog(BaseDialog):
     def __init__(self, mgr, parent=None):
         self.mgr = mgr
         self.action = ""
-        self.sel_name = ""
+        self.selected_name = ""
 
         super().__init__(
             parent,
@@ -156,7 +156,7 @@ class ProfileDialog(BaseDialog):
                 return
 
         self.action = "save"
-        self.sel_name = n
+        self.selected_name = n
         self.accept()
 
     def _load(self):
@@ -165,7 +165,7 @@ class ProfileDialog(BaseDialog):
             return
 
         self.action = "load"
-        self.sel_name = n
+        self.selected_name = n
         self.accept()
 
     def _del(self):

@@ -26,124 +26,86 @@ __all__ = ["BottlesParser"]
 
 logger = logging.getLogger("steamlibmgr.external_games.bottles")
 
+_FLATPAK_BASE = Path.home() / ".var" / "app" / "com.usebottles.bottles" / "data" / "bottles"
 
-def _get_bottles_base() -> Path:
-    """Return the XDG-based Bottles data directory.
 
-    Returns:
-        Path to Bottles data root.
-    """
+def _get_base():
+    # XDG-based Bottles data directory
     xdg = os.environ.get("XDG_DATA_HOME", str(Path.home() / ".local" / "share"))
     return Path(xdg) / "bottles"
 
 
-_FLATPAK_BASE = Path.home() / ".var" / "app" / "com.usebottles.bottles" / "data" / "bottles"
+def _load_yaml(path):
+    # load YAML, return None on error
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as e:
+        logger.warning("Failed to read %s: %s" % (path, e))
+        return None
+    return data if isinstance(data, dict) else None
 
 
 class BottlesParser(BaseExternalParser):
-    """Parser for programs configured in Bottles."""
+    # parser for Bottles programs
 
-    def platform_name(self) -> str:
-        """Return platform name.
-
-        Returns:
-            Platform identifier.
-        """
+    def platform_name(self):
         return "Bottles"
 
-    def is_available(self) -> bool:
-        """Check if PyYAML is installed and any Bottles data directory exists.
-
-        Returns:
-            True if PyYAML is available and a bottles directory is found.
-        """
+    def is_available(self):
+        # need PyYAML and at least one data dir
         if not _HAS_YAML:
             return False
         return any(p.is_dir() for p in self._get_base_paths())
 
-    def get_config_paths(self) -> list[Path]:
-        """Return possible Bottles base directories.
-
-        Returns:
-            List of base paths (not individual bottle.yml files).
-        """
+    def get_config_paths(self):
+        # possible base dirs (not individual bottle.yml files)
         return self._get_base_paths()
 
-    def read_games(self) -> list[ExternalGame]:
-        """Read programs from all Bottles.
-
-        Scans both External_Programs in each bottle.yml and the
-        global library.yml for curated entries.
-
-        Returns:
-            List of detected Bottles programs.
-        """
+    def read_games(self):
+        # scan all bottles for External_Programs + library.yml
         if not _HAS_YAML:
             return []
-        games: list[ExternalGame] = []
-        seen_names: set[str] = set()
+
+        games = []
+        seen = set()
 
         for base in self._get_base_paths():
-            is_flatpak = base == _FLATPAK_BASE
-            bottles_dir = base / "bottles"
-            if not bottles_dir.is_dir():
-                continue
+            bottles = base / "bottles"
+            is_fp = base == _FLATPAK_BASE
 
-            for bottle_dir in bottles_dir.iterdir():
-                if not bottle_dir.is_dir():
-                    continue
-                yml_path = bottle_dir / "bottle.yml"
-                if not yml_path.exists():
-                    continue
+            if bottles.is_dir():
+                for d in bottles.iterdir():
+                    yml = d / "bottle.yml"
+                    if d.is_dir() and yml.exists():
+                        self._parse_bottle(yml, is_fp, games, seen)
 
-                self._parse_bottle(yml_path, is_flatpak, games, seen_names)
+            # global library with curated entries
+            lib = base / "library.yml"
+            if lib.exists():
+                self._parse_lib(lib, is_fp, games, seen)
 
-            # Also check library.yml
-            library_path = base / "library.yml"
-            if library_path.exists():
-                self._parse_library(library_path, is_flatpak, games, seen_names)
-
-        logger.info("Found %d programs in Bottles", len(games))
+        logger.info("Found %d programs in Bottles" % len(games))
         return games
 
-    def _parse_bottle(
-        self,
-        yml_path: Path,
-        is_flatpak: bool,
-        games: list[ExternalGame],
-        seen_names: set[str],
-    ) -> None:
-        """Parse a single bottle.yml for External_Programs.
-
-        Args:
-            yml_path: Path to bottle.yml.
-            is_flatpak: Whether Bottles is installed as Flatpak.
-            games: List to append found games to.
-            seen_names: Set of already-seen names for dedup.
-        """
-        try:
-            data = yaml.safe_load(yml_path.read_text(encoding="utf-8"))
-        except (OSError, yaml.YAMLError) as e:
-            logger.warning("Failed to read %s: %s", yml_path, e)
+    def _parse_bottle(self, yml, is_fp, games, seen):
+        # extract External_Programs from bottle.yml
+        data = _load_yaml(yml)
+        if data is None:
             return
 
-        if not isinstance(data, dict):
+        bname = data.get("Name", yml.parent.name)
+        progs = data.get("External_Programs", {})
+        if not isinstance(progs, dict):
             return
 
-        bottle_name = data.get("Name", yml_path.parent.name)
-        external_programs = data.get("External_Programs", {})
-        if not isinstance(external_programs, dict):
-            return
-
-        for _uuid, prog in external_programs.items():
+        for _uuid, prog in progs.items():
             if not isinstance(prog, dict):
                 continue
             name = prog.get("name", "")
-            if not name or name.lower() in seen_names:
+            key = name.lower()
+            if not name or key in seen:
                 continue
-            seen_names.add(name.lower())
-
-            launch_cmd = self._build_launch_command(bottle_name, name, is_flatpak)
+            seen.add(key)
 
             games.append(
                 ExternalGame(
@@ -151,77 +113,45 @@ class BottlesParser(BaseExternalParser):
                     platform_app_id=prog.get("id", ""),
                     name=name,
                     executable=prog.get("executable"),
-                    launch_command=launch_cmd,
-                    platform_metadata=(("bottle", bottle_name),),
+                    launch_command=self._cmd(bname, name, is_fp),
+                    platform_metadata=(("bottle", bname),),
                 )
             )
 
-    def _parse_library(
-        self,
-        library_path: Path,
-        is_flatpak: bool,
-        games: list[ExternalGame],
-        seen_names: set[str],
-    ) -> None:
-        """Parse library.yml for curated game entries.
-
-        Args:
-            library_path: Path to library.yml.
-            is_flatpak: Whether Bottles is installed as Flatpak.
-            games: List to append found games to.
-            seen_names: Set of already-seen names for dedup.
-        """
-        try:
-            data = yaml.safe_load(library_path.read_text(encoding="utf-8"))
-        except (OSError, yaml.YAMLError) as e:
-            logger.warning("Failed to read %s: %s", library_path, e)
-            return
-
-        if not isinstance(data, dict):
+    def _parse_lib(self, lib, is_fp, games, seen):
+        data = _load_yaml(lib)
+        if data is None:
             return
 
         for _uuid, entry in data.items():
             if not isinstance(entry, dict):
                 continue
             name = entry.get("name", "")
-            if not name or name.lower() in seen_names:
+            key = name.lower()
+            if not name or key in seen:
                 continue
-            seen_names.add(name.lower())
+            seen.add(key)
 
-            bottle_name = entry.get("bottle", {}).get("name", "")
-            launch_cmd = self._build_launch_command(bottle_name, name, is_flatpak) if bottle_name else ""
+            bname = entry.get("bottle", {}).get("name", "")
+            # only build command when we know which bottle
+            cmd = self._cmd(bname, name, is_fp) if bname else ""
 
             games.append(
                 ExternalGame(
                     platform=self.platform_name(),
                     platform_app_id=str(_uuid),
                     name=name,
-                    launch_command=launch_cmd,
-                    platform_metadata=(("bottle", bottle_name),) if bottle_name else (),
+                    launch_command=cmd,
+                    platform_metadata=(("bottle", bname),) if bname else (),
                 )
             )
 
     @staticmethod
-    def _build_launch_command(bottle_name: str, program_name: str, is_flatpak: bool) -> str:
-        """Build launch command for a Bottles program.
-
-        Args:
-            bottle_name: Name of the bottle.
-            program_name: Name of the program.
-            is_flatpak: Whether Bottles is Flatpak-installed.
-
-        Returns:
-            Launch command string.
-        """
-        if is_flatpak:
-            return f"flatpak run com.usebottles.bottles --run " f'--bottle="{bottle_name}" --program="{program_name}"'
-        return f"bottles:run/{bottle_name}/{program_name}"
+    def _cmd(bname, pname, is_fp):
+        if is_fp:
+            return "flatpak run com.usebottles.bottles --run " '--bottle="%s" --program="%s"' % (bname, pname)
+        return "bottles:run/%s/%s" % (bname, pname)
 
     @staticmethod
-    def _get_base_paths() -> list[Path]:
-        """Return all possible Bottles base directories.
-
-        Returns:
-            List of Bottles data directories.
-        """
-        return [_get_bottles_base(), _FLATPAK_BASE]
+    def _get_base_paths():
+        return [_get_base(), _FLATPAK_BASE]

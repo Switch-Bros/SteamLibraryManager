@@ -18,6 +18,7 @@ from PyQt6.QtWidgets import (
     QMenu,
     QDialog,
     QGroupBox,
+    QGridLayout,
 )
 
 from steam_library_manager.config import config
@@ -87,6 +88,9 @@ class GameDetailsWidget(QWidget):
     dlc_group: QGroupBox
     dlc_content: QLabel
     category_list: HorizontalCategoryList
+    _gallery_widget: QWidget
+    _meta_grid: QGridLayout
+    _ui_scale: float
 
     def __init__(self, parent=None):
         super().__init__(parent)
