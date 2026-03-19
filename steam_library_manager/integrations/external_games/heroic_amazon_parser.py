@@ -33,7 +33,7 @@ _FLATPAK = (
 
 
 class HeroicAmazonParser(BaseHeroicParser):
-    """Parser for Amazon Games via Heroic/Nile."""
+    """Parser for Amazon Games."""
 
     _RUNNER = "nile"
 
@@ -47,41 +47,40 @@ class HeroicAmazonParser(BaseHeroicParser):
         return [_NATIVE, _FLATPAK]
 
     def read_games(self):
-        # read installed Amazon games from nile config
-        data, cfg_path = self._load_heroic_config_with_path()
+        # parse nile config
+        data, cp = self._load_heroic_config_with_path()
 
-        # amazon format is a plain array
         if not isinstance(data, list):
             return []
 
-        fp = self._is_flatpak(cfg_path) if cfg_path else False
-        games = []
+        fp = self._is_flatpak(cp) if cp else False
+        gs = []
 
-        for entry in data:
-            if not isinstance(entry, dict):
+        for e in data:
+            if not isinstance(e, dict):
                 continue
 
-            aid = entry.get("id", "")
-            ipath = entry.get("path", "")
-            isize = entry.get("size", 0)
-            if isinstance(isize, str):
-                isize = 0
+            aid = e.get("id", "")
+            ipath = e.get("path", "")
+            sz = e.get("size", 0)
+            if isinstance(sz, str):
+                sz = 0
 
-            # name from path since theres no title field
+            # name from path (no title field)
             nm = Path(ipath).name if ipath else aid
 
             cmd = self._build_heroic_launch_command(aid, fp)
 
-            games.append(
+            gs.append(
                 ExternalGame(
                     platform=self.platform_name(),
                     platform_app_id=aid,
                     name=nm,
                     install_path=Path(ipath) if ipath else None,
                     launch_command=cmd,
-                    install_size=isize,
+                    install_size=sz,
                 )
             )
 
-        logger.info("found %d Amazon games via Heroic" % len(games))
-        return games
+        logger.info("found %d Amazon games" % len(gs))
+        return gs
