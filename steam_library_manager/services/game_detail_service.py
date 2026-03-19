@@ -6,18 +6,13 @@
 # Licensed under the MIT License. See LICENSE for details.
 #
 
-from __future__ import annotations
-
 import json
 import logging
 import threading
 from datetime import datetime, timedelta
-from pathlib import Path
-from typing import TYPE_CHECKING
 
 import requests
 
-from steam_library_manager.core.game import Game
 from steam_library_manager.utils.timeouts import HTTP_TIMEOUT_SHORT
 from steam_library_manager.services.game_detail_enrichers import (
     apply_achievement_data,
@@ -32,9 +27,6 @@ from steam_library_manager.services.game_detail_enrichers import (
     persist_hltb,
 )
 
-if TYPE_CHECKING:
-    from steam_library_manager.integrations.hltb_api import HLTBClient
-
 logger = logging.getLogger("steamlibmgr.game_detail_service")
 
 __all__ = ["GameDetailService"]
@@ -42,38 +34,19 @@ __all__ = ["GameDetailService"]
 
 class GameDetailService:
     """Fetches and caches detailed game data from external APIs.
-
-    Operates on a shared games dict (by reference) so that mutations
-    are immediately visible to GameManager and the rest of the app.
-
-    Tracks which app_ids have already been checked for HLTB and
-    achievement data to avoid redundant API calls on repeated clicks.
-
-    Args:
-        games: Shared reference to the GameManager's games dict.
-        cache_dir: Directory for JSON cache files.
+    Tracks which app_ids have been checked to avoid redundant calls.
     """
 
-    def __init__(self, games: dict[str, Game], cache_dir: Path) -> None:
+    def __init__(self, games, cache_dir):
         self._games = games
         self._cache_dir = cache_dir
-        self._hltb_checked: set[str] = set()
-        self._achievements_checked: set[str] = set()
-        self._hltb_client: HLTBClient | None = None
+        self._hltb_checked = set()
+        self._achievements_checked = set()
+        self._hltb_client = None
         self._hltb_lock = threading.Lock()
 
-    def needs_enrichment(self, app_id: str) -> bool:
-        """Checks whether a game needs any on-demand data fetching.
-
-        Returns True if the game is missing basic metadata, HLTB data,
-        or achievement data that hasn't been checked yet.
-
-        Args:
-            app_id: The Steam app ID.
-
-        Returns:
-            True if background fetching should be triggered.
-        """
+    def needs_enrichment(self, app_id):
+        # Check whether a game needs on-demand data fetching
         if app_id not in self._games:
             return False
         game = self._games[app_id]
@@ -88,24 +61,13 @@ class GameDetailService:
             return True
         return False
 
-    def fetch_game_details(self, app_id: str) -> bool:
-        """Fetches additional details for a game from external APIs.
-
-        Fetches store data, review stats, ProtonDB ratings, Steam Deck status,
-        last update info, HLTB completion times, and achievement data.
-        Results are cached locally and persisted to the database.
-
-        Args:
-            app_id: The Steam app ID.
-
-        Returns:
-            True if the game exists, False otherwise.
-        """
+    def fetch_game_details(self, app_id):
+        # Fetch store data, reviews, ProtonDB, Deck status, HLTB, achievements
         if app_id not in self._games:
             return False
         game = self._games[app_id]
-        self._fetch_store_data(app_id)
-        self._fetch_review_stats(app_id)
+        self._get_store(app_id)
+        self._get_reviews(app_id)
         fetch_proton_rating(game)
         fetch_steam_deck_status(game, self._cache_dir)
         fetch_last_update(game, self._cache_dir)
@@ -114,20 +76,16 @@ class GameDetailService:
         return True
 
     # ------------------------------------------------------------------
-    # Store & Review (cache + API call, delegate apply to enrichers)
+    # Store & Review
     # ------------------------------------------------------------------
 
-    def _fetch_store_data(self, app_id: str) -> None:
-        """Fetches and caches data from the Steam Store API.
-
-        Args:
-            app_id: The Steam app ID.
-        """
-        cache_file = self._cache_dir / "store_data" / f"{app_id}.json"
+    def _get_store(self, app_id):
+        # Fetch and cache Steam Store API data
+        cache_file = self._cache_dir / "store_data" / ("%s.json" % app_id)
         if cache_file.exists():
             try:
-                cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
-                if cache_age < timedelta(days=7):
+                age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
+                if age < timedelta(days=7):
                     with open(cache_file, "r") as f:
                         data = json.load(f)
                         apply_store_data(self._games[app_id], data)
@@ -138,28 +96,24 @@ class GameDetailService:
         try:
             url = "https://store.steampowered.com/api/appdetails"
             params = {"appids": app_id}
-            response = requests.get(url, params=params, timeout=HTTP_TIMEOUT_SHORT)
-            data = response.json()
+            resp = requests.get(url, params=params, timeout=HTTP_TIMEOUT_SHORT)
+            data = resp.json()
             if app_id in data and data[app_id]["success"]:
-                game_data = data[app_id]["data"]
+                gd = data[app_id]["data"]
                 cache_file.parent.mkdir(exist_ok=True)
                 with open(cache_file, "w") as f:
-                    json.dump(game_data, f)
-                apply_store_data(self._games[app_id], game_data)
+                    json.dump(gd, f)
+                apply_store_data(self._games[app_id], gd)
         except (requests.RequestException, ValueError, KeyError, OSError):
             pass
 
-    def _fetch_review_stats(self, app_id: str) -> None:
-        """Fetches and caches Steam review statistics.
-
-        Args:
-            app_id: The Steam app ID.
-        """
-        cache_file = self._cache_dir / "store_data" / f"{app_id}_reviews.json"
+    def _get_reviews(self, app_id):
+        # Fetch and cache Steam review statistics
+        cache_file = self._cache_dir / "store_data" / ("%s_reviews.json" % app_id)
         if cache_file.exists():
             try:
-                cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
-                if cache_age < timedelta(hours=24):
+                age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
+                if age < timedelta(hours=24):
                     with open(cache_file, "r") as f:
                         data = json.load(f)
                         apply_review_data(self._games[app_id], data)
@@ -168,9 +122,9 @@ class GameDetailService:
                 pass
 
         try:
-            url = f"https://store.steampowered.com/appreviews/{app_id}?json=1&language=german"
-            response = requests.get(url, timeout=HTTP_TIMEOUT_SHORT)
-            data = response.json()
+            url = "https://store.steampowered.com/appreviews/%s?json=1&language=german" % app_id
+            resp = requests.get(url, timeout=HTTP_TIMEOUT_SHORT)
+            data = resp.json()
             if "query_summary" in data:
                 with open(cache_file, "w") as f:
                     json.dump(data, f)
@@ -182,16 +136,8 @@ class GameDetailService:
     # HLTB on-demand enrichment
     # ------------------------------------------------------------------
 
-    def _fetch_hltb_data(self, app_id: str) -> None:
-        """Fetches HowLongToBeat completion times for a single game.
-
-        Checks a local JSON cache first (7-day TTL). On cache miss,
-        queries the HLTB API, updates the in-memory Game object, and
-        persists the result to the database.
-
-        Args:
-            app_id: The Steam app ID.
-        """
+    def _fetch_hltb_data(self, app_id):
+        # Fetch HowLongToBeat times (JSON cache, 7-day TTL)
         if app_id in self._hltb_checked:
             return
         if app_id not in self._games:
@@ -203,11 +149,11 @@ class GameDetailService:
             self._hltb_checked.add(app_id)
             return
 
-        cache_file = self._cache_dir / "store_data" / f"{app_id}_hltb.json"
+        cache_file = self._cache_dir / "store_data" / ("%s_hltb.json" % app_id)
         if cache_file.exists():
             try:
-                cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
-                if cache_age < timedelta(days=7):
+                age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
+                if age < timedelta(days=7):
                     with open(cache_file, "r") as f:
                         data = json.load(f)
                     apply_hltb_data(game, data)
@@ -248,16 +194,8 @@ class GameDetailService:
     # Achievement on-demand enrichment
     # ------------------------------------------------------------------
 
-    def _fetch_achievement_data(self, app_id: str) -> None:
-        """Fetches achievement data for a single game from the Steam API.
-
-        Checks a local JSON cache first (7-day TTL). On cache miss,
-        queries the Steam Web API (schema + player + global percentages),
-        updates the in-memory Game object, and persists to the database.
-
-        Args:
-            app_id: The Steam app ID.
-        """
+    def _fetch_achievement_data(self, app_id):
+        # Fetch achievement data from Steam API (JSON cache, 7-day TTL)
         if app_id in self._achievements_checked:
             return
         if app_id not in self._games:
@@ -272,11 +210,11 @@ class GameDetailService:
             self._achievements_checked.add(app_id)
             return
 
-        cache_file = self._cache_dir / "store_data" / f"{app_id}_achievements.json"
+        cache_file = self._cache_dir / "store_data" / ("%s_achievements.json" % app_id)
         if cache_file.exists():
             try:
-                cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
-                if cache_age < timedelta(days=7):
+                age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
+                if age < timedelta(days=7):
                     with open(cache_file, "r") as f:
                         data = json.load(f)
                     apply_achievement_data(game, data)
@@ -302,65 +240,65 @@ class GameDetailService:
             from steam_library_manager.integrations.steam_web_api import SteamWebAPI
 
             api = SteamWebAPI(api_key)
-            int_app_id = int(app_id)
+            int_id = int(app_id)
 
-            schema = api.get_game_schema(int_app_id)
-            schema_achievements = (schema or {}).get("achievements", [])
+            schema = api.get_game_schema(int_id)
+            schema_achs = (schema or {}).get("achievements", [])
             cache_file.parent.mkdir(exist_ok=True)
 
-            if not schema_achievements:
+            if not schema_achs:
                 data = {"total": 0, "unlocked": 0, "percentage": 0.0, "perfect": False}
                 with open(cache_file, "w") as f:
                     json.dump(data, f)
-                persist_achievement_stats(int_app_id, 0, 0, 0.0, False)
+                persist_achievement_stats(int_id, 0, 0, 0.0, False)
                 self._achievements_checked.add(app_id)
                 return
 
-            total = len(schema_achievements)
+            total = len(schema_achs)
 
-            player_achievements = api.get_player_achievements(int_app_id, steam_id)
-            player_map: dict[str, dict] = {}
-            if player_achievements:
-                for ach in player_achievements:
-                    player_map[ach.get("apiname", "")] = ach
+            player_achs = api.get_player_achievements(int_id, steam_id)
+            pmap = {}
+            if player_achs:
+                for ach in player_achs:
+                    pmap[ach.get("apiname", "")] = ach
 
-            global_pcts = SteamWebAPI.get_global_achievement_percentages(int_app_id)
+            global_pcts = SteamWebAPI.get_global_achievement_percentages(int_id)
 
-            unlocked_count = 0
-            achievement_records: list[dict] = []
-            for schema_ach in schema_achievements:
-                api_name = schema_ach.get("name", "")
-                player_ach = player_map.get(api_name, {})
-                is_unlocked = bool(player_ach.get("achieved", 0))
-                if is_unlocked:
-                    unlocked_count += 1
-                achievement_records.append(
+            unlocked = 0
+            records = []
+            for sa in schema_achs:
+                api_name = sa.get("name", "")
+                pa = pmap.get(api_name, {})
+                is_done = bool(pa.get("achieved", 0))
+                if is_done:
+                    unlocked += 1
+                records.append(
                     {
                         "achievement_id": api_name,
-                        "name": schema_ach.get("displayName", api_name),
-                        "description": schema_ach.get("description", ""),
-                        "is_unlocked": is_unlocked,
-                        "unlock_time": player_ach.get("unlocktime", 0) or 0,
-                        "is_hidden": bool(schema_ach.get("hidden", 0)),
+                        "name": sa.get("displayName", api_name),
+                        "description": sa.get("description", ""),
+                        "is_unlocked": is_done,
+                        "unlock_time": pa.get("unlocktime", 0) or 0,
+                        "is_hidden": bool(sa.get("hidden", 0)),
                         "rarity_percentage": global_pcts.get(api_name, 0.0),
                     }
                 )
 
-            completion_pct = (unlocked_count / total * 100) if total > 0 else 0.0
-            perfect = unlocked_count == total and total > 0
+            pct = (unlocked / total * 100) if total > 0 else 0.0
+            perfect = unlocked == total and total > 0
 
             data = {
                 "total": total,
-                "unlocked": unlocked_count,
-                "percentage": round(completion_pct, 1),
+                "unlocked": unlocked,
+                "percentage": round(pct, 1),
                 "perfect": perfect,
             }
             with open(cache_file, "w") as f:
                 json.dump(data, f)
 
             apply_achievement_data(game, data)
-            persist_achievement_stats(int_app_id, total, unlocked_count, completion_pct, perfect)
-            persist_achievements(int_app_id, achievement_records)
+            persist_achievement_stats(int_id, total, unlocked, pct, perfect)
+            persist_achievements(int_id, records)
 
         except Exception as exc:
             logger.debug("Achievement on-demand fetch failed for %s: %s", app_id, exc)

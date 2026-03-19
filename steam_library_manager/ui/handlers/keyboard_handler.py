@@ -6,10 +6,6 @@
 # Licensed under the MIT License. See LICENSE for details.
 #
 
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
 from PyQt6.QtCore import Qt, QEvent
 from PyQt6.QtGui import QKeyEvent, QKeySequence, QShortcut, QWindow
 from PyQt6.QtWidgets import QApplication
@@ -18,76 +14,53 @@ from steam_library_manager.ui.widgets.ui_helper import UIHelper
 from steam_library_manager.utils.enigma import EasterEggManager
 from steam_library_manager.utils.i18n import t
 
-if TYPE_CHECKING:
-    from steam_library_manager.ui.main_window import MainWindow
-
 __all__ = ["KeyboardHandler"]
 
 
 class KeyboardHandler:
-    """Manages keyboard shortcuts, key events, and Easter egg delegation.
-
-    Easter egg detection is handled by EasterEggManager (enigma.py).
-    This class handles: Ctrl+F/A/B/I, F2/F5, ESC layers, Del, Space.
-
-    Attributes:
-        _mw: The parent MainWindow instance.
+    """Keyboard shortcuts, key events, and Easter egg delegation.
+    Handles Ctrl+F/A/B/I, F2/F5, ESC layers, Del, Space.
     """
 
-    def __init__(self, mw: MainWindow) -> None:
+    def __init__(self, mw):
         self._mw = mw
-        self._egg_manager = EasterEggManager(mw)
+        self._egg_mgr = EasterEggManager(mw)
 
-    def register_shortcuts(self) -> None:
-        """Registers keyboard shortcuts not bound to menu actions."""
+    def register_shortcuts(self):
+        # Register keyboard shortcuts not bound to menu actions
         mw = self._mw
         QShortcut(QKeySequence("Ctrl+F"), mw).activated.connect(lambda: mw.search_entry.setFocus())
         QShortcut(QKeySequence("F5"), mw).activated.connect(mw.file_actions.refresh_data)
         QShortcut(QKeySequence("Ctrl+Shift+S"), mw).activated.connect(mw.file_actions.export_db_backup)
-        QShortcut(QKeySequence("Ctrl+A"), mw).activated.connect(self._select_all_in_category)
+        QShortcut(QKeySequence("Ctrl+A"), mw).activated.connect(self._sel_all)
         QShortcut(QKeySequence("Ctrl+B"), mw).activated.connect(lambda: mw.tree.setVisible(not mw.tree.isVisible()))
-        QShortcut(QKeySequence("Ctrl+I"), mw).activated.connect(self._open_image_browser)
+        QShortcut(QKeySequence("Ctrl+I"), mw).activated.connect(self._open_imgs)
 
-    def install_event_filter(self) -> None:
-        """Installs application-wide event filter for Easter egg detection."""
+    def install_event_filter(self):
+        # Install application-wide event filter for Easter egg detection
         app = QApplication.instance()
         if app:
             app.installEventFilter(self._mw)
 
-    def remove_event_filter(self) -> None:
-        """Removes the application-wide event filter."""
+    def remove_event_filter(self):
+        # Remove the application-wide event filter
         app = QApplication.instance()
         if app:
             app.removeEventFilter(self._mw)
 
-    def handle_event_filter(self, obj: object, event: QEvent) -> bool:
-        """Processes application-wide key events for Easter egg detection.
-
-        Args:
-            obj: The object that received the event.
-            event: The event to filter.
-
-        Returns:
-            False always — never consumes the event.
-        """
+    def handle_event_filter(self, obj, event):
+        # Process app-wide key events for Easter egg detection. Never consumes.
         if (
             isinstance(obj, QWindow)
             and event.type() == QEvent.Type.KeyPress
             and isinstance(event, QKeyEvent)
             and not event.isAutoRepeat()
         ):
-            self._egg_manager.on_key_event(int(event.key()))
+            self._egg_mgr.on_key_event(int(event.key()))
         return False
 
-    def handle_key_press(self, event: QKeyEvent) -> bool:
-        """Handles key press events for MainWindow shortcuts.
-
-        Args:
-            event: The key press event.
-
-        Returns:
-            True if event was handled, False to pass through.
-        """
+    def handle_key_press(self, event):
+        # Handle key press events for MainWindow shortcuts
         mw = self._mw
         key = event.key()
 
@@ -105,20 +78,20 @@ class KeyboardHandler:
 
         if key == Qt.Key.Key_Delete:
             if mw.selected_games:
-                categories = mw.tree.get_selected_categories()
-                if categories:
-                    category = categories[0]
-                    count = len(mw.selected_games)
-                    msg = t("ui.dialogs.confirm_bulk", count=count)
-                    if UIHelper.confirm(mw, msg, category):
-                        mw.category_change_handler.apply_category_to_games(mw.selected_games, category, False)
+                cats = mw.tree.get_selected_categories()
+                if cats:
+                    cat = cats[0]
+                    n = len(mw.selected_games)
+                    msg = t("ui.dialogs.confirm_bulk", count=n)
+                    if UIHelper.confirm(mw, msg, cat):
+                        mw.category_change_handler.apply_category_to_games(mw.selected_games, cat, False)
                         mw.category_populator.populate()
             return True
 
         if key == Qt.Key.Key_F2:
-            categories = mw.tree.get_selected_categories()
-            if categories:
-                mw.category_handler.rename_category(categories[0])
+            cats = mw.tree.get_selected_categories()
+            if cats:
+                mw.category_handler.rename_category(cats[0])
             return True
 
         if key == Qt.Key.Key_Space:
@@ -130,25 +103,25 @@ class KeyboardHandler:
 
     # --- Private helpers ---
 
-    def _select_all_in_category(self) -> None:
-        """Selects all game items under the currently active category."""
+    def _sel_all(self):
+        # Select all game items under the active category
         mw = self._mw
         if mw.search_entry.hasFocus():
             mw.search_entry.selectAll()
             return
-        categories = mw.tree.get_selected_categories()
-        if not categories:
+        cats = mw.tree.get_selected_categories()
+        if not cats:
             return
         for i in range(mw.tree.topLevelItemCount()):
             item = mw.tree.topLevelItem(i)
-            if item and item.text(0) in categories:
+            if item and item.text(0) in cats:
                 for j in range(item.childCount()):
                     child = item.child(j)
                     if child:
                         child.setSelected(True)
 
-    def _open_image_browser(self) -> None:
-        """Opens the Image Browser for the currently selected game."""
+    def _open_imgs(self):
+        # Open Image Browser for the currently selected game
         if not self._mw.selected_game:
             self._mw.set_status(t("ui.errors.no_selection"))
             return
