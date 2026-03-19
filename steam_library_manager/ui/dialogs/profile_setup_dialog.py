@@ -2,16 +2,13 @@
 # steam_library_manager/ui/dialogs/profile_setup_dialog.py
 # First-run profile setup wizard dialog
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
-
-from __future__ import annotations
 
 from PyQt6.QtCore import QThread, pyqtSignal
 from PyQt6.QtWidgets import (
     QDialog,
-    QVBoxLayout,
     QHBoxLayout,
     QRadioButton,
     QComboBox,
@@ -20,8 +17,6 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QProgressBar,
 )
-
-from steam_library_manager.core.steam_account import SteamAccount
 from steam_library_manager.core.steam_account_scanner import scan_steam_accounts, fetch_steam_display_name
 from steam_library_manager.ui.widgets.base_dialog import BaseDialog
 from steam_library_manager.ui.widgets.ui_helper import UIHelper
@@ -32,54 +27,32 @@ __all__ = ["AccountScanWorker", "ProfileSetupDialog"]
 
 
 class AccountScanWorker(QThread):
-    """Background worker to scan Steam accounts without blocking UI."""
+    """Background worker that scans local Steam accounts
+    without blocking the UI thread."""
 
     accounts_found = pyqtSignal(list)
     scan_complete = pyqtSignal()
 
-    def __init__(self, steam_path: str):
-        """Initializes the account scan worker.
-
-        Args:
-            steam_path: Path to the Steam installation directory.
-        """
+    def __init__(self, steam_path):
         super().__init__()
         self.steam_path = steam_path
 
     def run(self):
-        """Scan accounts in background thread."""
+        # scan accounts in background thread
         accounts = scan_steam_accounts(self.steam_path)
         self.accounts_found.emit(accounts)
         self.scan_complete.emit()
 
 
 class ProfileSetupDialog(BaseDialog):
-    """Profile setup dialog for selecting/configuring Steam user.
+    """Profile setup dialog for selecting or configuring a Steam user.
+    Supports dropdown, Steam login, manual SteamID64, and community URL."""
 
-    Provides 4 methods to select a Steam account:
-    - Select from dropdown of local Steam accounts
-    - Login with Steam (QR/Password)
-    - Enter SteamID64 manually
-    - Enter Steam Community custom URL
-
-    Attributes:
-        steam_path: Path to Steam installation.
-        selected_steam_id_64: The SteamID64 chosen by the user.
-        selected_display_name: The display name of the selected account.
-        scanned_accounts: List of accounts found in userdata/.
-    """
-
-    def __init__(self, steam_path: str, parent=None):
-        """Initialize the profile setup dialog.
-
-        Args:
-            steam_path: Path to the Steam installation directory.
-            parent: Parent widget.
-        """
+    def __init__(self, steam_path, parent=None):
         self.steam_path = steam_path
-        self.selected_steam_id_64: int | None = None
-        self.selected_display_name: str | None = None
-        self.scanned_accounts: list[SteamAccount] = []
+        self.selected_steam_id_64 = None
+        self.selected_display_name = None
+        self.scanned_accounts = []
 
         super().__init__(
             parent,
@@ -88,19 +61,19 @@ class ProfileSetupDialog(BaseDialog):
             show_title_label=False,
             buttons="custom",
         )
-        self._start_account_scan()
+        self._start_scan()
 
-    def _build_content(self, layout: QVBoxLayout) -> None:
-        """Builds the profile setup form with account options."""
+    def _build_content(self, layout):
+        # builds the profile setup form with account options
         layout.setSpacing(15)
 
-        # Header
-        header = QLabel(t("steam.profile_setup.header"))
-        header.setWordWrap(True)
-        header.setStyleSheet("font-size: 14px; font-weight: bold;")
-        layout.addWidget(header)
+        # header
+        hdr = QLabel(t("steam.profile_setup.header"))
+        hdr.setWordWrap(True)
+        hdr.setStyleSheet("font-size: 14px; font-weight: bold;")
+        layout.addWidget(hdr)
 
-        # Option 1: Select from dropdown
+        # option 1: select from dropdown
         self.radio_select = QRadioButton(t("steam.profile_setup.select_from_list"))
         self.radio_select.setChecked(True)
         layout.addWidget(self.radio_select)
@@ -109,161 +82,152 @@ class ProfileSetupDialog(BaseDialog):
         self.combo_accounts.setEnabled(False)
         layout.addWidget(self.combo_accounts)
 
-        # Progress bar for scanning
+        # progress bar for scanning
         self.scan_progress = QProgressBar()
         self.scan_progress.setRange(0, 0)
         self.scan_progress.setTextVisible(True)
         self.scan_progress.setFormat(t("steam.profile_setup.scanning"))
         layout.addWidget(self.scan_progress)
 
-        # Option 2: Login with Steam
+        # option 2: login with Steam
         self.radio_login = QRadioButton(t("steam.profile_setup.login_with_steam"))
         layout.addWidget(self.radio_login)
 
-        login_layout = QHBoxLayout()
+        login_row = QHBoxLayout()
         self.btn_steam_login = QPushButton(t("steam.login.button"))
         self.btn_steam_login.setEnabled(False)
         self.btn_steam_login.clicked.connect(self._on_steam_login)
-        login_layout.addWidget(self.btn_steam_login)
-        login_layout.addStretch()
-        layout.addLayout(login_layout)
+        login_row.addWidget(self.btn_steam_login)
+        login_row.addStretch()
+        layout.addLayout(login_row)
 
-        # Option 3: Enter SteamID64 manually
+        # option 3: enter SteamID64 manually
         self.radio_manual = QRadioButton(t("steam.profile_setup.enter_manually"))
         layout.addWidget(self.radio_manual)
 
-        manual_layout = QHBoxLayout()
-        manual_layout.addWidget(QLabel(t("steam.profile_setup.steamid64_label")))
+        manual_row = QHBoxLayout()
+        manual_row.addWidget(QLabel(t("steam.profile_setup.steamid64_label")))
         self.input_steamid = QLineEdit()
         self.input_steamid.setPlaceholderText("76561198004190954")
         self.input_steamid.setEnabled(False)
-        manual_layout.addWidget(self.input_steamid)
-        layout.addLayout(manual_layout)
+        manual_row.addWidget(self.input_steamid)
+        layout.addLayout(manual_row)
 
-        # Option 4: Enter Steam Community URL
+        # option 4: enter Steam Community URL
         self.radio_community = QRadioButton(t("steam.profile_setup.enter_community_url"))
         layout.addWidget(self.radio_community)
 
-        community_layout = QHBoxLayout()
-        community_layout.addWidget(QLabel("steamcommunity.com/id/"))
+        comm_row = QHBoxLayout()
+        comm_row.addWidget(QLabel("steamcommunity.com/id/"))
         self.input_community = QLineEdit()
         self.input_community.setPlaceholderText(t("steam.profile_setup.community_placeholder"))
         self.input_community.setEnabled(False)
-        community_layout.addWidget(self.input_community)
-        layout.addLayout(community_layout)
+        comm_row.addWidget(self.input_community)
+        layout.addLayout(comm_row)
 
-        # Buttons
+        # buttons
         layout.addStretch()
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
 
         self.btn_cancel = QPushButton(t("common.cancel"))
         self.btn_cancel.clicked.connect(self.reject)
-        button_layout.addWidget(self.btn_cancel)
+        btn_row.addWidget(self.btn_cancel)
 
         self.btn_continue = QPushButton(t("common.continue"))
         self.btn_continue.setDefault(True)
         self.btn_continue.clicked.connect(self._on_continue)
-        button_layout.addWidget(self.btn_continue)
+        btn_row.addWidget(self.btn_continue)
 
-        layout.addLayout(button_layout)
+        layout.addLayout(btn_row)
 
-        # Connect radio buttons to enable/disable inputs
-        self.radio_select.toggled.connect(self._update_input_states)
-        self.radio_login.toggled.connect(self._update_input_states)
-        self.radio_manual.toggled.connect(self._update_input_states)
-        self.radio_community.toggled.connect(self._update_input_states)
+        # connect radio buttons to enable/disable inputs
+        self.radio_select.toggled.connect(self._toggle_inputs)
+        self.radio_login.toggled.connect(self._toggle_inputs)
+        self.radio_manual.toggled.connect(self._toggle_inputs)
+        self.radio_community.toggled.connect(self._toggle_inputs)
 
-    def _start_account_scan(self):
-        """Start background thread to scan Steam accounts."""
+    def _start_scan(self):
+        # start background thread to scan Steam accounts
         self.scan_worker = AccountScanWorker(self.steam_path)
-        self.scan_worker.accounts_found.connect(self._on_accounts_found)
-        self.scan_worker.scan_complete.connect(self._on_scan_complete)
+        self.scan_worker.accounts_found.connect(self._on_found)
+        self.scan_worker.scan_complete.connect(self._on_done)
         self.scan_worker.start()
 
-    def _on_accounts_found(self, accounts: list[SteamAccount]):
-        """Handle accounts found from scan.
-
-        Args:
-            accounts: List of SteamAccount objects found.
-        """
+    def _on_found(self, accounts):
+        # handle accounts found from scan
         self.scanned_accounts = accounts
 
         self.combo_accounts.clear()
-        for account in accounts:
-            self.combo_accounts.addItem(str(account), account)
+        for acct in accounts:
+            self.combo_accounts.addItem(str(acct), acct)
 
         if accounts:
             self.combo_accounts.setEnabled(True)
         else:
             self.combo_accounts.addItem(t("steam.profile_setup.no_accounts_found"))
 
-    def _on_scan_complete(self):
-        """Handle scan completion."""
+    def _on_done(self):
+        # handle scan completion
         self.scan_progress.hide()
 
         if not self.scanned_accounts:
             self.radio_login.setChecked(True)
             self.btn_steam_login.setEnabled(True)
 
-    def _update_input_states(self):
-        """Enable/disable inputs based on selected radio button."""
+    def _toggle_inputs(self):
+        # enable/disable inputs based on selected radio button
         self.combo_accounts.setEnabled(self.radio_select.isChecked() and bool(self.scanned_accounts))
         self.btn_steam_login.setEnabled(self.radio_login.isChecked())
         self.input_steamid.setEnabled(self.radio_manual.isChecked())
         self.input_community.setEnabled(self.radio_community.isChecked())
 
     def _on_steam_login(self):
-        """Handle Steam login button click."""
+        # handle Steam login button click
         from steam_library_manager.ui.dialogs.steam_modern_login_dialog import ModernSteamLoginDialog
 
-        dialog = ModernSteamLoginDialog(self)
-        result = dialog.exec()
+        dlg = ModernSteamLoginDialog(self)
+        result = dlg.exec()
 
         if result == QDialog.DialogCode.Accepted:
-            if dialog.steam_id_64 is not None:
-                self.selected_steam_id_64 = dialog.steam_id_64
-                self.selected_display_name = dialog.display_name
+            if dlg.steam_id_64 is not None:
+                self.selected_steam_id_64 = dlg.steam_id_64
+                self.selected_display_name = dlg.display_name
 
-                self._save_login_tokens(dialog.login_result, str(dialog.steam_id_64))
+                self._store_tokens(dlg.login_result, str(dlg.steam_id_64))
 
                 self.accept()
             else:
                 UIHelper.show_warning(self, t("steam.login.error_no_steam_id"))
 
     @staticmethod
-    def _save_login_tokens(login_result: dict | None, steam_id: str) -> None:
-        """Persist access/refresh tokens from a successful login.
-
-        Args:
-            login_result: The full result dict from ModernSteamLoginDialog.
-            steam_id: The SteamID64 as string.
-        """
+    def _store_tokens(login_result, steam_id):
+        # persist access/refresh tokens from a successful login
         if not login_result:
             return
 
         from steam_library_manager.core.token_store import TokenStore
         from steam_library_manager.config import config
 
-        access_token = login_result.get("access_token")
-        refresh_token = login_result.get("refresh_token")
+        at = login_result.get("access_token")
+        rt = login_result.get("refresh_token")
 
-        if access_token:
-            config.STEAM_ACCESS_TOKEN = access_token
+        if at:
+            config.STEAM_ACCESS_TOKEN = at
 
-        if access_token and refresh_token:
-            token_store = TokenStore()
-            token_store.save_tokens(access_token, refresh_token, steam_id)
+        if at and rt:
+            store = TokenStore()
+            store.save_tokens(at, rt, steam_id)
 
     def _on_continue(self):
-        """Handle Continue button click."""
+        # handle Continue button click
         if self.radio_select.isChecked():
-            current_index = self.combo_accounts.currentIndex()
-            if current_index >= 0:
-                account = self.combo_accounts.itemData(current_index)
-                if account:
-                    self.selected_steam_id_64 = account.steam_id_64
-                    self.selected_display_name = account.display_name
+            idx = self.combo_accounts.currentIndex()
+            if idx >= 0:
+                acct = self.combo_accounts.itemData(idx)
+                if acct:
+                    self.selected_steam_id_64 = acct.steam_id_64
+                    self.selected_display_name = acct.display_name
                     self.accept()
                     return
 
@@ -277,66 +241,59 @@ class ProfileSetupDialog(BaseDialog):
             )
 
         elif self.radio_manual.isChecked():
-            steamid_text = self.input_steamid.text().strip()
+            raw = self.input_steamid.text().strip()
 
-            if not steamid_text:
+            if not raw:
                 UIHelper.show_warning(self, t("steam.profile_setup.enter_steamid64"))
                 return
 
             try:
-                steam_id_64 = int(steamid_text)
+                sid = int(raw)
 
-                if steam_id_64 < 76561197960265728:
+                if sid < 76561197960265728:
                     raise ValueError
 
-                self.selected_steam_id_64 = steam_id_64
-                self.selected_display_name = fetch_steam_display_name(steam_id_64)
+                self.selected_steam_id_64 = sid
+                self.selected_display_name = fetch_steam_display_name(sid)
                 self.accept()
 
             except ValueError:
                 UIHelper.show_warning(self, t("steam.profile_setup.invalid_steamid64"))
 
         elif self.radio_community.isChecked():
-            custom_url = self.input_community.text().strip().lower()
+            slug = self.input_community.text().strip().lower()
 
-            if not custom_url:
+            if not slug:
                 UIHelper.show_warning(self, t("steam.profile_setup.enter_custom_url"))
                 return
 
-            steam_id_64 = self._resolve_custom_url(custom_url)
+            sid = self._resolve_url(slug)
 
-            if steam_id_64:
-                self.selected_steam_id_64 = steam_id_64
-                self.selected_display_name = fetch_steam_display_name(steam_id_64)
+            if sid:
+                self.selected_steam_id_64 = sid
+                self.selected_display_name = fetch_steam_display_name(sid)
                 self.accept()
             else:
                 UIHelper.show_warning(self, t("steam.profile_setup.custom_url_not_found"))
 
     @staticmethod
-    def _resolve_custom_url(custom_url: str) -> int | None:
-        """Resolve Steam Community custom URL to SteamID64.
-
-        Args:
-            custom_url: The custom URL part (e.g., "heikesfootslave").
-
-        Returns:
-            SteamID64 if found, None otherwise.
-        """
+    def _resolve_url(custom_url):
+        # resolve Steam Community custom URL to SteamID64
         import requests
-        import xml.etree.ElementTree as ElementTree
+        import xml.etree.ElementTree as ET
 
         try:
-            url = f"https://steamcommunity.com/id/{custom_url}?xml=1"
-            response = requests.get(url, timeout=HTTP_TIMEOUT)
+            url = "https://steamcommunity.com/id/%s?xml=1" % custom_url
+            resp = requests.get(url, timeout=HTTP_TIMEOUT)
 
-            if response.status_code == 200:
-                tree = ElementTree.fromstring(response.content)
-                steam_id_element = tree.find("steamID64")
+            if resp.status_code == 200:
+                tree = ET.fromstring(resp.content)
+                elem = tree.find("steamID64")
 
-                if steam_id_element is not None and steam_id_element.text:
-                    return int(steam_id_element.text)
+                if elem is not None and elem.text:
+                    return int(elem.text)
 
-        except (requests.RequestException, ElementTree.ParseError, ValueError):
+        except (requests.RequestException, ET.ParseError, ValueError):
             pass
 
         return None

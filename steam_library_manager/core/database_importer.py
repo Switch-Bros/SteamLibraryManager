@@ -2,23 +2,16 @@
 # steam_library_manager/core/database_importer.py
 # Imports game metadata from appinfo.vdf into the SQLite database
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 
-from __future__ import annotations
-
 import logging
 import time
-from pathlib import Path
-from typing import TYPE_CHECKING, Callable
 
 from steam_library_manager.core.appinfo_manager import extract_associations
 from steam_library_manager.core.database import Database, DatabaseEntry, ImportStats
 from steam_library_manager.utils.i18n import t
-
-if TYPE_CHECKING:
-    from steam_library_manager.core.appinfo_manager import AppInfoManager
 
 logger = logging.getLogger("steamlibmgr.database_importer")
 
@@ -26,81 +19,51 @@ __all__ = ["DatabaseImporter", "create_initial_database"]
 
 
 class DatabaseImporter:
-    """Imports game metadata from appinfo.vdf into SQLite database.
+    """Reads game metadata from appinfo.vdf, converts it to DatabaseEntry
+    objects, and batch-inserts them into the SQLite database."""
 
-    Workflow:
-        1. Read apps from AppInfoManager.steam_apps
-        2. Convert to DatabaseEntry objects
-        3. Batch insert into SQLite
-        4. Record import statistics
-    """
-
-    def __init__(self, database: Database, appinfo_manager: AppInfoManager):
-        """Initialize importer.
-
-        Args:
-            database: Database instance.
-            appinfo_manager: AppInfoManager instance for reading VDF data.
-        """
+    def __init__(self, database, appinfo_manager):
         self.db = database
         self.appinfo_manager = appinfo_manager
 
-    def needs_initial_import(self) -> bool:
-        """Check if initial import is needed.
-
-        Returns:
-            True if database is empty.
-        """
+    def needs_initial_import(self):
+        # true if database is empty
         return self.db.get_game_count() == 0
 
-    def import_from_appinfo(
-        self,
-        progress_callback: Callable[[int, int, str], None] | None = None,
-    ) -> ImportStats:
-        """Import all games from appinfo.vdf.
-
-        This is a ONE-TIME operation on first run.
-
-        Args:
-            progress_callback: Optional callback(current, total, message).
-
-        Returns:
-            Import statistics.
-        """
-        start_time = time.time()
+    def import_from_appinfo(self, progress_callback=None):
+        # one-time import of all games from appinfo.vdf
+        t0 = time.time()
 
         logger.info(t("logs.db.import_started"))
         logger.info(t("logs.db.import_one_time"))
 
-        # Parse appinfo.vdf
+        # parse appinfo.vdf
         logger.info(t("logs.db.parsing"))
         if progress_callback:
             progress_callback(0, 100, t("logs.db.parsing"))
 
-        # Get all apps from appinfo (dict[int, dict])
         all_apps = self.appinfo_manager.steam_apps
-        total_apps = len(all_apps)
+        total = len(all_apps)
 
-        logger.info(t("logs.db.found_apps", count=total_apps))
+        logger.info(t("logs.db.found_apps", count=total))
 
-        # Pre-convert to list once for efficient batching
-        app_items = list(all_apps.items())
+        items = list(all_apps.items())
 
         imported = 0
         updated = 0
         failed = 0
-        batch_size = 100
+        batch_sz = 100
 
-        for i in range(0, total_apps, batch_size):
-            batch = app_items[i : i + batch_size]
-            batch_num = i // batch_size + 1
-            total_batches = (total_apps + batch_size - 1) // batch_size
+        for i in range(0, total, batch_sz):
+            batch = items[i : i + batch_sz]
+            bnum = i // batch_sz + 1
+            btotal = (total + batch_sz - 1) // batch_sz
 
-            logger.debug(t("logs.db.importing_batch", current=batch_num, total=total_batches))
+            logger.debug(t("logs.db.importing_batch", current=bnum, total=btotal))
             if progress_callback:
-                progress_callback(i, total_apps, t("logs.db.importing_batch", current=batch_num, total=total_batches))
+                progress_callback(i, total, t("logs.db.importing_batch", current=bnum, total=btotal))
 
-            entries: list[DatabaseEntry] = []
+            entries = []
             for app_id, app_data in batch:
                 try:
                     entry = self._convert_to_database_entry(app_id, app_data)
@@ -109,17 +72,16 @@ class DatabaseImporter:
                     logger.warning(t("logs.db.import_failed_app", app_id=app_id, error=str(e)))
                     failed += 1
 
-            # Batch insert without per-entry commit
             count = self.db.batch_insert_games(entries)
             imported += count
 
-        duration = time.time() - start_time
+        dur = time.time() - t0
 
         stats = ImportStats(
             games_imported=imported,
             games_updated=updated,
             games_failed=failed,
-            duration_seconds=duration,
+            duration_seconds=dur,
             source="appinfo.vdf",
         )
 
@@ -133,30 +95,18 @@ class DatabaseImporter:
                 failed=failed,
             )
         )
-        logger.info(t("logs.db.import_duration", duration=f"{duration:.2f}"))
+        logger.info(t("logs.db.import_duration", duration="%.2f" % dur))
 
         if progress_callback:
             progress_callback(
-                total_apps, total_apps, t("logs.db.import_complete", imported=imported, updated=updated, failed=failed)
+                total, total, t("logs.db.import_complete", imported=imported, updated=updated, failed=failed)
             )
 
         return stats
 
-    def incremental_update(
-        self,
-        changed_app_ids: set[int],
-        progress_callback: Callable[[int, int, str], None] | None = None,
-    ) -> ImportStats:
-        """Update only changed games.
-
-        Args:
-            changed_app_ids: Set of app IDs that changed.
-            progress_callback: Optional callback(current, total, message).
-
-        Returns:
-            Import statistics.
-        """
-        start_time = time.time()
+    def incremental_update(self, changed_app_ids, progress_callback=None):
+        # update only changed games
+        t0 = time.time()
         total = len(changed_app_ids)
 
         logger.info(t("logs.db.update_started", count=total))
@@ -190,103 +140,78 @@ class DatabaseImporter:
 
         self.db.commit()
 
-        duration = time.time() - start_time
+        dur = time.time() - t0
 
         stats = ImportStats(
             games_imported=imported,
             games_updated=updated,
             games_failed=failed,
-            duration_seconds=duration,
+            duration_seconds=dur,
             source="incremental_update",
         )
 
         self.db.record_import(stats)
 
-        logger.info(t("logs.db.update_complete", duration=f"{duration:.2f}"))
+        logger.info(t("logs.db.update_complete", duration="%.2f" % dur))
 
         if progress_callback:
-            progress_callback(total, total, t("logs.db.update_complete", duration=f"{duration:.2f}"))
+            progress_callback(total, total, t("logs.db.update_complete", duration="%.2f" % dur))
 
         return stats
 
-    def _convert_to_database_entry(self, app_id: int, app_data: dict) -> DatabaseEntry:
-        """Convert appinfo data to DatabaseEntry.
+    def _convert_to_database_entry(self, app_id, app_data):
+        # convert appinfo data to DatabaseEntry
+        vdf = app_data.get("data", app_data)
 
-        Args:
-            app_id: Steam app ID.
-            app_data: Raw data from appinfo.vdf (may contain nested 'data' key).
+        common = self.appinfo_manager._find_common_section(vdf)
 
-        Returns:
-            DatabaseEntry object.
-        """
-        # Navigate to the actual data (appinfo.vdf structure may vary)
-        vdf_data = app_data.get("data", app_data)
-
-        # Find common section using AppInfoManager's logic
-        common = self.appinfo_manager._find_common_section(vdf_data)
-
-        # Basic info — use empty string if no name in VDF (never store placeholders)
+        # basic info -- use empty string if no name in VDF
         name = common.get("name", "") or ""
-        app_type = common.get("type", "game")
-        if isinstance(app_type, str):
-            app_type = app_type.lower()
+        atype = common.get("type", "game")
+        if isinstance(atype, str):
+            atype = atype.lower()
 
-        # Developers & Publishers (using associations format from appinfo)
-        associations = common.get("associations", {})
-        developer = ", ".join(extract_associations(associations, "developer"))
-        publisher = ", ".join(extract_associations(associations, "publisher"))
+        # developers & publishers (using associations format from appinfo)
+        assoc = common.get("associations", {})
+        dev = ", ".join(extract_associations(assoc, "developer"))
+        pub = ", ".join(extract_associations(assoc, "publisher"))
 
-        # Fallback to direct fields
-        if not developer:
-            dev_raw = common.get("developers", {})
-            if isinstance(dev_raw, dict):
-                developer = ", ".join(str(v) for v in dev_raw.values())
-            elif isinstance(dev_raw, (list, tuple)):
-                developer = ", ".join(str(v) for v in dev_raw)
+        # fallback to direct fields
+        if not dev:
+            raw = common.get("developers", {})
+            if isinstance(raw, dict):
+                dev = ", ".join(str(v) for v in raw.values())
+            elif isinstance(raw, (list, tuple)):
+                dev = ", ".join(str(v) for v in raw)
 
-        if not publisher:
-            pub_raw = common.get("publishers", {})
-            if isinstance(pub_raw, dict):
-                publisher = ", ".join(str(v) for v in pub_raw.values())
-            elif isinstance(pub_raw, (list, tuple)):
-                publisher = ", ".join(str(v) for v in pub_raw)
+        if not pub:
+            raw = common.get("publishers", {})
+            if isinstance(raw, dict):
+                pub = ", ".join(str(v) for v in raw.values())
+            elif isinstance(raw, (list, tuple)):
+                pub = ", ".join(str(v) for v in raw)
 
-        # Release dates
-        release_date = self._parse_release_date(common)
-
-        # Extract genres safely
+        rel = self._parse_release_date(common)
         genres = self._extract_genres(common)
-
-        # Platform support
         platforms = self._extract_platforms(common)
-
-        # Controller support
-        controller_support = common.get("controller_support", "none") or "none"
+        ctrl = common.get("controller_support", "none") or "none"
 
         return DatabaseEntry(
             app_id=app_id,
             name=name,
-            app_type=app_type,
-            developer=developer or None,
-            publisher=publisher or None,
-            release_date=release_date,
+            app_type=atype,
+            developer=dev or None,
+            publisher=pub or None,
+            release_date=rel,
             genres=genres,
             platforms=platforms,
-            controller_support=controller_support,
+            controller_support=ctrl,
             last_updated=int(time.time()),
         )
 
     @staticmethod
-    def _parse_release_date(common: dict) -> int | None:
-        """Parse release date from common section.
-
-        Args:
-            common: The common section from VDF data.
-
-        Returns:
-            UNIX timestamp or None.
-        """
-        # Try numeric timestamp first
+    def _parse_release_date(common):
+        # parse release date from common section, returns UNIX timestamp or None
         for key in ("steam_release_date", "original_release_date", "release_date"):
             val = common.get(key)
             if isinstance(val, (int, float)) and val > 0:
@@ -297,88 +222,59 @@ class DatabaseImporter:
         return None
 
     @staticmethod
-    def _extract_genres(common: dict) -> list[str]:
-        """Extract genre names from common section.
+    def _extract_genres(common):
+        # extract genre names from common section
+        raw = common.get("genres", {})
+        out = []
 
-        Args:
-            common: The common section from VDF data.
-
-        Returns:
-            List of genre name strings.
-        """
-        genres_raw = common.get("genres", {})
-        genres: list[str] = []
-
-        if isinstance(genres_raw, dict):
-            for v in genres_raw.values():
+        if isinstance(raw, dict):
+            for v in raw.values():
                 if isinstance(v, dict):
                     desc = v.get("description")
                     if isinstance(desc, str):
-                        genres.append(desc)
+                        out.append(desc)
                 elif isinstance(v, str):
-                    genres.append(v)
+                    out.append(v)
 
-        return genres
+        return out
 
     @staticmethod
-    def _extract_platforms(common: dict) -> list[str]:
-        """Extract platform list from common section.
-
-        Args:
-            common: The common section from VDF data.
-
-        Returns:
-            List of platform strings.
-        """
-        platforms: list[str] = []
+    def _extract_platforms(common):
+        # extract platform list from common section
+        out = []
         oslist = common.get("oslist", "")
         if not isinstance(oslist, str):
-            return platforms
+            return out
 
-        oslist_lower = oslist.lower()
-        if "windows" in oslist_lower:
-            platforms.append("windows")
-        if "linux" in oslist_lower:
-            platforms.append("linux")
-        if "mac" in oslist_lower or "osx" in oslist_lower:
-            platforms.append("mac")
+        low = oslist.lower()
+        if "windows" in low:
+            out.append("windows")
+        if "linux" in low:
+            out.append("linux")
+        if "mac" in low or "osx" in low:
+            out.append("mac")
 
-        return platforms
+        return out
 
 
-def create_initial_database(
-    db_path: Path,
-    appinfo_manager: AppInfoManager,
-    progress_callback: Callable[[int, int, str], None] | None = None,
-) -> Database:
-    """Create and populate initial database.
-
-    Main entry point for first-time setup.
-
-    Args:
-        db_path: Path to database file.
-        appinfo_manager: AppInfoManager instance.
-        progress_callback: Optional progress callback.
-
-    Returns:
-        Initialized database.
-    """
+def create_initial_database(db_path, appinfo_manager, progress_callback=None):
+    # create and populate initial database (main entry point for first-time setup)
     logger.info(t("logs.db.initializing"))
 
     db = Database(db_path)
 
-    importer = DatabaseImporter(db, appinfo_manager)
+    imp = DatabaseImporter(db, appinfo_manager)
 
-    if not importer.needs_initial_import():
-        count = db.get_game_count()
+    if not imp.needs_initial_import():
+        n = db.get_game_count()
         logger.info(t("logs.db.already_initialized"))
-        logger.info(t("logs.db.ready", count=count, duration="0.00"))
+        logger.info(t("logs.db.ready", count=n, duration="0.00"))
         return db
 
     logger.info(t("logs.db.import_one_time"))
-    stats = importer.import_from_appinfo(progress_callback)
+    stats = imp.import_from_appinfo(progress_callback)
 
     total = stats.games_imported + stats.games_updated
-    logger.info(t("logs.db.ready", count=total, duration=f"{stats.duration_seconds:.2f}"))
+    logger.info(t("logs.db.ready", count=total, duration="%.2f" % stats.duration_seconds))
 
     return db
