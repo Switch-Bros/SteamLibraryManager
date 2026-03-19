@@ -17,7 +17,22 @@ from steam_library_manager.core.game_manager import Game
 from steam_library_manager.integrations.external_games.models import get_collection_emoji
 from steam_library_manager.utils.i18n import t
 
+# PEGI collection name -> emoji key
+_PEGI_MAP = {
+    "PEGI 03": "emoji.pegi_3",
+    "PEGI 07": "emoji.pegi_7",
+    "PEGI 12": "emoji.pegi_12",
+    "PEGI 16": "emoji.pegi_16",
+    "PEGI 18": "emoji.pegi_18",
+}
+
 __all__ = ["GameTreeWidget"]
+
+
+def _get_pegi_emoji(cat_name):
+    # return pegi emoji if collection is a PEGI category
+    key = _PEGI_MAP.get(cat_name)
+    return t(key) if key else ""
 
 
 class GameTreeWidget(QTreeWidget):
@@ -98,6 +113,11 @@ class GameTreeWidget(QTreeWidget):
                     em = get_collection_emoji(cat_name)
                     if em:
                         disp = "%s %s" % (cat_name, em)
+
+                # PEGI collections get age rating emoji
+                pegi_em = _get_pegi_emoji(cat_name)
+                if pegi_em:
+                    disp = "%s %s" % (cat_name, pegi_em)
 
             ci.setText(0, t("categories.category_count", name=disp, count=len(games)))
             ci.setData(0, Qt.ItemDataRole.UserRole, "category")
