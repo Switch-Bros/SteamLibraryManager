@@ -1,18 +1,15 @@
 #
 # steam_library_manager/services/enrichment/achievement_enrichment_service.py
-# Enrichment service for fetching and storing game achievements
+# Achievement data fetcher and storer
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 
-
 from __future__ import annotations
 
 import logging
 import time
-from pathlib import Path
-from typing import Any
 
 from steam_library_manager.services.enrichment.base_enrichment_thread import BaseEnrichmentThread
 from steam_library_manager.utils.i18n import t
@@ -23,145 +20,117 @@ __all__ = ["AchievementEnrichmentThread"]
 
 
 class AchievementEnrichmentThread(BaseEnrichmentThread):
-    """Background thread for fetching Steam achievement data."""
+    """Fetches Steam achievement data in background."""
 
-    def __init__(self, parent: Any = None) -> None:
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self._games: list[tuple[int, str]] = []
-        self._db_path: Path | None = None
-        self._api_key: str = ""
-        self._steam_id: str = ""
-        self._db: Any = None
-        self._api: Any = None
+        self._games = []
+        self._db_path = None
+        self._api_key = ""
+        self._steam_id = ""
+        self._db = None
+        self._api = None
 
-    def configure(
-        self,
-        games: list[tuple[int, str]],
-        db_path: Path,
-        api_key: str,
-        steam_id: str,
-        force_refresh: bool = False,
-    ) -> None:
-        """Configures the thread with games and API credentials."""
+    def configure(self, games, db_path, api_key, steam_id, force_refresh=False):
+        # setup before run
         self._games = games
         self._db_path = db_path
         self._api_key = api_key
         self._steam_id = steam_id
         self._force_refresh = force_refresh
 
-    # BaseEnrichmentThread hooks
-
-    def _setup(self) -> None:
-        """Opens database and API connections."""
+    def _setup(self):
         from steam_library_manager.core.database import Database
         from steam_library_manager.integrations.steam_web_api import SteamWebAPI
 
         if not self._db_path or not self._api_key or not self._steam_id:
-            msg = "Missing configuration (db_path, api_key, or steam_id)"
-            raise ValueError(msg)
+            raise ValueError("missing config")
 
         self._db = Database(self._db_path)
         self._api = SteamWebAPI(self._api_key)
 
-    def _cleanup(self) -> None:
-        """Commits and closes the database connection."""
+    def _cleanup(self):
         if self._db:
             try:
                 self._db.commit()
             except Exception as e:
-                logger.warning("Failed to commit in cleanup: %s", e)
+                logger.warning("commit failed: %s" % e)
             self._db.close()
             self._db = None
 
-    def _get_items(self) -> list:
-        """Returns the list of games to enrich."""
+    def _get_items(self):
         return self._games
 
-    def _process_item(self, item: Any) -> bool:
-        """Fetches and stores achievement data for a single game."""
-        app_id, _name = item
-        return self._enrich_game(self._api, self._db, app_id)
+    def _process_item(self, item):
+        aid, _ = item
+        return self._enrich(aid)
 
-    def _format_progress(self, item: Any, current: int, total: int) -> str:
-        """Formats progress text with the game name."""
-        _app_id, name = item
+    def _format_progress(self, item, current, total):
+        _, name = item
         return t("ui.enrichment.progress", name=name[:30], current=current, total=total)
 
-    def _rate_limit(self) -> None:
-        """Sleeps 1 second between games."""
+    def _rate_limit(self):
         time.sleep(1.0)
 
-    # Internal
+    def _enrich(self, aid):
+        # get schema + progress + rarity
+        sch = self._api.get_game_schema(aid)
+        achs = (sch or {}).get("achievements", [])
 
-    def _enrich_game(
-        self,
-        api: Any,
-        db: Any,
-        app_id: int,
-    ) -> bool:
-        """Fetches and stores achievement data for a single game."""
-        # Get achievement schema (list of possible achievements)
-        schema = api.get_game_schema(app_id)
-        schema_achievements = (schema or {}).get("achievements", [])
-
-        if not schema_achievements:
-            # Game has no achievements - record total=0 to avoid re-fetching
-            db.upsert_achievement_stats(app_id, 0, 0, 0.0, False)
-            db.commit()
+        if not achs:
+            # no achievements
+            self._db.upsert_achievement_stats(aid, 0, 0, 0.0, False)
+            self._db.commit()
             return True
 
-        total = len(schema_achievements)
+        tot = len(achs)
 
-        # Get player's achievement progress
-        player_achievements = api.get_player_achievements(app_id, self._steam_id)
-        player_map: dict[str, dict] = {}
-        if player_achievements:
-            for ach in player_achievements:
-                player_map[ach.get("apiname", "")] = ach
+        # player progress
+        pl = self._api.get_player_achievements(aid, self._steam_id)
+        pmap = {}
+        if pl:
+            for a in pl:
+                pmap[a.get("apiname", "")] = a
 
-        # Get global rarity percentages (no auth needed)
-        global_pcts = api.get_global_achievement_percentages(app_id)
+        # global rarity
+        gpct = self._api.get_global_achievement_percentages(aid)
 
-        # Merge and build achievement records
-        achievement_records: list[dict] = []
-        unlocked_count = 0
+        # merge
+        recs = []
+        ul = 0  # unlocked count
 
-        for schema_ach in schema_achievements:
-            api_name = schema_ach.get("name", "")
-            display_name = schema_ach.get("displayName", api_name)
-            description = schema_ach.get("description", "")
-            is_hidden = bool(schema_ach.get("hidden", 0))
+        for sa in achs:
+            aname = sa.get("name", "")
+            dname = sa.get("displayName", aname)
+            desc = sa.get("description", "")
+            hid = bool(sa.get("hidden", 0))
 
-            # Player progress
-            player_ach = player_map.get(api_name, {})
-            is_unlocked = bool(player_ach.get("achieved", 0))
-            unlock_time = player_ach.get("unlocktime", 0) or 0
+            pa = pmap.get(aname, {})
+            got = bool(pa.get("achieved", 0))
+            ut = pa.get("unlocktime", 0) or 0
 
-            if is_unlocked:
-                unlocked_count += 1
+            if got:
+                ul += 1
 
-            # Global rarity
-            rarity = global_pcts.get(api_name, 0.0)
+            rare = gpct.get(aname, 0.0)
 
-            achievement_records.append(
+            recs.append(
                 {
-                    "achievement_id": api_name,
-                    "name": display_name,
-                    "description": description,
-                    "is_unlocked": is_unlocked,
-                    "unlock_time": unlock_time,
-                    "is_hidden": is_hidden,
-                    "rarity_percentage": rarity,
+                    "achievement_id": aname,
+                    "name": dname,
+                    "description": desc,
+                    "is_unlocked": got,
+                    "unlock_time": ut,
+                    "is_hidden": hid,
+                    "rarity_percentage": rare,
                 }
             )
 
-        # Calculate stats
-        completion_pct = (unlocked_count / total * 100) if total > 0 else 0.0
-        perfect = unlocked_count == total and total > 0
+        pct = (ul / tot * 100) if tot > 0 else 0.0
+        perf = ul == tot and tot > 0
 
-        # Write to DB and commit immediately (release write lock for other threads)
-        db.upsert_achievements(app_id, achievement_records)
-        db.upsert_achievement_stats(app_id, total, unlocked_count, completion_pct, perfect)
-        db.commit()
+        self._db.upsert_achievements(aid, recs)
+        self._db.upsert_achievement_stats(aid, tot, ul, pct, perf)
+        self._db.commit()
 
         return True

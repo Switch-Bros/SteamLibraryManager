@@ -1,6 +1,6 @@
 #
 # steam_library_manager/services/update_service.py
-# Checks for and applies application updates from GitHub releases
+# GitHub release update checker and AppImage updater
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -29,20 +29,12 @@ __all__ = ["UpdateService", "UpdateInfo"]
 
 logger = logging.getLogger("steamlibmgr.update")
 
-_GITHUB_API_URL = "https://api.github.com/repos/Switch-Bros/SteamLibraryManager/releases/latest"
+_GH_URL = "https://api.github.com/repos/Switch-Bros/SteamLibraryManager/releases/latest"
 
 
 @dataclass(frozen=True)
 class UpdateInfo:
-    """Information about an available update.
-
-    Args:
-        version: New version string.
-        download_url: Direct URL to AppImage asset.
-        download_size: Size in bytes.
-        release_notes: Markdown release notes.
-        html_url: URL to GitHub release page.
-    """
+    """Update metadata."""
 
     version: str
     download_url: str
@@ -52,16 +44,7 @@ class UpdateInfo:
 
 
 class UpdateService(QObject):
-    """Checks for updates and manages AppImage update flow.
-
-    Signals:
-        update_available: Emitted with UpdateInfo when newer version found.
-        update_not_available: Emitted when already on latest.
-        check_failed: Emitted with error message.
-        download_progress: Emitted with (downloaded_bytes, total_bytes).
-        download_finished: Emitted with path to downloaded AppImage.
-        download_failed: Emitted with error message.
-    """
+    """Checks GitHub for updates, downloads + installs AppImages."""
 
     update_available = pyqtSignal(object)
     update_not_available = pyqtSignal()
@@ -70,45 +53,43 @@ class UpdateService(QObject):
     download_finished = pyqtSignal(str)
     download_failed = pyqtSignal(str)
 
-    def __init__(self, parent: QObject | None = None) -> None:
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self._nam = QNetworkAccessManager(self)
-        self._download_reply: QNetworkReply | None = None
-        self._download_path: Path | None = None
+        self._net = QNetworkAccessManager(self)
+        self._r = None  # current reply
+        self._p = None  # download path
 
     @staticmethod
-    def is_appimage() -> bool:
-        """Check if running as AppImage."""
+    def is_appimage():
         return bool(os.environ.get("APPIMAGE"))
 
     @staticmethod
-    def current_appimage_path() -> Path | None:
-        """Get current AppImage path from $APPIMAGE."""
-        appimage = os.environ.get("APPIMAGE")
-        return Path(appimage) if appimage else None
+    def current_appimage_path():
+        ai = os.environ.get("APPIMAGE")
+        return Path(ai) if ai else None
 
-    def check_for_update(self) -> None:
-        """Check GitHub Releases for newer version. Non-blocking."""
+    def check_for_update(self):
+        # check GH for updates
         if not self.is_appimage():
             logger.info(t("logs.update.not_appimage"))
             self.check_failed.emit(t("update.not_appimage"))
             return
 
-        request = QNetworkRequest(QUrl(_GITHUB_API_URL))
-        request.setHeader(
+        req = QNetworkRequest(QUrl(_GH_URL))
+        req.setHeader(
             QNetworkRequest.KnownHeaders.UserAgentHeader,
-            f"SteamLibraryManager/{__version__}",
+            "SteamLibraryManager/%s" % __version__,
         )
-        reply = self._nam.get(request)
+        reply = self._net.get(req)
         if reply:
-            reply.finished.connect(lambda: self._on_check_finished(reply))
+            reply.finished.connect(lambda: self._on_check(reply))
 
-    def _on_check_finished(self, reply: QNetworkReply) -> None:
-        """Handle GitHub API response."""
+    def _on_check(self, reply):
+        # parse GH response
         if reply.error() != QNetworkReply.NetworkError.NoError:
-            error_msg = reply.errorString()
-            logger.warning(t("logs.update.check_failed", error=error_msg))
-            self.check_failed.emit(error_msg)
+            msg = reply.errorString()
+            logger.warning(t("logs.update.check_failed", error=msg))
+            self.check_failed.emit(msg)
             reply.deleteLater()
             return
 
@@ -120,129 +101,115 @@ class UpdateService(QObject):
             self.check_failed.emit(str(e))
             return
 
-        available = data.get("tag_name", "").lstrip("v")
-        if not self._is_newer(available):
+        avail = data.get("tag_name", "").lstrip("v")
+        if not self._is_newer(avail):
             logger.info(t("logs.update.up_to_date", version=__version__))
             self.update_not_available.emit()
             return
 
-        # Find AppImage asset
-        download_url, download_size = "", 0
+        # find AppImage
+        url, size = "", 0
         for asset in data.get("assets", []):
             if asset.get("name", "").endswith(".AppImage"):
-                download_url = asset.get("browser_download_url", "")
-                download_size = asset.get("size", 0)
+                url = asset.get("browser_download_url", "")
+                size = asset.get("size", 0)
                 break
 
-        if not download_url:
+        if not url:
             self.check_failed.emit(t("update.no_appimage_asset"))
             return
 
-        logger.info(t("logs.update.available", current=__version__, new=available))
+        logger.info(t("logs.update.available", current=__version__, new=avail))
         self.update_available.emit(
             UpdateInfo(
-                version=available,
-                download_url=download_url,
-                download_size=download_size,
+                version=avail,
+                download_url=url,
+                download_size=size,
                 release_notes=data.get("body", ""),
                 html_url=data.get("html_url", ""),
             )
         )
 
-    def download_update(self, info: UpdateInfo) -> None:
-        """Download new AppImage with progress signals."""
-        current = self.current_appimage_path()
-        if not current:
+    def download_update(self, info):
+        # download with progress
+        cur = self.current_appimage_path()
+        if not cur:
             self.download_failed.emit(t("update.not_appimage"))
             return
 
-        # Same filesystem for atomic replace
-        self._download_path = current.parent / ".SLM_update.AppImage"
+        self._p = cur.parent / ".SLM_update.AppImage"
 
-        request = QNetworkRequest(QUrl(info.download_url))
-        request.setHeader(
+        req = QNetworkRequest(QUrl(info.download_url))
+        req.setHeader(
             QNetworkRequest.KnownHeaders.UserAgentHeader,
-            f"SteamLibraryManager/{__version__}",
+            "SteamLibraryManager/%s" % __version__,
         )
-        self._download_reply = self._nam.get(request)
-        if self._download_reply:
-            self._download_reply.downloadProgress.connect(lambda recv, total: self.download_progress.emit(recv, total))
-            self._download_reply.finished.connect(self._on_download_finished)
+        self._r = self._net.get(req)
+        if self._r:
+            self._r.downloadProgress.connect(lambda recv, tot: self.download_progress.emit(recv, tot))
+            self._r.finished.connect(self._on_dl)
 
-    def _on_download_finished(self) -> None:
-        """Write downloaded data to disk."""
-        reply = self._download_reply
-        if not reply or not self._download_path:
+    def _on_dl(self):
+        # write to disk
+        reply = self._r
+        if not reply or not self._p:
             return
 
         if reply.error() != QNetworkReply.NetworkError.NoError:
-            error_msg = reply.errorString()
-            logger.error(t("logs.update.download_failed", error=error_msg))
-            self.download_failed.emit(error_msg)
+            msg = reply.errorString()
+            logger.error(t("logs.update.download_failed", error=msg))
+            self.download_failed.emit(msg)
             reply.deleteLater()
             return
 
         try:
-            self._download_path.write_bytes(reply.readAll().data())
+            self._p.write_bytes(reply.readAll().data())
             reply.deleteLater()
-            self._download_path.chmod(0o755)
-            logger.info(t("logs.update.download_complete", path=str(self._download_path)))
-            self.download_finished.emit(str(self._download_path))
+            self._p.chmod(0o755)
+            logger.info(t("logs.update.download_complete", path=str(self._p)))
+            self.download_finished.emit(str(self._p))
         except Exception as e:
             logger.error(t("logs.update.download_failed", error=str(e)))
             self.download_failed.emit(str(e))
 
-    def cancel_download(self) -> None:
-        """Cancel in-progress download."""
-        if self._download_reply:
-            self._download_reply.abort()
-        if self._download_path and self._download_path.exists():
-            self._download_path.unlink(missing_ok=True)
+    def cancel_download(self):
+        if self._r:
+            self._r.abort()
+        if self._p and self._p.exists():
+            self._p.unlink(missing_ok=True)
 
     @staticmethod
-    def install_update(new_appimage_path: str) -> bool:
-        """Atomically replace current AppImage and restart.
-
-        IMPORTANT: Caller MUST save application state (collections,
-        unsaved changes) and show a confirm dialog BEFORE calling this!
-        This method has no access to MainWindow or save logic.
-
-        Args:
-            new_appimage_path: Path to downloaded new AppImage.
-
-        Returns:
-            False on failure (rolled back). Never returns on success (execv).
-        """
-        current = UpdateService.current_appimage_path()
-        new_path = Path(new_appimage_path)
-        if not current or not current.exists():
+    def install_update(new_path):
+        # atomic replace + restart
+        cur = UpdateService.current_appimage_path()
+        new = Path(new_path)
+        if not cur or not cur.exists():
             return False
 
-        backup = current.with_suffix(".bak")
+        bak = cur.with_suffix(".bak")
         try:
-            shutil.copy2(current, backup)
-            new_path.chmod(0o755)
-            new_path.replace(current)
+            shutil.copy2(cur, bak)
+            new.chmod(0o755)
+            new.replace(cur)
 
-            # Update desktop entry to point to current path
             if is_desktop_entry_installed():
                 install_desktop_entry()
 
-            logger.info(t("logs.update.installing", path=str(current)))
-            os.execv(str(current), [str(current)])
+            logger.info(t("logs.update.installing", path=str(cur)))
+            os.execv(str(cur), [str(cur)])
         except Exception as e:
             logger.error(t("logs.update.install_failed", error=str(e)))
-            if backup.exists():
-                backup.replace(current)
+            if bak.exists():
+                bak.replace(cur)
             return False
-        return True  # pragma: no cover -- execv replaces the process
+        return True  # pragma: no cover
 
     @staticmethod
-    def _is_newer(available: str) -> bool:
-        """Compare versions using semantic versioning."""
+    def _is_newer(v):
+        # semver compare
         try:
             from packaging.version import Version
 
-            return Version(available) > Version(__version__)
+            return Version(v) > Version(__version__)
         except Exception:
-            return available != __version__
+            return v != __version__

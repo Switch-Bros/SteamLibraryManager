@@ -49,14 +49,14 @@ class TestConfiguration:
 
 
 # ---------------------------------------------------------------------------
-# _enrich_game
+# _enrich
 # ---------------------------------------------------------------------------
 
 
 class TestEnrichGame:
-    """Tests for _enrich_game method."""
+    """Tests for _enrich method."""
 
-    def test_enrich_game_with_achievements(self, thread: AchievementEnrichmentThread) -> None:
+    def test_enrich_with_achievements(self, thread: AchievementEnrichmentThread) -> None:
         """Games with achievements get full enrichment."""
         mock_api = MagicMock()
         mock_db = MagicMock()
@@ -77,13 +77,15 @@ class TestEnrichGame:
         }
 
         thread._steam_id = "76561198012345678"
-        result = thread._enrich_game(mock_api, mock_db, 100)
+        thread._api = mock_api
+        thread._db = mock_db
+        result = thread._enrich(100)
 
         assert result is True
         mock_db.upsert_achievements.assert_called_once()
         mock_db.upsert_achievement_stats.assert_called_once_with(100, 2, 1, 50.0, False)
 
-    def test_enrich_game_no_achievements(self, thread: AchievementEnrichmentThread) -> None:
+    def test_enrich_no_achievements(self, thread: AchievementEnrichmentThread) -> None:
         """Games without achievements get stats with total=0."""
         mock_api = MagicMock()
         mock_db = MagicMock()
@@ -91,13 +93,15 @@ class TestEnrichGame:
         mock_api.get_game_schema.return_value = {"achievements": []}
 
         thread._steam_id = "76561198012345678"
-        result = thread._enrich_game(mock_api, mock_db, 100)
+        thread._api = mock_api
+        thread._db = mock_db
+        result = thread._enrich(100)
 
         assert result is True
         mock_db.upsert_achievement_stats.assert_called_once_with(100, 0, 0, 0.0, False)
         mock_db.upsert_achievements.assert_not_called()
 
-    def test_enrich_game_schema_none(self, thread: AchievementEnrichmentThread) -> None:
+    def test_enrich_schema_none(self, thread: AchievementEnrichmentThread) -> None:
         """Schema returning None treats game as having no achievements."""
         mock_api = MagicMock()
         mock_db = MagicMock()
@@ -105,12 +109,14 @@ class TestEnrichGame:
         mock_api.get_game_schema.return_value = None
 
         thread._steam_id = "76561198012345678"
-        result = thread._enrich_game(mock_api, mock_db, 100)
+        thread._api = mock_api
+        thread._db = mock_db
+        result = thread._enrich(100)
 
         assert result is True
         mock_db.upsert_achievement_stats.assert_called_once_with(100, 0, 0, 0.0, False)
 
-    def test_enrich_game_perfect_game(self, thread: AchievementEnrichmentThread) -> None:
+    def test_enrich_perfect_game(self, thread: AchievementEnrichmentThread) -> None:
         """All achievements unlocked results in perfect=True."""
         mock_api = MagicMock()
         mock_db = MagicMock()
@@ -126,13 +132,15 @@ class TestEnrichGame:
         mock_api.get_global_achievement_percentages.return_value = {"ACH_1": 95.0}
 
         thread._steam_id = "76561198012345678"
-        result = thread._enrich_game(mock_api, mock_db, 100)
+        thread._api = mock_api
+        thread._db = mock_db
+        result = thread._enrich(100)
 
         assert result is True
         mock_db.upsert_achievement_stats.assert_called_once_with(100, 1, 1, 100.0, True)
 
-    def test_enrich_game_no_player_data(self, thread: AchievementEnrichmentThread) -> None:
-        """Missing player achievements → 0 unlocked."""
+    def test_enrich_no_player_data(self, thread: AchievementEnrichmentThread) -> None:
+        """Missing player achievements - 0 unlocked."""
         mock_api = MagicMock()
         mock_db = MagicMock()
 
@@ -145,7 +153,9 @@ class TestEnrichGame:
         mock_api.get_global_achievement_percentages.return_value = {}
 
         thread._steam_id = "76561198012345678"
-        result = thread._enrich_game(mock_api, mock_db, 100)
+        thread._api = mock_api
+        thread._db = mock_db
+        result = thread._enrich(100)
 
         assert result is True
         mock_db.upsert_achievement_stats.assert_called_once_with(100, 1, 0, 0.0, False)
@@ -209,11 +219,11 @@ class TestRunMethod:
         )
 
         # Cancel after first game
-        def cancel_after_first(*_args: object, **_kwargs: object) -> bool:
+        def cancel_after_first(aid: int) -> bool:
             thread.cancel()
             return True
 
-        thread._enrich_game = cancel_after_first  # type: ignore[assignment]
+        thread._enrich = cancel_after_first  # type: ignore[assignment]
 
         finished_handler = MagicMock()
         thread.finished_enrichment.connect(finished_handler)
@@ -249,13 +259,13 @@ class TestRunMethod:
 
         call_count = [0]
 
-        def enrich_side_effect(*_args: object, **_kwargs: object) -> bool:
+        def enrich_side_effect(aid: int) -> bool:
             call_count[0] += 1
             if call_count[0] == 2:
                 raise RuntimeError("API Error")
             return True
 
-        thread._enrich_game = enrich_side_effect  # type: ignore[assignment]
+        thread._enrich = enrich_side_effect  # type: ignore[assignment]
 
         finished_handler = MagicMock()
         thread.finished_enrichment.connect(finished_handler)
