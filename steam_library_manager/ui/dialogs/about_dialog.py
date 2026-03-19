@@ -28,15 +28,12 @@ from steam_library_manager.version import __app_name__, __version__, __release_d
 
 __all__ = ["AboutDialog"]
 
-# Hardcoded project metadata (NOT i18n - intentional)
-# These are curated by SwitchBros, not pulled from i18n files.
-
+# hardcoded metadata - NOT i18n (curated by SwitchBros)
 _GITHUB_URL = "https://github.com/Switch-Bros/SteamLibraryManager"
 
 
 class AboutTexts(NamedTuple):
-    """Curated About dialog texts - controlled by SwitchBros, not i18n."""
-
+    # curated texts - controlled by SwitchBros, not i18n files
     description: str
     credits: str
     built_with: str
@@ -49,24 +46,22 @@ _ABOUT_EN = AboutTexts(
         "auto-categorization, and cloud sync."
     ),
     credits="Contributors will be listed here.",
-    built_with="",  # set at runtime with emoji
+    built_with="",  # set at runtime
 )
 
 _ABOUT_DE = AboutTexts(
     description=(
-        "Der ultimative Steam-Bibliotheksmanager f\u00fcr Linux.\n"
+        "Der ultimative Steam-Bibliotheksmanager für Linux.\n"
         "Verwalte tausende Spiele mit smarten Kollektionen,\n"
         "Auto-Kategorisierung und Cloud-Sync."
     ),
-    credits="Mitwirkende werden hier aufgef\u00fchrt.",
-    built_with="",  # set at runtime with emoji
+    credits="Mitwirkende werden hier aufgeführt.",
+    built_with="",  # set at runtime
 )
 
 
-def _get_about_texts() -> AboutTexts:
-    """Returns curated About texts - DE or EN (fallback)."""
-    from steam_library_manager.utils.i18n import t
-
+def _get_texts():
+    # returns curated About texts - DE or EN (fallback)
     # BVB 09 Dortmund colors - had to pick my club!
     hearts = "%s%s%s" % (t("emoji.yellow_heart"), t("emoji.black_heart"), t("emoji.yellow_heart"))
 
@@ -75,19 +70,18 @@ def _get_about_texts() -> AboutTexts:
     return base._replace(built_with="%s Python, PyQt6 & %s" % (prefix, hearts))
 
 
-# Colors
-_BG_DARK = "#1b2838"
+# Colors - Steam dark theme
+_BG = "#1b2838"
 _TXT = "#c7d5e0"
-_TXT_DIM = "#8f98a0"
-_TXT_LINK = "#66c0f4"
-_DIV = "#2a475e"
+_DIM = "#8f98a0"
+_LINK = "#66c0f4"
+_SEP = "#2a475e"
 _BTN_BG = "#2a475e"
 _BTN_BD = "#3d6c8e"
 
 
 class _ClickableLabel(QLabel):
-    """QLabel that emits clicked on mouse press."""
-
+    # QLabel that emits clicked on mouse press
     clicked = pyqtSignal()
 
     def mousePressEvent(self, ev):
@@ -98,10 +92,12 @@ class _ClickableLabel(QLabel):
 class AboutDialog(BaseDialog):
     """Two-column About dialog with dark Steam theme,
     showing version info, credits, and project links.
+
+    Has a secret easter egg if you click the logo 5 times.
     """
 
     def __init__(self, parent=None):
-        self._click_count = 0
+        self._clicks = 0  # easter egg counter
 
         super().__init__(
             parent,
@@ -112,8 +108,6 @@ class AboutDialog(BaseDialog):
         )
         self.setFixedSize(650, 400)
 
-    # -- UI --
-
     def _build_content(self, layout):
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(0)
@@ -121,24 +115,24 @@ class AboutDialog(BaseDialog):
         root = QHBoxLayout()
         root.setSpacing(0)
 
-        # Left: logo
-        root.addLayout(self._build_logo_col())
+        # left: logo column
+        root.addLayout(self._logo_col())
 
-        # Vertical divider
+        # vertical divider
         div = QFrame()
         div.setFrameShape(QFrame.Shape.VLine)
-        div.setStyleSheet("color: %s;" % _DIV)
+        div.setStyleSheet("color: %s;" % _SEP)
         div.setFixedWidth(1)
         root.addSpacing(20)
         root.addWidget(div)
         root.addSpacing(20)
 
-        # Right: info
-        root.addLayout(self._build_info_col(), stretch=1)
+        # right: info column
+        root.addLayout(self._info_col(), stretch=1)
 
         layout.addLayout(root)
 
-        # Global stylesheet
+        # global stylesheet
         self.setStyleSheet("""
             QDialog {
                 background-color: %s;
@@ -157,20 +151,20 @@ class AboutDialog(BaseDialog):
             QPushButton:hover {
                 background-color: %s;
             }
-        """ % (_BG_DARK, _TXT, _BTN_BG, _TXT, _BTN_BD, _BTN_BD))
+        """ % (_BG, _TXT, _BTN_BG, _TXT, _BTN_BD, _BTN_BD))
 
-    def _build_logo_col(self):
+    def _logo_col(self):
         col = QVBoxLayout()
         col.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        logo_lbl = _ClickableLabel()
-        logo_lbl.setCursor(Qt.CursorShape.PointingHandCursor)
-        logo_lbl.setToolTip("SwitchBros")
+        lbl = _ClickableLabel()
+        lbl.setCursor(Qt.CursorShape.PointingHandCursor)
+        lbl.setToolTip("SwitchBros")
 
         logo_path = config.RESOURCES_DIR / "images" / "default_icons.webp"
         if logo_path.exists():
             px = QPixmap(str(logo_path))
-            logo_lbl.setPixmap(
+            lbl.setPixmap(
                 px.scaled(
                     200,
                     200,
@@ -179,103 +173,103 @@ class AboutDialog(BaseDialog):
                 )
             )
         else:
-            logo_lbl.setText(__app_name__)
-            logo_lbl.setFont(FontHelper.get_font(16, FontHelper.BOLD))
+            lbl.setText(__app_name__)
+            lbl.setFont(FontHelper.get_font(16, FontHelper.BOLD))
 
-        logo_lbl.clicked.connect(self._on_logo_clicked)
-        col.addWidget(logo_lbl, alignment=Qt.AlignmentFlag.AlignCenter)
+        lbl.clicked.connect(self._logo_click)
+        col.addWidget(lbl, alignment=Qt.AlignmentFlag.AlignCenter)
         return col
 
-    def _build_info_col(self):
+    def _info_col(self):
         col = QVBoxLayout()
         col.setSpacing(6)
 
-        # App name
-        name_lbl = QLabel(__app_name__)
-        name_lbl.setFont(FontHelper.get_font(18, FontHelper.BOLD))
-        name_lbl.setStyleSheet("color: white;")
-        col.addWidget(name_lbl)
+        # app name header
+        name = QLabel(__app_name__)
+        name.setFont(FontHelper.get_font(18, FontHelper.BOLD))
+        name.setStyleSheet("color: white;")
+        col.addWidget(name)
 
-        # Version + release date
-        ver_lbl = QLabel("Version %s  -  Release: %s" % (__version__, __release_date__))
-        ver_lbl.setStyleSheet("color: %s; font-size: 12px;" % _TXT_DIM)
-        col.addWidget(ver_lbl)
+        # version + release date
+        ver = QLabel("Version %s  -  Release: %s" % (__version__, __release_date__))
+        ver.setStyleSheet("color: %s; font-size: 12px;" % _DIM)
+        col.addWidget(ver)
 
         col.addSpacing(8)
 
-        # Description
-        about = _get_about_texts()
-        desc_lbl = QLabel(about.description)
-        desc_lbl.setWordWrap(True)
-        desc_lbl.setStyleSheet("font-size: 13px;")
-        col.addWidget(desc_lbl)
+        # description text
+        about = _get_texts()
+        desc = QLabel(about.description)
+        desc.setWordWrap(True)
+        desc.setStyleSheet("font-size: 13px;")
+        col.addWidget(desc)
 
         col.addSpacing(4)
         col.addWidget(self._hline())
 
-        # Credits
-        cr_hdr = QLabel("Credits")
-        cr_hdr.setFont(FontHelper.get_font(11, FontHelper.BOLD))
-        col.addWidget(cr_hdr)
+        # credits section
+        hdr = QLabel("Credits")
+        hdr.setFont(FontHelper.get_font(11, FontHelper.BOLD))
+        col.addWidget(hdr)
 
-        cr_txt = QLabel(about.credits)
-        cr_txt.setStyleSheet("color: %s; font-size: 12px;" % _TXT_DIM)
-        cr_txt.setWordWrap(True)
-        col.addWidget(cr_txt)
+        txt = QLabel(about.credits)
+        txt.setStyleSheet("color: %s; font-size: 12px;" % _DIM)
+        txt.setWordWrap(True)
+        col.addWidget(txt)
 
         col.addWidget(self._hline())
 
-        # License + GitHub
-        lic_lbl = QLabel("License: %s  |  Author: %s" % (__license__, __author__))
-        lic_lbl.setStyleSheet("color: %s; font-size: 12px;" % _TXT_DIM)
-        col.addWidget(lic_lbl)
+        # license & author
+        lic = QLabel("License: %s  |  Author: %s" % (__license__, __author__))
+        lic.setStyleSheet("color: %s; font-size: 12px;" % _DIM)
+        col.addWidget(lic)
 
-        gh_lbl = QLabel('GitHub: <a href="%s" style="color: %s;">%s</a>' % (_GITHUB_URL, _TXT_LINK, _GITHUB_URL))
-        gh_lbl.setTextFormat(Qt.TextFormat.RichText)
-        gh_lbl.setCursor(Qt.CursorShape.PointingHandCursor)
-        gh_lbl.linkActivated.connect(lambda url: open_url(url))
-        gh_lbl.setStyleSheet("font-size: 12px;")
-        col.addWidget(gh_lbl)
+        # github link
+        link = QLabel('GitHub: <a href="%s" style="color: %s;">%s</a>' % (_GITHUB_URL, _LINK, _GITHUB_URL))
+        link.setTextFormat(Qt.TextFormat.RichText)
+        link.setCursor(Qt.CursorShape.PointingHandCursor)
+        link.linkActivated.connect(lambda url: open_url(url))
+        link.setStyleSheet("font-size: 12px;")
+        col.addWidget(link)
 
         col.addStretch()
 
-        # Built-with tagline
-        bw_lbl = QLabel(about.built_with)
-        bw_lbl.setStyleSheet("color: %s; font-size: 11px;" % _TXT_DIM)
-        bw_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
-        col.addWidget(bw_lbl)
+        # built-with footer
+        tag = QLabel(about.built_with)
+        tag.setStyleSheet("color: %s; font-size: 11px;" % _DIM)
+        tag.setAlignment(Qt.AlignmentFlag.AlignRight)
+        col.addWidget(tag)
 
         col.addSpacing(4)
 
-        # Close button
-        btn_row = QHBoxLayout()
-        btn_row.addStretch()
-        close_btn = QPushButton(t("common.close"))
-        close_btn.setMinimumWidth(100)
-        close_btn.clicked.connect(self.accept)
-        btn_row.addWidget(close_btn)
-        col.addLayout(btn_row)
+        # close button
+        row = QHBoxLayout()
+        row.addStretch()
+        btn = QPushButton(t("common.close"))
+        btn.setMinimumWidth(100)
+        btn.clicked.connect(self.accept)
+        row.addWidget(btn)
+        col.addLayout(row)
 
         return col
 
-    # -- Helpers --
-
     @staticmethod
     def _hline():
-        # Subtle horizontal separator
+        # subtle horizontal separator
         line = QFrame()
         line.setFrameShape(QFrame.Shape.HLine)
-        line.setStyleSheet("color: %s;" % _DIV)
+        line.setStyleSheet("color: %s;" % _SEP)
         line.setFixedHeight(1)
         return line
 
-    def _on_logo_clicked(self):
-        self._click_count += 1
+    def _logo_click(self):
+        self._clicks += 1
 
-        if self._click_count == 3:
+        if self._clicks == 3:
             open_url(_GITHUB_URL)
 
-        elif self._click_count >= 5:
+        elif self._clicks >= 5:
+            # load easter egg
             from steam_library_manager.utils.enigma import load_easter_egg
             from steam_library_manager.ui.widgets.ui_helper import UIHelper
 
@@ -286,4 +280,4 @@ class AboutDialog(BaseDialog):
                     egg.get("message", ""),
                     title=egg.get("title", ""),
                 )
-            self._click_count = 0
+            self._clicks = 0

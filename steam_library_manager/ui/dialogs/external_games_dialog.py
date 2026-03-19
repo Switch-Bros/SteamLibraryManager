@@ -35,7 +35,7 @@ logger = logging.getLogger("steamlibmgr.external_games_dialog")
 
 
 class _ScanThread(QThread):
-    """Background thread that scans platforms for external games."""
+    # bg thread that scans platforms
 
     finished_scan = pyqtSignal(dict)
 
@@ -53,7 +53,7 @@ class _ScanThread(QThread):
 
 
 class _AddThread(QThread):
-    """Background thread that batch-adds games to Steam shortcuts."""
+    # bg thread for batch adding
 
     progress = pyqtSignal(int, int, str)
     finished_add = pyqtSignal(dict)
@@ -62,7 +62,7 @@ class _AddThread(QThread):
         super().__init__()
         self._svc = svc
         self._games = games
-        self._cat_tag = cat_tag
+        self._tag = cat_tag  # TODO: unused? cleanup later
 
     def run(self):
         try:
@@ -77,13 +77,17 @@ class _AddThread(QThread):
             logger.exception("Batch add failed")
             self.finished_add.emit({"added": 0, "skipped": 0, "errors": len(self._games)})
 
-    def _emit_progress(self, current, total, name):
-        self.progress.emit(current, total, name)
+    def _emit_progress(self, cur, tot, name):
+        self.progress.emit(cur, tot, name)
 
 
 class ExternalGamesDialog(BaseDialog):
     """Scan external launchers (Heroic, Lutris, etc.) and import
     discovered games into Steam as non-Steam shortcuts.
+
+    Yeah, this dialog is a bit messy but it works. The batch adding
+    runs either threaded or chunked via QTimer depending on whether
+    platform tags are enabled.
     """
 
     _COL_PLATFORM = 0
@@ -92,11 +96,11 @@ class ExternalGamesDialog(BaseDialog):
     _COL_STATUS = 3
 
     def __init__(self, parent=None):
-        self._all_games = []
-        self._existing_names = set()
-        self._service = None
-        self._scan_thread = None
-        self._add_thread = None
+        self._games = []  # all found games
+        self._have_names = set()  # existing shortcut names
+        self._svc = None  # ExternalGamesService
+        self._thr_scan = None  # scan thread
+        self._thr_add = None  # add thread
 
         super().__init__(
             parent=parent,
@@ -108,7 +112,7 @@ class ExternalGamesDialog(BaseDialog):
         self._init_svc()
 
     def _init_svc(self):
-        # Hook up ExternalGamesService from Steam config
+        # hook up service from Steam config
         steam_path = config.STEAM_PATH
         if not steam_path:
             logger.warning("No Steam path configured")
@@ -122,35 +126,35 @@ class ExternalGamesDialog(BaseDialog):
 
         try:
             mgr = ShortcutsManager(userdata, acct_id)
-            self._service = ExternalGamesService(mgr)
+            self._svc = ExternalGamesService(mgr)
         except Exception:
             logger.exception("Failed to initialize ExternalGamesService")
 
     def _build_content(self, layout):
-        # Top row: scan button + platform filter
+        # top row: scan button + platform filter
         top = QHBoxLayout()
 
-        self._btn_scan = QPushButton(t("ui.external.scan"))
-        self._btn_scan.clicked.connect(self._on_scan)
-        top.addWidget(self._btn_scan)
+        self._scan_btn = QPushButton(t("ui.external.scan"))
+        self._scan_btn.clicked.connect(self._on_scan)
+        top.addWidget(self._scan_btn)
 
         top.addStretch()
 
         lbl = QLabel(t("ui.external.filter_all") + ":")
         top.addWidget(lbl)
 
-        self._filter_combo = QComboBox()
-        self._filter_combo.addItem(t("ui.external.filter_all"), "")
-        self._filter_combo.currentIndexChanged.connect(self._on_filter_changed)
-        self._filter_combo.setMinimumWidth(160)
-        self._filter_combo.setMaxVisibleItems(10)
-        top.addWidget(self._filter_combo)
+        self._combo = QComboBox()
+        self._combo.addItem(t("ui.external.filter_all"), "")
+        self._combo.currentIndexChanged.connect(self._on_filter)
+        self._combo.setMinimumWidth(160)
+        self._combo.setMaxVisibleItems(10)
+        top.addWidget(self._combo)
 
         layout.addLayout(top)
 
-        # Game table (4 columns)
-        self._table = QTableWidget(0, 4)
-        self._table.setHorizontalHeaderLabels(
+        # game table (4 columns)
+        self._tbl = QTableWidget(0, 4)
+        self._tbl.setHorizontalHeaderLabels(
             [
                 t("ui.external.col_platform"),
                 t("ui.external.col_name"),
@@ -158,290 +162,290 @@ class ExternalGamesDialog(BaseDialog):
                 t("ui.external.col_status"),
             ]
         )
-        self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self._table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self._table.setAlternatingRowColors(True)
+        self._tbl.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self._tbl.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self._tbl.setAlternatingRowColors(True)
 
-        hdr = self._table.horizontalHeader()
+        hdr = self._tbl.horizontalHeader()
         if hdr:
             hdr.setSectionResizeMode(self._COL_PLATFORM, QHeaderView.ResizeMode.ResizeToContents)
             hdr.setSectionResizeMode(self._COL_NAME, QHeaderView.ResizeMode.Stretch)
             hdr.setSectionResizeMode(self._COL_PATH, QHeaderView.ResizeMode.Stretch)
             hdr.setSectionResizeMode(self._COL_STATUS, QHeaderView.ResizeMode.ResizeToContents)
 
-        layout.addWidget(self._table)
+        layout.addWidget(self._tbl)
 
-        # Status
-        self._status_label = QLabel("")
-        layout.addWidget(self._status_label)
+        # status
+        self._status = QLabel("")
+        layout.addWidget(self._status)
 
-        # Options
+        # options
         opts = QHBoxLayout()
-        self._chk_platform_tag = QCheckBox(t("ui.external.platform_tag"))
-        self._chk_platform_tag.setChecked(True)
-        opts.addWidget(self._chk_platform_tag)
+        self._chk_tag = QCheckBox(t("ui.external.platform_tag"))
+        self._chk_tag.setChecked(True)
+        opts.addWidget(self._chk_tag)
         opts.addStretch()
         layout.addLayout(opts)
 
-        # Progress
-        self._progress_bar = QProgressBar()
-        self._progress_bar.setVisible(False)
-        layout.addWidget(self._progress_bar)
+        # progress
+        self._prog = QProgressBar()
+        self._prog.setVisible(False)
+        layout.addWidget(self._prog)
 
-        self._progress_label = QLabel("")
-        self._progress_label.setVisible(False)
-        layout.addWidget(self._progress_label)
+        self._prog_lbl = QLabel("")
+        self._prog_lbl.setVisible(False)
+        layout.addWidget(self._prog_lbl)
 
-        # Action buttons
+        # action buttons
         btns = QHBoxLayout()
         btns.addStretch()
 
-        self._btn_add_selected = QPushButton(t("ui.external.add_selected"))
-        self._btn_add_selected.clicked.connect(self._on_add_selected)
-        self._btn_add_selected.setEnabled(False)
-        btns.addWidget(self._btn_add_selected)
+        self._btn_sel = QPushButton(t("ui.external.add_selected"))
+        self._btn_sel.clicked.connect(self._on_add_sel)
+        self._btn_sel.setEnabled(False)
+        btns.addWidget(self._btn_sel)
 
-        self._btn_add_all = QPushButton(t("ui.external.add_all"))
-        self._btn_add_all.clicked.connect(self._on_add_all)
-        self._btn_add_all.setEnabled(False)
-        btns.addWidget(self._btn_add_all)
+        self._btn_all = QPushButton(t("ui.external.add_all"))
+        self._btn_all.clicked.connect(self._on_add_all)
+        self._btn_all.setEnabled(False)
+        btns.addWidget(self._btn_all)
 
-        self._btn_close = QPushButton(t("common.close"))
-        self._btn_close.clicked.connect(self.reject)
-        btns.addWidget(self._btn_close)
+        self._close_btn = QPushButton(t("common.close"))
+        self._close_btn.clicked.connect(self.reject)
+        btns.addWidget(self._close_btn)
 
         layout.addLayout(btns)
 
-    def closeEvent(self, event):  # type: ignore[override]
-        # Wait for background threads before closing
-        for thr in (self._scan_thread, self._add_thread):
+    def closeEvent(self, event):
+        # wait for bg threads before closing
+        for thr in (self._thr_scan, self._thr_add):
             if thr and thr.isRunning():
                 thr.wait(THREAD_WAIT_LONG_MS)
         super().closeEvent(event)
 
-    # -- Scanning --
+    # -- scanning --
 
     def _on_scan(self):
-        if not self._service:
+        if not self._svc:
             UIHelper.show_warning(self, t("ui.external.no_games"))
             return
 
-        self._btn_scan.setEnabled(False)
-        self._status_label.setText(t("ui.external.scanning"))
-        self._table.setRowCount(0)
-        self._all_games.clear()
+        self._scan_btn.setEnabled(False)
+        self._status.setText(t("ui.external.scanning"))
+        self._tbl.setRowCount(0)
+        self._games.clear()
 
-        self._existing_names = self._service.get_existing_shortcuts()
+        self._have_names = self._svc.get_existing_shortcuts()
 
-        self._scan_thread = _ScanThread(self._service)
-        self._scan_thread.finished_scan.connect(self._on_scan_done)
-        self._scan_thread.start()
+        self._thr_scan = _ScanThread(self._svc)
+        self._thr_scan.finished_scan.connect(self._scan_done)
+        self._thr_scan.start()
 
-    def _on_scan_done(self, results):
-        self._btn_scan.setEnabled(True)
+    def _scan_done(self, res):
+        self._scan_btn.setEnabled(True)
 
-        # Flatten results across all parsers
-        self._all_games.clear()
-        for games in results.values():
-            self._all_games.extend(games)
-        platforms = {g.platform for g in self._all_games}
+        # flatten results across all parsers
+        self._games.clear()
+        for lst in res.values():
+            self._games.extend(lst)
+        plats = {g.platform for g in self._games}
 
-        if not self._all_games:
-            self._status_label.setText(t("ui.external.no_games"))
-            self._btn_add_selected.setEnabled(False)
-            self._btn_add_all.setEnabled(False)
+        if not self._games:
+            self._status.setText(t("ui.external.no_games"))
+            self._btn_sel.setEnabled(False)
+            self._btn_all.setEnabled(False)
             return
 
-        # Rebuild filter combo with emulation sub-groups
-        self._filter_combo.blockSignals(True)
-        self._filter_combo.clear()
-        self._filter_combo.addItem(t("ui.external.filter_all"), "")
+        # rebuild filter combo with emulation sub-groups
+        self._combo.blockSignals(True)
+        self._combo.clear()
+        self._combo.addItem(t("ui.external.filter_all"), "")
 
         emu_pfx = "Emulation ("
-        emu_plats = sorted(p for p in platforms if p.startswith(emu_pfx))
-        other_plats = sorted(p for p in platforms if not p.startswith(emu_pfx))
+        emu_plats = sorted(p for p in plats if p.startswith(emu_pfx))
+        other_plats = sorted(p for p in plats if not p.startswith(emu_pfx))
 
         if emu_plats:
-            self._filter_combo.addItem("Emulation (ROMs)", "emulation_all")
-            for plat in emu_plats:
-                system = plat[len(emu_pfx) : -1]
-                self._filter_combo.addItem("    %s" % system, plat)
+            self._combo.addItem("Emulation (ROMs)", "emulation_all")
+            for pf in emu_plats:
+                system = pf[len(emu_pfx) : -1]
+                self._combo.addItem("    %s" % system, pf)
 
-        for plat in other_plats:
-            self._filter_combo.addItem(plat, plat)
+        for pf in other_plats:
+            self._combo.addItem(pf, pf)
 
-        self._filter_combo.blockSignals(False)
+        self._combo.blockSignals(False)
 
-        self._fill_table(self._all_games)
+        self._fill(self._games)
 
-        exist_ct = sum(1 for g in self._all_games if g.name.lower() in self._existing_names)
-        self._status_label.setText(t("ui.external.found_games", count=len(self._all_games), existing=exist_ct))
+        exist_ct = sum(1 for g in self._games if g.name.lower() in self._have_names)
+        self._status.setText(t("ui.external.found_games", count=len(self._games), existing=exist_ct))
 
-        has_new = exist_ct < len(self._all_games)
-        self._btn_add_selected.setEnabled(has_new)
-        self._btn_add_all.setEnabled(has_new)
+        has_new = exist_ct < len(self._games)
+        self._btn_sel.setEnabled(has_new)
+        self._btn_all.setEnabled(has_new)
 
-    def _fill_table(self, games):
-        # Populate table rows from game list
-        self._table.setRowCount(len(games))
+    def _fill(self, games):
+        # populate table rows from game list
+        self._tbl.setRowCount(len(games))
 
-        for row, game in enumerate(games):
-            exists = game.name.lower() in self._existing_names
+        for r, gm in enumerate(games):
+            exist = gm.name.lower() in self._have_names
 
-            plat_item = QTableWidgetItem(game.platform)
+            plat_item = QTableWidgetItem(gm.platform)
             plat_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-            self._table.setItem(row, self._COL_PLATFORM, plat_item)
+            self._tbl.setItem(r, self._COL_PLATFORM, plat_item)
 
-            name_item = QTableWidgetItem(game.name)
+            name_item = QTableWidgetItem(gm.name)
             name_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-            self._table.setItem(row, self._COL_NAME, name_item)
+            self._tbl.setItem(r, self._COL_NAME, name_item)
 
-            path_txt = str(game.install_path) if game.install_path else ""
+            path_txt = str(gm.install_path) if gm.install_path else ""
             path_item = QTableWidgetItem(path_txt)
             path_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable)
-            self._table.setItem(row, self._COL_PATH, path_item)
+            self._tbl.setItem(r, self._COL_PATH, path_item)
 
-            if exists:
+            if exist:
                 st_item = QTableWidgetItem(t("ui.external.already_exists"))
                 st_item.setFlags(Qt.ItemFlag.ItemIsEnabled)
-                self._table.setItem(row, self._COL_STATUS, st_item)
+                self._tbl.setItem(r, self._COL_STATUS, st_item)
             else:
                 chk = QTableWidgetItem()
                 chk.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
                 chk.setCheckState(Qt.CheckState.Checked)
-                self._table.setItem(row, self._COL_STATUS, chk)
+                self._tbl.setItem(r, self._COL_STATUS, chk)
 
-    def _get_filtered_games(self):
-        # Return games matching current platform filter
-        pf = self._filter_combo.currentData()
+    def _filtered(self):
+        # return games matching current platform filter
+        pf = self._combo.currentData()
         if not pf:
-            return self._all_games
+            return self._games
         if pf == "emulation_all":
-            return [g for g in self._all_games if g.platform.startswith("Emulation (")]
-        return [g for g in self._all_games if g.platform == pf]
+            return [g for g in self._games if g.platform.startswith("Emulation (")]
+        return [g for g in self._games if g.platform == pf]
 
-    def _on_filter_changed(self, _idx):
-        self._fill_table(self._get_filtered_games())
+    def _on_filter(self, _idx):
+        self._fill(self._filtered())
 
-    # -- Adding games --
+    # -- adding games --
 
-    def _get_checked(self):
-        # Collect checked games from visible table rows
+    def _checked(self):
+        # collect checked games from visible table rows
         picked = []
-        visible = self._get_filtered_games()
+        visible = self._filtered()
 
-        for row in range(self._table.rowCount()):
-            item = self._table.item(row, self._COL_STATUS)
+        for r in range(self._tbl.rowCount()):
+            item = self._tbl.item(r, self._COL_STATUS)
             if not item:
                 continue
             if item.checkState() == Qt.CheckState.Checked:
-                if row < len(visible):
-                    picked.append(visible[row])
+                if r < len(visible):
+                    picked.append(visible[r])
         return picked
 
-    def _get_new_games(self):
-        return [g for g in self._all_games if g.name.lower() not in self._existing_names]
+    def _new_games(self):
+        return [g for g in self._games if g.name.lower() not in self._have_names]
 
-    def _on_add_selected(self):
-        games = self._get_checked()
-        if not games:
+    def _on_add_sel(self):
+        lst = self._checked()
+        if not lst:
             UIHelper.show_info(
                 self,
                 t("ui.external.select_games_first"),
                 t("ui.external.no_selection"),
             )
             return
-        self._start_add(games)
+        self._start_add(lst)
 
     def _on_add_all(self):
-        games = self._get_new_games()
-        if not games:
+        lst = self._new_games()
+        if not lst:
             return
 
         if not UIHelper.confirm(
             self,
-            t("ui.external.confirm_add", count=len(games)),
+            t("ui.external.confirm_add", count=len(lst)),
             t("ui.external.title"),
         ):
             return
 
-        self._start_add(games)
+        self._start_add(lst)
 
     def _start_add(self, games):
-        if not self._service:
+        if not self._svc:
             return
 
-        self._set_busy(True)
-        self._progress_bar.setMaximum(len(games))
-        self._progress_bar.setValue(0)
+        self._busy(True)
+        self._prog.setMaximum(len(games))
+        self._prog.setValue(0)
 
-        use_tag = self._chk_platform_tag.isChecked()
+        use_tag = self._chk_tag.isChecked()
 
         if use_tag:
             self._add_tagged(games)
         else:
-            self._add_thread = _AddThread(self._service, games, False)
-            self._add_thread.progress.connect(self._on_add_progress)
-            self._add_thread.finished_add.connect(self._on_add_done)
-            self._add_thread.start()
+            self._thr_add = _AddThread(self._svc, games, False)
+            self._thr_add.progress.connect(self._on_progress)
+            self._thr_add.finished_add.connect(self._add_done)
+            self._thr_add.start()
 
     def _add_tagged(self, games):
-        # Add games one-by-one with per-platform collection tags
-        self._progress_bar.setVisible(True)
-        self._progress_label.setVisible(True)
-        self._progress_bar.setMaximum(len(games))
+        # add games one-by-one with per-platform collection tags
+        self._prog.setVisible(True)
+        self._prog_lbl.setVisible(True)
+        self._prog.setMaximum(len(games))
 
         self._batch_stats = {"added": 0, "skipped": 0, "errors": 0}
         self._batch_games = games
-        self._run_batch(0)
+        self._run_chunk(0)
 
-    def _run_batch(self, idx):
-        # Process a chunk of games, then yield back to the event loop
+    def _run_chunk(self, idx):
+        # process a chunk of games, then yield back to event loop
         if idx >= len(self._batch_games):
-            self._on_add_done(self._batch_stats)
+            self._add_done(self._batch_stats)
             return
 
         end = min(idx + 5, len(self._batch_games))
         for i in range(idx, end):
-            game = self._batch_games[i]
-            self._progress_bar.setValue(i + 1)
-            self._progress_label.setText(
-                t("ui.external.adding_game", name=game.name, current=i + 1, total=len(self._batch_games))
+            gm = self._batch_games[i]
+            self._prog.setValue(i + 1)
+            self._prog_lbl.setText(
+                t("ui.external.adding_game", name=gm.name, current=i + 1, total=len(self._batch_games))
             )
             try:
-                tag = self._collection_name_for_platform(game.platform)
-                if self._service and self._service.add_to_steam(game, category_tag=tag):
+                tag = self._collection_name_for_platform(gm.platform)
+                if self._svc and self._svc.add_to_steam(gm, category_tag=tag):
                     self._batch_stats["added"] += 1
                 else:
                     self._batch_stats["skipped"] += 1
             except Exception:
-                logger.exception("Error adding %s", game.name)
+                logger.exception("Error adding %s", gm.name)
                 self._batch_stats["errors"] += 1
 
-        QTimer.singleShot(0, lambda: self._run_batch(end))
+        QTimer.singleShot(0, lambda: self._run_chunk(end))
 
     @staticmethod
     def _collection_name_for_platform(platform):
-        # Strip "Emulation (...)" wrapper to get clean collection name
+        # strip "Emulation (...)" wrapper to get clean collection name
         if platform.startswith("Emulation (") and platform.endswith(")"):
             return platform[len("Emulation (") : -1]
         return platform
 
-    def _on_add_progress(self, current, total, name):
-        self._progress_bar.setValue(current)
-        self._progress_label.setText(t("ui.external.adding_game", name=name, current=current, total=total))
+    def _on_progress(self, cur, tot, name):
+        self._prog.setValue(cur)
+        self._prog_lbl.setText(t("ui.external.adding_game", name=name, current=cur, total=tot))
 
-    def _on_add_done(self, stats):
-        self._set_busy(False)
+    def _add_done(self, stats):
+        self._busy(False)
 
-        # Refresh existing names for accurate display
-        if self._service:
-            self._existing_names = self._service.get_existing_shortcuts()
+        # refresh existing names for accurate display
+        if self._svc:
+            self._have_names = self._svc.get_existing_shortcuts()
 
-        self._fill_table(self._get_filtered_games())
+        self._fill(self._filtered())
 
-        exist_ct = sum(1 for g in self._all_games if g.name.lower() in self._existing_names)
-        self._status_label.setText(t("ui.external.found_games", count=len(self._all_games), existing=exist_ct))
+        exist_ct = sum(1 for g in self._games if g.name.lower() in self._have_names)
+        self._status.setText(t("ui.external.found_games", count=len(self._games), existing=exist_ct))
 
         msg = t(
             "ui.external.complete_message",
@@ -454,15 +458,15 @@ class ExternalGamesDialog(BaseDialog):
 
         UIHelper.show_success(self, msg, t("ui.external.complete"))
 
-        has_new = exist_ct < len(self._all_games)
-        self._btn_add_selected.setEnabled(has_new)
-        self._btn_add_all.setEnabled(has_new)
+        has_new = exist_ct < len(self._games)
+        self._btn_sel.setEnabled(has_new)
+        self._btn_all.setEnabled(has_new)
 
-    def _set_busy(self, busy):
-        # Toggle UI elements during long operations
-        self._btn_scan.setEnabled(not busy)
-        self._btn_add_selected.setEnabled(not busy)
-        self._btn_add_all.setEnabled(not busy)
-        self._filter_combo.setEnabled(not busy)
-        self._progress_bar.setVisible(busy)
-        self._progress_label.setVisible(busy)
+    def _busy(self, flag):
+        # toggle UI elements during long operations
+        self._scan_btn.setEnabled(not flag)
+        self._btn_sel.setEnabled(not flag)
+        self._btn_all.setEnabled(not flag)
+        self._combo.setEnabled(not flag)
+        self._prog.setVisible(flag)
+        self._prog_lbl.setVisible(flag)

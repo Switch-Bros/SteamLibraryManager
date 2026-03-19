@@ -38,11 +38,11 @@ class AutoCategorizeDialog(BaseDialog):
 
     def __init__(self, parent, games, all_games_count, on_start, category_name=None):
         self.games = games
-        self.all_games_count = all_games_count
+        self._total = all_games_count
         self.on_start = on_start
-        self.category_name = category_name
+        self._cat = category_name
         self.result = None
-        self._preset_mgr = AutoCatPresetManager()
+        self._mgr = AutoCatPresetManager()
 
         super().__init__(
             parent,
@@ -54,7 +54,7 @@ class AutoCategorizeDialog(BaseDialog):
         self._center()
 
     def _center(self):
-        # Center dialog on parent window
+        # center dialog on parent window
         if self.parent():
             pg = self.parent().geometry()
             self.move(
@@ -62,123 +62,123 @@ class AutoCategorizeDialog(BaseDialog):
                 pg.y() + (pg.height() - self.height()) // 2,
             )
 
-    def _build_content(self, layout):
-        layout.setSpacing(10)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSizeConstraint(QVBoxLayout.SizeConstraint.SetMinAndMaxSize)
+    def _build_content(self, lyt):
+        lyt.setSpacing(10)
+        lyt.setContentsMargins(20, 20, 20, 20)
+        lyt.setSizeConstraint(QVBoxLayout.SizeConstraint.SetMinAndMaxSize)
 
-        # Title
-        title = QLabel(t("auto_categorize.header"))
-        title.setFont(FontHelper.get_font(16, FontHelper.BOLD))
-        layout.addWidget(title)
+        # title header
+        hdr = QLabel(t("auto_categorize.header"))
+        hdr.setFont(FontHelper.get_font(16, FontHelper.BOLD))
+        lyt.addWidget(hdr)
 
-        # Preset section
-        self._build_presets(layout)
+        # preset section
+        self._mk_presets(lyt)
 
-        # Method selector widget
-        self.selector = AutoCatMethodSelector(self, len(self.games), self.all_games_count, self.category_name)
-        self.selector.methods_changed.connect(self._on_methods_changed)
-        layout.addWidget(self.selector)
+        # method selector widget
+        self._sel = AutoCatMethodSelector(self, len(self.games), self._total, self._cat)
+        self._sel.methods_changed.connect(self._on_change)
+        lyt.addWidget(self._sel)
 
-        # Curator settings
-        self._build_curator(layout)
+        # curator settings
+        self._mk_curator(lyt)
 
-        # Separator
-        sep = QFrame()
-        sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setFrameShadow(QFrame.Shadow.Sunken)
-        layout.addWidget(sep)
+        # separator
+        div = QFrame()
+        div.setFrameShape(QFrame.Shape.HLine)
+        div.setFrameShadow(QFrame.Shadow.Sunken)
+        lyt.addWidget(div)
 
-        # Warning
-        warn = QLabel(t("auto_categorize.warning_backup"))
-        warn.setStyleSheet("color: orange;")
-        layout.addWidget(warn)
+        # warning
+        w = QLabel(t("auto_categorize.warning_backup"))
+        w.setStyleSheet("color: orange;")
+        lyt.addWidget(w)
 
-        # Buttons
-        btn_row = QHBoxLayout()
-        btn_row.addStretch()
+        # buttons
+        row = QHBoxLayout()
+        row.addStretch()
 
-        cancel_btn = QPushButton(t("common.cancel"))
-        cancel_btn.clicked.connect(self.reject)
-        btn_row.addWidget(cancel_btn)
+        cancel = QPushButton(t("common.cancel"))
+        cancel.clicked.connect(self.reject)
+        row.addWidget(cancel)
 
-        start_btn = QPushButton(t("auto_categorize.start"))
-        start_btn.setDefault(True)
-        start_btn.clicked.connect(self._start)
-        btn_row.addWidget(start_btn)
+        start = QPushButton(t("auto_categorize.start"))
+        start.setDefault(True)
+        start.clicked.connect(self._start)
+        row.addWidget(start)
 
-        layout.addLayout(btn_row)
+        lyt.addLayout(row)
 
-    def _on_methods_changed(self):
-        self.curator_group.setVisible(self.selector.is_curator_selected())
+    def _on_change(self):
+        self._grp_cur.setVisible(self._sel.is_curator_selected())
         self.adjustSize()
 
-    # -- Presets --
+    # -- presets --
 
-    def _build_presets(self, parent_layout):
-        grp = QGroupBox(t("auto_categorize.preset_section"))
-        row = QHBoxLayout()
+    def _mk_presets(self, lyt):
+        g = QGroupBox(t("auto_categorize.preset_section"))
+        h = QHBoxLayout()
 
-        self.preset_combo = QComboBox()
-        self.preset_combo.setMinimumWidth(200)
-        self._reload_presets()
-        row.addWidget(self.preset_combo)
+        self._combo = QComboBox()
+        self._combo.setMinimumWidth(200)
+        self._reload()
+        h.addWidget(self._combo)
 
-        load_btn = QPushButton(t("auto_categorize.preset_load"))
-        load_btn.clicked.connect(self._load_preset)
-        row.addWidget(load_btn)
+        btn_load = QPushButton(t("auto_categorize.preset_load"))
+        btn_load.clicked.connect(self._load)
+        h.addWidget(btn_load)
 
-        save_btn = QPushButton(t("auto_categorize.preset_save"))
-        save_btn.clicked.connect(self._save_preset)
-        row.addWidget(save_btn)
+        btn_save = QPushButton(t("auto_categorize.preset_save"))
+        btn_save.clicked.connect(self._save)
+        h.addWidget(btn_save)
 
-        del_btn = QPushButton(t("auto_categorize.preset_delete"))
-        del_btn.clicked.connect(self._del_preset)
-        row.addWidget(del_btn)
+        btn_del = QPushButton(t("auto_categorize.preset_delete"))
+        btn_del.clicked.connect(self._delete)
+        h.addWidget(btn_del)
 
-        row.addStretch()
-        grp.setLayout(row)
-        parent_layout.addWidget(grp)
+        h.addStretch()
+        g.setLayout(h)
+        lyt.addWidget(g)
 
-    def _reload_presets(self):
-        # Refresh preset combo from disk
-        self.preset_combo.clear()
-        presets = self._preset_mgr.load_presets()
-        if not presets:
-            self.preset_combo.addItem(t("auto_categorize.preset_no_presets"))
-            self.preset_combo.setEnabled(False)
+    def _reload(self):
+        # refresh preset combo from disk
+        self._combo.clear()
+        pres = self._mgr.load_presets()
+        if not pres:
+            self._combo.addItem(t("auto_categorize.preset_no_presets"))
+            self._combo.setEnabled(False)
         else:
-            self.preset_combo.setEnabled(True)
-            for p in presets:
-                self.preset_combo.addItem(p.name)
+            self._combo.setEnabled(True)
+            for p in pres:
+                self._combo.addItem(p.name)
 
-    def _load_preset(self):
-        presets = self._preset_mgr.load_presets()
-        if not presets:
+    def _load(self):
+        pres = self._mgr.load_presets()
+        if not pres:
             return
 
-        idx = self.preset_combo.currentIndex()
-        if idx < 0 or idx >= len(presets):
+        i = self._combo.currentIndex()
+        if i < 0 or i >= len(pres):
             return
 
-        self._apply_preset(presets[idx])
+        self._apply(pres[i])
 
-    def _apply_preset(self, preset):
-        self.selector.apply_preset(
-            set(preset.methods),
-            preset.tags_count,
-            preset.ignore_common,
+    def _apply(self, pr):
+        self._sel.apply_preset(
+            set(pr.methods),
+            pr.tags_count,
+            pr.ignore_common,
         )
 
-    def _save_preset(self):
+    def _save(self):
         name, ok = QInputDialog.getText(self, t("auto_categorize.preset_save"), t("auto_categorize.preset_name_prompt"))
         if not ok or not name.strip():
             return
 
         name = name.strip()
 
-        existing = self._preset_mgr.load_presets()
-        if any(p.name == name for p in existing):
+        existing = self._mgr.load_presets()
+        if any(x.name == name for x in existing):
             if not UIHelper.confirm(
                 self,
                 t("auto_categorize.preset_overwrite_msg", name=name),
@@ -186,61 +186,61 @@ class AutoCategorizeDialog(BaseDialog):
             ):
                 return
 
-        settings = self.selector.get_settings()
+        cfg = self._sel.get_settings()
         preset = AutoCatPreset(
             name=name,
-            methods=tuple(settings["methods"]),
-            tags_count=settings["tags_count"],
-            ignore_common=settings["ignore_common"],
+            methods=tuple(cfg["methods"]),
+            tags_count=cfg["tags_count"],
+            ignore_common=cfg["ignore_common"],
         )
 
-        self._preset_mgr.save_preset(preset)
-        self._reload_presets()
+        self._mgr.save_preset(preset)
+        self._reload()
 
-        idx = self.preset_combo.findText(name)
+        idx = self._combo.findText(name)
         if idx >= 0:
-            self.preset_combo.setCurrentIndex(idx)
+            self._combo.setCurrentIndex(idx)
 
-    def _del_preset(self):
-        presets = self._preset_mgr.load_presets()
-        if not presets:
+    def _delete(self):
+        pres = self._mgr.load_presets()
+        if not pres:
             return
 
-        idx = self.preset_combo.currentIndex()
-        if idx < 0 or idx >= len(presets):
+        i = self._combo.currentIndex()
+        if i < 0 or i >= len(pres):
             return
 
-        self._preset_mgr.delete_preset(presets[idx].name)
-        self._reload_presets()
+        self._mgr.delete_preset(pres[i].name)
+        self._reload()
 
-    # -- Curator --
+    # -- curator --
 
-    def _build_curator(self, parent_layout):
-        # Curator info section (curators managed via Tools menu now)
-        self.curator_group = QGroupBox(t("auto_categorize.by_curator"))
-        cl = QVBoxLayout()
+    def _mk_curator(self, lyt):
+        # curator info section (curators managed via Tools menu now)
+        self._grp_cur = QGroupBox(t("auto_categorize.by_curator"))
+        v = QVBoxLayout()
 
-        info = QLabel(t("auto_categorize.curator_info"))
-        info.setWordWrap(True)
-        cl.addWidget(info)
+        lbl = QLabel(t("auto_categorize.curator_info"))
+        lbl.setWordWrap(True)
+        v.addWidget(lbl)
 
-        self.curator_group.setLayout(cl)
-        self.curator_group.setVisible(False)
-        parent_layout.addWidget(self.curator_group)
+        self._grp_cur.setLayout(v)
+        self._grp_cur.setVisible(False)
+        lyt.addWidget(self._grp_cur)
 
-    # -- Start --
+    # -- start --
 
     def _start(self):
-        settings = self.selector.get_settings()
-        methods = settings["methods"]
+        cfg = self._sel.get_settings()
+        m = cfg["methods"]
 
-        if not methods:
+        if not m:
             UIHelper.show_warning(
                 self, t("auto_categorize.error_no_method"), title=t("auto_categorize.no_method_title")
             )
             return
 
-        self.result = dict(settings)
+        self.result = dict(cfg)
 
         self.accept()
         if self.on_start:
