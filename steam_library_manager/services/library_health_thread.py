@@ -1,6 +1,6 @@
 #
 # steam_library_manager/services/library_health_thread.py
-# Background thread for running the library health check service
+# Background thread for library health checks
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -10,8 +10,6 @@ from __future__ import annotations
 
 import logging
 import time
-from pathlib import Path
-from typing import Any
 
 import requests
 from PyQt6.QtCore import QThread, pyqtSignal
@@ -23,9 +21,8 @@ logger = logging.getLogger("steamlibmgr.library_health")
 
 __all__ = ["LibraryHealthThread"]
 
-# Keywords indicating geo-blocking / region restriction on the store page.
-# Shared with StoreCheckThread in tools_actions.py.
-_GEO_KEYWORDS = (
+# geo-blocking keywords on store pages
+_GEO_KW = (
     "not available in your country",
     "not available in your region",
     "unavailable in your region",
@@ -35,20 +32,17 @@ _GEO_KEYWORDS = (
     "error processing your request",
 )
 
-_USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" " (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-_BATCH_SIZE = 50
-_BATCH_DELAY = 1.0
-_DETAIL_DELAY = 1.5
+_UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" " (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+_BATCH = 50
+_BATCH_WAIT = 1.0
+_DETAIL_WAIT = 1.5
 
 
 class LibraryHealthThread(QThread):
-    """Background thread that performs the full library health check.
+    """Runs full library health check in background.
 
-    Signals:
-        progress: Emitted with (current_step, total_steps, i18n_key).
-        phase_changed: Emitted with (phase_name_key,) when switching phases.
-        finished_report: Emitted with the completed HealthReport.
-        error: Emitted with an error message string.
+    Pipeline: batch store check -> detail HTTP check
+    -> missing metadata -> missing artwork -> stale cache.
     """
 
     progress = pyqtSignal(int, int, str)
@@ -56,66 +50,42 @@ class LibraryHealthThread(QThread):
     finished_report = pyqtSignal(object)
     error = pyqtSignal(str)
 
-    def __init__(
-        self,
-        games: list[tuple[int, str]],
-        api_key: str,
-        db_path: Path,
-        parent: Any = None,
-    ) -> None:
-        """Initializes the LibraryHealthThread.
-
-        Args:
-            games: List of (app_id, name) tuples to check.
-            api_key: Steam Web API key (may be empty for DB-only checks).
-            db_path: Path to the SQLite database file.
-            parent: Optional QObject parent.
-        """
+    def __init__(self, games, api_key, db_path, parent=None):
         super().__init__(parent)
         self._games = games
         self._api_key = api_key
         self._db_path = db_path
         self._cancelled = False
 
-    def cancel(self) -> None:
-        """Requests cancellation of the health check."""
+    def cancel(self):
         self._cancelled = True
 
-    def run(self) -> None:
-        """Executes the full health check pipeline.
-
-        Pipeline:
-            1. Batch store check via GetItems (50er batches, 1s pause).
-            2. Detail HTTP check for missing app IDs (1.5s pause).
-            3. Missing metadata check (DB query).
-            4. Missing artwork check (DB query).
-            5. Stale cache check (DB query).
-        """
+    def run(self):
         from steam_library_manager.core.database import Database
 
         report = HealthReport(total_games=len(self._games))
-        all_app_ids = [app_id for app_id, _ in self._games]
-        name_map = {app_id: name for app_id, name in self._games}
+        all_ids = [aid for aid, _ in self._games]
+        names = {aid: nm for aid, nm in self._games}
 
-        # Stage 1: Batch store check via GetItems API
-        missing_ids: list[int] = []
+        # 1. batch store check
+        missing = []
         if self._api_key:
             self.phase_changed.emit("health_check.progress.store_batch")
-            missing_ids = self._check_store_batch(all_app_ids)
+            missing = self._check_store_batch(all_ids)
 
             if self._cancelled:
                 return
 
-            # Stage 2: Detail HTTP check for missing IDs
-            if missing_ids:
+            # 2. detail HTTP check
+            if missing:
                 self.phase_changed.emit("health_check.progress.store_detail")
-                results = self._check_store_detail(missing_ids, name_map)
+                results = self._check_store_detail(missing, names)
                 report.store_unavailable = [r for r in results if r.status != "available"]
 
                 if self._cancelled:
                     return
 
-        # Stage 3-5: DB-based checks
+        # 3-5. DB checks
         db = Database(self._db_path)
         try:
             self.phase_changed.emit("health_check.progress.metadata")
@@ -132,124 +102,81 @@ class LibraryHealthThread(QThread):
 
         self.finished_report.emit(report)
 
-    def _check_store_batch(self, all_app_ids: list[int]) -> list[int]:
-        """Checks store availability via GetItems API in 50er batches.
-
-        Args:
-            all_app_ids: All app IDs to check.
-
-        Returns:
-            List of app IDs that returned NO data (potentially delisted).
-        """
+    def _check_store_batch(self, all_ids):
+        # store availability via GetItems in 50er batches
         from steam_library_manager.integrations.steam_web_api import SteamWebAPI
 
         try:
             api = SteamWebAPI(self._api_key)
         except ValueError:
-            logger.warning("Invalid API key for store batch check")
+            logger.warning("invalid API key for batch check")
             return []
 
-        found_app_ids: set[int] = set()
-        batches = [all_app_ids[i : i + _BATCH_SIZE] for i in range(0, len(all_app_ids), _BATCH_SIZE)]
+        found = set()
+        batches = [all_ids[i : i + _BATCH] for i in range(0, len(all_ids), _BATCH)]
 
-        for batch_idx, batch in enumerate(batches):
+        for bi, batch in enumerate(batches):
             if self._cancelled:
                 return []
 
-            self.progress.emit(
-                batch_idx + 1,
-                len(batches),
-                "health_check.progress.store_batch",
-            )
+            self.progress.emit(bi + 1, len(batches), "health_check.progress.store_batch")
 
             try:
-                results = api._fetch_batch(batch)
-                for item in results:
-                    found_app_ids.add(item.get("appid", 0))
+                for item in api._fetch_batch(batch):
+                    found.add(item.get("appid", 0))
             except Exception as exc:
-                logger.warning("Store batch %d failed: %s", batch_idx + 1, exc)
+                logger.warning("batch %d failed: %s" % (bi + 1, exc))
 
-            if batch_idx < len(batches) - 1:
-                time.sleep(_BATCH_DELAY)
+            if bi < len(batches) - 1:
+                time.sleep(_BATCH_WAIT)
 
-        return [app_id for app_id in all_app_ids if app_id not in found_app_ids]
+        return [aid for aid in all_ids if aid not in found]
 
-    def _check_store_detail(
-        self,
-        missing_app_ids: list[int],
-        name_map: dict[int, str],
-    ) -> list[StoreCheckResult]:
-        """Performs detailed HTTP checks on potentially delisted games.
+    def _check_store_detail(self, missing_ids, names):
+        # HTTP check on potentially delisted games
+        results = []
 
-        Uses the same logic as StoreCheckThread but in batch.
-        Rate limited to 1 request per 1.5 seconds.
-
-        Args:
-            missing_app_ids: App IDs that returned no data from GetItems.
-            name_map: Mapping of app_id to game name.
-
-        Returns:
-            List of StoreCheckResult with exact status per game.
-        """
-        results: list[StoreCheckResult] = []
-
-        for idx, app_id in enumerate(missing_app_ids):
+        for idx, aid in enumerate(missing_ids):
             if self._cancelled:
                 return results
 
-            self.progress.emit(
-                idx + 1,
-                len(missing_app_ids),
-                "health_check.progress.store_detail",
-            )
+            self.progress.emit(idx + 1, len(missing_ids), "health_check.progress.store_detail")
 
-            name = name_map.get(app_id, f"App {app_id}")
+            nm = names.get(aid, "App %d" % aid)
 
             try:
-                url = f"https://store.steampowered.com/app/{app_id}/"
-                response = requests.get(
+                url = "https://store.steampowered.com/app/%d/" % aid
+                resp = requests.get(
                     url,
                     timeout=HTTP_TIMEOUT,
                     allow_redirects=True,
-                    headers={"User-Agent": _USER_AGENT},
+                    headers={"User-Agent": _UA},
                 )
 
                 status = "unknown"
-                if response.status_code in (404, 403):
+                if resp.status_code in (404, 403):
                     status = "removed"
-                elif response.status_code == 200:
-                    final_url = response.url
-                    text_lower = response.text.lower()
+                elif resp.status_code == 200:
+                    final = resp.url
+                    txt = resp.text.lower()
 
-                    if "agecheck" in final_url:
+                    if "agecheck" in final:
                         status = "age_gate"
-                    elif any(kw in text_lower for kw in _GEO_KEYWORDS):
+                    elif any(kw in txt for kw in _GEO_KW):
                         status = "geo_locked"
-                    elif "game_area_purchase" in text_lower or "app_header" in text_lower:
+                    elif "game_area_purchase" in txt or "app_header" in txt:
                         status = "available"
-                    elif f"/app/{app_id}" not in final_url:
+                    elif "/app/%d" % aid not in final:
                         status = "delisted"
 
                 results.append(
-                    StoreCheckResult(
-                        app_id=app_id,
-                        name=name,
-                        status=status,
-                        details=f"HTTP {response.status_code}",
-                    )
+                    StoreCheckResult(app_id=aid, name=nm, status=status, details="HTTP %d" % resp.status_code)
                 )
 
             except Exception as ex:
-                results.append(
-                    StoreCheckResult(
-                        app_id=app_id,
-                        name=name,
-                        status="unknown",
-                        details=str(ex),
-                    )
-                )
+                results.append(StoreCheckResult(app_id=aid, name=nm, status="unknown", details=str(ex)))
 
-            if idx < len(missing_app_ids) - 1:
-                time.sleep(_DETAIL_DELAY)
+            if idx < len(missing_ids) - 1:
+                time.sleep(_DETAIL_WAIT)
 
         return results

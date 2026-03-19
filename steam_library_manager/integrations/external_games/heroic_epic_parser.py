@@ -1,6 +1,6 @@
 #
 # steam_library_manager/integrations/external_games/heroic_epic_parser.py
-# Heroic Launcher parser for Epic Games Store library
+# Heroic Launcher parser for Epic Games Store
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -33,73 +33,54 @@ _FLATPAK = (
 
 
 class HeroicEpicParser(BaseHeroicParser):
-    """Parser for Epic Games installed through Heroic/Legendary."""
+    """Parser for Epic Games."""
 
     _RUNNER = "legendary"
 
-    def platform_name(self) -> str:
-        """Return platform name.
-
-        Returns:
-            Platform identifier.
-        """
+    def platform_name(self):
         return "Heroic (Epic)"
 
-    def is_available(self) -> bool:
-        """Check if Heroic Epic config exists.
-
-        Returns:
-            True if installed.json is found.
-        """
+    def is_available(self):
         return self._find_config_file() is not None
 
-    def get_config_paths(self) -> list[Path]:
-        """Return native and Flatpak config paths.
-
-        Returns:
-            List of possible installed.json paths.
-        """
+    def get_config_paths(self):
         return [_NATIVE, _FLATPAK]
 
-    def read_games(self) -> list[ExternalGame]:
-        """Read installed Epic games from Heroic's Legendary config.
-
-        Returns:
-            List of detected Epic games.
-        """
-        data, config_path = self._load_heroic_config_with_path()
-        if not isinstance(data, dict):
+    def read_games(self):
+        # parse legendary config
+        d, cp = self._load_heroic_config_with_path()
+        if not isinstance(d, dict):
             return []
 
-        is_flatpak = self._is_flatpak(config_path) if config_path else False
-        games: list[ExternalGame] = []
+        fp = self._is_flatpak(cp) if cp else False
+        gs = []
 
-        for app_name, entry in data.items():
-            if not isinstance(entry, dict):
+        for aid, e in d.items():
+            if not isinstance(e, dict):
                 continue
-            if entry.get("is_dlc", False):
+            if e.get("is_dlc", False):
                 continue
 
-            title = entry.get("title", app_name)
-            install_path = entry.get("install_path")
-            install_size = entry.get("install_size", 0)
-            if isinstance(install_size, str):
-                install_size = 0
+            nm = e.get("title", aid)
+            p = e.get("install_path")
+            sz = e.get("install_size", 0)
+            if isinstance(sz, str):
+                sz = 0
 
-            launch_cmd = self._build_heroic_launch_command(app_name, is_flatpak)
+            c = self._build_heroic_launch_command(aid, fp)
 
-            games.append(
+            gs.append(
                 ExternalGame(
                     platform=self.platform_name(),
-                    platform_app_id=app_name,
-                    name=title,
-                    install_path=Path(install_path) if install_path else None,
-                    executable=entry.get("executable"),
-                    launch_command=launch_cmd,
-                    install_size=install_size,
-                    platform_metadata=(("platform", entry.get("platform", "")),),
+                    platform_app_id=aid,
+                    name=nm,
+                    install_path=Path(p) if p else None,
+                    executable=e.get("executable"),
+                    launch_command=c,
+                    install_size=sz,
+                    platform_metadata=(("platform", e.get("platform", "")),),
                 )
             )
 
-        logger.info("Found %d Epic games via Heroic", len(games))
-        return games
+        logger.info("found %d Epic games" % len(gs))
+        return gs

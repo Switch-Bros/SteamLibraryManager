@@ -1,6 +1,6 @@
 #
 # steam_library_manager/core/profile_manager.py
-# Manages Steam user profiles: detection, switching, and persistence
+# Steam user profiles: detection, switching, persistence
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -14,8 +14,6 @@ import re
 import shutil
 import time
 from dataclasses import dataclass, replace
-from pathlib import Path
-from typing import Any
 
 from steam_library_manager.config import config
 from steam_library_manager.services.filter_service import ALL_PLATFORM_KEYS, ALL_TYPE_KEYS
@@ -27,310 +25,176 @@ __all__ = ["Profile", "ProfileManager"]
 
 @dataclass(frozen=True)
 class Profile:
-    """Immutable snapshot of a categorization profile.
+    """Immutable categorization profile snapshot.
 
-    Attributes:
-        name: Display name of the profile.
-        collections: Tuple of collection dicts (deep-copied from cloud storage).
-        autocat_methods: Enabled AutoCat method names.
-        tags_per_game: Max tags per game for AutoCat.
-        ignore_common_tags: Whether to ignore common tags in AutoCat.
-        filter_enabled_types: Enabled type filter keys.
-        filter_enabled_platforms: Enabled platform filter keys.
-        filter_active_statuses: Active status filter keys.
-        sort_key: Current sort key identifier.
-        created_at: Unix timestamp of profile creation.
+    Stores collections, autocat settings, filters, sort key.
+    Persisted as individual JSON files.
     """
 
     name: str
-    collections: tuple[dict[str, Any], ...] = ()
-    autocat_methods: tuple[str, ...] = ()
+    collections: tuple = ()
+    autocat_methods: tuple = ()
     tags_per_game: int = 13
     ignore_common_tags: bool = True
-    filter_enabled_types: frozenset[str] = ALL_TYPE_KEYS
-    filter_enabled_platforms: frozenset[str] = ALL_PLATFORM_KEYS
-    filter_active_statuses: frozenset[str] = frozenset()
-    filter_active_languages: frozenset[str] = frozenset()
+    filter_enabled_types: frozenset = ALL_TYPE_KEYS
+    filter_enabled_platforms: frozenset = ALL_PLATFORM_KEYS
+    filter_active_statuses: frozenset = frozenset()
+    filter_active_languages: frozenset = frozenset()
     sort_key: str = "name"
     created_at: float = 0.0
 
 
-def _serialize_profile(profile: Profile) -> dict[str, Any]:
-    """Converts a Profile to a JSON-serializable dict.
-
-    Args:
-        profile: The profile to serialize.
-
-    Returns:
-        Dictionary ready for JSON serialization.
-    """
+def _serialize_profile(prof):
+    # profile -> JSON dict
     return {
-        "name": profile.name,
-        "created_at": profile.created_at,
-        "collections": list(profile.collections),
+        "name": prof.name,
+        "created_at": prof.created_at,
+        "collections": list(prof.collections),
         "autocat": {
-            "methods": list(profile.autocat_methods),
-            "tags_per_game": profile.tags_per_game,
-            "ignore_common_tags": profile.ignore_common_tags,
+            "methods": list(prof.autocat_methods),
+            "tags_per_game": prof.tags_per_game,
+            "ignore_common_tags": prof.ignore_common_tags,
         },
         "filters": {
-            "enabled_types": sorted(profile.filter_enabled_types),
-            "enabled_platforms": sorted(profile.filter_enabled_platforms),
-            "active_statuses": sorted(profile.filter_active_statuses),
-            "active_languages": sorted(profile.filter_active_languages),
+            "enabled_types": sorted(prof.filter_enabled_types),
+            "enabled_platforms": sorted(prof.filter_enabled_platforms),
+            "active_statuses": sorted(prof.filter_active_statuses),
+            "active_languages": sorted(prof.filter_active_languages),
         },
-        "sort_key": profile.sort_key,
+        "sort_key": prof.sort_key,
     }
 
 
-def _deserialize_profile(data: dict[str, Any]) -> Profile:
-    """Constructs a Profile from a deserialized JSON dict.
-
-    Missing optional fields fall back to Profile defaults.
-
-    Args:
-        data: Dictionary loaded from a profile JSON file.
-
-    Returns:
-        A frozen Profile instance.
-
-    Raises:
-        KeyError: If the required ``name`` field is missing.
-    """
+def _deserialize_profile(data):
+    # JSON dict -> Profile
     if "name" not in data:
-        raise KeyError("Profile JSON is missing required 'name' field")
+        raise KeyError("Profile JSON missing 'name'")
 
-    autocat = data.get("autocat", {})
-    filters = data.get("filters", {})
+    ac = data.get("autocat", {})
+    flt = data.get("filters", {})
 
     return Profile(
         name=data["name"],
         created_at=data.get("created_at", 0.0),
         collections=tuple(data.get("collections", ())),
-        autocat_methods=tuple(autocat.get("methods", ())),
-        tags_per_game=autocat.get("tags_per_game", 13),
-        ignore_common_tags=autocat.get("ignore_common_tags", True),
-        filter_enabled_types=frozenset(filters.get("enabled_types", ALL_TYPE_KEYS)),
-        filter_enabled_platforms=frozenset(filters.get("enabled_platforms", ALL_PLATFORM_KEYS)),
-        filter_active_statuses=frozenset(filters.get("active_statuses", ())),
-        filter_active_languages=frozenset(filters.get("active_languages", ())),
+        autocat_methods=tuple(ac.get("methods", ())),
+        tags_per_game=ac.get("tags_per_game", 13),
+        ignore_common_tags=ac.get("ignore_common_tags", True),
+        filter_enabled_types=frozenset(flt.get("enabled_types", ALL_TYPE_KEYS)),
+        filter_enabled_platforms=frozenset(flt.get("enabled_platforms", ALL_PLATFORM_KEYS)),
+        filter_active_statuses=frozenset(flt.get("active_statuses", ())),
+        filter_active_languages=frozenset(flt.get("active_languages", ())),
         sort_key=data.get("sort_key", data.get("view_mode", "name")),
     )
 
 
-def _sanitize_filename(name: str) -> str:
-    """Converts a profile name into a safe filesystem name.
-
-    Replaces non-alphanumeric characters (except spaces, hyphens, underscores)
-    with underscores and strips leading/trailing whitespace.
-
-    Args:
-        name: The raw profile name.
-
-    Returns:
-        A filesystem-safe string (without extension).
-    """
-    safe = re.sub(r"[^\w\s\-]", "_", name, flags=re.UNICODE)
-    return safe.strip()
+def _sanitize_filename(name):
+    # filesystem-safe profile name
+    s = re.sub(r"[^\w\s\-]", "_", name, flags=re.UNICODE)
+    return s.strip()
 
 
 class ProfileManager:
-    """Manages profile CRUD operations on the filesystem.
+    """CRUD for profile JSON files.
 
-    Profiles are stored as individual JSON files in a configurable directory.
-    Each file is named after a sanitized version of the profile name.
-
-    Attributes:
-        profiles_dir: Path to the directory where profile JSON files are stored.
+    Each profile is one JSON file in the profiles dir.
     """
 
-    def __init__(self, profiles_dir: Path | None = None) -> None:
-        """Initializes the ProfileManager.
-
-        Args:
-            profiles_dir: Override for the profiles directory.
-                Defaults to ``config.DATA_DIR / "profiles"``.
-        """
-        self.profiles_dir: Path = profiles_dir or config.DATA_DIR / "profiles"
+    def __init__(self, profiles_dir=None):
+        self.profiles_dir = profiles_dir or config.DATA_DIR / "profiles"
         self.profiles_dir.mkdir(parents=True, exist_ok=True)
 
-    def save_profile(self, profile: Profile) -> Path:
-        """Serializes and saves a profile to a JSON file.
-
-        If a profile with the same name already exists, it is overwritten.
-
-        Args:
-            profile: The profile to save.
-
-        Returns:
-            Path to the written JSON file.
-
-        Raises:
-            ValueError: If the profile name is empty.
-        """
+    def save_profile(self, profile):
         if not profile.name or not profile.name.strip():
             raise ValueError("Profile name cannot be empty")
 
-        safe_name = _sanitize_filename(profile.name)
-        file_path = self.profiles_dir / f"{safe_name}.json"
+        fp = self.profiles_dir / ("%s.json" % _sanitize_filename(profile.name))
 
         data = _serialize_profile(profile)
-        with open(file_path, "w", encoding="utf-8") as fh:
-            json.dump(data, fh, indent=2, ensure_ascii=False)
+        with open(fp, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
 
-        logger.info("Saved profile '%s' to %s", profile.name, file_path)
-        return file_path
+        logger.info("saved profile '%s' to %s" % (profile.name, fp))
+        return fp
 
-    def load_profile(self, name: str) -> Profile:
-        """Loads a profile from its JSON file.
+    def load_profile(self, name):
+        fp = self.profiles_dir / ("%s.json" % _sanitize_filename(name))
 
-        Args:
-            name: The profile name (used to derive the filename).
+        if not fp.exists():
+            raise FileNotFoundError("profile '%s' not found at %s" % (name, fp))
 
-        Returns:
-            The deserialized Profile.
-
-        Raises:
-            FileNotFoundError: If the profile file does not exist.
-        """
-        safe_name = _sanitize_filename(name)
-        file_path = self.profiles_dir / f"{safe_name}.json"
-
-        if not file_path.exists():
-            raise FileNotFoundError(f"Profile '{name}' not found at {file_path}")
-
-        with open(file_path, "r", encoding="utf-8") as fh:
-            data = json.load(fh)
+        with open(fp, "r", encoding="utf-8") as f:
+            data = json.load(f)
 
         return _deserialize_profile(data)
 
-    def delete_profile(self, name: str) -> bool:
-        """Deletes a profile JSON file.
+    def delete_profile(self, name):
+        fp = self.profiles_dir / ("%s.json" % _sanitize_filename(name))
 
-        Args:
-            name: The profile name to delete.
-
-        Returns:
-            True if the file was deleted, False if it did not exist.
-        """
-        safe_name = _sanitize_filename(name)
-        file_path = self.profiles_dir / f"{safe_name}.json"
-
-        if not file_path.exists():
+        if not fp.exists():
             return False
 
-        file_path.unlink()
-        logger.info("Deleted profile '%s'", name)
+        fp.unlink()
+        logger.info("deleted profile '%s'" % name)
         return True
 
-    def list_profiles(self) -> list[tuple[str, float]]:
-        """Lists all saved profiles.
+    def list_profiles(self):
+        # returns [(name, created_at), ...] sorted newest first
+        out = []
 
-        Scans the profiles directory for JSON files and reads their metadata.
-
-        Returns:
-            List of ``(name, created_at)`` tuples, sorted by creation time
-            (newest first).
-        """
-        profiles: list[tuple[str, float]] = []
-
-        for json_file in sorted(self.profiles_dir.glob("*.json")):
+        for jf in sorted(self.profiles_dir.glob("*.json")):
             try:
-                with open(json_file, "r", encoding="utf-8") as fh:
-                    data = json.load(fh)
-                name = data.get("name", json_file.stem)
-                created_at = data.get("created_at", 0.0)
-                profiles.append((name, created_at))
+                with open(jf, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                nm = data.get("name", jf.stem)
+                ts = data.get("created_at", 0.0)
+                out.append((nm, ts))
             except (json.JSONDecodeError, OSError) as exc:
-                logger.warning("Skipping corrupt profile %s: %s", json_file.name, exc)
+                logger.warning("skipping corrupt profile %s: %s" % (jf.name, exc))
 
-        profiles.sort(key=lambda item: item[1], reverse=True)
-        return profiles
+        out.sort(key=lambda x: x[1], reverse=True)
+        return out
 
-    def rename_profile(self, old_name: str, new_name: str) -> bool:
-        """Renames an existing profile.
-
-        Loads the old profile, creates a new one with the updated name
-        (preserving the original creation timestamp), saves it, and
-        deletes the old file.
-
-        Args:
-            old_name: Current profile name.
-            new_name: Desired new profile name.
-
-        Returns:
-            True if the rename succeeded, False if the old profile was not found.
-
-        Raises:
-            ValueError: If the new name is empty.
-        """
+    def rename_profile(self, old_name, new_name):
         if not new_name or not new_name.strip():
             raise ValueError("New profile name cannot be empty")
 
         try:
-            old_profile = self.load_profile(old_name)
+            old = self.load_profile(old_name)
         except FileNotFoundError:
             return False
 
-        renamed = replace(old_profile, name=new_name.strip())
+        renamed = replace(old, name=new_name.strip())
 
         self.save_profile(renamed)
-        # Only delete old if filename actually changed
         if _sanitize_filename(old_name) != _sanitize_filename(new_name):
             self.delete_profile(old_name)
 
-        logger.info("Renamed profile '%s' -> '%s'", old_name, new_name)
+        logger.info("renamed profile '%s' -> '%s'" % (old_name, new_name))
         return True
 
-    def export_profile(self, name: str, target_path: Path) -> bool:
-        """Exports a profile JSON to an external location.
+    def export_profile(self, name, target_path):
+        src = self.profiles_dir / ("%s.json" % _sanitize_filename(name))
 
-        Args:
-            name: The profile name to export.
-            target_path: Destination file path.
-
-        Returns:
-            True if the export succeeded, False if the source was not found.
-        """
-        safe_name = _sanitize_filename(name)
-        source = self.profiles_dir / f"{safe_name}.json"
-
-        if not source.exists():
+        if not src.exists():
             return False
 
-        shutil.copy2(source, target_path)
-        logger.info("Exported profile '%s' to %s", name, target_path)
+        shutil.copy2(src, target_path)
+        logger.info("exported profile '%s' to %s" % (name, target_path))
         return True
 
-    def import_profile(self, source_path: Path) -> Profile:
-        """Imports a profile from an external JSON file.
-
-        Validates the JSON structure, saves a local copy, and returns
-        the imported Profile.
-
-        Args:
-            source_path: Path to the external profile JSON file.
-
-        Returns:
-            The imported Profile.
-
-        Raises:
-            FileNotFoundError: If the source file does not exist.
-            json.JSONDecodeError: If the file contains invalid JSON.
-            KeyError: If the required ``name`` field is missing.
-        """
+    def import_profile(self, source_path):
         if not source_path.exists():
-            raise FileNotFoundError(f"Import source not found: {source_path}")
+            raise FileNotFoundError("import source not found: %s" % source_path)
 
-        with open(source_path, "r", encoding="utf-8") as fh:
-            data = json.load(fh)
+        with open(source_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
 
-        profile = _deserialize_profile(data)
+        prof = _deserialize_profile(data)
 
-        # Stamp import time if no creation time was set
-        if profile.created_at == 0.0:
-            profile = replace(profile, created_at=time.time())
+        if prof.created_at == 0.0:
+            prof = replace(prof, created_at=time.time())
 
-        self.save_profile(profile)
-        logger.info("Imported profile '%s' from %s", profile.name, source_path)
-        return profile
+        self.save_profile(prof)
+        logger.info("imported profile '%s' from %s" % (prof.name, source_path))
+        return prof

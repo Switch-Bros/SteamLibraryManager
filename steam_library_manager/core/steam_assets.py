@@ -1,6 +1,6 @@
 #
 # steam_library_manager/core/steam_assets.py
-# Resolves and caches Steam game artwork asset paths
+# Steam game artwork: locate, save, delete, export/import
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -14,8 +14,6 @@ import logging
 import os
 import shutil
 import time
-from pathlib import Path
-from typing import TYPE_CHECKING
 
 import requests
 
@@ -23,39 +21,30 @@ from steam_library_manager.config import config
 from steam_library_manager.utils.i18n import t
 from steam_library_manager.utils.timeouts import HTTP_TIMEOUT
 
-if TYPE_CHECKING:
-    from steam_library_manager.core.database import Database
-
 logger = logging.getLogger("steamlibmgr.steam_assets")
 
 __all__ = ["SteamAssets"]
 
 
 class SteamAssets:
-    """
-    Static manager class for Steam game assets (images).
+    """Static manager for Steam game artwork.
 
-    This class provides methods to locate, save, and delete game images. It
-    searches for custom images first, then checks Steam's local cache, and
-    finally falls back to Steam's CDN URLs.
-
-    ENHANCEMENTS:
-    - Save artwork metadata to database
-    - Export/Import artwork packages for multi-device sync
-    - Track file hashes for deduplication
+    Searches custom images first, then local cache,
+    then falls back to CDN. Also handles DB metadata
+    and export/import for multi-device sync.
     """
 
-    # Artwork type mapping (UI name → database name)
+    # UI name -> DB name
     ASSET_TYPE_MAP = {
-        "grids": "grid_p",  # Portrait grid
+        "grids": "grid_p",
         "heroes": "hero",
         "logos": "logo",
         "icons": "icon",
-        "capsules": "grid_h",  # Horizontal grid
+        "capsules": "grid_h",
     }
 
-    # Filename suffix per asset type (appended to app_id)
-    _FILENAME_SUFFIXES: dict[str, str] = {
+    # filename suffix per type
+    _SUFFIXES = {
         "grids": "p",
         "heroes": "_hero",
         "logos": "_logo",
@@ -63,8 +52,8 @@ class SteamAssets:
         "capsules": "",
     }
 
-    # CDN URL paths per asset type (first match wins)
-    _CDN_PATHS: dict[str, list[str]] = {
+    # CDN paths per type (first match wins)
+    _CDN = {
         "grids": ["library_600x900.jpg", "library_600x900_2x.jpg", "header.jpg"],
         "heroes": ["library_hero.jpg", "header.jpg"],
         "logos": ["logo.png"],
@@ -72,8 +61,8 @@ class SteamAssets:
         "capsules": ["header.jpg"],
     }
 
-    # Filename suffix keyed by DB type name (for export/import)
-    _DB_FILENAME_SUFFIXES: dict[str, str] = {
+    # DB type -> suffix (for export/import)
+    _DB_SUFFIXES = {
         "grid_p": "p",
         "grid_h": "",
         "hero": "_hero",
@@ -82,137 +71,82 @@ class SteamAssets:
     }
 
     @staticmethod
-    def get_steam_grid_path() -> Path:
-        """
-        Returns the Steam grid directory path for the current user.
-
-        Returns:
-            Path: Path to Steam's grid directory (userdata/<user_id>/config/grid/)
-        """
+    def get_steam_grid_path():
+        # grid dir for current user
         if not config.STEAM_PATH:
             raise ValueError("Steam path not configured")
 
-        short_id, _ = config.get_detected_user()
-        if not short_id:
+        sid, _ = config.get_detected_user()
+        if not sid:
             raise ValueError("Steam user not detected")
 
-        grid_dir = config.STEAM_PATH / "userdata" / short_id / "config" / "grid"
-        grid_dir.mkdir(parents=True, exist_ok=True)
-
-        return grid_dir
+        gdir = config.STEAM_PATH / "userdata" / sid / "config" / "grid"
+        gdir.mkdir(parents=True, exist_ok=True)
+        return gdir
 
     @staticmethod
-    def get_asset_path(app_id: str, asset_type: str) -> str:
-        """
-        Returns the path to a local asset or a URL as fallback.
+    def get_asset_path(app_id, asset_type):
+        # local path or CDN URL fallback
+        sid, _ = config.get_detected_user()
 
-        This method searches for assets in the following order:
-        1. Local Steam user config/grid directory (where Steam looks!)
-        2. Steam CDN URLs (fallback)
+        if config.STEAM_PATH and sid:
+            gdir = config.STEAM_PATH / "userdata" / sid / "config" / "grid"
 
-        Args:
-            app_id (str): The Steam app ID.
-            asset_type (str): Type of asset to retrieve. Valid values are:
-                             'grids', 'heroes', 'logos', 'icons'.
-
-        Returns:
-            str: A local file path if the asset exists locally, or a Steam CDN URL
-                as fallback. Returns an empty string if the asset type is invalid.
-        """
-
-        short_id, _ = config.get_detected_user()
-
-        # Try to find local image in Steam user config
-        if config.STEAM_PATH and short_id:
-            grid_dir = config.STEAM_PATH / "userdata" / short_id / "config" / "grid"
-
-            # Determine base filename based on asset type
-            suffix = SteamAssets._FILENAME_SUFFIXES.get(asset_type)
-            if suffix is not None:
-                filename_base = f"{app_id}{suffix}"
-                # Check all possible extensions
+            sfx = SteamAssets._SUFFIXES.get(asset_type)
+            if sfx is not None:
+                base = "%s%s" % (app_id, sfx)
                 for ext in [".png", ".jpg", ".jpeg", ".webp", ".gif"]:
-                    local_path = grid_dir / (filename_base + ext)
-                    if local_path.exists():
-                        return str(local_path)
+                    lp = gdir / (base + ext)
+                    if lp.exists():
+                        return str(lp)
 
-        # Fallback to Steam CDN URLs (try first path in chain)
-        cdn_paths = SteamAssets._CDN_PATHS.get(asset_type, [])
-        if cdn_paths:
-            return f"https://cdn.cloudflare.steamstatic.com/steam/apps/{app_id}/{cdn_paths[0]}"
+        # CDN fallback
+        cdn = SteamAssets._CDN.get(asset_type, [])
+        if cdn:
+            return "https://cdn.cloudflare.steamstatic.com/steam/apps/%s/%s" % (app_id, cdn[0])
         return ""
 
     @staticmethod
-    def get_cdn_fallback_urls(app_id: str, asset_type: str) -> list[str]:
-        """Returns all CDN fallback URLs for an asset type, in priority order."""
-        cdn_paths = SteamAssets._CDN_PATHS.get(asset_type, [])
+    def get_cdn_fallback_urls(app_id, asset_type):
+        cdn = SteamAssets._CDN.get(asset_type, [])
         base = "https://cdn.cloudflare.steamstatic.com/steam/apps"
-        return [f"{base}/{app_id}/{p}" for p in cdn_paths]
+        return ["%s/%s/%s" % (base, app_id, p) for p in cdn]
 
     @staticmethod
-    def save_custom_image(
-        app_id: str, asset_type: str, url_or_path: str, db: Database | None = None, source: str = "steamgriddb"
-    ) -> bool:
-        """
-        Saves a custom image for a game directly in Steam's grid folder.
-
-        Downloads an image from a URL or copies it from a local path and saves it
-        to Steam's grid directory with the correct filename so it appears in the
-        Steam client.
-
-        ENHANCED: Now saves metadata to database for multi-device sync!
-
-        Args:
-            app_id: Steam app ID.
-            asset_type: Type of asset ('grids', 'heroes', 'logos', 'icons', 'capsules').
-            url_or_path: Source URL (http/https) or local file path.
-            db: Optional Database instance for metadata storage.
-            source: Source of artwork ('steamgriddb', 'local', 'custom').
-
-        Returns:
-            True if the image was saved successfully, False otherwise.
-        """
+    def save_custom_image(app_id, asset_type, url_or_path, db=None, source="steamgriddb"):
+        # save image to Steam grid dir
         try:
-            # Get Steam grid directory
-            grid_dir = SteamAssets.get_steam_grid_path()
+            gdir = SteamAssets.get_steam_grid_path()
 
-            # Determine correct filename for Steam
-            suffix = SteamAssets._FILENAME_SUFFIXES.get(asset_type)
-            if suffix is None:
+            sfx = SteamAssets._SUFFIXES.get(asset_type)
+            if sfx is None:
                 logger.info(t("logs.assets.unknown_type", type=asset_type))
                 return False
-            filename = f"{app_id}{suffix}.png"
+            fname = "%s%s.png" % (app_id, sfx)
+            target = gdir / fname
 
-            target_file = grid_dir / filename
-
-            # Download URL
+            # download URL
             if str(url_or_path).startswith("http"):
-                headers = {"User-Agent": "SteamLibraryManager/1.0"}
-                response = requests.get(url_or_path, headers=headers, timeout=HTTP_TIMEOUT)
-                if response.status_code == 200:
-                    with open(target_file, "wb") as f:
-                        f.write(response.content)
+                hdrs = {"User-Agent": "SteamLibraryManager/1.0"}
+                resp = requests.get(url_or_path, headers=hdrs, timeout=HTTP_TIMEOUT)
+                if resp.status_code == 200:
+                    with open(target, "wb") as f:
+                        f.write(resp.content)
                     logger.info(t("logs.steamgrid.saved", type=asset_type, app_id=app_id))
-                    logger.info(t("logs.assets.saved_to", path=target_file))
+                    logger.info(t("logs.assets.saved_to", path=target))
 
-                    # Save metadata to database
                     if db:
-                        SteamAssets._save_artwork_metadata(
-                            db, app_id, asset_type, target_file, source, str(url_or_path)
-                        )
-
+                        SteamAssets._save_meta(db, app_id, asset_type, target, source, str(url_or_path))
                     return True
 
-            # Copy local file
+            # copy local file
             elif os.path.exists(url_or_path):
-                shutil.copy2(url_or_path, target_file)
+                shutil.copy2(url_or_path, target)
                 logger.info(t("logs.steamgrid.saved", type=asset_type, app_id=app_id))
-                logger.info(t("logs.assets.saved_to", path=target_file))
+                logger.info(t("logs.assets.saved_to", path=target))
 
-                # Save metadata to database
                 if db:
-                    SteamAssets._save_artwork_metadata(db, app_id, asset_type, target_file, source, None)
-
+                    SteamAssets._save_meta(db, app_id, asset_type, target, source, None)
                 return True
 
         except (OSError, requests.RequestException, ValueError) as e:
@@ -222,86 +156,58 @@ class SteamAssets:
         return False
 
     @staticmethod
-    def _save_artwork_metadata(
-        db: Database, app_id: str, asset_type: str, file_path: Path, source: str, source_url: str | None
-    ) -> None:
-        """Save artwork metadata to database."""
+    def _save_meta(db, app_id, asset_type, fpath, source, src_url):
+        # save artwork metadata to DB
         try:
-            # Calculate file hash
-            with open(file_path, "rb") as f:
-                file_hash = hashlib.sha256(f.read()).hexdigest()
+            with open(fpath, "rb") as f:
+                fhash = hashlib.sha256(f.read()).hexdigest()
 
-            # Get file size
-            file_size = file_path.stat().st_size
+            fsize = fpath.stat().st_size
 
-            # Get image dimensions (optional, requires PIL)
-            width, height = 0, 0
+            w, h = 0, 0
             try:
                 from PIL import Image
 
-                with Image.open(file_path) as img:
-                    width, height = img.size
+                with Image.open(fpath) as img:
+                    w, h = img.size
             except ImportError:
-                pass  # PIL not available
+                pass
 
-            # Map asset_type to database name
-            db_asset_type = SteamAssets.ASSET_TYPE_MAP.get(asset_type, asset_type)
+            db_type = SteamAssets.ASSET_TYPE_MAP.get(asset_type, asset_type)
 
-            # Save to database
             db.conn.execute(
-                """
-                INSERT OR REPLACE INTO custom_artwork
-                (app_id, artwork_type, source, source_url, file_hash,
-                 file_size, width, height, set_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (int(app_id), db_asset_type, source, source_url, file_hash, file_size, width, height, int(time.time())),
+                "INSERT OR REPLACE INTO custom_artwork"
+                " (app_id, artwork_type, source, source_url, file_hash,"
+                " file_size, width, height, set_at)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (int(app_id), db_type, source, src_url, fhash, fsize, w, h, int(time.time())),
             )
             db.commit()
-            logger.debug(f"Saved artwork metadata: {app_id} / {db_asset_type}")
+            logger.debug("saved artwork meta: %s / %s" % (app_id, db_type))
 
         except Exception as e:
-            logger.warning(f"Could not save artwork metadata: {e}")
+            logger.warning("could not save artwork meta: %s" % e)
 
     @staticmethod
-    def delete_custom_image(app_id: str, asset_type: str, db: Database | None = None) -> bool:
-        """
-        Deletes a custom image for a game from Steam's grid folder.
-
-        This method removes the image file from Steam's grid directory. If the
-        file doesn't exist, it returns True (idempotent behavior).
-
-        ENHANCED: Also removes metadata from database!
-
-        Args:
-            app_id: Steam app ID.
-            asset_type: Type of asset to delete ('grids', 'heroes', 'logos', 'icons').
-            db: Optional Database instance.
-
-        Returns:
-            True if the image was deleted or didn't exist, False if an error occurred.
-        """
+    def delete_custom_image(app_id, asset_type, db=None):
+        # remove custom image from grid dir
         try:
-            # Get Steam grid directory
-            grid_dir = SteamAssets.get_steam_grid_path()
+            gdir = SteamAssets.get_steam_grid_path()
 
-            # Determine correct filename
-            suffix = SteamAssets._FILENAME_SUFFIXES.get(asset_type)
-            if suffix is None:
+            sfx = SteamAssets._SUFFIXES.get(asset_type)
+            if sfx is None:
                 return False
-            filename = f"{app_id}{suffix}.png"
+            target = gdir / ("%s%s.png" % (app_id, sfx))
 
-            target_file = grid_dir / filename
+            if target.exists():
+                os.remove(target)
+                logger.info(t("logs.steamgrid.deleted", path=target.name))
 
-            if target_file.exists():
-                os.remove(target_file)
-                logger.info(t("logs.steamgrid.deleted", path=target_file.name))
-
-            # Remove from database
             if db:
-                db_asset_type = SteamAssets.ASSET_TYPE_MAP.get(asset_type, asset_type)
+                db_type = SteamAssets.ASSET_TYPE_MAP.get(asset_type, asset_type)
                 db.conn.execute(
-                    "DELETE FROM custom_artwork WHERE app_id = ? AND artwork_type = ?", (int(app_id), db_asset_type)
+                    "DELETE FROM custom_artwork WHERE app_id = ? AND artwork_type = ?",
+                    (int(app_id), db_type),
                 )
                 db.commit()
 
@@ -312,57 +218,40 @@ class SteamAssets:
             return False
 
     @staticmethod
-    def export_artwork_package(db: Database, export_dir: Path) -> dict[str, int]:
-        """
-        Export all custom artwork to a package for multi-device sync.
+    def export_artwork_package(db, export_dir):
+        # export all custom artwork for sync
+        art_dir = export_dir / "artwork"
+        art_dir.mkdir(parents=True, exist_ok=True)
 
-        Creates:
-        - artwork/ folder with all custom images
-        - artwork_manifest.json with metadata
+        gdir = SteamAssets.get_steam_grid_path()
 
-        Args:
-            db: Database instance.
-            export_dir: Directory to export to.
-
-        Returns:
-            Statistics dict with counts per artwork type.
-        """
-        artwork_dir = export_dir / "artwork"
-        artwork_dir.mkdir(parents=True, exist_ok=True)
-
-        grid_dir = SteamAssets.get_steam_grid_path()
-
-        cursor = db.conn.execute("SELECT * FROM custom_artwork ORDER BY app_id, artwork_type")
+        cur = db.conn.execute("SELECT * FROM custom_artwork ORDER BY app_id, artwork_type")
 
         manifest = {}
         stats = {"grid_p": 0, "grid_h": 0, "hero": 0, "logo": 0, "icon": 0}
 
-        for row in cursor.fetchall():
-            app_id = row["app_id"]
-            artwork_type = row["artwork_type"]
-            file_hash = row["file_hash"]
+        for row in cur.fetchall():
+            aid = row["app_id"]
+            atype = row["artwork_type"]
+            fhash = row["file_hash"]
 
-            # Determine source filename
-            db_suffix = SteamAssets._DB_FILENAME_SUFFIXES.get(artwork_type)
-            if db_suffix is None:
+            sfx = SteamAssets._DB_SUFFIXES.get(atype)
+            if sfx is None:
                 continue
-            source_file = grid_dir / f"{app_id}{db_suffix}.png"
+            src = gdir / ("%s%s.png" % (aid, sfx))
 
-            if not source_file.exists():
-                logger.warning(f"Missing artwork file: {source_file}")
+            if not src.exists():
+                logger.warning("missing artwork: %s" % src)
                 continue
 
-            # Copy to export folder
-            dest_filename = f"{app_id}_{artwork_type}_{file_hash[:8]}.png"
-            dest_file = artwork_dir / dest_filename
-            shutil.copy2(source_file, dest_file)
+            dest_name = "%s_%s_%s.png" % (aid, atype, fhash[:8])
+            shutil.copy2(src, art_dir / dest_name)
 
-            # Add to manifest
-            manifest[f"{app_id}_{artwork_type}"] = {
-                "app_id": app_id,
-                "artwork_type": artwork_type,
-                "filename": dest_filename,
-                "hash": file_hash,
+            manifest["%s_%s" % (aid, atype)] = {
+                "app_id": aid,
+                "artwork_type": atype,
+                "filename": dest_name,
+                "hash": fhash,
                 "source": row["source"],
                 "source_url": row["source_url"],
                 "width": row["width"],
@@ -370,83 +259,67 @@ class SteamAssets:
                 "set_at": row["set_at"],
             }
 
-            stats[artwork_type] += 1
+            stats[atype] += 1
 
-        # Save manifest
         with open(export_dir / "artwork_manifest.json", "w") as f:
             json.dump(manifest, f, indent=2)
 
-        logger.info(f"Exported {len(manifest)} custom artworks")
+        logger.info("exported %d artworks" % len(manifest))
         return stats
 
     @staticmethod
-    def import_artwork_package(db: Database, import_dir: Path) -> dict[str, int]:
-        """
-        Import artwork package from another device.
+    def import_artwork_package(db, import_dir):
+        # import artwork from another device
+        mf = import_dir / "artwork_manifest.json"
+        if not mf.exists():
+            raise FileNotFoundError("manifest not found: %s" % mf)
 
-        Args:
-            db: Database instance.
-            import_dir: Directory with artwork/ and manifest.
+        art_dir = import_dir / "artwork"
+        if not art_dir.exists():
+            raise FileNotFoundError("artwork folder not found: %s" % art_dir)
 
-        Returns:
-            Statistics dict with counts per artwork type.
-        """
-        manifest_file = import_dir / "artwork_manifest.json"
-        if not manifest_file.exists():
-            raise FileNotFoundError(f"Manifest not found: {manifest_file}")
-
-        artwork_dir = import_dir / "artwork"
-        if not artwork_dir.exists():
-            raise FileNotFoundError(f"Artwork folder not found: {artwork_dir}")
-
-        # Load manifest
-        with open(manifest_file) as f:
+        with open(mf) as f:
             manifest = json.load(f)
 
-        grid_dir = SteamAssets.get_steam_grid_path()
+        gdir = SteamAssets.get_steam_grid_path()
         stats = {"grid_p": 0, "grid_h": 0, "hero": 0, "logo": 0, "icon": 0}
 
-        for key, info in manifest.items():
-            app_id = info["app_id"]
-            artwork_type = info["artwork_type"]
-            source_file = artwork_dir / info["filename"]
+        for _key, info in manifest.items():
+            aid = info["app_id"]
+            atype = info["artwork_type"]
+            src = art_dir / info["filename"]
 
-            if not source_file.exists():
-                logger.warning(f"Missing file: {source_file}")
+            if not src.exists():
+                logger.warning("missing file: %s" % src)
                 continue
 
-            # Determine destination filename
-            db_suffix = SteamAssets._DB_FILENAME_SUFFIXES.get(artwork_type)
-            if db_suffix is None:
+            sfx = SteamAssets._DB_SUFFIXES.get(atype)
+            if sfx is None:
                 continue
-            dest_file = grid_dir / f"{app_id}{db_suffix}.png"
+            dest = gdir / ("%s%s.png" % (aid, sfx))
 
-            # Copy file
-            shutil.copy2(source_file, dest_file)
+            shutil.copy2(src, dest)
 
-            # Update database
             db.conn.execute(
-                """
-                INSERT OR REPLACE INTO custom_artwork
-                (app_id, artwork_type, source, source_url, file_hash,
-                 file_size, width, height, set_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
+                "INSERT OR REPLACE INTO custom_artwork"
+                " (app_id, artwork_type, source, source_url, file_hash,"
+                " file_size, width, height, set_at)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
-                    app_id,
-                    artwork_type,
+                    aid,
+                    atype,
                     info["source"],
                     info["source_url"],
                     info["hash"],
-                    dest_file.stat().st_size,
+                    dest.stat().st_size,
                     info["width"],
                     info["height"],
                     info["set_at"],
                 ),
             )
 
-            stats[artwork_type] += 1
+            stats[atype] += 1
 
         db.commit()
-        logger.info(f"Imported {len(manifest)} custom artworks")
+        logger.info("imported %d artworks" % len(manifest))
         return stats
