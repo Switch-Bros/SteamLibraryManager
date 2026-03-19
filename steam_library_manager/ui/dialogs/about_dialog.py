@@ -7,8 +7,6 @@
 #
 
 
-from __future__ import annotations
-
 from typing import NamedTuple
 
 from PyQt6.QtCore import Qt, pyqtSignal
@@ -78,104 +76,102 @@ def _get_about_texts() -> AboutTexts:
 
 
 # Colors
-
 _BG_DARK = "#1b2838"
-_TEXT_PRIMARY = "#c7d5e0"
-_TEXT_MUTED = "#8f98a0"
-_TEXT_LINK = "#66c0f4"
-_DIVIDER = "#2a475e"
+_TXT = "#c7d5e0"
+_TXT_DIM = "#8f98a0"
+_TXT_LINK = "#66c0f4"
+_DIV = "#2a475e"
 _BTN_BG = "#2a475e"
-_BTN_BORDER = "#3d6c8e"
+_BTN_BD = "#3d6c8e"
 
 
 class _ClickableLabel(QLabel):
-    """QLabel that emits a clicked signal on mouse press."""
+    """QLabel that emits clicked on mouse press."""
 
     clicked = pyqtSignal()
 
-    def mousePressEvent(self, ev) -> None:
-        """Emits clicked signal on any mouse press."""
+    def mousePressEvent(self, ev):
         self.clicked.emit()
         super().mousePressEvent(ev)
 
 
 class AboutDialog(BaseDialog):
-    """Professional About dialog with two-column layout and dark Steam theme."""
+    """Two-column About dialog with dark Steam theme,
+    showing version info, credits, and project links.
+    """
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent=None):
         self._click_count = 0
 
         super().__init__(
             parent,
-            title_text=f"{t('menu.help.about')} - {__app_name__}",
+            title_text="%s - %s" % (t("menu.help.about"), __app_name__),
             min_width=650,
             show_title_label=False,
             buttons="none",
         )
         self.setFixedSize(650, 400)
 
-    # UI Construction
+    # -- UI --
 
-    def _build_content(self, layout: QVBoxLayout) -> None:
-        """Builds the two-column dialog layout."""
+    def _build_content(self, layout):
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(0)
 
         root = QHBoxLayout()
         root.setSpacing(0)
 
-        # Left: Logo
-        root.addLayout(self._build_logo_column())
+        # Left: logo
+        root.addLayout(self._build_logo_col())
 
         # Vertical divider
-        divider = QFrame()
-        divider.setFrameShape(QFrame.Shape.VLine)
-        divider.setStyleSheet(f"color: {_DIVIDER};")
-        divider.setFixedWidth(1)
+        div = QFrame()
+        div.setFrameShape(QFrame.Shape.VLine)
+        div.setStyleSheet("color: %s;" % _DIV)
+        div.setFixedWidth(1)
         root.addSpacing(20)
-        root.addWidget(divider)
+        root.addWidget(div)
         root.addSpacing(20)
 
-        # Right: Info
-        root.addLayout(self._build_info_column(), stretch=1)
+        # Right: info
+        root.addLayout(self._build_info_col(), stretch=1)
 
         layout.addLayout(root)
 
         # Global stylesheet
-        self.setStyleSheet(f"""
-            QDialog {{
-                background-color: {_BG_DARK};
-            }}
-            QLabel {{
-                color: {_TEXT_PRIMARY};
+        self.setStyleSheet("""
+            QDialog {
+                background-color: %s;
+            }
+            QLabel {
+                color: %s;
                 background: transparent;
-            }}
-            QPushButton {{
-                background-color: {_BTN_BG};
-                color: {_TEXT_PRIMARY};
-                border: 1px solid {_BTN_BORDER};
+            }
+            QPushButton {
+                background-color: %s;
+                color: %s;
+                border: 1px solid %s;
                 border-radius: 3px;
                 padding: 8px 24px;
-            }}
-            QPushButton:hover {{
-                background-color: {_BTN_BORDER};
-            }}
-        """)
+            }
+            QPushButton:hover {
+                background-color: %s;
+            }
+        """ % (_BG_DARK, _TXT, _BTN_BG, _TXT, _BTN_BD, _BTN_BD))
 
-    def _build_logo_column(self) -> QVBoxLayout:
-        """Builds the left column containing the app logo."""
+    def _build_logo_col(self):
         col = QVBoxLayout()
         col.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        logo_label = _ClickableLabel()
-        logo_label.setCursor(Qt.CursorShape.PointingHandCursor)
-        logo_label.setToolTip("SwitchBros")
+        logo_lbl = _ClickableLabel()
+        logo_lbl.setCursor(Qt.CursorShape.PointingHandCursor)
+        logo_lbl.setToolTip("SwitchBros")
 
         logo_path = config.RESOURCES_DIR / "images" / "default_icons.webp"
         if logo_path.exists():
-            pixmap = QPixmap(str(logo_path))
-            logo_label.setPixmap(
-                pixmap.scaled(
+            px = QPixmap(str(logo_path))
+            logo_lbl.setPixmap(
+                px.scaled(
                     200,
                     200,
                     Qt.AspectRatioMode.KeepAspectRatio,
@@ -183,72 +179,71 @@ class AboutDialog(BaseDialog):
                 )
             )
         else:
-            logo_label.setText(__app_name__)
-            logo_label.setFont(FontHelper.get_font(16, FontHelper.BOLD))
+            logo_lbl.setText(__app_name__)
+            logo_lbl.setFont(FontHelper.get_font(16, FontHelper.BOLD))
 
-        logo_label.clicked.connect(self._on_logo_clicked)
-        col.addWidget(logo_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        logo_lbl.clicked.connect(self._on_logo_clicked)
+        col.addWidget(logo_lbl, alignment=Qt.AlignmentFlag.AlignCenter)
         return col
 
-    def _build_info_column(self) -> QVBoxLayout:
-        """Builds the right column with version, description, credits, links."""
+    def _build_info_col(self):
         col = QVBoxLayout()
         col.setSpacing(6)
 
         # App name
-        name_label = QLabel(__app_name__)
-        name_label.setFont(FontHelper.get_font(18, FontHelper.BOLD))
-        name_label.setStyleSheet("color: white;")
-        col.addWidget(name_label)
+        name_lbl = QLabel(__app_name__)
+        name_lbl.setFont(FontHelper.get_font(18, FontHelper.BOLD))
+        name_lbl.setStyleSheet("color: white;")
+        col.addWidget(name_lbl)
 
-        # Version + Release date
-        version_label = QLabel(f"Version {__version__}  -  Release: {__release_date__}")
-        version_label.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 12px;")
-        col.addWidget(version_label)
+        # Version + release date
+        ver_lbl = QLabel("Version %s  -  Release: %s" % (__version__, __release_date__))
+        ver_lbl.setStyleSheet("color: %s; font-size: 12px;" % _TXT_DIM)
+        col.addWidget(ver_lbl)
 
         col.addSpacing(8)
 
         # Description
         about = _get_about_texts()
-        desc_label = QLabel(about.description)
-        desc_label.setWordWrap(True)
-        desc_label.setStyleSheet("font-size: 13px;")
-        col.addWidget(desc_label)
+        desc_lbl = QLabel(about.description)
+        desc_lbl.setWordWrap(True)
+        desc_lbl.setStyleSheet("font-size: 13px;")
+        col.addWidget(desc_lbl)
 
         col.addSpacing(4)
-        col.addWidget(self._h_line())
+        col.addWidget(self._hline())
 
         # Credits
-        credits_header = QLabel("Credits")
-        credits_header.setFont(FontHelper.get_font(11, FontHelper.BOLD))
-        col.addWidget(credits_header)
+        cr_hdr = QLabel("Credits")
+        cr_hdr.setFont(FontHelper.get_font(11, FontHelper.BOLD))
+        col.addWidget(cr_hdr)
 
-        credits_text = QLabel(about.credits)
-        credits_text.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 12px;")
-        credits_text.setWordWrap(True)
-        col.addWidget(credits_text)
+        cr_txt = QLabel(about.credits)
+        cr_txt.setStyleSheet("color: %s; font-size: 12px;" % _TXT_DIM)
+        cr_txt.setWordWrap(True)
+        col.addWidget(cr_txt)
 
-        col.addWidget(self._h_line())
+        col.addWidget(self._hline())
 
         # License + GitHub
-        license_label = QLabel(f"License: {__license__}  |  Author: {__author__}")
-        license_label.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 12px;")
-        col.addWidget(license_label)
+        lic_lbl = QLabel("License: %s  |  Author: %s" % (__license__, __author__))
+        lic_lbl.setStyleSheet("color: %s; font-size: 12px;" % _TXT_DIM)
+        col.addWidget(lic_lbl)
 
-        github_label = QLabel(f'GitHub: <a href="{_GITHUB_URL}" style="color: {_TEXT_LINK};">{_GITHUB_URL}</a>')
-        github_label.setTextFormat(Qt.TextFormat.RichText)
-        github_label.setCursor(Qt.CursorShape.PointingHandCursor)
-        github_label.linkActivated.connect(lambda url: open_url(url))
-        github_label.setStyleSheet("font-size: 12px;")
-        col.addWidget(github_label)
+        gh_lbl = QLabel('GitHub: <a href="%s" style="color: %s;">%s</a>' % (_GITHUB_URL, _TXT_LINK, _GITHUB_URL))
+        gh_lbl.setTextFormat(Qt.TextFormat.RichText)
+        gh_lbl.setCursor(Qt.CursorShape.PointingHandCursor)
+        gh_lbl.linkActivated.connect(lambda url: open_url(url))
+        gh_lbl.setStyleSheet("font-size: 12px;")
+        col.addWidget(gh_lbl)
 
         col.addStretch()
 
         # Built-with tagline
-        built_label = QLabel(about.built_with)
-        built_label.setStyleSheet(f"color: {_TEXT_MUTED}; font-size: 11px;")
-        built_label.setAlignment(Qt.AlignmentFlag.AlignRight)
-        col.addWidget(built_label)
+        bw_lbl = QLabel(about.built_with)
+        bw_lbl.setStyleSheet("color: %s; font-size: 11px;" % _TXT_DIM)
+        bw_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
+        col.addWidget(bw_lbl)
 
         col.addSpacing(4)
 
@@ -263,19 +258,18 @@ class AboutDialog(BaseDialog):
 
         return col
 
-    # Helpers
+    # -- Helpers --
 
     @staticmethod
-    def _h_line() -> QFrame:
-        """Creates a subtle horizontal separator line."""
+    def _hline():
+        # Subtle horizontal separator
         line = QFrame()
         line.setFrameShape(QFrame.Shape.HLine)
-        line.setStyleSheet(f"color: {_DIVIDER};")
+        line.setStyleSheet("color: %s;" % _DIV)
         line.setFixedHeight(1)
         return line
 
-    def _on_logo_clicked(self) -> None:
-        """Hidden interactions based on click count."""
+    def _on_logo_clicked(self):
         self._click_count += 1
 
         if self._click_count == 3:

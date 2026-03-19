@@ -6,12 +6,9 @@
 # Licensed under the MIT License. See LICENSE for details.
 #
 
-from __future__ import annotations
-
 __all__ = ["AutoCategorizeDialog"]
 
 import logging
-from typing import Any, Callable
 
 from PyQt6.QtWidgets import (
     QComboBox,
@@ -22,7 +19,6 @@ from PyQt6.QtWidgets import (
     QLabel,
     QPushButton,
     QVBoxLayout,
-    QWidget,
 )
 
 from steam_library_manager.services.autocat_preset_manager import AutoCatPreset, AutoCatPresetManager
@@ -36,39 +32,17 @@ logger = logging.getLogger("steamlibmgr.auto_categorize_dialog")
 
 
 class AutoCategorizeDialog(BaseDialog):
-    """Dialog for configuring and starting automatic game categorization.
-
-    Attributes:
-        games: List of games to categorize (selected or uncategorized).
-        all_games_count: Total number of games in the library.
-        on_start: Callback function to execute when categorization starts.
-        category_name: Name of the category being processed, if any.
-        result: Configuration result after dialog is accepted.
+    """Configure auto-categorization methods, presets and curator
+    settings, then kick off the categorization run.
     """
 
-    def __init__(
-        self,
-        parent: QWidget | None,
-        games: list,
-        all_games_count: int,
-        on_start: Callable,
-        category_name: str | None = None,
-    ) -> None:
-        """Initialize the auto-categorize dialog.
-
-        Args:
-            parent: Parent widget.
-            games: List of games to categorize (selected or uncategorized).
-            all_games_count: Total number of games in the library.
-            on_start: Callback to execute when categorization starts.
-            category_name: Name of the category being processed, if any.
-        """
+    def __init__(self, parent, games, all_games_count, on_start, category_name=None):
         self.games = games
         self.all_games_count = all_games_count
         self.on_start = on_start
         self.category_name = category_name
-        self.result: dict[str, Any] | None = None
-        self._preset_manager = AutoCatPresetManager()
+        self.result = None
+        self._preset_mgr = AutoCatPresetManager()
 
         super().__init__(
             parent,
@@ -77,19 +51,18 @@ class AutoCategorizeDialog(BaseDialog):
             show_title_label=False,
             buttons="custom",
         )
-        self._center_on_parent()
+        self._center()
 
-    def _center_on_parent(self) -> None:
-        """Center this dialog relative to its parent window."""
+    def _center(self):
+        # Center dialog on parent window
         if self.parent():
-            parent_geo = self.parent().geometry()
+            pg = self.parent().geometry()
             self.move(
-                parent_geo.x() + (parent_geo.width() - self.width()) // 2,
-                parent_geo.y() + (parent_geo.height() - self.height()) // 2,
+                pg.x() + (pg.width() - self.width()) // 2,
+                pg.y() + (pg.height() - self.height()) // 2,
             )
 
-    def _build_content(self, layout: QVBoxLayout) -> None:
-        """Initialize and lay out all UI components."""
+    def _build_content(self, layout):
         layout.setSpacing(10)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSizeConstraint(QVBoxLayout.SizeConstraint.SetMinAndMaxSize)
@@ -100,7 +73,7 @@ class AutoCategorizeDialog(BaseDialog):
         layout.addWidget(title)
 
         # Preset section
-        self._create_preset_section(layout)
+        self._build_presets(layout)
 
         # Method selector widget
         self.selector = AutoCatMethodSelector(self, len(self.games), self.all_games_count, self.category_name)
@@ -108,88 +81,79 @@ class AutoCategorizeDialog(BaseDialog):
         layout.addWidget(self.selector)
 
         # Curator settings
-        self._create_curator_section(layout)
+        self._build_curator(layout)
 
         # Separator
-        separator = QFrame()
-        separator.setFrameShape(QFrame.Shape.HLine)
-        separator.setFrameShadow(QFrame.Shadow.Sunken)
-        layout.addWidget(separator)
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setFrameShadow(QFrame.Shadow.Sunken)
+        layout.addWidget(sep)
 
         # Warning
-        warning = QLabel(t("auto_categorize.warning_backup"))
-        warning.setStyleSheet("color: orange;")
-        layout.addWidget(warning)
+        warn = QLabel(t("auto_categorize.warning_backup"))
+        warn.setStyleSheet("color: orange;")
+        layout.addWidget(warn)
 
         # Buttons
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
 
         cancel_btn = QPushButton(t("common.cancel"))
         cancel_btn.clicked.connect(self.reject)
-        button_layout.addWidget(cancel_btn)
+        btn_row.addWidget(cancel_btn)
 
         start_btn = QPushButton(t("auto_categorize.start"))
         start_btn.setDefault(True)
         start_btn.clicked.connect(self._start)
-        button_layout.addWidget(start_btn)
+        btn_row.addWidget(start_btn)
 
-        layout.addLayout(button_layout)
+        layout.addLayout(btn_row)
 
-    def _on_methods_changed(self) -> None:
-        """Handle method selection changes from the selector."""
+    def _on_methods_changed(self):
         self.curator_group.setVisible(self.selector.is_curator_selected())
         self.adjustSize()
 
-    # ------------------------------------------------------------------
-    # Preset section
-    # ------------------------------------------------------------------
+    # -- Presets --
 
-    def _create_preset_section(self, parent_layout: QVBoxLayout) -> None:
-        """Create the preset load/save/delete section.
-
-        Args:
-            parent_layout: Layout to add the section to.
-        """
-        preset_group = QGroupBox(t("auto_categorize.preset_section"))
-        preset_layout = QHBoxLayout()
+    def _build_presets(self, parent_layout):
+        grp = QGroupBox(t("auto_categorize.preset_section"))
+        row = QHBoxLayout()
 
         self.preset_combo = QComboBox()
         self.preset_combo.setMinimumWidth(200)
-        self._refresh_preset_combo()
-        preset_layout.addWidget(self.preset_combo)
+        self._reload_presets()
+        row.addWidget(self.preset_combo)
 
         load_btn = QPushButton(t("auto_categorize.preset_load"))
         load_btn.clicked.connect(self._load_preset)
-        preset_layout.addWidget(load_btn)
+        row.addWidget(load_btn)
 
         save_btn = QPushButton(t("auto_categorize.preset_save"))
         save_btn.clicked.connect(self._save_preset)
-        preset_layout.addWidget(save_btn)
+        row.addWidget(save_btn)
 
-        delete_btn = QPushButton(t("auto_categorize.preset_delete"))
-        delete_btn.clicked.connect(self._delete_preset)
-        preset_layout.addWidget(delete_btn)
+        del_btn = QPushButton(t("auto_categorize.preset_delete"))
+        del_btn.clicked.connect(self._del_preset)
+        row.addWidget(del_btn)
 
-        preset_layout.addStretch()
-        preset_group.setLayout(preset_layout)
-        parent_layout.addWidget(preset_group)
+        row.addStretch()
+        grp.setLayout(row)
+        parent_layout.addWidget(grp)
 
-    def _refresh_preset_combo(self) -> None:
-        """Reload preset names into the combo box."""
+    def _reload_presets(self):
+        # Refresh preset combo from disk
         self.preset_combo.clear()
-        presets = self._preset_manager.load_presets()
+        presets = self._preset_mgr.load_presets()
         if not presets:
             self.preset_combo.addItem(t("auto_categorize.preset_no_presets"))
             self.preset_combo.setEnabled(False)
         else:
             self.preset_combo.setEnabled(True)
-            for preset in presets:
-                self.preset_combo.addItem(preset.name)
+            for p in presets:
+                self.preset_combo.addItem(p.name)
 
-    def _load_preset(self) -> None:
-        """Load the selected preset and apply its settings."""
-        presets = self._preset_manager.load_presets()
+    def _load_preset(self):
+        presets = self._preset_mgr.load_presets()
         if not presets:
             return
 
@@ -199,27 +163,21 @@ class AutoCategorizeDialog(BaseDialog):
 
         self._apply_preset(presets[idx])
 
-    def _apply_preset(self, preset: AutoCatPreset) -> None:
-        """Apply a preset's settings to the dialog.
-
-        Args:
-            preset: The preset to apply.
-        """
+    def _apply_preset(self, preset):
         self.selector.apply_preset(
             set(preset.methods),
             preset.tags_count,
             preset.ignore_common,
         )
 
-    def _save_preset(self) -> None:
-        """Save the current dialog settings as a named preset."""
+    def _save_preset(self):
         name, ok = QInputDialog.getText(self, t("auto_categorize.preset_save"), t("auto_categorize.preset_name_prompt"))
         if not ok or not name.strip():
             return
 
         name = name.strip()
 
-        existing = self._preset_manager.load_presets()
+        existing = self._preset_mgr.load_presets()
         if any(p.name == name for p in existing):
             if not UIHelper.confirm(
                 self,
@@ -236,16 +194,15 @@ class AutoCategorizeDialog(BaseDialog):
             ignore_common=settings["ignore_common"],
         )
 
-        self._preset_manager.save_preset(preset)
-        self._refresh_preset_combo()
+        self._preset_mgr.save_preset(preset)
+        self._reload_presets()
 
         idx = self.preset_combo.findText(name)
         if idx >= 0:
             self.preset_combo.setCurrentIndex(idx)
 
-    def _delete_preset(self) -> None:
-        """Delete the currently selected preset."""
-        presets = self._preset_manager.load_presets()
+    def _del_preset(self):
+        presets = self._preset_mgr.load_presets()
         if not presets:
             return
 
@@ -253,41 +210,27 @@ class AutoCategorizeDialog(BaseDialog):
         if idx < 0 or idx >= len(presets):
             return
 
-        self._preset_manager.delete_preset(presets[idx].name)
-        self._refresh_preset_combo()
+        self._preset_mgr.delete_preset(presets[idx].name)
+        self._reload_presets()
 
-    # ------------------------------------------------------------------
-    # Curator section
-    # ------------------------------------------------------------------
+    # -- Curator --
 
-    def _create_curator_section(self, parent_layout: QVBoxLayout) -> None:
-        """Create the curator settings section with info label.
-
-        The old live-fetch approach (URL input + recommendation type checkboxes)
-        has been replaced. Curators are now managed via Tools > Manage Curators
-        and their recommendations are stored in the database.
-
-        Args:
-            parent_layout: Layout to add the section to.
-        """
+    def _build_curator(self, parent_layout):
+        # Curator info section (curators managed via Tools menu now)
         self.curator_group = QGroupBox(t("auto_categorize.by_curator"))
-        curator_layout = QVBoxLayout()
+        cl = QVBoxLayout()
 
-        # Info label explaining the new DB-backed approach
-        info_label = QLabel(t("auto_categorize.curator_info"))
-        info_label.setWordWrap(True)
-        curator_layout.addWidget(info_label)
+        info = QLabel(t("auto_categorize.curator_info"))
+        info.setWordWrap(True)
+        cl.addWidget(info)
 
-        self.curator_group.setLayout(curator_layout)
+        self.curator_group.setLayout(cl)
         self.curator_group.setVisible(False)
         parent_layout.addWidget(self.curator_group)
 
-    # ------------------------------------------------------------------
-    # Start
-    # ------------------------------------------------------------------
+    # -- Start --
 
-    def _start(self) -> None:
-        """Start the auto-categorization process."""
+    def _start(self):
         settings = self.selector.get_settings()
         methods = settings["methods"]
 
@@ -303,10 +246,5 @@ class AutoCategorizeDialog(BaseDialog):
         if self.on_start:
             self.on_start(self.result)
 
-    def get_result(self) -> dict[str, Any] | None:
-        """Get the configuration result after the dialog is accepted.
-
-        Returns:
-            The configuration dictionary, or None if canceled.
-        """
+    def get_result(self):
         return self.result

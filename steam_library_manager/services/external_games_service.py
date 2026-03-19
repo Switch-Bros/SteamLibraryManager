@@ -6,10 +6,7 @@
 # Licensed under the MIT License. See LICENSE for details.
 #
 
-from __future__ import annotations
-
 import logging
-from typing import TYPE_CHECKING
 
 from steam_library_manager.core.shortcuts_manager import SteamShortcut, generate_shortcut_id
 from steam_library_manager.integrations.external_games.bottles_parser import BottlesParser
@@ -19,15 +16,8 @@ from steam_library_manager.integrations.external_games.heroic_epic_parser import
 from steam_library_manager.integrations.external_games.heroic_gog_parser import HeroicGOGParser
 from steam_library_manager.integrations.external_games.itch_parser import ItchParser
 from steam_library_manager.integrations.external_games.lutris_parser import LutrisParser
-from steam_library_manager.integrations.external_games.models import ExternalGame
 from steam_library_manager.integrations.external_games.rom_parser import RomParser
 from steam_library_manager.integrations.external_games.shortcuts_vdf_parser import ShortcutsVDFParser
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
-    from steam_library_manager.core.shortcuts_manager import ShortcutsManager
-    from steam_library_manager.integrations.external_games.base_parser import BaseExternalParser
 
 __all__ = ["ExternalGamesService"]
 
@@ -35,28 +25,17 @@ logger = logging.getLogger("steamlibmgr.external_games_service")
 
 
 class ExternalGamesService:
-    """Orchestrate external game scanning and Steam integration.
-
-    Args:
-        shortcuts_manager: ShortcutsManager for shortcuts.vdf operations.
+    """Orchestrates scanning external launchers and importing
+    discovered games into Steam as non-Steam shortcuts.
     """
 
-    def __init__(self, shortcuts_manager: ShortcutsManager) -> None:
-        """Initializes the service.
-
-        Args:
-            shortcuts_manager: Configured ShortcutsManager instance.
-        """
+    def __init__(self, shortcuts_manager):
         self._shortcuts_mgr = shortcuts_manager
-        self._parsers: dict[str, BaseExternalParser] = self._init_parsers()
+        self._parsers = self._init_parsers()
 
-    def _init_parsers(self) -> dict[str, BaseExternalParser]:
-        """Initialize all platform parsers.
-
-        Returns:
-            Dict mapping platform name to parser instance.
-        """
-        parsers: list[BaseExternalParser] = [
+    def _init_parsers(self):
+        # One parser per supported external platform
+        parsers = [
             HeroicEpicParser(),
             HeroicGOGParser(),
             HeroicAmazonParser(),
@@ -68,21 +47,13 @@ class ExternalGamesService:
         ]
         return {p.platform_name(): p for p in parsers}
 
-    def get_available_platforms(self) -> list[str]:
-        """Return list of platforms that are installed on this system.
-
-        Returns:
-            Platform names with available data sources.
-        """
+    def get_available_platforms(self):
+        # Platforms that are actually installed on this system
         return [name for name, parser in self._parsers.items() if parser.is_available()]
 
-    def scan_all_platforms(self) -> dict[str, list[ExternalGame]]:
-        """Scan all available platforms for installed games.
-
-        Returns:
-            Dict mapping platform name to list of found games.
-        """
-        results: dict[str, list[ExternalGame]] = {}
+    def scan_all_platforms(self):
+        # Scan every available platform, return {name: [games]}
+        results = {}
         for name, parser in self._parsers.items():
             if parser.is_available():
                 try:
@@ -93,50 +64,25 @@ class ExternalGamesService:
                     logger.exception("Error scanning %s", name)
         return results
 
-    def scan_platform(self, platform: str) -> list[ExternalGame]:
-        """Scan a single platform for installed games.
-
-        Args:
-            platform: Platform name to scan.
-
-        Returns:
-            List of found games, empty if platform unavailable.
-        """
+    def scan_platform(self, platform):
+        # Scan a single platform by name
         parser = self._parsers.get(platform)
         if not parser or not parser.is_available():
             return []
         return parser.read_games()
 
-    def get_existing_shortcuts(self) -> set[str]:
-        """Get set of app names already in shortcuts.vdf.
+    def get_existing_shortcuts(self):
+        # Lowercase set of app names already in shortcuts.vdf
+        vdf = ShortcutsVDFParser(self._shortcuts_mgr)
+        return {g.name.lower() for g in vdf.read_games()}
 
-        Case-insensitive for duplicate detection.
-
-        Returns:
-            Set of lowercase app names from shortcuts.vdf.
-        """
-        vdf_parser = ShortcutsVDFParser(self._shortcuts_mgr)
-        return {g.name.lower() for g in vdf_parser.read_games()}
-
-    def add_to_steam(
-        self,
-        game: ExternalGame,
-        category_tag: str | None = None,
-    ) -> bool:
-        """Add single game to Steam as Non-Steam shortcut.
-
-        Args:
-            game: External game to add.
-            category_tag: Optional Steam category (e.g. "GOG Games").
-
-        Returns:
-            True if added successfully, False if duplicate or error.
-        """
+    def add_to_steam(self, game, category_tag=None):
+        # Add single game as non-Steam shortcut, returns True on success
         exe = self._build_exe(game)
         start_dir = self._build_start_dir(game)
         appid = generate_shortcut_id(exe, game.name)
 
-        tags: dict[str, str] = {}
+        tags = {}
         if category_tag:
             tags["0"] = category_tag
 
@@ -152,22 +98,8 @@ class ExternalGamesService:
 
         return self._shortcuts_mgr.add_shortcut(shortcut)
 
-    def batch_add_to_steam(
-        self,
-        games: list[ExternalGame],
-        progress_callback: Callable[[int, int, str], None] | None = None,
-        category_tag: str | None = None,
-    ) -> dict[str, int]:
-        """Batch-add multiple games to Steam.
-
-        Args:
-            games: List of games to add.
-            progress_callback: Optional callback(current, total, game_name).
-            category_tag: Optional category tag for all games.
-
-        Returns:
-            Dict with keys "added", "skipped", "errors".
-        """
+    def batch_add_to_steam(self, games, progress_callback=None, category_tag=None):
+        # Batch-add games, returns {"added": N, "skipped": N, "errors": N}
         stats = {"added": 0, "skipped": 0, "errors": 0}
         total = len(games)
 
@@ -191,62 +123,30 @@ class ExternalGamesService:
         )
         return stats
 
-    def remove_from_steam(self, app_name: str) -> bool:
-        """Remove non-Steam game shortcut.
-
-        Args:
-            app_name: Name of the game to remove.
-
-        Returns:
-            True if removed successfully.
-        """
+    def remove_from_steam(self, app_name):
         return self._shortcuts_mgr.remove_shortcut(app_name)
 
     @staticmethod
-    def _build_exe(game: ExternalGame) -> str:
-        """Build the quoted exe string for shortcuts.vdf.
-
-        Args:
-            game: External game.
-
-        Returns:
-            Quoted executable path or launch command.
-        """
+    def _build_exe(game):
+        # Build quoted exe string for shortcuts.vdf
         if game.launch_command:
-            # For URI-based launchers (heroic://, lutris:, itch://)
             cmd = game.launch_command
             if "://" in cmd or cmd.startswith("flatpak run"):
-                return f'"{cmd}"'
+                return '"%s"' % cmd
             return cmd
         if game.executable:
-            return f'"{game.executable}"'
+            return '"%s"' % game.executable
         return '""'
 
     @staticmethod
-    def _build_start_dir(game: ExternalGame) -> str:
-        """Build the start directory for shortcuts.vdf.
-
-        Args:
-            game: External game.
-
-        Returns:
-            Quoted start directory path.
-        """
+    def _build_start_dir(game):
         if game.install_path:
-            return f'"{game.install_path}"'
+            return '"%s"' % game.install_path
         return '"./"'
 
     @staticmethod
-    def _build_launch_options(game: ExternalGame) -> str:
-        """Build launch options string.
-
-        Args:
-            game: External game.
-
-        Returns:
-            Launch options (empty for most games).
-        """
-        # Flatpak games have complex launch options
+    def _build_launch_options(game):
+        # Flatpak games get their options via the launch command
         if game.platform == "Flatpak" and game.launch_command.startswith("flatpak run"):
             return ""
         return ""
