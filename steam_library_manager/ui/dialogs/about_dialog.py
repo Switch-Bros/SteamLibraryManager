@@ -51,7 +51,7 @@ _ABOUT_EN = AboutTexts(
         "auto-categorization, and cloud sync."
     ),
     credits="Contributors will be listed here.",
-    built_with="Built with Python, PyQt6 & \U0001f49b\U0001f5a4\U0001f49b",
+    built_with="",  # set at runtime with emoji
 )
 
 _ABOUT_DE = AboutTexts(
@@ -61,15 +61,20 @@ _ABOUT_DE = AboutTexts(
         "Auto-Kategorisierung und Cloud-Sync."
     ),
     credits="Mitwirkende werden hier aufgef\u00fchrt.",
-    built_with="Erstellt mit Python, PyQt6 & \U0001f49b\U0001f5a4\U0001f49b",
+    built_with="",  # set at runtime with emoji
 )
 
 
 def _get_about_texts() -> AboutTexts:
     """Returns curated About texts - DE or EN (fallback)."""
-    if get_language() == "de":
-        return _ABOUT_DE
-    return _ABOUT_EN
+    from steam_library_manager.utils.i18n import t
+
+    # BVB 09 Dortmund colors - had to pick my club!
+    hearts = "%s%s%s" % (t("emoji.yellow_heart"), t("emoji.black_heart"), t("emoji.yellow_heart"))
+
+    base = _ABOUT_DE if get_language() == "de" else _ABOUT_EN
+    prefix = "Erstellt mit" if get_language() == "de" else "Built with"
+    return base._replace(built_with="%s Python, PyQt6 & %s" % (prefix, hearts))
 
 
 # Colors

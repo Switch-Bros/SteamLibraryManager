@@ -25,13 +25,14 @@ from steam_library_manager.utils.i18n import t
 __all__ = ["HealthCheckResultDialog"]
 
 # Status emoji mapping
-_STATUS_ICONS = {
-    "available": "\U0001f7e2",  # green circle
-    "age_gate": "\U0001f7e1",  # yellow circle
-    "geo_locked": "\U0001f7e1",  # yellow circle
-    "delisted": "\U0001f534",  # red circle
-    "removed": "\U0001f534",  # red circle
-    "unknown": "\u26aa",  # white circle
+# status -> emoji key (resolved at runtime via t())
+_STATUS_EMOJI_KEYS = {
+    "available": "emoji.green_circle",
+    "age_gate": "emoji.yellow_circle",
+    "geo_locked": "emoji.yellow_circle",
+    "delisted": "emoji.red_circle",
+    "removed": "emoji.red_circle",
+    "unknown": "emoji.white_circle",
 }
 
 
@@ -104,7 +105,7 @@ class HealthCheckResultDialog(BaseDialog):
             tbl.setItem(idx, 0, QTableWidgetItem(str(result.app_id)))
             tbl.setItem(idx, 1, QTableWidgetItem(result.name))
 
-            icon = _STATUS_ICONS.get(result.status, "\u26aa")
+            icon = t(_STATUS_EMOJI_KEYS.get(result.status, "emoji.white_circle"))
             status_txt = t("health_check.store_status.%s" % result.status)
             item = QTableWidgetItem("%s %s" % (icon, status_txt))
             item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)

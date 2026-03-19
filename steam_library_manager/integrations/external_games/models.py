@@ -69,31 +69,31 @@ SUPPORTED_PLATFORMS: tuple[str, ...] = (
 # Mapping: Collection-Name -> emoji.json Key (NOT the emoji itself!)
 # t() is called lazily in get_collection_emoji() — NOT at import time!
 _COLLECTION_EMOJI_KEYS: dict[str, str] = {
-    # Platform parsers (Phase 6.5)
-    "Epic Games": "emoji.epic",
-    "GOG Galaxy": "emoji.gog",
-    "Amazon Games": "emoji.amazon",
-    "Lutris": "emoji.game",
+    # Platform parsers
+    "Epic Games": "emoji.blue_square",
+    "GOG Galaxy": "emoji.purple_circle",
+    "Amazon Games": "emoji.orange_circle",
+    "Lutris": "emoji.controller",
     "Bottles": "emoji.bottles",
     "itch.io": "emoji.dice",
     "Flatpak": "emoji.flatpak",
     "Heroic": "emoji.heroic",
-    "EA": "emoji.ea",
+    "EA": "emoji.red_circle",
     "Ubisoft": "emoji.ubisoft",
-    # ROM systems (Phase 6.5.2)
-    "Nintendo Switch": "emoji.switch",
-    "Nintendo Wii U": "emoji.wiiu",
-    "Nintendo Wii": "emoji.wii",
-    "Nintendo 3DS": "emoji.3ds",
-    "Nintendo DS": "emoji.ds",
-    "Game Boy Advance": "emoji.gba",
-    "Game Boy": "emoji.gameboy",
-    "Super Nintendo": "emoji.snes",
-    "Nintendo Entertainment System": "emoji.nes",
-    "Nintendo 64": "emoji.n64",
-    "Nintendo GameCube": "emoji.gamecube",
-    "PlayStation Portable": "emoji.psp",
-    "MS-DOS": "emoji.msdos",
+    # ROM systems
+    "Nintendo Switch": "emoji.red_circle",
+    "Nintendo Wii U": "emoji.blue_circle",
+    "Nintendo Wii": "emoji.white_circle",
+    "Nintendo 3DS": "emoji.handheld",
+    "Nintendo DS": "emoji.handheld",
+    "Game Boy Advance": "emoji.green_circle",
+    "Game Boy": "emoji.green_circle",
+    "Super Nintendo": "emoji.purple_square",
+    "Nintendo Entertainment System": "emoji.joystick",
+    "Nintendo 64": "emoji.yellow_circle",
+    "Nintendo GameCube": "emoji.brown_circle",
+    "PlayStation Portable": "emoji.blue_circle",
+    "MS-DOS": "emoji.disk",
 }
 
 

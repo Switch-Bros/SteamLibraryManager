@@ -39,7 +39,7 @@ class ToolbarBuilder:
         tb.addAction(a)
 
         # save
-        a = QAction("%s %s" % (t("emoji.save"), t("common.save")), self.mw)
+        a = QAction("%s %s" % (t("emoji.disk"), t("common.save")), self.mw)
         a.setToolTip(t("common.save"))
         a.triggered.connect(self.mw.file_actions.force_save)
         tb.addAction(a)
