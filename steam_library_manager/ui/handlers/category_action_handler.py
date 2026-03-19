@@ -2,7 +2,7 @@
 # steam_library_manager/ui/handlers/category_action_handler.py
 # Handler for category (collection) actions and context menus.
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 
@@ -23,19 +23,17 @@ __all__ = ["CategoryActionHandler"]
 
 
 class CategoryActionHandler:
-    """Handles category/collection CRUD operations and context menus.
+    """Handles category/collection CRUD and context menus.
 
-    Every mutation method ends with the three-step flush:
-    save_collections, populate_categories, update_statistics.
+    Every mutation ends with _flush() to persist + refresh UI.
     """
 
-    def __init__(self, main_window: "MainWindow") -> None:
-        self.mw: "MainWindow" = main_window
+    def __init__(self, main_window: "MainWindow"):
+        # keep ref to main window for accessing services
+        self.mw = main_window
 
-    # Context menus
-
-    def on_game_right_click(self, game: Game, pos) -> None:
-        """Show the context menu for a right-clicked game."""
+    def on_game_right_click(self, game: Game, pos):
+        # build context menu for game item
         mw = self.mw
         menu = QMenu(mw)
 
@@ -44,7 +42,7 @@ class CategoryActionHandler:
 
         menu.addSeparator()
 
-        # Hide / Unhide toggle
+        # hide/unhide toggle
         if hasattr(game, "hidden"):
             if game.hidden:
                 menu.addAction(t("ui.context_menu.unhide_game"), lambda: mw.game_actions.toggle_hide_game(game, False))
@@ -55,18 +53,18 @@ class CategoryActionHandler:
         menu.addAction(t("ui.context_menu.remove_from_account"), lambda: mw.game_actions.remove_game_from_account(game))
 
         menu.addSeparator()
-        # Note: open_in_store is now a static method in GameActions
+
         from steam_library_manager.ui.actions.game_actions import GameActions
 
         menu.addAction(t("ui.context_menu.open_store"), lambda: GameActions.open_in_store(game))
         menu.addAction(
-            f"{t('emoji.search')} {t('ui.context_menu.check_store')}",
+            "%s %s" % (t("emoji.search"), t("ui.context_menu.check_store")),
             lambda: mw.tools_actions.check_store_availability(game),
         )
 
         menu.addSeparator()
 
-        # Auto-categorize: single game or current multi-selection
+        # auto-categorize: single or multi-selection
         if len(mw.selected_games) > 1:
             menu.addAction(t("menu.edit.auto_categorize"), mw.edit_actions.auto_categorize_selected)
         else:
@@ -87,56 +85,51 @@ class CategoryActionHandler:
 
         menu.exec(pos)
 
-    def on_category_right_click(self, category: str, pos) -> None:
-        """Show the context menu for a right-clicked category."""
+    def on_category_right_click(self, category, pos):
+        # context menu for category tree item
         mw = self.mw
         menu = QMenu(mw)
 
-        # --- Multi-category selection ---
+        # multi-selection handling
         if category == "__MULTI__":
-            selected_categories: list[str] = mw.tree.get_selected_categories()
-            if len(selected_categories) > 1:
-                menu.addAction(
-                    t("ui.context_menu.merge_categories"), lambda: self.merge_categories(selected_categories)
-                )
+            sel_cats = mw.tree.get_selected_categories()
+            if len(sel_cats) > 1:
+                menu.addAction(t("ui.context_menu.merge_categories"), lambda: self.merge_categories(sel_cats))
                 menu.addSeparator()
-                menu.addAction(t("common.delete"), lambda: self.delete_multiple_categories(selected_categories))
+                menu.addAction(t("common.delete"), lambda: self.delete_multiple_categories(sel_cats))
             menu.exec(pos)
             return
 
-        # --- Steam-Standard-Collections are not editable ---
+        # steam collections are protected - read-only
         from steam_library_manager.ui.constants import get_protected_collection_names
 
         if category in get_protected_collection_names():
-            # ONLY allow Auto-Categorize, NOTHING else!
+            # only auto-categorize allowed, nothing else
             menu.addAction(t("menu.edit.auto_categorize"), lambda: mw.edit_actions.auto_categorize_category(category))
             menu.exec(pos)
             return
 
-        else:
-            # --- Normal user category ---
-            menu.addAction(t("common.rename"), lambda: self.rename_category(category))
-            menu.addAction(t("common.delete"), lambda: self.delete_category(category))
+        # normal user category
+        menu.addAction(t("common.rename"), lambda: self.rename_category(category))
+        menu.addAction(t("common.delete"), lambda: self.delete_category(category))
 
-            # Check if this category has duplicates
-            if mw.cloud_storage_parser:
-                dup_groups = mw.cloud_storage_parser.get_duplicate_groups()
-                if category in dup_groups:
-                    menu.addSeparator()
-                    menu.addAction(
-                        t("ui.context_menu.merge_duplicate_collection", name=category),
-                        lambda: self.show_merge_duplicates_dialog(filter_name=category),
-                    )
+        # check for duplicates in this cat
+        if mw.cloud_storage_parser:
+            dups = mw.cloud_storage_parser.get_duplicate_groups()
+            if category in dups:
+                menu.addSeparator()
+                menu.addAction(
+                    t("ui.context_menu.merge_duplicate_collection", name=category),
+                    lambda: self.show_merge_duplicates_dialog(filter_name=category),
+                )
 
-            menu.addSeparator()
-            menu.addAction(t("menu.edit.auto_categorize"), lambda: mw.edit_actions.auto_categorize_category(category))
+        menu.addSeparator()
+        menu.addAction(t("menu.edit.auto_categorize"), lambda: mw.edit_actions.auto_categorize_category(category))
 
         menu.exec(pos)
 
-    # Category CRUD
-
-    def rename_category(self, old_name: str) -> None:
-        """Prompt for a new name and rename the category."""
+    def rename_category(self, old_name):
+        # prompt for new name
         mw = self.mw
         if not mw.category_service:
             return
@@ -150,123 +143,113 @@ class CategoryActionHandler:
             except ValueError as e:
                 UIHelper.show_error(mw, str(e))
 
-    def delete_category(self, category: str) -> None:
-        """Confirm and delete a single category."""
+    def delete_category(self, cat):
+        # confirm then nuke it
         mw = self.mw
         if not mw.category_service:
             return
 
-        if UIHelper.confirm(mw, t("categories.delete_msg", category=category), t("categories.delete_title")):
-            mw.category_service.delete_category(category)
+        if UIHelper.confirm(mw, t("categories.delete_msg", category=cat), t("categories.delete_title")):
+            mw.category_service.delete_category(cat)
             self._flush(stats=True)
 
-    def delete_multiple_categories(self, categories: list[str]) -> None:
-        """Confirm and delete multiple categories at once."""
+    def delete_multiple_categories(self, cats):
+        # bulk delete with bullet list
         mw = self.mw
-        if not mw.category_service or not categories:
+        if not mw.category_service or not cats:
             return
 
-        # Build bullet-point list for the confirmation dialog
-        category_list: str = "\n• ".join(categories)
-        message: str = t("categories.delete_multiple_msg", count=len(categories), category_list=f"• {category_list}")
+        # build bullet list for dialog
+        bullets = "\n• ".join(cats)
+        msg = t("categories.delete_multiple_msg", count=len(cats), category_list="• %s" % bullets)
 
-        if UIHelper.confirm(mw, message, t("categories.delete_title")):
-            mw.category_service.delete_multiple_categories(categories)
+        if UIHelper.confirm(mw, msg, t("categories.delete_title")):
+            mw.category_service.delete_multiple_categories(cats)
             self._flush(stats=True)
 
-    def merge_categories(self, categories: list[str]) -> None:
-        """Show a target-selection dialog and merge categories."""
+    def merge_categories(self, cats):
+        # show target picker and merge
         mw = self.mw
-        if not mw.category_service or len(categories) < 2:
+        if not mw.category_service or len(cats) < 2:
             return
 
-        # --- Build the selection dialog inline (small, one-off UI) ---
-        dialog = QDialog(mw)
-        dialog.setWindowTitle(t("categories.merge_title"))
-        dialog.setMinimumWidth(400)
+        # build dialog inline - ugh, should be separate class
+        dlg = QDialog(mw)
+        dlg.setWindowTitle(t("categories.merge_title"))
+        dlg.setMinimumWidth(400)
 
         layout = QVBoxLayout()
 
-        # Instruction text
-        label = QLabel(t("categories.merge_instruction", count=len(categories)))
-        label.setWordWrap(True)
-        layout.addWidget(label)
+        lbl = QLabel(t("categories.merge_instruction", count=len(cats)))
+        lbl.setWordWrap(True)
+        layout.addWidget(lbl)
 
-        # Sorted list of categories
-        list_widget = QListWidget()
-        for cat in sorted(categories):
-            list_widget.addItem(cat)
-        list_widget.setCurrentRow(0)
-        layout.addWidget(list_widget)
+        lst = QListWidget()
+        for c in sorted(cats):
+            lst.addItem(c)
+        lst.setCurrentRow(0)
+        layout.addWidget(lst)
 
-        # OK / Cancel
-        button_box = QDialogButtonBox()
-        button_box.addButton(t("common.ok"), QDialogButtonBox.ButtonRole.AcceptRole)
-        button_box.addButton(t("common.cancel"), QDialogButtonBox.ButtonRole.RejectRole)
-        button_box.accepted.connect(dialog.accept)
-        button_box.rejected.connect(dialog.reject)
-        layout.addWidget(button_box)
+        # buttons
+        btns = QDialogButtonBox()
+        btns.addButton(t("common.ok"), QDialogButtonBox.ButtonRole.AcceptRole)
+        btns.addButton(t("common.cancel"), QDialogButtonBox.ButtonRole.RejectRole)
+        btns.accepted.connect(dlg.accept)
+        btns.rejected.connect(dlg.reject)
+        layout.addWidget(btns)
 
-        dialog.setLayout(layout)
+        dlg.setLayout(layout)
 
-        # --- Execute and process result ---
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            selected_item = list_widget.currentItem()
-            if not selected_item:
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            item = lst.currentItem()
+            if not item:
                 return
 
-            target_category: str = selected_item.text()
-            source_categories: list[str] = [cat for cat in categories if cat != target_category]
+            target = item.text()
+            src = [c for c in cats if c != target]
 
-            if not source_categories:
-                # All categories have the same name → open merge dialog
-                # (not destructive remove - that would lose games!)
-                self.show_merge_duplicates_dialog(filter_name=target_category)
+            if not src:
+                # all same name -> merge dups
+                self.show_merge_duplicates_dialog(filter_name=target)
                 return
 
-            success = mw.category_service.merge_categories(categories, target_category)
-            if success:
+            if mw.category_service.merge_categories(cats, target):
                 self._flush()
                 UIHelper.show_success(
                     mw,
-                    t("categories.merge_success", target=target_category, count=len(source_categories)),
+                    t("categories.merge_success", target=target, count=len(src)),
                     t("categories.merge_title"),
                 )
 
-    # Duplicate merging
-
-    def show_merge_duplicates_dialog(self, filter_name: str | None = None) -> None:
-        """Show the merge-duplicates dialog and execute the merge."""
+    def show_merge_duplicates_dialog(self, filter_name=None):
+        # handle duplicate collection names
         mw = self.mw
         if not mw.cloud_storage_parser or not mw.category_service:
             UIHelper.show_error(mw, t("ui.main_window.cloud_storage_only"))
             return
 
-        dup_groups = mw.cloud_storage_parser.get_duplicate_groups()
-        if not dup_groups:
+        groups = mw.cloud_storage_parser.get_duplicate_groups()
+        if not groups:
             UIHelper.show_info(mw, t("categories.no_duplicates_found"))
             return
 
-        # If filtering by name and that name has no duplicates
-        if filter_name and filter_name not in dup_groups:
+        if filter_name and filter_name not in groups:
             UIHelper.show_info(mw, t("categories.no_duplicates_found"))
             return
 
         from steam_library_manager.ui.dialogs.merge_duplicates_dialog import MergeDuplicatesDialog
 
-        dialog = MergeDuplicatesDialog(mw, dup_groups, filter_name=filter_name)
-        if dialog.exec() == MergeDuplicatesDialog.DialogCode.Accepted:
-            merge_plan = dialog.get_merge_plan()
-            if merge_plan:
-                merged = mw.category_service.merge_duplicate_collections(merge_plan)
+        dlg = MergeDuplicatesDialog(mw, groups, filter_name=filter_name)
+        if dlg.exec() == MergeDuplicatesDialog.DialogCode.Accepted:
+            plan = dlg.get_merge_plan()
+            if plan:
+                merged = mw.category_service.merge_duplicate_collections(plan)
                 if merged > 0:
                     self._flush(stats=True)
                     UIHelper.show_success(mw, t("categories.merge_duplicates_success", count=merged))
 
-    # Collection creation
-
-    def _create_collection_with_games(self, games: list[Game]) -> None:
-        """Prompt for a name, create a collection, and add the given games."""
+    def _create_collection_with_games(self, games: list[Game]):
+        # prompt name, create, add games
         mw = self.mw
         if not mw.category_service:
             return
@@ -285,8 +268,8 @@ class CategoryActionHandler:
             UIHelper.show_error(mw, str(e))
             return
 
-        for game in games:
-            mw.category_service.add_app_to_category(game.app_id, name)
+        for g in games:
+            mw.category_service.add_app_to_category(g.app_id, name)
 
         self._flush()
 
@@ -296,17 +279,11 @@ class CategoryActionHandler:
                 t("ui.main_window.collection_created_with_games", name=name, count=len(games)),
             )
         else:
-            UIHelper.show_success(
-                mw,
-                t("ui.main_window.collection_created", name=name),
-            )
+            UIHelper.show_success(mw, t("ui.main_window.collection_created", name=name))
 
-    # Internal helpers
-
-    def _flush(self, *, stats: bool = False) -> None:
-        """Persist collections and refresh the UI."""
+    def _flush(self, stats=False):
+        # persist and refresh
         self.mw.save_collections()
         self.mw.populate_categories()
-
         if stats:
             self.mw.update_statistics()

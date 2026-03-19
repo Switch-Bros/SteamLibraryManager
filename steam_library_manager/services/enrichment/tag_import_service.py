@@ -2,7 +2,7 @@
 # steam_library_manager/services/enrichment/tag_import_service.py
 # Service to import Steam tags in bulk from the store API
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 
@@ -22,12 +22,10 @@ __all__ = ["TagImportThread"]
 
 
 class TagImportThread(QThread):
-    """Background thread for extracting tags from appinfo.vdf.
+    """Background thread to slurp Steam tags into the DB.
 
-    Signals:
-        progress: Emitted for progress updates (message, current, total).
-        finished_import: Emitted on completion (games_tagged, total_tags).
-        error: Emitted on fatal errors (error_message).
+    Reads appinfo.vdf (huge!), filters for games we actually own,
+    then resolves tag IDs to localized names. Emits progress signals.
     """
 
     progress = pyqtSignal(str, int, int)
@@ -35,7 +33,6 @@ class TagImportThread(QThread):
     error = pyqtSignal(str)
 
     def __init__(self, parent: Any = None) -> None:
-        """Initializes the TagImportThread."""
         super().__init__(parent)
         self._cancelled: bool = False
         self._steam_path: Path | None = None
@@ -48,23 +45,16 @@ class TagImportThread(QThread):
         db_path: Path,
         language: str = "en",
     ) -> None:
-        """Configure the import parameters.
-
-        Args:
-            steam_path: Path to Steam installation directory.
-            db_path: Path to the metadata database.
-            language: Language code for tag name resolution.
-        """
+        # setup paths before start()
         self._steam_path = steam_path
         self._db_path = db_path
         self._language = language
 
     def cancel(self) -> None:
-        """Request cancellation of the import."""
         self._cancelled = True
 
     def run(self) -> None:
-        """Execute the tag import in a background thread."""
+        # main thread entry
         if not self._steam_path or not self._db_path:
             self.error.emit("Tag import not configured")
             return
@@ -76,135 +66,120 @@ class TagImportThread(QThread):
             self.error.emit(str(exc))
 
     def _run_import(self) -> None:
-        """Parse appinfo.vdf and extract store_tags for all games."""
+        # heavy lifting - parses vdf and writes to sqlite
         from steam_library_manager.core.appinfo_manager import AppInfoManager
         from steam_library_manager.core.database import Database
         from steam_library_manager.utils.tag_resolver import TagResolver
 
         self.progress.emit(t("ui.tag_import.loading_appinfo"), 0, 0)
 
-        # Load appinfo.vdf (the expensive operation)
-        appinfo_mgr = AppInfoManager(self._steam_path)
-        appinfo_mgr.load_appinfo()
+        mgr = AppInfoManager(self._steam_path)
+        mgr.load_appinfo()  # slow as hell on HDDs
 
-        if not appinfo_mgr.appinfo or not appinfo_mgr.appinfo.apps:
+        if not mgr.appinfo or not mgr.appinfo.apps:
             self.error.emit(t("ui.tag_import.no_appinfo"))
             return
 
-        apps = appinfo_mgr.appinfo.apps
+        apps = mgr.appinfo.apps
         total = len(apps)
-
         self.progress.emit(t("ui.tag_import.extracting", total=total), 0, total)
 
-        # Open DB and ensure tag definitions are loaded
         db = Database(self._db_path)
         try:
-            resolver = TagResolver(db)
-            resolver.ensure_loaded()
+            res = TagResolver(db)
+            res.ensure_loaded()
 
-            # Only import tags for games that exist in our DB
-            # (appinfo.vdf has ~5000 apps, games table may have fewer)
-            known_app_ids = db.get_all_app_ids()
+            # appinfo.vdf lists every app Valve knows about, but we only
+            # care about games the user actually has in the library
+            known_ids = db.get_all_app_ids()
             logger.info(
                 "Filtering tags: %d apps in appinfo, %d in games table",
                 total,
-                len(known_app_ids),
+                len(known_ids),
             )
 
-            # Extract store_tags + review data from each app
-            batch: list[tuple[int, int, str]] = []
-            review_batch: list[tuple[int, int]] = []
-            games_with_tags = 0
-            processed = 0
+            batch = []
+            rev_batch = []
+            tagged = 0
+            done = 0
 
             for app_id, app_data in apps.items():
                 if self._cancelled:
                     break
+                done += 1
 
-                processed += 1
-                if processed % 500 == 0:
+                # throttle UI updates
+                if done % 500 == 0:
                     self.progress.emit(
-                        t("ui.tag_import.progress", current=processed, total=total),
-                        processed,
+                        t("ui.tag_import.progress", current=done, total=total),
+                        done,
                         total,
                     )
 
-                # Skip apps not in our games table (FK constraint)
-                if app_id not in known_app_ids:
-                    continue
+                if app_id not in known_ids:
+                    continue  # skip - we don't own this
 
                 vdf_data = app_data.get("data", {})
                 common = AppInfoManager._find_common_section(vdf_data)
                 if not common:
                     continue
 
-                # Extract review_percentage (0-100) and store in DB
                 review_pct = common.get("review_percentage")
                 if review_pct is not None:
                     try:
-                        review_batch.append((int(review_pct), app_id))
+                        rev_batch.append((int(review_pct), app_id))
                     except (ValueError, TypeError):
-                        pass
+                        pass  # whatever, corrupted data
 
                 store_tags = common.get("store_tags", {})
                 if not store_tags or not isinstance(store_tags, dict):
                     continue
 
-                # store_tags is {"0": "19", "1": "122", ...} or {"0": 19, "1": 122, ...}
+                # values can be str or int depending on vdf version
                 tag_ids = self._extract_tag_ids(store_tags)
                 if not tag_ids:
                     continue
 
-                games_with_tags += 1
+                tagged += 1
                 for tag_id in tag_ids:
-                    name = resolver.resolve_tag_id(tag_id, self._language)
+                    name = res.resolve_tag_id(tag_id, self._language)
                     if name:
                         batch.append((app_id, tag_id, name))
 
-                # Commit in batches of 5000 to avoid huge transactions
+                # flush periodically to avoid giant transactions
                 if len(batch) >= 5000:
                     db.bulk_insert_game_tags_by_id(batch)
                     db.commit()
                     batch.clear()
 
-            # Final tag batch
             if batch:
                 db.bulk_insert_game_tags_by_id(batch)
                 db.commit()
 
-            # Persist review percentages to games table
-            if review_batch:
-                db.bulk_update_review_percentages(review_batch)
+            if rev_batch:
+                db.bulk_update_review_percentages(rev_batch)
                 db.commit()
-                logger.info("Updated review percentages for %d games", len(review_batch))
+                logger.info("Updated review percentages for %d games" % len(rev_batch))
 
             total_tags = db.get_game_tag_count()
             logger.info(
-                "Tag import complete: %d games tagged, %d total associations",
-                games_with_tags,
+                "Tag import done: %d games, %d tag associations",
+                tagged,
                 total_tags,
             )
-            self.finished_import.emit(games_with_tags, total_tags)
+            self.finished_import.emit(tagged, total_tags)
 
         finally:
             db.close()
 
     @staticmethod
     def _extract_tag_ids(store_tags: dict) -> list[int]:
-        """Extract numeric TagIDs from the store_tags dict.
-
-        appinfo.vdf stores tags as {"0": "19", "1": "122"} or {"0": 19, "1": 122}.
-
-        Args:
-            store_tags: The store_tags dictionary from appinfo.vdf common section.
-
-        Returns:
-            List of numeric TagIDs.
-        """
+        # pull numeric tag IDs out of store_tags
+        # vdf quirk: tags can be str or int depending on version
         tag_ids: list[int] = []
         for value in store_tags.values():
             try:
                 tag_ids.append(int(value))
             except (ValueError, TypeError):
-                continue
+                continue  # garbage data, skip
         return tag_ids

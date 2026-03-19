@@ -2,7 +2,7 @@
 # steam_library_manager/services/enrichment/enrichment_service.py
 # Coordinator that dispatches and tracks all enrichment services
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 
@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from steam_library_manager.services.enrichment.base_enrichment_thread import BaseEnrichmentThread
 from steam_library_manager.utils.age_ratings import convert_to_pegi
@@ -26,43 +26,21 @@ __all__ = ["EnrichmentThread"]
 
 
 class EnrichmentThread(BaseEnrichmentThread):
-    """Background thread for metadata enrichment operations.
+    """Thread for enriching game metadata from external APIs."""
 
-    Supports two modes:
-    - HLTB: Per-game enrichment using the base class template pattern.
-    - Steam API: Batch enrichment with custom run logic.
-
-    Configure with configure_hltb() or configure_steam() before starting.
-    """
-
-    def __init__(self, parent: Any = None) -> None:
-        """Initializes the EnrichmentThread."""
+    def __init__(self, parent=None):
+        # init thread
         super().__init__(parent)
-        self._mode: str = ""
-        self._games: list[tuple[int, str]] = []
-        self._db_path: Path | None = None
-        self._hltb_client: HLTBClient | None = None
-        self._steam_user_id: str = ""
-        self._api_key: str = ""
-        self._db: Any = None
+        self._mode = ""
+        self._games = []
+        self._db_path = None
+        self._hltb_client = None
+        self._steam_user_id = ""
+        self._api_key = ""
+        self._db = None
 
-    def configure_hltb(
-        self,
-        games: list[tuple[int, str]],
-        db_path: Path,
-        hltb_client: HLTBClient,
-        steam_user_id: str = "",
-        force_refresh: bool = False,
-    ) -> None:
-        """Configures the thread for HLTB enrichment.
-
-        Args:
-            games: List of (app_id, name) tuples to enrich.
-            db_path: Path to the SQLite database file.
-            hltb_client: HLTB client for searching.
-            steam_user_id: 64-bit Steam ID for Steam Import prefetch.
-            force_refresh: If True, re-process all games instead of only missing.
-        """
+    def configure_hltb(self, games, db_path: Path, hltb_client: HLTBClient, steam_user_id="", force_refresh=False):
+        # setup for HLTB mode
         self._mode = "hltb"
         self._games = games
         self._db_path = db_path
@@ -70,52 +48,34 @@ class EnrichmentThread(BaseEnrichmentThread):
         self._steam_user_id = steam_user_id
         self._force_refresh = force_refresh
 
-    def configure_steam(
-        self,
-        games: list[tuple[int, str]],
-        db_path: Path,
-        api_key: str,
-        force_refresh: bool = False,
-    ) -> None:
-        """Configures the thread for Steam API enrichment.
-
-        Args:
-            games: List of (app_id, name) tuples to enrich.
-            db_path: Path to the SQLite database file.
-            api_key: Steam Web API key.
-            force_refresh: If True, re-process all games instead of only missing.
-        """
+    def configure_steam(self, games, db_path: Path, api_key, force_refresh=False):
+        # setup for Steam API mode
         self._mode = "steam"
         self._games = games
         self._db_path = db_path
         self._api_key = api_key
         self._force_refresh = force_refresh
 
-    def run(self) -> None:
-        """Dispatches to HLTB template or Steam custom implementation."""
+    def run(self):
+        # dispatch to correct handler
         if self._mode == "hltb":
             super().run()
         elif self._mode == "steam":
             self._run_steam()
 
-    # ── BaseEnrichmentThread hooks (HLTB mode) ─────────
+    # --- HLTB mode hooks ---
 
-    def _setup(self) -> None:
-        """Opens the database connection and pre-loads the HLTB ID cache.
-
-        Loads cached steam_app_id → hltb_game_id mappings from the DB.
-        If a Steam user ID is configured and the cache is empty,
-        fetches fresh mappings via the Steam Import API.
-        """
+    def _setup(self):
+        # open db and load cache
         from steam_library_manager.core.database import Database
 
         self._db = Database(self._db_path)
 
-        # Load existing ID cache from DB
-        cached_mappings = self._db.load_hltb_id_cache()
+        # load existing mappings
+        cached = self._db.load_hltb_id_cache()
 
-        # If cache is empty and we have a Steam user ID, fetch from API
-        if not cached_mappings and self._steam_user_id and self._hltb_client:
+        # if empty and we have steam ID, fetch from API
+        if not cached and self._steam_user_id and self._hltb_client:
             self.progress.emit(
                 t("ui.enrichment.steam_import_loading"),
                 0,
@@ -124,32 +84,25 @@ class EnrichmentThread(BaseEnrichmentThread):
             api_mappings = self._hltb_client.fetch_steam_import(self._steam_user_id)
             if api_mappings:
                 self._db.save_hltb_id_cache(api_mappings)
-                cached_mappings = api_mappings
+                cached = api_mappings
                 logger.info("HLTB Steam Import: saved %d mappings to DB", len(api_mappings))
 
-        # Populate the client's in-memory cache
-        if cached_mappings and self._hltb_client:
-            self._hltb_client.set_id_cache(cached_mappings)
+        # populate client cache
+        if cached and self._hltb_client:
+            self._hltb_client.set_id_cache(cached)
 
-    def _cleanup(self) -> None:
-        """Closes the database connection."""
+    def _cleanup(self):
+        # close db connection
         if self._db:
             self._db.close()
             self._db = None
 
-    def _get_items(self) -> list:
-        """Returns the list of games to enrich."""
+    def _get_items(self):
+        # return games list
         return self._games
 
-    def _process_item(self, item: Any) -> bool:
-        """Enriches a single game with HLTB data.
-
-        Args:
-            item: Tuple of (app_id, name).
-
-        Returns:
-            True if meaningful HLTB times were found and stored.
-        """
+    def _process_item(self, item):
+        # enrich single game with HLTB data
         app_id, name = item
         result = self._hltb_client.search_game(name, app_id)
 
@@ -177,9 +130,8 @@ class EnrichmentThread(BaseEnrichmentThread):
             logger.debug("HLTB matched '%s' but 0h times, saved as checked", name)
             return False
 
-        # Mark as checked with NULL times so it won't be retried.
-        # _batch_get_hltb() filters with "AND main_story IS NOT NULL",
-        # so these won't appear as 0-hour games in the UI.
+        # mark as checked with NULL times so it won't be retried
+        # dunno why HLTB returns empty results but we need to track it
         self._db.conn.execute(
             """
             INSERT OR REPLACE INTO hltb_data
@@ -192,28 +144,19 @@ class EnrichmentThread(BaseEnrichmentThread):
         logger.info("HLTB miss: %d '%s' (marked as checked)", app_id, name)
         return False
 
-    def _format_progress(self, item: Any, current: int, total: int) -> str:
-        """Formats progress text with the game name.
-
-        Args:
-            item: Tuple of (app_id, name).
-            current: 1-based current index.
-            total: Total games count.
-
-        Returns:
-            Formatted progress string.
-        """
+    def _format_progress(self, item, current, total):
+        # format progress text with game name
         _app_id, name = item
         return t("ui.enrichment.progress", name=name, current=current, total=total)
 
-    def _rate_limit(self) -> None:
-        """Sleeps 200ms between HLTB requests."""
+    def _rate_limit(self):
+        # sleep between requests - HLTB gets angry if we go too fast
         time.sleep(0.2)
 
-    # ── Steam API mode (custom batch processing) ───────
+    # --- Steam API mode ---
 
-    def _run_steam(self) -> None:
-        """Enriches games with metadata from the Steam Web API."""
+    def _run_steam(self):
+        # batch enrich from Steam Web API
         from steam_library_manager.core.database import Database
         from steam_library_manager.integrations.steam_web_api import SteamWebAPI
 
@@ -244,7 +187,7 @@ class EnrichmentThread(BaseEnrichmentThread):
                 batch = app_ids[batch_start : batch_start + batch_size]
                 current = min(batch_start + batch_size, total)
 
-                batch_name = f"Batch {batch_start // batch_size + 1}"
+                batch_name = "Batch %d" % (batch_start // batch_size + 1)
                 self.progress.emit(
                     t("ui.enrichment.progress", name=batch_name, current=current, total=total),
                     current,
@@ -255,7 +198,7 @@ class EnrichmentThread(BaseEnrichmentThread):
                     details_map = api.get_app_details_batch(batch)
 
                     for aid, details in details_map.items():
-                        update_fields: dict = {}
+                        update_fields = {}
                         if details.name:
                             update_fields["name"] = details.name
                         if details.developers:
@@ -283,7 +226,7 @@ class EnrichmentThread(BaseEnrichmentThread):
                             }
                             db.upsert_languages(aid, lang_dict)
 
-                        # Extract PEGI from batch age_ratings (zero extra HTTP requests)
+                        # extract PEGI from age ratings - ugh, so many formats
                         if details.age_ratings:
                             pegi_value = None
                             for system, value in details.age_ratings:

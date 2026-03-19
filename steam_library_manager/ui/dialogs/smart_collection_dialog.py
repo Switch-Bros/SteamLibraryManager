@@ -2,7 +2,7 @@
 # steam_library_manager/ui/dialogs/smart_collection_dialog.py
 # Dialog for creating and editing smart collections with rules
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 
@@ -51,44 +51,26 @@ logger = logging.getLogger("steamlibmgr.smart_collection_dialog")
 
 
 class SmartCollectionDialog(QDialog):
-    """Dialog for creating or editing a Smart Collection with grouped rules and live preview.
-
-    Attributes:
-        _game_manager: The game manager for evaluation preview.
-        _smart_manager: The smart collection manager.
-        _edit_collection: The existing collection being edited, if any.
-        _result: The resulting SmartCollection after Save, or None.
-    """
+    """Dialog for creating/editing smart collections with grouped rules."""
 
     def __init__(
-        self,
-        parent: QWidget | None,
-        game_manager: GameManager,
-        smart_manager: SmartCollectionManager,
-        collection_to_edit: SmartCollection | None = None,
-    ) -> None:
-        """Initializes the Smart Collection Builder dialog.
-
-        Args:
-            parent: Parent widget.
-            game_manager: For evaluating preview.
-            smart_manager: For accessing the evaluator.
-            collection_to_edit: Optional existing collection for editing mode.
-        """
+        self, parent, game_manager: GameManager, smart_manager: SmartCollectionManager, collection_to_edit=None
+    ):
+        # init dialog
         super().__init__(parent)
         self._game_manager = game_manager
         self._smart_manager = smart_manager
         self._edit_collection = collection_to_edit
-        self._result: SmartCollection | None = None
-        self._group_widgets: list[RuleGroupWidget] = []
+        self._result = None
+        self._group_widgets = []
 
         self._create_ui()
 
         if collection_to_edit:
             self._populate_from_collection(collection_to_edit)
 
-    def _create_ui(self) -> None:
-        """Builds the complete dialog UI."""
+    def _create_ui(self):
+        # build the ui
         title_key = (
             "ui.smart_collections.builder_title_edit"
             if self._edit_collection
@@ -100,7 +82,7 @@ class SmartCollectionDialog(QDialog):
 
         main_layout = QVBoxLayout(self)
 
-        # --- Name & Description ---
+        # name & description section
         info_group = QGroupBox(t("ui.smart_collections.name_label"))
         info_layout = QVBoxLayout(info_group)
         info_layout.setContentsMargins(5, 5, 5, 5)
@@ -118,7 +100,7 @@ class SmartCollectionDialog(QDialog):
         desc_row.addWidget(self._desc_input)
         info_layout.addLayout(desc_row)
 
-        # Logic operator (between groups)
+        # logic operator between groups
         logic_row = QHBoxLayout()
         self._between_groups_label = QLabel(t("ui.smart_collections.between_groups_label") + ":")
         logic_row.addWidget(self._between_groups_label)
@@ -135,13 +117,13 @@ class SmartCollectionDialog(QDialog):
 
         main_layout.addWidget(info_group)
 
-        # --- Rule Groups ---
+        # rule groups section
         groups_group = QGroupBox(t("ui.smart_collections.groups_label"))
         groups_layout = QVBoxLayout(groups_group)
         groups_layout.setContentsMargins(5, 5, 5, 5)
         groups_layout.setSpacing(4)
 
-        # Scrollable group area
+        # scrollable area for groups
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setMinimumHeight(350)
@@ -152,22 +134,22 @@ class SmartCollectionDialog(QDialog):
         scroll.setWidget(self._groups_container)
         groups_layout.addWidget(scroll)
 
-        # Add Group + Templates buttons
+        # add group and template buttons
         btn_row = QHBoxLayout()
-        add_group_btn = QPushButton(t("ui.smart_collections.add_group"))
-        add_group_btn.clicked.connect(lambda: self._add_group_widget())
-        btn_row.addWidget(add_group_btn)
+        add_btn = QPushButton(t("ui.smart_collections.add_group"))
+        add_btn.clicked.connect(lambda: self._add_group_widget())
+        btn_row.addWidget(add_btn)
 
-        templates_btn = QPushButton(t("ui.smart_collections.templates_button"))
-        templates_btn.clicked.connect(lambda: self._show_templates_menu(templates_btn))
-        btn_row.addWidget(templates_btn)
+        tmpl_btn = QPushButton(t("ui.smart_collections.templates_button"))
+        tmpl_btn.clicked.connect(lambda: self._show_templates_menu(tmpl_btn))
+        btn_row.addWidget(tmpl_btn)
 
         btn_row.addStretch()
         groups_layout.addLayout(btn_row)
 
         main_layout.addWidget(groups_group)
 
-        # --- Preview ---
+        # preview section
         preview_group = QGroupBox(t("ui.smart_collections.preview_label"))
         preview_layout = QVBoxLayout(preview_group)
         preview_layout.setContentsMargins(5, 5, 5, 5)
@@ -182,12 +164,12 @@ class SmartCollectionDialog(QDialog):
 
         main_layout.addWidget(preview_group)
 
-        # --- Auto-Sync checkbox ---
+        # auto-sync checkbox
         self._auto_sync_cb = QCheckBox(t("ui.smart_collections.auto_sync"))
         self._auto_sync_cb.setChecked(True)
         main_layout.addWidget(self._auto_sync_cb)
 
-        # --- Buttons ---
+        # buttons
         button_row = QHBoxLayout()
         button_row.addStretch()
 
@@ -206,116 +188,100 @@ class SmartCollectionDialog(QDialog):
 
         main_layout.addLayout(button_row)
 
-        # Add one default empty group
+        # add default empty group
         self._add_group_widget()
         self._update_between_groups_visibility()
 
-    def _add_group_widget(self, group: SmartCollectionRuleGroup | None = None) -> None:
-        """Adds a new rule group widget to the groups container.
-
-        Args:
-            group: Optional existing group to pre-fill.
-        """
-        index = len(self._group_widgets) + 1
-        gw = RuleGroupWidget(self, index=index, group=group)
+    def _add_group_widget(self, group=None):
+        # add new rule group widget
+        idx = len(self._group_widgets) + 1
+        gw = RuleGroupWidget(self, index=idx, group=group)
         gw.removed.connect(self._remove_group_widget)
         gw.changed.connect(lambda: None)
         self._group_widgets.append(gw)
-        # Insert before the stretch
+        # insert before stretch
         self._groups_layout.insertWidget(self._groups_layout.count() - 1, gw)
         self._update_between_groups_visibility()
 
-    def _remove_group_widget(self, group_widget: RuleGroupWidget) -> None:
-        """Removes a rule group widget from the container.
-
-        Args:
-            group_widget: The group widget to remove.
-        """
-        if group_widget in self._group_widgets:
-            self._group_widgets.remove(group_widget)
-            self._groups_layout.removeWidget(group_widget)
-            group_widget.hide()
-            group_widget.deleteLater()
-            # Re-index remaining groups
-            for i, gw in enumerate(self._group_widgets):
-                gw.set_index(i + 1)
+    def _remove_group_widget(self, gw):
+        # remove group widget and reindex
+        if gw in self._group_widgets:
+            self._group_widgets.remove(gw)
+            self._groups_layout.removeWidget(gw)
+            gw.hide()
+            gw.deleteLater()
+            # reindex remaining
+            for i, w in enumerate(self._group_widgets):
+                w.set_index(i + 1)
             self._update_between_groups_visibility()
 
-    def _update_between_groups_visibility(self) -> None:
-        """Shows/hides the 'between groups' label based on group count."""
-        has_multiple = len(self._group_widgets) > 1
-        self._between_groups_label.setVisible(has_multiple)
-        self._or_radio.setVisible(has_multiple)
-        self._and_radio.setVisible(has_multiple)
+    def _update_between_groups_visibility(self):
+        # show/hide logic operator label
+        multi = len(self._group_widgets) > 1
+        self._between_groups_label.setVisible(multi)
+        self._or_radio.setVisible(multi)
+        self._and_radio.setVisible(multi)
 
-    def _show_templates_menu(self, button: QPushButton) -> None:
-        """Shows the templates dropdown menu.
-
-        Args:
-            button: The button to anchor the menu to.
-        """
+    def _show_templates_menu(self, btn):
+        # show templates dropdown
         menu = QMenu(self)
 
-        # Category keys in display order
-        category_order = ["quality", "completion", "time", "platform", "examples"]
+        # category order
+        cats = ["quality", "completion", "time", "platform", "examples"]
 
-        for cat_key in category_order:
-            templates = TEMPLATE_CATEGORIES.get(cat_key, [])
+        for cat in cats:
+            templates = TEMPLATE_CATEGORIES.get(cat, [])
             if not templates:
                 continue
 
-            cat_label = t(f"ui.smart_collections.template_category.{cat_key}")
+            cat_label = t("ui.smart_collections.template_category.%s" % cat)
             submenu = menu.addMenu(cat_label)
 
             for tmpl in templates:
-                tmpl_label = t(f"ui.smart_collections.template.{tmpl.key}")
+                tmpl_label = t("ui.smart_collections.template.%s" % tmpl.key)
                 action = submenu.addAction(tmpl_label)
-                # Capture tmpl in closure
+                # capture tmpl in closure
                 action.triggered.connect(lambda _checked, tpl=tmpl: self._apply_template(tpl))
 
-        menu.exec(button.mapToGlobal(button.rect().bottomLeft()))
+        menu.exec(btn.mapToGlobal(btn.rect().bottomLeft()))
 
-    def _apply_template(self, template: SmartCollectionTemplate) -> None:
-        """Applies a template to the dialog, pre-filling all fields.
-
-        Args:
-            template: The template to apply.
-        """
+    def _apply_template(self, tmpl: SmartCollectionTemplate):
+        # apply template to dialog
         from steam_library_manager.ui.widgets.ui_helper import UIHelper
 
-        sc = template.collection
+        sc = tmpl.collection
 
-        # Set name and description from i18n
-        tmpl_name = t(f"ui.smart_collections.template.{template.key}")
-        tmpl_desc = t(f"ui.smart_collections.template.{template.key}.description", fallback="")
-        self._name_input.setText(tmpl_name)
-        self._desc_input.setText(tmpl_desc)
+        # set name and desc from i18n
+        name = t("ui.smart_collections.template.%s" % tmpl.key)
+        desc = t("ui.smart_collections.template.%s.description" % tmpl.key, fallback="")
+        self._name_input.setText(name)
+        self._desc_input.setText(desc)
 
-        # Set logic
+        # set logic operator
         if sc.logic == LogicOperator.AND:
             self._and_radio.setChecked(True)
         else:
             self._or_radio.setChecked(True)
 
-        # Clear existing groups
+        # clear existing
         for gw in list(self._group_widgets):
             self._remove_group_widget(gw)
 
-        # Add groups from template
-        for group in sc.groups:
-            self._add_group_widget(copy.deepcopy(group))
+        # add groups from template
+        for g in sc.groups:
+            self._add_group_widget(copy.deepcopy(g))
 
         UIHelper.show_info(self, t("ui.smart_collections.template_applied"))
 
-    def _on_preview(self) -> None:
-        """Evaluates current rules and shows matching games in preview list."""
-        collection = self._build_collection()
-        if not collection:
+    def _on_preview(self):
+        # evaluate rules and show preview
+        coll = self._build_collection()
+        if not coll:
             return
 
         matching = self._smart_manager.evaluator.evaluate_batch(
             self._game_manager.get_real_games(),
-            collection,
+            coll,
         )
 
         self._match_count_label.setText(t("ui.smart_collections.matching_count", count=len(matching)))
@@ -324,15 +290,9 @@ class SmartCollectionDialog(QDialog):
         for game in sorted(matching, key=lambda g: g.sort_name.lower())[:100]:
             self._preview_list.addItem(game.name)
 
-    def _build_collection(self) -> SmartCollection | None:
-        """Collects all UI state into a SmartCollection.
-
-        Always uses the groups format (even for a single group).
-
-        Returns:
-            SmartCollection or None if validation fails.
-        """
-        groups: list[SmartCollectionRuleGroup] = []
+    def _build_collection(self):
+        # gather ui state into SmartCollection
+        groups = []
         for gw in self._group_widgets:
             group = gw.get_group()
             if group:
@@ -340,7 +300,7 @@ class SmartCollectionDialog(QDialog):
 
         logic = LogicOperator.AND if self._and_radio.isChecked() else LogicOperator.OR
 
-        collection = SmartCollection(
+        coll = SmartCollection(
             name=self._name_input.text().strip(),
             description=self._desc_input.text().strip(),
             logic=logic,
@@ -350,13 +310,13 @@ class SmartCollectionDialog(QDialog):
         )
 
         if self._edit_collection:
-            collection.collection_id = self._edit_collection.collection_id
-            collection.created_at = self._edit_collection.created_at
+            coll.collection_id = self._edit_collection.collection_id
+            coll.created_at = self._edit_collection.created_at
 
-        return collection
+        return coll
 
-    def _on_save(self) -> None:
-        """Validates inputs and accepts the dialog."""
+    def _on_save(self):
+        # validate and save
         from steam_library_manager.ui.widgets.ui_helper import UIHelper
 
         name = self._name_input.text().strip()
@@ -364,7 +324,7 @@ class SmartCollectionDialog(QDialog):
             UIHelper.show_warning(self, t("ui.smart_collections.no_name"))
             return
 
-        # Check that at least one group has valid rules
+        # check at least one group has rules
         has_rules = False
         for gw in self._group_widgets:
             group = gw.get_group()
@@ -376,7 +336,7 @@ class SmartCollectionDialog(QDialog):
             UIHelper.show_warning(self, t("ui.smart_collections.min_one_group"))
             return
 
-        # Check for duplicate name (only on create, not edit)
+        # check duplicate name on create
         if not self._edit_collection:
             existing = self._smart_manager.get_by_name(name)
             if existing:
@@ -386,49 +346,39 @@ class SmartCollectionDialog(QDialog):
         self._result = self._build_collection()
         self.accept()
 
-    def get_result(self) -> SmartCollection | None:
-        """Returns the resulting SmartCollection after the dialog is accepted.
-
-        Returns:
-            SmartCollection or None if dialog was cancelled.
-        """
+    def get_result(self):
+        # return result collection
         return self._result
 
-    def _populate_from_collection(self, collection: SmartCollection) -> None:
-        """Pre-fills the dialog from an existing collection.
+    def _populate_from_collection(self, coll):
+        # load existing collection into dialog
+        self._name_input.setText(coll.name)
+        self._desc_input.setText(coll.description)
 
-        Handles both grouped and legacy flat-rule collections.
-
-        Args:
-            collection: The collection to populate from.
-        """
-        self._name_input.setText(collection.name)
-        self._desc_input.setText(collection.description)
-
-        if collection.logic == LogicOperator.AND:
+        if coll.logic == LogicOperator.AND:
             self._and_radio.setChecked(True)
         else:
             self._or_radio.setChecked(True)
 
-        self._auto_sync_cb.setChecked(collection.auto_sync)
+        self._auto_sync_cb.setChecked(coll.auto_sync)
 
-        # Remove the default empty group
+        # remove default empty group
         for gw in list(self._group_widgets):
             self._remove_group_widget(gw)
 
-        if collection.groups:
-            # v2 format: load groups directly
-            for group in collection.groups:
-                self._add_group_widget(group)
-        elif collection.rules:
-            # Legacy v1 format: wrap flat rules into a single group
-            legacy_group = SmartCollectionRuleGroup(
-                logic=collection.logic,
-                rules=tuple(collection.rules),
+        if coll.groups:
+            # v2 format
+            for g in coll.groups:
+                self._add_group_widget(g)
+        elif coll.rules:
+            # legacy v1 format
+            legacy = SmartCollectionRuleGroup(
+                logic=coll.logic,
+                rules=tuple(coll.rules),
             )
-            self._add_group_widget(legacy_group)
+            self._add_group_widget(legacy)
         else:
-            # No rules at all: add one empty group
+            # no rules, add empty
             self._add_group_widget()
 
         self._update_between_groups_visibility()

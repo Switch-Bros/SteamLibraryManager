@@ -20,7 +20,7 @@ __all__ = ["StatusbarBuilder"]
 
 
 class StatusbarBuilder:
-    """Constructs the application status bar with its permanent widgets.
+    """Constructs the statusbar with its permanent widgets.
 
     After construction the caller can access stats_label and reload_btn
     to wire up the same logic that MainWindow currently uses.
@@ -32,11 +32,8 @@ class StatusbarBuilder:
     """
 
     def __init__(self, main_window: "MainWindow") -> None:
-        """Initializes the StatusbarBuilder.
+        # Initializes the StatusbarBuilder.
 
-        Args:
-            main_window: The MainWindow instance that owns the status bar.
-        """
         self.main_window: "MainWindow" = main_window
 
         # These are created in build() but declared here for type-checkers

@@ -2,7 +2,7 @@
 # steam_library_manager/integrations/external_games/lutris_parser.py
 # Parser for Lutris game manager installed games
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 
@@ -19,12 +19,13 @@ __all__ = ["LutrisParser"]
 
 logger = logging.getLogger("steamlibmgr.external_games.lutris")
 
+# common install locations
 _NATIVE = Path.home() / ".local" / "share" / "lutris" / "pga.db"
 _LEGACY = Path.home() / ".config" / "lutris" / "pga.db"
 _FLATPAK = Path.home() / ".var" / "app" / "net.lutris.Lutris" / "data" / "lutris" / "pga.db"
 
-# Known launcher names to filter out (lowercase)
-_LAUNCHER_NAMES: frozenset[str] = frozenset(
+# launchers we don't want to show as games
+_LAUNCHER_NAMES = frozenset(
     {
         "epic games store",
         "ea app",
@@ -48,40 +49,22 @@ _QUERY = """
 
 
 class LutrisParser(BaseExternalParser):
-    """Parser for games installed through Lutris."""
+    """Parser for lutris games."""
 
-    def platform_name(self) -> str:
-        """Return platform name.
-
-        Returns:
-            Platform identifier.
-        """
+    def platform_name(self):
+        # return identifier for this platform
         return "Lutris"
 
-    def is_available(self) -> bool:
-        """Check if Lutris database exists.
-
-        Returns:
-            True if pga.db is found.
-        """
+    def is_available(self):
+        # check if we can find the database file
         return self._find_config_file() is not None
 
-    def get_config_paths(self) -> list[Path]:
-        """Return native, legacy, and Flatpak database paths.
-
-        Returns:
-            List of possible pga.db paths.
-        """
+    def get_config_paths(self):
+        # list of possible db locations
         return [_NATIVE, _LEGACY, _FLATPAK]
 
-    def read_games(self) -> list[ExternalGame]:
-        """Read installed games from Lutris database.
-
-        Opens the database read-only and filters out known launchers.
-
-        Returns:
-            List of detected Lutris games.
-        """
+    def read_games(self):
+        # read installed games from sqlite
         db_path = self._find_config_file()
         if not db_path:
             return []
@@ -90,17 +73,19 @@ class LutrisParser(BaseExternalParser):
         if not conn:
             return []
 
-        games: list[ExternalGame] = []
+        games = []
         try:
             for row in conn.execute(_QUERY):
                 name = row["name"] or ""
                 if name.lower() in _LAUNCHER_NAMES:
-                    continue
+                    continue  # skip store launchers
+
+                # some games have no service but are still launchers
                 if not row["service"] and name.lower() in _LAUNCHER_NAMES:
                     continue
 
                 slug = row["slug"] or ""
-                metadata: list[tuple[str, str]] = []
+                metadata = []
                 if row["runner"]:
                     metadata.append(("runner", row["runner"]))
                 if row["service"]:
@@ -115,7 +100,7 @@ class LutrisParser(BaseExternalParser):
                         name=name,
                         install_path=Path(row["directory"]) if row["directory"] else None,
                         executable=row["executable"],
-                        launch_command=f"lutris:rungame/{slug}" if slug else "",
+                        launch_command="lutris:rungame/%s" % slug if slug else "",
                         platform_metadata=tuple(metadata),
                     )
                 )
