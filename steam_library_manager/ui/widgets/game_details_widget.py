@@ -47,13 +47,16 @@ __all__ = ["GameDetailsWidget"]
 
 class GameDetailsWidget(QWidget):
     """Game detail panel showing metadata, images, categories, and
-    achievements. Handles single and multi-game selections."""
+    achievements. Handles single and multi-game selections.
+
+    TODO: this class is getting bloated, needs refactoring
+    """
 
     category_changed = pyqtSignal(str, str, bool)
     edit_metadata = pyqtSignal(object)
     pegi_override_requested = pyqtSignal(str, str)
 
-    # UI components - populated by build_details_ui()
+    # UI components - populated by builder
     name_label: QLabel
     btn_edit: QPushButton
     btn_store: QPushButton
@@ -87,55 +90,55 @@ class GameDetailsWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.current_game = None
-        self.current_games = []
-        self._ui_scale = 1.0
-        self._initial_scale_applied = False
+        self.game = None  # current single game
+        self.games = []  # multi-selection
+        self._scale = 1.0
+        self._scale_done = False
         build_details_ui(self)
         self.clear()
 
     def showEvent(self, event):
         # apply screen-based scaling on first show
         super().showEvent(event)
-        if not self._initial_scale_applied:
-            self._initial_scale_applied = True
+        if not self._scale_done:
+            self._scale_done = True
             import logging
 
-            scale = _detect_initial_scale()
+            sc = _detect_initial_scale()
             log = logging.getLogger("steamlibmgr.details_ui")
-            log.info("showEvent: initial scale=%.3f (current=%.3f)", scale, self._ui_scale)
-            if abs(scale - self._ui_scale) > 0.01:
-                self._ui_scale = scale
-                rescale_ui(self, scale)
+            log.info("showEvent: initial scale=%.3f (current=%.3f)", sc, self._scale)
+            if abs(sc - self._scale) > 0.01:
+                self._scale = sc
+                rescale_ui(self, sc)
 
     def resizeEvent(self, event):
-        # recalc scale on resize; small screens keep initial scale
+        # recalc scale on resize; small screens keep initial
         super().resizeEvent(event)
-        if self._initial_scale_applied and self._ui_scale < 1.0:
+        if self._scale_done and self._scale < 1.0:
             return
         w = event.size().width()
-        new_scale = _calc_scale(w)
-        if abs(new_scale - self._ui_scale) > 0.01:
-            self._ui_scale = new_scale
-            rescale_ui(self, new_scale)
+        new_sc = _calc_scale(w)
+        if abs(new_sc - self._scale) > 0.01:
+            self._scale = new_sc
+            rescale_ui(self, new_sc)
 
-    # -- rating label helpers --
+    # -- rating helpers --
 
-    def _update_proton_label(self, tier):
+    def _upd_proton(self, tier):
         self.lbl_proton.setText(format_proton_html(tier))
 
-    def _update_steam_deck_label(self, status):
+    def _upd_deck(self, status):
         self.lbl_steam_deck.setText(format_deck_html(status))
 
-    # -- data display --
+    # -- display --
 
-    def set_games(self, games, _all_categories):
-        # display summary for multi-game selection
+    def set_games(self, games, _cats):
+        # show summary for multi-selection
         if not games:
             return
 
-        self.current_game = None
-        self.current_games = games
+        self.game = None
+        self.games = games
 
         self.name_label.setText(t("ui.game_details.multi_select_title", count=len(games)))
         self.lbl_appid.setText(
@@ -144,10 +147,9 @@ class GameDetailsWidget(QWidget):
         )
 
         hrs = sum(g.playtime_hours for g in games)
-        pt_val = t("ui.game_details.hours", hours=hrs)
+        pt = t("ui.game_details.hours", hours=hrs)
         self.lbl_playtime.setText(
-            "<span style='color:%s;'>%s:</span> <b>%s</b>"
-            % (Theme.TXT_MUTED, t("ui.game_details.total_playtime"), pt_val)
+            "<span style='color:%s;'>%s:</span> <b>%s</b>" % (Theme.TXT_MUTED, t("ui.game_details.total_playtime"), pt)
         )
 
         self.lbl_updated.setText(
@@ -167,10 +169,10 @@ class GameDetailsWidget(QWidget):
         update_hltb_label(self.lbl_hltb_extras, 0, dash)
         update_hltb_label(self.lbl_hltb_comp, 0, dash)
         update_hltb_label(self.lbl_hltb_all, 0, dash)
-        self._clear_ach()
+        self._clr_ach()
 
-        cats = [game.categories for game in games]
-        self.category_list.set_categories_multi(_all_categories, cats)
+        cats = [gm.categories for gm in games]
+        self.category_list.set_categories_multi(_cats, cats)
 
         self.lbl_description.hide()
         self.lbl_private_badge.hide()
@@ -182,40 +184,40 @@ class GameDetailsWidget(QWidget):
         self.img_icon.clear()
         self.pegi_image.load_image(None)
 
-    def set_game(self, game, _all_categories):
-        # display details for a single game
-        self.current_game = game
-        self.current_games = []
-        self.name_label.setText(game.name)
+    def set_game(self, gm, _cats):
+        # show details for single game
+        self.game = gm
+        self.games = []
+        self.name_label.setText(gm.name)
         self.lbl_appid.setText(
-            "<span style='color:%s;'>%s:</span> <b>%s</b>" % (Theme.TXT_MUTED, t("ui.game_details.app_id"), game.app_id)
+            "<span style='color:%s;'>%s:</span> <b>%s</b>" % (Theme.TXT_MUTED, t("ui.game_details.app_id"), gm.app_id)
         )
         pt_val = (
-            t("ui.game_details.hours", hours=game.playtime_hours)
-            if game.playtime_hours > 0
+            t("ui.game_details.hours", hours=gm.playtime_hours)
+            if gm.playtime_hours > 0
             else t("ui.game_details.never_played")
         )
         self.lbl_playtime.setText(
             "<span style='color:%s;'>%s:</span> <b>%s</b>" % (Theme.TXT_MUTED, t("ui.game_details.playtime"), pt_val)
         )
-        upd = format_timestamp_to_date(game.last_updated) if game.last_updated else t("emoji.dash")
+        upd = format_timestamp_to_date(gm.last_updated) if gm.last_updated else t("emoji.dash")
         self.lbl_updated.setText(
             "<span style='color:%s;'>%s:</span> <b>%s</b>" % (Theme.TXT_MUTED, t("ui.game_details.last_update"), upd)
         )
-        self._update_proton_label(game.proton_db_rating)
-        self._update_steam_deck_label(game.steam_deck_status)
+        self._upd_proton(gm.proton_db_rating)
+        self._upd_deck(gm.steam_deck_status)
 
         # reviews
-        if game.review_score:
-            if game.review_percentage > 0:
+        if gm.review_score:
+            if gm.review_percentage > 0:
                 rv = "%s%s | %s (%s)" % (
-                    game.review_percentage,
+                    gm.review_percentage,
                     t("emoji.percent"),
-                    game.review_score,
-                    game.review_count,
+                    gm.review_score,
+                    gm.review_count,
                 )
             else:
-                rv = "%s (%s)" % (game.review_score, game.review_count)
+                rv = "%s (%s)" % (gm.review_score, gm.review_count)
         else:
             rv = t("emoji.dash")
 
@@ -224,7 +226,7 @@ class GameDetailsWidget(QWidget):
         )
 
         # curator overlap
-        cur = game.curator_overlap if game.curator_overlap else t("emoji.dash")
+        cur = gm.curator_overlap if gm.curator_overlap else t("emoji.dash")
         set_info_label_value(self.lbl_curator_overlap, cur)
 
         unknown = t("ui.game_details.value_unknown")
@@ -234,69 +236,69 @@ class GameDetailsWidget(QWidget):
                 return unknown
             return fmt(val) if fmt else str(val)
 
-        self.edit_dev.setText(safe(game.developer))
+        self.edit_dev.setText(safe(gm.developer))
         self.edit_dev.setCursorPosition(0)
-        self.edit_pub.setText(safe(game.publisher))
+        self.edit_pub.setText(safe(gm.publisher))
         self.edit_pub.setCursorPosition(0)
-        self.edit_rel.setText(safe(game.release_year, format_timestamp_to_date))
+        self.edit_rel.setText(safe(gm.release_year, format_timestamp_to_date))
         self.edit_rel.setCursorPosition(0)
 
         # HLTB
         dash = t("emoji.dash")
-        update_hltb_label(self.lbl_hltb_main, game.hltb_main_story, dash)
-        update_hltb_label(self.lbl_hltb_extras, game.hltb_main_extras, dash)
-        update_hltb_label(self.lbl_hltb_comp, game.hltb_completionist, dash)
-        vals = [v for v in (game.hltb_main_story, game.hltb_main_extras, game.hltb_completionist) if v > 0]
+        update_hltb_label(self.lbl_hltb_main, gm.hltb_main_story, dash)
+        update_hltb_label(self.lbl_hltb_extras, gm.hltb_main_extras, dash)
+        update_hltb_label(self.lbl_hltb_comp, gm.hltb_completionist, dash)
+        vals = [v for v in (gm.hltb_main_story, gm.hltb_main_extras, gm.hltb_completionist) if v > 0]
         avg = sum(vals) / len(vals) if vals else 0.0
         update_hltb_label(self.lbl_hltb_all, avg, dash)
 
-        self._set_ach(game)
-        self.category_list.set_categories(_all_categories, game.categories)
+        self._set_ach(gm)
+        self.category_list.set_categories(_cats, gm.categories)
 
         # description
-        if game.description:
-            self.lbl_description.setText(game.description[:300])
+        if gm.description:
+            self.lbl_description.setText(gm.description[:300])
             self.lbl_description.show()
         else:
             self.lbl_description.hide()
 
         # private badge
-        if game.is_private:
+        if gm.is_private:
             self.lbl_private_badge.setText(t("ui.detail.private_app"))
             self.lbl_private_badge.show()
         else:
             self.lbl_private_badge.hide()
 
         # DLC section
-        if game.dlc_ids:
-            self.dlc_group.setTitle(t("ui.detail.dlc_label") + " (%d)" % len(game.dlc_ids))
-            self.dlc_content.setText(", ".join(str(d) for d in game.dlc_ids))
+        if gm.dlc_ids:
+            self.dlc_group.setTitle(t("ui.detail.dlc_label") + " (%d)" % len(gm.dlc_ids))
+            self.dlc_content.setText(", ".join(str(d) for d in gm.dlc_ids))
             self.dlc_group.show()
         else:
             self.dlc_group.hide()
 
-        self._show_pegi(game)
-        self._load_imgs(game.app_id)
+        self._pegi(gm)
+        self._load_imgs(gm.app_id)
 
     # -- achievement helpers --
 
-    def _set_ach(self, game):
-        # update achievement total, progress, perfect labels
+    def _set_ach(self, gm):
+        # update achievement labels
         gold = Theme.ACHV_GOLD
 
-        if game.achievement_total > 0:
-            set_info_label_value(self.lbl_achievement_total, str(game.achievement_total))
+        if gm.achievement_total > 0:
+            set_info_label_value(self.lbl_achievement_total, str(gm.achievement_total))
 
             prog = t(
                 "ui.game_details.achievement_format",
-                unlocked=game.achievement_unlocked,
-                total=game.achievement_total,
-                percentage="%.0f" % game.achievement_percentage,
+                unlocked=gm.achievement_unlocked,
+                total=gm.achievement_total,
+                percentage="%.0f" % gm.achievement_percentage,
             )
 
-            if game.achievement_perfect:
+            if gm.achievement_perfect:
                 set_info_label_value(self.lbl_achievement_progress, prog, color=gold)
-                set_info_label_value(self.lbl_achievement_total, str(game.achievement_total), color=gold)
+                set_info_label_value(self.lbl_achievement_total, str(gm.achievement_total), color=gold)
                 trophy = t("emoji.trophy")
                 perf = t("ui.game_details.achievement_perfect")
                 self.lbl_achievement_perfect.setText(
@@ -311,73 +313,73 @@ class GameDetailsWidget(QWidget):
             set_info_label_value(self.lbl_achievement_progress, no_ach)
             self.lbl_achievement_perfect.setText("")
 
-    def _clear_ach(self):
+    def _clr_ach(self):
         dash = t("emoji.dash")
         set_info_label_value(self.lbl_achievement_total, dash)
         set_info_label_value(self.lbl_achievement_progress, dash)
         self.lbl_achievement_perfect.setText("")
 
-    # -- image handling --
+    # -- images --
 
     @property
     def _assets(self):
         return {"grids": self.img_grid, "heroes": self.img_hero, "logos": self.img_logo, "icons": self.img_icon}
 
     def _load_imgs(self, app_id):
-        for atype, widget in self._assets.items():
+        for atype, w in self._assets.items():
             path = SteamAssets.get_asset_path(app_id, atype)
             fb = SteamAssets.get_cdn_fallback_urls(app_id, atype) if path.startswith("http") else None
-            widget.load_image(path, fallback_urls=fb)
+            w.load_image(path, fallback_urls=fb)
 
     def _reload_one(self, img_type):
-        if not self.current_game:
+        if not self.game:
             return
-        widget = self._assets.get(img_type)
-        if widget:
-            aid = self.current_game.app_id
+        w = self._assets.get(img_type)
+        if w:
+            aid = self.game.app_id
             path = SteamAssets.get_asset_path(aid, img_type)
             fb = SteamAssets.get_cdn_fallback_urls(aid, img_type) if path.startswith("http") else None
-            widget.load_image(path, fallback_urls=fb)
+            w.load_image(path, fallback_urls=fb)
 
     def on_image_click(self, img_type):
-        # opens the image selection dialog
-        if not self.current_game:
+        # opens image selection dialog
+        if not self.game:
             return
-        dlg = ImageSelectionDialog(self, self.current_game.name, int(self.current_game.app_id), img_type)
+        dlg = ImageSelectionDialog(self, self.game.name, int(self.game.app_id), img_type)
         if dlg.exec():
             url = dlg.get_selected_url()
-            if url and SteamAssets.save_custom_image(self.current_game.app_id, img_type, url):
+            if url and SteamAssets.save_custom_image(self.game.app_id, img_type, url):
                 self._reload_one(img_type)
 
     def on_image_right_click(self, img_type):
-        # reset context menu on right-click
-        if not self.current_game:
+        # reset context menu
+        if not self.game:
             return
         menu = QMenu(self)
         reset_act = menu.addAction(t("ui.game_details.gallery.reset"))
         action = menu.exec(QCursor.pos())
-        if action == reset_act and SteamAssets.delete_custom_image(self.current_game.app_id, img_type):
+        if action == reset_act and SteamAssets.delete_custom_image(self.game.app_id, img_type):
             self._reload_one(img_type)
 
-    # -- PEGI handling --
+    # -- PEGI --
 
-    def _show_pegi(self, game):
-        # loads PEGI rating: tries pegi_rating, then ESRB mapping, then store fetch
+    def _pegi(self, gm):
+        # load PEGI rating: tries pegi_rating, then ESRB mapping, then store fetch
         rating = ""
 
-        if hasattr(game, "pegi_rating") and game.pegi_rating:
-            rating = str(game.pegi_rating).strip()
-        elif hasattr(game, "esrb_rating") and game.esrb_rating:
-            rating = ESRB_TO_PEGI.get(game.esrb_rating.lower(), "")
+        if hasattr(gm, "pegi_rating") and gm.pegi_rating:
+            rating = str(gm.pegi_rating).strip()
+        elif hasattr(gm, "esrb_rating") and gm.esrb_rating:
+            rating = ESRB_TO_PEGI.get(gm.esrb_rating.lower(), "")
 
         if not rating:
             from steam_library_manager.integrations.steam_store import SteamStoreScraper
 
             scraper = SteamStoreScraper(Path.home() / ".steam_library_manager" / "cache", "en")
-            fetched = scraper.fetch_age_rating(game.app_id)
+            fetched = scraper.fetch_age_rating(gm.app_id)
             if fetched:
                 rating = fetched
-                game.pegi_rating = fetched
+                gm.pegi_rating = fetched
 
         if rating:
             pegi_path = config.ICONS_DIR / ("PEGI%s.webp" % rating)
@@ -386,20 +388,20 @@ class GameDetailsWidget(QWidget):
             self.pegi_image.load_image(None)
 
     def on_pegi_clicked(self):
-        # opens the PEGI selector dialog
-        if not self.current_game:
+        # open PEGI selector
+        if not self.game:
             return
         from steam_library_manager.ui.dialogs.pegi_selector_dialog import PEGISelectorDialog
 
-        cur = getattr(self.current_game, "pegi_rating", "")
+        cur = getattr(self.game, "pegi_rating", "")
         dlg = PEGISelectorDialog(cur, self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             sel = dlg.get_selected_rating()
-            self.pegi_override_requested.emit(self.current_game.app_id, sel)
+            self.pegi_override_requested.emit(self.game.app_id, sel)
 
     def on_pegi_right_click(self):
-        # reset context menu on PEGI right-click
-        if not self.current_game:
+        # reset context menu for PEGI
+        if not self.game:
             return
         menu = QMenu(self)
         txt = t("ui.pegi_selector.remove")
@@ -408,18 +410,18 @@ class GameDetailsWidget(QWidget):
         reset_act = menu.addAction(txt)
         action = menu.exec(QCursor.pos())
         if action == reset_act:
-            self.pegi_override_requested.emit(self.current_game.app_id, "")
+            self.pegi_override_requested.emit(self.game.app_id, "")
 
-    # -- clear / reset --
+    # -- clear --
 
     def clear(self):
-        # reset all displayed game details to default empty state
-        self.current_game = None
-        self.current_games = []
+        # reset to empty state
+        self.game = None
+        self.games = []
         self.name_label.setText(t("ui.game_details.select_placeholder"))
-        self._update_proton_label("unknown")
-        self._update_steam_deck_label("unknown")
-        self._clear_ach()
+        self._upd_proton("unknown")
+        self._upd_deck("unknown")
+        self._clr_ach()
         self.lbl_description.hide()
         self.lbl_private_badge.hide()
         self.dlc_group.hide()
@@ -432,22 +434,22 @@ class GameDetailsWidget(QWidget):
 
         self.category_list.set_categories([], [])
 
-    # -- event handlers --
+    # -- handlers --
 
-    def on_category_toggle(self, category_name, checked):
-        if self.current_game:
-            self.category_changed.emit(self.current_game.app_id, category_name, checked)
-        elif self.current_games:
-            for game in self.current_games:
-                self.category_changed.emit(game.app_id, category_name, checked)
+    def on_category_toggle(self, cat_name, checked):
+        if self.game:
+            self.category_changed.emit(self.game.app_id, cat_name, checked)
+        elif self.games:
+            for gm in self.games:
+                self.category_changed.emit(gm.app_id, cat_name, checked)
 
     def on_edit(self):
-        if self.current_game:
-            self.edit_metadata.emit(self.current_game)
+        if self.game:
+            self.edit_metadata.emit(self.game)
 
     def open_current_store(self):
-        # opens the Steam Store page in the browser
-        if self.current_game:
+        # open Steam Store page
+        if self.game:
             from steam_library_manager.utils.open_url import open_url
 
-            open_url("https://store.steampowered.com/app/%s" % self.current_game.app_id)
+            open_url("https://store.steampowered.com/app/%s" % self.game.app_id)

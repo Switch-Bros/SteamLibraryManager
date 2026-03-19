@@ -400,7 +400,7 @@ class ImageSelectionDialog(QDialog):
         self.sel_url = url
         self.accept()
 
-    def get_url(self):
+    def get_selected_url(self):
         return self.sel_url
 
     def _q_anim(self, w, url):
