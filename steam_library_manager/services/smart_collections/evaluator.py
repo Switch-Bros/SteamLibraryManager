@@ -31,188 +31,180 @@ __all__ = ["SmartCollectionEvaluator"]
 
 logger = logging.getLogger("steamlibmgr.smart_collections.evaluator")
 
-# Pre-compute field category sets for fast lookup
-_TEXT_LIST_FIELDS: frozenset[FilterField] = frozenset(FIELD_CATEGORIES["text_list"])
-_TEXT_SINGLE_FIELDS: frozenset[FilterField] = frozenset(FIELD_CATEGORIES["text_single"])
-_NUMERIC_FIELDS: frozenset[FilterField] = frozenset(FIELD_CATEGORIES["numeric"])
-_ENUM_FIELDS: frozenset[FilterField] = frozenset(FIELD_CATEGORIES["enum"])
-_BOOL_FIELDS: frozenset[FilterField] = frozenset(FIELD_CATEGORIES["boolean"])
+# pre-compute field category sets for fast lookup
+_TXT_LIST = frozenset(FIELD_CATEGORIES["text_list"])
+_TXT_SINGLE = frozenset(FIELD_CATEGORIES["text_single"])
+_NUM = frozenset(FIELD_CATEGORIES["numeric"])
+_ENUM = frozenset(FIELD_CATEGORIES["enum"])
+_BOOL = frozenset(FIELD_CATEGORIES["boolean"])
 
 
 class SmartCollectionEvaluator:
     """Evaluates Smart Collection rules against Game objects."""
 
-    def evaluate(self, game: Game, collection: SmartCollection) -> bool:
-        """Checks if a game matches a Smart Collection's rules."""
-        if collection.groups:
-            return self._evaluate_groups(game, collection)
+    def evaluate(self, g: Game, col: SmartCollection):
+        # check whether game satisfies collection's filter criteria
+        if col.groups:
+            return self._eval_grps(g, col)
 
-        # Legacy flat-rule path
-        if not collection.rules:
+        # legacy flat-rule path
+        if not col.rules:
             return False
 
-        if collection.logic == LogicOperator.AND:
-            return all(self._evaluate_rule(game, rule) for rule in collection.rules)
+        if col.logic == LogicOperator.AND:
+            return all(self._eval_rule(g, r) for r in col.rules)
         # OR
-        return any(self._evaluate_rule(game, rule) for rule in collection.rules)
+        return any(self._eval_rule(g, r) for r in col.rules)
 
-    def _evaluate_groups(self, game: Game, collection: SmartCollection) -> bool:
-        """Evaluates a game against grouped rules."""
-        group_results = [self._evaluate_group(game, g) for g in collection.groups]
-        if collection.logic == LogicOperator.AND:
-            return all(group_results)
-        return any(group_results)
+    def _eval_grps(self, g, col):
+        res = [self._eval_grp(g, grp) for grp in col.groups]
+        if col.logic == LogicOperator.AND:
+            return all(res)
+        return any(res)
 
-    def _evaluate_group(self, game: Game, group: SmartCollectionRuleGroup) -> bool:
-        """Evaluates a single rule group against a game."""
-        if not group.rules:
+    def _eval_grp(self, g, grp: SmartCollectionRuleGroup):
+        if not grp.rules:
             return False
 
-        if group.logic == LogicOperator.AND:
-            return all(self._evaluate_rule(game, rule) for rule in group.rules)
-        return any(self._evaluate_rule(game, rule) for rule in group.rules)
+        chk = all if grp.logic == LogicOperator.AND else any
+        return chk(self._eval_rule(g, r) for r in grp.rules)
 
-    def _evaluate_rule(self, game: Game, rule: SmartCollectionRule) -> bool:
-        """Evaluates a single rule against a game, handling negation."""
-        result = self._match_rule(game, rule)
-        return not result if rule.negated else result
+    def _eval_rule(self, g, r: SmartCollectionRule):
+        # apply negation wrapper around match
+        m = self._match(g, r)
+        return not m if r.negated else m
 
-    def _match_rule(self, game: Game, rule: SmartCollectionRule) -> bool:
-        """Matches a single rule against a game (without negation)."""
-        # Fast path: TAG + EQUALS with tag_id -> language-independent ID comparison
-        if rule.field == FilterField.TAG and rule.operator == Operator.EQUALS and rule.tag_id is not None:
-            game_tag_ids = getattr(game, "tag_ids", None)
-            if game_tag_ids:
-                return rule.tag_id in game_tag_ids
-            # Fallback to string comparison if game has no tag_ids
+    def _match(self, g, r: SmartCollectionRule):
+        # core rule matching (without negation)
+        # fast path: TAG + EQUALS with tag_id
+        if r.field == FilterField.TAG and r.operator == Operator.EQUALS and r.tag_id is not None:
+            ids = getattr(g, "tag_ids", None)
+            if ids:
+                return r.tag_id in ids
 
-        field_value = self._get_field_value(game, rule.field)
+        raw = self._get_val(g, r.field)
 
-        if rule.field in _TEXT_LIST_FIELDS:
-            if not isinstance(field_value, (list, tuple)):
-                field_value = [str(field_value)] if field_value else []
+        if r.field in _TXT_LIST:
+            if not isinstance(raw, (list, tuple)):
+                items = [str(raw)] if raw else []
             else:
-                field_value = list(field_value)
-            return self._match_text_list(field_value, rule.operator, rule.value)
+                items = list(raw)
+            return self._match_txt_list(items, r.operator, r.value)
 
-        if rule.field in _TEXT_SINGLE_FIELDS or rule.field in _ENUM_FIELDS:
-            return self._match_text_single(str(field_value), rule.operator, rule.value)
+        if r.field in _TXT_SINGLE or r.field in _ENUM:
+            return self._match_txt(str(raw), r.operator, r.value)
 
-        if rule.field in _NUMERIC_FIELDS:
+        if r.field in _NUM:
             # RELEASE_YEAR stores UNIX timestamp but user compares by year
-            if rule.field == FilterField.RELEASE_YEAR and isinstance(field_value, int) and field_value > 9999:
+            if r.field == FilterField.RELEASE_YEAR and isinstance(raw, int) and raw > 9999:
                 from steam_library_manager.utils.date_utils import year_from_timestamp
 
-                yr = year_from_timestamp(field_value)
-                num_val: str | float | int = float(yr) if yr else 0
+                yr = year_from_timestamp(raw)
+                num_val = float(yr) if yr else 0
             else:
-                num_val = field_value if isinstance(field_value, (int, float)) else str(field_value)
-            return self._match_numeric(num_val, rule.operator, rule.value, rule.value_max)
+                num_val = raw if isinstance(raw, (int, float)) else str(raw)
+            return self._match_num(num_val, r.operator, r.value, r.value_max)
 
-        if rule.field in _BOOL_FIELDS:
-            return self._match_boolean(bool(field_value), rule.operator)
+        if r.field in _BOOL:
+            return self._match_bool(bool(raw), r.operator)
 
-        logger.warning("Unknown field category for %s", rule.field)
+        logger.warning("Unknown field category for %s" % r.field)
         return False
 
-    def _get_field_value(self, game: Game, fld: FilterField) -> str | list[str] | float | bool:
-        """Extracts the field value from a Game object."""
-        attr_name = field_to_game_attr(fld)
+    def _get_val(self, g, fld):
+        attr = field_to_game_attr(fld)
 
-        # playtime_hours is a property, not a stored field
+        # playtime_hours is computed, not stored
         if fld == FilterField.PLAYTIME_HOURS:
-            return game.playtime_hours
+            return g.playtime_hours
 
-        return getattr(game, attr_name, "")
+        return getattr(g, attr, "")
 
-    def _match_text_list(self, values: list[str], operator: Operator, target: str) -> bool:
-        """Matches an operator against a list of text values (tags, genres, etc.)."""
-        if not values:
+    def _match_txt_list(self, vals, op, tgt):
+        if not vals:
             return False
 
-        target_lower = target.lower()
+        t = tgt.lower()
 
-        for val in values:
-            val_lower = val.lower()
+        for v in vals:
+            low = v.lower()
 
-            if operator == Operator.EQUALS and val_lower == target_lower:
+            if op == Operator.EQUALS and low == t:
                 return True
-            if operator == Operator.CONTAINS and target_lower in val_lower:
+            if op == Operator.CONTAINS and t in low:
                 return True
-            if operator == Operator.STARTS_WITH and val_lower.startswith(target_lower):
+            if op == Operator.STARTS_WITH and low.startswith(t):
                 return True
-            if operator == Operator.ENDS_WITH and val_lower.endswith(target_lower):
+            if op == Operator.ENDS_WITH and low.endswith(t):
                 return True
-            if operator == Operator.REGEX:
+            if op == Operator.REGEX:
                 try:
-                    if re.search(target, val, re.IGNORECASE):
+                    if re.search(tgt, v, re.IGNORECASE):
                         return True
                 except re.error:
                     return False
 
         return False
 
-    def _match_text_single(self, value: str, operator: Operator, target: str) -> bool:
-        """Matches an operator against a single text value."""
-        value_lower = value.lower()
-        target_lower = target.lower()
+    def _match_txt(self, val, op, tgt):
+        low_val = val.lower()
+        low_tgt = tgt.lower()
 
-        if operator == Operator.EQUALS:
-            return value_lower == target_lower
-        if operator == Operator.CONTAINS:
-            return target_lower in value_lower
-        if operator == Operator.STARTS_WITH:
-            return value_lower.startswith(target_lower)
-        if operator == Operator.ENDS_WITH:
-            return value_lower.endswith(target_lower)
-        if operator == Operator.REGEX:
+        if op == Operator.EQUALS:
+            return low_val == low_tgt
+        if op == Operator.CONTAINS:
+            return low_tgt in low_val
+        if op == Operator.STARTS_WITH:
+            return low_val.startswith(low_tgt)
+        if op == Operator.ENDS_WITH:
+            return low_val.endswith(low_tgt)
+        if op == Operator.REGEX:
             try:
-                return bool(re.search(target, value, re.IGNORECASE))
+                return bool(re.search(tgt, val, re.IGNORECASE))
             except re.error:
                 return False
 
         return False
 
-    def _match_numeric(self, value: str | float | int, operator: Operator, target: str, target_max: str) -> bool:
-        """Matches a numeric operator against a value."""
+    def _match_num(self, val, op, tgt, tgt_max):
         try:
-            num_value = float(value) if not isinstance(value, (int, float)) else float(value)
+            n = float(val)
         except (ValueError, TypeError):
             return False
 
         try:
-            num_target = float(target) if target else 0.0
+            t = float(tgt) if tgt else 0.0
         except (ValueError, TypeError):
             return False
 
-        if operator == Operator.EQUALS:
-            return num_value == num_target
-        if operator == Operator.GREATER_THAN:
-            return num_value > num_target
-        if operator == Operator.LESS_THAN:
-            return num_value < num_target
-        if operator == Operator.GREATER_EQUAL:
-            return num_value >= num_target
-        if operator == Operator.LESS_EQUAL:
-            return num_value <= num_target
-        if operator == Operator.BETWEEN:
+        if op == Operator.EQUALS:
+            return n == t
+        if op == Operator.GREATER_THAN:
+            return n > t
+        if op == Operator.LESS_THAN:
+            return n < t
+        if op == Operator.GREATER_EQUAL:
+            return n >= t
+        if op == Operator.LESS_EQUAL:
+            return n <= t
+
+        if op == Operator.BETWEEN:
             try:
-                num_max = float(target_max) if target_max else 0.0
+                upper = float(tgt_max) if tgt_max else 0.0
             except (ValueError, TypeError):
                 return False
-            lo, hi = min(num_target, num_max), max(num_target, num_max)
-            return lo <= num_value <= hi
+            lo, hi = min(t, upper), max(t, upper)
+            return lo <= n <= hi
 
         return False
 
-    def _match_boolean(self, value: bool, operator: Operator) -> bool:
-        """Matches a boolean operator."""
-        if operator == Operator.IS_TRUE:
-            return value is True
-        if operator == Operator.IS_FALSE:
-            return value is False
+    def _match_bool(self, val, op):
+        if op == Operator.IS_TRUE:
+            return val is True
+        if op == Operator.IS_FALSE:
+            return val is False
         return False
 
-    def evaluate_batch(self, games: list[Game], collection: SmartCollection) -> list[Game]:
-        """Returns all games matching the collection rules."""
-        return [game for game in games if self.evaluate(game, collection)]
+    def evaluate_batch(self, games: list[Game], col: SmartCollection) -> list[Game]:
+        # filter game list down to those matching collection
+        return [g for g in games if self.evaluate(g, col)]

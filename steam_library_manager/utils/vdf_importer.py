@@ -11,7 +11,6 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 import vdf
 
@@ -19,72 +18,59 @@ logger = logging.getLogger("steamlibmgr.vdf_importer")
 
 __all__ = ["ImportedCollection", "VDFImporter"]
 
+# metadata keys we skip when pulling app IDs
+_SKIP = {"id", "name", "count"}
+
 
 @dataclass(frozen=True)
 class ImportedCollection:
-    """A collection parsed from a VDF file.
-
-    Attributes:
-        name: The collection name.
-        app_ids: Tuple of app IDs belonging to this collection.
-    """
+    """A collection parsed from a VDF file."""
 
     name: str
     app_ids: tuple[int, ...] = field(default_factory=tuple)
 
 
 class VDFImporter:
-    """Imports collections from VDF text files."""
+    # imports collections from VDF text files
 
     @staticmethod
-    def import_collections(file_path: Path) -> list[ImportedCollection]:
-        """Reads a VDF text file and extracts collections.
+    def import_collections(fp: Path) -> list[ImportedCollection]:
+        # read file and pull out every collection block
+        # expected layout: "collections" { "Name" { "id" "..." "0" "440" } }
+        if not fp.exists():
+            raise FileNotFoundError("VDF file not found: %s" % fp)
 
-        Expects VDF structure like:
-            "collections" { "CollName" { "id" "..." "name" "..." "0" "440" "1" "570" } }
-
-        Args:
-            file_path: Path to the VDF file to import.
-
-        Returns:
-            List of ImportedCollection objects.
-
-        Raises:
-            FileNotFoundError: If the file does not exist.
-            ValueError: If the VDF structure is invalid.
-        """
-        if not file_path.exists():
-            raise FileNotFoundError(f"VDF file not found: {file_path}")
-
-        with open(file_path, "r", encoding="utf-8") as fh:
+        with open(fp, "r", encoding="utf-8") as fh:
             content = fh.read()
 
         try:
             data = vdf.loads(content)
         except Exception as exc:
-            raise ValueError(f"Invalid VDF format: {exc}") from exc
+            raise ValueError("Invalid VDF format: %s" % exc) from exc
 
-        collections_data: dict[str, Any] = data.get("collections", {})
-        if not collections_data:
+        colls = data.get("collections", {})
+        if not colls:
             return []
 
-        result: list[ImportedCollection] = []
-        for _key, coll_data in collections_data.items():
-            if not isinstance(coll_data, dict):
+        res = []
+
+        for key, cd in colls.items():
+            if not isinstance(cd, dict):
                 continue
 
-            name = coll_data.get("name", _key)
-            app_ids: list[int] = []
+            nm = cd.get("name", key)
 
-            for k, v in coll_data.items():
-                if k in ("id", "name", "count"):
+            # grab every value whose key isn't reserved
+            ids = []
+            for k, v in cd.items():
+                if k in _SKIP:
                     continue
                 try:
-                    app_ids.append(int(v))
+                    ids.append(int(v))
                 except (ValueError, TypeError):
                     continue
 
-            result.append(ImportedCollection(name=name, app_ids=tuple(app_ids)))
+            res.append(ImportedCollection(name=nm, app_ids=tuple(ids)))
 
-        logger.info("Imported %d collections from %s", len(result), file_path)
-        return result
+        logger.info("Imported %d collections from %s" % (len(res), fp))
+        return res

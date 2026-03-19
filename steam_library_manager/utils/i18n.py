@@ -11,7 +11,6 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any
 
 __all__ = ["I18n", "get_language", "init_i18n", "t"]
 
@@ -19,166 +18,104 @@ logger = logging.getLogger("steamlibmgr.i18n")
 
 
 class I18n:
-    """Core internationalization class.
+    """Core i18n class. Loads shared files then locale-specific."""
 
-    Loads shared files from resources/i18n/ root (emoji.json, logs.json),
-    then locale-specific files from resources/i18n/{locale}/.
-    """
-
-    def __init__(self, locale: str = "en") -> None:
-        """Initialize I18n with a specific locale code.
-
-        Args:
-            locale: The locale code used to find the corresponding
-                directory in resources/i18n/.
-        """
+    def __init__(self, locale="en"):
         self.locale = locale
-        self.translations: dict[str, Any] = {}
-        self.fallback_translations: dict[str, Any] = {}
+        self._tr = {}  # translations
+        self._fb = {}  # fallback
 
         from steam_library_manager.utils.paths import get_resources_dir
 
-        self.i18n_root = get_resources_dir() / "i18n"
+        self._root = get_resources_dir() / "i18n"
+        self._load()
 
-        self._load_translations()
+    def _load(self):
+        # priority: shared -> english fallback -> target locale
+        shared = self._load_shared()
+        en = self._load_locale("en")
+        self._fb = self._merge(shared, en)
 
-    def _load_translations(self) -> None:
-        """Load translations in priority order.
-
-        1. Load shared files from resources/i18n/*.json (emoji, logs)
-        2. Load English fallback from resources/i18n/en/*.json
-        3. Deep-merge shared + English = fallback
-        4. If locale != 'en': load target locale, merge on top of fallback
-        """
-        shared_data = self._load_shared_files()
-        en_data = self._load_locale_directory("en")
-        self.fallback_translations = self._deep_merge(shared_data, en_data)
-
-        if self.locale != "en":
-            target_data = self._load_locale_directory(self.locale)
-            self.translations = self._deep_merge(self.fallback_translations, target_data)
+        if self.locale == "en":
+            self._tr = self._fb
         else:
-            self.translations = self.fallback_translations
+            target = self._load_locale(self.locale)
+            self._tr = self._merge(self._fb, target)
 
-    def _load_json_directory(self, directory: Path) -> dict[str, Any]:
-        """Loads and deep-merges all JSON files from a directory.
+    def _load_dir(self, d: Path):
+        # load and deep-merge all *.json from directory
+        res = {}
+        if not d.exists():
+            return res
 
-        Args:
-            directory: Path to scan for ``*.json`` files.
-
-        Returns:
-            Merged dictionary of all JSON files found.
-        """
-        merged: dict[str, Any] = {}
-        if not directory.exists():
-            return merged
-        for file_path in sorted(directory.glob("*.json")):
+        for fp in sorted(d.glob("*.json")):
             try:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    merged = self._deep_merge(merged, json.load(f))
-            except (OSError, json.JSONDecodeError) as e:
-                logger.error("Error loading i18n file %s: %s", file_path.name, e)
-        return merged
+                with open(fp, "r", encoding="utf-8") as fh:
+                    res = self._merge(res, json.load(fh))
+            except (OSError, json.JSONDecodeError) as exc:
+                logger.error("Error loading i18n file %s: %s" % (fp.name, exc))
+        return res
 
-    def _load_shared_files(self) -> dict[str, Any]:
-        """Load language-agnostic shared files from the i18n root."""
-        return self._load_json_directory(self.i18n_root)
+    def _load_shared(self):
+        # language-agnostic files in i18n root
+        return self._load_dir(self._root)
 
-    def _load_locale_directory(self, locale_code: str) -> dict[str, Any]:
-        """Load all JSON files from a locale directory."""
-        return self._load_json_directory(self.i18n_root / locale_code)
+    def _load_locale(self, code):
+        return self._load_dir(self._root / code)
 
-    def _deep_merge(self, base: dict[str, Any], update: dict[str, Any]) -> dict[str, Any]:
-        """Recursive merge of dictionaries.
-
-        Args:
-            base: The base dictionary.
-            update: The dictionary whose values override base.
-
-        Returns:
-            New dictionary with merged values.
-        """
-        result = base.copy()
-        for key, value in update.items():
-            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
-                result[key] = self._deep_merge(result[key], value)
+    def _merge(self, base, upd):
+        # recursive dict merge, upd wins
+        res = base.copy()
+        for k, v in upd.items():
+            if k in res and isinstance(res[k], dict) and isinstance(v, dict):
+                res[k] = self._merge(res[k], v)
             else:
-                result[key] = value
-        return result
+                res[k] = v
+        return res
 
-    def t(self, key: str, **kwargs: Any) -> str:
-        """Retrieve a translated string by dot-notation key.
+    def t(self, key, **kw):
+        # lookup dot-notation key, return '[key]' if missing
+        pts = key.split(".")
+        cur = self._tr
 
-        Args:
-            key: Dot-separated key path (e.g. 'menu.file.root').
-            **kwargs: Format arguments for string interpolation.
-
-        Returns:
-            Translated string, or '[key]' if not found.
-        """
-        keys = key.split(".")
-        value: Any = self.translations
-
-        for k in keys:
-            if isinstance(value, dict):
-                value = value.get(k)
+        for p in pts:
+            if isinstance(cur, dict):
+                cur = cur.get(p)
             else:
-                value = None
+                cur = None
                 break
 
-        if value is None:
-            return f"[{key}]"
+        if cur is None or not isinstance(cur, str):
+            return "[%s]" % key
 
-        if not isinstance(value, str):
-            return f"[{key}]"
-
-        if kwargs:
+        if kw:
             try:
-                return value.format(**kwargs)
+                return cur.format(**kw)
             except (ValueError, KeyError, IndexError):
-                return value
+                return cur
 
-        return value
-
-
-_i18n_instance: I18n | None = None
+        return cur
 
 
-def init_i18n(locale: str = "en") -> I18n:
-    """Initialize the global i18n instance.
-
-    Args:
-        locale: The locale code to use.
-
-    Returns:
-        The initialized I18n instance.
-    """
-    global _i18n_instance
-    _i18n_instance = I18n(locale)
-    return _i18n_instance
+_i18n = None  # singleton instance
 
 
-def get_language() -> str:
-    """Return the current locale code of the global i18n instance.
+def init_i18n(locale="en"):
+    # setup global i18n singleton
+    global _i18n
+    _i18n = I18n(locale)
+    return _i18n
 
-    Returns:
-        The active locale code (e.g. 'en', 'de').
-    """
-    if _i18n_instance is None:
+
+def get_language():
+    # return active locale code (e.g. 'en', 'de')
+    if _i18n is None:
         init_i18n()
-    return _i18n_instance.locale
+    return _i18n.locale
 
 
-def t(key: str, **kwargs: Any) -> str:
-    """Retrieve a translated string using the global i18n instance.
-
-    Args:
-        key: Dot-separated key path.
-        **kwargs: Format arguments for string interpolation.
-
-    Returns:
-        Translated string, or '[key]' if not found.
-    """
-    if _i18n_instance is None:
+def t(key, **kw):
+    # translate key via global instance
+    if _i18n is None:
         init_i18n()
-    return _i18n_instance.t(key, **kwargs)
+    return _i18n.t(key, **kw)

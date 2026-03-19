@@ -22,17 +22,7 @@ __all__ = ["AutoCatPreset", "AutoCatPresetManager"]
 
 @dataclass(frozen=True)
 class AutoCatPreset:
-    """Immutable representation of an auto-categorization preset.
-
-    Args:
-        name: Display name for the preset.
-        methods: Tuple of method names to run (e.g. ("tags", "publisher")).
-        tags_count: Number of tags per game (used when "tags" is in methods).
-        ignore_common: Whether to ignore common tags.
-        curator_url: Optional Steam Curator URL (used when "curator" is in methods).
-        curator_recommendations: Optional tuple of recommendation types to include.
-    """
-
+    # immutable auto-categorization preset
     name: str
     methods: tuple[str, ...] = field(default_factory=tuple)
     tags_count: int = 13
@@ -42,108 +32,68 @@ class AutoCatPreset:
 
 
 class AutoCatPresetManager:
-    """Manages CRUD operations for auto-categorization presets.
+    # CRUD for auto-categorization presets
 
-    Presets are stored as a JSON array in the application data directory.
-    """
+    def __init__(self, data_dir: Path | None = None):
+        self._dir = data_dir or config.DATA_DIR
+        self._fp = self._dir / "autocat_presets.json"
 
-    def __init__(self, data_dir: Path | None = None) -> None:
-        """Initialize the preset manager.
-
-        Args:
-            data_dir: Directory for storing presets. Defaults to config.DATA_DIR.
-        """
-        self._data_dir = data_dir or config.DATA_DIR
-        self._file_path = self._data_dir / "autocat_presets.json"
-
-    def load_presets(self) -> list[AutoCatPreset]:
-        """Load all presets from disk.
-
-        Returns:
-            List of presets, empty if file does not exist or is invalid.
-        """
-        data = load_json(self._file_path, default=[])
-        if not data:
+    def load_presets(self):
+        # load all presets from disk
+        raw = load_json(self._fp, default=[])
+        if not raw:
             return []
 
-        presets: list[AutoCatPreset] = []
-        for item in data:
+        res = []
+        for it in raw:
             try:
-                presets.append(
+                recs = it.get("curator_recommendations")
+                res.append(
                     AutoCatPreset(
-                        name=item["name"],
-                        methods=tuple(item.get("methods", ())),
-                        tags_count=item.get("tags_count", 13),
-                        ignore_common=item.get("ignore_common", True),
-                        curator_url=item.get("curator_url"),
-                        curator_recommendations=(
-                            tuple(item["curator_recommendations"]) if item.get("curator_recommendations") else None
-                        ),
+                        name=it["name"],
+                        methods=tuple(it.get("methods", ())),
+                        tags_count=it.get("tags_count", 13),
+                        ignore_common=it.get("ignore_common", True),
+                        curator_url=it.get("curator_url"),
+                        curator_recommendations=tuple(recs) if recs else None,
                     )
                 )
             except (KeyError, TypeError) as exc:
-                logger.warning("Skipping malformed preset: %s", exc)
+                logger.warning("Skipping malformed preset: %s" % exc)
                 continue
+        return res
 
-        return presets
+    def save_preset(self, p):
+        # overwrites existing preset with same name
+        ps = [x for x in self.load_presets() if x.name != p.name]
+        ps.append(p)
+        self._write(ps)
+        logger.info("Saved preset '%s'" % p.name)
 
-    def save_preset(self, preset: AutoCatPreset) -> None:
-        """Save or update a preset.
+    def delete_preset(self, n):
+        # delete preset by name, return True if removed
+        ps = self.load_presets()
+        before = len(ps)
+        ps = [x for x in ps if x.name != n]
 
-        If a preset with the same name exists, it is overwritten.
-
-        Args:
-            preset: The preset to save.
-        """
-        presets = self.load_presets()
-
-        # Replace existing preset with same name
-        presets = [p for p in presets if p.name != preset.name]
-        presets.append(preset)
-
-        self._write_presets(presets)
-        logger.info("Saved preset '%s'", preset.name)
-
-    def delete_preset(self, name: str) -> bool:
-        """Delete a preset by name.
-
-        Args:
-            name: Name of the preset to delete.
-
-        Returns:
-            True if a preset was deleted, False if not found.
-        """
-        presets = self.load_presets()
-        original_count = len(presets)
-        presets = [p for p in presets if p.name != name]
-
-        if len(presets) == original_count:
+        if len(ps) == before:
             return False
 
-        self._write_presets(presets)
-        logger.info("Deleted preset '%s'", name)
+        self._write(ps)
+        logger.info("Deleted preset '%s'" % n)
         return True
 
-    def rename_preset(self, old_name: str, new_name: str) -> bool:
-        """Rename a preset.
+    def rename_preset(self, old, new):
+        # rename preset, return False if not found
+        ps = self.load_presets()
+        ok = False
 
-        Args:
-            old_name: Current name of the preset.
-            new_name: New name for the preset.
-
-        Returns:
-            True if renamed, False if old_name not found.
-        """
-        presets = self.load_presets()
-        found = False
-
-        new_presets: list[AutoCatPreset] = []
-        for p in presets:
-            if p.name == old_name:
-                # Create new frozen instance with updated name
-                new_presets.append(
+        res = []
+        for p in ps:
+            if p.name == old:
+                res.append(
                     AutoCatPreset(
-                        name=new_name,
+                        name=new,
                         methods=p.methods,
                         tags_count=p.tags_count,
                         ignore_common=p.ignore_common,
@@ -151,29 +101,22 @@ class AutoCatPresetManager:
                         curator_recommendations=p.curator_recommendations,
                     )
                 )
-                found = True
+                ok = True
             else:
-                new_presets.append(p)
+                res.append(p)
 
-        if found:
-            self._write_presets(new_presets)
-            logger.info("Renamed preset '%s' -> '%s'", old_name, new_name)
+        if ok:
+            self._write(res)
+            logger.info("Renamed preset '%s' -> '%s'" % (old, new))
+        return ok
 
-        return found
-
-    def _write_presets(self, presets: list[AutoCatPreset]) -> None:
-        """Write the full preset list to disk.
-
-        Args:
-            presets: List of presets to persist.
-        """
+    def _write(self, ps):
+        # serialize to JSON-safe dicts
         data = []
-        for p in presets:
+        for p in ps:
             d = asdict(p)
-            # Convert tuples to lists for JSON serialization
             d["methods"] = list(d["methods"])
             if d["curator_recommendations"] is not None:
                 d["curator_recommendations"] = list(d["curator_recommendations"])
             data.append(d)
-
-        save_json(self._file_path, data)
+        save_json(self._fp, data)
