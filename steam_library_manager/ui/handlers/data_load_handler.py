@@ -1,6 +1,6 @@
 #
 # steam_library_manager/ui/handlers/data_load_handler.py
-# Handles initial data load and profile-switch data refresh
+# Post-login data loading and profile-switch refresh
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -9,8 +9,6 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
-
 from steam_library_manager.config import config
 from steam_library_manager.integrations.steam_store import SteamStoreScraper
 from steam_library_manager.ui.widgets.ui_helper import UIHelper
@@ -19,119 +17,77 @@ from steam_library_manager.utils.i18n import t
 
 logger = logging.getLogger("steamlibmgr.data_load_handler")
 
-if TYPE_CHECKING:
-    from steam_library_manager.ui.main_window import MainWindow
-
 __all__ = ["DataLoadHandler"]
 
 
 class DataLoadHandler:
-    """Handler for post-login data loading operations.
+    """Handles game reloading after Steam login.
 
-    Manages game reloading after Steam login using inline progress
-    (no modal dialog). The initial startup is handled by BootstrapService.
-
-    Attributes:
-        mw: Reference to the MainWindow instance.
-        load_worker: Worker thread for async game loading.
+    Uses inline progress (no modal). Initial startup goes
+    through BootstrapService instead.
     """
 
-    def __init__(self, main_window: MainWindow) -> None:
-        """Initialize the data load handler.
+    def __init__(self, mw):
+        self.mw = mw
+        self.load_worker = None
 
-        Args:
-            main_window: The MainWindow instance.
-        """
-        self.mw = main_window
-        self.load_worker: GameLoadWorker | None = None
-
-    def load_games_with_steam_login(self, steam_id: str, session_or_token) -> None:
-        """Load games after Steam login with access token or session.
-
-        This method is called after successful Steam authentication to reload
-        the game library with Steam Web API access. Uses inline progress
-        instead of a modal dialog.
-
-        Args:
-            steam_id: The Steam ID64 of the authenticated user.
-            session_or_token: Either a requests.Session or access_token string.
-        """
+    def load_games_with_steam_login(self, sid, tok):
+        # reload after auth
         logger.info(t("logs.auth.loading_games_after_login"))
 
-        if isinstance(session_or_token, str):
+        if isinstance(tok, str):
             logger.info(t("logs.auth.auth_mode_token"))
         else:
             logger.info(t("logs.auth.auth_mode_session"))
 
-        # Use bootstrap service for non-blocking reload
+        # prefer bootstrap
         if hasattr(self.mw, "bootstrap_service") and self.mw.bootstrap_service:
             self.mw.bootstrap_service.start()
         else:
-            # Fallback: direct worker launch with inline progress
-            self._load_games_with_progress(steam_id)
+            self._load(sid)
 
-    def _load_games_with_progress(self, user_id: str) -> None:
-        """Start game loading with inline progress updates.
-
-        Args:
-            user_id: The Steam user ID to load games for.
-        """
+    def _load(self, u):
+        # inline progress
         if not self.mw.game_service:
             logger.error(t("logs.data_load.game_service_not_initialized"))
             return
 
-        # Show inline loading state
         self.mw.tree.set_loading_state(True)
 
-        self.load_worker = GameLoadWorker(self.mw.game_service, user_id)
-        self.load_worker.progress_update.connect(self._on_load_progress)
-        self.load_worker.finished.connect(self._on_load_finished)
+        self.load_worker = GameLoadWorker(self.mw.game_service, u)
+        self.load_worker.progress_update.connect(self._prog)
+        self.load_worker.finished.connect(self._fin)
         self.load_worker.start()
 
-    def _on_load_progress(self, step: str, current: int, total: int) -> None:
-        """Update the inline progress bar during game loading.
-
-        Args:
-            step: Description of the current loading step.
-            current: Current progress count.
-            total: Total items to process.
-        """
+    def _prog(self, s, cur, tot):
+        # update bar
         if hasattr(self.mw, "loading_label"):
-            self.mw.loading_label.setText(step)
+            self.mw.loading_label.setText(s)
             self.mw.loading_label.setVisible(True)
-        if hasattr(self.mw, "progress_bar") and total > 0:
-            percent = int((current / total) * 100)
-            self.mw.progress_bar.setValue(percent)
+        if hasattr(self.mw, "progress_bar") and tot > 0:
+            pct = int((cur / tot) * 100)
+            self.mw.progress_bar.setValue(pct)
             self.mw.progress_bar.setVisible(True)
 
-    def _on_load_finished(self, success: bool) -> None:
-        """Handle completion of the game loading process.
-
-        Args:
-            success: Whether loading completed successfully.
-        """
-        # Hide inline progress
+    def _fin(self, win):
+        # done
         if hasattr(self.mw, "loading_label"):
             self.mw.loading_label.setVisible(False)
         if hasattr(self.mw, "progress_bar"):
             self.mw.progress_bar.setVisible(False)
 
-        # Get game_manager reference from game_service
         self.mw.game_manager = self.mw.game_service.game_manager if self.mw.game_service else None
 
-        if not success or not self.mw.game_manager or not self.mw.game_manager.games:
+        if not win or not self.mw.game_manager or not self.mw.game_manager.games:
             UIHelper.show_warning(self.mw, t("ui.errors.no_games_found"))
             self.mw.reload_btn.show()
             self.mw.set_status(t("common.error"))
             return
 
-        # Initialize SteamStoreScraper (lightweight, no I/O)
         self.mw.steam_scraper = SteamStoreScraper(config.CACHE_DIR, config.TAGS_LANGUAGE)
-
-        # Set appinfo_manager reference (already loaded by worker)
         self.mw.appinfo_manager = self.mw.game_service.appinfo_manager
 
-        # Initialize CategoryService
+        # init svcs
         from steam_library_manager.services.category_service import CategoryService
 
         self.mw.category_service = CategoryService(
@@ -140,7 +96,6 @@ class DataLoadHandler:
             game_manager=self.mw.game_manager,
         )
 
-        # Initialize MetadataService
         from steam_library_manager.services.metadata_service import MetadataService
 
         self.mw.metadata_service = MetadataService(
@@ -148,7 +103,6 @@ class DataLoadHandler:
             game_manager=self.mw.game_manager,
         )
 
-        # Initialize AutoCategorizeService
         from steam_library_manager.services.autocategorize_service import AutoCategorizeService
 
         self.mw.autocategorize_service = AutoCategorizeService(
@@ -159,7 +113,7 @@ class DataLoadHandler:
 
         self.mw.populate_categories()
 
-        status_msg = self.mw.game_manager.get_load_source_message()
-        self.mw.set_status(status_msg)
+        final_msg = self.mw.game_manager.get_load_source_message()
+        self.mw.set_status(final_msg)
         self.mw.reload_btn.hide()
         self.mw.update_statistics()

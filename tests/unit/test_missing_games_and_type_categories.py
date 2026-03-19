@@ -321,7 +321,7 @@ class TestAppTypeAssignment:
 
 
 class TestTypeCategoriesGrouping:
-    """Tests for _get_type_categories in CategoryPopulator."""
+    """Tests for _get_type_cats in CategoryPopulator."""
 
     def test_groups_by_type(self):
         """Test that apps are grouped into correct type categories."""
@@ -335,7 +335,7 @@ class TestTypeCategoriesGrouping:
             Game(app_id="5", name="Documentary", app_type="video"),
         ]
 
-        result = CategoryPopulator._get_type_categories(apps)
+        result = CategoryPopulator._get_type_cats(apps)
 
         # Should have 4 categories (music, tool, application, video — NOT game)
         assert len(result) == 4
@@ -357,7 +357,7 @@ class TestTypeCategoriesGrouping:
             Game(app_id="2", name="Hidden OST", app_type="music", hidden=True),
         ]
 
-        result = CategoryPopulator._get_type_categories(apps)
+        result = CategoryPopulator._get_type_cats(apps)
         from steam_library_manager.utils.i18n import t
 
         soundtracks = result.get(t("categories.soundtracks"), [])
@@ -373,7 +373,7 @@ class TestTypeCategoriesGrouping:
             Game(app_id="2", name="Game B", app_type="game"),
         ]
 
-        result = CategoryPopulator._get_type_categories(apps)
+        result = CategoryPopulator._get_type_cats(apps)
         assert len(result) == 0
 
     def test_empty_for_unknown_type(self):
@@ -384,7 +384,7 @@ class TestTypeCategoriesGrouping:
             Game(app_id="1", name="Unknown App", app_type=""),
         ]
 
-        result = CategoryPopulator._get_type_categories(apps)
+        result = CategoryPopulator._get_type_cats(apps)
         assert len(result) == 0
 
 

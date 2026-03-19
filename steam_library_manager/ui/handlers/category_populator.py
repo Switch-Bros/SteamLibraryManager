@@ -1,6 +1,6 @@
 #
 # steam_library_manager/ui/handlers/category_populator.py
-# Populates the category tree from the current game manager state
+# Populates sidebar category tree from game manager state
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -9,19 +9,14 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from typing import TYPE_CHECKING
 
-from steam_library_manager.core.game import Game
 from steam_library_manager.integrations.external_games.models import get_collection_emoji
 from steam_library_manager.utils.i18n import t
 
-if TYPE_CHECKING:
-    from steam_library_manager.ui.main_window import MainWindow
-
 __all__ = ["CategoryPopulator"]
 
-# Maps app_type values from appinfo.vdf to i18n category keys
-_TYPE_TO_CATEGORY_KEY: dict[str, str] = {
+# app_type -> i18n key
+_TYPE_MAP = {
     "music": "categories.soundtracks",
     "tool": "categories.tools",
     "application": "categories.software",
@@ -30,36 +25,19 @@ _TYPE_TO_CATEGORY_KEY: dict[str, str] = {
 
 
 class CategoryPopulator:
-    """Builds and populates the sidebar category tree.
+    """Builds the sidebar category tree.
 
-    Uses the same back-reference pattern as all other MainWindow handlers.
-
-    Args:
-        main_window: The MainWindow instance that owns this populator.
+    Cheap to rebuild (~50ms for 2500 games), no cache needed.
+    Handles German umlauts, smart collections, duplicates.
     """
 
-    def __init__(self, main_window: MainWindow) -> None:
-        self._mw = main_window
+    def __init__(self, mw):
+        self._mw = mw
 
     @staticmethod
-    def german_sort_key(text: str) -> str:
-        """Sort key for German text with umlauts and special characters.
-
-        Replaces German umlauts with their base letters for proper alphabetical sorting:
-        A/a -> a, O/o -> o, U/u -> u, ss -> ss
-
-        This ensures that "Ubernatuerlich" comes after "Uhr" (not at the end),
-        and "NIEDLICH", "Niedlich", "niedlich" appear together.
-
-        Args:
-            text: The text to create a sort key for.
-
-        Returns:
-            Normalized lowercase string for sorting.
-        """
-        # Map umlauts to come AFTER their base letter:
-        # a < ae, o < oe, u < ue (German alphabetical order)
-        replacements = {
+    def german_sort_key(txt):
+        # sort with umlaut support
+        repl = {
             "\u00e4": "a~",
             "\u00c4": "a~",
             "\u00f6": "o~",
@@ -68,220 +46,161 @@ class CategoryPopulator:
             "\u00dc": "u~",
             "\u00df": "ss",
         }
-        result = text.lower()
-        for old, new in replacements.items():
-            result = result.replace(old, new)
-        return result
+        r = txt.lower()
+        for old, new in repl.items():
+            r = r.replace(old, new)
+        return r
 
     @staticmethod
-    def _get_type_categories(all_apps: list[Game]) -> dict[str, list[Game]]:
-        """Groups non-game apps by their app_type into virtual type categories.
-
-        Only includes visible (non-hidden) apps. Empty categories are omitted.
-
-        Args:
-            all_apps: All apps including non-games.
-
-        Returns:
-            Ordered dict mapping localised category name to sorted game list.
-        """
-        buckets: dict[str, list[Game]] = {}
-        for app in all_apps:
-            if app.hidden:
+    def _get_type_cats(apps):
+        # group non-games by type
+        bkts = {}
+        for a in apps:
+            if a.hidden:
                 continue
-            type_lower = app.app_type.lower() if app.app_type else ""
-            cat_key = _TYPE_TO_CATEGORY_KEY.get(type_lower)
-            if cat_key:
-                cat_name = t(cat_key)
-                buckets.setdefault(cat_name, []).append(app)
+            tl = a.app_type.lower() if a.app_type else ""
+            ck = _TYPE_MAP.get(tl)
+            if ck:
+                cn = t(ck)
+                bkts.setdefault(cn, []).append(a)
 
-        # Sort games inside each bucket and return only non-empty ones
-        result: dict[str, list[Game]] = {}
-        for cat_name in sorted(buckets.keys()):
-            result[cat_name] = sorted(buckets[cat_name], key=lambda g: g.sort_name.lower())
-        return result
+        out = {}
+        for cn in sorted(bkts.keys()):
+            out[cn] = sorted(bkts[cn], key=lambda g: g.sort_name.lower())
+        return out
 
-    def populate(self) -> None:
-        """Refreshes the sidebar tree with current game data.
-
-        Builds category data including All Games, Favorites (if non-empty),
-        user categories, Uncategorized (if non-empty), and Hidden (if non-empty).
-
-        Steam-compatible order:
-        1. All Games (always shown)
-        2. Favorites (only if non-empty)
-        3. User Collections (alphabetically)
-        4. Uncategorized (only if non-empty)
-        5. Hidden (only if non-empty)
-
-        No caching: the tree is cheap to rebuild (~50 ms for 2 500 games)
-        and a cache only adds invisible staleness bugs.
-        """
+    def populate(self):
+        # refresh sidebar
         mw = self._mw
         if not mw.game_manager:
             return
 
-        # Apply view-menu filters (type, platform, status)
-        all_games_raw = mw.game_manager.get_real_games()
-        filtered_games = mw.filter_service.apply(all_games_raw)
-        filtered_ids: set[str] = {g.app_id for g in filtered_games}
+        # apply filters
+        raw = mw.game_manager.get_real_games()
+        filt = mw.filter_service.apply(raw)
+        fids = {g.app_id for g in filt}
 
-        # Use dynamic sorting from FilterService
         sort_fn = mw.filter_service.sort_games
 
-        # Separate hidden and visible games (within filtered set)
-        visible_games = sort_fn([g for g in filtered_games if not g.hidden])
-        hidden_games = sort_fn([g for g in filtered_games if g.hidden])
+        vis = sort_fn([g for g in filt if not g.hidden])
+        hid = sort_fn([g for g in filt if g.hidden])
 
-        # Favorites (sorted, non-hidden, within filtered set)
-        favorites = sort_fn(
-            [g for g in mw.game_manager.get_favorites() if not g.hidden and g.app_id in filtered_ids],
+        favs = sort_fn(
+            [g for g in mw.game_manager.get_favorites() if not g.hidden and g.app_id in fids],
         )
 
-        # Identify Smart Collection names BEFORE uncategorized check —
-        # games only in Smart Collections are still "uncategorized" from
-        # Steam's perspective (Smart Collections are local to SLM).
-        smart_collections: set[str] = set()
+        # smart collections
+        sc = set()
         if hasattr(mw, "smart_collection_manager") and mw.smart_collection_manager:
-            for sc in mw.smart_collection_manager.get_all():
-                smart_collections.add(sc.name)
+            for c in mw.smart_collection_manager.get_all():
+                sc.add(c.name)
 
-        # Uncategorized games (within filtered set, excluding Smart Collections)
-        uncategorized = sort_fn(
-            [
-                g
-                for g in mw.game_manager.get_uncategorized_games(smart_collections)
-                if not g.hidden and g.app_id in filtered_ids
-            ],
+        uncat = sort_fn(
+            [g for g in mw.game_manager.get_uncategorized_games(sc) if not g.hidden and g.app_id in fids],
         )
 
-        # Build categories_data in correct Steam order
-        categories_data: OrderedDict[str, list[Game]] = OrderedDict()
+        cats_data = OrderedDict()
 
-        # 1. All Games (always shown)
-        categories_data[t("categories.all_games")] = visible_games
+        # 1. All Games
+        cats_data[t("categories.all_games")] = vis
 
-        # 2. Favorites (only if non-empty)
-        if favorites:
-            categories_data[t("categories.favorites")] = favorites
+        # 2. Favorites
+        if favs:
+            cats_data[t("categories.favorites")] = favs
 
-        # 3. User categories (alphabetically sorted)
-        cats: dict[str, int] = mw.game_manager.get_all_categories()
+        # 3. User categories
+        cats = mw.game_manager.get_all_categories()
 
-        # Merge in parser-owned collections that GameManager cannot see.
-        # GameManager builds its list from game.categories only; an empty
-        # collection has no games so it never appears there.  The parser is
-        # the single source of truth for which collections actually exist.
-        active_parser = mw.cloud_storage_parser or mw.localconfig_helper
-        if active_parser:
-            for parser_cat in active_parser.get_all_categories():
-                if parser_cat not in cats:
-                    cats[parser_cat] = 0  # empty collection — count is zero
+        active = mw.cloud_storage_parser or mw.localconfig_helper
+        if active:
+            for pc in active.get_all_categories():
+                if pc not in cats:
+                    cats[pc] = 0
 
-        # Detect duplicate collection names from the parser
-        duplicate_groups: dict[str, list[dict]] = {}
+        # duplicates
+        dups = {}
         if mw.cloud_storage_parser:
-            duplicate_groups = mw.cloud_storage_parser.get_duplicate_groups()
+            dups = mw.cloud_storage_parser.get_duplicate_groups()
 
-        # Sort with German umlaut support
-        # Skip special categories (Favorites, Uncategorized, Hidden, All Games, Type categories)
+        # protected names
         from steam_library_manager.ui.constants import get_protected_collection_names
 
-        special_categories = get_protected_collection_names() | {
+        spec = get_protected_collection_names() | {
             t("categories.soundtracks"),
             t("categories.tools"),
             t("categories.software"),
             t("categories.videos"),
         }
 
-        # duplicate_display_info maps internal key -> (real_name, index, total)
-        duplicate_display_info: dict[str, tuple[str, int, int]] = {}
+        dup_info = {}
 
-        for cat_name in sorted(cats.keys(), key=self.german_sort_key):
-            if cat_name in special_categories:
+        for cn in sorted(cats.keys(), key=self.german_sort_key):
+            if cn in spec:
                 continue
 
-            if cat_name in duplicate_groups:
-                # Show each duplicate collection individually
-                colls = duplicate_groups[cat_name]
-                total = len(colls)
+            if cn in dups:
+                colls = dups[cn]
+                tot = len(colls)
                 for idx, coll in enumerate(colls):
                     apps = coll.get("added", coll.get("apps", []))
                     if not isinstance(apps, list):
                         apps = []
-                    # Build game list from this specific collection's app IDs
-                    app_id_set = set(apps)
-                    coll_games: list[Game] = sort_fn(
+                    aids = set(apps)
+                    cg = sort_fn(
                         [
                             g
                             for g in mw.game_manager.games.values()
-                            if not g.hidden and int(g.app_id) in app_id_set and g.app_id in filtered_ids
+                            if not g.hidden and int(g.app_id) in aids and g.app_id in fids
                         ],
                     )
-                    dup_key = f"__dup__{cat_name}__{idx}"
-                    categories_data[dup_key] = coll_games
-                    duplicate_display_info[dup_key] = (cat_name, idx + 1, total)
+                    dk = "__dup__%s__%d" % (cn, idx)
+                    cats_data[dk] = cg
+                    dup_info[dk] = (cn, idx + 1, tot)
             else:
-                cat_games: list[Game] = sort_fn(
-                    [
-                        g
-                        for g in mw.game_manager.get_games_by_category(cat_name)
-                        if not g.hidden and g.app_id in filtered_ids
-                    ],
+                cg = sort_fn(
+                    [g for g in mw.game_manager.get_games_by_category(cn) if not g.hidden and g.app_id in fids],
                 )
-                # Always add — empty collections must stay visible as "Name (0)"
-                categories_data[cat_name] = cat_games
+                cats_data[cn] = cg
 
-        # 4. Type categories (Soundtracks, Tools, Software, Videos)
-        # Respect type filter: only show type categories whose filter is enabled
-        _type_to_filter_key: dict[str, str] = {
+        # 4. Type categories
+        _tf = {
             "music": "soundtracks",
             "tool": "tools",
             "application": "software",
             "video": "videos",
         }
-        type_cats = self._get_type_categories(list(mw.game_manager.games.values()))
-        for cat_name, cat_games_list in type_cats.items():
-            # Find the filter key for this type category
-            filter_key = None
-            for app_type_val, fk in _type_to_filter_key.items():
-                if t(_TYPE_TO_CATEGORY_KEY[app_type_val]) == cat_name:
-                    filter_key = fk
+        type_cats = self._get_type_cats(list(mw.game_manager.games.values()))
+        for cn, gl in type_cats.items():
+            fk = None
+            for atv, fv in _tf.items():
+                if t(_TYPE_MAP[atv]) == cn:
+                    fk = fv
                     break
-            if filter_key and not mw.filter_service.is_type_category_visible(filter_key):
+            if fk and not mw.filter_service.is_type_category_visible(fk):
                 continue
-            # Also apply filtered_ids to type category games
-            filtered_type_games = [g for g in cat_games_list if g.app_id in filtered_ids]
-            if filtered_type_games:
-                categories_data[cat_name] = filtered_type_games
+            fg = [g for g in gl if g.app_id in fids]
+            if fg:
+                cats_data[cn] = fg
 
-        # 5. Uncategorized (only if non-empty)
-        if uncategorized:
-            categories_data[t("categories.uncategorized")] = uncategorized
+        # 5. Uncategorized
+        if uncat:
+            cats_data[t("categories.uncategorized")] = uncat
 
-        # 5. Hidden (only if non-empty)
-        if hidden_games:
-            categories_data[t("categories.hidden")] = hidden_games
+        # 6. Hidden
+        if hid:
+            cats_data[t("categories.hidden")] = hid
 
-        # Identify dynamic collections (have filterSpec)
-        dynamic_collections: set[str] = set()
+        # dynamic collections
+        dyn = set()
         if mw.cloud_storage_parser:
-            for collection in mw.cloud_storage_parser.collections:
-                if "filterSpec" in collection:
-                    dynamic_collections.add(collection["name"])
+            for c in mw.cloud_storage_parser.collections:
+                if "filterSpec" in c:
+                    dyn.add(c["name"])
 
-        # Identify external platform collections (ROM systems, platform parsers)
-        external_platform_collections: set[str] = set()
-        for cat_name_check in categories_data:
-            if get_collection_emoji(cat_name_check):
-                external_platform_collections.add(cat_name_check)
+        # external platforms
+        ext = set()
+        for cn in cats_data:
+            if get_collection_emoji(cn):
+                ext.add(cn)
 
-        # Pass dynamic collections, smart collections, external platforms,
-        # and duplicate info to tree
-        mw.tree.populate_categories(
-            categories_data,
-            dynamic_collections,
-            duplicate_display_info,
-            smart_collections,
-            external_platform_collections,
-        )
+        mw.tree.populate_categories(cats_data, dyn, dup_info, sc, ext)
