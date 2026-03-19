@@ -6,105 +6,59 @@
 # Licensed under the MIT License. See LICENSE for details.
 #
 
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
-from steam_library_manager.core.game_manager import Game
 from steam_library_manager.ui.widgets.ui_helper import UIHelper
 from steam_library_manager.utils.i18n import t
 from steam_library_manager.utils.open_url import open_url
-
-if TYPE_CHECKING:
-    from steam_library_manager.ui.main_window import MainWindow
 
 __all__ = ["GameActions"]
 
 
 class GameActions:
-    """Handles all game-specific actions from the context menu.
-
-    Owns no persistent state beyond a reference to MainWindow. Each action
-    method delegates to the appropriate parser or manager and triggers the
-    standard save/populate cycle when data changes.
-
-    Attributes:
-        mw: Back-reference to the owning MainWindow instance.
+    """Handles per-game context menu actions like favorite, hide,
+    store page, and removal. Delegates to parsers/managers via MainWindow.
     """
 
-    def __init__(self, main_window: "MainWindow") -> None:
-        """Initializes the GameActions handler.
-
-        Args:
-            main_window: The MainWindow instance that owns these actions.
-        """
-        self.mw: "MainWindow" = main_window
+    def __init__(self, main_window):
+        self.mw = main_window
 
     # ------------------------------------------------------------------
     # Public API - Game Actions
     # ------------------------------------------------------------------
 
-    def toggle_favorite(self, game: Game) -> None:
-        """Toggles the favorite status of a game.
-
-        Adds or removes the game from the special 'favorites' collection.
-        Favorites are stored in cloud-storage-namespace-1.json as:
-        "user-collections.favorite" (like Depressurizer does it!)
-
-        Changes are immediately saved and the UI is refreshed.
-
-        Args:
-            game: The game to add to or remove from favorites.
-        """
-        # Check if we have cloud_storage_parser available
+    def toggle_favorite(self, game):
+        # Flip favorite status via cloud storage collection
         if not self.mw.cloud_storage_parser:
             return
 
-        favorites_key = t("categories.favorites")
+        fav_key = t("categories.favorites")
 
         if game.is_favorite():
-            # Remove from favorites
-            if favorites_key in game.categories:
-                game.categories.remove(favorites_key)
+            if fav_key in game.categories:
+                game.categories.remove(fav_key)
             if self.mw.category_service:
-                self.mw.category_service.remove_app_from_category(game.app_id, favorites_key)
+                self.mw.category_service.remove_app_from_category(game.app_id, fav_key)
         else:
-            # Add to favorites
-            if favorites_key not in game.categories:
-                game.categories.append(favorites_key)
+            if fav_key not in game.categories:
+                game.categories.append(fav_key)
             if self.mw.category_service:
-                self.mw.category_service.add_app_to_category(game.app_id, favorites_key)
+                self.mw.category_service.add_app_to_category(game.app_id, fav_key)
 
-        # Save and refresh UI
         self.mw.save_collections()
         self.mw.populate_categories()
 
-    def toggle_hide_game(self, game: Game, hide: bool) -> None:
-        """Toggles the hidden status of a game.
-
-        Hidden games are stored in cloud-storage-namespace-1.json as:
-        "user-collections.hidden" (like Depressurizer does it!)
-
-        Hidden games are excluded from normal category listings and shown
-        only in the "Hidden" category.
-
-        Args:
-            game: The game to hide or unhide.
-            hide: True to hide the game, False to show it.
-        """
+    def toggle_hide_game(self, game, hide):
+        # Add/remove from hidden collection
         if not self.mw.cloud_storage_parser:
             return
 
         hidden_key = t("categories.hidden")
 
         if hide:
-            # Add to hidden collection
             if hidden_key not in game.categories:
                 game.categories.append(hidden_key)
             if self.mw.category_service:
                 self.mw.category_service.add_app_to_category(game.app_id, hidden_key)
         else:
-            # Remove from hidden collection
             if hidden_key in game.categories:
                 game.categories.remove(hidden_key)
             if self.mw.category_service:
@@ -112,52 +66,33 @@ class GameActions:
 
         if self.mw.save_collections():
             game.hidden = hide
-
-            # Refresh UI
             self.mw.populate_categories()
 
             status_word = t("ui.visibility.hidden") if hide else t("ui.visibility.visible")
-            self.mw.set_status(f"{status_word}: {game.name}")
+            self.mw.set_status("%s: %s" % (status_word, game.name))
 
             msg = t("ui.visibility.message", game=game.name, status=status_word)
             UIHelper.show_success(self.mw, msg, t("ui.visibility.title"))
 
     @staticmethod
-    def open_in_store(game: Game) -> None:
-        """Opens the Steam Store page for a game in the default browser.
+    def open_in_store(game):
+        open_url("https://store.steampowered.com/app/%s" % game.app_id)
 
-        This is a static method as it doesn't require MainWindow state.
-
-        Args:
-            game: The game to view in the store.
-        """
-        open_url(f"https://store.steampowered.com/app/{game.app_id}")
-
-    def remove_from_local_config(self, game: Game) -> None:
-        """Removes a game entry from the local Steam configuration.
-
-        This is useful for removing 'ghost' entries that no longer exist in Steam
-        but still appear in localconfig.vdf. Shows a confirmation dialog before
-        removing.
-
-        Args:
-            game: The game to remove from the local configuration.
-        """
+    def remove_from_local_config(self, game):
+        # Remove ghost entries from localconfig.vdf after confirmation
         if not UIHelper.confirm(
             self.mw, t("ui.dialogs.remove_local_warning", game=game.name), t("ui.dialogs.remove_local_title")
         ):
             return
 
         if self.mw.localconfig_helper:
-            success = self.mw.localconfig_helper.remove_app(str(game.app_id))
-            if success:
+            ok = self.mw.localconfig_helper.remove_app(str(game.app_id))
+            if ok:
                 self.mw.save_collections()
 
-                # Remove from game manager
                 if self.mw.game_manager and str(game.app_id) in self.mw.game_manager.games:
                     del self.mw.game_manager.games[str(game.app_id)]
 
-                # Refresh tree
                 self.mw.populate_categories()
 
                 UIHelper.show_success(
@@ -166,20 +101,12 @@ class GameActions:
             else:
                 UIHelper.show_error(self.mw, t("ui.dialogs.remove_local_error"))
 
-    def remove_game_from_account(self, game: Game) -> None:
-        """Redirects the user to Steam Support to remove a game from their account.
-
-        Shows a warning dialog before opening the browser, as this action is
-        permanent and cannot be undone.
-
-        Args:
-            game: The game to remove from the account.
-        """
+    def remove_game_from_account(self, game):
+        # Opens Steam Support page for permanent game removal
         if UIHelper.confirm(
             self.mw,
-            f"{t('emoji.warning')} {t('ui.dialogs.remove_account_warning')}",
+            "%s %s" % (t("emoji.warning"), t("ui.dialogs.remove_account_warning")),
             t("ui.dialogs.remove_account_title"),
         ):
-            # Steam Support URL for removing a game (issueid 123 is "remove from account")
-            url = f"https://help.steampowered.com/en/wizard/HelpWithGameIssue/?appid={game.app_id}&issueid=123"
+            url = "https://help.steampowered.com/en/wizard/HelpWithGameIssue/?appid=%s&issueid=123" % game.app_id
             open_url(url)

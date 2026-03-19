@@ -6,51 +6,32 @@
 # Licensed under the MIT License. See LICENSE for details.
 #
 
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
 from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QProgressBar,
     QPushButton,
-    QVBoxLayout,
 )
-
-from steam_library_manager.services.enrichment.enrichment_service import EnrichmentThread
 from steam_library_manager.ui.utils.font_helper import FontHelper
 from steam_library_manager.ui.widgets.base_dialog import BaseDialog
 from steam_library_manager.ui.widgets.ui_helper import UIHelper
 from steam_library_manager.utils.i18n import t
 from steam_library_manager.utils.timeouts import THREAD_WAIT_MS
 
-if TYPE_CHECKING:
-    from PyQt6.QtWidgets import QWidget
-
 __all__ = ["EnrichmentDialog"]
 
 
 class EnrichmentDialog(BaseDialog):
-    """Progress dialog for background enrichment operations.
+    """Progress dialog for background enrichment jobs.
+    Shows progress bar, status text, and a cancel button.
 
-    Shows a title, progress bar, current item label, and cancel button.
-    Starts the EnrichmentThread when the dialog becomes visible.
-
-    Attributes:
-        thread: The EnrichmentThread running the background work.
+    TODO: unify with other progress dialogs, too much duplication
     """
 
-    def __init__(self, title: str, parent: QWidget | None = None) -> None:
-        """Initializes the EnrichmentDialog.
-
-        Args:
-            title: Dialog title text (displayed as header label).
-            parent: Parent widget.
-        """
-        self._header_title = title
-        self._thread: EnrichmentThread | None = None
-        self.wants_force_refresh: bool = False
+    def __init__(self, title, parent=None):
+        self._hdr = title
+        self._thr = None
+        self.force_refresh = False  # public flag
         super().__init__(
             parent,
             title_key="ui.enrichment.dialog_title",
@@ -59,120 +40,79 @@ class EnrichmentDialog(BaseDialog):
         )
         self.setMinimumHeight(150)
 
-    def _build_content(self, layout: QVBoxLayout) -> None:
-        """Adds progress bar, status label, and cancel button.
+    def _build_content(self, lyt):
+        # header
+        lbl = QLabel(self._hdr)
+        lbl.setFont(FontHelper.get_font(size=14, weight=FontHelper.BOLD))
+        lyt.addWidget(lbl)
 
-        Args:
-            layout: The main vertical layout.
-        """
-        # Title label (uses raw string, not the window title key)
-        title_label = QLabel(self._header_title)
-        title_label.setFont(FontHelper.get_font(size=14, weight=FontHelper.BOLD))
-        layout.addWidget(title_label)
+        # progress
+        self._pb = QProgressBar()
+        self._pb.setRange(0, 100)
+        self._pb.setValue(0)
+        lyt.addWidget(self._pb)
 
-        # Progress bar
-        self._progress_bar = QProgressBar()
-        self._progress_bar.setRange(0, 100)
-        self._progress_bar.setValue(0)
-        layout.addWidget(self._progress_bar)
+        # status text
+        self._status = QLabel("")
+        lyt.addWidget(self._status)
 
-        # Status label
-        self._status_label = QLabel("")
-        layout.addWidget(self._status_label)
+        # cancel button
+        row = QHBoxLayout()
+        row.addStretch()
+        self._btn = QPushButton(t("common.cancel"))
+        self._btn.clicked.connect(self._cancel)
+        row.addWidget(self._btn)
+        lyt.addLayout(row)
 
-        # Cancel button
-        btn_layout = QHBoxLayout()
-        btn_layout.addStretch()
-        self._cancel_btn = QPushButton(t("common.cancel"))
-        self._cancel_btn.clicked.connect(self._on_cancel)
-        btn_layout.addWidget(self._cancel_btn)
-        layout.addLayout(btn_layout)
+    def start_thread(self, thr):
+        # attach worker thread; auto-starts in showEvent
+        self._thr = thr
+        thr.progress.connect(self._upd)
+        thr.finished_enrichment.connect(self._done)
+        thr.error.connect(self._err)
 
-    def start_thread(self, thread: EnrichmentThread) -> None:
-        """Attaches the enrichment thread and connects signals.
+    def showEvent(self, ev):
+        super().showEvent(ev)
+        if self._thr and not self._thr.isRunning():
+            self._thr.start()
 
-        The thread starts automatically when the dialog becomes visible
-        (via showEvent), ensuring the UI is rendered first.
+    def _upd(self, txt, cur, tot):
+        if tot > 0:
+            pct = int((cur / tot) * 100)
+            self._pb.setValue(pct)
+        self._status.setText(txt)
 
-        Args:
-            thread: The configured EnrichmentThread.
-        """
-        self._thread = thread
-
-        thread.progress.connect(self._on_progress)
-        thread.finished_enrichment.connect(self._on_finished)
-        thread.error.connect(self._on_error)
-
-    def showEvent(self, event) -> None:
-        """Starts the background thread once the dialog is visible.
-
-        Args:
-            event: The show event.
-        """
-        super().showEvent(event)
-        if self._thread and not self._thread.isRunning():
-            self._thread.start()
-
-    def _on_progress(self, step_text: str, current: int, total: int) -> None:
-        """Updates the progress bar and status label.
-
-        Args:
-            step_text: Description of the current step.
-            current: Current progress count.
-            total: Total items to process.
-        """
-        if total > 0:
-            percent = int((current / total) * 100)
-            self._progress_bar.setValue(percent)
-        self._status_label.setText(step_text)
-
-    def _on_finished(self, success: int, failed: int) -> None:
-        """Shows completion summary with force-refresh option and closes.
-
-        Args:
-            success: Number of successfully updated games.
-            failed: Number of failed games.
-        """
-        self._cleanup_thread()
-        self.wants_force_refresh = UIHelper.show_batch_result(
+    def _done(self, ok, bad):
+        self._clean()
+        self.force_refresh = UIHelper.show_batch_result(
             self,
-            t("ui.enrichment.complete", success=success, failed=failed),
+            t("ui.enrichment.complete", success=ok, failed=bad),
             t("ui.enrichment.complete_title"),
         )
         self.accept()
 
-    def _on_error(self, message: str) -> None:
-        """Shows an error message and closes the dialog.
-
-        Args:
-            message: Error description.
-        """
-        self._cleanup_thread()
-        UIHelper.show_warning(self, message)
+    def _err(self, msg):
+        self._clean()
+        UIHelper.show_warning(self, msg)
         self.reject()
 
-    def _on_cancel(self) -> None:
-        """Handles the cancel button click."""
-        if self._thread:
-            self._thread.cancel()
-        self._cancel_btn.setEnabled(False)
-        self._cancel_btn.setText(t("emoji.ellipsis"))
+    def _cancel(self):
+        if self._thr:
+            self._thr.cancel()
+        self._btn.setEnabled(False)
+        self._btn.setText(t("emoji.ellipsis"))
 
-    def _cleanup_thread(self) -> None:
-        """Stops and cleans up the background thread."""
-        if self._thread and self._thread.isRunning():
-            self._thread.quit()
-            self._thread.wait(THREAD_WAIT_MS)
-        self._thread = None
+    def _clean(self):
+        # cleanup thread
+        if self._thr and self._thr.isRunning():
+            self._thr.quit()
+            self._thr.wait(THREAD_WAIT_MS)
+        self._thr = None
 
-    def closeEvent(self, event) -> None:
-        """Prevents closing while enrichment is running.
-
-        Args:
-            event: The close event.
-        """
-        if self._thread and self._thread.isRunning():
-            self._on_cancel()
-            event.ignore()
+    def closeEvent(self, ev):
+        # block close while running
+        if self._thr and self._thr.isRunning():
+            self._cancel()
+            ev.ignore()
         else:
-            event.accept()
+            ev.accept()

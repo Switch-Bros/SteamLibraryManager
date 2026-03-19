@@ -6,12 +6,9 @@
 # Licensed under the MIT License. See LICENSE for details.
 #
 
-from __future__ import annotations
-
 import json
 import logging
 import time
-from typing import Any
 
 from steam_library_manager.core.db.models import DatabaseEntry
 
@@ -21,20 +18,12 @@ __all__ = ["ModificationMixin"]
 
 
 class ModificationMixin:
-    """Mixin providing modification tracking operations.
-
-    Requires ConnectionBase attributes: conn.
-    Requires GameQueryMixin: update_game().
+    """Mixin for modification tracking on game metadata.
+    Needs ConnectionBase (conn) and GameQueryMixin (update_game).
     """
 
-    def track_modification(self, app_id: int, original_data: dict[str, Any], modified_data: dict[str, Any]) -> None:
-        """Track a metadata modification.
-
-        Args:
-            app_id: Steam app ID.
-            original_data: Original metadata before modification.
-            modified_data: Modified metadata.
-        """
+    def track_modification(self, app_id, original_data, modified_data):
+        # Store original vs modified snapshot for later sync/revert
         self.conn.execute(
             """
             INSERT OR REPLACE INTO metadata_modifications
@@ -45,24 +34,17 @@ class ModificationMixin:
         )
         self.conn.commit()
 
-    def get_modified_games(self, synced_only: bool = False) -> dict[int, dict[str, Any]]:
-        """Get all modified games.
-
-        Args:
-            synced_only: If True, only return games not yet synced to appinfo.vdf.
-
-        Returns:
-            Dict mapping app_id to modification data.
-        """
+    def get_modified_games(self, synced_only=False):
+        # Returns {app_id: modification_dict} for all tracked changes
         query = "SELECT * FROM metadata_modifications"
         if synced_only:
             query += " WHERE synced_to_appinfo = 0"
 
         cursor = self.conn.execute(query)
 
-        modifications: dict[int, dict[str, Any]] = {}
+        mods = {}
         for row in cursor.fetchall():
-            modifications[row["app_id"]] = {
+            mods[row["app_id"]] = {
                 "original": json.loads(row["original_data"]),
                 "modified": json.loads(row["modified_data"]),
                 "modification_time": row["modification_time"],
@@ -70,43 +52,33 @@ class ModificationMixin:
                 "sync_time": row["sync_time"],
             }
 
-        return modifications
+        return mods
 
-    def mark_synced(self, app_id: int) -> None:
-        """Mark a game as synced to appinfo.vdf.
-
-        Args:
-            app_id: Steam app ID.
-        """
+    def mark_synced(self, app_id):
+        # Flag a game as written back to appinfo.vdf
+        now = int(time.time())
         self.conn.execute(
             """
             UPDATE metadata_modifications
             SET synced_to_appinfo = 1, sync_time = ?
             WHERE app_id = ?
             """,
-            (int(time.time()), app_id),
+            (now, app_id),
         )
-        self.conn.execute("UPDATE games SET last_synced = ? WHERE app_id = ?", (int(time.time()), app_id))
+        self.conn.execute("UPDATE games SET last_synced = ? WHERE app_id = ?", (now, app_id))
         self.conn.commit()
 
-    def revert_modification(self, app_id: int) -> DatabaseEntry | None:
-        """Revert a game to its original state.
-
-        Args:
-            app_id: Steam app ID.
-
-        Returns:
-            Original game data or None if not found.
-        """
+    def revert_modification(self, app_id):
+        # Restore original data and delete the modification record
         cursor = self.conn.execute("SELECT original_data FROM metadata_modifications WHERE app_id = ?", (app_id,))
         row = cursor.fetchone()
 
         if not row:
             return None
 
-        original_data = json.loads(row[0])
+        orig = json.loads(row[0])
 
-        entry = DatabaseEntry(app_id=app_id, **original_data)
+        entry = DatabaseEntry(app_id=app_id, **orig)
         self.update_game(entry)
 
         self.conn.execute("DELETE FROM metadata_modifications WHERE app_id = ?", (app_id,))
