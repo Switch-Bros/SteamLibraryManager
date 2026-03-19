@@ -322,7 +322,7 @@ class ImageSelectionDialog(QDialog):
                 il.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
                 for bt, col in bdgs:
-                    ip = config.ICONS_DIR / ("flag_%s.png" % bt)
+                    ip = config.ICONS_DIR / ("flag_%s.webp" % bt)
                     lbl = QLabel()
 
                     if ip.exists():
