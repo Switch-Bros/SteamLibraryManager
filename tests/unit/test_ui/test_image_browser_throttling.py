@@ -8,126 +8,106 @@ import pytest
 
 
 def _make_dialog_stub():
-    """Creates a lightweight stub that has the throttling methods.
-
-    Instead of instantiating the real QDialog subclass (which requires
-    a QApplication), we bind the throttling methods to a simple namespace
-    that carries the same attributes.
-    """
+    # stub with real throttling methods
     from steam_library_manager.ui.dialogs.image_selection_dialog import ImageSelectionDialog
 
     stub = MagicMock()
-    stub._animated_load_queue = []
-    stub._animated_loading_count = 0
-    stub._MAX_CONCURRENT_ANIMATED = 3
-    stub._ANIMATED_DELAY_MS = 150
+    stub._aq = []
+    stub._aa = 0
+    stub._MAXA = 3
+    stub._DA = 150
 
-    # Bind the real methods to our stub
-    stub._queue_animated_load = lambda widget, url: ImageSelectionDialog._queue_animated_load(stub, widget, url)
-    stub._process_animated_queue = lambda: ImageSelectionDialog._process_animated_queue(stub)
-    stub._on_animated_load_finished = lambda: ImageSelectionDialog._on_animated_load_finished(stub)
+    stub._q_anim = lambda widget, url: ImageSelectionDialog._q_anim(stub, widget, url)
+    stub._d_anim = lambda: ImageSelectionDialog._d_anim(stub)
+    stub._on_a_done = lambda: ImageSelectionDialog._on_a_done(stub)
     return stub
 
 
-def _make_widget() -> MagicMock:
-    """Creates a mock ClickableImage widget with load_finished signal."""
-    widget = MagicMock()
-    widget.load_finished = MagicMock()
-    widget.load_finished.connect = MagicMock()
-    widget.load_image = MagicMock()
-    return widget
+def _make_widget():
+    w = MagicMock()
+    w.load_finished = MagicMock()
+    w.load_finished.connect = MagicMock()
+    w.load_image = MagicMock()
+    return w
 
 
 class TestImageBrowserThrottling:
-    """Tests for the animated image throttling queue."""
 
     @pytest.fixture
     def dialog(self):
-        """Creates a stub with the real throttling methods."""
         return _make_dialog_stub()
 
-    def test_queue_starts_immediately_under_limit(self, dialog) -> None:
-        """Queuing fewer than MAX_CONCURRENT should start all immediately."""
+    def test_queue_starts_immediately_under_limit(self, dialog):
         w1 = _make_widget()
         w2 = _make_widget()
 
-        dialog._queue_animated_load(w1, "https://example.com/1.webm")
-        dialog._queue_animated_load(w2, "https://example.com/2.webm")
+        dialog._q_anim(w1, "https://example.com/1.webm")
+        dialog._q_anim(w2, "https://example.com/2.webm")
 
         w1.load_image.assert_called_once_with("https://example.com/1.webm")
         w2.load_image.assert_called_once_with("https://example.com/2.webm")
-        assert dialog._animated_loading_count == 2
-        assert len(dialog._animated_load_queue) == 0
+        assert dialog._aa == 2
+        assert len(dialog._aq) == 0
 
-    def test_queue_caps_at_max_concurrent(self, dialog) -> None:
-        """Fourth animated image should be queued, not started immediately."""
+    def test_queue_caps_at_max_concurrent(self, dialog):
         widgets = [_make_widget() for _ in range(4)]
 
         for i, w in enumerate(widgets):
-            dialog._queue_animated_load(w, f"https://example.com/{i}.webm")
+            dialog._q_anim(w, "https://example.com/%d.webm" % i)
 
-        # First 3 started
         for w in widgets[:3]:
             w.load_image.assert_called_once()
 
-        # Fourth is queued, not started
         widgets[3].load_image.assert_not_called()
-        assert dialog._animated_loading_count == 3
-        assert len(dialog._animated_load_queue) == 1
+        assert dialog._aa == 3
+        assert len(dialog._aq) == 1
 
-    def test_completion_starts_queued_item(self, dialog) -> None:
-        """When a load finishes, the next queued item should start."""
+    def test_completion_starts_queued_item(self, dialog):
         widgets = [_make_widget() for _ in range(4)]
 
         for i, w in enumerate(widgets):
-            dialog._queue_animated_load(w, f"https://example.com/{i}.webm")
+            dialog._q_anim(w, "https://example.com/%d.webm" % i)
 
-        # Simulate one load finishing — decrement + process queue
-        dialog._animated_loading_count -= 1
-        dialog._process_animated_queue()
+        dialog._aa -= 1
+        dialog._d_anim()
 
         widgets[3].load_image.assert_called_once_with("https://example.com/3.webm")
-        assert dialog._animated_loading_count == 3  # Back to max
-        assert len(dialog._animated_load_queue) == 0
+        assert dialog._aa == 3
+        assert len(dialog._aq) == 0
 
-    def test_queue_cleared_on_new_search(self, dialog) -> None:
-        """Starting a new search should clear the queue and reset counter."""
+    def test_queue_cleared_on_new_search(self, dialog):
         widgets = [_make_widget() for _ in range(5)]
 
         for i, w in enumerate(widgets):
-            dialog._queue_animated_load(w, f"https://example.com/{i}.webm")
+            dialog._q_anim(w, "https://example.com/%d.webm" % i)
 
-        assert len(dialog._animated_load_queue) == 2  # 5 - 3 = 2 queued
+        assert len(dialog._aq) == 2
 
-        # Simulate what _start_search does
-        dialog._animated_load_queue.clear()
-        dialog._animated_loading_count = 0
+        dialog._aq.clear()
+        dialog._aa = 0
 
-        assert len(dialog._animated_load_queue) == 0
-        assert dialog._animated_loading_count == 0
+        assert len(dialog._aq) == 0
+        assert dialog._aa == 0
 
-    def test_on_animated_load_finished_decrements_count(self, dialog) -> None:
-        """_on_animated_load_finished should decrement counter (min 0)."""
-        dialog._animated_loading_count = 2
+    def test_on_anim_done_decrements_count(self, dialog):
+        dialog._aa = 2
 
-        with patch("steam_library_manager.ui.dialogs.image_selection_dialog.QTimer") as mock_timer:
-            dialog._on_animated_load_finished()
+        with patch("steam_library_manager.ui.dialogs.image_selection_dialog.QTimer") as mt:
+            dialog._on_a_done()
 
-        assert dialog._animated_loading_count == 1
-        mock_timer.singleShot.assert_called_once()
+        assert dialog._aa == 1
+        mt.singleShot.assert_called_once()
 
-    def test_on_animated_load_finished_clamps_to_zero(self, dialog) -> None:
-        """Counter should never go below zero."""
-        dialog._animated_loading_count = 0
+    def test_on_anim_done_clamps_to_zero(self, dialog):
+        dialog._aa = 0
 
         with patch("steam_library_manager.ui.dialogs.image_selection_dialog.QTimer"):
-            dialog._on_animated_load_finished()
+            dialog._on_a_done()
 
-        assert dialog._animated_loading_count == 0
+        assert dialog._aa == 0
 
-    def test_load_finished_signal_connected(self, dialog) -> None:
-        """Processing queue should connect load_finished to handler."""
+    def test_load_finished_signal_connected(self, dialog):
         w = _make_widget()
-        dialog._queue_animated_load(w, "https://example.com/anim.webm")
+        dialog._q_anim(w, "https://example.com/anim.webm")
 
         w.load_finished.connect.assert_called_once()

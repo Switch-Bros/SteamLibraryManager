@@ -10,8 +10,6 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING
-
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QHBoxLayout,
@@ -19,16 +17,11 @@ from PyQt6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QPushButton,
-    QVBoxLayout,
-    QWidget,
 )
 
 from steam_library_manager.ui.widgets.base_dialog import BaseDialog
 from steam_library_manager.ui.widgets.ui_helper import UIHelper
 from steam_library_manager.utils.i18n import t
-
-if TYPE_CHECKING:
-    from steam_library_manager.core.profile_manager import ProfileManager
 
 logger = logging.getLogger("steamlibmgr.profile_dialog")
 
@@ -36,27 +29,12 @@ __all__ = ["ProfileDialog"]
 
 
 class ProfileDialog(BaseDialog):
-    """Modal dialog for profile management.
+    """Modal dialog for profile management."""
 
-    After ``exec()`` returns ``Accepted``, the caller should check
-    ``self.action`` and ``self.selected_name`` to determine which
-    action to perform.
-
-    Attributes:
-        action: The action chosen by the user (``"save"``, ``"load"``, or ``""``).
-        selected_name: The profile name associated with the chosen action.
-    """
-
-    def __init__(self, manager: ProfileManager, parent: QWidget | None = None) -> None:
-        """Initializes the ProfileDialog.
-
-        Args:
-            manager: The ProfileManager for data operations.
-            parent: Optional parent widget.
-        """
-        self.manager: ProfileManager = manager
-        self.action: str = ""
-        self.selected_name: str = ""
+    def __init__(self, mgr, parent=None):
+        self.mgr = mgr
+        self.action = ""
+        self.sel_name = ""
 
         super().__init__(
             parent,
@@ -66,229 +44,203 @@ class ProfileDialog(BaseDialog):
             buttons="custom",
         )
         self.setMinimumHeight(420)
-        self._refresh_list()
+        self._refresh()
 
-    def _build_content(self, layout: QVBoxLayout) -> None:
-        """Creates the dialog layout with info, list, and action buttons."""
-        # Info text
-        info = QLabel(t("ui.profile.info_text"))
-        info.setWordWrap(True)
-        layout.addWidget(info)
+    def _build_content(self, layout):
+        # info
+        i = QLabel(t("ui.profile.info_text"))
+        i.setWordWrap(True)
+        layout.addWidget(i)
 
-        # Profile list
-        self.profile_list = QListWidget()
-        self.profile_list.setAlternatingRowColors(True)
-        self.profile_list.itemDoubleClicked.connect(self._on_load)
-        layout.addWidget(self.profile_list, stretch=1)
+        # list
+        self.lst = QListWidget()
+        self.lst.setAlternatingRowColors(True)
+        self.lst.itemDoubleClicked.connect(self._load)
+        layout.addWidget(self.lst, stretch=1)
 
-        # No-profiles placeholder (hidden by default)
-        self.no_profiles_label = QLabel(t("ui.profile.no_profiles"))
-        self.no_profiles_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.no_profiles_label.setStyleSheet("color: gray; padding: 20px;")
-        self.no_profiles_label.setVisible(False)
-        layout.addWidget(self.no_profiles_label)
+        # no profiles msg
+        self.no = QLabel(t("ui.profile.no_profiles"))
+        self.no.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.no.setStyleSheet("color: gray; padding: 20px;")
+        self.no.setVisible(False)
+        layout.addWidget(self.no)
 
-        # Action buttons row 1: Save Current, Load, Delete
-        row1 = QHBoxLayout()
-        self.btn_save = QPushButton(t("common.save"))
-        self.btn_save.clicked.connect(self._on_save_current)
-        row1.addWidget(self.btn_save)
+        # row 1: Save, Load, Delete
+        r1 = QHBoxLayout()
+        self.bs = QPushButton(t("common.save"))
+        self.bs.clicked.connect(self._save_cur)
+        r1.addWidget(self.bs)
 
-        self.btn_load = QPushButton(t("common.load"))
-        self.btn_load.clicked.connect(self._on_load)
-        row1.addWidget(self.btn_load)
+        self.bl = QPushButton(t("common.load"))
+        self.bl.clicked.connect(self._load)
+        r1.addWidget(self.bl)
 
-        self.btn_delete = QPushButton(t("common.delete"))
-        self.btn_delete.clicked.connect(self._on_delete)
-        row1.addWidget(self.btn_delete)
+        self.bd = QPushButton(t("common.delete"))
+        self.bd.clicked.connect(self._del)
+        r1.addWidget(self.bd)
 
-        layout.addLayout(row1)
+        layout.addLayout(r1)
 
-        # Action buttons row 2: Rename, Export, Import
-        row2 = QHBoxLayout()
-        self.btn_rename = QPushButton(t("common.rename"))
-        self.btn_rename.clicked.connect(self._on_rename)
-        row2.addWidget(self.btn_rename)
+        # row 2: Rename, Export, Import
+        r2 = QHBoxLayout()
+        self.br = QPushButton(t("common.rename"))
+        self.br.clicked.connect(self._ren)
+        r2.addWidget(self.br)
 
-        self.btn_export = QPushButton(t("common.export"))
-        self.btn_export.clicked.connect(self._on_export)
-        row2.addWidget(self.btn_export)
+        self.be = QPushButton(t("common.export"))
+        self.be.clicked.connect(self._exp)
+        r2.addWidget(self.be)
 
-        self.btn_import = QPushButton(t("common.import"))
-        self.btn_import.clicked.connect(self._on_import)
-        row2.addWidget(self.btn_import)
+        self.bi = QPushButton(t("common.import"))
+        self.bi.clicked.connect(self._imp)
+        r2.addWidget(self.bi)
 
-        layout.addLayout(row2)
+        layout.addLayout(r2)
 
-        # Close button
-        close_layout = QHBoxLayout()
-        close_layout.addStretch()
-        btn_close = QPushButton(t("common.close"))
-        btn_close.clicked.connect(self.reject)
-        close_layout.addWidget(btn_close)
-        layout.addLayout(close_layout)
+        # close
+        rc = QHBoxLayout()
+        rc.addStretch()
+        bc = QPushButton(t("common.close"))
+        bc.clicked.connect(self.reject)
+        rc.addWidget(bc)
+        layout.addLayout(rc)
 
-    # ------------------------------------------------------------------
-    # List management
-    # ------------------------------------------------------------------
+    def _refresh(self):
+        self.lst.clear()
+        ps = self.mgr.list_profiles()
 
-    def _refresh_list(self) -> None:
-        """Reloads the profile list from disk."""
-        self.profile_list.clear()
-        profiles = self.manager.list_profiles()
+        has = len(ps) > 0
+        self.lst.setVisible(has)
+        self.no.setVisible(not has)
 
-        has_profiles = len(profiles) > 0
-        self.profile_list.setVisible(has_profiles)
-        self.no_profiles_label.setVisible(not has_profiles)
+        for n, cat in ps:
+            ds = datetime.fromtimestamp(cat).strftime("%d.%m.%Y %H:%M") if cat else "-"
+            d = "%s    (%s)" % (n, t("ui.profile.created_at", date=ds))
+            it = QListWidgetItem(d)
+            it.setData(Qt.ItemDataRole.UserRole, n)
+            self.lst.addItem(it)
 
-        for name, created_at in profiles:
-            date_str = datetime.fromtimestamp(created_at).strftime("%d.%m.%Y %H:%M") if created_at else "—"
-            display = f"{name}    ({t('ui.profile.created_at', date=date_str)})"
-            item = QListWidgetItem(display)
-            item.setData(Qt.ItemDataRole.UserRole, name)
-            self.profile_list.addItem(item)
+        self._upd_btns()
+        self.lst.currentItemChanged.connect(lambda: self._upd_btns())
 
-        # Enable/disable action buttons based on selection
-        self._update_button_states()
-        self.profile_list.currentItemChanged.connect(lambda: self._update_button_states())
+    def _upd_btns(self):
+        sel = self.lst.currentItem() is not None
+        self.bl.setEnabled(sel)
+        self.bd.setEnabled(sel)
+        self.br.setEnabled(sel)
+        self.be.setEnabled(sel)
 
-    def _update_button_states(self) -> None:
-        """Enables or disables buttons depending on whether a profile is selected."""
-        has_selection = self.profile_list.currentItem() is not None
-        self.btn_load.setEnabled(has_selection)
-        self.btn_delete.setEnabled(has_selection)
-        self.btn_rename.setEnabled(has_selection)
-        self.btn_export.setEnabled(has_selection)
-
-    def _get_selected_name(self) -> str | None:
-        """Returns the name stored in the currently selected list item.
-
-        Returns:
-            The profile name, or None if no item is selected.
-        """
-        item = self.profile_list.currentItem()
-        if item is None:
+    def _sel(self):
+        it = self.lst.currentItem()
+        if it is None:
             return None
-        return item.data(Qt.ItemDataRole.UserRole)
+        return it.data(Qt.ItemDataRole.UserRole)
 
-    # ------------------------------------------------------------------
-    # Button handlers
-    # ------------------------------------------------------------------
-
-    def _on_save_current(self) -> None:
-        """Handles 'Save Current' button: asks for name, signals save action."""
-        name, ok = UIHelper.ask_text(
+    def _save_cur(self):
+        n, ok = UIHelper.ask_text(
             self,
             title=t("ui.profile.new_title"),
             label=t("ui.profile.new_prompt"),
         )
-        if not ok or not name:
+        if not ok or not n:
             return
 
-        # Check for duplicate
-        existing = [n for n, _ in self.manager.list_profiles()]
-        if name in existing:
-            overwrite = UIHelper.confirm(
+        ex = [nm for nm, _ in self.mgr.list_profiles()]
+        if n in ex:
+            ov = UIHelper.confirm(
                 self,
-                t("ui.profile.error_duplicate_name", name=name),
+                t("ui.profile.error_duplicate_name", name=n),
                 title=t("ui.profile.new_title"),
             )
-            if not overwrite:
+            if not ov:
                 return
 
         self.action = "save"
-        self.selected_name = name
+        self.sel_name = n
         self.accept()
 
-    def _on_load(self) -> None:
-        """Handles 'Load' button or double-click: signals load action."""
-        name = self._get_selected_name()
-        if not name:
+    def _load(self):
+        n = self._sel()
+        if not n:
             return
 
         self.action = "load"
-        self.selected_name = name
+        self.sel_name = n
         self.accept()
 
-    def _on_delete(self) -> None:
-        """Handles 'Delete' button: asks confirmation and deletes."""
-        name = self._get_selected_name()
-        if not name:
+    def _del(self):
+        n = self._sel()
+        if not n:
             return
 
-        confirmed = UIHelper.confirm(
+        cf = UIHelper.confirm(
             self,
-            t("ui.profile.delete_confirm", name=name),
+            t("ui.profile.delete_confirm", name=n),
             title=t("ui.profile.delete_confirm_title"),
         )
-        if not confirmed:
+        if not cf:
             return
 
-        self.manager.delete_profile(name)
-        UIHelper.show_success(self, t("ui.profile.delete_success", name=name))
-        self._refresh_list()
+        self.mgr.delete_profile(n)
+        UIHelper.show_success(self, t("ui.profile.delete_success", name=n))
+        self._refresh()
 
-    def _on_rename(self) -> None:
-        """Handles 'Rename' button: asks for new name and renames."""
-        name = self._get_selected_name()
-        if not name:
+    def _ren(self):
+        n = self._sel()
+        if not n:
             return
 
-        new_name, ok = UIHelper.ask_text(
+        nn, ok = UIHelper.ask_text(
             self,
             title=t("ui.profile.rename_title"),
             label=t("ui.profile.rename_prompt"),
-            current_text=name,
+            current_text=n,
         )
-        if not ok or not new_name or new_name == name:
+        if not ok or not nn or nn == n:
             return
 
-        success = self.manager.rename_profile(name, new_name)
-        if success:
-            UIHelper.show_success(self, t("ui.profile.rename_success", name=new_name))
-            self._refresh_list()
+        ok = self.mgr.rename_profile(n, nn)
+        if ok:
+            UIHelper.show_success(self, t("ui.profile.rename_success", name=nn))
+            self._refresh()
 
-    def _on_export(self) -> None:
-        """Handles 'Export' button: opens file save dialog and exports."""
+    def _exp(self):
         from pathlib import Path
-
         from PyQt6.QtWidgets import QFileDialog
 
-        name = self._get_selected_name()
-        if not name:
+        n = self._sel()
+        if not n:
             return
 
-        file_path, _ = QFileDialog.getSaveFileName(
+        fp, _ = QFileDialog.getSaveFileName(
             self,
             t("ui.profile.export_title"),
-            f"{name}.json",
+            "%s.json" % n,
             t("ui.profile.import_filter"),
         )
-        if not file_path:
+        if not fp:
             return
 
-        success = self.manager.export_profile(name, Path(file_path))
-        if success:
+        ok = self.mgr.export_profile(n, Path(fp))
+        if ok:
             UIHelper.show_success(self, t("ui.profile.export_success"))
 
-    def _on_import(self) -> None:
-        """Handles 'Import' button: opens file dialog and imports."""
+    def _imp(self):
         from pathlib import Path
-
         from PyQt6.QtWidgets import QFileDialog
 
-        file_path, _ = QFileDialog.getOpenFileName(
+        fp, _ = QFileDialog.getOpenFileName(
             self,
             t("ui.profile.import_title"),
             "",
             t("ui.profile.import_filter"),
         )
-        if not file_path:
+        if not fp:
             return
 
         try:
-            profile = self.manager.import_profile(Path(file_path))
-            UIHelper.show_success(self, t("ui.profile.import_success", name=profile.name))
-            self._refresh_list()
-        except (FileNotFoundError, KeyError, Exception) as exc:
-            UIHelper.show_error(self, t("ui.profile.error_import_failed", error=str(exc)))
+            p = self.mgr.import_profile(Path(fp))
+            UIHelper.show_success(self, t("ui.profile.import_success", name=p.name))
+            self._refresh()
+        except (FileNotFoundError, KeyError, Exception) as e:
+            UIHelper.show_error(self, t("ui.profile.error_import_failed", error=str(e)))

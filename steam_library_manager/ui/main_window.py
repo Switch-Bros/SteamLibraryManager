@@ -8,26 +8,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from steam_library_manager.services.asset_service import AssetService
-
-if TYPE_CHECKING:
-    from steam_library_manager.services.category_service import CategoryService
-    from steam_library_manager.services.metadata_service import MetadataService
-    from steam_library_manager.services.autocategorize_service import AutoCategorizeService
-    from steam_library_manager.services.game_service import GameService
-    from steam_library_manager.services.smart_collections.smart_collection_manager import SmartCollectionManager
 
 from PyQt6.QtWidgets import QMainWindow, QToolBar
 from PyQt6.QtCore import QThread, QTimer
 
-from steam_library_manager.core.game_manager import GameManager, Game
-from steam_library_manager.core.localconfig_helper import LocalConfigHelper
-from steam_library_manager.core.cloud_storage_parser import CloudStorageParser
-from steam_library_manager.core.appinfo_manager import AppInfoManager
-
-from steam_library_manager.integrations.steam_store import SteamStoreScraper
 from steam_library_manager.services.filter_service import FilterService
 from steam_library_manager.services.search_service import SearchService
 
@@ -78,22 +63,21 @@ class MainWindow(QMainWindow):
     """Primary application window for Steam Library Manager."""
 
     def __init__(self):
-        """Initializes the main window and loads initial data."""
         super().__init__()
         self.setWindowTitle(__app_name__)
         self.resize(1400, 800)
 
         # Managers
-        self.game_manager: GameManager | None = None
-        self.localconfig_helper: LocalConfigHelper | None = None
-        self.cloud_storage_parser: CloudStorageParser | None = None
-        self.steam_scraper: SteamStoreScraper | None = None
-        self.appinfo_manager: AppInfoManager | None = None
-        self.category_service: CategoryService | None = None  # Initialized after parsers
-        self.metadata_service: MetadataService | None = None  # Initialized after appinfo_manager
-        self.autocategorize_service: AutoCategorizeService | None = None  # Initialized after category_service
-        self.game_service: GameService | None = None  # Initialized by BootstrapService
-        self.smart_collection_manager: SmartCollectionManager | None = None
+        self.game_manager = None
+        self.localconfig_helper = None
+        self.cloud_storage_parser = None
+        self.steam_scraper = None
+        self.appinfo_manager = None
+        self.category_service = None  # Initialized after parsers
+        self.metadata_service = None  # Initialized after appinfo_manager
+        self.autocategorize_service = None  # Initialized after category_service
+        self.game_service = None  # Initialized by BootstrapService
+        self.smart_collection_manager = None
         self.asset_service = AssetService()  # Initialize immediately
 
         # Services
@@ -106,19 +90,19 @@ class MainWindow(QMainWindow):
         self.refresh_token = None  # For QR login (refresh token)
 
         # State
-        self.selected_game: Game | None = None
-        self.selected_games: list[Game] = []
-        self.dialog_games: list[Game] = []
-        self.steam_username: str | None = None
-        self.current_search_query: str = ""  # Track active search
+        self.selected_game = None
+        self.selected_games = []
+        self.dialog_games = []
+        self.steam_username = None
+        self.current_search_query = ""  # Track active search
 
         # Threads & Dialogs
-        self.store_check_thread: QThread | None = None
+        self.store_check_thread = None
 
         # UI Builders (extracted from _create_ui for reuse on language change)
-        self.menu_builder: MenuBuilder = MenuBuilder(self)
-        self.toolbar_builder: ToolbarBuilder = ToolbarBuilder(self)
-        self.statusbar_builder: StatusbarBuilder = StatusbarBuilder(self)
+        self.menu_builder = MenuBuilder(self)
+        self.toolbar_builder = ToolbarBuilder(self)
+        self.statusbar_builder = StatusbarBuilder(self)
 
         # Initialize Action Handlers
         self.file_actions = FileActions(self)
@@ -134,7 +118,7 @@ class MainWindow(QMainWindow):
         self.enrichment_starters = EnrichmentStarters(self)
 
         # UI Action Handlers (extracted category / context-menu logic)
-        self.category_handler: CategoryActionHandler = CategoryActionHandler(self)
+        self.category_handler = CategoryActionHandler(self)
         self.selection_handler = SelectionHandler(self)
         self.category_change_handler = CategoryChangeHandler(self)
         self.data_load_handler = DataLoadHandler(self)
@@ -149,18 +133,19 @@ class MainWindow(QMainWindow):
         # Non-blocking startup via BootstrapService
         self._init_bootstrap_service()
 
-    def _create_ui(self) -> None:
-        """Initialize all UI components, menus, and layouts."""
-        # --- Menu bar (delegated to MenuBuilder) ---
+    def _create_ui(self):
+        # Initialize all UI components, menus, and layouts
+
+        # Menu bar (delegated to MenuBuilder)
         self.menu_builder.build(self.menuBar())
         self.user_label = self.menu_builder.user_label
 
-        # --- Toolbar (delegated to ToolbarBuilder) ---
+        # Toolbar (delegated to ToolbarBuilder)
         self.toolbar = QToolBar()
         self.addToolBar(self.toolbar)
         self.toolbar_builder.build(self.toolbar)
 
-        # --- Central Widget (delegated to CentralWidgetBuilder) ---
+        # Central Widget (delegated to CentralWidgetBuilder)
         central_builder = CentralWidgetBuilder(self)
         widgets = central_builder.build()
 
@@ -170,23 +155,23 @@ class MainWindow(QMainWindow):
         self.loading_label = widgets["loading_label"]
         self.progress_bar = widgets["progress_bar"]
 
-        # --- Status bar (delegated to StatusbarBuilder) ---
+        # Status bar (delegated to StatusbarBuilder)
         self.statusbar = self.statusBar()
         self.statusbar_builder.build(self.statusbar)
         self.stats_label = self.statusbar_builder.stats_label
         self.reload_btn = self.statusbar_builder.reload_btn
 
-    def refresh_toolbar(self) -> None:
-        """Rebuild the toolbar based on current authentication state."""
+    def refresh_toolbar(self):
+        # Rebuild toolbar based on current auth state
         self.toolbar_builder.build(self.toolbar)
 
     # --- Bootstrap & Loading ---
 
-    def _init_bootstrap_service(self) -> None:
-        """Create the BootstrapService, connect signals, and start it."""
+    def _init_bootstrap_service(self):
+        # Create the BootstrapService, connect signals, and start it
         from steam_library_manager.services.bootstrap_service import BootstrapService
 
-        self.bootstrap_service: BootstrapService = BootstrapService(self)
+        self.bootstrap_service = BootstrapService(self)
         self.bootstrap_service.loading_started.connect(self._on_loading_started)
         self.bootstrap_service.load_progress.connect(self._on_load_progress)
         self.bootstrap_service.persona_resolved.connect(self._on_persona_resolved)
@@ -194,8 +179,8 @@ class MainWindow(QMainWindow):
         self.bootstrap_service.bootstrap_complete.connect(self._on_bootstrap_complete)
         self.bootstrap_service.start()
 
-    def _on_loading_started(self) -> None:
-        """Show tree loading placeholder and progress bar."""
+    def _on_loading_started(self):
+        # Show tree loading placeholder and progress bar
         self.tree.set_loading_state(True)
         self.loading_label.setText(t("ui.bootstrap.loading_games"))
         self.loading_label.setVisible(True)
@@ -203,45 +188,45 @@ class MainWindow(QMainWindow):
         self.progress_bar.setVisible(True)
         self.set_status(t("common.loading"))
 
-    def _on_load_progress(self, step: str, current: int, total: int) -> None:
-        """Update inline progress bar and label."""
+    def _on_load_progress(self, step, current, total):
+        # Update inline progress bar and label
         self.loading_label.setText(step)
         if total > 0:
-            percent = int((current / total) * 100)
-            self.progress_bar.setValue(percent)
+            pct = int((current / total) * 100)
+            self.progress_bar.setValue(pct)
 
-    def _on_persona_resolved(self, display_name: str) -> None:
-        """Update the user label when persona name is fetched."""
+    def _on_persona_resolved(self, display_name):
+        # Update the user label when persona name is fetched
         self.user_label.setText(t("ui.main_window.user_label", user_id=display_name))
 
-    def _on_session_restored(self, success: bool) -> None:
-        """Rebuild toolbar if session was restored."""
+    def _on_session_restored(self, success):
+        # Rebuild toolbar if session was restored
         if success:
             self.refresh_toolbar()
 
-    def _on_bootstrap_complete(self) -> None:
-        """Hide loading indicators when bootstrap is finished."""
+    def _on_bootstrap_complete(self):
+        # Hide loading indicators when bootstrap is finished
         self.loading_label.setVisible(False)
         self.progress_bar.setVisible(False)
 
-    def _populate_categories(self) -> None:
-        """Refresh the sidebar tree with current game data."""
+    def _populate_categories(self):
+        # Refresh sidebar tree with current game data
         self.category_populator.populate()
 
-    def on_game_right_click(self, game: Game, pos) -> None:
-        """Show context menu for a right-clicked game."""
+    def on_game_right_click(self, game, pos):
+        # Show context menu for a right-clicked game
         self.category_handler.on_game_right_click(game, pos)
 
-    def on_category_right_click(self, category: str, pos) -> None:
-        """Show context menu for a right-clicked category."""
+    def on_category_right_click(self, category, pos):
+        # Show context menu for a right-clicked category
         self.category_handler.on_category_right_click(category, pos)
 
-    def set_status(self, text: str) -> None:
-        """Update the status bar message."""
+    def set_status(self, text):
+        # Update the status bar message
         self.statusbar.showMessage(text)
 
-    def _update_statistics(self) -> None:
-        """Updates the statistics display in the status bar."""
+    def _update_statistics(self):
+        # Update statistics display in the status bar
         if not self.game_manager:
             return
 
@@ -256,16 +241,16 @@ class MainWindow(QMainWindow):
 
         self.stats_label.setText(stats_text)
 
-    def closeEvent(self, event) -> None:
-        """Handle window close with save prompt if changes exist."""
+    def closeEvent(self, event):
+        # Handle window close with save prompt if changes exist
         self.keyboard_handler.remove_event_filter()
 
         parser = self._get_active_parser()
-        has_collection_changes = parser is not None and parser.modified
-        has_metadata_changes = self.appinfo_manager is not None and self.appinfo_manager.vdf_dirty
+        has_coll_changes = parser is not None and parser.modified
+        has_meta_changes = self.appinfo_manager is not None and self.appinfo_manager.vdf_dirty
 
-        if has_collection_changes or has_metadata_changes:
-            result = self.file_actions.ask_save_on_exit(has_collection_changes, has_metadata_changes)
+        if has_coll_changes or has_meta_changes:
+            result = self.file_actions.ask_save_on_exit(has_coll_changes, has_meta_changes)
             if result == "save":
                 self._save_all_on_exit()
                 self._stop_background_threads()
@@ -282,13 +267,13 @@ class MainWindow(QMainWindow):
             else:
                 event.ignore()
 
-    def _stop_background_threads(self) -> None:
-        """Stops all running background threads to prevent SIGABRT on exit."""
-        threads_to_stop: list[QThread] = []
+    def _stop_background_threads(self):
+        # Stop all running background threads to prevent SIGABRT on exit
+        pending = []
 
         # Collect threads from main window
         if self.store_check_thread and self.store_check_thread.isRunning():
-            threads_to_stop.append(self.store_check_thread)
+            pending.append(self.store_check_thread)
 
         # Collect threads from action handlers
         for handler in (
@@ -298,22 +283,23 @@ class MainWindow(QMainWindow):
         ):
             if handler:
                 for attr in ("_tag_import_thread", "_enrichment_thread", "_store_check_thread"):
-                    thread = getattr(handler, attr, None)
-                    if isinstance(thread, QThread) and thread.isRunning():
-                        threads_to_stop.append(thread)
+                    thr = getattr(handler, attr, None)
+                    if isinstance(thr, QThread) and thr.isRunning():
+                        pending.append(thr)
 
         # Request cancellation and wait
-        for thread in threads_to_stop:
-            cancel = getattr(thread, "cancel", None)
+        for thr in pending:
+            cancel = getattr(thr, "cancel", None)
             if callable(cancel):
                 cancel()
 
-        for thread in threads_to_stop:
-            thread.quit()
-            thread.wait(THREAD_WAIT_MS)
+        for thr in pending:
+            thr.quit()
+            thr.wait(THREAD_WAIT_MS)
 
-    def _save_all_on_exit(self) -> None:
-        """Save all pending changes before exiting."""
+    def _save_all_on_exit(self):
+        # Save all pending changes before exiting
+
         # Save collections
         parser = self._get_active_parser()
         if parser and parser.modified:
@@ -341,12 +327,12 @@ class MainWindow(QMainWindow):
 
     # Parser wrapper methods
 
-    def _get_active_parser(self) -> CloudStorageParser | None:
-        """Get the active parser (cloud storage or localconfig)."""
+    def _get_active_parser(self):
+        # Get the active parser (cloud storage or localconfig)
         return self.cloud_storage_parser if self.cloud_storage_parser else self.localconfig_helper
 
-    def _schedule_save(self) -> None:
-        """Schedule a delayed save to batch multiple rapid changes."""
+    def _schedule_save(self):
+        # Schedule a delayed save to batch multiple rapid changes
         if hasattr(self, "_save_timer") and self._save_timer.isActive():
             self._save_timer.stop()
 
@@ -357,41 +343,41 @@ class MainWindow(QMainWindow):
 
     # Public persistence interface
 
-    def save_collections(self) -> bool:
-        """Persists collections to the active parser."""
+    def save_collections(self):
+        # Persist collections to the active parser
         return self._save_collections()
 
-    def populate_categories(self) -> None:
-        """Rebuilds the category tree from current data."""
+    def populate_categories(self):
+        # Rebuild the category tree from current data
         self._populate_categories()
 
-    def update_statistics(self) -> None:
-        """Refreshes the statistics label in the status bar."""
+    def update_statistics(self):
+        # Refresh the statistics label in the status bar
         self._update_statistics()
 
-    def _save_collections(self) -> bool:
-        """Save collections using the active parser."""
+    def _save_collections(self):
+        # Save collections using the active parser
         from steam_library_manager.ui.widgets.ui_helper import UIHelper
 
         # Only save to the active parser (cloud storage OR localconfig, not both!)
         if self.cloud_storage_parser:
-            success = self.cloud_storage_parser.save()
-            if success and getattr(self.cloud_storage_parser, "had_conflict", False):
+            ok = self.cloud_storage_parser.save()
+            if ok and getattr(self.cloud_storage_parser, "had_conflict", False):
                 UIHelper.show_warning(
                     self,
                     t("ui.save.conflict_warning"),
                 )
-            return success
+            return ok
         elif self.localconfig_helper:
             return self.localconfig_helper.save()
         return False
 
     # Keyboard handling
 
-    def eventFilter(self, obj, event) -> bool:
+    def eventFilter(self, obj, event):
         self.keyboard_handler.handle_event_filter(obj, event)
         return super().eventFilter(obj, event)
 
-    def keyPressEvent(self, event) -> None:
+    def keyPressEvent(self, event):
         if not self.keyboard_handler.handle_key_press(event):
             super().keyPressEvent(event)

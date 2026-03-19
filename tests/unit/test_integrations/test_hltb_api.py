@@ -41,8 +41,8 @@ def _make_ready_client() -> HLTBClient:
     """Creates an HLTBClient with pre-populated endpoint cache (skips discovery)."""
     client = HLTBClient()
     client._api_path = "finder"
-    client._auth_token = "test-token"
-    client._cache_time = 9999999999.0  # far future
+    client._token = "test-token"
+    client._cached_at = 9999999999.0  # far future
     return client
 
 
@@ -226,7 +226,7 @@ class TestSimplifyName:
 class TestSearchGame:
     """Tests for HLTBClient.search_game with direct API."""
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=True)
     def test_search_game_exact_match(self, _mock_ready: MagicMock) -> None:
         """Exact name match returns result immediately."""
         client = _make_ready_client()
@@ -248,7 +248,7 @@ class TestSearchGame:
         assert result.game_name == "Portal 2"
         assert result.main_story == pytest.approx(30600 / 3600, rel=1e-2)
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=True)
     def test_search_game_falls_back_to_name(self, _mock_ready: MagicMock) -> None:
         """Falls back to exact name match when AppID not found."""
         client = _make_ready_client()
@@ -264,7 +264,7 @@ class TestSearchGame:
         assert result is not None
         assert result.game_name == "Portal 2"
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=True)
     def test_search_game_fuzzy_match(self, _mock_ready: MagicMock) -> None:
         """Levenshtein matching finds close name matches."""
         client = _make_ready_client()
@@ -280,7 +280,7 @@ class TestSearchGame:
         assert result is not None
         assert "Witcher" in result.game_name
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=True)
     def test_search_game_not_found_returns_none(self, _mock_ready: MagicMock) -> None:
         """Empty results from HLTB returns None."""
         client = _make_ready_client()
@@ -295,7 +295,7 @@ class TestSearchGame:
 
         assert result is None
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=True)
     def test_search_game_api_error_returns_none(self, _mock_ready: MagicMock) -> None:
         """Network errors are caught and return None."""
         client = _make_ready_client()
@@ -305,7 +305,7 @@ class TestSearchGame:
 
         assert result is None
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=True)
     def test_conversion_seconds_to_hours(self, _mock_ready: MagicMock) -> None:
         """HLTB API returns seconds, client converts to hours."""
         client = _make_ready_client()
@@ -333,14 +333,14 @@ class TestSearchGame:
         result = client.search_game("")
         assert result is None
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=False)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=False)
     def test_search_game_api_not_ready_returns_none(self, _mock_ready: MagicMock) -> None:
         """Returns None when API endpoint cannot be discovered."""
         client = HLTBClient()
         result = client.search_game("Portal 2")
         assert result is None
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=True)
     def test_retry_on_404(self, mock_ready: MagicMock) -> None:
         """Retries with fresh endpoint on 404 response."""
         client = _make_ready_client()
@@ -359,10 +359,10 @@ class TestSearchGame:
 
         assert result is not None
         assert result.game_name == "Portal 2"
-        # _ensure_api_ready called twice (initial + retry)
+        # _ensure_ready called twice (initial + retry)
         assert mock_ready.call_count == 2
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=True)
     def test_popularity_tiebreaker(self, _mock_ready: MagicMock) -> None:
         """When distance is equal, more popular game wins."""
         client = _make_ready_client()
@@ -412,7 +412,7 @@ class TestFindBestMatch:
 
 
 class TestEndpointDiscovery:
-    """Tests for the _discover_endpoint method."""
+    """Tests for the _find_endpoint method."""
 
     def test_discover_finds_endpoint_in_app_bundle(self) -> None:
         """Discovers API path from _app-*.js bundle."""
@@ -435,7 +435,7 @@ class TestEndpointDiscovery:
 
         client._session.get = MagicMock(return_value=mock_js)
 
-        path = client._discover_endpoint(homepage_html)
+        path = client._find_endpoint(homepage_html)
         assert path == "finder"
 
     def test_discover_returns_empty_on_no_match(self) -> None:
@@ -454,20 +454,20 @@ class TestEndpointDiscovery:
 
         client._session.get = MagicMock(return_value=mock_js)
 
-        path = client._discover_endpoint(homepage_html)
+        path = client._find_endpoint(homepage_html)
         assert path == ""
 
     def test_discover_returns_empty_on_empty_html(self) -> None:
         """Returns empty string for empty HTML."""
         client = HLTBClient()
-        path = client._discover_endpoint("")
+        path = client._find_endpoint("")
         assert path == ""
 
 
 class TestAuthToken:
-    """Tests for the _get_auth_token method."""
+    """Tests for the _get_token method."""
 
-    def test_get_auth_token_success(self) -> None:
+    def test_get_token_success(self) -> None:
         """Successfully obtains auth token from init endpoint."""
         client = HLTBClient()
 
@@ -476,22 +476,22 @@ class TestAuthToken:
         mock_resp.raise_for_status = MagicMock()
         client._session.get = MagicMock(return_value=mock_resp)
 
-        token = client._get_auth_token("finder")
+        token = client._get_token("finder")
         assert token == "abc123xyz"
 
-    def test_get_auth_token_failure(self) -> None:
+    def test_get_token_failure(self) -> None:
         """Returns empty string on init endpoint failure."""
         client = HLTBClient()
         client._session.get = MagicMock(side_effect=ConnectionError("offline"))
 
-        token = client._get_auth_token("finder")
+        token = client._get_token("finder")
         assert token == ""
 
 
 class TestFallbackSearch:
     """Tests for the two-pass search strategy in search_game."""
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=True)
     def test_fallback_strips_edition_on_miss(self, _mock_ready: MagicMock) -> None:
         """Falls back to stripped name when full name returns no match."""
         client = _make_ready_client()
@@ -515,7 +515,7 @@ class TestFallbackSearch:
         assert result.game_name == "Skyrim"
         assert client._session.post.call_count == 2
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=True)
     def test_no_fallback_when_exact_match(self, _mock_ready: MagicMock) -> None:
         """No fallback search when exact match is found on first pass."""
         client = _make_ready_client()
@@ -552,7 +552,7 @@ class TestIdCache:
         client = HLTBClient()
         assert client.get_id_cache() == {}
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=True)
     @patch.object(HLTBClient, "fetch_game_by_id")
     def test_search_game_uses_cache(self, mock_fetch: MagicMock, _mock_ready: MagicMock) -> None:
         """search_game uses ID cache when app_id is cached."""
@@ -567,7 +567,7 @@ class TestIdCache:
         assert result is expected_result
         mock_fetch.assert_called_once_with(1234)
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=True)
     @patch.object(HLTBClient, "fetch_game_by_id", return_value=None)
     def test_search_game_falls_back_on_cache_miss(self, _mock_fetch: MagicMock, _mock_ready: MagicMock) -> None:
         """search_game falls back to name search if fetch_game_by_id returns None."""
@@ -585,7 +585,7 @@ class TestIdCache:
         assert result is not None
         assert result.game_name == "Portal 2"
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=True)
     def test_search_game_skips_cache_without_app_id(self, _mock_ready: MagicMock) -> None:
         """search_game skips cache lookup when app_id is 0."""
         client = _make_ready_client()
@@ -607,7 +607,7 @@ class TestIdCache:
 class TestFetchSteamImport:
     """Tests for the fetch_steam_import method."""
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=True)
     def test_fetch_steam_import_success(self, _mock_ready: MagicMock) -> None:
         """Successfully parses Steam Import API response."""
         client = _make_ready_client()
@@ -628,7 +628,7 @@ class TestFetchSteamImport:
 
         assert mappings == {620: 1234, 730: 5678}
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=True)
     def test_fetch_steam_import_empty_response(self, _mock_ready: MagicMock) -> None:
         """Empty response returns empty dict."""
         client = _make_ready_client()
@@ -643,7 +643,7 @@ class TestFetchSteamImport:
 
         assert mappings == {}
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=True)
     def test_fetch_steam_import_network_error(self, _mock_ready: MagicMock) -> None:
         """Network error returns empty dict."""
         client = _make_ready_client()
@@ -653,7 +653,7 @@ class TestFetchSteamImport:
 
         assert mappings == {}
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=False)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=False)
     def test_fetch_steam_import_api_not_ready(self, _mock_ready: MagicMock) -> None:
         """Returns empty dict when API is not ready."""
         client = HLTBClient()
@@ -666,7 +666,7 @@ class TestFetchSteamImport:
 class TestFetchGameById:
     """Tests for the fetch_game_by_id method."""
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=True)
     def test_fetch_game_by_id_success(self, _mock_ready: MagicMock) -> None:
         """Successfully fetches game data by HLTB ID."""
         client = _make_ready_client()
@@ -686,7 +686,7 @@ class TestFetchGameById:
         assert result.game_name == "Portal 2"
         assert result.main_story == pytest.approx(30600 / 3600, rel=1e-2)
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=True)
     def test_fetch_game_by_id_no_build_id(self, _mock_ready: MagicMock) -> None:
         """Returns None when buildId is not available."""
         client = _make_ready_client()
@@ -696,7 +696,7 @@ class TestFetchGameById:
 
         assert result is None
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=True)
     def test_fetch_game_by_id_empty_game_list(self, _mock_ready: MagicMock) -> None:
         """Returns None when game list is empty."""
         client = _make_ready_client()
@@ -712,7 +712,7 @@ class TestFetchGameById:
 
         assert result is None
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=True)
     def test_fetch_game_by_id_malformed_response(self, _mock_ready: MagicMock) -> None:
         """Returns None on malformed response."""
         client = _make_ready_client()
@@ -728,7 +728,7 @@ class TestFetchGameById:
 
         assert result is None
 
-    @patch.object(HLTBClient, "_ensure_api_ready", return_value=True)
+    @patch.object(HLTBClient, "_ensure_ready", return_value=True)
     def test_fetch_game_by_id_network_error(self, _mock_ready: MagicMock) -> None:
         """Network error returns None."""
         client = _make_ready_client()
@@ -741,29 +741,29 @@ class TestFetchGameById:
 
 
 class TestDiscoverBuildId:
-    """Tests for the _discover_build_id static method."""
+    """Tests for the _find_build_id static method."""
 
-    def test_discover_build_id_from_manifest(self) -> None:
+    def test_find_build_id_from_manifest(self) -> None:
         """Extracts buildId from _buildManifest.js script tag."""
         html = """
         <html><head>
         <script src="/_next/static/abc123def/_buildManifest.js"></script>
         </head><body></body></html>
         """
-        build_id = HLTBClient._discover_build_id(html)
+        build_id = HLTBClient._find_build_id(html)
         assert build_id == "abc123def"
 
-    def test_discover_build_id_not_found(self) -> None:
+    def test_find_build_id_not_found(self) -> None:
         """Returns empty string when no _buildManifest.js found."""
         html = """
         <html><head>
         <script src="/_next/static/chunks/main.js"></script>
         </head><body></body></html>
         """
-        build_id = HLTBClient._discover_build_id(html)
+        build_id = HLTBClient._find_build_id(html)
         assert build_id == ""
 
-    def test_discover_build_id_empty_html(self) -> None:
+    def test_find_build_id_empty_html(self) -> None:
         """Returns empty string for empty HTML."""
-        build_id = HLTBClient._discover_build_id("")
+        build_id = HLTBClient._find_build_id("")
         assert build_id == ""
