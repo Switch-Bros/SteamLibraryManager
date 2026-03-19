@@ -326,13 +326,11 @@ class ImageSelectionDialog(QDialog):
                     lbl = QLabel()
 
                     if ip.exists():
-                        px = QPixmap(str(ip)).scaledToHeight(28, Qt.TransformationMode.SmoothTransformation)
+                        px = QPixmap(str(ip)).scaledToHeight(24, Qt.TransformationMode.SmoothTransformation)
                         lbl.setPixmap(px)
                         lbl.setFixedSize(28, 28)
                         lbl.setStyleSheet(
-                            "QLabel { border: 1px solid rgba(0,0,0,0.5); "
-                            "border-radius: 0 0 3px 3px; "
-                            "background: rgba(0,0,0,0.35); padding: 2px; }"
+                            "QLabel { background: %s; " "border-radius: 0 0 3px 3px; padding: 2px; }" % col
                         )
                     else:
                         tx = {

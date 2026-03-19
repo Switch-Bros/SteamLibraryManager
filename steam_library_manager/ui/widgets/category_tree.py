@@ -17,22 +17,24 @@ from steam_library_manager.core.game_manager import Game
 from steam_library_manager.integrations.external_games.models import get_collection_emoji
 from steam_library_manager.utils.i18n import t
 
-# PEGI collection name -> emoji key
-_PEGI_MAP = {
-    "PEGI 03": "emoji.pegi_3",
-    "PEGI 07": "emoji.pegi_7",
-    "PEGI 12": "emoji.pegi_12",
-    "PEGI 16": "emoji.pegi_16",
-    "PEGI 18": "emoji.pegi_18",
+# PEGI rating suffix -> emoji key
+_PEGI_RATINGS = {
+    "03": "emoji.pegi_3",
+    "07": "emoji.pegi_7",
+    "12": "emoji.pegi_12",
+    "16": "emoji.pegi_16",
+    "18": "emoji.pegi_18",
 }
 
 __all__ = ["GameTreeWidget"]
 
 
 def _get_pegi_emoji(cat_name):
-    # return pegi emoji if collection is a PEGI category
-    key = _PEGI_MAP.get(cat_name)
-    return t(key) if key else ""
+    # match "... PEGI XX" pattern regardless of locale prefix
+    for rating, key in _PEGI_RATINGS.items():
+        if cat_name.endswith("PEGI %s" % rating):
+            return t(key)
+    return ""
 
 
 class GameTreeWidget(QTreeWidget):
