@@ -1,6 +1,6 @@
 #
 # steam_library_manager/ui/dialogs/statistics_dialog.py
-# Dialog showing library statistics and enrichment coverage
+# Library statistics and enrichment coverage
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -9,7 +9,6 @@
 from __future__ import annotations
 
 from collections import Counter
-from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
@@ -24,199 +23,151 @@ from PyQt6.QtWidgets import (
 
 from steam_library_manager.utils.i18n import t
 
-if TYPE_CHECKING:
-    from steam_library_manager.core.game import Game
-    from steam_library_manager.ui.main_window import MainWindow
-
 __all__ = ["StatisticsDialog"]
 
 
 class StatisticsDialog(QDialog):
-    """Dialog showing library statistics in four tab views.
+    """Library stats in four tabs: overview, genre, platform, top 10."""
 
-    Attributes:
-        _games: List of real games used for all statistics.
-    """
-
-    def __init__(self, parent: MainWindow) -> None:
-        """Initializes the StatisticsDialog.
-
-        Args:
-            parent: The MainWindow instance providing game data.
-        """
+    def __init__(self, parent):
         super().__init__(parent)
         self.setWindowTitle(t("ui.stats.title"))
         self.setMinimumSize(600, 500)
 
         gm = parent.game_manager
-        self._games: list[Game] = gm.get_real_games() if gm else []
+        self._games = gm.get_real_games() if gm else []
 
-        layout = QVBoxLayout(self)
+        lay = QVBoxLayout(self)
         tabs = QTabWidget()
 
-        tabs.addTab(self._build_overview_tab(), t("ui.stats.tab_overview"))
-        tabs.addTab(self._build_genre_tab(), t("ui.stats.tab_genre"))
-        tabs.addTab(self._build_platform_tab(), t("ui.stats.tab_platform"))
-        tabs.addTab(self._build_top10_tab(), t("ui.stats.tab_top10"))
+        tabs.addTab(self._overview(), t("ui.stats.tab_overview"))
+        tabs.addTab(self._genres(), t("ui.stats.tab_genre"))
+        tabs.addTab(self._platforms(), t("ui.stats.tab_platform"))
+        tabs.addTab(self._top10(), t("ui.stats.tab_top10"))
 
-        layout.addWidget(tabs)
+        lay.addWidget(tabs)
 
-    # ------------------------------------------------------------------
-    # Tab builders
-    # ------------------------------------------------------------------
+    # -- tabs --
 
-    def _build_overview_tab(self) -> QWidget:
-        """Builds the overview tab showing aggregate statistics.
-
-        Returns:
-            Widget containing the overview layout.
-        """
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
+    def _overview(self):
+        w = QWidget()
+        lay = QVBoxLayout(w)
 
         total = len(self._games)
-        installed = sum(1 for g in self._games if g.installed)
-        total_playtime = sum(g.playtime_minutes for g in self._games)
-        avg_playtime = total_playtime / total if total > 0 else 0
+        inst = sum(1 for g in self._games if g.installed)
+        pt_total = sum(g.playtime_minutes for g in self._games)
+        pt_avg = pt_total / total if total > 0 else 0
 
-        categories: set[str] = set()
+        cats = set()
         for g in self._games:
-            categories.update(g.categories)
-        cat_count = len(categories)
+            cats.update(g.categories)
 
-        stats = [
+        rows = [
             (t("ui.stats.total_games"), str(total)),
-            (t("ui.stats.installed_games"), str(installed)),
-            (t("ui.stats.total_categories"), str(cat_count)),
-            (t("ui.stats.total_playtime"), t("ui.stats.hours_unit", hours=round(total_playtime / 60, 1))),
-            (t("ui.stats.avg_playtime"), t("ui.stats.hours_unit", hours=round(avg_playtime / 60, 1))),
+            (t("ui.stats.installed_games"), str(inst)),
+            (t("ui.stats.total_categories"), str(len(cats))),
+            (t("ui.stats.total_playtime"), t("ui.stats.hours_unit", hours=round(pt_total / 60, 1))),
+            (t("ui.stats.avg_playtime"), t("ui.stats.hours_unit", hours=round(pt_avg / 60, 1))),
         ]
 
-        for label_text, value_text in stats:
-            row = QHBoxLayout()
-            label = QLabel(f"<b>{label_text}:</b>")
-            value = QLabel(value_text)
-            value.setAlignment(Qt.AlignmentFlag.AlignRight)
-            row.addWidget(label)
-            row.addStretch()
-            row.addWidget(value)
-            layout.addLayout(row)
+        for lbl, val in rows:
+            r = QHBoxLayout()
+            r.addWidget(QLabel("<b>%s:</b>" % lbl))
+            r.addStretch()
+            v = QLabel(val)
+            v.setAlignment(Qt.AlignmentFlag.AlignRight)
+            r.addWidget(v)
+            lay.addLayout(r)
 
-        layout.addStretch()
-        return widget
+        lay.addStretch()
+        return w
 
-    def _build_genre_tab(self) -> QWidget:
-        """Builds the genre distribution tab.
-
-        Returns:
-            Scrollable widget showing genre counts sorted descending.
-        """
-        genre_counter: Counter[str] = Counter()
+    def _genres(self):
+        cnt = Counter()
         for g in self._games:
             for genre in g.genres:
-                genre_counter[genre] += 1
+                cnt[genre] += 1
+        return self._bar_list(cnt)
 
-        return self._build_bar_list(genre_counter)
-
-    def _build_platform_tab(self) -> QWidget:
-        """Builds the platform distribution tab.
-
-        Returns:
-            Scrollable widget showing platform counts sorted descending.
-        """
-        platform_counter: Counter[str] = Counter()
+    def _platforms(self):
+        cnt = Counter()
         for g in self._games:
-            for plat in g.platforms:
-                platform_counter[plat.capitalize()] += 1
+            for p in g.platforms:
+                cnt[p.capitalize()] += 1
+        return self._bar_list(cnt)
 
-        return self._build_bar_list(platform_counter)
+    def _top10(self):
+        w = QWidget()
+        lay = QVBoxLayout(w)
 
-    def _build_top10_tab(self) -> QWidget:
-        """Builds the top 10 most played games tab.
+        top = sorted(self._games, key=lambda g: g.playtime_minutes, reverse=True)[:10]
 
-        Returns:
-            Widget showing the top 10 games by playtime.
-        """
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
+        if not top:
+            nd = QLabel(t("ui.stats.no_data"))
+            nd.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            lay.addWidget(nd)
+            lay.addStretch()
+            return w
 
-        sorted_games = sorted(self._games, key=lambda g: g.playtime_minutes, reverse=True)[:10]
+        for i, g in enumerate(top, 1):
+            r = QHBoxLayout()
+            rk = QLabel("<b>#%d</b>" % i)
+            rk.setFixedWidth(30)
+            nm = QLabel(g.name)
+            nm.setToolTip("App ID: %s" % g.app_id)
+            hrs = round(g.playtime_minutes / 60, 1)
+            pt = QLabel(t("ui.stats.hours_unit", hours=hrs))
+            pt.setAlignment(Qt.AlignmentFlag.AlignRight)
+            pt.setFixedWidth(80)
 
-        if not sorted_games:
-            no_data = QLabel(t("ui.stats.no_data"))
-            no_data.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            layout.addWidget(no_data)
-            layout.addStretch()
-            return widget
+            r.addWidget(rk)
+            r.addWidget(nm, stretch=1)
+            r.addWidget(pt)
+            lay.addLayout(r)
 
-        for i, game in enumerate(sorted_games, 1):
-            row = QHBoxLayout()
-            rank = QLabel(f"<b>#{i}</b>")
-            rank.setFixedWidth(30)
-            name = QLabel(game.name)
-            name.setToolTip(f"App ID: {game.app_id}")
-            hours = round(game.playtime_minutes / 60, 1)
-            playtime = QLabel(t("ui.stats.hours_unit", hours=hours))
-            playtime.setAlignment(Qt.AlignmentFlag.AlignRight)
-            playtime.setFixedWidth(80)
+        lay.addStretch()
+        return w
 
-            row.addWidget(rank)
-            row.addWidget(name, stretch=1)
-            row.addWidget(playtime)
-            layout.addLayout(row)
-
-        layout.addStretch()
-        return widget
-
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
+    # -- helpers --
 
     @staticmethod
-    def _build_bar_list(counter: Counter[str]) -> QWidget:
-        """Builds a scrollable list of items with counts from a Counter.
-
-        Args:
-            counter: Counter mapping labels to counts.
-
-        Returns:
-            A scroll area widget with the bar list.
-        """
+    def _bar_list(counter):
+        # scrollable bar chart from Counter
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         inner = QWidget()
-        layout = QVBoxLayout(inner)
+        lay = QVBoxLayout(inner)
 
         if not counter:
-            no_data = QLabel(t("ui.stats.no_data"))
-            no_data.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            layout.addWidget(no_data)
-            layout.addStretch()
+            nd = QLabel(t("ui.stats.no_data"))
+            nd.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            lay.addWidget(nd)
+            lay.addStretch()
             scroll.setWidget(inner)
             return scroll
 
-        max_count = max(counter.values()) if counter else 1
+        mx = max(counter.values()) if counter else 1
 
-        for label_text, count in counter.most_common():
-            row = QHBoxLayout()
-            label = QLabel(label_text)
-            label.setFixedWidth(150)
+        for lbl, cnt in counter.most_common():
+            r = QHBoxLayout()
+            lb = QLabel(lbl)
+            lb.setFixedWidth(150)
 
-            bar_width = int((count / max_count) * 200) if max_count > 0 else 0
+            bw = int((cnt / mx) * 200) if mx > 0 else 0
             bar = QLabel()
-            bar.setFixedSize(bar_width, 16)
+            bar.setFixedSize(bw, 16)
             bar.setStyleSheet("background-color: #1a9fff; border-radius: 3px;")
 
-            count_label = QLabel(str(count))
-            count_label.setFixedWidth(40)
-            count_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+            c = QLabel(str(cnt))
+            c.setFixedWidth(40)
+            c.setAlignment(Qt.AlignmentFlag.AlignRight)
 
-            row.addWidget(label)
-            row.addWidget(bar)
-            row.addStretch()
-            row.addWidget(count_label)
-            layout.addLayout(row)
+            r.addWidget(lb)
+            r.addWidget(bar)
+            r.addStretch()
+            r.addWidget(c)
+            lay.addLayout(r)
 
-        layout.addStretch()
+        lay.addStretch()
         scroll.setWidget(inner)
         return scroll

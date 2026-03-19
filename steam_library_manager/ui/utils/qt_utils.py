@@ -1,6 +1,6 @@
 #
 # steam_library_manager/ui/utils/qt_utils.py
-# Miscellaneous Qt utility functions for widgets and layouts
+# Qt utility functions for widgets and layouts
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -8,8 +8,7 @@
 
 from __future__ import annotations
 
-from PyQt6.QtWidgets import QLayout, QWidget
-from PyQt6.QtCore import QObject
+from PyQt6.QtWidgets import QWidget
 
 __all__ = [
     "clear_layout",
@@ -25,158 +24,71 @@ __all__ = [
 ]
 
 
-def clear_layout(target_layout: QLayout) -> None:
-    """Removes and deletes all widgets from a layout.
-
-    This completely clears the layout by removing all items and deleting
-    their associated widgets. Use this when rebuilding a dynamic UI section.
-
-    Args:
-        target_layout: The layout to clear.
-    """
+def clear_layout(target_layout):
+    # remove and delete all widgets from layout
     while target_layout.count():
         child = target_layout.takeAt(0)
         if child.widget():
             child.widget().deleteLater()
 
 
-def find_child_by_name(parent: QWidget, name: str) -> QWidget | None:
-    """Finds a child widget by its object name.
-
-    Searches recursively through all child widgets to find one with
-    the matching objectName property.
-
-    Args:
-        parent: Parent widget to search in.
-        name: Object name to search for.
-
-    Returns:
-        QWidget | None: The found widget, or None if not found.
-    """
+def find_child_by_name(parent, name):
+    # recursive search by objectName
     return parent.findChild(QWidget, name)
 
 
-def find_children_by_type(parent: QWidget, widget_type: type) -> list[QWidget]:
-    """Finds all child widgets of a specific type.
-
-    Searches recursively through all child widgets and returns all that
-    match the specified type.
-
-    Args:
-        parent: Parent widget to search in.
-        widget_type: The widget class to search for.
-
-    Returns:
-        list[QWidget]: List of matching child widgets.
-    """
+def find_children_by_type(parent, widget_type):
+    # all children matching type
     return parent.findChildren(widget_type)
 
 
-def remove_widget_from_layout(widget_to_remove: QWidget) -> None:
-    """Removes a widget from its parent layout without deleting it.
-
-    The widget is removed from the layout but not deleted, so it can be
-    re-added elsewhere or deleted manually later.
-
-    Args:
-        widget_to_remove: Widget to remove from its layout.
-    """
-    parent = widget_to_remove.parent()
-    if parent and isinstance(parent, QWidget):
-        parent_layout = parent.layout()
-        if parent_layout:
-            parent_layout.removeWidget(widget_to_remove)
+def remove_widget_from_layout(widget_to_remove):
+    # remove without deleting
+    par = widget_to_remove.parent()
+    if par and isinstance(par, QWidget):
+        lay = par.layout()
+        if lay:
+            lay.removeWidget(widget_to_remove)
 
 
-def set_all_widgets_enabled(parent: QWidget, enabled: bool) -> None:
-    """Enables or disables all child widgets recursively.
-
-    Useful for disabling an entire section of UI during async operations.
-
-    Args:
-        parent: Parent widget whose children should be enabled/disabled.
-        enabled: True to enable, False to disable.
-    """
-    child: QWidget
+def set_all_widgets_enabled(parent, enabled):
+    # enable/disable all children recursively
     for child in parent.findChildren(QWidget):
         child.setEnabled(enabled)
 
 
-def get_layout_widgets(target_layout: QLayout) -> list[QWidget]:
-    """Returns a list of all widgets in a layout.
-
-    Extracts all widgets from the layout without removing them.
-
-    Args:
-        target_layout: Layout to extract widgets from.
-
-    Returns:
-        list[QWidget]: List of widgets in the layout.
-    """
-    widgets = []
+def get_layout_widgets(target_layout):
+    # extract widgets without removing
+    out = []
     for i in range(target_layout.count()):
-        layout_item = target_layout.itemAt(i)
-        if layout_item and layout_item.widget():
-            widgets.append(layout_item.widget())
-    return widgets
+        li = target_layout.itemAt(i)
+        if li and li.widget():
+            out.append(li.widget())
+    return out
 
 
-def hide_all_children(parent: QWidget) -> None:
-    """Hides all child widgets recursively.
-
-    Does not disable the widgets, only makes them invisible.
-
-    Args:
-        parent: Parent widget whose children should be hidden.
-    """
-    child: QWidget
+def hide_all_children(parent):
     for child in parent.findChildren(QWidget):
         child.hide()
 
 
-def show_all_children(parent: QWidget) -> None:
-    """Shows all child widgets recursively.
-
-    Makes all previously hidden child widgets visible again.
-
-    Args:
-        parent: Parent widget whose children should be shown.
-    """
-    child: QWidget
+def show_all_children(parent):
     for child in parent.findChildren(QWidget):
         child.show()
 
 
-def disconnect_all_signals(obj: QObject) -> None:
-    """Disconnects all signals from a QObject.
-
-    This is a safety measure to prevent signal/slot errors when
-    deleting objects or rebuilding UI sections.
-
-    Args:
-        obj: QObject to disconnect all signals from.
-    """
+def disconnect_all_signals(obj):
+    # safety measure before deleting objects
     try:
         obj.blockSignals(True)
     except RuntimeError:
-        # Object already deleted
-        pass
+        pass  # already deleted
 
 
-def count_visible_widgets(target_layout: QLayout) -> int:
-    """Counts how many visible widgets are in a layout.
-
-    Only counts widgets that are currently visible (not hidden).
-
-    Args:
-        target_layout: Layout to count visible widgets in.
-
-    Returns:
-        int: Number of visible widgets.
-    """
-    visible_count = 0
+def count_visible_widgets(target_layout):
+    n = 0
     for i in range(target_layout.count()):
-        layout_item = target_layout.itemAt(i)
-        if layout_item and layout_item.widget() and layout_item.widget().isVisible():
-            visible_count += 1
-    return visible_count
+        li = target_layout.itemAt(i)
+        if li and li.widget() and li.widget().isVisible():
+            n += 1
+    return n
