@@ -2,7 +2,7 @@
 # steam_library_manager/ui/actions/enrichment_actions.py
 # UI action handlers for enrichment menu and toolbar operations
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 
@@ -23,29 +23,14 @@ __all__ = ["EnrichmentActions"]
 
 
 class EnrichmentActions:
-    """Handles the coordinated 'Enrich All' operation.
+    """Coordinates full enrichment run (tags + metadata)."""
 
-    Runs tag import followed by parallel enrichment tracks
-    (Steam API, HLTB, ProtonDB, Deck, PEGI, Achievements).
+    def __init__(self, main_window: MainWindow):
+        # keep ref to main window
+        self.mw = main_window
 
-    Attributes:
-        mw: Back-reference to the owning MainWindow instance.
-    """
-
-    def __init__(self, main_window: MainWindow) -> None:
-        """Initializes the EnrichmentActions handler.
-
-        Args:
-            main_window: The MainWindow instance that owns these actions.
-        """
-        self.mw: MainWindow = main_window
-
-    def start_enrich_all(self) -> None:
-        """Starts a full refresh of all enrichment data.
-
-        Runs tag import followed by four parallel tracks:
-        Steam API (metadata + achievements), HLTB, ProtonDB, and Deck.
-        """
+    def start_enrich_all(self):
+        # start full refresh of all enrichment data
         from steam_library_manager.config import config
         from steam_library_manager.services.enrichment.enrich_all_coordinator import EnrichAllCoordinator
         from steam_library_manager.ui.dialogs.enrich_all_progress_dialog import EnrichAllProgressDialog
@@ -59,14 +44,14 @@ class EnrichmentActions:
             self._open_settings_api_tab()
             return
 
-        # Resolve Steam user ID
+        # resolve Steam user ID
         steam_id = config.STEAM_USER_ID or ""
         if not steam_id:
             _, detected_id = config.get_detected_user()
             if detected_id:
                 steam_id = detected_id
 
-        # Get game lists
+        # get game lists
         all_deck_games = self.mw.game_manager.get_real_games()
         db = self._open_database()
         if db is None:
@@ -78,15 +63,13 @@ class EnrichmentActions:
             UIHelper.show_info(self.mw, t("ui.enrichment.no_games_steam"))
             return
 
-        # Confirm with user
-        if not UIHelper.confirm(
-            self.mw,
-            t("ui.enrichment.enrich_all_confirm", count=len(all_db_games)),
-            title=t("ui.enrichment.enrich_all_title"),
-        ):
+        # confirm with user
+        msg = t("ui.enrichment.enrich_all_confirm", count=len(all_db_games))
+        title = t("ui.enrichment.enrich_all_title")
+        if not UIHelper.confirm(self.mw, msg, title=title):
             return
 
-        # Check HLTB availability
+        # check HLTB availability
         hltb_client = None
         try:
             from steam_library_manager.integrations.hltb_api import HLTBClient
@@ -94,9 +77,9 @@ class EnrichmentActions:
             if HLTBClient.is_available():
                 hltb_client = HLTBClient()
         except ImportError:
-            pass
+            pass  # HLTB not installed, whatever
 
-        # Gather paths and config
+        # gather paths and config
         db_path = self._get_db_path()
         if db_path is None:
             return
@@ -110,7 +93,7 @@ class EnrichmentActions:
             if i18n:
                 language = i18n.locale
 
-        # Create dialog and coordinator (coordinator parented to dialog)
+        # create dialog and coordinator
         dialog = EnrichAllProgressDialog(self.mw)
         coordinator = EnrichAllCoordinator(dialog)
         coordinator.configure(
@@ -131,25 +114,17 @@ class EnrichmentActions:
 
         self.mw.populate_categories()
 
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-
-    def _open_settings_api_tab(self) -> None:
-        """Opens the Settings dialog on the API keys tab."""
+    def _open_settings_api_tab(self):
+        # open settings on API tab
         from steam_library_manager.ui.dialogs.settings_dialog import SettingsDialog
 
-        dialog = SettingsDialog(self.mw)
-        dialog.tabs.setCurrentIndex(1)
-        dialog.settings_saved.connect(self.mw.settings_actions.apply_settings)
-        dialog.exec()
+        dlg = SettingsDialog(self.mw)
+        dlg.tabs.setCurrentIndex(1)
+        dlg.settings_saved.connect(self.mw.settings_actions.apply_settings)
+        dlg.exec()
 
     def _get_db_path(self):
-        """Returns the database file path from the active game service.
-
-        Returns:
-            Path to the SQLite database, or None if not available.
-        """
+        # get database path from game service
         if hasattr(self.mw, "game_service") and self.mw.game_service:
             db = getattr(self.mw.game_service, "database", None)
             if db and hasattr(db, "db_path"):
@@ -159,11 +134,7 @@ class EnrichmentActions:
         return None
 
     def _open_database(self):
-        """Opens a fresh database connection for enrichment operations.
-
-        Returns:
-            New Database instance, or None if path not available.
-        """
+        # open fresh db connection
         from steam_library_manager.core.database import Database
 
         db_path = self._get_db_path()

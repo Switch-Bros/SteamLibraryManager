@@ -2,7 +2,7 @@
 # steam_library_manager/core/backup_manager.py
 # File backup creation with automatic rotation and limit enforcement
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 
@@ -14,6 +14,7 @@ import glob
 import os
 from pathlib import Path
 from datetime import datetime
+
 from steam_library_manager.config import config
 from steam_library_manager.utils.i18n import t
 
@@ -23,49 +24,22 @@ __all__ = ["BackupManager"]
 
 
 class BackupManager:
-    """
-    Manages creation and rotation of file backups.
+    """Manages file backups with automatic rotation."""
 
-    This class creates timestamped copies of files and automatically removes
-    old backups when the configured maximum number is exceeded.
-    """
-
-    def __init__(self, backup_dir: Path | None = None):
-        """
-        Initializes the BackupManager.
-
-        Args:
-            backup_dir (Path | None): Custom directory for storing backups.
-                                         If None, backups will be created in the same
-                                         directory as the original file.
-        """
+    def __init__(self, backup_dir=None):
+        # init manager
         self.backup_dir = backup_dir
 
-    def create_backup(self, file_path: Path) -> Path | None:
-        """
-        Creates a timestamped backup of a file.
-
-        The backup is saved with a timestamp in the filename (e.g., localconfig_20240128_143022.vdf).
-        After creating the backup, old backups are automatically rotated based on the MAX_BACKUPS setting.
-
-        If no backup_dir was specified in __init__, the backup is created in the same directory
-        as the original file.
-
-        Args:
-            file_path (Path): Path to the file to back up.
-
-        Returns:
-            Path | None: Path to the created backup file, or None if the operation failed
-                           (e.g., source file doesn't exist).
-        """
+    def create_backup(self, file_path):
+        # create timestamped backup of file
         if not file_path.exists():
             return None
 
-        # Use Unix timestamp (seconds since 1970) - short and unique
-        timestamp = str(int(datetime.now().timestamp()))
-        backup_name = f"{file_path.stem}_{timestamp}{file_path.suffix}"
+        # use Unix timestamp - short and unique
+        ts = str(int(datetime.now().timestamp()))
+        backup_name = "%s_%s%s" % (file_path.stem, ts, file_path.suffix)
 
-        # Use specified backup_dir or same directory as original file
+        # use specified dir or same dir as original
         target_dir = self.backup_dir if self.backup_dir else file_path.parent
         target_dir.mkdir(parents=True, exist_ok=True)
 
@@ -75,27 +49,18 @@ class BackupManager:
             shutil.copy2(file_path, backup_path)
             logger.info(t("logs.backup.created", name=backup_name))
 
-            # Rotate old backups
+            # rotate old backups
             self._rotate_backups(file_path)
 
             return backup_path
-        except OSError as backup_error:
-            logger.error(t("logs.backup.failed", error=str(backup_error)))
+        except OSError as e:
+            logger.error(t("logs.backup.failed", error=str(e)))
             return None
 
-    def _rotate_backups(self, file_path: Path):
-        """
-        Removes old backups exceeding the MAX_BACKUPS limit.
-
-        This method finds all backups for a given file (by matching the filename pattern)
-        and deletes the oldest ones if the total count exceeds the configured limit.
-
-        Args:
-            file_path (Path): The original file path (used to match backup files).
-        """
-        # Use specified backup_dir or same directory as original file
+    def _rotate_backups(self, file_path):
+        # remove old backups exceeding limit
         target_dir = self.backup_dir if self.backup_dir else file_path.parent
-        pattern = str(target_dir / f"{file_path.stem}_*{file_path.suffix}")
+        pattern = str(target_dir / ("%s_*%s" % (file_path.stem, file_path.suffix)))
         backups = sorted(glob.glob(pattern), key=os.path.getmtime, reverse=True)
 
         if len(backups) > config.MAX_BACKUPS:
@@ -103,41 +68,24 @@ class BackupManager:
                 try:
                     os.remove(old)
                     logger.info(t("logs.backup.rotated", name=Path(old).name))
-                except OSError as delete_error:
-                    logger.error(t("logs.backup.delete_error", name=Path(old).name, error=str(delete_error)))
+                except OSError as e:
+                    logger.error(t("logs.backup.delete_error", name=Path(old).name, error=str(e)))
 
-    def list_backups(self, file_path: Path) -> list[Path]:
-        """List all backups for a file, sorted newest first.
-
-        Args:
-            file_path: The original file path to find backups for.
-
-        Returns:
-            List of backup Paths sorted by modification time (newest first).
-        """
+    def list_backups(self, file_path):
+        # list all backups for file, newest first
         target_dir = self.backup_dir if self.backup_dir else file_path.parent
-        pattern = str(target_dir / f"{file_path.stem}_*{file_path.suffix}")
+        pattern = str(target_dir / ("%s_*%s" % (file_path.stem, file_path.suffix)))
         backups = sorted(glob.glob(pattern), key=os.path.getmtime, reverse=True)
         return [Path(b) for b in backups]
 
-    def restore_backup(self, backup_path: Path, original_path: Path) -> bool:
-        """Restore a backup file to its original location.
-
-        Creates a safety backup of the current file before restoring.
-
-        Args:
-            backup_path: Path to the backup file to restore.
-            original_path: Path where the backup should be restored to.
-
-        Returns:
-            True if restore succeeded, False otherwise.
-        """
+    def restore_backup(self, backup_path, original_path):
+        # restore backup to original location
         if not backup_path.exists():
             logger.error(t("logs.backup.restore_failed", error="Backup file not found"))
             return False
 
         try:
-            # Create safety backup of current state before restoring
+            # safety backup of current state
             if original_path.exists():
                 self.create_backup(original_path)
 
@@ -149,20 +97,8 @@ class BackupManager:
             return False
 
     @staticmethod
-    def create_rolling_backup(file_path: Path) -> str | None:
-        """
-        Legacy static method for creating backups with default settings.
-
-        This method provides backward compatibility for code that calls the static
-        create_rolling_backup method. It creates a BackupManager instance with
-        default settings and delegates to create_backup.
-
-        Args:
-            file_path (Path): Path to the file to back up.
-
-        Returns:
-            str | None: String path to the created backup, or None if the operation failed.
-        """
-        manager = BackupManager()
-        backup_path = manager.create_backup(file_path)
+    def create_rolling_backup(file_path):
+        # legacy static method for backwards compat
+        mgr = BackupManager()
+        backup_path = mgr.create_backup(file_path)
         return str(backup_path) if backup_path else None

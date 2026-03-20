@@ -2,7 +2,7 @@
 # steam_library_manager/utils/smart_collection_exporter.py
 # Exports smart collections to a portable JSON sidecar format
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 
@@ -26,23 +26,12 @@ _FORMAT_VERSION = "1.1"
 
 
 class SmartCollectionExporter:
-    """Exports Smart Collections to JSON format.
-
-    The exported JSON contains all collection metadata and rules,
-    but NOT the list of matched games (those are re-evaluated on import).
-    """
+    """Exports Smart Collections to portable JSON."""
 
     @staticmethod
     def export(collections: list[SmartCollection], output_path: Path) -> None:
-        """Exports a list of Smart Collections to a JSON file.
-
-        Args:
-            collections: The Smart Collections to export.
-            output_path: The file path to write the JSON to.
-
-        Raises:
-            OSError: If the file cannot be written.
-        """
+        # write collections to JSON file
+        # creates parent dirs if needed
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         payload = {
@@ -54,23 +43,13 @@ class SmartCollectionExporter:
         with open(output_path, "w", encoding="utf-8") as fh:
             json.dump(payload, fh, indent=2, ensure_ascii=False)
 
-        logger.info("Exported %d smart collections to %s", len(collections), output_path)
+        logger.info("Exported %d smart collections to %s" % (len(collections), output_path))
 
     @staticmethod
     def _collection_to_dict(collection: SmartCollection) -> dict:
-        """Serializes a SmartCollection to a portable dict.
-
-        When the collection has groups, exports the ``"groups"`` key (v1.1).
-        Otherwise falls back to the flat ``"rules"`` key for backward
-        compatibility with v1.0 importers.
-
-        Args:
-            collection: The Smart Collection to serialize.
-
-        Returns:
-            Dict with name, description, icon, logic, auto_sync, and rules/groups.
-        """
-        result: dict = {
+        # serialize collection to dict
+        # uses groups format (v1.1) if available, else flat rules (v1.0)
+        result = {
             "name": collection.name,
             "description": collection.description,
             "icon": collection.icon,
