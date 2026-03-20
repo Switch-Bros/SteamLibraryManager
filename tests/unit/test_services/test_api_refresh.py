@@ -267,3 +267,115 @@ class TestLoadApiKeyFallback:
         assert result is True
         assert "730" in mgr.games
         assert mock_get.call_count == 2
+
+
+class TestSteamAppDetailsTagIds:
+    """Tests for tag_ids field on SteamAppDetails."""
+
+    def test_default_tag_ids_empty(self) -> None:
+        from steam_library_manager.integrations.steam_web_api import SteamAppDetails
+
+        det = SteamAppDetails(app_id=1, name="X")
+        assert det.tag_ids == ()
+
+    def test_tag_ids_preserved(self) -> None:
+        from steam_library_manager.integrations.steam_web_api import SteamAppDetails
+
+        det = SteamAppDetails(app_id=1, name="X", tag_ids=((42, "LEGO"),))
+        assert det.tag_ids == ((42, "LEGO"),)
+        assert det.tags == ()
+
+
+class TestEnrichNewGames:
+    """Tests for GameService._enrich_new_games()."""
+
+    def _make_service(self, tmp_path: Path) -> GameService:
+        svc = GameService(
+            steam_path=str(tmp_path / "steam"),
+            api_key="test-key",
+            cache_dir=str(tmp_path / "cache"),
+        )
+        svc.game_manager = MagicMock()
+        svc.game_manager.games = {}
+        svc.database = MagicMock()
+        return svc
+
+    def test_enrich_sets_tags_on_game(self, tmp_path: Path) -> None:
+        svc = self._make_service(tmp_path)
+        game = Game(app_id="730", name="CS2")
+        svc.game_manager.games["730"] = game
+
+        mock_det = MagicMock()
+        mock_det.tags = ("FPS", "Action")
+        mock_det.tag_ids = ((1, "FPS"), (2, "Action"))
+        mock_det.genres = ("Action",)
+        mock_det.developers = ("Valve",)
+        mock_det.publishers = ("Valve",)
+        mock_det.platforms = ("windows", "linux")
+        mock_det.name = "CS2"
+
+        mock_api = MagicMock()
+        mock_api.get_app_details_batch.return_value = {730: mock_det}
+
+        with patch("steam_library_manager.integrations.steam_web_api.SteamWebAPI", return_value=mock_api):
+            svc._enrich_new_games(["730"])
+
+        assert game.tags == ["FPS", "Action"]
+        assert game.developer == "Valve"
+
+    def test_enrich_persists_tags_to_db(self, tmp_path: Path) -> None:
+        svc = self._make_service(tmp_path)
+        svc.game_manager.games["730"] = Game(app_id="730", name="CS2")
+
+        mock_det = MagicMock()
+        mock_det.tags = ("LEGO",)
+        mock_det.tag_ids = ((42, "LEGO"),)
+        mock_det.genres = ()
+        mock_det.developers = ()
+        mock_det.publishers = ()
+        mock_det.platforms = ()
+        mock_det.name = "CS2"
+
+        mock_api = MagicMock()
+        mock_api.get_app_details_batch.return_value = {730: mock_det}
+
+        with patch("steam_library_manager.integrations.steam_web_api.SteamWebAPI", return_value=mock_api):
+            svc._enrich_new_games(["730"])
+
+        svc.database.bulk_insert_game_tags_by_id.assert_called_once()
+        args = svc.database.bulk_insert_game_tags_by_id.call_args[0][0]
+        assert (730, 42, "LEGO") in args
+
+    def test_enrich_failure_nonfatal(self, tmp_path: Path) -> None:
+        svc = self._make_service(tmp_path)
+        svc.game_manager.games["1"] = Game(app_id="1", name="X")
+
+        with patch(
+            "steam_library_manager.integrations.steam_web_api.SteamWebAPI",
+            side_effect=Exception("boom"),
+        ):
+            svc._enrich_new_games(["1"])  # should not raise
+
+    def test_api_refresh_merge_calls_enrich(self, tmp_path: Path) -> None:
+        svc = self._make_service(tmp_path)
+        svc.cloud_storage_parser = None
+
+        with (
+            patch.object(svc, "_api_refresh", return_value=["730"]),
+            patch.object(svc, "_save_new"),
+            patch.object(svc, "_enrich_new_games") as mock_enrich,
+        ):
+            svc._api_refresh_merge("uid", None)
+
+        mock_enrich.assert_called_once_with(["730"], None)
+
+    def test_api_refresh_merge_no_new_skips_enrich(self, tmp_path: Path) -> None:
+        svc = self._make_service(tmp_path)
+
+        with (
+            patch.object(svc, "_api_refresh", return_value=[]),
+            patch.object(svc, "_enrich_new_games") as mock_enrich,
+        ):
+            svc._api_refresh_merge("uid", None)
+
+        mock_enrich.assert_not_called()

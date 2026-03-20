@@ -252,6 +252,9 @@ class BootstrapService(QObject):
             tr.ensure_loaded()
             self.mw.tag_resolver = tr
 
+        # refresh smart collections with fresh tag data before populating
+        if self.mw.smart_collection_manager:
+            self.mw.smart_collection_manager.refresh()
         self.mw.populate_categories()
         self.mw.set_status(self.mw.game_manager.get_load_source_message())
         self.mw.reload_btn.hide()

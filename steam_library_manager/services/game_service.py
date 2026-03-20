@@ -217,6 +217,7 @@ class GameService:
                 self.game_manager.merge_with_localconfig(self.cloud_storage_parser)
             if self.database:
                 self._save_new(new)
+                self._enrich_new_games(new, cb)
 
     def _finalize(self, mods, types, cb):
         if self.database:
@@ -330,6 +331,73 @@ class GameService:
                 logger.debug("insert %s failed: %s" % (aid, e))
 
         self.database.commit()
+
+    def _enrich_new_games(self, new_ids, cb=None):
+        # fetch tags + metadata for newly discovered games via batch API
+        if not self.api_key or not self.database:
+            return
+
+        if cb:
+            cb("Enriching %d new games..." % len(new_ids), 0, 0)
+
+        try:
+            from steam_library_manager.integrations.steam_web_api import SteamWebAPI
+
+            api = SteamWebAPI(self.api_key)
+            int_ids = [int(aid) for aid in new_ids]
+            details = api.get_app_details_batch(int_ids)
+
+            tag_batch = []
+
+            for aid, det in details.items():
+                str_id = str(aid)
+                game = self.game_manager.games.get(str_id)
+                if not game:
+                    continue
+
+                # apply to in-memory Game object
+                if det.tags:
+                    game.tags = list(det.tags)
+                if det.genres:
+                    game.genres = list(det.genres)
+                if det.developers:
+                    game.developer = ", ".join(det.developers)
+                if det.publishers:
+                    game.publisher = ", ".join(det.publishers)
+                if det.platforms:
+                    game.platforms = list(det.platforms)
+
+                # collect tags for bulk DB insert
+                for tag_id, tag_name in det.tag_ids:
+                    tag_batch.append((aid, tag_id, tag_name))
+
+            # persist tags
+            if tag_batch:
+                self.database.bulk_insert_game_tags_by_id(tag_batch)
+
+            # persist basic metadata
+            for aid, det in details.items():
+                game = self.game_manager.games.get(str(aid))
+                if not game:
+                    continue
+                entry = DatabaseEntry(
+                    app_id=aid,
+                    name=det.name or game.name,
+                    app_type=game.app_type or "",
+                    developer=", ".join(det.developers) if det.developers else "",
+                    publisher=", ".join(det.publishers) if det.publishers else "",
+                )
+                try:
+                    self.database.update_game(entry)
+                except Exception:
+                    pass  # non-fatal
+
+            if details:
+                self.database.commit()
+                logger.info("enriched %d/%d new games" % (len(details), len(new_ids)))
+
+        except Exception as e:
+            logger.warning("auto-enrich failed: %s" % type(e).__name__)
 
     def _repair_placeholders(self):
         # fix "App XXXXX" names

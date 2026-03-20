@@ -63,6 +63,7 @@ class SteamAppDetails:
     original_release_date: int = 0
     genres: tuple[str, ...] = ()
     tags: tuple[str, ...] = ()
+    tag_ids: tuple[tuple[int, str], ...] = ()  # (tagid, name) pairs from API
     platforms: tuple[str, ...] = ()
     languages: tuple[str, ...] = ()
     review_score: int = 0
@@ -330,8 +331,10 @@ class SteamWebAPI(SteamAPIEndpoints):
         # Genres
         genres_list = [g.get("description", "") for g in basic.get("genres", []) if g.get("description")]
 
-        # Tags
-        tags_list = [t.get("name", "") for t in raw.get("tags", []) if t.get("name")]
+        # Tags - names and (tagid, name) pairs
+        raw_tags = raw.get("tags", [])
+        tags_list = [t.get("name", "") for t in raw_tags if t.get("name")]
+        tag_id_pairs = [(int(t["tagid"]), t.get("name", "")) for t in raw_tags if t.get("tagid") and t.get("name")]
 
         # Platforms
         platforms_info = raw.get("platforms", {})
@@ -403,6 +406,7 @@ class SteamWebAPI(SteamAPIEndpoints):
             original_release_date=original_release_date,
             genres=tuple(genres_list),
             tags=tuple(tags_list),
+            tag_ids=tuple(tag_id_pairs),
             platforms=tuple(platforms_list),
             languages=tuple(languages_list),
             review_score=review_score,
