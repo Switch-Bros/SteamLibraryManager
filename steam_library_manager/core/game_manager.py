@@ -149,7 +149,7 @@ class GameManager:
             return False
 
     def _load_api(self, steam_uid):
-        # fetch from steam web api
+        # fetch from steam web api (oauth first, api key fallback)
         from steam_library_manager.config import config
 
         token = getattr(config, "STEAM_ACCESS_TOKEN", None)
@@ -158,61 +158,68 @@ class GameManager:
             logger.info(t("logs.manager.no_api_key"))
             return False
 
-        try:
-            url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
+        url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
+        base_params = {
+            "steamid": steam_uid,
+            "include_appinfo": 1,
+            "include_played_free_games": 1,
+            "include_free_sub": 1,
+            "skip_unvetted_apps": 0,
+            "format": "json",
+        }
 
-            if token:
-                logger.info(t("logs.manager.using_oauth"))
-                params = {
-                    "access_token": token,
-                    "steamid": steam_uid,
-                    "include_appinfo": 1,
-                    "include_played_free_games": 1,
-                    "include_free_sub": 1,
-                    "skip_unvetted_apps": 0,
-                    "format": "json",
-                }
+        # try oauth first, then api key fallback
+        attempts = []
+        if token:
+            attempts.append(("oauth", {"access_token": token}))
+        if self.api_key:
+            attempts.append(("api_key", {"key": self.api_key}))
+
+        for method, auth_params in attempts:
+            try:
+                if method == "oauth":
+                    logger.info(t("logs.manager.using_oauth"))
+                else:
+                    logger.info(t("logs.manager.using_api_key"))
+
+                params = {**base_params, **auth_params}
                 resp = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
-            else:
-                logger.info(t("logs.manager.using_api_key"))
-                params = {
-                    "key": self.api_key,
-                    "steamid": steam_uid,
-                    "include_appinfo": 1,
-                    "include_played_free_games": 1,
-                    "include_free_sub": 1,
-                    "skip_unvetted_apps": 0,
-                    "format": "json",
-                }
-                resp = requests.get(url, params=params, timeout=HTTP_TIMEOUT)
+                resp.raise_for_status()
+                data = resp.json()
 
-            resp.raise_for_status()
-            data = resp.json()
+                if "response" not in data or "games" not in data["response"]:
+                    if method == "oauth" and self.api_key:
+                        logger.info("OAuth returned empty, trying API key")
+                        continue
+                    logger.warning(t("logs.manager.error_api", error="No games in response"))
+                    return False
 
-            if "response" not in data or "games" not in data["response"]:
-                logger.warning(t("logs.manager.error_api", error="No games in response"))
+                games_list = data["response"]["games"]
+                logger.info(t("logs.manager.loaded_api", count=len(games_list)))
+
+                for gd in games_list:
+                    aid = str(gd["appid"])
+                    name = gd.get("name") or t("ui.game_details.game_fallback", id=aid)
+                    game = Game(app_id=aid, name=name, playtime_minutes=gd.get("playtime_forever", 0))
+                    self.games[aid] = game
+
+                return True
+
+            except (requests.RequestException, ValueError, KeyError) as e:
+                if isinstance(e, requests.HTTPError) and e.response is not None:
+                    safe_msg = "HTTP %d" % e.response.status_code
+                else:
+                    safe_msg = type(e).__name__
+                logger.error(t("logs.manager.error_api", error=safe_msg))
+
+                # oauth 401? try api key next
+                if method == "oauth" and self.api_key:
+                    logger.info("OAuth failed, trying API key fallback")
+                    continue
+
                 return False
 
-            games_list = data["response"]["games"]
-            logger.info(t("logs.manager.loaded_api", count=len(games_list)))
-
-            for gd in games_list:
-                aid = str(gd["appid"])
-                name = gd.get("name") or t("ui.game_details.game_fallback", id=aid)
-
-                game = Game(app_id=aid, name=name, playtime_minutes=gd.get("playtime_forever", 0))
-                self.games[aid] = game
-
-            return True
-
-        except (requests.RequestException, ValueError, KeyError) as e:
-            # NEVER leak api key, nowehere
-            if isinstance(e, requests.HTTPError) and e.response is not None:
-                safe_msg = "HTTP %d" % e.response.status_code
-            else:
-                safe_msg = type(e).__name__
-            logger.error(t("logs.manager.error_api", error=safe_msg))
-            return False
+        return False
 
     # wrapper for enrich service
     def merge_with_localconfig(self, parser):

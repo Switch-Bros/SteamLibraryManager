@@ -56,8 +56,11 @@ class TestBootstrapServiceSignals:
 
         assert "complete" in signals
 
-    def test_start_launches_workers_on_init_success(self, make_bootstrap_service):
-        """start() should launch both workers if _init succeeds."""
+    def test_start_launches_session_not_games(self, make_bootstrap_service):
+        """start() should launch session restore but NOT games directly.
+
+        Games are launched later from _on_sess() after the token is ready.
+        """
         service = make_bootstrap_service()
 
         with (
@@ -68,7 +71,7 @@ class TestBootstrapServiceSignals:
             service.start()
 
         mock_session.assert_called_once()
-        mock_game.assert_called_once()
+        mock_game.assert_not_called()
 
 
 class TestBootstrapServiceCheckComplete:
@@ -115,7 +118,7 @@ class TestBootstrapServiceSessionRestore:
     """Tests for session restore signal handling."""
 
     def test_on_sess_success(self, make_bootstrap_service):
-        """Successful session restore should update mw state and emit signals."""
+        """Successful session restore should update mw state, emit signals, and launch games."""
         mw = MagicMock()
         mw.steam_username = None
         service = make_bootstrap_service(mw)
@@ -131,11 +134,10 @@ class TestBootstrapServiceSessionRestore:
         result.steam_id = "76561198000000000"
         result.persona_name = "TestPlayer"
 
-        service._games_done = True  # So _check_done doesn't block
-
         with (
             patch("steam_library_manager.services.bootstrap_service.config"),
             patch("steam_library_manager.services.bootstrap_service.t", side_effect=lambda k, **kw: k),
+            patch.object(service, "_launch_games") as mock_games,
         ):
             service._on_sess(result)
 
@@ -145,9 +147,10 @@ class TestBootstrapServiceSessionRestore:
         assert mw.steam_username == "TestPlayer"
         assert ("session", True) in signals
         assert ("persona", "TestPlayer") in signals
+        mock_games.assert_called_once()
 
     def test_on_sess_failure(self, make_bootstrap_service):
-        """Failed session restore should emit session_restored(False)."""
+        """Failed session restore should emit session_restored(False) and still launch games."""
         service = make_bootstrap_service()
 
         signals = []
@@ -155,13 +158,56 @@ class TestBootstrapServiceSessionRestore:
 
         result = MagicMock()
         result.success = False
-        service._games_done = True
 
-        with patch("steam_library_manager.services.bootstrap_service.t", side_effect=lambda k, **kw: k):
+        with (
+            patch("steam_library_manager.services.bootstrap_service.t", side_effect=lambda k, **kw: k),
+            patch.object(service, "_launch_games") as mock_games,
+        ):
             service._on_sess(result)
 
         assert service._sess_done is True
         assert False in signals
+        mock_games.assert_called_once()
+
+    def test_on_sess_timeout_launches_games(self, make_bootstrap_service):
+        """Timeout should set _sess_done, emit False, and launch games."""
+        service = make_bootstrap_service()
+
+        signals = []
+        service.session_restored.connect(lambda ok: signals.append(ok))
+
+        with patch.object(service, "_launch_games") as mock_games:
+            service._on_sess_timeout()
+
+        assert service._sess_done is True
+        assert False in signals
+        mock_games.assert_called_once()
+
+    def test_timeout_skipped_if_session_already_done(self, make_bootstrap_service):
+        """Timeout handler should be a no-op if session already completed."""
+        service = make_bootstrap_service()
+        service._sess_done = True
+
+        with patch.object(service, "_launch_games") as mock_games:
+            service._on_sess_timeout()
+
+        mock_games.assert_not_called()
+
+    def test_on_sess_stops_timer(self, make_bootstrap_service):
+        """_on_sess should stop the safety timer."""
+        service = make_bootstrap_service()
+        service._sess_timer = MagicMock()
+
+        result = MagicMock()
+        result.success = False
+
+        with (
+            patch("steam_library_manager.services.bootstrap_service.t", side_effect=lambda k, **kw: k),
+            patch.object(service, "_launch_games"),
+        ):
+            service._on_sess(result)
+
+        service._sess_timer.stop.assert_called_once()
 
 
 class TestBootstrapServiceGamesLoaded:

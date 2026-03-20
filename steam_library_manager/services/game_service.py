@@ -232,7 +232,7 @@ class GameService:
             self.game_manager.apply_metadata_overrides(self.appinfo_manager)
 
     def _api_refresh(self, uid):
-        # fetch from steam API
+        # fetch from steam API (oauth first, api key fallback)
         if not self.game_manager:
             return []
 
@@ -244,70 +244,71 @@ class GameService:
             logger.debug("no API creds - skip")
             return []
 
-        try:
-            url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
+        url = "https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/"
+        base_params = {
+            "steamid": uid,
+            "include_appinfo": 1,
+            "include_played_free_games": 1,
+            "include_free_sub": 1,
+            "skip_unvetted_apps": 0,
+            "format": "json",
+        }
 
-            if tok:
-                params = {
-                    "access_token": tok,
-                    "steamid": uid,
-                    "include_appinfo": 1,
-                    "include_played_free_games": 1,
-                    "include_free_sub": 1,
-                    "skip_unvetted_apps": 0,
-                    "format": "json",
-                }
-            else:
-                params = {
-                    "key": self.api_key,
-                    "steamid": uid,
-                    "include_appinfo": 1,
-                    "include_played_free_games": 1,
-                    "include_free_sub": 1,
-                    "skip_unvetted_apps": 0,
-                    "format": "json",
-                }
+        attempts = []
+        if tok:
+            attempts.append(("oauth", {"access_token": tok}))
+        if self.api_key:
+            attempts.append(("api_key", {"key": self.api_key}))
 
-            resp = requests.get(url, params=params, timeout=HTTP_TIMEOUT_LONG)
-            resp.raise_for_status()
-            data = resp.json()
+        for method, auth_params in attempts:
+            try:
+                params = {**base_params, **auth_params}
+                resp = requests.get(url, params=params, timeout=HTTP_TIMEOUT_LONG)
+                resp.raise_for_status()
+                data = resp.json()
 
-            glist = data.get("response", {}).get("games", [])
-            if not glist:
+                glist = data.get("response", {}).get("games", [])
+                if not glist:
+                    if method == "oauth" and self.api_key:
+                        logger.info("OAuth returned empty, trying API key")
+                        continue
+                    return []
+
+                new_ids = []
+                for gd in glist:
+                    aid = str(gd["appid"])
+                    if aid not in self.game_manager.games:
+                        nm = gd.get("name") or t("ui.game_details.game_fallback", id=aid)
+                        pt = gd.get("playtime_forever", 0)
+                        game = Game(
+                            app_id=aid,
+                            name=nm,
+                            playtime_minutes=pt,
+                            app_type="game",
+                        )
+                        self.game_manager.games[aid] = game
+                        new_ids.append(aid)
+                        logger.debug("found %s (%s)" % (aid, nm))
+
+                if new_ids:
+                    logger.info("refresh: %d new games" % len(new_ids))
+                return new_ids
+
+            except Exception as e:
+                if isinstance(e, requests.HTTPError) and e.response is not None:
+                    msg = "HTTP %d" % e.response.status_code
+                else:
+                    msg = type(e).__name__
+
+                # oauth failed? try api key next
+                if method == "oauth" and self.api_key:
+                    logger.info("OAuth refresh failed (%s), trying API key" % msg)
+                    continue
+
+                logger.warning("API refresh failed: %s" % msg)
                 return []
 
-            new_ids = []
-
-            for gd in glist:
-                aid = str(gd["appid"])
-
-                if aid not in self.game_manager.games:
-                    nm = gd.get("name") or t("ui.game_details.game_fallback", id=aid)
-                    pt = gd.get("playtime_forever", 0)
-
-                    game = Game(
-                        app_id=aid,
-                        name=nm,
-                        playtime_minutes=pt,
-                        app_type="game",
-                    )
-                    self.game_manager.games[aid] = game
-                    new_ids.append(aid)
-                    logger.debug("found %s (%s)" % (aid, nm))
-
-            if new_ids:
-                logger.info("refresh: %d new games" % len(new_ids))
-
-            return new_ids
-
-        except Exception as e:
-            # hide token from logs
-            if isinstance(e, requests.HTTPError) and e.response is not None:
-                msg = "HTTP %d" % e.response.status_code
-            else:
-                msg = type(e).__name__
-            logger.warning("API refresh failed: %s" % msg)
-            return []
+        return []
 
     def _save_new(self, new_ids):
         # persist to db

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 
 from steam_library_manager.config import config
 from steam_library_manager.utils.i18n import t
@@ -53,9 +53,8 @@ class BootstrapService(QObject):
             self.bootstrap_complete.emit()
             return
 
-        # fire both workers at the same time
+        # session restore first, games load after token is ready
         self._launch_sess()
-        self._launch_games()
 
     def _init(self):
         # validate steam paths, create game service, init parsers
@@ -132,6 +131,12 @@ class BootstrapService(QObject):
         self._sess_w.session_restored.connect(self._on_sess)
         self._sess_w.start()
 
+        # safety net: if session restore hangs, load games anyway after 15s
+        self._sess_timer = QTimer(self)
+        self._sess_timer.setSingleShot(True)
+        self._sess_timer.timeout.connect(self._on_sess_timeout)
+        self._sess_timer.start(15000)
+
     def _launch_games(self):
         from steam_library_manager.ui.workers.game_load_worker import GameLoadWorker
 
@@ -140,10 +145,22 @@ class BootstrapService(QObject):
         self._game_w.finished.connect(self._on_games)
         self._game_w.start()
 
+    def _on_sess_timeout(self):
+        if not self._sess_done:
+            logger.warning("session restore timed out after 15s - loading games without API")
+            self._sess_done = True
+            self.session_restored.emit(False)
+            self._launch_games()
+
     def _on_sess(self, res):
+        # stop safety timer
+        if hasattr(self, "_sess_timer"):
+            self._sess_timer.stop()
+
         self._sess_done = True
 
         if res.success:
+            # update token BEFORE game loading starts
             self.mw.access_token = res.access_token
             self.mw.refresh_token = res.refresh_token
             self.mw.session = None
@@ -158,13 +175,16 @@ class BootstrapService(QObject):
             elif res.steam_id:
                 self.persona_resolved.emit(res.steam_id)
 
+            logger.info("session restored, token valid - starting game load")
             self.mw.set_status(t("steam.login.session_restored"))
             self.session_restored.emit(True)
         else:
+            logger.info("session restore failed - loading games without API")
             self.mw.set_status(t("steam.login.token_expired"))
             self.session_restored.emit(False)
 
-        self._check_done()
+        # NOW load games - with fresh (or no) token
+        self._launch_games()
 
     def _on_prog(self, step, cur, tot):
         self.load_progress.emit(step, cur, tot)
