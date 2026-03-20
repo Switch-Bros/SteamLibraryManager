@@ -141,6 +141,53 @@ class SmartCollectionManager:
         row = self.database.get_smart_collection_by_name(name)
         return self._hydrate_row(row) if row else None
 
+    def exclude_game(self, collection_id: int, app_id: int) -> None:
+        """Exclude a game from a smart collection (survives re-evaluation)."""
+        row = self.database.get_smart_collection(collection_id)
+        if not row:
+            return
+
+        sc = self._hydrate_row(row)
+        sc.excluded_app_ids.add(app_id)
+
+        rules_json = collection_to_json(sc)
+        self.database.update_smart_collection(
+            collection_id=sc.collection_id,
+            name=sc.name,
+            description=sc.description,
+            icon=sc.icon,
+            rules_json=rules_json,
+        )
+        self.database.commit()
+
+        # remove from Steam category if synced
+        if sc.auto_sync and self.category_service:
+            self.category_service.remove_app_from_category(str(app_id), sc.name)
+
+        logger.info("excluded app %d from '%s'", app_id, sc.name)
+        self._save_sidecar()
+
+    def include_game(self, collection_id: int, app_id: int) -> None:
+        """Remove a game from the exclude list of a smart collection."""
+        row = self.database.get_smart_collection(collection_id)
+        if not row:
+            return
+
+        sc = self._hydrate_row(row)
+        sc.excluded_app_ids.discard(app_id)
+
+        rules_json = collection_to_json(sc)
+        self.database.update_smart_collection(
+            collection_id=sc.collection_id,
+            name=sc.name,
+            description=sc.description,
+            icon=sc.icon,
+            rules_json=rules_json,
+        )
+        self.database.commit()
+        logger.info("un-excluded app %d from '%s'", app_id, sc.name)
+        self._save_sidecar()
+
     # Evaluation
 
     def evaluate_collection(self, collection: SmartCollection) -> list[Game]:

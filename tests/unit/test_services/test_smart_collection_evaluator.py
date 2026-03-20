@@ -658,6 +658,20 @@ class TestBatchAndEdgeCases:
         collection = SmartCollection(rules=[rule])
         assert evaluator.evaluate(game_lego, collection) is False
 
+    def test_evaluate_batch_skips_excluded(self, evaluator: SmartCollectionEvaluator, game_lego: Game) -> None:
+        """Excluded games should not appear in evaluate_batch results."""
+        rule = SmartCollectionRule(FilterField.TAG, Operator.CONTAINS, "LEGO")
+        collection = SmartCollection(rules=[rule], excluded_app_ids={int(game_lego.app_id)})
+        result = evaluator.evaluate_batch([game_lego], collection)
+        assert game_lego not in result
+
+    def test_evaluate_batch_includes_non_excluded(self, evaluator: SmartCollectionEvaluator, game_lego: Game) -> None:
+        """Non-excluded games that match rules should appear in results."""
+        rule = SmartCollectionRule(FilterField.TAG, Operator.CONTAINS, "LEGO")
+        collection = SmartCollection(rules=[rule], excluded_app_ids={99999})  # different ID
+        result = evaluator.evaluate_batch([game_lego], collection)
+        assert game_lego in result
+
 
 # ========================================================================
 # TESTS: EVALUATOR — TAG ID MATCHING

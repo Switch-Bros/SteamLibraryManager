@@ -254,6 +254,7 @@ class SmartCollection:
     auto_sync: bool = True
     last_evaluated: int = 0
     created_at: int = 0
+    excluded_app_ids: set[int] = field(default_factory=set)
 
 
 # Serialization helpers
@@ -325,6 +326,9 @@ def collection_to_json(collection: SmartCollection) -> str:
     else:
         payload["rules"] = [rule_to_dict(r) for r in collection.rules]
 
+    if collection.excluded_app_ids:
+        payload["excluded"] = sorted(collection.excluded_app_ids)
+
     return json.dumps(payload, ensure_ascii=False)
 
 
@@ -370,6 +374,11 @@ def collection_from_json(rules_json: str, collection: SmartCollection | None = N
         collection.groups = []
 
     collection.last_evaluated = data.get("last_evaluated", collection.last_evaluated)
+
+    # load exclude list (backward compatible - missing key = empty set)
+    excluded = data.get("excluded", [])
+    collection.excluded_app_ids = set(int(x) for x in excluded)
+
     return collection
 
 

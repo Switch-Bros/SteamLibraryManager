@@ -207,4 +207,5 @@ class SmartCollectionEvaluator:
 
     def evaluate_batch(self, games: list[Game], col: SmartCollection) -> list[Game]:
         # filter game list down to those matching collection
-        return [g for g in games if self.evaluate(g, col)]
+        excluded = col.excluded_app_ids
+        return [g for g in games if int(g.app_id) not in excluded and self.evaluate(g, col)]

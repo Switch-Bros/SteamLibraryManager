@@ -39,8 +39,15 @@ class CategoryChangeHandler:
             else:
                 if category in g.categories:
                     g.categories.remove(category)
-                    self.mw.category_service.remove_app_from_category(g.app_id, category)
-                    self.empty_handler.check_and_delete_if_empty(category)
+
+                    # smart collection? -> exclude instead of plain remove
+                    sc_mgr = getattr(self.mw, "smart_collection_manager", None)
+                    sc = sc_mgr.get_by_name(category) if sc_mgr else None
+                    if sc:
+                        sc_mgr.exclude_game(sc.collection_id, int(g.app_id))
+                    else:
+                        self.mw.category_service.remove_app_from_category(g.app_id, category)
+                        self.empty_handler.check_and_delete_if_empty(category)
 
     def on_category_changed_from_details(self, app_id, category, checked):
         # checkbox toggle from details widget

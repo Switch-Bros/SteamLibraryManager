@@ -405,3 +405,39 @@ class TestRefresh:
         """Tests refresh with no collections returns empty dict."""
         result = manager.refresh()
         assert result == {}
+
+
+class TestExcludeList:
+    """Tests for Smart Collection exclude list."""
+
+    def test_excluded_app_ids_default_empty(self) -> None:
+        sc = SmartCollection()
+        assert sc.excluded_app_ids == set()
+
+    def test_collection_to_json_includes_excluded(self) -> None:
+        from steam_library_manager.services.smart_collections.models import collection_to_json
+        import json
+
+        sc = SmartCollection(excluded_app_ids={456, 123})
+        result = json.loads(collection_to_json(sc))
+        assert result["excluded"] == [123, 456]  # sorted
+
+    def test_collection_from_json_loads_excluded(self) -> None:
+        from steam_library_manager.services.smart_collections.models import collection_from_json
+
+        sc = collection_from_json('{"logic": "OR", "rules": [], "excluded": [123, 456]}')
+        assert sc.excluded_app_ids == {123, 456}
+
+    def test_collection_from_json_no_excluded_backward_compat(self) -> None:
+        from steam_library_manager.services.smart_collections.models import collection_from_json
+
+        sc = collection_from_json('{"logic": "OR", "rules": []}')
+        assert sc.excluded_app_ids == set()
+
+    def test_collection_to_json_no_excluded_key_when_empty(self) -> None:
+        from steam_library_manager.services.smart_collections.models import collection_to_json
+        import json
+
+        sc = SmartCollection()
+        result = json.loads(collection_to_json(sc))
+        assert "excluded" not in result
