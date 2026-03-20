@@ -76,7 +76,7 @@ class CategoryPopulator:
             return
 
         # apply filters
-        raw = mw.game_manager.get_real_games()
+        raw = mw.game_manager.get_library_entries()
         filt = mw.filter_service.apply(raw)
         fids = {g.app_id for g in filt}
 

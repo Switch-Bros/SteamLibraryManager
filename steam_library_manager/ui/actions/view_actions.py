@@ -88,7 +88,7 @@ class ViewActions:
             return
 
         # filter then search
-        gs = self.mw.game_manager.get_real_games()
+        gs = self.mw.game_manager.get_library_entries()
         filt = self.mw.filter_service.apply(gs)
         res = self.mw.search_service.filter_games(filt, q)
 

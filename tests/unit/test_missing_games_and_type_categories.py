@@ -438,8 +438,11 @@ class TestUncategorizedOnlyGames:
         manager.games["3"] = Game(app_id="3", name="App", app_type="application")
         manager.games["4"] = Game(app_id="4", name="Movie", app_type="video")
 
+        # music, tool, video are excluded from uncategorized (own type filters)
+        # application (software) stays in uncategorized
         uncategorized = manager.get_uncategorized_games()
-        assert len(uncategorized) == 0
+        assert len(uncategorized) == 1
+        assert uncategorized[0].app_type == "application"
 
     def test_dlc_is_not_uncategorized(self, tmp_path):
         """Test that DLC is excluded from uncategorized."""

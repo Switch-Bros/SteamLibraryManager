@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 
-from steam_library_manager.core.game import is_real_game
+from steam_library_manager.core.game import is_library_entry, is_real_game
 from steam_library_manager.utils.i18n import t
 
 logger = logging.getLogger("steamlibmgr.game_query")
@@ -65,10 +65,10 @@ class GameQueryService:
         res = []
         vals = self._g.values()
         for x in vals:
-            at = x.app_type
-            if at and at.lower() != "game":
+            if not is_library_entry(x):
                 continue
-            if not is_real_game(x):
+            # these types have their own type filter in the menu, skip from uncategorized
+            if x.app_type and x.app_type.lower() in ("music", "video", "tool"):
                 continue
             # filter cats old style
             rl = []

@@ -284,7 +284,7 @@ class GameService:
                             app_id=aid,
                             name=nm,
                             playtime_minutes=pt,
-                            app_type="game",
+                            app_type="",
                         )
                         self.game_manager.games[aid] = game
                         new_ids.append(aid)
@@ -420,7 +420,7 @@ class GameService:
                         app_id=aid,
                         name=pg.name,
                         playtime_minutes=pg.playtime_forever,
-                        app_type="game",
+                        app_type="",
                     )
                     self.game_manager.games[aid] = game
                     new.append(aid)

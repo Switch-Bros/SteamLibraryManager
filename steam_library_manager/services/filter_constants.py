@@ -44,7 +44,7 @@ class SortKey(Enum):
 ALL_SORT_KEYS: frozenset[str] = frozenset({"name", "playtime", "last_played", "release_date"})
 
 # All known type keys with their matching app_type values
-ALL_TYPE_KEYS: frozenset[str] = frozenset({"games", "soundtracks", "software", "videos", "dlcs", "tools"})
+ALL_TYPE_KEYS: frozenset[str] = frozenset({"games", "soundtracks", "software", "videos", "tools"})
 
 # All known platform keys
 ALL_PLATFORM_KEYS: frozenset[str] = frozenset({"linux", "windows", "steamos"})
@@ -88,6 +88,5 @@ TYPE_APP_TYPE_MAP: dict[str, frozenset[str]] = {
     "soundtracks": frozenset({"music"}),
     "software": frozenset({"application"}),
     "videos": frozenset({"video"}),
-    "dlcs": frozenset({"dlc"}),
     "tools": frozenset({"tool"}),
 }

@@ -280,7 +280,7 @@ class SmartCollectionDialog(QDialog):
             return
 
         matching = self._smart_manager.evaluator.evaluate_batch(
-            self._game_manager.get_real_games(),
+            self._game_manager.get_library_entries(),
             coll,
         )
 

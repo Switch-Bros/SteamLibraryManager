@@ -20,6 +20,7 @@ __all__ = [
     "NON_GAME_APP_IDS",
     "NON_GAME_APP_TYPES",
     "NON_GAME_NAME_PATTERNS",
+    "is_library_entry",
     "is_real_game",
 ]
 
@@ -184,9 +185,37 @@ NON_GAME_NAME_PATTERNS: tuple[str, ...] = (
 
 NON_GAME_APP_TYPES: frozenset[str] = frozenset({"music", "tool", "application", "video", "dlc", "demo", "config"})
 
+# app types that should never appear in the sidebar/game list
+_JUNK_APP_TYPES: frozenset[str] = frozenset({"dlc", "demo", "config"})
+
+
 # Ghost entries from appinfo.vdf or cloud storage that have no real name
 # Catches: "App 12345", "Unknown App 12345", "Unbekannte App 12345", etc.
 _GHOST_NAME_RE: re.Pattern[str] = re.compile(r"^(?:App|Unknown App|Unbekannte App) \d+$")
+
+
+def is_library_entry(game: Game) -> bool:
+    """True if this entry should show up in the library sidebar.
+
+    Excludes ghost entries, Proton/Runtime, DLCs, demos, configs.
+    Includes games, software, tools, soundtracks, videos.
+    """
+    if _GHOST_NAME_RE.match(game.name):
+        return False
+
+    if game.app_id in NON_GAME_APP_IDS:
+        return False
+
+    if game.app_type and game.app_type.lower() in _JUNK_APP_TYPES:
+        return False
+
+    # name heuristic for Proton/Runtime without app_type
+    name_lower = game.name.lower()
+    for pattern in NON_GAME_NAME_PATTERNS:
+        if pattern.lower() in name_lower:
+            return False
+
+    return True
 
 
 def is_real_game(game: Game) -> bool:

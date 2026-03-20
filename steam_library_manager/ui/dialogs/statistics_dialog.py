@@ -35,7 +35,7 @@ class StatisticsDialog(QDialog):
         self.setMinimumSize(600, 500)
 
         gm = parent.game_manager
-        self._games = gm.get_real_games() if gm else []
+        self._games = gm.get_library_entries() if gm else []
 
         lay = QVBoxLayout(self)
         tabs = QTabWidget()

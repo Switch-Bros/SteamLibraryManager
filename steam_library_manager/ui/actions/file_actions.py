@@ -266,7 +266,7 @@ class FileActions:
         if not self.win.game_manager:
             UIHelper.show_warning(self.win, t("ui.export.no_games"))
             return []
-        games = self.win.game_manager.get_real_games()
+        games = self.win.game_manager.get_library_entries()
         if not games:
             UIHelper.show_warning(self.win, t("ui.export.no_games"))
             return []

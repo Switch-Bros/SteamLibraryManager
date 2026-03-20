@@ -126,7 +126,7 @@ class EditActions:
 
         # Determine scope
         if settings["scope"] == "all":
-            actual_games = self.mw.game_manager.get_real_games()
+            actual_games = self.mw.game_manager.get_library_entries()
         else:
             actual_games = self.dialog_games
 
@@ -188,7 +188,7 @@ class EditActions:
         if not settings or not parser or not self.mw.autocategorize_service:
             return
 
-        games = self.mw.game_manager.get_real_games() if settings["scope"] == "all" else self.dialog_games
+        games = self.mw.game_manager.get_library_entries() if settings["scope"] == "all" else self.dialog_games
         methods = settings["methods"]
 
         progress = UIHelper.create_progress_dialog(

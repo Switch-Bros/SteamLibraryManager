@@ -2,7 +2,13 @@
 
 """Tests for the Game dataclass and filtering utilities."""
 
-from steam_library_manager.core.game import Game, NON_GAME_APP_IDS, NON_GAME_NAME_PATTERNS, is_real_game
+from steam_library_manager.core.game import (
+    Game,
+    NON_GAME_APP_IDS,
+    NON_GAME_NAME_PATTERNS,
+    is_library_entry,
+    is_real_game,
+)
 
 
 class TestGameDataclass:
@@ -99,3 +105,37 @@ class TestIsRealGame:
         """Test that Steamworks Common is filtered by ID."""
         game = Game(app_id="228980", name="Steamworks Common Redistributables")
         assert is_real_game(game) is False
+
+
+class TestIsLibraryEntry:
+    """Tests for is_library_entry() - visible library entries."""
+
+    def test_game_is_library_entry(self):
+        assert is_library_entry(Game(app_id="440", name="TF2", app_type="game")) is True
+
+    def test_tool_is_library_entry(self):
+        assert is_library_entry(Game(app_id="1", name="SDK", app_type="tool")) is True
+
+    def test_application_is_library_entry(self):
+        assert is_library_entry(Game(app_id="2", name="RPG Maker", app_type="application")) is True
+
+    def test_music_is_library_entry(self):
+        assert is_library_entry(Game(app_id="3", name="OST", app_type="music")) is True
+
+    def test_video_is_library_entry(self):
+        assert is_library_entry(Game(app_id="4", name="Movie", app_type="video")) is True
+
+    def test_dlc_not_library_entry(self):
+        assert is_library_entry(Game(app_id="5", name="DLC Pack", app_type="dlc")) is False
+
+    def test_demo_not_library_entry(self):
+        assert is_library_entry(Game(app_id="6", name="Demo", app_type="demo")) is False
+
+    def test_config_not_library_entry(self):
+        assert is_library_entry(Game(app_id="7", name="Config", app_type="config")) is False
+
+    def test_proton_not_library_entry(self):
+        assert is_library_entry(Game(app_id="999", name="Proton 9.0")) is False
+
+    def test_ghost_not_library_entry(self):
+        assert is_library_entry(Game(app_id="999", name="App 12345")) is False

@@ -381,6 +381,12 @@ class GameManager:
     def get_real_games(self):
         return self.query_svc.get_real_games()
 
+    def get_library_entries(self):
+        """All visible library entries (games + software + tools + soundtracks + videos)."""
+        from steam_library_manager.core.game import is_library_entry
+
+        return [g for g in self.games.values() if is_library_entry(g)]
+
     def get_all_games(self):
         return self.query_svc.get_all_games()
 

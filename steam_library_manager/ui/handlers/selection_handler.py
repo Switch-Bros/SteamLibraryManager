@@ -24,6 +24,7 @@ class SelectionHandler:
     def __init__(self, mw):
         self.mw = mw
         self._fetch = None  # current thread
+        self._old_fetches = []  # keep old threads alive until they finish
 
     def on_games_selected(self, gs):
         # multi-selection changed
@@ -72,9 +73,12 @@ class SelectionHandler:
                 if not self.dead:
                     self.done.emit(ok)
 
-        # kill old fetch
+        # mark old fetch as stale so its result is ignored
         if self._fetch and self._fetch.isRunning():
             self._fetch.dead = True  # type: ignore[attr-defined]
+            # prevent GC crash: park the old thread until it finishes
+            self._old_fetches.append(self._fetch)
+            self._fetch.finished.connect(lambda t=self._fetch: self._cleanup_fetch(t))
 
         thr = _Fetcher(self.mw.game_manager, aid)
 
@@ -87,6 +91,11 @@ class SelectionHandler:
         thr.done.connect(_on_done)
         self._fetch = thr
         thr.start()
+
+    def _cleanup_fetch(self, thr):
+        # remove finished thread from parking list
+        if thr in self._old_fetches:
+            self._old_fetches.remove(thr)
 
     def restore_game_selection(self, ids):
         # re-select after tree refresh

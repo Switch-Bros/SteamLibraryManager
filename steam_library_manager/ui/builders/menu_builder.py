@@ -269,9 +269,7 @@ class MenuBuilder:
         m.addSeparator()
 
         # filter submenus
-        self._add_filters(
-            m, "menu.view.type", ("games", "soundtracks", "software", "videos", "dlcs", "tools"), checked=True
-        )
+        self._add_filters(m, "menu.view.type", ("games", "soundtracks", "software", "videos", "tools"), checked=True)
         self._add_filters(m, "menu.view.platform", ("linux", "windows", "steamos"), checked=True)
         self._add_filters(m, "menu.view.status", ("installed", "not_installed", "hidden", "with_playtime", "favorites"))
         self._add_filters(

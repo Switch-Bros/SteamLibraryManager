@@ -113,11 +113,30 @@ class TestVerifyB4UncategorizedCount:
         svc = GameQueryService(games, filter_non_games=False)
         assert len(svc.get_uncategorized_games()) == 1
 
-    def test_non_game_types_excluded_from_uncategorized(self) -> None:
-        """Non-game types (music, tool, etc.) are never in uncategorized."""
+    def test_non_game_types_in_uncategorized(self) -> None:
+        """Music/video/tool are excluded from uncategorized (own type filters).
+        Software (application) stays in uncategorized.
+        """
         games = {
             "1": _make_game("1", app_type="music"),
             "2": _make_game("2", app_type="tool"),
+            "3": _make_game("3", app_type="application"),
+            "4": _make_game("4", app_type="video"),
+        }
+        svc = GameQueryService(games, filter_non_games=False)
+        uncategorized = svc.get_uncategorized_games()
+        ids = {g.app_id for g in uncategorized}
+        assert "1" not in ids  # music -> own filter
+        assert "2" not in ids  # tool -> own filter
+        assert "3" in ids  # application stays
+        assert "4" not in ids  # video -> own filter
+
+    def test_junk_types_excluded_from_uncategorized(self) -> None:
+        """DLCs, demos, configs are junk types and never in uncategorized."""
+        games = {
+            "1": _make_game("1", app_type="dlc"),
+            "2": _make_game("2", app_type="demo"),
+            "3": _make_game("3", app_type="config"),
         }
         svc = GameQueryService(games, filter_non_games=False)
         assert len(svc.get_uncategorized_games()) == 0
@@ -139,7 +158,8 @@ class TestVerifyB4UncategorizedCount:
             "3": _make_game("3"),  # no cats → uncategorized
             "4": _make_game("4", categories=["hidden"]),  # system → uncategorized
             "5": _make_game("5", categories=["RPG", "Favoriten"]),  # real → NOT
-            "6": _make_game("6", app_type="music"),  # non-game → excluded
+            "6": _make_game("6", app_type="music"),  # music excluded from uncategorized
+            "7": _make_game("7", app_type="dlc"),  # junk type -> excluded
         }
         svc = GameQueryService(games, filter_non_games=False)
         uncategorized = svc.get_uncategorized_games()
@@ -149,4 +169,5 @@ class TestVerifyB4UncategorizedCount:
         assert "3" in uncategorized_ids  # no categories
         assert "4" in uncategorized_ids  # only hidden (system)
         assert "5" not in uncategorized_ids  # has RPG (real)
-        assert "6" not in uncategorized_ids  # non-game type excluded
+        assert "6" not in uncategorized_ids  # music excluded from uncategorized
+        assert "7" not in uncategorized_ids  # DLC is junk type
