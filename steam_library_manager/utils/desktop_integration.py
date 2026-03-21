@@ -2,9 +2,10 @@
 # steam_library_manager/utils/desktop_integration.py
 # Linux desktop integration: .desktop file creation and XDG helpers
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+# TODO: Wayland support?
 
 from __future__ import annotations
 
@@ -46,64 +47,38 @@ StartupWMClass=io.github.switch_bros.SteamLibraryManager
 
 
 def _apps_dir() -> Path:
-    """Return the user applications directory."""
     return Path.home() / ".local" / "share" / "applications"
 
 
 def _icons_dir() -> Path:
-    """Return the user scalable icons directory."""
     return Path.home() / ".local" / "share" / "icons" / "hicolor" / "scalable" / "apps"
 
 
 def _desktop_file_path() -> Path:
-    """Return the full path of the installed .desktop file."""
-    return _apps_dir() / f"{DESKTOP_ID}.desktop"
+    return _apps_dir() / ("%s.desktop" % DESKTOP_ID)
 
 
 def _icon_file_path() -> Path:
-    """Return the full path of the installed icon."""
-    return _icons_dir() / f"{DESKTOP_ID}.svg"
+    return _icons_dir() / ("%s.svg" % DESKTOP_ID)
 
 
 def is_appimage() -> bool:
-    """Check if the app is running as an AppImage.
-
-    Returns:
-        True if the $APPIMAGE environment variable is set.
-    """
     return bool(os.environ.get("APPIMAGE"))
 
 
 def get_appimage_path() -> Path | None:
-    """Return the absolute path of the running AppImage.
-
-    Returns:
-        Path to the AppImage file, or None if not running as AppImage.
-    """
-    path = os.environ.get("APPIMAGE")
-    return Path(path) if path else None
+    appimg = os.environ.get("APPIMAGE")
+    return Path(appimg) if appimg else None
 
 
 def is_desktop_entry_installed() -> bool:
-    """Check if the desktop entry is already installed.
-
-    Returns:
-        True if the .desktop file exists in ~/.local/share/applications/.
-    """
     return _desktop_file_path().exists()
 
 
+# install .desktop file + icon for menu entry
 def install_desktop_entry() -> bool:
-    """Install desktop integration (menu entry + icon).
-
-    Generates a .desktop file with Exec= pointing to the current AppImage
-    path and copies the SVG icon to the user icon directory.
-
-    Returns:
-        True on success, False on failure.
-    """
-    appimage_path = get_appimage_path()
-    if not appimage_path:
+    appimg = get_appimage_path()
+    if not appimg:
         logger.error("Cannot install: not running as AppImage")
         return False
 
@@ -117,22 +92,22 @@ def install_desktop_entry() -> bool:
         icons_dir.mkdir(parents=True, exist_ok=True)
 
         # Generate .desktop file with actual AppImage path
-        desktop_content = _DESKTOP_TEMPLATE.format(
-            exec_path=appimage_path,
+        content = _DESKTOP_TEMPLATE.format(
+            exec_path=appimg,
             desktop_id=DESKTOP_ID,
         )
-        desktop_path = _desktop_file_path()
-        desktop_path.write_text(desktop_content, encoding="utf-8")
-        logger.info(t("logs.cli.desktop_written", path=str(desktop_path)))
+        dpath = _desktop_file_path()
+        dpath.write_text(content, encoding="utf-8")
+        logger.info(t("logs.cli.desktop_written", path=str(dpath)))
 
         # Copy icon from bundled resources
-        icon_src = config.RESOURCES_DIR / "icon.svg"
-        icon_dest = _icon_file_path()
-        if icon_src.exists():
-            shutil.copy2(icon_src, icon_dest)
-            logger.info(t("logs.cli.icon_copied", path=str(icon_dest)))
+        src = config.RESOURCES_DIR / "icon.svg"
+        dest = _icon_file_path()
+        if src.exists():
+            shutil.copy2(src, dest)
+            logger.info(t("logs.cli.icon_copied", path=str(dest)))
         else:
-            logger.warning("Icon source not found: %s", icon_src)
+            logger.warning("Icon source not found: %s" % src)
 
         # Update desktop database (best-effort)
         _update_desktop_database(apps_dir)
@@ -140,29 +115,25 @@ def install_desktop_entry() -> bool:
         return True
 
     except Exception as e:
-        logger.error("Desktop integration install failed: %s", e)
+        logger.error("Desktop integration install failed: %s" % e)
         return False
 
 
+# remove .desktop file + icon
 def uninstall_desktop_entry() -> bool:
-    """Remove desktop integration (menu entry + icon).
-
-    Returns:
-        True on success, False on failure.
-    """
     logger.info(t("logs.cli.uninstall_start"))
 
     try:
-        desktop_path = _desktop_file_path()
-        icon_path = _icon_file_path()
+        dpath = _desktop_file_path()
+        ipath = _icon_file_path()
 
-        if desktop_path.exists():
-            desktop_path.unlink()
-            logger.info(t("logs.cli.file_removed", path=str(desktop_path)))
+        if dpath.exists():
+            dpath.unlink()
+            logger.info(t("logs.cli.file_removed", path=str(dpath)))
 
-        if icon_path.exists():
-            icon_path.unlink()
-            logger.info(t("logs.cli.file_removed", path=str(icon_path)))
+        if ipath.exists():
+            ipath.unlink()
+            logger.info(t("logs.cli.file_removed", path=str(ipath)))
 
         # Update desktop database (best-effort)
         _update_desktop_database(_apps_dir())
@@ -170,16 +141,11 @@ def uninstall_desktop_entry() -> bool:
         return True
 
     except Exception as e:
-        logger.error("Desktop integration uninstall failed: %s", e)
+        logger.error("Desktop integration uninstall failed: %s" % e)
         return False
 
 
 def _update_desktop_database(apps_dir: Path) -> None:
-    """Run update-desktop-database if available (best-effort).
-
-    Args:
-        apps_dir: The applications directory to update.
-    """
     try:
         subprocess.run(
             ["update-desktop-database", str(apps_dir)],

@@ -2,9 +2,10 @@
 # steam_library_manager/ui/actions/metadata_actions.py
 # UI action handlers for metadata edit and import operations
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+# TODO: undo support for metadata edits?
 
 from __future__ import annotations
 
@@ -23,34 +24,15 @@ if TYPE_CHECKING:
 
 
 class MetadataActions:
-    """Handles metadata editing, PEGI overrides, and metadata restoration.
-
-    Attributes:
-        mw: Back-reference to the owning MainWindow instance.
-    """
+    """Handles metadata editing, PEGI overrides, and restoration."""
 
     def __init__(self, main_window: MainWindow) -> None:
-        """Initializes the MetadataActions handler.
-
-        Args:
-            main_window: The main application window.
-        """
         self.mw = main_window
 
-    # ------------------------------------------------------------------
-    # Metadata Editing
-    # ------------------------------------------------------------------
+    # metadata editing
 
+    # open metadata editor for single game
     def edit_game_metadata(self, game: Game) -> None:
-        """Opens the metadata edit dialog for a single game.
-
-        Lazy-loads the binary appinfo.vdf on first access if not yet loaded.
-        VDF is NOT written per-edit; instead it is written on exit via
-        closeEvent / _save_all_on_exit().
-
-        Args:
-            game: The game to edit.
-        """
         if not self.mw.metadata_service:
             return
 
@@ -59,30 +41,30 @@ class MetadataActions:
             self.mw.appinfo_manager.load_appinfo()
 
         meta = self.mw.metadata_service.get_game_metadata(game.app_id, game)
-        original_meta = self.mw.metadata_service.get_original_metadata(game.app_id, meta.copy())
+        orig = self.mw.metadata_service.get_original_metadata(game.app_id, meta.copy())
 
-        dialog = MetadataEditDialog(self.mw, game.name, meta, original_meta)
+        dialog = MetadataEditDialog(self.mw, game.name, meta, orig)
 
         if dialog.exec():
-            new_meta = dialog.get_metadata()
-            if new_meta:
-                self.mw.metadata_service.set_game_metadata(game.app_id, new_meta)
+            new = dialog.get_metadata()
+            if new:
+                self.mw.metadata_service.set_game_metadata(game.app_id, new)
 
-                if new_meta.get("name"):
-                    game.name = new_meta["name"]
+                if new.get("name"):
+                    game.name = new["name"]
 
                 self.mw.populate_categories()
                 self.mw.selection_handler.on_game_selected(game)
                 UIHelper.show_success(self.mw, t("ui.metadata_editor.updated_single", game=game.name))
 
+    # bulk edit metadata for selected games
     def bulk_edit_metadata(self) -> None:
-        """Opens the bulk metadata edit dialog for selected games."""
         if not self.mw.selected_games or not self.mw.metadata_service:
             UIHelper.show_warning(self.mw, t("ui.errors.no_selection"))
             return
 
-        game_names = [g.name for g in self.mw.selected_games]
-        dialog = BulkMetadataEditDialog(self.mw, self.mw.selected_games, game_names)
+        names = [g.name for g in self.mw.selected_games]
+        dialog = BulkMetadataEditDialog(self.mw, self.mw.selected_games, names)
 
         if dialog.exec():
             settings = dialog.get_metadata()
@@ -103,17 +85,10 @@ class MetadataActions:
                 self.mw.populate_categories()
                 UIHelper.show_success(self.mw, t("ui.metadata_editor.updated_bulk", count=count))
 
-    # ------------------------------------------------------------------
-    # PEGI Overrides
-    # ------------------------------------------------------------------
+    # pegi overrides
 
+    # handle PEGI override from detail view
     def on_pegi_override_requested(self, app_id: str, rating: str) -> None:
-        """Handles PEGI override requests from GameDetailsWidget.
-
-        Args:
-            app_id: The AppID of the game.
-            rating: The new PEGI rating (or empty to remove).
-        """
         if not self.mw.appinfo_manager:
             return
 
@@ -147,21 +122,19 @@ class MetadataActions:
 
                 self.mw.selection_handler.on_game_selected(game)
 
-    # ------------------------------------------------------------------
-    # Metadata Restoration
-    # ------------------------------------------------------------------
+    # metadata restoration
 
+    # restore metadata to original values
     def restore_metadata_changes(self) -> None:
-        """Opens dialog to restore metadata changes."""
         if not self.mw.metadata_service:
             return
 
-        mod_count = self.mw.metadata_service.get_modification_count()
-        if mod_count == 0:
+        mods = self.mw.metadata_service.get_modification_count()
+        if mods == 0:
             UIHelper.show_success(self.mw, t("ui.metadata_editor.no_changes_to_restore"))
             return
 
-        dialog = MetadataRestoreDialog(self.mw, mod_count)
+        dialog = MetadataRestoreDialog(self.mw, mods)
         if dialog.exec() and dialog.should_restore():
             try:
                 restored = self.mw.metadata_service.restore_modifications()

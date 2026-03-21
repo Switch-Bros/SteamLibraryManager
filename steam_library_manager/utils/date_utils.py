@@ -2,9 +2,10 @@
 # steam_library_manager/utils/date_utils.py
 # Date formatting and parsing utilities
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+# FIXME: locale handling is fragile
 
 
 from __future__ import annotations
@@ -14,11 +15,11 @@ from datetime import datetime
 
 __all__ = ["parse_date_to_timestamp", "format_timestamp_to_date", "to_timestamp", "year_from_timestamp"]
 
-# Public API
+# public api
 
 
+# various date formats -> unix timestamp string
 def parse_date_to_timestamp(date_str: str) -> str:
-    """Converts various date formats to a Unix timestamp string."""
     if not date_str or not date_str.strip():
         return ""
 
@@ -32,7 +33,7 @@ def parse_date_to_timestamp(date_str: str) -> str:
     # European: DD.MM.YYYY  (user's preferred input)
     # ISO:      YYYY-MM-DD
     # Others:   YYYY/MM/DD, DD-MM-YYYY
-    formats: list[str] = ["%d.%m.%Y", "%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y"]
+    formats = ["%d.%m.%Y", "%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y"]
 
     for fmt in formats:
         try:
@@ -45,8 +46,8 @@ def parse_date_to_timestamp(date_str: str) -> str:
     return date_str
 
 
+# any date-like value -> unix timestamp int
 def to_timestamp(value) -> int:
-    """Converts any date-like value to a UNIX timestamp int. Returns 0 on failure."""
     if not value:
         return 0
     if isinstance(value, int):
@@ -73,8 +74,8 @@ def to_timestamp(value) -> int:
     return _parse_english_date(s)
 
 
+# unix timestamp -> year string
 def year_from_timestamp(ts: int) -> str:
-    """Extracts the year from a UNIX timestamp. Returns '' for 0."""
     if not ts or ts <= 0:
         return ""
     if ts <= 9999:
@@ -85,8 +86,8 @@ def year_from_timestamp(ts: int) -> str:
         return ""
 
 
+# parse english dates regardless of locale
 def _parse_english_date(s: str) -> int:
-    """Parses English-language date strings regardless of system locale."""
     import locale
 
     saved = locale.getlocale(locale.LC_TIME)
@@ -107,43 +108,43 @@ def _parse_english_date(s: str) -> int:
     return 0
 
 
+# bare year -> jan 1 UTC timestamp
 def _year_to_ts(year: int) -> int:
-    """Converts a bare year (e.g. 2020) to Jan 1 00:00 UTC timestamp."""
     try:
         return calendar.timegm(datetime(year, 1, 1).timetuple())
     except (ValueError, OverflowError):
         return 0
 
 
+# unix timestamp -> localized date string
 def format_timestamp_to_date(value) -> str:
-    """Converts a Unix timestamp to a localised, human-readable date string."""
     if not value:
         return ""
 
-    value_str: str = str(value).strip()
-    if not value_str:
+    val = str(value).strip()
+    if not val:
         return ""
 
-    if value_str.isdigit():
-        ts: int = int(value_str)
+    if val.isdigit():
+        ts = int(val)
 
         # Bare year (e.g. "2004") - return as-is
         if ts <= 9999:
-            return value_str
+            return val
 
         # Plausible Unix timestamp (> 100 000 000 ~ year 1973)
         if ts > 100_000_000:
             try:
-                dt: datetime = datetime.fromtimestamp(ts)
+                dt = datetime.fromtimestamp(ts)
                 return _format_date_localised(dt)
             except (OSError, OverflowError, ValueError):
                 pass  # fall through to raw return
 
     # Already a string like "07. Dez 2024" or anything else -> return unchanged
-    return value_str
+    return val
 
 
-# Internal helpers
+# internal
 
 # Month-index -> i18n key suffix (1-based; index 0 is an unused placeholder)
 _MONTH_KEYS: list[str] = [
@@ -163,24 +164,24 @@ _MONTH_KEYS: list[str] = [
 ]
 
 
+# format with i18n month names
 def _format_date_localised(dt: datetime) -> str:
-    """Formats a datetime using a localised short month name from i18n."""
     try:
         # Deferred import - date_utils can be loaded very early in boot
         from steam_library_manager.utils.i18n import t
 
-        month_key: str = f"date.months_short.{_MONTH_KEYS[dt.month]}"
-        month_name: str = t(month_key)
+        mkey = "date.months_short.%s" % _MONTH_KEYS[dt.month]
+        mname = t(mkey)
 
         # Detect locale via a sentinel key placed in each date.json
-        locale_id: str = t("date.locale_id")  # "de" or "en"
+        loc = t("date.locale_id")  # "de" or "en"
 
-        if locale_id == "de":
+        if loc == "de":
             # German convention: dot after day number
-            return f"{dt.day:02d}. {month_name} {dt.year}"
+            return "%02d. %s %d" % (dt.day, mname, dt.year)
         else:
             # English (and any other future locale): no dot
-            return f"{dt.day:02d} {month_name} {dt.year}"
+            return "%02d %s %d" % (dt.day, mname, dt.year)
 
     except (ImportError, RuntimeError, KeyError, IndexError):
         # Fallback: plain numeric format - always works, zero i18n dependency

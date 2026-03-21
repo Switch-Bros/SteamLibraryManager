@@ -2,8 +2,9 @@
 # steam_library_manager/ui/dialogs/rule_group_widget.py
 # Widget representing a group of smart collection filter rules
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
+# TODO: keyboard shortcuts for rule management?
 #
 
 from __future__ import annotations
@@ -33,12 +34,7 @@ logger = logging.getLogger("steamlibmgr.rule_group_widget")
 
 
 class RuleGroupWidget(QGroupBox):
-    """A group of rule rows with its own logic operator.
-
-    Attributes:
-        removed: Signal emitted with this widget when the user removes the group.
-        changed: Signal emitted when any rule or the logic operator changes.
-    """
+    """Rule group with logic operator and child rule rows."""
 
     removed = pyqtSignal(object)
     changed = pyqtSignal()
@@ -49,15 +45,8 @@ class RuleGroupWidget(QGroupBox):
         index: int = 1,
         group: SmartCollectionRuleGroup | None = None,
     ) -> None:
-        """Initializes the rule group widget.
-
-        Args:
-            parent: Parent widget.
-            index: The 1-based group index for the header label.
-            group: Optional existing group to populate from.
-        """
         super().__init__(parent)
-        self._rule_rows: list[RuleRowWidget] = []
+        self._rule_rows = []
         self._index = index
         self._create_ui()
 
@@ -67,16 +56,11 @@ class RuleGroupWidget(QGroupBox):
             self._add_rule_row()
 
     def set_index(self, index: int) -> None:
-        """Updates the group header index label.
-
-        Args:
-            index: The new 1-based group index.
-        """
         self._index = index
         self.setTitle(t("ui.smart_collections.group_header", index=index))
 
     def _create_ui(self) -> None:
-        """Builds the group layout with header, rules, and controls."""
+        # build group layout
         self.setTitle(t("ui.smart_collections.group_header", index=self._index))
 
         layout = QVBoxLayout(self)
@@ -84,21 +68,21 @@ class RuleGroupWidget(QGroupBox):
         layout.setSpacing(4)
 
         # Header row: logic dropdown + remove button
-        header_row = QHBoxLayout()
+        hdr = QHBoxLayout()
 
         self._logic_combo = NoScrollComboBox()
         self._logic_combo.addItem("AND", LogicOperator.AND.value)
         self._logic_combo.addItem("OR", LogicOperator.OR.value)
         self._logic_combo.currentIndexChanged.connect(lambda _: self.changed.emit())
-        header_row.addWidget(self._logic_combo)
+        hdr.addWidget(self._logic_combo)
 
-        header_row.addStretch()
+        hdr.addStretch()
 
         remove_btn = QPushButton(t("ui.smart_collections.remove_group"))
         remove_btn.clicked.connect(lambda: self.removed.emit(self))
-        header_row.addWidget(remove_btn)
+        hdr.addWidget(remove_btn)
 
-        layout.addLayout(header_row)
+        layout.addLayout(hdr)
 
         # Rules container
         self._rules_container = QWidget()
@@ -113,11 +97,6 @@ class RuleGroupWidget(QGroupBox):
         layout.addWidget(add_rule_btn)
 
     def _add_rule_row(self, rule: SmartCollectionRule | None = None) -> None:
-        """Adds a new rule row to this group.
-
-        Args:
-            rule: Optional existing rule to pre-fill.
-        """
         row = RuleRowWidget(self, rule)
         row.removed.connect(self._remove_rule_row)
         row.changed.connect(lambda: self.changed.emit())
@@ -125,26 +104,17 @@ class RuleGroupWidget(QGroupBox):
         # Insert before the stretch
         self._rules_layout.insertWidget(self._rules_layout.count() - 1, row)
 
-    def _remove_rule_row(self, row_widget: RuleRowWidget) -> None:
-        """Removes a rule row from this group.
-
-        Args:
-            row_widget: The row widget to remove.
-        """
-        if row_widget in self._rule_rows:
-            self._rule_rows.remove(row_widget)
-            self._rules_layout.removeWidget(row_widget)
-            row_widget.hide()
-            row_widget.deleteLater()
+    def _remove_rule_row(self, row: RuleRowWidget) -> None:
+        if row in self._rule_rows:
+            self._rule_rows.remove(row)
+            self._rules_layout.removeWidget(row)
+            row.hide()
+            row.deleteLater()
             self.changed.emit()
 
     def get_group(self) -> SmartCollectionRuleGroup | None:
-        """Collects all rule rows into a SmartCollectionRuleGroup.
-
-        Returns:
-            A SmartCollectionRuleGroup, or None if no valid rules exist.
-        """
-        rules: list[SmartCollectionRule] = []
+        # collect rules into group model
+        rules = []
         for row in self._rule_rows:
             rule = row.get_rule()
             if rule:
@@ -162,17 +132,11 @@ class RuleGroupWidget(QGroupBox):
         )
 
     def _populate_from_group(self, group: SmartCollectionRuleGroup) -> None:
-        """Pre-fills this widget from an existing group.
-
-        Args:
-            group: The group to populate from.
-        """
-        # Set logic dropdown
+        # prefill from existing group
         for i in range(self._logic_combo.count()):
             if self._logic_combo.itemData(i) == group.logic.value:
                 self._logic_combo.setCurrentIndex(i)
                 break
 
-        # Add rule rows
         for rule in group.rules:
             self._add_rule_row(rule)
