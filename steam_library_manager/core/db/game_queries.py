@@ -2,9 +2,10 @@
 # steam_library_manager/core/db/game_queries.py
 # Per-game database queries: lookup, search, category filtering
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+# TODO: batch insert for bulk imports?
 
 from __future__ import annotations
 
@@ -20,20 +21,10 @@ __all__ = ["GameQueryMixin"]
 
 
 class GameQueryMixin:
-    """Mixin providing single-game CRUD operations.
-
-    Requires ConnectionBase attributes: conn.
-    """
+    """Mixin for single-game CRUD queries."""
 
     def insert_game(self, entry: DatabaseEntry) -> None:
-        """Insert a new game into the database.
-
-        Uses INSERT OR REPLACE which overwrites existing rows.
-        Does NOT commit -- caller is responsible for committing.
-
-        Args:
-            entry: Game data to insert.
-        """
+        # insert or replace game row
         now = int(time.time())
 
         self.conn.execute(
@@ -92,26 +83,17 @@ class GameQueryMixin:
         self._insert_related_data(entry)
 
     def update_game(self, entry: DatabaseEntry) -> None:
-        """Update an existing game, preserving created_at.
-
-        Protects good names: if the existing game has a real name and the
-        incoming entry has a placeholder or empty name, the existing name
-        is preserved.
-
-        Args:
-            entry: Updated game data.
-        """
+        # update existing, protect good names from placeholders
         now = int(time.time())
 
-        existing = self.conn.execute("SELECT created_at, name FROM games WHERE app_id = ?", (entry.app_id,)).fetchone()
+        cur = self.conn.execute("SELECT created_at, name FROM games WHERE app_id = ?", (entry.app_id,)).fetchone()
 
-        if existing:
-            # Protect good names from being overwritten by placeholders
-            existing_name = existing["name"] if existing["name"] else ""
-            if not is_placeholder_name(existing_name) and is_placeholder_name(entry.name):
-                entry_name = existing_name
+        if cur:
+            cur_name = cur["name"] if cur["name"] else ""
+            if not is_placeholder_name(cur_name) and is_placeholder_name(entry.name):
+                ename = cur_name
             else:
-                entry_name = entry.name
+                ename = entry.name
 
             self.conn.execute(
                 """
@@ -131,7 +113,7 @@ class GameQueryMixin:
                 WHERE app_id = ?
                 """,
                 (
-                    entry_name,
+                    ename,
                     entry.sort_as,
                     entry.app_type,
                     entry.developer,
@@ -167,18 +149,13 @@ class GameQueryMixin:
 
             # Re-insert related data (delete old first)
             for table in ("game_genres", "game_tags", "game_franchises", "game_languages", "game_custom_meta"):
-                self.conn.execute(f"DELETE FROM {table} WHERE app_id = ?", (entry.app_id,))
+                self.conn.execute("DELETE FROM %s WHERE app_id = ?" % table, (entry.app_id,))
 
             self._insert_related_data(entry)
         else:
             self.insert_game(entry)
 
     def _insert_related_data(self, entry: DatabaseEntry) -> None:
-        """Insert genre/tag/franchise/language/custom_meta rows for a game.
-
-        Args:
-            entry: Game entry whose related data to insert.
-        """
         if entry.genres:
             self.conn.executemany(
                 "INSERT OR REPLACE INTO game_genres (app_id, genre) VALUES (?, ?)",
@@ -195,9 +172,9 @@ class GameQueryMixin:
                 [(entry.app_id, franchise) for franchise in entry.franchises],
             )
         if entry.languages:
-            language_rows = []
+            rows = []
             for lang, support in entry.languages.items():
-                language_rows.append(
+                rows.append(
                     (
                         entry.app_id,
                         lang,
@@ -212,7 +189,7 @@ class GameQueryMixin:
                 (app_id, language, interface, audio, subtitles)
                 VALUES (?, ?, ?, ?, ?)
                 """,
-                language_rows,
+                rows,
             )
         if entry.custom_meta:
             self.conn.executemany(
@@ -221,31 +198,24 @@ class GameQueryMixin:
             )
 
     def get_game(self, app_id: int) -> DatabaseEntry | None:
-        """Get a single game by app ID.
-
-        Args:
-            app_id: Steam app ID.
-
-        Returns:
-            Game data or None if not found.
-        """
+        # load game with all related data
         cursor = self.conn.execute("SELECT * FROM games WHERE app_id = ?", (app_id,))
         row = cursor.fetchone()
 
         if not row:
             return None
 
-        game_data = dict(row)
+        gd = dict(row)
 
         # Load related data
-        game_data["genres"] = self._get_genres(app_id)
-        game_data["tags"] = self._get_tags(app_id)
-        game_data["franchises"] = self._get_franchises(app_id)
-        game_data["languages"] = self._get_languages(app_id)
-        game_data["custom_meta"] = self._get_custom_meta(app_id)
+        gd["genres"] = self._get_genres(app_id)
+        gd["tags"] = self._get_tags(app_id)
+        gd["franchises"] = self._get_franchises(app_id)
+        gd["languages"] = self._get_languages(app_id)
+        gd["custom_meta"] = self._get_custom_meta(app_id)
 
         # Parse JSON fields
-        game_data["platforms"] = json.loads(game_data["platforms"]) if game_data["platforms"] else []
+        gd["platforms"] = json.loads(gd["platforms"]) if gd["platforms"] else []
 
         # Load achievement stats for this game
         ach_cursor = self.conn.execute(
@@ -255,80 +225,55 @@ class GameQueryMixin:
         )
         ach_row = ach_cursor.fetchone()
         if ach_row:
-            game_data["achievements_total"] = int(ach_row[0])
-            game_data["achievement_unlocked"] = int(ach_row[1])
-            game_data["achievement_percentage"] = float(ach_row[2])
-            game_data["achievement_perfect"] = bool(ach_row[3])
+            gd["achievements_total"] = int(ach_row[0])
+            gd["achievement_unlocked"] = int(ach_row[1])
+            gd["achievement_percentage"] = float(ach_row[2])
+            gd["achievement_perfect"] = bool(ach_row[3])
 
         # Remove DB-only fields not in DatabaseEntry
         for db_field in ("created_at", "updated_at"):
-            game_data.pop(db_field, None)
+            gd.pop(db_field, None)
 
-        return DatabaseEntry(**game_data)
+        return DatabaseEntry(**gd)
 
     def get_app_type_lookup(self) -> dict[str, tuple[str, str]]:
-        """Returns a fast lookup of app_id to (app_type, name) for all games.
-
-        Returns:
-            Dict mapping app_id (str) to (app_type, name) tuples.
-        """
+        # fast app_id -> (type, name) lookup
         cursor = self.conn.execute("SELECT app_id, app_type, name FROM games")
         return {str(row[0]): (row[1], row[2]) for row in cursor.fetchall()}
 
     def get_game_count(self) -> int:
-        """Get total number of games in the database.
-
-        Returns:
-            Number of games.
-        """
         cursor = self.conn.execute("SELECT COUNT(*) FROM games")
         return cursor.fetchone()[0]
 
     def update_game_name(self, app_id: int, name: str) -> None:
-        """Updates the name of a game in the database.
-
-        Args:
-            app_id: Steam app ID.
-            name: New name for the game.
-        """
         self.conn.execute("UPDATE games SET name = ? WHERE app_id = ?", (name, app_id))
 
     def delete_game(self, app_id: int) -> None:
-        """Delete a game from database.
-
-        Args:
-            app_id: Steam app ID.
-        """
         self.conn.execute("DELETE FROM games WHERE app_id = ?", (app_id,))
 
-    # -- Single-game helpers (used by get_game) --
+    # single-game helpers
 
     def _get_genres(self, app_id: int) -> list[str]:
-        """Get genres for a game."""
         cursor = self.conn.execute("SELECT genre FROM game_genres WHERE app_id = ?", (app_id,))
         return [row[0] for row in cursor.fetchall()]
 
     def _get_tags(self, app_id: int) -> list[str]:
-        """Get tags for a game."""
         cursor = self.conn.execute("SELECT tag FROM game_tags WHERE app_id = ?", (app_id,))
         return [row[0] for row in cursor.fetchall()]
 
     def _get_franchises(self, app_id: int) -> list[str]:
-        """Get franchises for a game."""
         cursor = self.conn.execute("SELECT franchise FROM game_franchises WHERE app_id = ?", (app_id,))
         return [row[0] for row in cursor.fetchall()]
 
     def _get_languages(self, app_id: int) -> dict[str, dict[str, bool]]:
-        """Get language support for a game."""
         cursor = self.conn.execute(
             "SELECT language, interface, audio, subtitles FROM game_languages WHERE app_id = ?", (app_id,)
         )
-        languages: dict[str, dict[str, bool]] = {}
+        langs = {}
         for row in cursor.fetchall():
-            languages[row[0]] = {"interface": bool(row[1]), "audio": bool(row[2]), "subtitles": bool(row[3])}
-        return languages
+            langs[row[0]] = {"interface": bool(row[1]), "audio": bool(row[2]), "subtitles": bool(row[3])}
+        return langs
 
     def _get_custom_meta(self, app_id: int) -> dict[str, str]:
-        """Get custom metadata for a game."""
         cursor = self.conn.execute("SELECT key, value FROM game_custom_meta WHERE app_id = ?", (app_id,))
         return {row[0]: row[1] for row in cursor.fetchall()}

@@ -2,9 +2,10 @@
 # steam_library_manager/core/steam_account_scanner.py
 # Scans the filesystem for installed Steam accounts and profiles
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+# FIXME: fetch_steam_display_name is slow for many accounts
 
 from __future__ import annotations
 
@@ -32,50 +33,25 @@ STEAM_ID_BASE = 76561197960265728
 
 
 def account_id_to_steam_id_64(account_id: int) -> int:
-    """Convert Account ID (32-bit) to SteamID64.
-
-    Args:
-        account_id: The short Steam account ID (from userdata folder)
-
-    Returns:
-        The 64-bit Steam ID
-    """
     return account_id + STEAM_ID_BASE
 
 
 def steam_id_64_to_account_id(steam_id_64: int) -> int:
-    """Convert SteamID64 back to Account ID (32-bit).
-
-    Args:
-        steam_id_64: The 64-bit Steam ID
-
-    Returns:
-        The short Steam account ID
-    """
     return steam_id_64 - STEAM_ID_BASE
 
 
 def fetch_steam_display_name(steam_id_64: int) -> str:
-    """Fetch the Steam profile display name from Steam Community XML API.
-
-    Uses the same API as Depressurizer and our existing code.
-
-    Args:
-        steam_id_64: The 64-bit Steam ID
-
-    Returns:
-        The user's Steam profile display name, or the SteamID64 as fallback
-    """
+    # grab display name from steam community xml
     try:
-        url = f"https://steamcommunity.com/profiles/{steam_id_64}?xml=1"
-        response = requests.get(url, timeout=HTTP_TIMEOUT_SHORT)
+        url = "https://steamcommunity.com/profiles/%s?xml=1" % steam_id_64
+        resp = requests.get(url, timeout=HTTP_TIMEOUT_SHORT)
 
-        if response.status_code == 200:
-            tree = ElementTree.fromstring(response.content)
-            steam_id_element = tree.find("steamID")
+        if resp.status_code == 200:
+            tree = ElementTree.fromstring(resp.content)
+            el = tree.find("steamID")
 
-            if steam_id_element is not None and steam_id_element.text:
-                return steam_id_element.text
+            if el is not None and el.text:
+                return el.text
 
     except (requests.RequestException, ElementTree.ParseError) as e:
         logger.error(t("logs.scanner.warning_fetch_name", steam_id=steam_id_64, error=str(e)))
@@ -84,65 +60,43 @@ def fetch_steam_display_name(steam_id_64: int) -> str:
 
 
 def scan_steam_accounts(steam_path: str) -> list[SteamAccount]:
-    """Scan the Steam userdata directory for all local accounts.
+    # scan userdata dir for local accounts
+    udata = Path(steam_path) / "userdata"
+    accounts = []
 
-    This function:
-    1. Scans the userdata/ folder for account directories
-    2. Converts account IDs to SteamID64
-    3. Fetches display names from Steam Community API
+    if not udata.exists():
+        logger.warning(t("logs.scanner.warning_no_userdata", path=udata))
+        return accounts
 
-    Args:
-        steam_path: Path to the Steam installation directory
+    logger.info(t("logs.scanner.scanning_accounts", path=udata))
 
-    Returns:
-        List of SteamAccount objects, sorted by display name
-    """
-    userdata_path = Path(steam_path) / "userdata"
-    scanned_accounts = []
-
-    if not userdata_path.exists():
-        logger.warning(t("logs.scanner.warning_no_userdata", path=userdata_path))
-        return scanned_accounts
-
-    logger.info(t("logs.scanner.scanning_accounts", path=userdata_path))
-
-    for account_dir in userdata_path.iterdir():
-        if account_dir.is_dir() and account_dir.name.isdigit():
+    for adir in udata.iterdir():
+        if adir.is_dir() and adir.name.isdigit():
             try:
-                account_id = int(account_dir.name)
+                account_id = int(adir.name)
                 steam_id_64 = account_id_to_steam_id_64(account_id)
 
                 logger.info(t("logs.scanner.found_account", account_id=account_id, steam_id=steam_id_64))
 
-                display_name = fetch_steam_display_name(steam_id_64)
+                name = fetch_steam_display_name(steam_id_64)
 
-                scanned_accounts.append(
-                    SteamAccount(account_id=account_id, steam_id_64=steam_id_64, display_name=display_name)
-                )
+                accounts.append(SteamAccount(account_id=account_id, steam_id_64=steam_id_64, display_name=name))
 
-                logger.info(t("logs.scanner.display_name_found", name=display_name))
+                logger.info(t("logs.scanner.display_name_found", name=name))
 
             except ValueError:
-                logger.warning(t("logs.scanner.warning_invalid_dir", name=account_dir.name))
+                logger.warning(t("logs.scanner.warning_invalid_dir", name=adir.name))
             except OSError as e:
-                logger.error(t("logs.scanner.error_processing", name=account_dir.name, error=str(e)))
+                logger.error(t("logs.scanner.error_processing", name=adir.name, error=str(e)))
 
-    scanned_accounts.sort(key=lambda a: a.display_name.lower())
+    accounts.sort(key=lambda a: a.display_name.lower())
 
-    logger.info(t("logs.scanner.total_found", count=len(scanned_accounts)))
-    return scanned_accounts
+    logger.info(t("logs.scanner.total_found", count=len(accounts)))
+    return accounts
 
 
 def is_steam_running() -> bool:
-    """Check if Steam is currently running.
-
-    This checks for the Steam process on the system.
-    On Linux, looks for 'steam' process.
-    On Windows, looks for 'steam.exe' process.
-
-    Returns:
-        True if Steam is running, False otherwise
-    """
+    # check if steam process is active
     try:
         if _psutil is None:
             logger.warning(t("logs.scanner.warning_no_psutil"))
@@ -150,8 +104,8 @@ def is_steam_running() -> bool:
 
         for proc in _psutil.process_iter(["name"]):
             try:
-                proc_name = proc.info["name"].lower()
-                if proc_name in ["steam", "steam.exe", "steamwebhelper", "steamwebhelper.exe"]:
+                pname = proc.info["name"].lower()
+                if pname in ["steam", "steam.exe", "steamwebhelper", "steamwebhelper.exe"]:
                     return True
             except (_psutil.NoSuchProcess, _psutil.AccessDenied):
                 continue
@@ -164,14 +118,7 @@ def is_steam_running() -> bool:
 
 
 def kill_steam_process() -> bool:
-    """Forcefully terminate the Steam process.
-
-    WARNING: This will close Steam without saving state!
-    Use only when necessary (e.g., before saving collections).
-
-    Returns:
-        True if Steam was successfully killed, False otherwise
-    """
+    # force-kill steam process
     try:
         if _psutil is None:
             logger.error(t("logs.scanner.error_no_psutil_kill"))
@@ -183,8 +130,8 @@ def kill_steam_process() -> bool:
 
         for proc in _psutil.process_iter(["name", "pid"]):
             try:
-                proc_name = proc.info["name"].lower()
-                if proc_name in ["steam", "steam.exe"]:
+                pname = proc.info["name"].lower()
+                if pname in ["steam", "steam.exe"]:
                     logger.info(t("logs.scanner.killing_steam", pid=proc.info["pid"]))
                     proc.kill()
                     killed = True

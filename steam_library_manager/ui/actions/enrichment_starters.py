@@ -2,9 +2,10 @@
 # steam_library_manager/ui/actions/enrichment_starters.py
 # Helpers that start enrichment threads and show progress dialogs
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+# FIXME: too many near-identical starter methods
 
 from __future__ import annotations
 
@@ -59,33 +60,15 @@ _ENRICHMENT_CONFIGS: dict[str, _EnrichmentConfig] = {
 
 
 class EnrichmentStarters:
-    """Individual enrichment starters for each data source.
-
-    Checks preconditions (API keys, library availability, games to enrich)
-    and launches the enrichment dialog with a background thread.
-
-    Attributes:
-        mw: Back-reference to the owning MainWindow instance.
-    """
+    """Launches enrichment threads with progress dialogs."""
 
     def __init__(self, main_window: MainWindow) -> None:
-        """Initializes the EnrichmentStarters handler.
+        self.mw = main_window
 
-        Args:
-            main_window: The MainWindow instance that owns these actions.
-        """
-        self.mw: MainWindow = main_window
+    # individual starters
 
-    # ------------------------------------------------------------------
-    # Individual Starters
-    # ------------------------------------------------------------------
-
+    # deck status enrichment
     def start_deck_enrichment(self, force_refresh: bool = False) -> None:
-        """Starts deck status enrichment for games missing deck data.
-
-        Args:
-            force_refresh: If True, re-fetch all games.
-        """
         from steam_library_manager.services.enrichment.deck_enrichment_service import DeckEnrichmentThread
 
         if not self.mw.game_manager:
@@ -93,11 +76,11 @@ class EnrichmentStarters:
 
         all_games = self.mw.game_manager.get_real_games()
         if force_refresh:
-            games_to_enrich = all_games
+            to_enrich = all_games
         else:
-            games_to_enrich = [g for g in all_games if not g.steam_deck_status or g.steam_deck_status == "unknown"]
+            to_enrich = [g for g in all_games if not g.steam_deck_status or g.steam_deck_status == "unknown"]
 
-        if not games_to_enrich:
+        if not to_enrich:
             if UIHelper.show_batch_result(
                 self.mw,
                 t("ui.enrichment.no_games_deck"),
@@ -115,22 +98,18 @@ class EnrichmentStarters:
         cache_dir = config.DATA_DIR / "cache"
 
         thread = DeckEnrichmentThread(self.mw)
-        thread.configure(games_to_enrich, cache_dir, force_refresh=force_refresh)
+        thread.configure(to_enrich, cache_dir, force_refresh=force_refresh)
         callback = None if force_refresh else lambda: self.start_deck_enrichment(force_refresh=True)
         self._run_enrichment(
             thread,
             title_key="ui.enrichment.deck_title",
             starting_key="ui.enrichment.deck_starting",
-            total=len(games_to_enrich),
-            force_refresh_callback=callback,
+            total=len(to_enrich),
+            refresh_cb=callback,
         )
 
+    # howlongtobeat enrichment
     def start_hltb_enrichment(self, force_refresh: bool = False) -> None:
-        """Starts HLTB enrichment for games missing HLTB data.
-
-        Args:
-            force_refresh: If True, re-fetch all games.
-        """
         from steam_library_manager.integrations.hltb_api import HLTBClient
         from steam_library_manager.services.enrichment.enrichment_service import EnrichmentThread
         from steam_library_manager.ui.dialogs.enrichment_dialog import EnrichmentDialog
@@ -166,20 +145,20 @@ class EnrichmentStarters:
         db_path = self._get_db_path()
         hltb_client = HLTBClient()
 
-        steam_user_id_64 = ""
+        uid64 = ""
         if config.STEAM_USER_ID:
-            steam_user_id_64 = config.STEAM_USER_ID
+            uid64 = config.STEAM_USER_ID
         else:
             _, detected_id_64 = config.get_detected_user()
             if detected_id_64:
-                steam_user_id_64 = detected_id_64
+                uid64 = detected_id_64
 
         thread = EnrichmentThread(self.mw)
         thread.configure_hltb(
             games,
             db_path,
             hltb_client,
-            steam_user_id=steam_user_id_64,
+            steam_user_id=uid64,
             force_refresh=force_refresh,
         )
 
@@ -198,12 +177,8 @@ class EnrichmentStarters:
 
         self.mw.populate_categories()
 
+    # steam store metadata enrichment
     def start_steam_api_enrichment(self, force_refresh: bool = False) -> None:
-        """Starts Steam API enrichment for games missing metadata.
-
-        Args:
-            force_refresh: If True, re-fetch all games.
-        """
         from steam_library_manager.config import config
         from steam_library_manager.services.enrichment.enrichment_service import EnrichmentThread
         from steam_library_manager.ui.dialogs.enrichment_dialog import EnrichmentDialog
@@ -257,7 +232,6 @@ class EnrichmentStarters:
         self.mw.populate_categories()
 
     def start_achievement_enrichment(self, force_refresh: bool = False) -> None:
-        """Starts achievement enrichment for games missing achievement data."""
         from steam_library_manager.config import config
         from steam_library_manager.services.enrichment.achievement_enrichment_service import AchievementEnrichmentThread
 
@@ -278,13 +252,11 @@ class EnrichmentStarters:
         )
 
     def start_protondb_enrichment(self, force_refresh: bool = False) -> None:
-        """Starts ProtonDB enrichment for games missing ProtonDB data."""
         from steam_library_manager.services.enrichment.protondb_enrichment_service import ProtonDBEnrichmentThread
 
         self._start_enrichment_generic("protondb", ProtonDBEnrichmentThread, force_refresh)
 
     def start_pegi_enrichment(self, force_refresh: bool = False) -> None:
-        """Starts PEGI age rating enrichment for games missing ratings."""
         from steam_library_manager.services.enrichment.pegi_enrichment_service import PEGIEnrichmentThread
 
         language = "en"
@@ -297,15 +269,8 @@ class EnrichmentStarters:
             configure_kwargs={"language": language},
         )
 
+    # curator recommendation enrichment
     def start_curator_enrichment(self, force_refresh: bool = False) -> None:
-        """Starts curator recommendation enrichment.
-
-        Fetches recommendations for all configured curators and
-        persists them to the database.
-
-        Args:
-            force_refresh: If True, refresh all curators regardless of age.
-        """
         db = self._open_database()
         if db is None:
             return
@@ -337,11 +302,11 @@ class EnrichmentStarters:
             title_key="ui.enrichment.curator_title",
             starting_key="ui.enrichment.curator_starting",
             total=len(curators),
-            force_refresh_callback=callback,
+            refresh_cb=callback,
         )
 
+    # import tags from appinfo.vdf
     def start_tag_import(self) -> None:
-        """Starts background import of tags from appinfo.vdf."""
         from steam_library_manager.config import config
         from steam_library_manager.services.enrichment.tag_import_service import TagImportThread
 
@@ -356,12 +321,12 @@ class EnrichmentStarters:
 
         db = self._open_database()
         if db:
-            tag_count = db.get_game_tag_count()
+            tc = db.get_game_tag_count()
             db.close()
-            if tag_count > 0:
+            if tc > 0:
                 if not UIHelper.confirm(
                     self.mw,
-                    t("ui.tag_import.already_populated", count=tag_count),
+                    t("ui.tag_import.already_populated", count=tc),
                     title=t("ui.tag_import.dialog_title"),
                 ):
                     return
@@ -409,10 +374,9 @@ class EnrichmentStarters:
         progress.canceled.connect(thread.cancel)
         thread.start()
 
-    # ------------------------------------------------------------------
-    # Generic Enrichment Infrastructure
-    # ------------------------------------------------------------------
+    # generic infrastructure
 
+    # generic DB-filter enrichment launcher
     def _start_enrichment_generic(
         self,
         config_key: str,
@@ -420,14 +384,6 @@ class EnrichmentStarters:
         force_refresh: bool = False,
         configure_kwargs: dict[str, str] | None = None,
     ) -> None:
-        """Generic enrichment launcher for DB-filter-based enrichments.
-
-        Args:
-            config_key: Key in _ENRICHMENT_CONFIGS.
-            thread_cls: The thread class to instantiate.
-            force_refresh: If True, re-fetch all games.
-            configure_kwargs: Extra keyword args passed to thread.configure().
-        """
         cfg = _ENRICHMENT_CONFIGS[config_key]
         db = self._open_database()
         if db is None:
@@ -473,24 +429,15 @@ class EnrichmentStarters:
             callback,
         )
 
+    # run thread with modal progress dialog
     def _run_enrichment(
         self,
         thread: BaseEnrichmentThread,
         title_key: str,
         starting_key: str,
         total: int,
-        force_refresh_callback: Callable[[], None] | None = None,
+        refresh_cb: Callable[[], None] | None = None,
     ) -> None:
-        """Launches an enrichment thread with a modal progress dialog.
-
-        Args:
-            thread: Configured enrichment thread ready to start.
-            title_key: i18n key for the progress dialog title.
-            starting_key: i18n key for the initial progress label.
-            total: Total number of items to process.
-            force_refresh_callback: If provided, completion dialog offers
-                a force-refresh button that triggers this callback.
-        """
         progress = UIHelper.create_progress_dialog(
             self.mw,
             t(starting_key),
@@ -510,7 +457,7 @@ class EnrichmentStarters:
 
         def on_finished(success: int, failed: int) -> None:
             progress.close()
-            if force_refresh_callback:
+            if refresh_cb:
                 wants_refresh = UIHelper.show_batch_result(
                     self.mw,
                     t("ui.enrichment.complete", success=success, failed=failed),
@@ -521,7 +468,7 @@ class EnrichmentStarters:
                     t("ui.enrichment.force_refresh_confirm"),
                     title=t("ui.enrichment.force_refresh_title"),
                 ):
-                    force_refresh_callback()
+                    refresh_cb()
                     return
             else:
                 UIHelper.show_success(
@@ -536,12 +483,9 @@ class EnrichmentStarters:
         progress.canceled.connect(thread.cancel)
         thread.start()
 
-    # ------------------------------------------------------------------
-    # Helpers (duplicated from enrichment_actions for independence)
-    # ------------------------------------------------------------------
+    # helpers
 
     def _open_settings_api_tab(self) -> None:
-        """Opens the Settings dialog on the API keys tab."""
         from steam_library_manager.ui.dialogs.settings_dialog import SettingsDialog
 
         dialog = SettingsDialog(self.mw)
@@ -549,12 +493,8 @@ class EnrichmentStarters:
         dialog.settings_saved.connect(self.mw.settings_actions.apply_settings)
         dialog.exec()
 
+    # get db path from game service
     def _get_db_path(self):
-        """Returns the database file path from the active game service.
-
-        Returns:
-            Path to the SQLite database, or None if not available.
-        """
         if hasattr(self.mw, "game_service") and self.mw.game_service:
             db = getattr(self.mw.game_service, "database", None)
             if db and hasattr(db, "db_path"):
@@ -563,14 +503,8 @@ class EnrichmentStarters:
         logger.warning("No database available for enrichment")
         return None
 
+    # sync in-memory games from db after enrichment
     def _refresh_games_from_db(self) -> None:
-        """Refresh in-memory Game objects from the database after enrichment.
-
-        Enrichment threads write to the DB but do not update the Game
-        objects in memory.  This method syncs tags, genres, languages,
-        achievements, and scalar fields so Smart Collection preview
-        and other evaluators see the current data.
-        """
         db = self._open_database()
         if not db:
             return
@@ -581,7 +515,6 @@ class EnrichmentStarters:
             all_tag_ids = db._batch_tids(app_ids)
             all_genres = db._batch_rel("game_genres", "genre", app_ids)
 
-            # Refresh list fields
             for app_id_str, game in self.mw.game_manager.games.items():
                 aid = int(app_id_str)
                 game.tags = all_tags.get(aid, [])
@@ -591,11 +524,6 @@ class EnrichmentStarters:
             db.close()
 
     def _open_database(self):
-        """Opens a fresh database connection for enrichment operations.
-
-        Returns:
-            New Database instance, or None if path not available.
-        """
         from steam_library_manager.core.database import Database
 
         db_path = self._get_db_path()
