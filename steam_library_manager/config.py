@@ -2,9 +2,10 @@
 # steam_library_manager/config.py
 # Application configuration with Steam auto-detection
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+# FIXME: config is getting too fat
 
 from __future__ import annotations
 
@@ -77,7 +78,7 @@ class Config:
     UPDATE_SKIPPED_VERSION: str = ""  # User chose to skip this version
 
     def __post_init__(self):
-        """Initialize directories and load settings after instantiation."""
+        # init dirs and load settings
         self._migrate_legacy_data_dir()
         self.DATA_DIR.mkdir(parents=True, exist_ok=True)
         self.CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -97,10 +98,10 @@ class Config:
 
         # Auto-Detect Steam Path if missing
         if not self.STEAM_PATH:
-            detected = self._find_steam_path()
-            if detected:
-                self.STEAM_PATH = detected
-                logger.info(t("logs.config.auto_detected", path=detected, type=self.installation_type))
+            found = self._find_steam_path()
+            if found:
+                self.STEAM_PATH = found
+                logger.info(t("logs.config.auto_detected", path=found, type=self.installation_type))
 
         # Auto-Detect Libraries if empty
         if not self.STEAM_LIBRARIES and self.STEAM_PATH:
@@ -112,24 +113,23 @@ class Config:
 
     @property
     def installation_type(self) -> str:
-        """Returns 'flatpak', 'native', 'custom', or 'unknown'."""
         if not self.STEAM_PATH:
             return "unknown"
 
-        path_str = str(self.STEAM_PATH).lower()
+        ps = str(self.STEAM_PATH).lower()
 
-        if "flatpak" in path_str or ".var/app/com.valvesoftware.steam" in path_str:
+        if "flatpak" in ps or ".var/app/com.valvesoftware.steam" in ps:
             return "flatpak"
-        elif ".steam" in path_str or ".local/share/steam" in path_str:
+        elif ".steam" in ps or ".local/share/steam" in ps:
             return "native"
-        elif "program files" in path_str:
+        elif "program files" in ps:
             return "native"
         else:
             return "custom"
 
     @property
     def grid_folder(self) -> Path | None:
-        """Returns the Steam grid folder path, or None if unavailable."""
+        # steam grid folder path
         if not self.STEAM_PATH:
             return None
 
@@ -145,18 +145,18 @@ class Config:
         return grid_path
 
     def _migrate_legacy_data_dir(self) -> None:
-        """Migrates data from pre-v1.2 install-relative path to XDG location."""
+        # move pre-v1.2 data to XDG location
         legacy_data_dir = Path(__file__).resolve().parent.parent / "data"
         if legacy_data_dir.is_dir() and not self.DATA_DIR.is_dir():
             import shutil
 
-            logger.info("Migrating data from %s to %s", legacy_data_dir, self.DATA_DIR)
+            logger.info("Migrating data from %s to %s" % (legacy_data_dir, self.DATA_DIR))
             self.DATA_DIR.mkdir(parents=True, exist_ok=True)
             shutil.copytree(legacy_data_dir, self.DATA_DIR, dirs_exist_ok=True)
             logger.info("Data migration complete")
 
     def _load_settings(self) -> None:
-        """Load settings from JSON file."""
+        # load from json
         data = load_json(self.SETTINGS_FILE)
         if not data:
             return
@@ -186,7 +186,7 @@ class Config:
         self.UPDATE_SKIPPED_VERSION = data.get("update_skipped_version", self.UPDATE_SKIPPED_VERSION)
 
     def save(self) -> None:
-        """Save current configuration to JSON file."""
+        # persist to json
         data = {
             "ui_language": self.UI_LANGUAGE,
             "tags_language": self.TAGS_LANGUAGE,
@@ -208,14 +208,13 @@ class Config:
         save_json(self.SETTINGS_FILE, data, restrict_permissions=True)
 
     def update_paths(self, **kwargs) -> None:
-        """Update paths and save configuration."""
         if "steam_path" in kwargs:
             self.STEAM_PATH = Path(kwargs["steam_path"]) if kwargs["steam_path"] else None
         self.save()
 
     @staticmethod
     def _find_steam_path() -> Path | None:
-        """Auto-detect Steam path on Linux and Windows."""
+        # auto-detect steam on linux/windows
         system = platform.system()
 
         if system == "Windows":
@@ -223,8 +222,8 @@ class Config:
                 import winreg
 
                 key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam")
-                path_str, _ = winreg.QueryValueEx(key, "SteamPath")
-                path = Path(path_str)
+                ps, _ = winreg.QueryValueEx(key, "SteamPath")
+                path = Path(ps)
                 if path.exists():
                     logger.info(t("logs.config.found_via_registry", path=path))
                     return path
@@ -232,13 +231,13 @@ class Config:
                 pass
 
             # Fallback to standard paths
-            common_paths = [
+            paths = [
                 Path(r"C:\Program Files (x86)\Steam"),
                 Path(r"C:\Program Files\Steam"),
                 Path(r"D:\Steam"),
                 Path(r"E:\Steam"),
             ]
-            for p in common_paths:
+            for p in paths:
                 if p.exists():
                     logger.info(t("logs.config.found_at", path=p))
                     return p
@@ -248,19 +247,19 @@ class Config:
             home = Path.home()
 
             # Check Flatpak FIRST (most common on Deck/modern Linux)
-            flatpak_path = home / ".var/app/com.valvesoftware.Steam/.local/share/Steam"
-            if flatpak_path.exists():
-                logger.info(t("logs.config.found_flatpak", path=flatpak_path))
-                return flatpak_path
+            fpak = home / ".var/app/com.valvesoftware.Steam/.local/share/Steam"
+            if fpak.exists():
+                logger.info(t("logs.config.found_flatpak", path=fpak))
+                return fpak
 
             # Check Native Steam
-            native_paths = [
+            paths = [
                 home / ".local/share/Steam",  # Standard location
                 home / ".steam/steam",  # Symlink/legacy
                 home / "Steam",  # Custom
             ]
 
-            for p in native_paths:
+            for p in paths:
                 if p.exists():
                     # Resolve symlinks
                     resolved = p.resolve() if p.is_symlink() else p
@@ -271,49 +270,49 @@ class Config:
         return None
 
     def _sync_library_folders(self) -> None:
-        """Syncs saved library folders with Steam's libraryfolders.vdf."""
-        detected = self._detect_library_folders()
-        if not detected:
+        # sync with libraryfolders.vdf
+        found = self._detect_library_folders()
+        if not found:
             return
 
-        saved_set = set(self.STEAM_LIBRARIES)
-        detected_set = set(detected)
+        saved = set(self.STEAM_LIBRARIES)
+        found_set = set(found)
 
         # Remove paths that no longer exist on disk
-        dead_paths = {p for p in saved_set if not Path(p).exists()}
+        dead = {p for p in saved if not Path(p).exists()}
 
-        # Add paths Steam knows about that we don't have — only if they exist on disk
+        # Add paths Steam knows about that we don't have -- only if they exist on disk
         # (Steam keeps dead paths in libraryfolders.vdf until manually removed)
-        new_paths = {p for p in detected_set - saved_set if Path(p).exists()}
+        added = {p for p in found_set - saved if Path(p).exists()}
 
-        if not dead_paths and not new_paths:
+        if not dead and not added:
             return
 
         # Apply changes
-        updated = [p for p in self.STEAM_LIBRARIES if p not in dead_paths]
-        for p in sorted(new_paths):
-            if p not in updated:
-                updated.append(p)
+        out = [p for p in self.STEAM_LIBRARIES if p not in dead]
+        for p in sorted(added):
+            if p not in out:
+                out.append(p)
 
-        if dead_paths:
+        if dead:
             logger.info(
-                t("logs.config.removed_dead_libraries", count=len(dead_paths)),
+                t("logs.config.removed_dead_libraries", count=len(dead)),
             )
-            for p in sorted(dead_paths):
-                logger.info("  Removed: %s", p)
+            for p in sorted(dead):
+                logger.info("  Removed: %s" % p)
 
-        if new_paths:
+        if added:
             logger.info(
-                t("logs.config.added_new_libraries", count=len(new_paths)),
+                t("logs.config.added_new_libraries", count=len(added)),
             )
-            for p in sorted(new_paths):
-                logger.info("  Added: %s", p)
+            for p in sorted(added):
+                logger.info("  Added: %s" % p)
 
-        self.STEAM_LIBRARIES = updated
+        self.STEAM_LIBRARIES = out
         self.save()
 
     def _detect_library_folders(self) -> list[str]:
-        """Parses libraryfolders.vdf to find all steam library paths."""
+        # parse libraryfolders.vdf for library paths
         if not self.STEAM_PATH:
             return []
 
@@ -340,7 +339,7 @@ class Config:
         return list(libraries)
 
     def get_detected_user(self) -> tuple[str | None, str | None]:
-        """Auto-detects Steam user from userdata folder."""
+        # find steam user from userdata folder
         if not self.STEAM_PATH:
             return None, None
 
@@ -354,13 +353,12 @@ class Config:
                 if (item / "config" / "localconfig.vdf").exists():
                     account_id = int(item.name)
                     steam_id_64 = str(account_id + 76561197960265728)
-                    logger.debug("Detected Steam user: %d", account_id)
+                    logger.debug("Detected Steam user: %d" % account_id)
                     return str(account_id), steam_id_64
 
         return None, None
 
     def get_localconfig_path(self, account_id: str) -> Path | None:
-        """Get path to localconfig.vdf for given user."""
         if not self.STEAM_PATH or not account_id:
             return None
         return self.STEAM_PATH / "userdata" / account_id / "config" / "localconfig.vdf"

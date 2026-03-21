@@ -2,9 +2,10 @@
 # steam_library_manager/ui/actions/settings_actions.py
 # UI action handlers for opening settings and preferences
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+# TODO: per-section save instead of full dialog?
 
 from __future__ import annotations
 
@@ -26,19 +27,10 @@ class SettingsActions:
     """Handles settings dialog and configuration changes."""
 
     def __init__(self, main_window: "MainWindow") -> None:
-        """Initialize SettingsActions.
-
-        Args:
-            main_window: The MainWindow instance.
-        """
-        self.mw: "MainWindow" = main_window
+        self.mw = main_window
 
     def show_settings(self) -> None:
-        """Opens the settings dialog and applies changes on save.
-
-        Tracks the last persisted language so unsaved live-preview
-        changes are reverted when the dialog is closed without saving.
-        """
+        # open settings dialog, revert unsaved language on close
         self._last_persisted_language = config.UI_LANGUAGE
         dialog = SettingsDialog(self.mw)
         dialog.language_changed.connect(self.on_language_changed_live)
@@ -50,32 +42,24 @@ class SettingsActions:
             init_i18n(self._last_persisted_language)
             self._refresh_ui()
 
-    def on_language_changed_live(self, new_language: str) -> None:
-        """Handles live language change from settings dialog.
-
-        Args:
-            new_language: The new language code (e.g., 'en', 'de').
-        """
-        config.UI_LANGUAGE = new_language
-        init_i18n(new_language)
+    def on_language_changed_live(self, lang: str) -> None:
+        # live preview language change
+        config.UI_LANGUAGE = lang
+        init_i18n(lang)
         self._refresh_ui()
 
     def apply_settings(self, settings: dict[str, Any]) -> None:
-        """Applies settings from the settings dialog.
-
-        Args:
-            settings: Dictionary containing all settings values.
-        """
+        # apply all settings from dialog
         # Steam path
         if "steam_path" in settings and settings["steam_path"]:
             config.STEAM_PATH = Path(settings["steam_path"])
 
         # UI Language
         if "ui_language" in settings and settings["ui_language"]:
-            new_lang = settings["ui_language"]
-            if new_lang != config.UI_LANGUAGE:
-                config.UI_LANGUAGE = new_lang
-                init_i18n(new_lang)
+            lang = settings["ui_language"]
+            if lang != config.UI_LANGUAGE:
+                config.UI_LANGUAGE = lang
+                init_i18n(lang)
                 self._refresh_ui()
 
         # Tags Language
@@ -108,7 +92,6 @@ class SettingsActions:
         self.mw.set_status(t("settings.applied"))
 
     def _refresh_ui(self) -> None:
-        """Refreshes UI after language change."""
         self.mw.menuBar().clear()
         self.mw.menu_builder.build(self.mw.menuBar())
         self.mw.user_label = self.mw.menu_builder.user_label
