@@ -2,9 +2,10 @@
 # steam_library_manager/ui/workers/session_restore_worker.py
 # Background QThread worker for restoring the previous UI session
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+# TODO: retry logic is messy, refactor later
 
 from __future__ import annotations
 
@@ -24,15 +25,7 @@ __all__ = ["SessionRestoreResult", "SessionRestoreWorker"]
 
 @dataclass(frozen=True)
 class SessionRestoreResult:
-    """Immutable result of a session restore attempt.
-
-    Attributes:
-        success: Whether the session was restored with a valid token.
-        access_token: The validated or refreshed access token.
-        refresh_token: The refresh token from storage.
-        steam_id: SteamID64 of the authenticated user.
-        persona_name: Display name fetched from Steam Community.
-    """
+    """Result of session restore attempt."""
 
     success: bool
     access_token: str | None = None
@@ -42,71 +35,56 @@ class SessionRestoreResult:
 
 
 class SessionRestoreWorker(QThread):
-    """Background thread for restoring a Steam session without blocking the UI.
-
-    Performs token loading, refresh with retries, validation fallback,
-    and persona name fetch — all in a separate thread.
-
-    Signals:
-        session_restored: Emitted with a SessionRestoreResult when done.
-    """
+    """Background thread for Steam session restore."""
 
     session_restored = pyqtSignal(object)
 
-    def run(self) -> None:
-        """Execute the full session restore pipeline.
-
-        Steps:
-            1. Load stored tokens from keyring/file (fast).
-            2. Try to refresh the access token (HTTP, retries).
-            3. If refresh fails, validate the stored token (HTTP).
-            4. Fetch persona name from Steam Community (HTTP).
-            5. Emit result via signal.
-        """
+    def run(self):
+        # full restore pipeline
         from steam_library_manager.core.token_store import TokenStore, _REFRESH_NOT_NEEDED
 
-        token_store = TokenStore()
-        stored = token_store.load_tokens()
+        ts = TokenStore()
+        stored = ts.load_tokens()
 
         if stored is None:
             self.session_restored.emit(SessionRestoreResult(success=False))
             return
 
-        # Log token age for diagnostics
-        token_age_hours = (_time.time() - stored.timestamp) / 3600
+        # log token age
+        age_hours = (_time.time() - stored.timestamp) / 3600
         logger.info(
             t(
                 "logs.auth.token_age_info",
-                hours=f"{token_age_hours:.1f}",
+                hours="%.1f" % age_hours,
                 timestamp=_time.strftime("%Y-%m-%d %H:%M", _time.localtime(stored.timestamp)),
             )
         )
 
-        # Try to refresh the access token (with retry)
-        refresh_result = token_store.refresh_access_token(stored.refresh_token, stored.steam_id)
+        # try refresh with retry
+        refresh_result = ts.refresh_access_token(stored.refresh_token, stored.steam_id)
 
         if refresh_result and refresh_result != _REFRESH_NOT_NEEDED:
-            # Got a fresh token from Steam
+            # got fresh token
             active_token = refresh_result
-            token_store.save_tokens(refresh_result, stored.refresh_token, stored.steam_id)
+            ts.save_tokens(refresh_result, stored.refresh_token, stored.steam_id)
         elif refresh_result == _REFRESH_NOT_NEEDED:
-            # Steam returned 200 but no new token — stored token is still valid
+            # steam returned 200 but no new token - still valid
             logger.info(t("logs.auth.token_validation_ok"))
             active_token = stored.access_token
         else:
-            # Refresh truly failed — validate stored token as fallback
+            # refresh failed - validate stored token as fallback
             logger.warning(t("logs.auth.token_refresh_failed", error="using stored token"))
             if TokenStore.validate_access_token(stored.access_token, stored.steam_id):
                 logger.info(t("logs.auth.token_validation_ok"))
                 active_token = stored.access_token
             else:
-                # Both refresh and validation failed — token is expired
+                # both failed - expired
                 logger.error(t("logs.auth.token_validation_failed"))
                 self.session_restored.emit(SessionRestoreResult(success=False))
                 return
 
-        # Fetch persona name (HTTP)
-        persona_name = self.fetch_steam_persona_name(stored.steam_id)
+        # fetch persona name via HTTP
+        name = self.fetch_steam_persona_name(stored.steam_id)
 
         logger.info(t("logs.auth.token_loaded"))
         self.session_restored.emit(
@@ -115,31 +93,25 @@ class SessionRestoreWorker(QThread):
                 access_token=active_token,
                 refresh_token=stored.refresh_token,
                 steam_id=stored.steam_id,
-                persona_name=persona_name,
+                persona_name=name,
             )
         )
 
     @staticmethod
-    def fetch_steam_persona_name(steam_id: str) -> str | None:
-        """Fetch the public persona name from Steam Community XML.
-
-        Args:
-            steam_id: The SteamID64 to look up.
-
-        Returns:
-            The persona name if found, otherwise None.
-        """
+    def fetch_steam_persona_name(sid: str):
+        # grab display name from steam community xml
+        # FIXME: XML parsing is fragile
         import requests
         import xml.etree.ElementTree as ET
 
         try:
-            url = f"https://steamcommunity.com/profiles/{steam_id}/?xml=1"
-            response = requests.get(url, timeout=HTTP_TIMEOUT_SHORT)
-            if response.status_code == 200:
-                tree = ET.fromstring(response.content)
-                steam_id_element = tree.find("steamID")
-                if steam_id_element is not None and steam_id_element.text:
-                    return steam_id_element.text
+            url = "https://steamcommunity.com/profiles/%s/?xml=1" % sid
+            resp = requests.get(url, timeout=HTTP_TIMEOUT_SHORT)
+            if resp.status_code == 200:
+                tree = ET.fromstring(resp.content)
+                el = tree.find("steamID")
+                if el is not None and el.text:
+                    return el.text
         except (requests.RequestException, ET.ParseError) as e:
             logger.error(t("logs.auth.profile_error", error=str(e)))
         except Exception as e:

@@ -2,12 +2,12 @@
 # steam_library_manager/core/localconfig_helper.py
 # Reads and writes Steam localconfig.vdf for category and collection data
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+# TODO: refactor this mess
 
 from __future__ import annotations
-
 
 import logging
 import vdf
@@ -21,30 +21,22 @@ __all__ = ["LocalConfigHelper"]
 
 
 class LocalConfigHelper:
-    """Minimal helper for localconfig.vdf operations."""
+    """Minimal helper for localconfig.vdf."""
 
-    def __init__(self, config_path: str):
-        """Initialize the helper.
-
-        Args:
-            config_path: Path to localconfig.vdf file
-        """
+    def __init__(self, config_path):
+        # setup paths
         self.config_path = Path(config_path)
-        self.data: dict = {}
-        self.apps: dict = {}
+        self.data = {}
+        self.apps = {}
         self.modified = False
 
-    def load(self) -> bool:
-        """Load localconfig.vdf file.
-
-        Returns:
-            True if successful, False otherwise
-        """
+    def load(self):
+        # parse localconfig.vdf
         try:
             with open(self.config_path, "r", encoding="utf-8") as f:
                 self.data = vdf.load(f)
 
-            # Navigate to Apps section
+            # navigate to Apps section - boring vdf stuff
             steam_section = (
                 self.data.get("UserLocalConfigStore", {}).get("Software", {}).get("Valve", {}).get("Steam", {})
             )
@@ -60,11 +52,7 @@ class LocalConfigHelper:
             return False
 
     def save(self) -> bool:
-        """Save localconfig.vdf file.
-
-        Returns:
-            True if successful, False otherwise
-        """
+        # write back to localconfig.vdf
         if not self.modified:
             return True
 
@@ -78,60 +66,38 @@ class LocalConfigHelper:
             logger.error(t("logs.localconfig.save_error", error=e))
             return False
 
-    # ===== HIDDEN STATUS =====
+    # hidden apps stuff
 
-    def get_hidden_apps(self) -> list[str]:
-        """Get list of hidden app IDs.
-
-        Returns:
-            List of app IDs that are hidden
-        """
-        hidden = []
-        for app_id, app_data in self.apps.items():
-            if app_data.get("hidden", "0") == "1":
-                hidden.append(app_id)
-        return hidden
+    def get_hidden_apps(self):
+        # collect hidden app IDs (ugh, stored as "1"/"0" strings)
+        out = []
+        for aid, ad in self.apps.items():
+            if ad.get("hidden", "0") == "1":
+                out.append(aid)
+        return out
 
     def set_app_hidden(self, app_id: str, hidden: bool):
-        """Set hidden status for an app.
+        # set hidden flag for app
+        aid = str(app_id)
 
-        Args:
-            app_id: Steam app ID
-            hidden: True to hide, False to show
-        """
-        app_id = str(app_id)
+        if aid not in self.apps:
+            self.apps[aid] = {}
 
-        if app_id not in self.apps:
-            self.apps[app_id] = {}
-
-        self.apps[app_id]["hidden"] = "1" if hidden else "0"
+        self.apps[aid]["hidden"] = "1" if hidden else "0"
         self.modified = True
 
-    # ===== EXPANDED/COLLAPSED STATE =====
+    # expand/collapse state
 
-    def get_expanded_state(self, category_id: str) -> bool:
-        """Get expanded state for a category.
-
-        Args:
-            category_id: Category/collection ID
-
-        Returns:
-            True if expanded, False if collapsed
-        """
+    def get_expanded_state(self, category_id):
+        # check if category is expanded in UI
         if category_id not in self.apps:
-            return True  # Default: expanded
+            return True  # default expanded
 
-        cloud_state = self.apps[category_id].get("CloudLocalAppState", {})
-        expanded = cloud_state.get("Expanded", "1")
-        return expanded == "1"
+        cs = self.apps[category_id].get("CloudLocalAppState", {})
+        return cs.get("Expanded", "1") == "1"
 
     def set_expanded_state(self, category_id: str, expanded: bool):
-        """Set expanded state for a category.
-
-        Args:
-            category_id: Category/collection ID
-            expanded: True to expand, False to collapse
-        """
+        # set expanded state
         if category_id not in self.apps:
             self.apps[category_id] = {}
 
@@ -141,45 +107,28 @@ class LocalConfigHelper:
         self.apps[category_id]["CloudLocalAppState"]["Expanded"] = "1" if expanded else "0"
         self.modified = True
 
-    def get_all_expanded_states(self) -> dict[str, bool]:
-        """Get expanded states for all categories.
+    def get_all_expanded_states(self):
+        # map all categories to expanded state
+        out = {}
+        for aid, ad in self.apps.items():
+            cs = ad.get("CloudLocalAppState", {})
+            if "Expanded" in cs:
+                out[aid] = cs.get("Expanded", "1") == "1"
+        return out
 
-        Returns:
-            Dictionary mapping category IDs to expanded state (True/False)
-        """
-        states = {}
-        for app_id, app_data in self.apps.items():
-            cloud_state = app_data.get("CloudLocalAppState", {})
-            if "Expanded" in cloud_state:
-                expanded = cloud_state.get("Expanded", "1")
-                states[app_id] = expanded == "1"
-        return states
-
-    # ===== ALL APP IDS =====
+    # all app IDs
 
     def get_all_app_ids(self) -> list[str]:
-        """Returns all app IDs present in the localconfig Apps section.
-
-        Returns:
-            List of app ID strings.
-        """
         return list(self.apps.keys())
 
-    # ===== CLEANUP =====
+    # cleanup
 
     def remove_app(self, app_id: str) -> bool:
-        """Remove app entry from localconfig (cleanup ghost entries).
+        # delete ghost entry
+        aid = str(app_id)
 
-        Args:
-            app_id: Steam app ID to remove
-
-        Returns:
-            True if app was removed, False if not found
-        """
-        app_id = str(app_id)
-
-        if app_id in self.apps:
-            del self.apps[app_id]
+        if aid in self.apps:
+            del self.apps[aid]
             self.modified = True
             return True
 

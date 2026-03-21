@@ -2,9 +2,10 @@
 # steam_library_manager/services/search_service.py
 # Full-text game search with scoring and ranking
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+# TODO: add fuzzy matching for typos?
 
 from __future__ import annotations
 
@@ -23,66 +24,37 @@ _REGEX_PREFIX = "/"
 
 
 class SearchService:
-    """Service handling game search logic including regex support."""
+    """Handles game search logic."""
 
     @staticmethod
     def filter_games(games: list[Game], query: str) -> list[Game]:
-        """Filters a list of games based on a search query.
-
-        Supports three modes:
-        - Empty query: returns all games.
-        - Regex mode: query starts with ``/`` (e.g. ``/^Half.*``).
-        - Plain text: case-insensitive substring match on name.
-
-        Args:
-            games: List of Game objects to filter.
-            query: The search string.
-
-        Returns:
-            The filtered list of games.
-        """
+        # filter games by query string
+        # supports regex if query starts with /
         if not query:
             return games
 
         if query.startswith(_REGEX_PREFIX) and len(query) > 1:
             return SearchService._filter_regex(games, query[1:])
 
-        lower_query = query.lower()
-        return [g for g in games if lower_query in g.name.lower()]
+        q = query.lower()
+        return [g for g in games if q in g.name.lower()]
 
     @staticmethod
-    def _filter_regex(games: list[Game], pattern: str) -> list[Game]:
-        """Filters games using a regex pattern against the game name.
-
-        Invalid regex patterns fall back to empty results with a warning.
-
-        Args:
-            games: Games to filter.
-            pattern: Regex pattern string (without leading ``/``).
-
-        Returns:
-            Games whose name matches the pattern.
-        """
+    def _filter_regex(games: list[Game], pat: str) -> list[Game]:
+        # filter using regex pattern
         try:
-            compiled = re.compile(pattern, re.IGNORECASE)
-        except re.error as exc:
-            logger.warning("Invalid regex pattern '%s': %s", pattern, exc)
+            rx = re.compile(pat, re.IGNORECASE)
+        except re.error as e:
+            logger.warning("Invalid regex pattern '%s': %s" % (pat, e))
             return []
 
-        return [g for g in games if compiled.search(g.name)]
+        return [g for g in games if rx.search(g.name)]
 
     @staticmethod
-    def validate_regex(pattern: str) -> bool:
-        """Checks if a regex pattern is valid.
-
-        Args:
-            pattern: The regex pattern string to check.
-
-        Returns:
-            True if valid regex, False otherwise.
-        """
+    def validate_regex(pat: str) -> bool:
+        # check if regex is valid
         try:
-            re.compile(pattern)
+            re.compile(pat)
             return True
         except re.error:
             return False

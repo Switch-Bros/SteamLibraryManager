@@ -2,14 +2,14 @@
 # steam_library_manager/integrations/steamgrid_api.py
 # SteamGridDB API client for custom game artwork
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+# FIXME: pagination logic is ugly
 
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 import requests
 
@@ -23,40 +23,17 @@ __all__ = ["SteamGridDB"]
 
 
 class SteamGridDB:
-    """
-    Client for the SteamGridDB API.
+    """Client for SteamGridDB API."""
 
-    This class provides methods to fetch game images from SteamGridDB, including
-    support for pagination, multiple image types, and NSFW content filtering.
-    """
-
-    # Secure HTTPS URL
     BASE_URL = "https://www.steamgriddb.com/api/v2"
 
     def __init__(self):
-        """
-        Initializes the SteamGridDB client.
-
-        Reads the API key from the config and sets up authentication headers.
-        """
+        # read api key from config
         self.api_key = config.STEAMGRIDDB_API_KEY
-        self.headers = {"Authorization": f"Bearer {self.api_key}"}
+        self.headers = {"Authorization": "Bearer %s" % self.api_key}
 
-    def get_images_for_game(self, steam_app_id: str | int) -> dict[str, str | None]:
-        """
-        Fetches a single image URL for each image type.
-
-        This is a convenience method that returns one image per type (grids, heroes,
-        logos, icons) for quick access.
-
-        Args:
-            steam_app_id (str | int): The Steam app ID.
-
-        Returns:
-            dict[str, str | None]: A dictionary mapping image types to URLs.
-                                     Returns an empty dict if no API key is configured
-                                     or if the game is not found.
-        """
+    def get_images_for_game(self, steam_app_id):
+        # one image per type for quick access
         if not self.api_key:
             return {}
         game_id = self._get_game_id(steam_app_id)
@@ -70,23 +47,8 @@ class SteamGridDB:
             "icons": self._fetch_single_url(game_id, "icons"),
         }
 
-    def get_images_by_type(self, steam_app_id: str | int, img_type: str) -> list[dict[str, Any]]:
-        """
-        Fetches all images of a specific type across all pages.
-
-        This method implements pagination to retrieve all available images for
-        a game. It includes both static and animated images, and NSFW content.
-
-        Args:
-            steam_app_id (str | int): The Steam app ID.
-            img_type (str): The type of image to fetch ('grids', 'heroes', 'logos', 'icons').
-
-        Returns:
-            list[dict[str, Any]]: A list of image data dictionaries. Each dictionary
-                                 contains image metadata (url, dimensions, etc.).
-                                 Returns an empty list if no API key is configured,
-                                 the game is not found, or an error occurs.
-        """
+    def get_images_by_type(self, steam_app_id, img_type: str):
+        # fetch all images of one type, paginated
         if not self.api_key:
             return []
 
@@ -94,62 +56,45 @@ class SteamGridDB:
         if not game_id:
             return []
 
-        all_images = []
+        imgs = []  # short name
         page = 0
 
         while True:
             try:
-                # nsfw='any' -> Shows EVERYTHING (Standard + Adult)
-                params: dict[str, Any] = {"page": page, "nsfw": "any", "types": "static,animated"}
+                # nsfw='any' -> shows everything
+                params = {"page": page, "nsfw": "any", "types": "static,animated"}
 
                 if img_type == "grids":
                     params["dimensions"] = "600x900,342x482"
 
-                url = f"{self.BASE_URL}/{img_type}/game/{game_id}"
-                response = requests.get(url, headers=self.headers, params=params, timeout=HTTP_TIMEOUT)
+                url = "%s/%s/game/%s" % (self.BASE_URL, img_type, game_id)
+                resp = requests.get(url, headers=self.headers, params=params, timeout=HTTP_TIMEOUT)
 
-                if response.status_code == 200:
-                    data = response.json()
+                if resp.status_code == 200:
+                    data = resp.json()
                     if data.get("success") and data.get("data"):
-                        new_images = data["data"]
-                        all_images.extend(new_images)
+                        batch = data["data"]
+                        imgs.extend(batch)
 
-                        # If less than 20 results, it was the last page
-                        if len(new_images) < 20:
+                        # steamgriddb does 20 per page
+                        if len(batch) < 20:
                             break
                         page += 1
                     else:
                         break
                 else:
-                    logger.error(t("logs.steamgrid.api_error", code=response.status_code, page=page))
+                    logger.error(t("logs.steamgrid.api_error", code=resp.status_code, page=page))
                     break
 
             except (requests.RequestException, ValueError, KeyError) as e:
                 logger.error(t("logs.steamgrid.exception", error=str(e)))
                 break
 
-        logger.info(t("logs.steamgrid.found", count=len(all_images)))
-        return all_images
+        logger.info(t("logs.steamgrid.found", count=len(imgs)))
+        return imgs
 
-    def get_images_by_type_paged(
-        self,
-        steam_app_id: str | int,
-        img_type: str,
-        page: int = 0,
-        limit: int = 24,
-    ) -> list[dict[str, Any]]:
-        """Fetches one page of images from SteamGridDB.
-
-        Args:
-            steam_app_id: The Steam app ID.
-            img_type: Image type ('grids', 'heroes', 'logos', 'icons').
-            page: Page number (0-indexed).
-            limit: Maximum results per page (used to detect last page).
-
-        Returns:
-            List of image data dicts for this page. Empty list on error
-            or if no more results.
-        """
+    def get_images_by_type_paged(self, steam_app_id: str | int, img_type, page=0, limit=24):
+        # single page of images - used by grid view
         if not self.api_key:
             return []
 
@@ -158,7 +103,7 @@ class SteamGridDB:
             return []
 
         try:
-            params: dict[str, Any] = {
+            params = {
                 "page": page,
                 "nsfw": "any",
                 "types": "static,animated",
@@ -168,11 +113,11 @@ class SteamGridDB:
             if img_type == "grids":
                 params["dimensions"] = "600x900,342x482"
 
-            url = f"{self.BASE_URL}/{img_type}/game/{game_id}"
-            response = requests.get(url, headers=self.headers, params=params, timeout=HTTP_TIMEOUT)
+            url = "%s/%s/game/%s" % (self.BASE_URL, img_type, game_id)
+            resp = requests.get(url, headers=self.headers, params=params, timeout=HTTP_TIMEOUT)
 
-            if response.status_code == 200:
-                data = response.json()
+            if resp.status_code == 200:
+                data = resp.json()
                 if data.get("success") and data.get("data"):
                     return data["data"]
 
@@ -183,17 +128,10 @@ class SteamGridDB:
             return []
 
     def _get_game_id(self, steam_app_id: str | int) -> int | None:
-        """
-        Resolves a Steam app ID to a SteamGridDB game ID.
-
-        Args:
-            steam_app_id (str | int): The Steam app ID.
-
-        Returns:
-            int | None: The SteamGridDB game ID, or None if not found or an error occurs.
-        """
+        # steam app id -> steamgriddb game id
+        # TODO: cache this lookup?
         try:
-            url = f"{self.BASE_URL}/games/steam/{steam_app_id}"
+            url = "%s/games/steam/%s" % (self.BASE_URL, steam_app_id)
             response = requests.get(url, headers=self.headers, timeout=HTTP_TIMEOUT_SHORT)
             if response.status_code == 200:
                 data = response.json()
@@ -203,23 +141,10 @@ class SteamGridDB:
             pass
         return None
 
-    def _fetch_single_url(self, game_id: int, endpoint: str, params: dict[str, Any] | None = None) -> str | None:
-        """
-        Fetches a single image URL for a specific endpoint.
-
-        This is a helper method used by get_images_for_game to retrieve one image
-        per type.
-
-        Args:
-            game_id (int): The SteamGridDB game ID.
-            endpoint (str): The API endpoint ('grids', 'heroes', 'logos', 'icons').
-            params (dict[str, Any] | None): Optional query parameters (e.g., dimensions).
-
-        Returns:
-            str | None: The URL of the first image, or None if not found or an error occurs.
-        """
+    def _fetch_single_url(self, game_id: int, endpoint, params=None):
+        # grab first image url for endpoint
         try:
-            url = f"{self.BASE_URL}/{endpoint}/game/{game_id}"
+            url = "%s/%s/game/%s" % (self.BASE_URL, endpoint, game_id)
             response = requests.get(url, headers=self.headers, params=params, timeout=HTTP_TIMEOUT_SHORT)
             if response.status_code == 200:
                 data = response.json()
