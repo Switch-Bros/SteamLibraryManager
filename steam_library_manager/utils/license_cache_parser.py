@@ -2,7 +2,7 @@
 # steam_library_manager/utils/license_cache_parser.py
 # Parses the Steam license cache for ownership verification
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 # FIXME: PRNG could be Cython for speed

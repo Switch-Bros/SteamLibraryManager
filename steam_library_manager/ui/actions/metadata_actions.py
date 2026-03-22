@@ -2,7 +2,7 @@
 # steam_library_manager/ui/actions/metadata_actions.py
 # UI action handlers for metadata edit and import operations
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 # TODO: undo support for metadata edits?

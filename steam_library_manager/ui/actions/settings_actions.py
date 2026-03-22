@@ -2,7 +2,7 @@
 # steam_library_manager/ui/actions/settings_actions.py
 # UI action handlers for opening settings and preferences
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 # TODO: per-section save instead of full dialog?

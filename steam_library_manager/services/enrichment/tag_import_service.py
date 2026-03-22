@@ -2,7 +2,7 @@
 # steam_library_manager/services/enrichment/tag_import_service.py
 # Service to import Steam tags in bulk from the store API
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

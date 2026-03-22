@@ -2,7 +2,7 @@
 # steam_library_manager/services/smart_collections/smart_collection_manager.py
 # Smart Collection lifecycle manager: CRUD, evaluate, sync.
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 # FIXME: this class is way too big, needs splitting

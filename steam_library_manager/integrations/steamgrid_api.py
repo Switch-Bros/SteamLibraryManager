@@ -2,7 +2,7 @@
 # steam_library_manager/integrations/steamgrid_api.py
 # SteamGridDB API client for custom game artwork
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 # FIXME: pagination logic is ugly

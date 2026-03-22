@@ -2,7 +2,7 @@
 # steam_library_manager/utils/appinfo.py
 # Steam AppInfo.vdf parser with full read and write support
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

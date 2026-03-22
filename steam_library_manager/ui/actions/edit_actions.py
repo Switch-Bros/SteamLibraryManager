@@ -2,7 +2,7 @@
 # steam_library_manager/ui/actions/edit_actions.py
 # UI action handlers for edit menu operations
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 # FIXME: _do_auto_categorize is too long

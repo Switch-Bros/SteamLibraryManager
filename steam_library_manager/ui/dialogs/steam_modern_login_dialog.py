@@ -2,7 +2,7 @@
 # steam_library_manager/ui/dialogs/steam_modern_login_dialog.py
 # Modern Steam login dialog with QWebEngineView integration
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 # TODO: remember last used login method?

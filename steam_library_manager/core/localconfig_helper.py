@@ -2,7 +2,7 @@
 # steam_library_manager/core/localconfig_helper.py
 # Reads and writes Steam localconfig.vdf for category and collection data
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 # TODO: refactor this mess

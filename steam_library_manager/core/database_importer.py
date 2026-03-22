@@ -2,7 +2,7 @@
 # steam_library_manager/core/database_importer.py
 # Imports game metadata from appinfo.vdf into the SQLite database
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

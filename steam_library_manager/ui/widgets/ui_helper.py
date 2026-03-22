@@ -2,7 +2,7 @@
 # steam_library_manager/ui/widgets/ui_helper.py
 # UIHelper with factory methods for common dialog and widget patterns
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 # TODO: extract dialog builder pattern?

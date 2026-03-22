@@ -2,7 +2,7 @@
 # steam_library_manager/ui/workers/session_restore_worker.py
 # Background QThread worker for restoring the previous UI session
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 # TODO: retry logic is messy, refactor later

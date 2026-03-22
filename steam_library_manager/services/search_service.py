@@ -2,7 +2,7 @@
 # steam_library_manager/services/search_service.py
 # Full-text game search with scoring and ranking
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 # TODO: add fuzzy matching for typos?

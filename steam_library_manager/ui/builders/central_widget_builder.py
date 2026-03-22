@@ -2,7 +2,7 @@
 # steam_library_manager/ui/builders/central_widget_builder.py
 # Builds the central widget layout with game tree and details panel
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

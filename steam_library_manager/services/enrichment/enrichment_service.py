@@ -2,7 +2,7 @@
 # steam_library_manager/services/enrichment/enrichment_service.py
 # Coordinator that dispatches and tracks all enrichment services
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

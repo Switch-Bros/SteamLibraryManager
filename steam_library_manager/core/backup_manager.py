@@ -2,7 +2,7 @@
 # steam_library_manager/core/backup_manager.py
 # File backup creation with automatic rotation and limit enforcement
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

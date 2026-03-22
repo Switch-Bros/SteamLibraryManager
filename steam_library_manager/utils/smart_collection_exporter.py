@@ -2,7 +2,7 @@
 # steam_library_manager/utils/smart_collection_exporter.py
 # Exports smart collections to a portable JSON sidecar format
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 

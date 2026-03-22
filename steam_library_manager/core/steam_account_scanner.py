@@ -2,7 +2,7 @@
 # steam_library_manager/core/steam_account_scanner.py
 # Scans the filesystem for installed Steam accounts and profiles
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 # FIXME: fetch_steam_display_name is slow for many accounts

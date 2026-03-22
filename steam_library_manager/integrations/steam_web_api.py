@@ -2,7 +2,7 @@
 # steam_library_manager/integrations/steam_web_api.py
 # Steam Web API client for library, player, and app data
 #
-# Copyright (c) 2025-2026 SwitchBros
+# Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 
