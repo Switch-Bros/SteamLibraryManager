@@ -2,7 +2,7 @@
 # steam_library_manager/ui/builders/central_widget_builder.py
 # Builds the central widget layout with game tree and details panel
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 
@@ -24,93 +24,66 @@ __all__ = ["CentralWidgetBuilder"]
 
 
 class CentralWidgetBuilder:
-    """Builder for the central widget with splitter layout.
-
-    Constructs the main application view including:
-    - Left sidebar with search and game tree
-    - Right panel with game details
-    - Expand/collapse controls
-
-    Attributes:
-        mw: Reference to the MainWindow instance.
-    """
+    """Builds the central widget with splitter layout."""
 
     def __init__(self, main_window: "MainWindow"):
-        """Initialize the builder.
-
-        Args:
-            main_window: The MainWindow instance.
-        """
         self.mw = main_window
 
     def build(self) -> dict[str, Any]:
-        """Build the central widget layout.
-
-        Creates the complete central widget with:
-        - Search bar
-        - Expand/collapse buttons
-        - Game tree widget
-        - Game details panel
-
-        Returns:
-            dict containing references to created widgets:
-            - 'tree': GameTreeWidget
-            - 'details_widget': GameDetailsWidget
-            - 'search_entry': QLineEdit
-        """
-        # Central Widget
+        # create central widget with search, tree, and details panel
         central = QWidget()
         self.mw.setCentralWidget(central)
         layout = QVBoxLayout(central)
         layout.setContentsMargins(5, 5, 5, 5)
 
+        # TODO: responsive splitter sizes?
         splitter = QSplitter(Qt.Orientation.Horizontal)
 
         # LEFT SIDE
-        left_widget = QWidget()
-        left_layout = QVBoxLayout(left_widget)
-        left_layout.setContentsMargins(0, 0, 0, 0)
-        left_layout.setSpacing(2)
+        left = QWidget()
+        llayout = QVBoxLayout(left)
+        llayout.setContentsMargins(0, 0, 0, 0)
+        llayout.setSpacing(2)
 
         # Search Bar
-        search_layout = QHBoxLayout()
-        search_layout.addWidget(QLabel(t("emoji.search")))
-        search_entry = QLineEdit()
-        search_entry.setPlaceholderText(t("ui.main_window.search_placeholder"))
+        slayout = QHBoxLayout()
+        slayout.addWidget(QLabel(t("emoji.search")))
+        search = QLineEdit()
+        search.setPlaceholderText(t("ui.main_window.search_placeholder"))
         # noinspection PyUnresolvedReferences
-        search_entry.textChanged.connect(self.mw.view_actions.on_search)
-        search_layout.addWidget(search_entry)
+        search.textChanged.connect(self.mw.view_actions.on_search)
+        slayout.addWidget(search)
 
         clear_btn = QPushButton(t("emoji.clear"))
         # noinspection PyUnresolvedReferences
         clear_btn.clicked.connect(self.mw.view_actions.clear_search)
         clear_btn.setMaximumWidth(30)
-        search_layout.addWidget(clear_btn)
-        left_layout.addLayout(search_layout)
+        slayout.addWidget(clear_btn)
+        llayout.addLayout(slayout)
 
         # Tree Controls
-        btn_layout = QHBoxLayout()
-        expand_btn = QPushButton(f"▼ {t('menu.edit.collections.expand_all')}")
+        blayout = QHBoxLayout()
+        exp_btn = QPushButton("▼ %s" % t("menu.edit.collections.expand_all"))
         # noinspection PyUnresolvedReferences
-        expand_btn.clicked.connect(self.mw.view_actions.expand_all)
-        btn_layout.addWidget(expand_btn)
+        exp_btn.clicked.connect(self.mw.view_actions.expand_all)
+        blayout.addWidget(exp_btn)
 
-        collapse_btn = QPushButton(f"▲ {t('menu.edit.collections.collapse_all')}")
+        col_btn = QPushButton("▲ %s" % t("menu.edit.collections.collapse_all"))
         # noinspection PyUnresolvedReferences
-        collapse_btn.clicked.connect(self.mw.view_actions.collapse_all)
-        btn_layout.addWidget(collapse_btn)
-        left_layout.addLayout(btn_layout)
+        col_btn.clicked.connect(self.mw.view_actions.collapse_all)
+        blayout.addWidget(col_btn)
+        llayout.addLayout(blayout)
 
         # Inline Progress Area (hidden by default)
-        loading_label = QLabel()
-        loading_label.setVisible(False)
-        left_layout.addWidget(loading_label)
+        load_lbl = QLabel()
+        load_lbl.setVisible(False)
+        llayout.addWidget(load_lbl)
 
-        progress_bar = QProgressBar()
-        progress_bar.setMaximumHeight(8)
-        progress_bar.setTextVisible(False)
-        progress_bar.setVisible(False)
-        left_layout.addWidget(progress_bar)
+        pbar = QProgressBar()
+        pbar.setMaximumHeight(8)
+        pbar.setTextVisible(False)
+        pbar.setVisible(False)
+        llayout.addWidget(pbar)
 
         # Tree Widget
         tree = GameTreeWidget()
@@ -124,27 +97,27 @@ class CentralWidgetBuilder:
         tree.selection_changed.connect(self.mw.selection_handler.on_games_selected)
         # noinspection PyUnresolvedReferences
         tree.games_dropped.connect(self.mw.category_change_handler.on_games_dropped)
-        left_layout.addWidget(tree)
+        llayout.addWidget(tree)
 
-        splitter.addWidget(left_widget)
+        splitter.addWidget(left)
 
         # RIGHT SIDE (Details)
-        details_widget = GameDetailsWidget()
+        details = GameDetailsWidget()
         # noinspection PyUnresolvedReferences
-        details_widget.category_changed.connect(self.mw.category_change_handler.on_category_changed_from_details)
+        details.category_changed.connect(self.mw.category_change_handler.on_category_changed_from_details)
         # noinspection PyUnresolvedReferences
-        details_widget.edit_metadata.connect(self.mw.metadata_actions.edit_game_metadata)
+        details.edit_metadata.connect(self.mw.metadata_actions.edit_game_metadata)
         # noinspection PyUnresolvedReferences
-        details_widget.pegi_override_requested.connect(self.mw.metadata_actions.on_pegi_override_requested)
-        splitter.addWidget(details_widget)
+        details.pegi_override_requested.connect(self.mw.metadata_actions.on_pegi_override_requested)
+        splitter.addWidget(details)
 
         splitter.setSizes([350, 1050])
         layout.addWidget(splitter)
 
         return {
             "tree": tree,
-            "details_widget": details_widget,
-            "search_entry": search_entry,
-            "loading_label": loading_label,
-            "progress_bar": progress_bar,
+            "details_widget": details,
+            "search_entry": search,
+            "loading_label": load_lbl,
+            "progress_bar": pbar,
         }

@@ -2,7 +2,7 @@
 # steam_library_manager/utils/appinfo.py
 # Steam AppInfo.vdf parser with full read and write support
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
 
@@ -22,7 +22,6 @@ except ImportError:
     HAS_I18N = False
 
     def t(key: str, **_kwargs: object) -> str:
-        """Fallback translation function for standalone use."""
         return key.split(".")[-1]
 
 
@@ -67,7 +66,7 @@ class AppInfo:
 
         # Version-specific
         self.string_table: list[str] = []
-        self.string_table_offset = 0
+        self.st_off = 0
 
         # Load data
         if path:
@@ -86,8 +85,8 @@ class AppInfo:
 
     # Header parsing
 
+    # parse file header, detect version
     def _parse_header(self):
-        """Parses the file header and detects the version."""
         # Read magic (4 bytes)
         raw_magic = self._read_uint32()
 
@@ -108,129 +107,129 @@ class AppInfo:
 
         # Version 41+ has string table offset
         if self.version >= 41:
-            self.string_table_offset = self._read_int64()
+            self.st_off = self._read_int64()
             # Parse string table
             self._parse_string_table()
 
+    # load string table for v41+
     def _parse_string_table(self):
-        """Parses the string table for version 41+ files."""
         # Save current position
-        saved_offset = self.offset
+        saved = self.offset
 
         # Jump to string table
-        self.offset = self.string_table_offset
+        self.offset = self.st_off
 
         # Read string count
-        string_count = self._read_uint32()
+        scount = self._read_uint32()
 
         # Read strings
         self.string_table = []
-        for _ in range(string_count):
+        for _ in range(scount):
             string = self._read_cstring()
             self.string_table.append(string)
 
         # Restore position
-        self.offset = saved_offset
+        self.offset = saved
 
     # App parsing
 
+    # parse all app entries
     def _parse_apps(self):
-        """Parses all app entries from the file."""
         while True:
             # Read app ID
-            current_app_id = self._read_uint32()
+            aid = self._read_uint32()
 
             # Check for end marker
-            if current_app_id == 0:
+            if aid == 0:
                 break
 
             # Parse app entry
             try:
-                current_app_data = self._parse_app_entry()
-                self.apps[current_app_id] = current_app_data
+                adata = self._parse_app_entry()
+                self.apps[aid] = adata
             except Exception as e:
-                logger.warning(t("logs.appinfo.parse_error", app_id=current_app_id, error=e))
+                logger.warning(t("logs.appinfo.parse_error", app_id=aid, error=e))
                 continue
 
+    # parse single app entry
     def _parse_app_entry(self) -> dict:
-        """Parses a single app entry."""
-        app_entry = {}
+        entry = {}
 
         # Version-specific parsing
         if self.version >= 36:
             # Read size field
-            app_entry["size"] = self._read_uint32()
+            entry["size"] = self._read_uint32()
 
         # Read info state
-        app_entry["info_state"] = self._read_uint32()
+        entry["info_state"] = self._read_uint32()
 
         # Read last updated
-        app_entry["last_updated"] = self._read_uint32()
+        entry["last_updated"] = self._read_uint32()
 
         # Version 38+ has access token
         if self.version >= 38:
-            app_entry["access_token"] = self._read_uint64()
+            entry["access_token"] = self._read_uint64()
 
         # Version 38+ has SHA-1 hash
         if self.version >= 38:
-            app_entry["sha1_hash"] = self.data[self.offset : self.offset + 20]
+            entry["sha1_hash"] = self.data[self.offset : self.offset + 20]
             self.offset += 20
 
         # Version 36+ has change number
         if self.version >= 36:
-            app_entry["change_number"] = self._read_uint32()
+            entry["change_number"] = self._read_uint32()
 
         # Version 40+ has binary SHA-1 hash
         if self.version >= 40:
-            app_entry["binary_sha1"] = self.data[self.offset : self.offset + 20]
+            entry["binary_sha1"] = self.data[self.offset : self.offset + 20]
             self.offset += 20
 
         # Parse binary VDF data
-        app_entry["data"] = self._parse_vdf()
+        entry["data"] = self._parse_vdf()
 
-        return app_entry
+        return entry
 
     # VDF parsing
 
+    # parse binary VDF key-value data
     def _parse_vdf(self) -> dict:
-        """Parses binary VDF (Key-Value) data."""
         result = {}
 
         while True:
             # Read value type
-            value_type = self._read_byte()
+            vt = self._read_byte()
 
             # Check for end marker
-            if value_type == TYPE_SECTION_END:
+            if vt == TYPE_SECTION_END:
                 break
 
             # Read key
             key = self._read_key()
 
             # Parse value based on type
-            if value_type == TYPE_DICT:
+            if vt == TYPE_DICT:
                 # Nested dictionary
                 result[key] = self._parse_vdf()
 
-            elif value_type == TYPE_STRING:
+            elif vt == TYPE_STRING:
                 # String value
                 result[key] = self._read_cstring()
 
-            elif value_type == TYPE_INT32:
+            elif vt == TYPE_INT32:
                 # 32-bit integer
                 result[key] = self._read_int32()
 
-            elif value_type == TYPE_FLOAT32:
+            elif vt == TYPE_FLOAT32:
                 # 32-bit float
                 result[key] = self._read_float32()
 
-            elif value_type == TYPE_INT64:
+            elif vt == TYPE_INT64:
                 # 64-bit integer
                 result[key] = self._read_int64()
 
             else:
                 # Unknown type - skip
-                logger.warning(t("logs.appinfo.unknown_vdf_type", type=f"0x{value_type:02x}"))
+                logger.warning(t("logs.appinfo.unknown_vdf_type", type="0x%02x" % vt))
                 break
 
         return result
@@ -238,58 +237,52 @@ class AppInfo:
     # Read primitives
 
     def _read_byte(self) -> int:
-        """Reads a single byte from the data."""
         value = self.data[self.offset]
         self.offset += 1
         return value
 
     def _read_int32(self) -> int:
-        """Reads a signed 32-bit integer."""
         value = struct.unpack_from("<i", self.data, self.offset)[0]
         self.offset += 4
         return value
 
     def _read_uint32(self) -> int:
-        """Reads an unsigned 32-bit integer."""
         value = struct.unpack_from("<I", self.data, self.offset)[0]
         self.offset += 4
         return value
 
     def _read_int64(self) -> int:
-        """Reads a signed 64-bit integer."""
         value = struct.unpack_from("<q", self.data, self.offset)[0]
         self.offset += 8
         return value
 
     def _read_uint64(self) -> int:
-        """Reads an unsigned 64-bit integer."""
         value = struct.unpack_from("<Q", self.data, self.offset)[0]
         self.offset += 8
         return value
 
     def _read_float32(self) -> float:
-        """Reads a 32-bit float."""
         value = struct.unpack_from("<f", self.data, self.offset)[0]
         self.offset += 4
         return value
 
+    # read null-terminated UTF-8 string
     def _read_cstring(self) -> str:
-        """Reads a null-terminated string (UTF-8 with latin-1 fallback)."""
         end = self.data.find(0, self.offset)
         if end == -1:
             end = len(self.data)
 
-        string_bytes = self.data[self.offset : end]
+        sb = self.data[self.offset : end]
         self.offset = end + 1
 
         # Try UTF-8 first, fallback to latin-1
         try:
-            return string_bytes.decode("utf-8")
+            return sb.decode("utf-8")
         except UnicodeDecodeError:
-            return string_bytes.decode("latin-1", errors="replace")
+            return sb.decode("latin-1", errors="replace")
 
+    # read key: string table index for v41+, direct string otherwise
     def _read_key(self) -> str:
-        """Reads a key - string table index for v41+, direct string otherwise."""
         if self.version >= 41 and self.string_table:
             # Read string table index
             index = self._read_uint32()
@@ -297,7 +290,7 @@ class AppInfo:
             # Bounds check
             if index >= len(self.string_table):
                 logger.warning(t("logs.appinfo.string_index_warning", index=index, size=len(self.string_table)))
-                return f"__unknown_{index}__"
+                return "__unknown_%d__" % index
 
             return self.string_table[index]
         else:
@@ -306,12 +299,12 @@ class AppInfo:
 
     # Write support
 
-    def write(self, output_path: str | None = None) -> bool:
-        """Writes the appinfo.vdf back to disk with correct checksums."""
-        if output_path is None:
+    # write appinfo.vdf back to disk
+    def write(self, opath: str | None = None) -> bool:
+        if opath is None:
             if self.file_path is None:
                 raise ValueError(t("errors.appinfo.no_output_path"))
-            output_path = self.file_path
+            opath = self.file_path
 
         try:
             # Build new file data
@@ -331,7 +324,7 @@ class AppInfo:
                 self._write_string_table(output)
 
             # Write to file
-            with open(output_path, "wb") as f:
+            with open(opath, "wb") as f:
                 f.write(output)
 
             return True
@@ -342,7 +335,6 @@ class AppInfo:
             return False
 
     def _write_header(self, output: bytearray):
-        """Writes the file header."""
         # Write magic + version
         magic_version = (self.magic << 8) | self.version
         output.extend(struct.pack("<I", magic_version))
@@ -356,17 +348,15 @@ class AppInfo:
             output.extend(struct.pack("<Q", 0))
 
     def _write_apps(self, output: bytearray):
-        """Writes all app entries."""
-        for current_app_id, current_app_data in self.apps.items():
-            self._write_app_entry(output, current_app_id, current_app_data)
+        for aid, adata in self.apps.items():
+            self._write_app_entry(output, aid, adata)
 
-    def _write_app_entry(self, output: bytearray, entry_app_id: int, entry_app_data: dict):
-        """Writes a single app entry."""
+    def _write_app_entry(self, output: bytearray, eid: int, edata: dict):
         # Write app ID
-        output.extend(struct.pack("<I", entry_app_id))
+        output.extend(struct.pack("<I", eid))
 
         # Encode VDF data
-        vdf_data = self._encode_vdf(entry_app_data.get("data", {}))
+        vd = self._encode_vdf(edata.get("data", {}))
 
         # Calculate size (if needed)
         if self.version >= 36:
@@ -378,44 +368,44 @@ class AppInfo:
                 + (20 if self.version >= 38 else 0)  # sha1_hash
                 + (4 if self.version >= 36 else 0)  # change_number
                 + (20 if self.version >= 40 else 0)  # binary_sha1
-                + len(vdf_data)
+                + len(vd)
             )
             output.extend(struct.pack("<I", size))
 
         # Write info state
-        output.extend(struct.pack("<I", entry_app_data.get("info_state", 2)))
+        output.extend(struct.pack("<I", edata.get("info_state", 2)))
 
         # Write last updated
-        output.extend(struct.pack("<I", entry_app_data.get("last_updated", 0)))
+        output.extend(struct.pack("<I", edata.get("last_updated", 0)))
 
         # Version 38+ has access token
         if self.version >= 38:
-            output.extend(struct.pack("<Q", entry_app_data.get("access_token", 0)))
+            output.extend(struct.pack("<Q", edata.get("access_token", 0)))
 
         # Version 38+ has SHA-1 hash
         if self.version >= 38:
             # Calculate text VDF SHA-1
-            text_vdf = self._dict_to_text_vdf(entry_app_data.get("data", {}))
-            sha1_hash = hashlib.sha1(text_vdf).digest()
-            output.extend(sha1_hash)
+            tvdf = self._dict_to_text_vdf(edata.get("data", {}))
+            sha1 = hashlib.sha1(tvdf).digest()
+            output.extend(sha1)
 
         # Version 36+ has change number
         if self.version >= 36:
-            output.extend(struct.pack("<I", entry_app_data.get("change_number", 0)))
+            output.extend(struct.pack("<I", edata.get("change_number", 0)))
 
         # Version 40+ has binary SHA-1 hash
         if self.version >= 40:
-            binary_sha1 = hashlib.sha1(vdf_data).digest()
-            output.extend(binary_sha1)
+            bsha1 = hashlib.sha1(vd).digest()
+            output.extend(bsha1)
 
         # Write VDF data
-        output.extend(vdf_data)
+        output.extend(vd)
 
-    def _encode_vdf(self, vdf_data: dict) -> bytearray:
-        """Encodes a dictionary to binary VDF format."""
+    # dict -> binary VDF
+    def _encode_vdf(self, vd: dict) -> bytearray:
         output = bytearray()
 
-        for key, value in vdf_data.items():
+        for key, value in vd.items():
             if isinstance(value, dict):
                 # Nested dictionary
                 output.append(TYPE_DICT)
@@ -453,7 +443,6 @@ class AppInfo:
         return output
 
     def _encode_key(self, key: str) -> bytearray:
-        """Encodes a key - string table index for v41+, direct string otherwise."""
         if self.version >= 41 and self.string_table:
             # Find or add to string table
             try:
@@ -470,16 +459,14 @@ class AppInfo:
 
     @staticmethod
     def _encode_cstring(string: str) -> bytearray:
-        """Encodes a null-terminated string."""
         try:
             return bytearray(string.encode("utf-8") + b"\x00")
         except UnicodeEncodeError:
             return bytearray(string.encode("latin-1", errors="replace") + b"\x00")
 
     def _write_string_table(self, output: bytearray):
-        """Writes the string table and updates the offset in the header."""
         # Record string table position
-        string_table_offset = len(output)
+        st_off = len(output)
 
         # Write string count
         output.extend(struct.pack("<I", len(self.string_table)))
@@ -489,32 +476,32 @@ class AppInfo:
             output.extend(self._encode_cstring(string))
 
         # Update offset in header (byte 8-15)
-        struct.pack_into("<Q", output, 8, string_table_offset)
+        struct.pack_into("<Q", output, 8, st_off)
 
+    # dict -> text VDF for SHA-1 calculation
     def _dict_to_text_vdf(self, vdf_dict: dict, indent: int = 0) -> bytes:
-        """Converts a dictionary to text VDF format for SHA-1 calculation."""
         output = b""
         tabs = b"\t" * indent
 
         for key, value in vdf_dict.items():
             # Escape backslashes in key
-            key_escaped = key.replace("\\", "\\\\")
+            kesc = key.replace("\\", "\\\\")
 
             if isinstance(value, dict):
                 # Nested dict
-                output += tabs + b'"' + key_escaped.encode("utf-8", errors="replace") + b'"\n'
+                output += tabs + b'"' + kesc.encode("utf-8", errors="replace") + b'"\n'
                 output += tabs + b"{\n"
                 output += self._dict_to_text_vdf(value, indent + 1)
                 output += tabs + b"}\n"
             else:
                 # Value
-                value_str = str(value).replace("\\", "\\\\")
+                vs = str(value).replace("\\", "\\\\")
                 output += (
                     tabs
                     + b'"'
-                    + key_escaped.encode("utf-8", errors="replace")
+                    + kesc.encode("utf-8", errors="replace")
                     + b'"\t\t"'
-                    + value_str.encode("utf-8", errors="replace")
+                    + vs.encode("utf-8", errors="replace")
                     + b'"\n'
                 )
 
@@ -526,38 +513,36 @@ class AppInfo:
         return self.apps.get(app_id)
 
     def set_app(self, set_app_id: int, set_data: dict):
-        """Sets app data for a specific app ID, creating the entry if needed."""
         if set_app_id not in self.apps:
             self.apps[set_app_id] = {"info_state": 2, "last_updated": 0, "data": {}}
 
         self.apps[set_app_id]["data"] = set_data
 
+    # update common section metadata
     def update_app_metadata(self, update_app_id: int, metadata: dict):
-        """Updates app metadata in the 'common' section."""
         if update_app_id not in self.apps:
             return False
 
-        app_data_dict = self.apps[update_app_id].get("data", {})
+        adata = self.apps[update_app_id].get("data", {})
 
-        if "common" not in app_data_dict:
-            app_data_dict["common"] = {}
+        if "common" not in adata:
+            adata["common"] = {}
 
-        common_section = app_data_dict["common"]
+        common = adata["common"]
 
         # Update fields
         if "name" in metadata:
-            common_section["name"] = metadata["name"]
+            common["name"] = metadata["name"]
         if "developer" in metadata:
-            common_section["developer"] = metadata["developer"]
+            common["developer"] = metadata["developer"]
         if "publisher" in metadata:
-            common_section["publisher"] = metadata["publisher"]
+            common["publisher"] = metadata["publisher"]
         if "release_date" in metadata:
-            common_section["steam_release_date"] = metadata["release_date"]
+            common["steam_release_date"] = metadata["release_date"]
 
         return True
 
     def __len__(self) -> int:
-        """Returns the number of apps."""
         return len(self.apps)
 
     def __contains__(self, check_app_id: int) -> bool:
@@ -567,17 +552,15 @@ class AppInfo:
         return self.apps[get_app_id]
 
     def __repr__(self) -> str:
-        return f"<AppInfo v{self.version} with {len(self.apps)} apps>"
+        return "<AppInfo v%d with %d apps>" % (self.version, len(self.apps))
 
 
 # Simple API
 
 
 def load(fp: BinaryIO) -> AppInfo:
-    """Loads appinfo.vdf from a file object."""
     return AppInfo(data=fp.read())
 
 
 def loads(file_data: bytes) -> AppInfo:
-    """Loads appinfo.vdf from bytes."""
     return AppInfo(data=file_data)
