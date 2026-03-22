@@ -2,9 +2,10 @@
 # steam_library_manager/utils/license_cache_parser.py
 # Parses the Steam license cache for ownership verification
 #
-# Copyright © 2025-2026 SwitchBros
+# Copyright (c) 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+# FIXME: PRNG could be Cython for speed
 
 from __future__ import annotations
 
@@ -28,12 +29,7 @@ __all__ = ["LicenseCacheParser", "LicenseInfo"]
 
 @dataclass(frozen=True)
 class LicenseInfo:
-    """A single Steam license entry.
-
-    Attributes:
-        package_id: The Steam package ID.
-        time_created: Unix timestamp when the license was acquired.
-    """
+    """A single Steam license entry."""
 
     package_id: int
     time_created: int = 0
@@ -59,21 +55,12 @@ class _RandomStream:
         self._iv: list[int] = [0] * self._NTAB
 
     def _set_seed(self, seed: int) -> None:
-        """Initialize the PRNG with a seed value.
-
-        Args:
-            seed: The seed (Steam32 account ID).
-        """
         self._idum = -seed if seed >= 0 else seed
         self._iy = 0
         self._iv = [0] * self._NTAB
 
+    # next random number
     def _generate(self) -> int:
-        """Generate the next random number.
-
-        Returns:
-            Random integer in [1, IM-1].
-        """
         if self._idum <= 0 or self._iy == 0:
             if -self._idum < 1:
                 self._idum = 1
@@ -103,83 +90,41 @@ class _RandomStream:
         self._iv[j] = self._idum
         return self._iy
 
+    # random int in [low, high]
     def _random_int(self, low: int, high: int) -> int:
-        """Generate random int in [low, high] inclusive.
-
-        Args:
-            low: Lower bound.
-            high: Upper bound.
-
-        Returns:
-            Random integer in the range [low, high].
-        """
         x = high - low + 1
         if x <= 1:
             return low
-        max_acceptable = 0x7FFFFFFF - ((0x7FFFFFFF + 1) % x)
+        mx = 0x7FFFFFFF - ((0x7FFFFFFF + 1) % x)
         while True:
             n = self._generate()
-            if n <= max_acceptable:
+            if n <= mx:
                 break
         return low + (n % x)
 
+    # XOR decrypt with PRNG stream
     def decrypt(self, key: int, data: bytes) -> bytes:
-        """Decrypt data using XOR with PRNG stream.
-
-        Args:
-            key: Decryption key (Steam32 account ID).
-            data: Encrypted bytes from licensecache file.
-
-        Returns:
-            Decrypted bytes.
-        """
         self._set_seed(key)
-        result = bytearray(len(data))
+        out = bytearray(len(data))
         for i in range(len(data)):
-            result[i] = data[i] ^ self._random_int(32, 126)
-        return bytes(result)
+            out[i] = data[i] ^ self._random_int(32, 126)
+        return bytes(out)
 
 
 class LicenseCacheParser:
-    """Parses Steam's encrypted licensecache to extract owned PackageIDs.
-
-    The licensecache file is an XOR-encrypted Protobuf containing every
-    license (package) the user owns. Combined with PackageInfoParser,
-    this gives the definitive list of all owned AppIDs.
-
-    Attributes:
-        _path: Path to the licensecache file.
-        _steam32_id: User's Steam32 account ID (decryption key).
-    """
+    """Parses Steam's encrypted licensecache for owned PackageIDs."""
 
     def __init__(self, steam_path: Path, steam32_id: int) -> None:
-        """Initializes the parser.
-
-        Args:
-            steam_path: Path to the Steam installation directory.
-            steam32_id: User's 32-bit Steam account ID (decryption key).
-        """
         self._path = steam_path / "userdata" / str(steam32_id) / "config" / "licensecache"
         self._steam32_id = steam32_id
 
+    # main entry point: returns owned package IDs
     def get_owned_package_ids(self) -> set[int]:
-        """Returns all owned PackageIDs from the licensecache.
-
-        This is the primary method — call this, then pass the result
-        to PackageInfoParser.get_app_ids_for_packages().
-
-        Returns:
-            Set of owned PackageIDs. Empty set if file missing or parse fails.
-        """
         licenses = self.parse()
         return {lic.package_id for lic in licenses}
 
+    # decrypt and parse licensecache
     def parse(self) -> list[LicenseInfo]:
-        """Decrypts and parses the licensecache file.
-
-        Returns:
-            List of LicenseInfo entries. Empty list if file missing or parse fails.
-        """
         if not self._path.exists():
             logger.info(t("logs.license_cache.not_found", path=str(self._path)))
             return []
@@ -201,30 +146,20 @@ class LicenseCacheParser:
             logger.error(t("logs.license_cache.parse_error", error=str(exc)))
             return []
 
+    # protobuf -> LicenseInfo list
     def _parse_protobuf(self, data: bytes) -> list[LicenseInfo]:
-        """Parse decrypted Protobuf data into LicenseInfo entries.
-
-        Uses the generated CMsgClientLicenseList from licensecache_pb2.py,
-        following the same pattern as manifest.py uses for depot manifests.
-
-        Args:
-            data: Decrypted Protobuf bytes (checksum already stripped).
-
-        Returns:
-            List of parsed LicenseInfo entries.
-        """
         msg = CMsgClientLicenseList()
         msg.ParseFromString(data)
 
-        licenses: list[LicenseInfo] = []
+        out = []
         for lic in msg.licenses:
             if lic.package_id > 0:
-                licenses.append(
+                out.append(
                     LicenseInfo(
                         package_id=lic.package_id,
                         time_created=lic.time_created,
                     )
                 )
 
-        logger.info(t("logs.license_cache.parsed", count=len(licenses)))
-        return licenses
+        logger.info(t("logs.license_cache.parsed", count=len(out)))
+        return out
