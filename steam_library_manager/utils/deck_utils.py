@@ -5,6 +5,7 @@
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
 #
+# TODO: batch API support?
 
 from __future__ import annotations
 
@@ -33,47 +34,35 @@ _USER_AGENT = "SteamLibraryManager/1.0"
 
 
 def fetch_deck_compatibility(app_id: str | int, cache_dir: Path | None = None) -> str | None:
-    """Fetches Steam Deck compatibility status from Valve's API.
-
-    Makes a single request to Valve's deck compatibility endpoint,
-    parses the resolved_category, and optionally writes a cache file.
-
-    Args:
-        app_id: Steam app ID.
-        cache_dir: Optional directory for JSON cache files.
-
-    Returns:
-        Status string ("verified", "playable", "unsupported", "unknown"),
-        or None on failure.
-    """
+    # fetch deck status from valve API, optionally cache
     try:
         url = _API_URL.format(app_id=app_id)
-        response = requests.get(
+        resp = requests.get(
             url,
             timeout=HTTP_TIMEOUT_SHORT,
             headers={"User-Agent": _USER_AGENT},
         )
 
-        if response.status_code != 200:
-            logger.debug("Deck API returned %d for %s", response.status_code, app_id)
+        if resp.status_code != 200:
+            logger.debug("Deck API returned %d for %s" % (resp.status_code, app_id))
             return None
 
-        data = response.json()
+        data = resp.json()
         results = data.get("results", {})
 
         if isinstance(results, list):
             results = results[0] if results else {}
 
-        resolved_category = results.get("resolved_category", 0) if isinstance(results, dict) else 0
-        status = DECK_STATUS_MAP.get(resolved_category, "unknown")
+        cat = results.get("resolved_category", 0) if isinstance(results, dict) else 0
+        status = DECK_STATUS_MAP.get(cat, "unknown")
 
         if cache_dir is not None:
-            cache_file = cache_dir / f"{app_id}_deck.json"
-            with open(cache_file, "w") as f:
-                json.dump({"status": status, "category": resolved_category}, f)
+            cfile = cache_dir / ("%s_deck.json" % app_id)
+            with open(cfile, "w") as f:
+                json.dump({"status": status, "category": cat}, f)
 
         return status
 
     except (requests.RequestException, ValueError, KeyError, OSError) as exc:
-        logger.debug("Deck API fetch failed for %s: %s", app_id, exc)
+        logger.debug("Deck API fetch failed for %s: %s" % (app_id, exc))
         return None

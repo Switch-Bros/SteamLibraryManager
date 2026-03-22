@@ -1,6 +1,7 @@
 #
 # steam_library_manager/utils/smart_collection_importer.py
 # Imports smart collections from JSON sidecar files
+# FIXME: no schema validation on import
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -25,86 +26,56 @@ logger = logging.getLogger("steamlibmgr.smart_collection_importer")
 
 
 class SmartCollectionImporter:
-    """Imports Smart Collections from JSON format.
-
-    Supports version 1.0 (flat rules) and 1.1 (grouped rules) of the
-    export format. Unknown fields are silently ignored for forward
-    compatibility.
-    """
+    """Imports Smart Collections from JSON format."""
 
     @staticmethod
     def import_collections(file_path: Path) -> list[SmartCollection]:
-        """Imports Smart Collections from a JSON file.
-
-        Args:
-            file_path: Path to the JSON file to import.
-
-        Returns:
-            List of SmartCollection instances (without collection_id,
-            ready to be created via SmartCollectionManager).
-
-        Raises:
-            FileNotFoundError: If the file does not exist.
-            ValueError: If the JSON is malformed or missing required fields.
-        """
+        # import from JSON file, supports v1.0 and v1.1 format
         if not file_path.exists():
-            msg = f"File not found: {file_path}"
+            msg = "File not found: %s" % file_path
             raise FileNotFoundError(msg)
 
         with open(file_path, encoding="utf-8") as fh:
             try:
                 data = json.load(fh)
             except json.JSONDecodeError as exc:
-                msg = f"Invalid JSON: {exc}"
+                msg = "Invalid JSON: %s" % exc
                 raise ValueError(msg) from exc
 
         if not isinstance(data, dict) or "smart_collections" not in data:
             msg = "Missing 'smart_collections' key in JSON"
             raise ValueError(msg)
 
-        raw_collections = data["smart_collections"]
-        if not isinstance(raw_collections, list):
+        raw = data["smart_collections"]
+        if not isinstance(raw, list):
             msg = "'smart_collections' must be a list"
             raise ValueError(msg)
 
-        result: list[SmartCollection] = []
-        for entry in raw_collections:
+        out = []
+        for entry in raw:
             try:
                 sc = SmartCollectionImporter._dict_to_collection(entry)
-                result.append(sc)
+                out.append(sc)
             except (ValueError, KeyError) as exc:
-                logger.warning("Skipping invalid collection entry: %s", exc)
+                logger.warning("Skipping invalid collection entry: %s" % exc)
 
-        logger.info("Imported %d smart collections from %s", len(result), file_path)
-        return result
+        logger.info("Imported %d smart collections from %s" % (len(out), file_path))
+        return out
 
     @staticmethod
     def _dict_to_collection(data: dict) -> SmartCollection:
-        """Deserializes a single Smart Collection from a dict.
-
-        Supports both v1.0 (flat ``"rules"``) and v1.1 (``"groups"``) formats.
-
-        Args:
-            data: Dict with name, logic, rules/groups, and optional metadata.
-
-        Returns:
-            SmartCollection instance ready for creation.
-
-        Raises:
-            ValueError: If required fields are missing or invalid.
-            KeyError: If required fields are missing.
-        """
+        # dict -> SmartCollection
         name = data.get("name", "").strip()
         if not name:
             msg = "Collection name is required"
             raise ValueError(msg)
 
         # Parse logic operator
-        logic_str = data.get("logic", "OR")
+        lstr = data.get("logic", "OR")
         try:
-            logic = LogicOperator(logic_str)
+            logic = LogicOperator(lstr)
         except ValueError:
-            logger.warning("Unknown logic '%s', defaulting to OR", logic_str)
+            logger.warning("Unknown logic '%s', defaulting to OR" % lstr)
             logic = LogicOperator.OR
 
         groups = []
@@ -112,20 +83,20 @@ class SmartCollectionImporter:
 
         # v1.1 format: groups
         if "groups" in data:
-            raw_groups = data["groups"]
-            if not isinstance(raw_groups, list):
+            rgroups = data["groups"]
+            if not isinstance(rgroups, list):
                 msg = "'groups' must be a list"
                 raise ValueError(msg)
-            for group_data in raw_groups:
-                groups.append(group_from_dict(group_data))
+            for gd in rgroups:
+                groups.append(group_from_dict(gd))
         else:
             # v1.0 format: flat rules
-            raw_rules = data.get("rules", [])
-            if not isinstance(raw_rules, list):
+            rrules = data.get("rules", [])
+            if not isinstance(rrules, list):
                 msg = "'rules' must be a list"
                 raise ValueError(msg)
-            for rule_data in raw_rules:
-                rules.append(rule_from_dict(rule_data))
+            for rd in rrules:
+                rules.append(rule_from_dict(rd))
 
         return SmartCollection(
             name=name,

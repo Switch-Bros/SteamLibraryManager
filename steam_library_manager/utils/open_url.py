@@ -1,6 +1,7 @@
 #
 # steam_library_manager/utils/open_url.py
 # Cross-platform URL opener with Steam browser protocol support
+# FIXME: Wayland fallback untested
 #
 # Copyright © 2025-2026 SwitchBros
 # Licensed under the MIT License. See LICENSE for details.
@@ -19,18 +20,7 @@ __all__ = ["open_url"]
 
 
 def open_url(url: str) -> bool:
-    """Opens a URL in the system's default browser.
-
-    In PyInstaller/AppImage environments, LD_LIBRARY_PATH is modified
-    which can break xdg-open. This function restores the original
-    environment before launching the browser.
-
-    Args:
-        url: The URL to open.
-
-    Returns:
-        True if the browser was launched successfully, False otherwise.
-    """
+    # open URL in default browser (handles PyInstaller/AppImage)
     if getattr(sys, "frozen", False) or os.environ.get("APPIMAGE"):
         return _open_url_clean_env(url)
 
@@ -45,22 +35,12 @@ def open_url(url: str) -> bool:
 
 
 def _open_url_clean_env(url: str) -> bool:
-    """Opens a URL with a cleaned LD_LIBRARY_PATH.
-
-    Restores the original LD_LIBRARY_PATH that existed before PyInstaller
-    modified it, then calls xdg-open.
-
-    Args:
-        url: The URL to open.
-
-    Returns:
-        True if the subprocess was launched, False on error.
-    """
+    # open URL with cleaned LD_LIBRARY_PATH for bundled apps
     env = os.environ.copy()
 
     # PyInstaller saves originals as *_ORIG
     for key in ("LD_LIBRARY_PATH", "LD_PRELOAD"):
-        orig_key = f"{key}_ORIG"
+        orig_key = "%s_ORIG" % key
         if orig_key in env:
             env[key] = env[orig_key]
         elif key in env:
@@ -77,7 +57,7 @@ def _open_url_clean_env(url: str) -> bool:
     except FileNotFoundError:
         logger.warning("xdg-open not found, falling back to webbrowser module")
     except Exception as e:
-        logger.warning("xdg-open failed: %s", e)
+        logger.warning("xdg-open failed: %s" % e)
 
     # Last resort fallback
     try:
@@ -85,5 +65,5 @@ def _open_url_clean_env(url: str) -> bool:
 
         return webbrowser.open(url)
     except Exception as e:
-        logger.error("Failed to open URL %s: %s", url, e)
+        logger.error("Failed to open URL %s: %s" % (url, e))
         return False
