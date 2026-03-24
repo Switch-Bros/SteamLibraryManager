@@ -407,6 +407,7 @@
         "achievement_total": "Achievement-Anzahl",
         "steam_deck": "Steam Deck",
         "protondb": "ProtonDB",
+        "pegi": "Altersfreigabe (PEGI)",
         "installed": "Installiert",
         "hidden": "Versteckt",
         "achievement_perfect": "Perfektes Spiel"
@@ -430,6 +431,7 @@
         "achievement_total": "z.B. 50",
         "steam_deck": "verified, playable, unsupported",
         "protondb": "platinum, gold, silver, bronze",
+        "pegi": "3, 7, 12, 16, 18",
         "between_max": "Max"
       },
       "operator": {

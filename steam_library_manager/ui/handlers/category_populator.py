@@ -91,12 +91,34 @@ class CategoryPopulator:
 
         # smart collections
         sc = set()
+        sc_game_ids = set()
         if hasattr(mw, "smart_collection_manager") and mw.smart_collection_manager:
             for c in mw.smart_collection_manager.get_all():
                 sc.add(c.name)
+            # games in any smart collection count as categorized
+            try:
+                from steam_library_manager.config import config
+                from steam_library_manager.core.database import Database
+
+                db = Database(config.DATA_DIR / "metadata.db")
+                try:
+                    cur = db.conn.execute(
+                        "SELECT DISTINCT cg.app_id FROM collection_games cg"
+                        " JOIN user_collections c ON c.collection_id = cg.collection_id"
+                        " WHERE c.is_smart = 1"
+                    )
+                    sc_game_ids = {r[0] for r in cur.fetchall()}
+                finally:
+                    db.close()
+            except Exception:
+                pass
 
         uncat = sort_fn(
-            [g for g in mw.game_manager.get_uncategorized_games(sc) if not g.hidden and g.app_id in fids],
+            [
+                g
+                for g in mw.game_manager.get_uncategorized_games(sc)
+                if not g.hidden and g.app_id in fids and int(g.app_id) not in sc_game_ids
+            ],
         )
 
         cats_data = OrderedDict()

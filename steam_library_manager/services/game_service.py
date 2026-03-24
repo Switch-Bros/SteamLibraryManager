@@ -9,6 +9,8 @@
 from __future__ import annotations
 
 import logging
+import time
+
 import requests
 from pathlib import Path
 
@@ -87,6 +89,165 @@ class GameService:
             logger.error(t("logs.db.schema_error", error=str(e)))
             return None
 
+    def _sync_new_games_to_db(self, db):
+        # ensure all games from API/local are in the DB, fetch data for incomplete ones
+        cur = db.conn.execute("SELECT app_id FROM games")
+        existing = {r[0] for r in cur.fetchall()}
+
+        # find games with no tags (need enrichment)
+        cur2 = db.conn.execute(
+            "SELECT g.app_id FROM games g"
+            " WHERE NOT EXISTS (SELECT 1 FROM game_tags t WHERE t.app_id = g.app_id)"
+            " AND g.app_type IN ('game', '')"
+        )
+        missing_tags = {r[0] for r in cur2.fetchall()}
+
+        new_ids = []
+        for aid_str, game in self.game_manager.games.items():
+            aid = int(aid_str)
+            if aid not in existing:
+                db.conn.execute(
+                    "INSERT OR IGNORE INTO games (app_id, name, app_type, created_at, updated_at)"
+                    " VALUES (?, ?, ?, ?, ?)",
+                    (aid, game.name, game.app_type or "game", int(time.time()), int(time.time())),
+                )
+                new_ids.append(aid)
+            elif aid in missing_tags:
+                new_ids.append(aid)
+
+        if new_ids:
+            db.conn.commit()
+            logger.info("Enriching %d games (new or missing tags)", len(new_ids))
+            try:
+                self._import_tags_from_appinfo(db, set(new_ids))
+            except Exception as exc:
+                logger.warning("appinfo tag import failed: %s", exc)
+            self._fetch_data_for_new_games(db, new_ids)
+
+    def _import_tags_from_appinfo(self, db, target_ids):
+        # import tags from appinfo.vdf for specific games
+        if not target_ids:
+            return
+        if not self.appinfo_manager or not self.steam_path:
+            self.appinfo_manager = AppInfoManager(Path(self.steam_path))
+            self.appinfo_manager.load_appinfo()
+
+        if not self.appinfo_manager.appinfo or not self.appinfo_manager.appinfo.apps:
+            return
+
+        from steam_library_manager.utils.tag_resolver import TagResolver
+
+        res = TagResolver(db)
+        res.ensure_loaded()
+        tagged = 0
+
+        for aid in target_ids:
+            app_data = self.appinfo_manager.appinfo.apps.get(aid)
+            if not app_data:
+                continue
+            vdf_data = app_data.get("data", {})
+            common = AppInfoManager._find_common_section(vdf_data)
+            if not common:
+                continue
+
+            store_tags = common.get("store_tags", {})
+            if not store_tags or not isinstance(store_tags, dict):
+                continue
+
+            tag_rows = []
+            for value in store_tags.values():
+                try:
+                    tid = int(value)
+                except (ValueError, TypeError):
+                    continue
+                name = res.resolve_tag_id(tid, "en")
+                if name:
+                    tag_rows.append((aid, tid, name))
+
+            if tag_rows:
+                db.bulk_insert_game_tags_by_id(tag_rows)
+                tagged += 1
+
+        if tagged:
+            db.commit()
+            logger.info("Imported tags from appinfo.vdf for %d new games", tagged)
+
+    def _fetch_data_for_new_games(self, db, app_ids):
+        # full metadata + tags via IStoreBrowseService (same API as batch enrichment)
+        from steam_library_manager.integrations.steam_web_api import SteamWebAPI
+        from steam_library_manager.utils.age_ratings import convert_to_pegi
+
+        api_key = self.api_key
+        if not api_key:
+            from steam_library_manager.config import config
+
+            api_key = config.STEAM_API_KEY
+        if not api_key:
+            logger.warning("No API key, skipping metadata fetch for %d new games", len(app_ids))
+            return
+
+        try:
+            api = SteamWebAPI(api_key)
+            details_map = api.get_app_details_batch(app_ids)
+        except Exception as exc:
+            logger.warning("Failed to fetch details for new games: %s", exc)
+            return
+
+        for aid, d in details_map.items():
+            try:
+                flds = {}
+                if d.name:
+                    flds["name"] = d.name
+                if d.developers:
+                    flds["developer"] = ", ".join(d.developers)
+                if d.publishers:
+                    flds["publisher"] = ", ".join(d.publishers)
+                if d.review_score:
+                    flds["review_score"] = d.review_score
+                if d.steam_release_date:
+                    flds["steam_release_date"] = d.steam_release_date
+                if flds:
+                    db.upsert_game_metadata(aid, **flds)
+
+                if d.tags:
+                    db.conn.execute("DELETE FROM game_tags WHERE app_id = ?", (aid,))
+                    db.conn.executemany(
+                        "INSERT OR REPLACE INTO game_tags (app_id, tag) VALUES (?, ?)",
+                        [(aid, tg) for tg in d.tags],
+                    )
+
+                if d.genres:
+                    db.conn.execute("DELETE FROM game_genres WHERE app_id = ?", (aid,))
+                    db.conn.executemany(
+                        "INSERT OR REPLACE INTO game_genres (app_id, genre) VALUES (?, ?)",
+                        [(aid, g) for g in d.genres],
+                    )
+
+                if d.age_ratings:
+                    for system, value in d.age_ratings:
+                        if system.upper() == "PEGI":
+                            db.conn.execute("UPDATE games SET pegi_rating = ? WHERE app_id = ?", (str(value), aid))
+                            break
+                        mapped = convert_to_pegi(value, system)
+                        if mapped:
+                            db.conn.execute("UPDATE games SET pegi_rating = ? WHERE app_id = ?", (mapped, aid))
+                            break
+
+                if d.languages:
+                    db.upsert_languages(
+                        aid,
+                        {
+                            lang.lower().replace(" ", "_"): {"interface": True, "audio": False, "subtitles": False}
+                            for lang in d.languages
+                        },
+                    )
+
+                db.conn.commit()
+                logger.info("Auto-enriched game %d: %s (%d tags)", aid, d.name, len(d.tags))
+
+            except Exception as exc:
+                logger.warning("Failed to enrich game %d: %s", aid, exc)
+
     def _initial_import(self, db, cb=None):
         # one-time import from appinfo.vdf
         if db.get_game_count() > 0:
@@ -121,6 +282,7 @@ class GameService:
         ok = self.game_manager.load_games(user_id, progress_callback)
 
         if self.database and self.game_manager.games:
+            self._sync_new_games_to_db(self.database)
             self.game_manager.enrich_from_database(self.database)
 
         return ok and bool(self.game_manager.games)

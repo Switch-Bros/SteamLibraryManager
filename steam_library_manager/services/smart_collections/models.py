@@ -64,6 +64,7 @@ class FilterField(Enum):
     # Enum/Choice fields
     STEAM_DECK = "steam_deck"
     PROTONDB = "protondb"
+    PEGI = "pegi"
 
     # Boolean fields
     INSTALLED = "installed"
@@ -140,6 +141,7 @@ VALID_OPERATORS: dict[FilterField, list[Operator]] = {
     # Enum/Choice fields (treated as text single)
     FilterField.STEAM_DECK: _TEXT_OPS,
     FilterField.PROTONDB: _TEXT_OPS,
+    FilterField.PEGI: _TEXT_OPS,
     # Numeric fields
     FilterField.PLAYTIME_HOURS: _NUMERIC_OPS,
     FilterField.RELEASE_YEAR: _NUMERIC_OPS,
@@ -180,6 +182,7 @@ FIELD_CATEGORIES: dict[str, list[FilterField]] = {
     "enum": [
         FilterField.STEAM_DECK,
         FilterField.PROTONDB,
+        FilterField.PEGI,
     ],
     "boolean": [
         FilterField.INSTALLED,
@@ -208,6 +211,7 @@ _FIELD_TO_ATTR: dict[FilterField, str] = {
     FilterField.ACHIEVEMENT_TOTAL: "achievement_total",
     FilterField.STEAM_DECK: "steam_deck_status",
     FilterField.PROTONDB: "proton_db_rating",
+    FilterField.PEGI: "pegi_rating",
     FilterField.INSTALLED: "installed",
     FilterField.HIDDEN: "hidden",
     FilterField.ACHIEVEMENT_PERFECT: "achievement_perfect",
