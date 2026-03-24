@@ -5,6 +5,27 @@ All notable changes to Steam Library Manager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.4] - 2026-03-24
+
+### Fixed
+- **PEGI Enrichment:** Age rating enrichment never worked due to a parameter
+  name mismatch in configure() (silent TypeError). Both individual and
+  bulk enrichment are now functional.
+- **New Games:** Newly purchased games are now automatically synced to the
+  database on startup with full metadata and tags from appinfo.vdf.
+- **Smart Collections:** Games matched by smart collections no longer appear
+  in "Ohne Kategorie" (uncategorized).
+- **Enrich All Dialog:** PEGI chain failure no longer blocks the progress
+  dialog from closing.
+
+### Added
+- **Smart Collections:** PEGI age rating (Altersfreigabe) available as
+  filter field (3, 7, 12, 16, 18).
+
+### Changed
+- **Flatpak:** Manifest updated with all required finish-args for Lutris,
+  Heroic, Bottles, itch.io, and Flatpak game detection.
+
 ## [1.3.3] - 2026-03-17
 
 ### Fixed
