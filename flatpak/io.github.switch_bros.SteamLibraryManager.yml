@@ -11,9 +11,27 @@ finish-args:
   - --socket=wayland
   - --device=dri
   - --share=network
-  - --filesystem=xdg-data/Steam:ro
+  # Steam native (rw: writes collections, shortcuts, grid images)
+  - --filesystem=xdg-data/Steam:rw
   - --filesystem=~/.steam:ro
-  - --filesystem=~/.var/app/com.valvesoftware.Steam/data/Steam:ro
+  # Steam Flatpak (rw: same reason as above)
+  - --filesystem=~/.var/app/com.valvesoftware.Steam/data/Steam:rw
+  # Lutris native (detect games for non-Steam shortcut import)
+  - --filesystem=xdg-data/lutris:ro
+  # Lutris Flatpak
+  - --filesystem=~/.var/app/net.lutris.Lutris/data/lutris:ro
+  # Heroic native (Epic/GOG/Amazon game detection)
+  - --filesystem=xdg-config/heroic:ro
+  # Heroic Flatpak
+  - --filesystem=~/.var/app/com.heroicgameslauncher.hgl/config/heroic:ro
+  # Bottles native (detect games for non-Steam shortcut import)
+  - --filesystem=xdg-data/bottles:ro
+  # Bottles Flatpak
+  - --filesystem=~/.var/app/com.usebottles.bottles/data/bottles:ro
+  # itch.io native (detect games for non-Steam shortcut import)
+  - --filesystem=xdg-config/itch:ro
+  # Detect installed Flatpak games
+  - --filesystem=xdg-data/flatpak:ro
 
 cleanup-commands:
   - /app/cleanup-BaseApp.sh
@@ -36,5 +54,5 @@ modules:
     sources:
       - type: git
         url: https://github.com/Switch-Bros/SteamLibraryManager.git
-        tag: v1.2.0
-        commit: 7e20c9c858aada4a8f0e3ffdda8cccf44e55dc53
+        tag: v1.3.3
+        commit: 3fd129e8ece86a4d374a5e6c2d7216cacb794c8f
