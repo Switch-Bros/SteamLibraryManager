@@ -234,8 +234,14 @@ class EnrichAllCoordinator(QObject):
 
         # chain pegi after steam
         if not self._cancelled and self._games_pegi and self._db_path:
-            self._pending += 1
-            self._run_pegi()
+            try:
+                self._pending += 1
+                self._run_pegi()
+            except Exception as exc:
+                logger.error("pegi chain failed: %s", exc)
+                self._results[TRK_PEGI] = (0, -1)
+                self.track_finished.emit(TRK_PEGI, 0, -1)
+                self._pending -= 1
         elif self._games_pegi and self._db_path:
             self._results[TRK_PEGI] = (0, 0)
             self.track_finished.emit(TRK_PEGI, 0, 0)

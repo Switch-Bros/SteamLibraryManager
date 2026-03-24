@@ -27,27 +27,27 @@ class PEGIEnrichmentThread(BaseEnrichmentThread):
 
     def __init__(self, p=None):
         super().__init__(p)
-        self._g = []
-        self._dbp = None
-        self._f = False
-        self._l = "en"
+        self._games = []
+        self._db_path = None
+        self._force_refresh = False
+        self._language = "en"
         self._db = None
-        self._s = None
+        self._scraper = None
 
-    def configure(self, g, dbp, lang="en", fr=False):
-        self._g = g
-        self._dbp = dbp
-        self._l = lang
-        self._f = fr
+    def configure(self, games, db_path, language="en", force_refresh=False):
+        self._games = games
+        self._db_path = db_path
+        self._language = language
+        self._force_refresh = force_refresh
 
     def _setup(self):
         from steam_library_manager.core.database import Database
         from steam_library_manager.integrations.steam_store import SteamStoreScraper
 
-        self._db = Database(self._dbp)
-        cd = self._dbp.parent / "cache"
+        self._db = Database(self._db_path)
+        cd = self._db_path.parent / "cache"
         cd.mkdir(parents=True, exist_ok=True)
-        self._s = SteamStoreScraper(cd, self._l)
+        self._scraper = SteamStoreScraper(cd, self._language)
 
     def _cleanup(self):
         if self._db:
@@ -55,23 +55,23 @@ class PEGIEnrichmentThread(BaseEnrichmentThread):
             self._db = None
 
     def _get_items(self):
-        return self._g
+        return self._games
 
     def _process_item(self, it):
         aid, nm = it
 
         # skip if already has rating
-        if not self._f:
+        if not self._force_refresh:
             cur = self._db.conn.execute("SELECT pegi_rating FROM games WHERE app_id = ? AND pegi_rating != ''", (aid,))
             if cur.fetchone():
                 return True
 
-        if self._f:
-            cf = self._s.cache_dir.parent / "age_ratings" / ("%d.json" % aid)
+        if self._force_refresh:
+            cf = self._scraper.cache_dir.parent / "age_ratings" / ("%d.json" % aid)
             if cf.exists():
                 cf.unlink(missing_ok=True)
 
-        rt = self._s.fetch_age_rating(str(aid))
+        rt = self._scraper.fetch_age_rating(str(aid))
 
         if rt:
             self._db.conn.execute("UPDATE games SET pegi_rating = ? WHERE app_id = ?", (rt, aid))
