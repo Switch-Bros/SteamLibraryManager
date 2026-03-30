@@ -54,7 +54,7 @@ class ProfileSetupDialog(BaseDialog):
         self._steam = steam_path
         self.sid = None  # selected steamid64
         self.name = None  # display name
-        self._found = []  # scanned accounts
+        self._accounts = []  # scanned accounts
 
         super().__init__(
             parent,
@@ -158,7 +158,7 @@ class ProfileSetupDialog(BaseDialog):
 
     def _found(self, accts):
         # handle accounts found from scan
-        self._found = accts
+        self._accounts = accts
 
         self._combo.clear()
         for a in accts:
@@ -173,13 +173,13 @@ class ProfileSetupDialog(BaseDialog):
         # scan finished
         self._prog.hide()
 
-        if not self._found:
+        if not self._accounts:
             self._rad_login.setChecked(True)
             self._btn_login.setEnabled(True)
 
     def _toggle(self):
         # enable/disable inputs based on selection
-        self._combo.setEnabled(self._rad_sel.isChecked() and bool(self._found))
+        self._combo.setEnabled(self._rad_sel.isChecked() and bool(self._accounts))
         self._btn_login.setEnabled(self._rad_login.isChecked())
         self._inp_sid.setEnabled(self._rad_manual.isChecked())
         self._inp_url.setEnabled(self._rad_url.isChecked())
