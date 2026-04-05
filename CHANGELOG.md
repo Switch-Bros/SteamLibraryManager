@@ -5,6 +5,23 @@ All notable changes to Steam Library Manager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.6] - 2026-04-05
+
+### Fixed
+- **Crash on First Run (again):** Profile setup dialog crashed with
+  `AttributeError: 'ProfileSetupDialog' object has no attribute 'selected_steam_id_64'`.
+  The AI-slop refactoring shortened `selected_steam_id_64` to `sid` and
+  `selected_display_name` to `name` but main.py still used the old names (GitHub #11).
+- **Force Refresh broken:** After HLTB or Steam API enrichment, the force-refresh
+  prompt never appeared because `enrichment_starters.py` referenced
+  `dialog.wants_force_refresh` instead of the renamed `dialog.force_refresh`.
+- **Crash on category drag-drop:** Dragging games onto a category in the sidebar
+  crashed because `category_change_handler.py` referenced
+  `details_widget.current_game` instead of the renamed `details_widget.game`.
+- **Pre-update save broken:** The update dialog tried to call the non-existent
+  `game_manager.save_to_cloud()` before restarting. Now correctly calls
+  `MainWindow.save_collections()` to persist collections before auto-update.
+
 ## [1.3.5] - 2026-03-30
 
 ### Fixed

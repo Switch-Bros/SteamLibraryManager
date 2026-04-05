@@ -428,6 +428,7 @@ This project uses the following services:
 | **v1.2.6 - Dock integration fix** | ✅ **Released** |
 | **v1.2.7 - Security hardening** | ✅ **Released** |
 | **v1.3.5 - First-run crash fix** | ✅ **Released** |
+| **v1.3.6 - Refactoring regression fix** | ✅ **Released** |
 | Packaging (AppImage, AUR, Flatpak) | 🔄 Flatpak pending review |
 | Windows support | 📋 Planned |
 
