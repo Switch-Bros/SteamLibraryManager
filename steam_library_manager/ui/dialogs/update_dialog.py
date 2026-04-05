@@ -154,9 +154,9 @@ class UpdateDialog(BaseDialog):
 
         # Save application state via MainWindow
         mw = self.parent()
-        if hasattr(mw, "game_manager") and mw.game_manager:
+        if hasattr(mw, "save_collections"):
             try:
-                mw.game_manager.save_to_cloud()
+                mw.save_collections()
             except Exception as exc:
                 logger.warning("Pre-update save failed: %s", exc)
 

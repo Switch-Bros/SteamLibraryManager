@@ -125,8 +125,8 @@ class CategoryChangeHandler:
             self.mw.populate_categories()
 
         # refresh details if dropped game is selected
-        if games and self.mw.details_widget.current_game:
+        if games and self.mw.details_widget.game:
             dropped_ids = [g.app_id for g in games]
-            if self.mw.details_widget.current_game.app_id in dropped_ids:
+            if self.mw.details_widget.game.app_id in dropped_ids:
                 all_cats = list(self.mw.game_manager.get_all_categories().keys())
-                self.mw.details_widget.set_game(self.mw.details_widget.current_game, all_cats)
+                self.mw.details_widget.set_game(self.mw.details_widget.game, all_cats)

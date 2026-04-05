@@ -177,12 +177,10 @@ def main() -> None:
         result = dialog.exec()
 
         if result == ProfileSetupDialog.DialogCode.Accepted:
-            config.STEAM_USER_ID = str(dialog.selected_steam_id_64)
+            config.STEAM_USER_ID = str(dialog.sid)
             config.save()
 
-            logger.info(
-                t("logs.main.profile_configured", name=dialog.selected_display_name, id=dialog.selected_steam_id_64)
-            )
+            logger.info(t("logs.main.profile_configured", name=dialog.name, id=dialog.sid))
         else:
             logger.info(t("logs.main.setup_cancelled"))
             sys.exit(0)

@@ -166,7 +166,7 @@ class EnrichmentStarters:
         dialog.start_thread(thread)
         dialog.exec()
 
-        if not force_refresh and dialog.wants_force_refresh:
+        if not force_refresh and dialog.force_refresh:
             if UIHelper.confirm(
                 self.mw,
                 t("ui.enrichment.force_refresh_confirm"),
@@ -220,7 +220,7 @@ class EnrichmentStarters:
         dialog.start_thread(thread)
         dialog.exec()
 
-        if not force_refresh and dialog.wants_force_refresh:
+        if not force_refresh and dialog.force_refresh:
             if UIHelper.confirm(
                 self.mw,
                 t("ui.enrichment.force_refresh_confirm"),
