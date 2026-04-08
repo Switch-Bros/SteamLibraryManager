@@ -21,6 +21,30 @@ __all__ = ["RcloneProvider"]
 
 _TIMEOUT = 60  # seconds per rclone command
 
+# candidate paths for rclone binary (Steam Deck: ~/.local/bin survives updates)
+_RCLONE_SEARCH_PATHS = [
+    "rclone",  # system PATH
+    str(Path.home() / ".local/bin/rclone"),
+    "/usr/bin/rclone",
+    "/usr/local/bin/rclone",
+]
+
+
+def _find_rclone() -> str | None:
+    # find rclone binary, checking ~/.local/bin for Steam Deck
+    for candidate in _RCLONE_SEARCH_PATHS:
+        try:
+            r = subprocess.run(
+                [candidate, "version"],
+                capture_output=True,
+                timeout=5,
+            )
+            if r.returncode == 0:
+                return candidate
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            continue
+    return None
+
 
 class RcloneProvider(CloudProvider):
     """Cloud provider via rclone CLI subprocess calls."""
@@ -31,18 +55,21 @@ class RcloneProvider(CloudProvider):
         if not self._remote.endswith(":"):
             self._remote += ":"
         self._connected = False
+        self._bin = "rclone"  # resolved in connect()
 
     # -- connection --
 
     def connect(self) -> bool:
-        # verify rclone is installed and remote exists
-        if not self._rclone_installed():
-            logger.error("rclone not found in PATH")
+        # find rclone binary (also checks ~/.local/bin for Steam Deck)
+        found = _find_rclone()
+        if not found:
+            logger.error("rclone not found (checked PATH + ~/.local/bin)")
             return False
+        self._bin = found
 
         # check remote is configured
         try:
-            out = subprocess.run(["rclone", "listremotes"], capture_output=True, text=True, timeout=10)
+            out = subprocess.run([self._bin, "listremotes"], capture_output=True, text=True, timeout=10)
             remotes = [r.strip() for r in out.stdout.strip().splitlines()]
             if self._remote not in remotes:
                 logger.error("rclone remote '%s' not configured" % self._remote)
@@ -70,7 +97,7 @@ class RcloneProvider(CloudProvider):
         try:
             dst = "%s%s" % (self._remote, remote_name)
             result = subprocess.run(
-                ["rclone", "copyto", str(local), dst],
+                [self._bin, "copyto", str(local), dst],
                 capture_output=True,
                 text=True,
                 timeout=_TIMEOUT,
@@ -96,7 +123,7 @@ class RcloneProvider(CloudProvider):
             src = "%s%s" % (self._remote, remote_name)
             local.parent.mkdir(parents=True, exist_ok=True)
             result = subprocess.run(
-                ["rclone", "copyto", src, str(local)],
+                [self._bin, "copyto", src, str(local)],
                 capture_output=True,
                 text=True,
                 timeout=_TIMEOUT,
@@ -121,7 +148,7 @@ class RcloneProvider(CloudProvider):
         try:
             src = "%s%s" % (self._remote, remote_name)
             result = subprocess.run(
-                ["rclone", "lsjson", src],
+                [self._bin, "lsjson", src],
                 capture_output=True,
                 text=True,
                 timeout=_TIMEOUT,
@@ -156,7 +183,7 @@ class RcloneProvider(CloudProvider):
         try:
             src = "%s%s" % (self._remote, remote_name)
             result = subprocess.run(
-                ["rclone", "hashsum", "sha256", src],
+                [self._bin, "hashsum", "sha256", src],
                 capture_output=True,
                 text=True,
                 timeout=_TIMEOUT,
@@ -188,23 +215,14 @@ class RcloneProvider(CloudProvider):
         return ""
 
     @staticmethod
-    def _rclone_installed() -> bool:
-        try:
-            result = subprocess.run(
-                ["rclone", "version"],
-                capture_output=True,
-                timeout=5,
-            )
-            return result.returncode == 0
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            return False
-
-    @staticmethod
     def list_remotes() -> list[str]:
         # list configured rclone remotes (for UI dropdown)
+        rbin = _find_rclone()
+        if not rbin:
+            return []
         try:
             result = subprocess.run(
-                ["rclone", "listremotes"],
+                [rbin, "listremotes"],
                 capture_output=True,
                 text=True,
                 timeout=10,

@@ -99,7 +99,60 @@ class ToolbarBuilder:
         )
 
         dlg = CloudSyncDialog(self.mw)
-        dlg.exec()
+        result = dlg.exec()
+
+        if result in (CloudSyncDialog.UPLOAD, CloudSyncDialog.DOWNLOAD):
+            self._run_cloud_sync("upload" if result == CloudSyncDialog.UPLOAD else "download")
+
+    def _run_cloud_sync(self, action):
+        from datetime import datetime
+
+        from steam_library_manager.core.logging import logger
+        from steam_library_manager.main import _create_cloud_provider
+        from steam_library_manager.services.cloud_sync.sync_service import CloudSyncService
+        from steam_library_manager.ui.widgets.ui_helper import UIHelper
+
+        prov = _create_cloud_provider()
+        if prov is None:
+            UIHelper.show_error(self.mw, "Cloud Sync", "Connection failed")
+            return
+
+        db_path = config.DATA_DIR / "metadata.db"
+        svc = CloudSyncService(
+            provider=prov,
+            db_path=db_path,
+            settings_path=config.SETTINGS_FILE,
+            tmp_dir=config.CACHE_DIR / "cloud_sync",
+        )
+
+        if action == "upload":
+            res = svc.upload()
+        else:
+            # backup before download
+            from steam_library_manager.core.backup_manager import BackupManager
+
+            bm = BackupManager(backup_dir=config.DATA_DIR / "backups")
+            if db_path.exists():
+                bm.create_backup(db_path)
+            res = svc.download()
+
+        prov.disconnect()
+
+        if res.success:
+            config.CLOUD_LAST_CHECKSUM = res.message
+            config.CLOUD_LAST_SYNC = datetime.now().isoformat()
+            config.save()
+            msg = t("cloud_sync.upload_success") if action == "upload" else t("cloud_sync.download_success")
+            UIHelper.show_success(self.mw, "Cloud Sync", msg)
+            logger.info("Cloud sync %s OK: %s" % (action, res.message[:12]))
+        else:
+            msg = (
+                t("cloud_sync.upload_failed", error=res.message)
+                if action == "upload"
+                else t("cloud_sync.download_failed", error=res.message)
+            )
+            UIHelper.show_error(self.mw, "Cloud Sync", msg)
+            logger.error("Cloud sync %s failed: %s" % (action, res.message))
 
     def _user(self, tb):
         a = QAction("%s %s" % (t("emoji.user"), self.mw.steam_username), self.mw)
