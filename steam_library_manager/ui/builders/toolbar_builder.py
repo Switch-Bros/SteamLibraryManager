@@ -66,6 +66,14 @@ class ToolbarBuilder:
         a.triggered.connect(self.mw.tools_actions.find_missing_metadata)
         tb.addAction(a)
 
+        tb.addSeparator()
+
+        # cloud sync
+        a = QAction("%s %s" % (t("emoji.cloud"), t("cloud_sync.toolbar_title")), self.mw)
+        a.setToolTip(t("cloud_sync.toolbar_title"))
+        a.triggered.connect(self._open_cloud_sync)
+        tb.addAction(a)
+
         # spacer
         sp = QWidget()
         sp.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -84,6 +92,14 @@ class ToolbarBuilder:
             self._user(tb)
         else:
             self._login(tb)
+
+    def _open_cloud_sync(self):
+        from steam_library_manager.ui.dialogs.cloud_sync_dialog import (
+            CloudSyncDialog,
+        )
+
+        dlg = CloudSyncDialog(self.mw)
+        dlg.exec()
 
     def _user(self, tb):
         a = QAction("%s %s" % (t("emoji.user"), self.mw.steam_username), self.mw)
