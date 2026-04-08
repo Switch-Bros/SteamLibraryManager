@@ -86,6 +86,15 @@ class SettingsActions:
         if "steamgriddb_api_key" in settings:
             config.STEAMGRIDDB_API_KEY = settings["steamgriddb_api_key"] or None
 
+        # cloud sync
+        if "cloud_provider" in settings:
+            prov = settings["cloud_provider"]
+            config.CLOUD_PROVIDER = "" if prov == "none" else prov
+        if "cloud_sync_mode" in settings:
+            config.CLOUD_SYNC_MODE = settings["cloud_sync_mode"]
+        if "cloud_webdav_url" in settings:
+            config.CLOUD_WEBDAV_URL = settings["cloud_webdav_url"]
+
         # Save config
         config.save()
         self._last_persisted_language = config.UI_LANGUAGE

@@ -45,6 +45,7 @@ class TokenStore:
 
     _KEYRING_SERVICE = "steamlibmgr"
     _KEYRING_USERNAME = "steam_tokens"
+    _CLOUD_KEYRING_SERVICE = "steamlibmgr_cloud"
 
     def __init__(self, data_dir=None):
         self.token_file = (data_dir or config.DATA_DIR) / "tokens.enc"
@@ -109,6 +110,59 @@ class TokenStore:
                 self._clear_keyring()
             if self.token_file.exists():
                 self.token_file.unlink()
+            logger.info(t("logs.auth.token_cleared"))
+        except Exception as e:
+            logger.error(t("logs.auth.token_clear_failed", error=str(e)))
+
+    def save_cloud_credentials(self, provider: str, credentials: dict) -> bool:
+        # persist cloud provider credentials securely
+        username = "cloud_%s" % provider
+        try:
+            if self._keyring_available:
+                import keyring  # noqa: F811
+
+                keyring.set_password(self._CLOUD_KEYRING_SERVICE, username, json.dumps(credentials))
+                logger.info(t("logs.auth.token_saved"))
+                return True
+            # fall back to encrypted file
+            cloud_file = self.token_file.parent / ("cloud_%s.enc" % provider)
+            return self._save_to_file_path(credentials, cloud_file)
+        except Exception as e:
+            logger.error(t("logs.auth.token_save_failed", error=str(e)))
+            return False
+
+    def load_cloud_credentials(self, provider: str) -> "dict | None":
+        # load cloud provider credentials from secure storage
+        username = "cloud_%s" % provider
+        try:
+            if self._keyring_available:
+                import keyring  # noqa: F811
+
+                raw = keyring.get_password(self._CLOUD_KEYRING_SERVICE, username)
+                if raw is None:
+                    return None
+                return json.loads(raw)
+            # fall back to encrypted file
+            cloud_file = self.token_file.parent / ("cloud_%s.enc" % provider)
+            return self._load_from_file_path(cloud_file)
+        except Exception as e:
+            logger.error(t("logs.auth.token_load_failed", error=str(e)))
+            return None
+
+    def clear_cloud_credentials(self, provider: str) -> None:
+        # remove stored credentials for a cloud provider
+        username = "cloud_%s" % provider
+        try:
+            if self._keyring_available:
+                try:
+                    import keyring  # noqa: F811
+
+                    keyring.delete_password(self._CLOUD_KEYRING_SERVICE, username)
+                except (ImportError, RuntimeError, OSError):
+                    pass  # key may not exist or keyring unavailable
+            cloud_file = self.token_file.parent / ("cloud_%s.enc" % provider)
+            if cloud_file.exists():
+                cloud_file.unlink()
             logger.info(t("logs.auth.token_cleared"))
         except Exception as e:
             logger.error(t("logs.auth.token_clear_failed", error=str(e)))
@@ -330,6 +384,14 @@ class TokenStore:
 
     def _save_to_file(self, data):
         # encrypt and save token data to file using AES-GCM
+        return self._save_to_file_path(data, self.token_file)
+
+    def _load_from_file(self):
+        # load and decrypt token data from file
+        return self._load_from_file_path(self.token_file)
+
+    def _save_to_file_path(self, data, file_path):
+        # encrypt and save data to an arbitrary path using AES-GCM
         from Cryptodome.Cipher import AES
         from Cryptodome.Protocol.KDF import PBKDF2
         from Cryptodome.Random import get_random_bytes
@@ -348,23 +410,23 @@ class TokenStore:
             "ciphertext": base64.b64encode(ciphertext).decode(),
         }
 
-        self.token_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.token_file, "w", encoding="utf-8") as f:
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(file_path, "w", encoding="utf-8") as f:
             json.dump(envelope, f)
-        self.token_file.chmod(0o600)
+        file_path.chmod(0o600)
 
         logger.info(t("logs.auth.token_saved"))
         return True
 
-    def _load_from_file(self):
-        # load and decrypt token data from file
-        if not self.token_file.exists():
+    def _load_from_file_path(self, file_path):
+        # load and decrypt data from an arbitrary encrypted file
+        if not file_path.exists():
             return None
 
         from Cryptodome.Cipher import AES
         from Cryptodome.Protocol.KDF import PBKDF2
 
-        with open(self.token_file, "r", encoding="utf-8") as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             envelope = json.load(f)
 
         salt = base64.b64decode(envelope["salt"])

@@ -35,8 +35,14 @@ __all__ = ["main"]
 
 
 def _check_steam_pipe() -> bool:
-    # steam.pipe (named FIFO) only exists while Steam is running
+    # steam.pipe is a named FIFO that Steam reads from while running.
+    # the file persists after Steam exits, so we can't just check existence.
+    # instead, try to open it for writing non-blocking: if Steam is reading
+    # the pipe, open() succeeds. if not, we get ENXIO (no reader).
     # works inside flatpak sandbox via --filesystem=~/.steam:ro
+    import os
+    import errno
+
     home = Path.home()
     pipe_paths = [
         home / ".steam/steam.pipe",
@@ -44,9 +50,19 @@ def _check_steam_pipe() -> bool:
         home / ".var/app/com.valvesoftware.Steam/.local/share/Steam/steam.pipe",
     ]
     for pp in pipe_paths:
-        if pp.exists() and pp.is_fifo():
-            logger.info("Steam pipe found: %s" % pp)
+        if not pp.exists() or not pp.is_fifo():
+            continue
+        try:
+            fd = os.open(str(pp), os.O_WRONLY | os.O_NONBLOCK)
+            os.close(fd)
+            logger.info("Steam pipe active (has reader): %s" % pp)
             return True
+        except OSError as exc:
+            if exc.errno == errno.ENXIO:
+                # no reader = Steam not running, pipe is stale
+                continue
+            # other error (permission etc.) = can't tell, skip
+            continue
     return False
 
 
@@ -140,6 +156,98 @@ def _auto_register_desktop_entry() -> None:
         logger.debug("Desktop entry auto-register failed: %s", e)
 
 
+def _create_cloud_provider():
+    """Build the configured cloud provider with stored credentials.
+
+    Returns the provider instance on success, None on failure.
+    """
+    from steam_library_manager.core.token_store import TokenStore
+
+    ts = TokenStore()
+    creds = ts.load_cloud_credentials(config.CLOUD_PROVIDER)
+    if not creds:
+        logger.warning(t("logs.cloud_sync.no_credentials", provider=config.CLOUD_PROVIDER))
+        return None
+
+    if config.CLOUD_PROVIDER == "webdav":
+        from steam_library_manager.services.cloud_sync.webdav import WebDAVProvider
+
+        url = config.CLOUD_WEBDAV_URL or creds.get("url", "")
+        prov = WebDAVProvider(
+            url=url,
+            username=creds.get("username", ""),
+            password=creds.get("password", ""),
+        )
+    elif config.CLOUD_PROVIDER == "mega":
+        from steam_library_manager.services.cloud_sync.mega_provider import MegaProvider
+
+        prov = MegaProvider(
+            email=creds.get("email", ""),
+            password=creds.get("password", ""),
+        )
+    else:
+        logger.warning(t("logs.cloud_sync.auto_sync_skip", reason="unknown provider"))
+        return None
+
+    if not prov.connect():
+        return None
+
+    return prov
+
+
+def _auto_sync_download() -> None:
+    """Check cloud for updates and download if needed. Must never block startup."""
+    try:
+        logger.info(t("logs.cloud_sync.auto_download_start"))
+
+        prov = _create_cloud_provider()
+        if prov is None:
+            return
+
+        from steam_library_manager.services.cloud_sync.sync_service import (
+            CloudSyncService,
+            ConflictAction,
+        )
+
+        db_path = config.DATA_DIR / "metadata.db"
+        svc = CloudSyncService(
+            provider=prov,
+            db_path=db_path,
+            settings_path=config.SETTINGS_FILE,
+            tmp_dir=config.CACHE_DIR / "cloud_sync",
+        )
+
+        action = svc.detect_conflict(config.CLOUD_LAST_CHECKSUM)
+
+        if action == ConflictAction.DOWNLOAD:
+            # backup local db before overwriting
+            from steam_library_manager.core.backup_manager import BackupManager
+
+            bm = BackupManager(backup_dir=config.DATA_DIR / "backups")
+            if db_path.exists():
+                bm.create_backup(db_path)
+
+            result = svc.download()
+            if result.success:
+                config.CLOUD_LAST_CHECKSUM = result.message  # checksum
+                from datetime import datetime
+
+                config.CLOUD_LAST_SYNC = datetime.now().isoformat()
+                config.save()
+                logger.info(t("logs.cloud_sync.auto_download_ok", checksum=result.message))
+            else:
+                logger.error(t("logs.cloud_sync.auto_download_error", error=result.message))
+        elif action == ConflictAction.CONFLICT:
+            logger.warning(t("logs.cloud_sync.auto_download_conflict"))
+        else:
+            logger.info(t("logs.cloud_sync.auto_download_none"))
+
+        prov.disconnect()
+
+    except Exception as exc:
+        logger.error(t("logs.cloud_sync.auto_download_error", error=str(exc)))
+
+
 def main() -> None:
     """Main application execution flow."""
     # Handle desktop integration CLI commands (no GUI needed)
@@ -207,6 +315,10 @@ def main() -> None:
         else:
             logger.info(t("logs.main.setup_cancelled"))
             sys.exit(0)
+
+    # auto cloud sync on startup
+    if config.CLOUD_SYNC_MODE == "full_auto" and config.CLOUD_PROVIDER:
+        _auto_sync_download()
 
     # Startup logs
     logger.info("=" * 60)

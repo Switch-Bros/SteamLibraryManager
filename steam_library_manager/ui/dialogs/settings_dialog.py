@@ -68,6 +68,11 @@ class SettingsDialog(BaseDialog):
         self._init_other_tab(tab_other)
         self.tabs.addTab(tab_other, t("settings.tabs.other"))
 
+        # --- TAB 3: CLOUD SYNC ---
+        tab_cloud = QWidget()
+        self._init_cloud_tab(tab_cloud)
+        self.tabs.addTab(tab_cloud, t("cloud_sync.tab_title"))
+
         # Buttons (Save / Close)
         btn_layout = QHBoxLayout()
         self.btn_save = QPushButton(t("common.save"))
@@ -227,6 +232,15 @@ class SettingsDialog(BaseDialog):
         layout.addWidget(grp_api)
         layout.addStretch()
 
+    def _init_cloud_tab(self, tab):
+        from steam_library_manager.ui.dialogs.cloud_sync_settings import CloudSyncSettingsTab
+        from steam_library_manager.config import config
+
+        self.cloud_tab = CloudSyncSettingsTab(parent=tab)
+        self.cloud_tab.load_settings(config)
+        lyt = QVBoxLayout(tab)
+        lyt.addWidget(self.cloud_tab)
+
     def _load_current_settings(self):
         # fill form from config
         idx_ui = self.combo_ui_lang.findData(config.UI_LANGUAGE)
@@ -284,6 +298,9 @@ class SettingsDialog(BaseDialog):
         for i in range(self.lib_list.count()):
             libs.append(self.lib_list.item(i).text())
 
+        # cloud sync settings
+        cloud = self.cloud_tab.get_settings() if hasattr(self, "cloud_tab") else {}
+
         return {
             "ui_language": self.combo_ui_lang.currentData(),
             "tags_language": self.combo_tags_lang.currentData(),
@@ -294,4 +311,7 @@ class SettingsDialog(BaseDialog):
             "steamgriddb_api_key": self.sgdb_key_edit.text().strip(),
             "max_backups": self.spin_backup.value(),
             "steam_libraries": libs,
+            "cloud_provider": cloud.get("provider", ""),
+            "cloud_sync_mode": cloud.get("sync_mode", "manual"),
+            "cloud_webdav_url": cloud.get("webdav_url", ""),
         }
