@@ -269,6 +269,18 @@
       "icon_copied": "Icon copied: {path}",
       "uninstall_start": "Removing desktop integration...",
       "file_removed": "Removed: {path}"
+    },
+    "cloud_sync": {
+      "upload_start": "Cloud sync upload starting",
+      "upload_complete": "Cloud sync upload complete: {checksum}",
+      "upload_failed": "Cloud sync upload failed: {error}",
+      "download_start": "Cloud sync download starting",
+      "download_complete": "Cloud sync download complete: {checksum}",
+      "download_failed": "Cloud sync download failed: {error}",
+      "conflict_detected": "Cloud sync conflict: local and cloud both changed",
+      "auto_sync_skip": "Auto-sync skipped: {reason}",
+      "provider_connected": "{provider} connected",
+      "provider_disconnected": "{provider} disconnected"
     }
   },
   "errors": {
