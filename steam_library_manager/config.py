@@ -77,6 +77,13 @@ class Config:
     UPDATE_LAST_CHECK: str = ""  # ISO timestamp
     UPDATE_SKIPPED_VERSION: str = ""  # User chose to skip this version
 
+    # cloud sync
+    CLOUD_PROVIDER: str = ""  # "webdav", "mega", ""
+    CLOUD_SYNC_MODE: str = "manual"  # "manual", "auto_upload", "full_auto"
+    CLOUD_LAST_SYNC: str = ""  # ISO timestamp
+    CLOUD_LAST_CHECKSUM: str = ""  # SHA256 of last synced DB
+    CLOUD_WEBDAV_URL: str = ""  # WebDAV server URL
+
     def __post_init__(self):
         # init dirs and load settings
         self._migrate_legacy_data_dir()
@@ -185,6 +192,13 @@ class Config:
         self.UPDATE_LAST_CHECK = data.get("update_last_check", self.UPDATE_LAST_CHECK)
         self.UPDATE_SKIPPED_VERSION = data.get("update_skipped_version", self.UPDATE_SKIPPED_VERSION)
 
+        # Load Cloud Sync Settings
+        self.CLOUD_PROVIDER = data.get("cloud_provider", self.CLOUD_PROVIDER)
+        self.CLOUD_SYNC_MODE = data.get("cloud_sync_mode", self.CLOUD_SYNC_MODE)
+        self.CLOUD_LAST_SYNC = data.get("cloud_last_sync", self.CLOUD_LAST_SYNC)
+        self.CLOUD_LAST_CHECKSUM = data.get("cloud_last_checksum", self.CLOUD_LAST_CHECKSUM)
+        self.CLOUD_WEBDAV_URL = data.get("cloud_webdav_url", self.CLOUD_WEBDAV_URL)
+
     def save(self) -> None:
         # persist to json
         data = {
@@ -203,6 +217,11 @@ class Config:
             "update_check_interval": self.UPDATE_CHECK_INTERVAL,
             "update_last_check": self.UPDATE_LAST_CHECK,
             "update_skipped_version": self.UPDATE_SKIPPED_VERSION,
+            "cloud_provider": self.CLOUD_PROVIDER,
+            "cloud_sync_mode": self.CLOUD_SYNC_MODE,
+            "cloud_last_sync": self.CLOUD_LAST_SYNC,
+            "cloud_last_checksum": self.CLOUD_LAST_CHECKSUM,
+            "cloud_webdav_url": self.CLOUD_WEBDAV_URL,
         }
 
         save_json(self.SETTINGS_FILE, data, restrict_permissions=True)
