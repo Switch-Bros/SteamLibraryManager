@@ -93,6 +93,11 @@ class CloudSyncSettingsTab(QWidget):
         rc_lyt.addRow("", self.rclone_hint)
         self._refresh_rclone_remotes()
 
+        # setup wizard button
+        self.btn_rclone_setup = QPushButton("rclone einrichten...")
+        self.btn_rclone_setup.clicked.connect(self._open_rclone_setup)
+        rc_lyt.addRow("", self.btn_rclone_setup)
+
         self.cred_stack.addWidget(rclone_page)
 
         # switch stack page when provider changes
@@ -158,6 +163,17 @@ class CloudSyncSettingsTab(QWidget):
                 )
         except Exception:
             self.rclone_hint.setText("rclone nicht gefunden")
+
+    def _open_rclone_setup(self):
+        from steam_library_manager.ui.dialogs.rclone_setup_dialog import RcloneSetupDialog
+
+        dlg = RcloneSetupDialog(self)
+        dlg.exec()
+
+        # if a remote was created, fill it in
+        if dlg.created_remote:
+            self.rclone_remote.setText(dlg.created_remote)
+            self._refresh_rclone_remotes()
 
     def _on_connect(self):
         # try to connect with current credentials
