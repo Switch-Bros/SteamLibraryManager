@@ -5,6 +5,19 @@ All notable changes to Steam Library Manager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.7] - 2026-04-08
+
+### Fixed
+- **Flatpak: Steam-Running detection:** The Steam-running warning never appeared
+  when running as Flatpak because `psutil.process_iter()` cannot see host
+  processes from inside the sandbox. Now checks for Steam's named pipe
+  (`~/.steam/steam.pipe`) first, which is visible via `--filesystem=~/.steam:ro`.
+  Falls back to psutil for native installations.
+
+### Changed
+- **Flatpak dependencies:** Added missing `pybind11` (Pillow build dependency)
+  and `six` (steam library dependency) to Flatpak manifest.
+
 ## [1.3.6] - 2026-04-05
 
 ### Fixed

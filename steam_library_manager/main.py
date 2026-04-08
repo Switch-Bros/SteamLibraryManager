@@ -34,22 +34,45 @@ from PyQt6.QtWidgets import QApplication, QMessageBox
 __all__ = ["main"]
 
 
-def check_steam_running() -> bool:
-    """Checks if Steam is currently running using psutil."""
+def _check_steam_pipe() -> bool:
+    # steam.pipe (named FIFO) only exists while Steam is running
+    # works inside flatpak sandbox via --filesystem=~/.steam:ro
+    home = Path.home()
+    pipe_paths = [
+        home / ".steam/steam.pipe",
+        home / ".local/share/Steam/steam.pipe",
+        home / ".var/app/com.valvesoftware.Steam/.local/share/Steam/steam.pipe",
+    ]
+    for pp in pipe_paths:
+        if pp.exists() and pp.is_fifo():
+            logger.info("Steam pipe found: %s" % pp)
+            return True
+    return False
+
+
+def _check_steam_psutil() -> bool:
+    # fallback: enumerate processes via psutil (not sandbox-safe)
     try:
         import psutil
 
+        steam_names = {"steam", "steam.exe", "steamwebhelper", "steamwebhelper.exe"}
         for proc in psutil.process_iter(["name"]):
             try:
-                proc_name = proc.info["name"].lower()
-                if proc_name in ["steam", "steam.exe", "steamwebhelper", "steamwebhelper.exe"]:
+                if proc.info["name"].lower() in steam_names:
                     return True
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
         return False
     except ImportError:
-        logger.warning(t("logs.main.psutil_missing"))
         return False
+
+
+def check_steam_running() -> bool:
+    # named pipe first (sandbox-safe), psutil as fallback
+    try:
+        if _check_steam_pipe():
+            return True
+        return _check_steam_psutil()
     except Exception as e:
         logger.error(t("logs.main.steam_check_error", error=e))
         return False
