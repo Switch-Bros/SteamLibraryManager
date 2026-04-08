@@ -50,7 +50,7 @@ SERVICE_MODULES: list[str] = [
     "steam_library_manager.services.cloud_sync.sync_service",
     "steam_library_manager.services.cloud_sync.sync_thread",
     "steam_library_manager.services.cloud_sync.webdav",
-    "steam_library_manager.services.cloud_sync.mega_provider",
+    "steam_library_manager.services.cloud_sync.rclone",
     "steam_library_manager.services.enrichment",
     "steam_library_manager.services.enrichment.enrichment_service",
     "steam_library_manager.services.enrichment.metadata_enrichment_service",

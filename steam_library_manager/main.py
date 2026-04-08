@@ -157,34 +157,34 @@ def _auto_register_desktop_entry() -> None:
 
 
 def _create_cloud_provider():
-    """Build the configured cloud provider with stored credentials.
-
-    Returns the provider instance on success, None on failure.
-    """
-    from steam_library_manager.core.token_store import TokenStore
-
-    ts = TokenStore()
-    creds = ts.load_cloud_credentials(config.CLOUD_PROVIDER)
-    if not creds:
-        logger.warning(t("logs.cloud_sync.no_credentials", provider=config.CLOUD_PROVIDER))
+    # build the configured cloud provider, returns instance or None
+    prov_name = config.CLOUD_PROVIDER
+    if not prov_name:
         return None
 
-    if config.CLOUD_PROVIDER == "webdav":
+    if prov_name == "webdav":
+        from steam_library_manager.core.token_store import TokenStore
         from steam_library_manager.services.cloud_sync.webdav import WebDAVProvider
 
+        ts = TokenStore()
+        creds = ts.load_cloud_credentials("webdav")
+        if not creds:
+            logger.warning(t("logs.cloud_sync.no_credentials", provider="webdav"))
+            return None
         url = config.CLOUD_WEBDAV_URL or creds.get("url", "")
         prov = WebDAVProvider(
             url=url,
             username=creds.get("username", ""),
             password=creds.get("password", ""),
         )
-    elif config.CLOUD_PROVIDER == "mega":
-        from steam_library_manager.services.cloud_sync.mega_provider import MegaProvider
+    elif prov_name == "rclone":
+        from steam_library_manager.services.cloud_sync.rclone import RcloneProvider
 
-        prov = MegaProvider(
-            email=creds.get("email", ""),
-            password=creds.get("password", ""),
-        )
+        remote = config.CLOUD_RCLONE_REMOTE
+        if not remote:
+            logger.warning(t("logs.cloud_sync.no_credentials", provider="rclone"))
+            return None
+        prov = RcloneProvider(remote=remote)
     else:
         logger.warning(t("logs.cloud_sync.auto_sync_skip", reason="unknown provider"))
         return None

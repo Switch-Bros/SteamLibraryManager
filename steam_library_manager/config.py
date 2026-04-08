@@ -78,11 +78,12 @@ class Config:
     UPDATE_SKIPPED_VERSION: str = ""  # User chose to skip this version
 
     # cloud sync
-    CLOUD_PROVIDER: str = ""  # "webdav", "mega", ""
+    CLOUD_PROVIDER: str = ""  # "webdav", "rclone", ""
     CLOUD_SYNC_MODE: str = "manual"  # "manual", "auto_upload", "full_auto"
     CLOUD_LAST_SYNC: str = ""  # ISO timestamp
     CLOUD_LAST_CHECKSUM: str = ""  # SHA256 of last synced DB
     CLOUD_WEBDAV_URL: str = ""  # WebDAV server URL
+    CLOUD_RCLONE_REMOTE: str = ""  # rclone remote name, e.g. "mega:"
 
     def __post_init__(self):
         # init dirs and load settings
@@ -198,6 +199,7 @@ class Config:
         self.CLOUD_LAST_SYNC = data.get("cloud_last_sync", self.CLOUD_LAST_SYNC)
         self.CLOUD_LAST_CHECKSUM = data.get("cloud_last_checksum", self.CLOUD_LAST_CHECKSUM)
         self.CLOUD_WEBDAV_URL = data.get("cloud_webdav_url", self.CLOUD_WEBDAV_URL)
+        self.CLOUD_RCLONE_REMOTE = data.get("cloud_rclone_remote", self.CLOUD_RCLONE_REMOTE)
 
     def save(self) -> None:
         # persist to json
@@ -222,6 +224,7 @@ class Config:
             "cloud_last_sync": self.CLOUD_LAST_SYNC,
             "cloud_last_checksum": self.CLOUD_LAST_CHECKSUM,
             "cloud_webdav_url": self.CLOUD_WEBDAV_URL,
+            "cloud_rclone_remote": self.CLOUD_RCLONE_REMOTE,
         }
 
         save_json(self.SETTINGS_FILE, data, restrict_permissions=True)

@@ -46,17 +46,17 @@ class CloudSyncSettingsTab(QWidget):
         self.provider_group = QButtonGroup(self)
         self.radio_none = QRadioButton(t("cloud_sync.provider_none"))
         self.radio_webdav = QRadioButton(t("cloud_sync.provider_webdav"))
-        self.radio_mega = QRadioButton(t("cloud_sync.provider_mega"))
+        self.radio_rclone = QRadioButton("rclone (MEGA, Google Drive, Dropbox, ...)")
 
         self.provider_group.addButton(self.radio_none, 0)
         self.provider_group.addButton(self.radio_webdav, 1)
-        self.provider_group.addButton(self.radio_mega, 2)
+        self.provider_group.addButton(self.radio_rclone, 2)
 
         self.radio_none.setChecked(True)
 
         prov_lyt.addWidget(self.radio_none)
         prov_lyt.addWidget(self.radio_webdav)
-        prov_lyt.addWidget(self.radio_mega)
+        prov_lyt.addWidget(self.radio_rclone)
 
         lyt.addWidget(grp_prov)
 
@@ -80,15 +80,20 @@ class CloudSyncSettingsTab(QWidget):
         wdav_lyt.addRow(t("cloud_sync.webdav_pass_label"), self.webdav_pass)
         self.cred_stack.addWidget(webdav_page)
 
-        # page 2: MEGA credentials
-        mega_page = QWidget()
-        mega_lyt = QFormLayout(mega_page)
-        self.mega_email = QLineEdit()
-        self.mega_pass = QLineEdit()
-        self.mega_pass.setEchoMode(QLineEdit.EchoMode.Password)
-        mega_lyt.addRow(t("cloud_sync.mega_email_label"), self.mega_email)
-        mega_lyt.addRow(t("cloud_sync.mega_pass_label"), self.mega_pass)
-        self.cred_stack.addWidget(mega_page)
+        # page 2: rclone remote selection
+        rclone_page = QWidget()
+        rc_lyt = QFormLayout(rclone_page)
+        self.rclone_remote = QLineEdit()
+        self.rclone_remote.setPlaceholderText("mega: / gdrive: / nextcloud: / ...")
+        rc_lyt.addRow("Remote:", self.rclone_remote)
+
+        # show available remotes
+        self.rclone_hint = QLabel("")
+        self.rclone_hint.setWordWrap(True)
+        rc_lyt.addRow("", self.rclone_hint)
+        self._refresh_rclone_remotes()
+
+        self.cred_stack.addWidget(rclone_page)
 
         # switch stack page when provider changes
         self.provider_group.idToggled.connect(self._on_provider_changed)
@@ -135,6 +140,24 @@ class CloudSyncSettingsTab(QWidget):
     def _on_provider_changed(self, btn_id: int, checked: bool):
         if checked:
             self.cred_stack.setCurrentIndex(btn_id)
+            if btn_id == 2:
+                self._refresh_rclone_remotes()
+
+    def _refresh_rclone_remotes(self):
+        # show available rclone remotes as hint
+        try:
+            from steam_library_manager.services.cloud_sync.rclone import RcloneProvider
+
+            remotes = RcloneProvider.list_remotes()
+            if remotes:
+                self.rclone_hint.setText("Verfuegbar: %s" % ", ".join(remotes))
+            else:
+                self.rclone_hint.setText(
+                    "rclone nicht installiert oder keine Remotes konfiguriert.\n"
+                    "Installiere rclone und fuehre 'rclone config' aus."
+                )
+        except Exception:
+            self.rclone_hint.setText("rclone nicht gefunden")
 
     def _on_connect(self):
         # try to connect with current credentials
@@ -158,13 +181,10 @@ class CloudSyncSettingsTab(QWidget):
                     username=settings["webdav_user"],
                     password=settings["webdav_pass"],
                 )
-            elif prov == "mega":
-                from steam_library_manager.services.cloud_sync.mega_provider import MegaProvider
+            elif prov == "rclone":
+                from steam_library_manager.services.cloud_sync.rclone import RcloneProvider
 
-                provider = MegaProvider(
-                    email=settings["mega_email"],
-                    password=settings["mega_pass"],
-                )
+                provider = RcloneProvider(remote=settings["rclone_remote"])
 
             if provider and provider.connect():
                 self._connected = True
@@ -173,23 +193,19 @@ class CloudSyncSettingsTab(QWidget):
                 self.lbl_last_sync.setText(t("cloud_sync.status_connected"))
                 logger.info("Cloud provider %s connected OK" % prov)
 
-                # save credentials to token store
-                from steam_library_manager.core.token_store import TokenStore
-
-                ts = TokenStore()
-                creds = {}
+                # save credentials to token store (webdav only, rclone has no creds)
                 if prov == "webdav":
-                    creds = {
-                        "url": settings["webdav_url"],
-                        "username": settings["webdav_user"],
-                        "password": settings["webdav_pass"],
-                    }
-                elif prov == "mega":
-                    creds = {
-                        "email": settings["mega_email"],
-                        "password": settings["mega_pass"],
-                    }
-                ts.save_cloud_credentials(prov, creds)
+                    from steam_library_manager.core.token_store import TokenStore
+
+                    ts = TokenStore()
+                    ts.save_cloud_credentials(
+                        "webdav",
+                        {
+                            "url": settings["webdav_url"],
+                            "username": settings["webdav_user"],
+                            "password": settings["webdav_pass"],
+                        },
+                    )
             else:
                 self._connected = False
                 self.btn_connect.setText(t("cloud_sync.connect_btn"))
@@ -207,7 +223,7 @@ class CloudSyncSettingsTab(QWidget):
 
     def get_settings(self) -> dict:
         # collect current values into a dict
-        prov_map = {0: "none", 1: "webdav", 2: "mega"}
+        prov_map = {0: "none", 1: "webdav", 2: "rclone"}
         mode_map = {0: "manual", 1: "auto_upload", 2: "full_auto"}
 
         prov_id = self.provider_group.checkedId()
@@ -219,14 +235,13 @@ class CloudSyncSettingsTab(QWidget):
             "webdav_url": self.webdav_url.text().strip(),
             "webdav_user": self.webdav_user.text().strip(),
             "webdav_pass": self.webdav_pass.text(),
-            "mega_email": self.mega_email.text().strip(),
-            "mega_pass": self.mega_pass.text(),
+            "rclone_remote": self.rclone_remote.text().strip(),
         }
 
     def load_settings(self, cfg):
         # populate from a config-like object
         prov = getattr(cfg, "CLOUD_PROVIDER", "none")
-        prov_ids = {"none": 0, "webdav": 1, "mega": 2}
+        prov_ids = {"none": 0, "webdav": 1, "rclone": 2}
         btn = self.provider_group.button(prov_ids.get(prov, 0))
         if btn:
             btn.setChecked(True)
@@ -238,13 +253,14 @@ class CloudSyncSettingsTab(QWidget):
             mbtn.setChecked(True)
 
         self.webdav_url.setText(getattr(cfg, "CLOUD_WEBDAV_URL", ""))
+        self.rclone_remote.setText(getattr(cfg, "CLOUD_RCLONE_REMOTE", ""))
 
-        # load credentials from token store
+        # load webdav credentials from token store
         try:
-            from steam_library_manager.core.token_store import TokenStore
-
-            ts = TokenStore()
             if prov == "webdav":
+                from steam_library_manager.core.token_store import TokenStore
+
+                ts = TokenStore()
                 creds = ts.load_cloud_credentials("webdav") or {}
                 self.webdav_user.setText(creds.get("username", ""))
                 self.webdav_pass.setText(creds.get("password", ""))
@@ -252,14 +268,10 @@ class CloudSyncSettingsTab(QWidget):
                     self._connected = True
                     self.btn_connect.setText(t("cloud_sync.disconnect_btn"))
                     self.lbl_last_sync.setText(t("cloud_sync.status_connected"))
-            elif prov == "mega":
-                creds = ts.load_cloud_credentials("mega") or {}
-                self.mega_email.setText(creds.get("email", ""))
-                self.mega_pass.setText(creds.get("password", ""))
-                if creds:
-                    self._connected = True
-                    self.btn_connect.setText(t("cloud_sync.disconnect_btn"))
-                    self.lbl_last_sync.setText(t("cloud_sync.status_connected"))
+            elif prov == "rclone" and getattr(cfg, "CLOUD_RCLONE_REMOTE", ""):
+                self._connected = True
+                self.btn_connect.setText(t("cloud_sync.disconnect_btn"))
+                self.lbl_last_sync.setText(t("cloud_sync.status_connected"))
         except Exception:
             pass
 

@@ -34,3 +34,4 @@ cleanup_dependencies_dev.sh
 /SLM-Fortschritt.md
 /steamlibrarymanager/
 *.kate-swp
+.superpowers/

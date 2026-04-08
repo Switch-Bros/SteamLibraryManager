@@ -42,8 +42,7 @@ class TestCloudSyncSettingsTab:
         assert "webdav_url" in settings
         assert "webdav_user" in settings
         assert "webdav_pass" in settings
-        assert "mega_email" in settings
-        assert "mega_pass" in settings
+        assert "rclone_remote" in settings
 
     def test_select_webdav_provider(self, qapp):
         tab = CloudSyncSettingsTab()
@@ -51,11 +50,11 @@ class TestCloudSyncSettingsTab:
         settings = tab.get_settings()
         assert settings["provider"] == "webdav"
 
-    def test_select_mega_provider(self, qapp):
+    def test_select_rclone_provider(self, qapp):
         tab = CloudSyncSettingsTab()
-        tab.radio_mega.setChecked(True)
+        tab.radio_rclone.setChecked(True)
         settings = tab.get_settings()
-        assert settings["provider"] == "mega"
+        assert settings["provider"] == "rclone"
 
     def test_sync_mode_auto_upload(self, qapp):
         tab = CloudSyncSettingsTab()
@@ -72,21 +71,17 @@ class TestCloudSyncSettingsTab:
     def test_load_settings(self, qapp):
         tab = CloudSyncSettingsTab()
         cfg = MagicMock()
-        cfg.CLOUD_PROVIDER = "webdav"
+        cfg.CLOUD_PROVIDER = "rclone"
         cfg.CLOUD_SYNC_MODE = "auto_upload"
-        cfg.WEBDAV_URL = "https://example.com/dav"
-        cfg.WEBDAV_USER = "testuser"
-        cfg.WEBDAV_PASS = "secret"
-        cfg.MEGA_EMAIL = ""
-        cfg.MEGA_PASS = ""
+        cfg.CLOUD_WEBDAV_URL = ""
+        cfg.CLOUD_RCLONE_REMOTE = "mega:"
         cfg.CLOUD_LAST_SYNC = None
 
         tab.load_settings(cfg)
         settings = tab.get_settings()
-        assert settings["provider"] == "webdav"
+        assert settings["provider"] == "rclone"
         assert settings["sync_mode"] == "auto_upload"
-        assert settings["webdav_url"] == "https://example.com/dav"
-        assert settings["webdav_user"] == "testuser"
+        assert settings["rclone_remote"] == "mega:"
 
     def test_credential_stack_switches(self, qapp):
         tab = CloudSyncSettingsTab()
@@ -94,7 +89,7 @@ class TestCloudSyncSettingsTab:
         assert tab.cred_stack.currentIndex() == 0
         tab.radio_webdav.setChecked(True)
         assert tab.cred_stack.currentIndex() == 1
-        tab.radio_mega.setChecked(True)
+        tab.radio_rclone.setChecked(True)
         assert tab.cred_stack.currentIndex() == 2
         tab.radio_none.setChecked(True)
         assert tab.cred_stack.currentIndex() == 0

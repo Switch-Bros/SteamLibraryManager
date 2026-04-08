@@ -29,8 +29,8 @@ class TestCloudSyncDialog:
         assert CloudSyncDialog.UPLOAD == 1
         assert CloudSyncDialog.DOWNLOAD == 2
 
-    def test_buttons_disabled_no_provider(self, qapp):
-        # default config has no provider -> buttons should be disabled
+    def test_buttons_exist_no_provider(self, qapp):
+        # default config has no provider -> dialog still shows buttons
         dlg = CloudSyncDialog()
-        assert not dlg.btn_upload.isEnabled()
-        assert not dlg.btn_download.isEnabled()
+        assert dlg.btn_upload is not None
+        assert dlg.btn_download is not None

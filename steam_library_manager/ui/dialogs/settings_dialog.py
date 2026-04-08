@@ -314,4 +314,5 @@ class SettingsDialog(BaseDialog):
             "cloud_provider": cloud.get("provider", ""),
             "cloud_sync_mode": cloud.get("sync_mode", "manual"),
             "cloud_webdav_url": cloud.get("webdav_url", ""),
+            "cloud_rclone_remote": cloud.get("rclone_remote", ""),
         }

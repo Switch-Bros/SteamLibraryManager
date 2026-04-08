@@ -94,6 +94,8 @@ class SettingsActions:
             config.CLOUD_SYNC_MODE = settings["cloud_sync_mode"]
         if "cloud_webdav_url" in settings:
             config.CLOUD_WEBDAV_URL = settings["cloud_webdav_url"]
+        if "cloud_rclone_remote" in settings:
+            config.CLOUD_RCLONE_REMOTE = settings["cloud_rclone_remote"]
 
         # Save config
         config.save()

@@ -698,7 +698,7 @@
     "tab_title": "Cloud Sync",
     "provider_label": "Cloud-Anbieter",
     "provider_webdav": "WebDAV",
-    "provider_mega": "MEGA",
+    "provider_rclone": "rclone",
     "provider_none": "Keiner",
     "provider_not_available": "Nicht installiert",
     "status_connected": "Verbunden",
@@ -733,8 +733,8 @@
     "webdav_url_hint": "https://cloud.example.com/remote.php/dav/files/user/",
     "webdav_user_label": "Benutzername",
     "webdav_pass_label": "Passwort",
-    "mega_email_label": "E-Mail",
-    "mega_pass_label": "Passwort",
+    "rclone_remote_label": "Remote",
+    "rclone_hint": "Fuehre 'rclone config' im Terminal aus um ein Remote einzurichten",
     "no_provider": "Waehle zuerst einen Cloud-Anbieter in den Einstellungen",
     "not_connected": "Nicht verbunden. Oeffne die Einstellungen zum Konfigurieren."
   }
