@@ -5,6 +5,14 @@ All notable changes to Steam Library Manager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.8] - 2026-04-09
+
+### Fixed
+- **Steam-Running false positive:** `steam.pipe` persists after Steam exits,
+  causing SLM to always detect Steam as running. Now uses non-blocking pipe
+  open to check if Steam is actually reading the pipe (ENXIO = not running).
+  Fixes GitHub #12.
+
 ## [1.3.7] - 2026-04-08
 
 ### Fixed

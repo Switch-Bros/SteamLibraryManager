@@ -35,8 +35,14 @@ __all__ = ["main"]
 
 
 def _check_steam_pipe() -> bool:
-    # steam.pipe (named FIFO) only exists while Steam is running
+    # steam.pipe is a named FIFO that Steam reads from while running.
+    # the file persists after Steam exits, so we can't just check existence.
+    # instead, try to open it for writing non-blocking: if Steam is reading
+    # the pipe, open() succeeds. if not, we get ENXIO (no reader).
     # works inside flatpak sandbox via --filesystem=~/.steam:ro
+    import errno
+    import os
+
     home = Path.home()
     pipe_paths = [
         home / ".steam/steam.pipe",
@@ -44,9 +50,19 @@ def _check_steam_pipe() -> bool:
         home / ".var/app/com.valvesoftware.Steam/.local/share/Steam/steam.pipe",
     ]
     for pp in pipe_paths:
-        if pp.exists() and pp.is_fifo():
-            logger.info("Steam pipe found: %s" % pp)
+        if not pp.exists() or not pp.is_fifo():
+            continue
+        try:
+            fd = os.open(str(pp), os.O_WRONLY | os.O_NONBLOCK)
+            os.close(fd)
+            logger.info("Steam pipe active (has reader): %s" % pp)
             return True
+        except OSError as exc:
+            if exc.errno == errno.ENXIO:
+                # no reader = Steam not running, pipe is stale
+                continue
+            # other error (permission etc.) = can't tell, skip
+            continue
     return False
 
 
