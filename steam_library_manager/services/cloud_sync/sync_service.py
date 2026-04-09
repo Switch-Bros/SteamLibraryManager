@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 _REMOTE_DIR = "SteamLibraryManager"
 _REMOTE_DB = "%s/metadata.db" % _REMOTE_DIR
 _REMOTE_SETTINGS = "%s/settings.json" % _REMOTE_DIR
+_REMOTE_COLLECTIONS = "%s/cloud-storage-namespace-1.json" % _REMOTE_DIR
 
 
 class ConflictAction(Enum):
@@ -53,11 +54,13 @@ class CloudSyncService:
         db_path: Path,
         settings_path: Path,
         tmp_dir: Path,
+        collections_path: Path | None = None,
     ) -> None:
         self._prov = provider
         self._db = db_path
         self._settings = settings_path
         self._tmp = tmp_dir
+        self._collections = collections_path
 
     # -- public api --
 
@@ -88,6 +91,12 @@ class CloudSyncService:
                 ok = self._prov.upload_file(self._settings, _REMOTE_SETTINGS)
                 if not ok:
                     return SyncResult(False, "settings upload failed")
+
+            # upload Steam collections (cloud-storage-namespace-1.json)
+            if self._collections and self._collections.exists():
+                ok = self._prov.upload_file(self._collections, _REMOTE_COLLECTIONS)
+                if not ok:
+                    logger.warning("collections upload failed, continuing")
 
             cs = self._sha256(snap)
             logger.info("upload complete, checksum=%s" % cs)
@@ -134,6 +143,17 @@ class CloudSyncService:
                 ok = self._prov.download_file(_REMOTE_SETTINGS, tmp_settings)
                 if ok:
                     shutil.copy2(tmp_settings, self._settings)
+
+            # download Steam collections if available and target path known
+            if self._collections and self._prov.get_file_info(_REMOTE_COLLECTIONS) is not None:
+                tmp_col = self._tmp / "cloud-storage-namespace-1.json"
+                ok = self._prov.download_file(_REMOTE_COLLECTIONS, tmp_col)
+                if ok:
+                    self._collections.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(tmp_col, self._collections)
+                    logger.info("collections downloaded to %s" % self._collections)
+                    if tmp_col.exists():
+                        tmp_col.unlink()
 
             logger.info("download complete, checksum=%s" % cs)
             return SyncResult(True, cs)

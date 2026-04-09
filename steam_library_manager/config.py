@@ -385,6 +385,27 @@ class Config:
             return None
         return self.STEAM_PATH / "userdata" / account_id / "config" / "localconfig.vdf"
 
+    def get_cloud_storage_path(self, must_exist: bool = True) -> Path | None:
+        """Return path to cloud-storage-namespace-1.json for the logged-in user.
+
+        Args:
+            must_exist: If True (default), return None when file doesn't exist.
+                Set to False for download targets where the file will be created.
+        """
+        if not self.STEAM_PATH or not self.STEAM_USER_ID:
+            return None
+        try:
+            sid32 = str(int(self.STEAM_USER_ID) - 76561197960265728)
+        except (ValueError, TypeError):
+            return None
+        ud = self.STEAM_PATH / "userdata" / sid32
+        if not ud.is_dir():
+            return None
+        p = ud / "config" / "cloudstorage" / "cloud-storage-namespace-1.json"
+        if must_exist:
+            return p if p.exists() else None
+        return p
+
 
 # Global instance
 config = Config()

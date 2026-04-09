@@ -215,6 +215,7 @@ def _auto_sync_download() -> None:
             db_path=db_path,
             settings_path=config.SETTINGS_FILE,
             tmp_dir=config.CACHE_DIR / "cloud_sync",
+            collections_path=config.get_cloud_storage_path(must_exist=False),
         )
 
         action = svc.detect_conflict(config.CLOUD_LAST_CHECKSUM)

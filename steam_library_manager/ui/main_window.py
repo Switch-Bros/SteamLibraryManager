@@ -297,6 +297,7 @@ class MainWindow(QMainWindow):
                 db_path=db_path,
                 settings_path=config.SETTINGS_FILE,
                 tmp_dir=config.CACHE_DIR / "cloud_sync",
+                collections_path=config.get_cloud_storage_path(),
             )
 
             result = svc.upload()

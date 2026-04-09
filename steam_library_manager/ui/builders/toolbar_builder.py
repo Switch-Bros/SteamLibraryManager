@@ -127,11 +127,15 @@ class ToolbarBuilder:
                 gs.database.close()
                 gs.database = None
 
+        # upload needs existing file, download needs target path even if file doesn't exist yet
+        col_path = config.get_cloud_storage_path(must_exist=(action == "upload"))
+
         svc = CloudSyncService(
             provider=prov,
             db_path=db_path,
             settings_path=config.SETTINGS_FILE,
             tmp_dir=config.CACHE_DIR / "cloud_sync",
+            collections_path=col_path,
         )
 
         if action == "upload":
