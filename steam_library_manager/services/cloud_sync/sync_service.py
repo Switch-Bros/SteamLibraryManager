@@ -145,15 +145,25 @@ class CloudSyncService:
                     shutil.copy2(tmp_settings, self._settings)
 
             # download Steam collections if available and target path known
-            if self._collections and self._prov.get_file_info(_REMOTE_COLLECTIONS) is not None:
-                tmp_col = self._tmp / "cloud-storage-namespace-1.json"
-                ok = self._prov.download_file(_REMOTE_COLLECTIONS, tmp_col)
-                if ok:
-                    self._collections.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(tmp_col, self._collections)
-                    logger.info("collections downloaded to %s" % self._collections)
-                    if tmp_col.exists():
-                        tmp_col.unlink()
+            if self._collections:
+                remote_col = self._prov.get_file_info(_REMOTE_COLLECTIONS)
+                if remote_col is not None:
+                    tmp_col = self._tmp / "cloud-storage-namespace-1.json"
+                    ok = self._prov.download_file(_REMOTE_COLLECTIONS, tmp_col)
+                    if ok:
+                        self._collections.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(tmp_col, self._collections)
+                        logger.info(
+                            "collections downloaded (%d bytes) to %s" % (tmp_col.stat().st_size, self._collections)
+                        )
+                        if tmp_col.exists():
+                            tmp_col.unlink()
+                    else:
+                        logger.error("collections download failed")
+                else:
+                    logger.warning("no remote collections found on cloud")
+            else:
+                logger.warning("no collections_path set, skipping collections sync")
 
             logger.info("download complete, checksum=%s" % cs)
             return SyncResult(True, cs)
