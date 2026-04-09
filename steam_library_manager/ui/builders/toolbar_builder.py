@@ -120,11 +120,13 @@ class ToolbarBuilder:
         db_path = config.DATA_DIR / "metadata.db"
 
         if action == "download":
-            # close the open DB connection before overwriting the file,
-            # otherwise shutil.copy2 corrupts the active SQLite database
+            # detach the DB reference so no further queries run against it
+            # while we overwrite the file. We can't call close() here because
+            # SQLite connections are thread-bound and the DB was opened in a
+            # background thread. The process restart after download will
+            # cleanly release the connection.
             gs = self.mw.game_service
             if gs and gs.database:
-                gs.database.close()
                 gs.database = None
 
         # upload needs existing file, download needs target path even if file doesn't exist yet
