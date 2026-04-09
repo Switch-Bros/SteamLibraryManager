@@ -65,7 +65,7 @@ _PROVIDERS = {
     },
 }
 
-_RCLONE_DL_URL = "https://downloads.rclone.org/current/rclone-current-%s-%s.zip"
+_RCLONE_DL_URL = "https://downloads.rclone.org/rclone-current-%s-%s.zip"
 
 
 class RcloneInstallThread(QThread):
