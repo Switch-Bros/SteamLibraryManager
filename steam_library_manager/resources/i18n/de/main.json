@@ -720,6 +720,7 @@
     "download_progress": "Lade herunter...",
     "upload_success": "Upload abgeschlossen",
     "download_success": "Download abgeschlossen - lade neu...",
+    "download_success_restart": "Download abgeschlossen - SLM wird neu gestartet...",
     "upload_failed": "Upload fehlgeschlagen: {error}",
     "download_failed": "Download fehlgeschlagen: {error}",
     "conflict_title": "Sync-Konflikt",

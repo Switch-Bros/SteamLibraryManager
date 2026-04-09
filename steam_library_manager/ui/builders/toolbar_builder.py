@@ -118,6 +118,15 @@ class ToolbarBuilder:
             return
 
         db_path = config.DATA_DIR / "metadata.db"
+
+        if action == "download":
+            # close the open DB connection before overwriting the file,
+            # otherwise shutil.copy2 corrupts the active SQLite database
+            gs = self.mw.game_service
+            if gs and gs.database:
+                gs.database.close()
+                gs.database = None
+
         svc = CloudSyncService(
             provider=prov,
             db_path=db_path,
@@ -142,9 +151,23 @@ class ToolbarBuilder:
             config.CLOUD_LAST_CHECKSUM = res.message
             config.CLOUD_LAST_SYNC = datetime.now().isoformat()
             config.save()
-            msg = t("cloud_sync.upload_success") if action == "upload" else t("cloud_sync.download_success")
-            UIHelper.show_success(self.mw, "Cloud Sync", msg)
-            logger.info("Cloud sync %s OK: %s" % (action, res.message[:12]))
+
+            if action == "download":
+                # DB was replaced on disk - must restart to load the new data
+                UIHelper.show_success(
+                    self.mw,
+                    "Cloud Sync",
+                    t("cloud_sync.download_success_restart"),
+                )
+                logger.info("Cloud sync download OK, restarting: %s" % res.message[:12])
+                self.mw._stop_background_threads()
+                import os
+                import sys
+
+                os.execvp(sys.executable, [sys.executable] + sys.argv)
+            else:
+                UIHelper.show_success(self.mw, "Cloud Sync", t("cloud_sync.upload_success"))
+                logger.info("Cloud sync upload OK: %s" % res.message[:12])
         else:
             msg = (
                 t("cloud_sync.upload_failed", error=res.message)

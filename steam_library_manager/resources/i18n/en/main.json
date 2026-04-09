@@ -720,6 +720,7 @@
     "download_progress": "Downloading...",
     "upload_success": "Upload complete",
     "download_success": "Download complete - reloading...",
+    "download_success_restart": "Download complete - restarting to load new data...",
     "upload_failed": "Upload failed: {error}",
     "download_failed": "Download failed: {error}",
     "conflict_title": "Sync Conflict",
