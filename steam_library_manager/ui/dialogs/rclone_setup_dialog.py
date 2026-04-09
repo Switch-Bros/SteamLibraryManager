@@ -287,16 +287,14 @@ class RcloneSetupDialog(BaseDialog):
             cmd.append("%s=%s" % (k, v))
 
         # add credential fields
+        # rclone config create obscures passwords automatically,
+        # so pass them in cleartext (no manual obscure step)
         fields = prov.get("fields", [])
         if fields:
             for key, _label, _mode in fields:
                 inp = self._field_inputs.get(key)
                 if inp:
-                    val = inp.text()
-                    if key == "pass":
-                        # rclone needs obscured password
-                        val = self._obscure_password(rbin, val)
-                    cmd.append("%s=%s" % (key, val))
+                    cmd.append("%s=%s" % (key, inp.text()))
 
         self.btn_setup.setEnabled(False)
         self.result_label.setText("Richte ein...")
@@ -335,22 +333,6 @@ class RcloneSetupDialog(BaseDialog):
             self.result_label.setText("Fehler: %s" % exc)
         finally:
             self.btn_setup.setEnabled(True)
-
-    @staticmethod
-    def _obscure_password(rbin, password):
-        # rclone obscure encrypts password for config
-        try:
-            r = subprocess.run(
-                [rbin, "obscure", password],
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
-            if r.returncode == 0:
-                return r.stdout.strip()
-        except Exception:
-            pass
-        return password  # fallback: unencrypted
 
     @property
     def created_remote(self) -> str:
