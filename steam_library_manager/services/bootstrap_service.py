@@ -76,7 +76,13 @@ class BootstrapService(QObject):
                 sid32 = str(int(config.STEAM_USER_ID) - 76561197960265728)
                 ud = config.STEAM_PATH / "userdata" / sid32
                 if ud.is_dir() and (ud / "config" / "localconfig.vdf").exists():
+                    if sid != sid32:
+                        logger.info("Corrected userdata folder: %s -> %s (from STEAM_USER_ID)" % (sid, sid32))
                     sid = sid32
+                else:
+                    logger.warning(
+                        "Derived userdata folder %s does not exist, " "falling back to detected user %s" % (sid32, sid)
+                    )
             except (ValueError, TypeError):
                 pass
 
