@@ -14,6 +14,7 @@ import logging
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from steam_library_manager.services.cloud_sync.sync_service import CloudSyncService
+from steam_library_manager.utils.i18n import t
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +35,10 @@ class CloudSyncThread(QThread):
     def run(self) -> None:
         # dispatch to upload or download
         if self._action == "upload":
-            self.progress_msg.emit("Uploading...")
+            self.progress_msg.emit(t("cloud_sync.upload_progress", current="", total=""))
             res = self._svc.upload()
         elif self._action == "download":
-            self.progress_msg.emit("Downloading...")
+            self.progress_msg.emit(t("cloud_sync.download_progress"))
             res = self._svc.download()
         else:
             logger.error("unknown sync action: %s" % self._action)

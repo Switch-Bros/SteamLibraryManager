@@ -26,6 +26,7 @@ from PyQt6.QtWidgets import (
 
 from steam_library_manager.core.logging import logger
 from steam_library_manager.ui.widgets.base_dialog import BaseDialog
+from steam_library_manager.utils.i18n import t
 
 __all__ = ["RcloneSetupDialog"]
 
@@ -117,7 +118,7 @@ class RcloneInstallThread(QThread):
                 ver = r.stdout.splitlines()[0] if r.stdout else "unknown"
                 self.finished_install.emit(True, ver)
             else:
-                self.finished_install.emit(False, "rclone binary nicht ausfuehrbar")
+                self.finished_install.emit(False, t("cloud_sync.rclone_not_executable"))
 
         except Exception as exc:
             logger.error("rclone install failed: %s" % exc)
@@ -132,7 +133,7 @@ class RcloneSetupDialog(BaseDialog):
         self._field_inputs = {}
         super().__init__(
             parent=parent,
-            title_text="rclone einrichten",
+            title_text=t("cloud_sync.rclone_setup_title"),
             min_width=450,
             show_title_label=True,
             buttons="none",
@@ -146,13 +147,13 @@ class RcloneSetupDialog(BaseDialog):
 
         self.status_label = QLabel()
         if rbin:
-            self.status_label.setText("rclone installiert: %s" % rbin)
+            self.status_label.setText(t("cloud_sync.rclone_installed", path=rbin))
         else:
-            self.status_label.setText("rclone nicht gefunden")
+            self.status_label.setText(t("cloud_sync.rclone_not_found"))
         layout.addWidget(self.status_label)
 
         # install button (only if not found)
-        self.btn_install = QPushButton("rclone herunterladen + installieren")
+        self.btn_install = QPushButton(t("cloud_sync.rclone_download_btn"))
         self.btn_install.setVisible(not bool(rbin))
         self.btn_install.clicked.connect(self._install_rclone)
         layout.addWidget(self.btn_install)
@@ -168,7 +169,7 @@ class RcloneSetupDialog(BaseDialog):
 
         # provider selection
         layout.addWidget(QLabel(""))  # spacer
-        layout.addWidget(QLabel("Cloud-Anbieter:"))
+        layout.addWidget(QLabel(t("cloud_sync.rclone_provider_label")))
 
         self.combo_provider = QComboBox()
         for name in _PROVIDERS:
@@ -183,13 +184,11 @@ class RcloneSetupDialog(BaseDialog):
 
         # remote name
         self.remote_name = QLineEdit()
-        self.remote_name.setPlaceholderText("z.B. mein_mega, meine_cloud")
-        self.form_layout.addRow("Remote-Name:", self.remote_name)
+        self.remote_name.setPlaceholderText(t("cloud_sync.rclone_remote_name_hint"))
+        self.form_layout.addRow(t("cloud_sync.rclone_remote_name_label"), self.remote_name)
 
         # oauth hint (hidden by default)
-        self.oauth_hint = QLabel(
-            "Dieser Anbieter braucht Browser-Login.\n" "Nach Klick auf 'Einrichten' oeffnet sich ein Browser-Fenster."
-        )
+        self.oauth_hint = QLabel(t("cloud_sync.rclone_oauth_hint"))
         self.oauth_hint.setWordWrap(True)
         self.oauth_hint.setVisible(False)
         layout.addWidget(self.oauth_hint)
@@ -202,7 +201,7 @@ class RcloneSetupDialog(BaseDialog):
         self._on_provider_changed(self.combo_provider.currentText())
 
         # setup button
-        self.btn_setup = QPushButton("Einrichten")
+        self.btn_setup = QPushButton(t("cloud_sync.rclone_setup_btn"))
         self.btn_setup.clicked.connect(self._create_remote)
         self.btn_setup.setEnabled(bool(rbin))
         layout.addWidget(self.btn_setup)
@@ -250,18 +249,18 @@ class RcloneSetupDialog(BaseDialog):
     def _on_install_done(self, ok, msg):
         self.progress_bar.setVisible(False)
         if ok:
-            self.status_label.setText("rclone installiert: %s" % msg)
+            self.status_label.setText(t("cloud_sync.rclone_installed", path=msg))
             self.btn_install.setVisible(False)
             self.btn_setup.setEnabled(True)
-            self.progress_label.setText("Installation erfolgreich!")
+            self.progress_label.setText(t("cloud_sync.rclone_install_ok"))
         else:
-            self.progress_label.setText("Fehler: %s" % msg)
+            self.progress_label.setText(t("cloud_sync.rclone_install_error", error=msg))
             self.btn_install.setEnabled(True)
 
     def _create_remote(self):
         name = self.remote_name.text().strip()
         if not name:
-            self.result_label.setText("Bitte Remote-Name eingeben!")
+            self.result_label.setText(t("cloud_sync.rclone_setup_no_name"))
             return
 
         # sanitize name (no spaces, no special chars)
@@ -275,7 +274,7 @@ class RcloneSetupDialog(BaseDialog):
 
         rbin = _find_rclone()
         if not rbin:
-            self.result_label.setText("rclone nicht gefunden!")
+            self.result_label.setText(t("cloud_sync.rclone_not_found"))
             return
 
         # build rclone config create command
@@ -297,7 +296,7 @@ class RcloneSetupDialog(BaseDialog):
                     cmd.append("%s=%s" % (key, inp.text()))
 
         self.btn_setup.setEnabled(False)
-        self.result_label.setText("Richte ein...")
+        self.result_label.setText(t("cloud_sync.rclone_setup_progress"))
 
         try:
             # for OAuth providers, we need to allow browser interaction
@@ -319,18 +318,18 @@ class RcloneSetupDialog(BaseDialog):
 
             if r.returncode == 0:
                 remote_str = "%s:" % name
-                self.result_label.setText("Remote '%s' eingerichtet!" % remote_str)
+                self.result_label.setText(t("cloud_sync.rclone_setup_ok", remote=remote_str))
                 logger.info("rclone remote created: %s (%s)" % (name, rtype))
                 # store the remote name for the caller
                 self._created_remote = remote_str
             else:
                 err = r.stderr.strip() or r.stdout.strip() or "unknown error"
-                self.result_label.setText("Fehler: %s" % err[:200])
+                self.result_label.setText(t("cloud_sync.rclone_setup_error", error=err[:200]))
                 logger.error("rclone config create failed: %s" % err)
         except subprocess.TimeoutExpired:
-            self.result_label.setText("Timeout - bitte erneut versuchen")
+            self.result_label.setText(t("cloud_sync.rclone_setup_timeout"))
         except Exception as exc:
-            self.result_label.setText("Fehler: %s" % exc)
+            self.result_label.setText(t("cloud_sync.rclone_setup_error", error=str(exc)))
         finally:
             self.btn_setup.setEnabled(True)
 

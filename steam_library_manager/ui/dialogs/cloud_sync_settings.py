@@ -85,7 +85,7 @@ class CloudSyncSettingsTab(QWidget):
         rc_lyt = QFormLayout(rclone_page)
         self.rclone_remote = QLineEdit()
         self.rclone_remote.setPlaceholderText("mega: / gdrive: / nextcloud: / ...")
-        rc_lyt.addRow("Remote:", self.rclone_remote)
+        rc_lyt.addRow(t("cloud_sync.rclone_remote_label") + ":", self.rclone_remote)
 
         # show available remotes
         self.rclone_hint = QLabel("")
@@ -94,7 +94,7 @@ class CloudSyncSettingsTab(QWidget):
         self._refresh_rclone_remotes()
 
         # setup wizard button
-        self.btn_rclone_setup = QPushButton("rclone einrichten...")
+        self.btn_rclone_setup = QPushButton(t("cloud_sync.rclone_setup_wizard_btn"))
         self.btn_rclone_setup.clicked.connect(self._open_rclone_setup)
         rc_lyt.addRow("", self.btn_rclone_setup)
 
@@ -155,14 +155,11 @@ class CloudSyncSettingsTab(QWidget):
 
             remotes = RcloneProvider.list_remotes()
             if remotes:
-                self.rclone_hint.setText("Verfuegbar: %s" % ", ".join(remotes))
+                self.rclone_hint.setText(t("cloud_sync.rclone_available", remotes=", ".join(remotes)))
             else:
-                self.rclone_hint.setText(
-                    "rclone nicht installiert oder keine Remotes konfiguriert.\n"
-                    "Installiere rclone und fuehre 'rclone config' aus."
-                )
+                self.rclone_hint.setText(t("cloud_sync.rclone_no_remotes"))
         except Exception:
-            self.rclone_hint.setText("rclone nicht gefunden")
+            self.rclone_hint.setText(t("cloud_sync.rclone_not_found"))
 
     def _open_rclone_setup(self):
         from steam_library_manager.ui.dialogs.rclone_setup_dialog import RcloneSetupDialog
