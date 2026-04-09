@@ -156,6 +156,99 @@ def _auto_register_desktop_entry() -> None:
         logger.debug("Desktop entry auto-register failed: %s", e)
 
 
+def _create_cloud_provider():
+    # build the configured cloud provider, returns instance or None
+    prov_name = config.CLOUD_PROVIDER
+    if not prov_name:
+        return None
+
+    if prov_name == "webdav":
+        from steam_library_manager.core.token_store import TokenStore
+        from steam_library_manager.services.cloud_sync.webdav import WebDAVProvider
+
+        ts = TokenStore()
+        creds = ts.load_cloud_credentials("webdav")
+        if not creds:
+            logger.warning(t("logs.cloud_sync.no_credentials", provider="webdav"))
+            return None
+        url = config.CLOUD_WEBDAV_URL or creds.get("url", "")
+        prov = WebDAVProvider(
+            url=url,
+            username=creds.get("username", ""),
+            password=creds.get("password", ""),
+        )
+    elif prov_name == "rclone":
+        from steam_library_manager.services.cloud_sync.rclone import RcloneProvider
+
+        remote = config.CLOUD_RCLONE_REMOTE
+        if not remote:
+            logger.warning(t("logs.cloud_sync.no_credentials", provider="rclone"))
+            return None
+        prov = RcloneProvider(remote=remote)
+    else:
+        logger.warning(t("logs.cloud_sync.auto_sync_skip", reason="unknown provider"))
+        return None
+
+    if not prov.connect():
+        return None
+
+    return prov
+
+
+def _auto_sync_download() -> None:
+    """Check cloud for updates and download if needed. Must never block startup."""
+    try:
+        logger.info(t("logs.cloud_sync.auto_download_start"))
+
+        prov = _create_cloud_provider()
+        if prov is None:
+            return
+
+        from steam_library_manager.services.cloud_sync.sync_service import (
+            CloudSyncService,
+            ConflictAction,
+        )
+
+        db_path = config.DATA_DIR / "metadata.db"
+        svc = CloudSyncService(
+            provider=prov,
+            db_path=db_path,
+            settings_path=config.SETTINGS_FILE,
+            tmp_dir=config.CACHE_DIR / "cloud_sync",
+            collections_path=config.get_cloud_storage_path(must_exist=False),
+        )
+
+        action = svc.detect_conflict(config.CLOUD_LAST_CHECKSUM)
+
+        if action == ConflictAction.DOWNLOAD:
+            # backup local db before overwriting
+            from steam_library_manager.core.backup_manager import BackupManager
+
+            bm = BackupManager(backup_dir=config.DATA_DIR / "backups")
+            if db_path.exists():
+                bm.create_backup(db_path)
+
+            result = svc.download()
+            if result.success:
+                config.CLOUD_LAST_CHECKSUM = result.message  # checksum
+                from datetime import datetime
+
+                config.CLOUD_LAST_SYNC = datetime.now().isoformat()
+                config.save()
+                logger.info(t("logs.cloud_sync.auto_download_ok", checksum=result.message))
+            else:
+                logger.error(t("logs.cloud_sync.auto_download_error", error=result.message))
+        elif action == ConflictAction.CONFLICT:
+            logger.warning(t("logs.cloud_sync.auto_download_conflict"))
+        else:
+            logger.info(t("logs.cloud_sync.auto_download_none"))
+
+        prov.disconnect()
+
+    except Exception as exc:
+        logger.error(t("logs.cloud_sync.auto_download_error", error=str(exc)))
+
+
 def main() -> None:
     """Main application execution flow."""
     # Handle desktop integration CLI commands (no GUI needed)
@@ -223,6 +316,10 @@ def main() -> None:
         else:
             logger.info(t("logs.main.setup_cancelled"))
             sys.exit(0)
+
+    # auto cloud sync on startup
+    if config.CLOUD_SYNC_MODE == "full_auto" and config.CLOUD_PROVIDER:
+        _auto_sync_download()
 
     # Startup logs
     logger.info("=" * 60)

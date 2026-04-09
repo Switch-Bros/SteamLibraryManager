@@ -39,3 +39,8 @@ pywebview>=5.3.2
 
 # ===== Version Comparison (for auto-update) =====
 packaging>=23.0
+
+# ===== Cloud Sync (optional - only needed if using Cloud Sync) =====
+# WebDAV (Nextcloud, ownCloud, Synology etc.)
+# webdavclient3>=3.14.6
+# rclone: install via package manager (pacman -S rclone), not pip

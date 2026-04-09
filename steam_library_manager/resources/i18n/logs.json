@@ -269,6 +269,27 @@
       "icon_copied": "Icon copied: {path}",
       "uninstall_start": "Removing desktop integration...",
       "file_removed": "Removed: {path}"
+    },
+    "cloud_sync": {
+      "upload_start": "Cloud sync upload starting",
+      "upload_complete": "Cloud sync upload complete: {checksum}",
+      "upload_failed": "Cloud sync upload failed: {error}",
+      "download_start": "Cloud sync download starting",
+      "download_complete": "Cloud sync download complete: {checksum}",
+      "download_failed": "Cloud sync download failed: {error}",
+      "conflict_detected": "Cloud sync conflict: local and cloud both changed",
+      "auto_sync_skip": "Auto-sync skipped: {reason}",
+      "provider_connected": "{provider} connected",
+      "provider_disconnected": "{provider} disconnected",
+      "auto_download_start": "Auto-sync: checking cloud for updates",
+      "auto_download_ok": "Auto-sync: downloaded cloud DB (checksum={checksum})",
+      "auto_download_none": "Auto-sync: no download needed",
+      "auto_download_conflict": "Auto-sync: conflict detected, skipping auto-download",
+      "auto_download_error": "Auto-sync download failed: {error}",
+      "auto_upload_start": "Auto-sync: uploading DB to cloud",
+      "auto_upload_ok": "Auto-sync: upload complete (checksum={checksum})",
+      "auto_upload_error": "Auto-sync upload failed: {error}",
+      "no_credentials": "Auto-sync: no credentials stored for {provider}"
     }
   },
   "errors": {

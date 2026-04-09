@@ -68,6 +68,24 @@ class BootstrapService(QObject):
         sid, lid = config.get_detected_user()
         tgt = config.STEAM_USER_ID if config.STEAM_USER_ID else lid
 
+        # if we know the Steam64 ID, derive the correct Steam32 ID
+        # instead of relying on directory iteration order (which may
+        # pick the wrong user when multiple accounts exist)
+        if config.STEAM_USER_ID:
+            try:
+                sid32 = str(int(config.STEAM_USER_ID) - 76561197960265728)
+                ud = config.STEAM_PATH / "userdata" / sid32
+                if ud.is_dir() and (ud / "config" / "localconfig.vdf").exists():
+                    if sid != sid32:
+                        logger.info("Corrected userdata folder: %s -> %s (from STEAM_USER_ID)" % (sid, sid32))
+                    sid = sid32
+                else:
+                    logger.warning(
+                        "Derived userdata folder %s does not exist, " "falling back to detected user %s" % (sid32, sid)
+                    )
+            except (ValueError, TypeError):
+                pass
+
         if not sid and not tgt:
             UIHelper.show_warning(self.mw, t("ui.errors.no_users_found"))
             self.mw.reload_btn.show()

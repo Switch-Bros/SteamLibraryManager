@@ -66,6 +66,14 @@ class ToolbarBuilder:
         a.triggered.connect(self.mw.tools_actions.find_missing_metadata)
         tb.addAction(a)
 
+        tb.addSeparator()
+
+        # cloud sync
+        a = QAction("%s %s" % (t("emoji.cloud"), t("cloud_sync.toolbar_title")), self.mw)
+        a.setToolTip(t("cloud_sync.toolbar_title"))
+        a.triggered.connect(self._open_cloud_sync)
+        tb.addAction(a)
+
         # spacer
         sp = QWidget()
         sp.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -84,6 +92,93 @@ class ToolbarBuilder:
             self._user(tb)
         else:
             self._login(tb)
+
+    def _open_cloud_sync(self):
+        from steam_library_manager.ui.dialogs.cloud_sync_dialog import (
+            CloudSyncDialog,
+        )
+
+        dlg = CloudSyncDialog(self.mw)
+        result = dlg.exec()
+
+        if result in (CloudSyncDialog.UPLOAD, CloudSyncDialog.DOWNLOAD):
+            self._run_cloud_sync("upload" if result == CloudSyncDialog.UPLOAD else "download")
+
+    def _run_cloud_sync(self, action):
+        from datetime import datetime
+
+        from steam_library_manager.core.logging import logger
+        from steam_library_manager.main import _create_cloud_provider
+        from steam_library_manager.services.cloud_sync.sync_service import CloudSyncService
+        from steam_library_manager.ui.widgets.ui_helper import UIHelper
+
+        prov = _create_cloud_provider()
+        if prov is None:
+            UIHelper.show_error(self.mw, "Cloud Sync", "Connection failed")
+            return
+
+        db_path = config.DATA_DIR / "metadata.db"
+
+        if action == "download":
+            # close the DB before overwriting the file on disk
+            gs = self.mw.game_service
+            if gs and gs.database:
+                gs.database.close()
+                gs.database = None
+
+        # upload needs existing file, download needs target path even if file doesn't exist yet
+        col_path = config.get_cloud_storage_path(must_exist=(action == "upload"))
+
+        svc = CloudSyncService(
+            provider=prov,
+            db_path=db_path,
+            settings_path=config.SETTINGS_FILE,
+            tmp_dir=config.CACHE_DIR / "cloud_sync",
+            collections_path=col_path,
+        )
+
+        if action == "upload":
+            res = svc.upload()
+        else:
+            # backup before download
+            from steam_library_manager.core.backup_manager import BackupManager
+
+            bm = BackupManager(backup_dir=config.DATA_DIR / "backups")
+            if db_path.exists():
+                bm.create_backup(db_path)
+            res = svc.download()
+
+        prov.disconnect()
+
+        if res.success:
+            config.CLOUD_LAST_CHECKSUM = res.message
+            config.CLOUD_LAST_SYNC = datetime.now().isoformat()
+            config.save()
+
+            if action == "download":
+                # DB was replaced on disk - must restart to load the new data
+                UIHelper.show_success(
+                    self.mw,
+                    "Cloud Sync",
+                    t("cloud_sync.download_success_restart"),
+                )
+                logger.info("Cloud sync download OK, restarting: %s" % res.message[:12])
+                self.mw._stop_background_threads()
+                import os
+                import sys
+
+                os.execvp(sys.executable, [sys.executable] + sys.argv)
+            else:
+                UIHelper.show_success(self.mw, "Cloud Sync", t("cloud_sync.upload_success"))
+                logger.info("Cloud sync upload OK: %s" % res.message[:12])
+        else:
+            msg = (
+                t("cloud_sync.upload_failed", error=res.message)
+                if action == "upload"
+                else t("cloud_sync.download_failed", error=res.message)
+            )
+            UIHelper.show_error(self.mw, "Cloud Sync", msg)
+            logger.error("Cloud sync %s failed: %s" % (action, res.message))
 
     def _user(self, tb):
         a = QAction("%s %s" % (t("emoji.user"), self.mw.steam_username), self.mw)

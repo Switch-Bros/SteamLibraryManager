@@ -45,6 +45,10 @@ Flask>=3.0.0
 # ===== Async HTTP =====
 aiohttp>=3.10.0
 
+# ===== Cloud Sync (optional providers) =====
+webdavclient3>=3.14.6
+# rclone: install via package manager (pacman -S rclone), not pip
+
 # ===== Testing =====
 pytest>=8.3.0
 pytest-qt>=4.2.0

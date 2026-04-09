@@ -35,7 +35,7 @@ class ConnectionBase:
         self.db_path = db_path
         db_path.parent.mkdir(parents=True, exist_ok=True)
 
-        self.conn = sqlite3.connect(str(db_path), timeout=DB_CONNECT_TIMEOUT)
+        self.conn = sqlite3.connect(str(db_path), timeout=DB_CONNECT_TIMEOUT, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.conn.execute("PRAGMA journal_mode = WAL")
