@@ -757,6 +757,10 @@
     "rclone_not_executable": "rclone Binary nicht ausfuehrbar",
     "rclone_available": "Verfuegbar: {remotes}",
     "rclone_no_remotes": "rclone nicht installiert oder keine Remotes konfiguriert.\nInstalliere rclone und fuehre 'rclone config' aus.",
-    "rclone_setup_wizard_btn": "rclone einrichten..."
+    "rclone_setup_wizard_btn": "rclone einrichten...",
+    "cloud_export_success": "In die Cloud hochgeladen: {name}",
+    "cloud_import_success": "Aus der Cloud heruntergeladen: {name}",
+    "cloud_not_configured": "Kein Cloud-Anbieter konfiguriert. Gehe zu Einstellungen > Cloud Sync.",
+    "cloud_file_not_found": "Datei nicht in der Cloud gefunden: {name}"
   }
 }

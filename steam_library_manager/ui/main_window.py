@@ -253,68 +253,19 @@ class MainWindow(QMainWindow):
             result = self.file_actions.ask_save_on_exit(has_coll_changes, has_meta_changes)
             if result == "save":
                 self._save_all_on_exit()
-                self._auto_sync_upload()
                 self._stop_background_threads()
                 event.accept()
             elif result == "discard":
-                self._auto_sync_upload()
                 self._stop_background_threads()
                 event.accept()
             else:
                 event.ignore()
         else:
             if UIHelper.confirm(self, t("ui.exit.confirm"), __app_name__):
-                self._auto_sync_upload()
                 self._stop_background_threads()
                 event.accept()
             else:
                 event.ignore()
-
-    def _auto_sync_upload(self):
-        # upload DB to cloud on exit (auto_upload or full_auto mode)
-        from steam_library_manager.config import config
-        from steam_library_manager.core.logging import logger
-
-        if config.CLOUD_SYNC_MODE not in ("auto_upload", "full_auto"):
-            return
-        if not config.CLOUD_PROVIDER:
-            return
-
-        try:
-            logger.info(t("logs.cloud_sync.auto_upload_start"))
-
-            # lazy import to avoid loading cloud modules when not needed
-            from steam_library_manager.main import _create_cloud_provider
-            from steam_library_manager.services.cloud_sync.sync_service import CloudSyncService
-
-            prov = _create_cloud_provider()
-            if prov is None:
-                return
-
-            db_path = config.DATA_DIR / "metadata.db"
-            svc = CloudSyncService(
-                provider=prov,
-                db_path=db_path,
-                settings_path=config.SETTINGS_FILE,
-                tmp_dir=config.CACHE_DIR / "cloud_sync",
-                collections_path=config.get_cloud_storage_path(),
-            )
-
-            result = svc.upload()
-            if result.success:
-                from datetime import datetime
-
-                config.CLOUD_LAST_CHECKSUM = result.message  # checksum
-                config.CLOUD_LAST_SYNC = datetime.now().isoformat()
-                config.save()
-                logger.info(t("logs.cloud_sync.auto_upload_ok", checksum=result.message))
-            else:
-                logger.error(t("logs.cloud_sync.auto_upload_error", error=result.message))
-
-            prov.disconnect()
-
-        except Exception as exc:
-            logger.error(t("logs.cloud_sync.auto_upload_error", error=str(exc)))
 
     def _stop_background_threads(self):
         # Stop all running background threads to prevent SIGABRT on exit

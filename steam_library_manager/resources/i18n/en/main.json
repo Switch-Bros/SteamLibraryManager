@@ -757,6 +757,10 @@
     "rclone_not_executable": "rclone binary not executable",
     "rclone_available": "Available: {remotes}",
     "rclone_no_remotes": "rclone not installed or no remotes configured.\nInstall rclone and run 'rclone config'.",
-    "rclone_setup_wizard_btn": "Setup rclone..."
+    "rclone_setup_wizard_btn": "Setup rclone...",
+    "cloud_export_success": "Uploaded to cloud: {name}",
+    "cloud_import_success": "Downloaded from cloud: {name}",
+    "cloud_not_configured": "No cloud provider configured. Go to Settings > Cloud Sync.",
+    "cloud_file_not_found": "File not found in cloud: {name}"
   }
 }

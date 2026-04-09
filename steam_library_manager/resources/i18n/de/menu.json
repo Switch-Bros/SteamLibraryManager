@@ -12,14 +12,20 @@
         "games_json": "Spieleliste als JSON",
         "smart_collections": "Smart Collections (JSON)",
         "artwork_package": "Artwork-Pack exportieren",
-        "db_backup": "Datenbank-Backup"
+        "db_backup": "Datenbank-Backup",
+        "settings": "Einstellungen",
+        "to_file": "Als Datei speichern...",
+        "to_cloud": "In die Cloud hochladen"
       },
       "import": {
         "root": "Importieren",
         "collections": "Kollektionen (VDF)",
         "smart_collections": "Smart Collections (JSON)",
         "db_backup": "Datenbank-Backup",
-        "artwork_package": "Artwork-Pack importieren"
+        "artwork_package": "Artwork-Pack importieren",
+        "settings": "Einstellungen",
+        "from_file": "Von Datei...",
+        "from_cloud": "Aus der Cloud herunterladen"
       },
       "profiles": {
         "root": "Profile",
