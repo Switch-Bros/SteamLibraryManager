@@ -128,6 +128,8 @@ class RcloneSetupDialog(BaseDialog):
     """Built-in wizard to install rclone and configure a remote."""
 
     def __init__(self, parent=None):
+        self._thread = None
+        self._field_inputs = {}
         super().__init__(
             parent=parent,
             title_text="rclone einrichten",
@@ -135,8 +137,6 @@ class RcloneSetupDialog(BaseDialog):
             show_title_label=True,
             buttons="none",
         )
-        self._thread = None
-        self._field_inputs = {}
 
     def _build_content(self, layout):
         # rclone status
