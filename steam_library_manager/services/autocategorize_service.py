@@ -256,6 +256,13 @@ class AutoCategorizeService:
 
     def categorize_by_pegi(self, games, progress_callback=None):
         self._migrate_pegi_categories(games)
+
+        # build set of all possible PEGI category names for removal
+        all_pegi_cats = set()
+        for _, key in self._PEGI_BUCKETS:
+            all_pegi_cats.add(t("auto_categorize.cat_pegi", rating=t(key)))
+        all_pegi_cats.add(t("auto_categorize.cat_pegi", rating=t("auto_categorize.pegi_unknown")))
+
         added = 0
         for i, game in enumerate(games):
             if progress_callback:
@@ -271,6 +278,13 @@ class AutoCategorizeService:
             else:
                 lbl = t("auto_categorize.pegi_unknown")
             cat = t("auto_categorize.cat_pegi", rating=lbl)
+
+            # remove from wrong PEGI categories first
+            for old_cat in all_pegi_cats:
+                if old_cat != cat and old_cat in game.categories:
+                    self.cat_svc.remove_app_from_category(game.app_id, old_cat)
+                    game.categories.remove(old_cat)
+
             added += self._add_cat(game, cat)
         return added
 
