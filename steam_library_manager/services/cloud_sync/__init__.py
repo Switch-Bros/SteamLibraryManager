@@ -14,12 +14,10 @@ from steam_library_manager.services.cloud_sync.sync_service import (
     ConflictAction,
     SyncResult,
 )
-from steam_library_manager.services.cloud_sync.sync_thread import CloudSyncThread
 
 __all__: list[str] = [
     "CloudProvider",
     "CloudSyncService",
-    "CloudSyncThread",
     "ConflictAction",
     "FileInfo",
     "SyncResult",

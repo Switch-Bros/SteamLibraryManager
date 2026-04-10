@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QListWidget,
     QPushButton,
     QRadioButton,
     QStackedWidget,
@@ -82,21 +83,27 @@ class CloudSyncSettingsTab(QWidget):
 
         # page 2: rclone remote selection
         rclone_page = QWidget()
-        rc_lyt = QFormLayout(rclone_page)
-        self.rclone_remote = QLineEdit()
-        self.rclone_remote.setPlaceholderText("mega: / gdrive: / nextcloud: / ...")
-        rc_lyt.addRow(t("cloud_sync.rclone_remote_label") + ":", self.rclone_remote)
+        rc_lyt = QVBoxLayout(rclone_page)
 
-        # show available remotes
-        self.rclone_hint = QLabel("")
-        self.rclone_hint.setWordWrap(True)
-        rc_lyt.addRow("", self.rclone_hint)
+        # scrollable list of configured remotes
+        rc_lyt.addWidget(QLabel(t("cloud_sync.rclone_remote_label") + ":"))
+        self.rclone_list = QListWidget()
+        self.rclone_list.setMaximumHeight(120)
         self._refresh_rclone_remotes()
+        rc_lyt.addWidget(self.rclone_list)
+
+        # hidden line edit to store selected remote (for get_settings compat)
+        self.rclone_remote = QLineEdit()
+        self.rclone_remote.setVisible(False)
+        rc_lyt.addWidget(self.rclone_remote)
+
+        # sync selection to line edit
+        self.rclone_list.currentTextChanged.connect(self.rclone_remote.setText)
 
         # setup wizard button
         self.btn_rclone_setup = QPushButton(t("cloud_sync.rclone_setup_wizard_btn"))
         self.btn_rclone_setup.clicked.connect(self._open_rclone_setup)
-        rc_lyt.addRow("", self.btn_rclone_setup)
+        rc_lyt.addWidget(self.btn_rclone_setup)
 
         self.cred_stack.addWidget(rclone_page)
 
@@ -149,17 +156,24 @@ class CloudSyncSettingsTab(QWidget):
                 self._refresh_rclone_remotes()
 
     def _refresh_rclone_remotes(self):
-        # show available rclone remotes as hint
+        # populate the remote list from rclone config
+        self.rclone_list.clear()
         try:
             from steam_library_manager.services.cloud_sync.rclone import RcloneProvider
 
             remotes = RcloneProvider.list_remotes()
-            if remotes:
-                self.rclone_hint.setText(t("cloud_sync.rclone_available", remotes=", ".join(remotes)))
-            else:
-                self.rclone_hint.setText(t("cloud_sync.rclone_no_remotes"))
+            for r in remotes:
+                self.rclone_list.addItem(r)
+
+            # pre-select current remote if set
+            cur = self.rclone_remote.text()
+            if cur:
+                for i in range(self.rclone_list.count()):
+                    if self.rclone_list.item(i).text() == cur:
+                        self.rclone_list.setCurrentRow(i)
+                        break
         except Exception:
-            self.rclone_hint.setText(t("cloud_sync.rclone_not_found"))
+            pass
 
     def _open_rclone_setup(self):
         from steam_library_manager.ui.dialogs.rclone_setup_dialog import RcloneSetupDialog

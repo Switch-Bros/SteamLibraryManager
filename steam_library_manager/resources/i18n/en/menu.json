@@ -12,14 +12,22 @@
         "games_json": "Game List as JSON",
         "smart_collections": "Smart Collections (JSON)",
         "artwork_package": "Export Artwork Package",
-        "db_backup": "Database Backup"
+        "db_backup": "Database Backup",
+        "settings": "Settings",
+        "to_file": "Save to file...",
+        "to_cloud": "Upload to cloud",
+        "all_cloud": "All data to cloud"
       },
       "import": {
         "root": "Import",
         "collections": "Collections (VDF)",
         "smart_collections": "Smart Collections (JSON)",
         "db_backup": "Database Backup",
-        "artwork_package": "Import Artwork Package"
+        "artwork_package": "Import Artwork Package",
+        "settings": "Settings",
+        "from_file": "From file...",
+        "from_cloud": "Download from cloud",
+        "all_cloud": "All data from cloud"
       },
       "profiles": {
         "root": "Profiles",

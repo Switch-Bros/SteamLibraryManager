@@ -97,6 +97,18 @@ class ProfileDialog(BaseDialog):
 
         layout.addLayout(r2)
 
+        # row 3: Cloud Export, Cloud Import
+        r3 = QHBoxLayout()
+        self.bce = QPushButton("%s %s" % (t("emoji.cloud"), t("menu.file.export.to_cloud")))
+        self.bce.clicked.connect(self._exp_cloud)
+        r3.addWidget(self.bce)
+
+        self.bci = QPushButton("%s %s" % (t("emoji.cloud"), t("menu.file.import.from_cloud")))
+        self.bci.clicked.connect(self._imp_cloud)
+        r3.addWidget(self.bci)
+
+        layout.addLayout(r3)
+
         # close
         rc = QHBoxLayout()
         rc.addStretch()
@@ -129,6 +141,7 @@ class ProfileDialog(BaseDialog):
         self.bd.setEnabled(sel)
         self.br.setEnabled(sel)
         self.be.setEnabled(sel)
+        self.bce.setEnabled(sel)
 
     def _sel(self):
         it = self.lst.currentItem()
@@ -244,3 +257,27 @@ class ProfileDialog(BaseDialog):
             self._refresh()
         except (FileNotFoundError, KeyError, Exception) as e:
             UIHelper.show_error(self, t("ui.profile.error_import_failed", error=str(e)))
+
+    def _exp_cloud(self):
+        n = self._sel()
+        if not n:
+            return
+
+        pa = self._profile_actions()
+        if pa is None:
+            return
+        pa.export_profile_cloud(n)
+
+    def _imp_cloud(self):
+        pa = self._profile_actions()
+        if pa is None:
+            return
+        pa.import_profile_cloud()
+        self._refresh()
+
+    def _profile_actions(self):
+        """Get ProfileActions from the parent main window."""
+        p = self.parent()
+        if p is None or not hasattr(p, "profile_actions"):
+            return None
+        return p.profile_actions

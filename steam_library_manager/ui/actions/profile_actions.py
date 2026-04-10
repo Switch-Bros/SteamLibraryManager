@@ -131,6 +131,113 @@ class ProfileActions:
         except (FileNotFoundError, KeyError, Exception) as exc:
             UIHelper.show_error(self.mw, t("ui.profile.error_import_failed", error=str(exc)))
 
+    def export_profile_cloud(self, name):
+        """Export a profile to cloud storage."""
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td) / ("%s.json" % name)
+            if not self.manager.export_profile(name, tmp):
+                return
+            remote_name = "profiles/%s.json" % name
+            self._cloud_upload(tmp, remote_name)
+
+    def import_profile_cloud(self):
+        """Import a profile from cloud storage."""
+        import tempfile
+        from pathlib import Path
+
+        # ask user for the profile filename to download
+        fname, ok = UIHelper.ask_text(
+            self.mw,
+            title=t("ui.profile.import_title"),
+            label=t("ui.profile.cloud_import_prompt"),
+        )
+        if not ok or not fname:
+            return
+
+        if not fname.endswith(".json"):
+            fname = "%s.json" % fname
+
+        remote = "profiles/%s" % fname
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td) / fname
+            if not self._cloud_download(remote, tmp):
+                return
+            try:
+                p = self.manager.import_profile(tmp)
+                UIHelper.show_success(self.mw, t("ui.profile.import_success", name=p.name))
+            except (FileNotFoundError, KeyError, Exception) as exc:
+                UIHelper.show_error(
+                    self.mw,
+                    t("ui.profile.error_import_failed", error=str(exc)),
+                )
+
+    # -- cloud helpers --
+
+    def _cloud_upload(self, local_path, remote_name):
+        """Upload a file to the configured cloud provider."""
+        from steam_library_manager.main import _create_cloud_provider
+        from steam_library_manager.core.logging import logger
+
+        if not config.CLOUD_PROVIDER:
+            UIHelper.show_warning(self.mw, t("cloud_sync.cloud_not_configured"))
+            return False
+
+        prov = _create_cloud_provider()
+        if prov is None:
+            UIHelper.show_warning(self.mw, t("cloud_sync.cloud_not_configured"))
+            return False
+
+        remote = "SteamLibraryManager/%s" % remote_name
+        ok = prov.upload_file(local_path, remote)
+        prov.disconnect()
+
+        if ok:
+            logger.info("cloud upload OK: %s" % remote_name)
+            UIHelper.show_success(self.mw, t("cloud_sync.cloud_export_success", name=remote_name))
+        else:
+            logger.error("cloud upload failed: %s" % remote_name)
+            UIHelper.show_warning(self.mw, t("cloud_sync.upload_failed", error=remote_name))
+        return ok
+
+    def _cloud_download(self, remote_name, local_path):
+        """Download a file from the configured cloud provider."""
+        from steam_library_manager.main import _create_cloud_provider
+        from steam_library_manager.core.logging import logger
+
+        if not config.CLOUD_PROVIDER:
+            UIHelper.show_warning(self.mw, t("cloud_sync.cloud_not_configured"))
+            return False
+
+        prov = _create_cloud_provider()
+        if prov is None:
+            UIHelper.show_warning(self.mw, t("cloud_sync.cloud_not_configured"))
+            return False
+
+        remote = "SteamLibraryManager/%s" % remote_name
+        info = prov.get_file_info(remote)
+        if info is None:
+            prov.disconnect()
+            UIHelper.show_warning(
+                self.mw,
+                t("cloud_sync.cloud_file_not_found", name=remote_name),
+            )
+            return False
+
+        local_path.parent.mkdir(parents=True, exist_ok=True)
+        ok = prov.download_file(remote, local_path)
+        prov.disconnect()
+
+        if ok:
+            logger.info("cloud download OK: %s" % remote_name)
+            UIHelper.show_success(self.mw, t("cloud_sync.cloud_import_success", name=remote_name))
+        else:
+            logger.error("cloud download failed: %s" % remote_name)
+            UIHelper.show_warning(self.mw, t("cloud_sync.download_failed", error=remote_name))
+        return ok
+
     # -- internals --
 
     def _snap(self, name):

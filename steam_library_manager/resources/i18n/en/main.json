@@ -343,6 +343,7 @@
       "rename_success": "Profile renamed to '{name}'.",
       "import_success": "Profile '{name}' imported.",
       "export_success": "Profile exported.",
+      "cloud_import_prompt": "Enter the profile name to download from cloud:",
       "error_empty_name": "Profile name cannot be empty.",
       "error_duplicate_name": "Profile '{name}' already exists. Overwrite?",
       "error_load_failed": "Failed to load profile: {error}",
@@ -707,7 +708,7 @@
     "connect_btn": "Connect",
     "disconnect_btn": "Disconnect",
     "sync_mode_label": "Sync Mode",
-    "mode_manual": "Manual (toolbar button only)",
+    "mode_manual": "Manual (File menu only)",
     "mode_auto_upload": "Auto-upload on exit",
     "mode_full_auto": "Fully automatic (upload + download)",
     "last_sync": "Last sync: {time}",
@@ -757,6 +758,10 @@
     "rclone_not_executable": "rclone binary not executable",
     "rclone_available": "Available: {remotes}",
     "rclone_no_remotes": "rclone not installed or no remotes configured.\nInstall rclone and run 'rclone config'.",
-    "rclone_setup_wizard_btn": "Setup rclone..."
+    "rclone_setup_wizard_btn": "Setup rclone...",
+    "cloud_export_success": "Uploaded to cloud: {name}",
+    "cloud_import_success": "Downloaded from cloud: {name}",
+    "cloud_not_configured": "No cloud provider configured. Go to Settings > Cloud Sync.",
+    "cloud_file_not_found": "File not found in cloud: {name}"
   }
 }

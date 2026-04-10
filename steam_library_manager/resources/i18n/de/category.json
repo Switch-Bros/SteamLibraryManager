@@ -55,7 +55,7 @@
     "apply_group": "Anwenden auf",
     "estimate_label": "Geschätzte Kollektionen",
     "cache_warning_title": "Wenig Cache-Daten",
-    "cache_warning_message": "Nur {cached} von {total} Spielen haben gecachte Tag-Daten.\n\nDas Abrufen der Tags vom Steam Store dauert ca. {time}.\n\nEMPFEHLUNG:\nVerwende zuerst 'Werkzeuge > Batch > ALLE Daten NEU einlesen' um den Cache zu fuellen, oder 'Werkzeuge > Batch > Tags importieren' nur fuer Tags.\n\nTrotzdem fortfahren?",
+    "cache_warning_message": "Nur {cached} von {total} Spielen haben gecachte Tag-Daten.\n\nDas Abrufen der Tags vom Steam Store dauert ca. {time}.\n\nEMPFEHLUNG:\nVerwende zuerst 'Werkzeuge > Batch > ALLE Daten NEU einlesen' um den Cache zu füllen, oder 'Werkzeuge > Batch > Tags importieren' nur für Tags.\n\nTrotzdem fortfahren?",
     "by_developer": "Nach Entwickler",
     "by_platform": "Nach Plattform",
     "by_user_score": "Nach Bewertung",

@@ -106,43 +106,98 @@ class MenuBuilder:
 
         m.addSeparator()
 
-        # export submenu
+        # export submenu - each item has file + cloud sub-options
         exp = m.addMenu(t("menu.file.export.root"))
 
-        for key, fn in (
-            ("collections_vdf", w.file_actions.export_collections_text),
-            ("collections_text", w.file_actions.export_collections_text),
-            ("games_csv_simple", w.file_actions.export_csv_simple),
-            ("games_csv_full", w.file_actions.export_csv_full),
-            ("games_json", w.file_actions.export_json),
-            ("smart_collections", w.file_actions.export_smart_collections),
+        for key, fn_file, fn_cloud in (
+            ("collections_vdf", w.file_actions.export_collections_text, w.file_actions.export_collections_cloud),
+            ("collections_text", w.file_actions.export_collections_text, w.file_actions.export_collections_cloud),
+            ("games_csv_simple", w.file_actions.export_csv_simple, w.file_actions.export_csv_simple_cloud),
+            ("games_csv_full", w.file_actions.export_csv_full, w.file_actions.export_csv_full_cloud),
+            ("games_json", w.file_actions.export_json, w.file_actions.export_json_cloud),
+            (
+                "smart_collections",
+                w.file_actions.export_smart_collections,
+                w.file_actions.export_smart_collections_cloud,
+            ),
         ):
-            a = QAction(t("menu.file.export.%s" % key), w)
-            a.triggered.connect(fn)
-            exp.addAction(a)
+            sub = exp.addMenu(t("menu.file.export.%s" % key))
+            a = QAction(t("menu.file.export.to_file"), w)
+            a.triggered.connect(fn_file)
+            sub.addAction(a)
+            a = QAction("%s %s" % (t("emoji.cloud"), t("menu.file.export.to_cloud")), w)
+            a.triggered.connect(fn_cloud)
+            sub.addAction(a)
+
+        exp.addSeparator()
 
         a = QAction(t("menu.file.export.artwork_package"), w)
         a.triggered.connect(lambda: self._not_implemented("menu.file.export.artwork_package"))
         exp.addAction(a)
 
-        a = QAction(t("menu.file.export.db_backup"), w)
+        # db backup sub-options
+        db_exp = exp.addMenu(t("menu.file.export.db_backup"))
+        a = QAction(t("menu.file.export.to_file"), w)
         a.triggered.connect(w.file_actions.export_db_backup)
+        db_exp.addAction(a)
+        a = QAction("%s %s" % (t("emoji.cloud"), t("menu.file.export.to_cloud")), w)
+        a.triggered.connect(w.file_actions.export_db_backup_cloud)
+        db_exp.addAction(a)
+
+        # settings export
+        set_exp = exp.addMenu(t("menu.file.export.settings"))
+        a = QAction(t("menu.file.export.to_file"), w)
+        a.triggered.connect(lambda: self._not_implemented("menu.file.export.settings"))
+        set_exp.addAction(a)
+        a = QAction("%s %s" % (t("emoji.cloud"), t("menu.file.export.to_cloud")), w)
+        a.triggered.connect(w.file_actions.export_settings_cloud)
+        set_exp.addAction(a)
+
+        exp.addSeparator()
+
+        # export all to cloud
+        a = QAction("%s %s" % (t("emoji.cloud"), t("menu.file.export.all_cloud")), w)
+        a.triggered.connect(w.file_actions.export_all_cloud)
         exp.addAction(a)
 
-        # import submenu
+        # import submenu - each item has file + cloud sub-options
         imp = m.addMenu(t("menu.file.import.root"))
 
-        for key, fn in (
-            ("collections", w.file_actions.import_collections_vdf),
-            ("smart_collections", w.file_actions.import_smart_collections),
-            ("db_backup", w.file_actions.import_db_backup),
+        for key, fn_file, fn_cloud in (
+            ("collections", w.file_actions.import_collections_vdf, w.file_actions.import_collections_cloud),
+            (
+                "smart_collections",
+                w.file_actions.import_smart_collections,
+                w.file_actions.import_smart_collections_cloud,
+            ),
+            ("db_backup", w.file_actions.import_db_backup, w.file_actions.import_db_backup_cloud),
         ):
-            a = QAction(t("menu.file.import.%s" % key), w)
-            a.triggered.connect(fn)
-            imp.addAction(a)
+            sub = imp.addMenu(t("menu.file.import.%s" % key))
+            a = QAction(t("menu.file.import.from_file"), w)
+            a.triggered.connect(fn_file)
+            sub.addAction(a)
+            a = QAction("%s %s" % (t("emoji.cloud"), t("menu.file.import.from_cloud")), w)
+            a.triggered.connect(fn_cloud)
+            sub.addAction(a)
 
         a = QAction(t("menu.file.import.artwork_package"), w)
         a.triggered.connect(lambda: self._not_implemented("menu.file.import.artwork_package"))
+        imp.addAction(a)
+
+        # settings import
+        set_imp = imp.addMenu(t("menu.file.import.settings"))
+        a = QAction(t("menu.file.import.from_file"), w)
+        a.triggered.connect(lambda: self._not_implemented("menu.file.import.settings"))
+        set_imp.addAction(a)
+        a = QAction("%s %s" % (t("emoji.cloud"), t("menu.file.import.from_cloud")), w)
+        a.triggered.connect(w.file_actions.import_settings_cloud)
+        set_imp.addAction(a)
+
+        imp.addSeparator()
+
+        # import all from cloud
+        a = QAction("%s %s" % (t("emoji.cloud"), t("menu.file.import.all_cloud")), w)
+        a.triggered.connect(w.file_actions.import_all_cloud)
         imp.addAction(a)
 
         # profiles
