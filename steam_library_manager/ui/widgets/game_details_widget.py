@@ -6,7 +6,6 @@
 # Licensed under the MIT License. See LICENSE for details.
 #
 
-from pathlib import Path
 
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QCursor
@@ -379,7 +378,7 @@ class GameDetailsWidget(QWidget):
         if not rating:
             from steam_library_manager.integrations.steam_store import SteamStoreScraper
 
-            scraper = SteamStoreScraper(Path.home() / ".steam_library_manager" / "cache", "en")
+            scraper = SteamStoreScraper(config.CACHE_DIR, "en")
             fetched = scraper.fetch_age_rating(gm.app_id)
             if fetched:
                 rating = fetched
@@ -389,11 +388,15 @@ class GameDetailsWidget(QWidget):
             pegi_path = config.ICONS_DIR / ("PEGI%s.webp" % rating)
             self.pegi_image.load_image(str(pegi_path) if pegi_path.exists() else None)
             # yellow border = confirmed rating
-            self.pegi_image.setStyleSheet("border: 2px solid %s;" % Theme.PEGI_HVR)
+            self.pegi_image.image_label.setStyleSheet(
+                "border: 2px solid %s; background-color: %s;" % (Theme.PEGI_HVR, Theme.BG_PRI)
+            )
         else:
             self.pegi_image.load_image(None)
             # red border = no rating found, user should check manually
-            self.pegi_image.setStyleSheet("border: 2px solid %s;" % Theme.DANGER)
+            self.pegi_image.image_label.setStyleSheet(
+                "border: 2px solid %s; background-color: %s;" % (Theme.DANGER, Theme.BG_PRI)
+            )
 
     def on_pegi_clicked(self):
         # open PEGI selector

@@ -79,6 +79,8 @@ class HLTBClient:
         self._api_path = ""
         self._token = ""
         self._build_id = ""
+        self._hp_key = ""
+        self._hp_val = ""
         self._cached_at = 0.0
         self._id_cache = {}  # steam_app_id -> hltb_game_id
         self._lock = threading.Lock()
@@ -209,16 +211,22 @@ class HLTBClient:
         return None
 
     def _post(self, payload):
-        # Send search POST to the HLTB API
+        # inject honeypot field into payload + headers (HLTB bot protection)
+        hdrs = {
+            "Content-Type": "application/json",
+            "Origin": _BASE,
+            "Referer": "%s/" % _BASE,
+            "x-auth-token": self._token,
+        }
+        if self._hp_key and self._hp_val:
+            payload[self._hp_key] = self._hp_val
+            hdrs["x-hp-key"] = self._hp_key
+            hdrs["x-hp-val"] = self._hp_val
+
         return self._session.post(
             "%s/api/%s" % (_BASE, self._api_path),
             json=payload,
-            headers={
-                "Content-Type": "application/json",
-                "Origin": _BASE,
-                "Referer": "%s/" % _BASE,
-                "x-auth-token": self._token,
-            },
+            headers=hdrs,
             timeout=HTTP_TIMEOUT_LONG,
         )
 
@@ -355,7 +363,7 @@ class HLTBClient:
             for m in _INIT_RE.finditer(js_text):
                 p = m.group(1)
                 # Skip non-search endpoints
-                if p in ("user", "logout", "error", "game", "find"):
+                if p in ("user", "logout", "error", "game"):
                     continue
                 logger.debug("Found HLTB endpoint via init pattern: /api/%s", p)
                 return p
@@ -384,7 +392,7 @@ class HLTBClient:
         return ""
 
     def _get_token(self, api_path):
-        # Obtain auth token from the HLTB init endpoint
+        # obtain auth token + honeypot key/value from the init endpoint
         ts = int(time.time() * 1000)
         url = "%s/api/%s/init?t=%d" % (_BASE, api_path, ts)
 
@@ -400,9 +408,11 @@ class HLTBClient:
             resp.raise_for_status()
             data = resp.json()
             token = data.get("token", "")
+            self._hp_key = data.get("hpKey", "")
+            self._hp_val = data.get("hpVal", "")
             if token:
-                logger.debug("Obtained HLTB auth token")
+                logger.debug("Obtained HLTB auth token (hp=%s)" % self._hp_key)
             return token
         except Exception as exc:
-            logger.warning("Failed to get HLTB auth token: %s", exc)
+            logger.warning("Failed to get HLTB auth token: %s" % exc)
             return ""
