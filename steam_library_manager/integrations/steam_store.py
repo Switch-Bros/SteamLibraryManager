@@ -158,7 +158,11 @@ class SteamStoreScraper:
         # Try API first (fast JSON parse, no age-gate issues)
         pegi_rating = self._fetch_age_rating_from_api(app_id)
 
-        # Fallback to HTML scraping if API has no data
+        # Fallback: try US region (game might be delisted/banned locally)
+        if not pegi_rating:
+            pegi_rating = self._fetch_age_rating_from_api(app_id, cc="us")
+
+        # Fallback: HTML scraping if API has no data
         if not pegi_rating:
             pegi_rating = self._fetch_age_rating_from_html(app_id)
 
@@ -178,12 +182,14 @@ class SteamStoreScraper:
 
         return pegi_rating
 
-    def _fetch_age_rating_from_api(self, app_id: str) -> str | None:
+    def _fetch_age_rating_from_api(self, app_id: str, cc: str = "") -> str | None:
         # fetch from Steam Store appdetails API
         try:
             self.last_request_time = time.time()
 
             url = "https://store.steampowered.com/api/appdetails?appids=%s" % app_id
+            if cc:
+                url += "&cc=%s" % cc
             resp = requests.get(url, timeout=HTTP_TIMEOUT)
             resp.raise_for_status()
             data = resp.json()
@@ -222,6 +228,29 @@ class SteamStoreScraper:
                     mapped = convert_to_pegi(usk["rating"], "usk")
                     if mapped:
                         return mapped
+
+                # fallback: any rating system with a numeric required_age
+                for sys_key, sys_data in ratings.items():
+                    if not isinstance(sys_data, dict):
+                        continue
+                    if sys_data.get("banned") == "1":
+                        continue
+                    ra = sys_data.get("required_age", 0)
+                    if isinstance(ra, str):
+                        try:
+                            ra = int(ra)
+                        except ValueError:
+                            continue
+                    if ra >= 18:
+                        return "18"
+                    elif ra >= 16:
+                        return "16"
+                    elif ra >= 12:
+                        return "12"
+                    elif ra >= 6:
+                        return "7"
+                    elif ra > 0:
+                        return "3"
 
             # 2. fallback: required_age (less reliable)
             req_age = gd.get("required_age", 0)
