@@ -15,7 +15,8 @@
         "db_backup": "Database Backup",
         "settings": "Settings",
         "to_file": "Save to file...",
-        "to_cloud": "Upload to cloud"
+        "to_cloud": "Upload to cloud",
+        "all_cloud": "All data to cloud"
       },
       "import": {
         "root": "Import",
@@ -25,7 +26,8 @@
         "artwork_package": "Import Artwork Package",
         "settings": "Settings",
         "from_file": "From file...",
-        "from_cloud": "Download from cloud"
+        "from_cloud": "Download from cloud",
+        "all_cloud": "All data from cloud"
       },
       "profiles": {
         "root": "Profiles",

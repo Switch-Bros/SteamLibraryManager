@@ -129,6 +129,8 @@ class MenuBuilder:
             a.triggered.connect(fn_cloud)
             sub.addAction(a)
 
+        exp.addSeparator()
+
         a = QAction(t("menu.file.export.artwork_package"), w)
         a.triggered.connect(lambda: self._not_implemented("menu.file.export.artwork_package"))
         exp.addAction(a)
@@ -150,6 +152,13 @@ class MenuBuilder:
         a = QAction("%s %s" % (t("emoji.cloud"), t("menu.file.export.to_cloud")), w)
         a.triggered.connect(w.file_actions.export_settings_cloud)
         set_exp.addAction(a)
+
+        exp.addSeparator()
+
+        # export all to cloud
+        a = QAction("%s %s" % (t("emoji.cloud"), t("menu.file.export.all_cloud")), w)
+        a.triggered.connect(w.file_actions.export_all_cloud)
+        exp.addAction(a)
 
         # import submenu - each item has file + cloud sub-options
         imp = m.addMenu(t("menu.file.import.root"))
@@ -183,6 +192,13 @@ class MenuBuilder:
         a = QAction("%s %s" % (t("emoji.cloud"), t("menu.file.import.from_cloud")), w)
         a.triggered.connect(w.file_actions.import_settings_cloud)
         set_imp.addAction(a)
+
+        imp.addSeparator()
+
+        # import all from cloud
+        a = QAction("%s %s" % (t("emoji.cloud"), t("menu.file.import.all_cloud")), w)
+        a.triggered.connect(w.file_actions.import_all_cloud)
+        imp.addAction(a)
 
         # profiles
         prof = m.addMenu(t("menu.file.profiles.root"))

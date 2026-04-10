@@ -573,6 +573,23 @@ class FileActions:
             # reload config from disk
             config._load_settings()
 
+    # -- bulk cloud ops --
+
+    def export_all_cloud(self):
+        # export everything to cloud in one go
+        self.export_collections_cloud()
+        self.export_smart_collections_cloud()
+        self.export_db_backup_cloud()
+        self.export_settings_cloud()
+        UIHelper.show_success(self.win, t("cloud_sync.cloud_export_success", name="all"))
+
+    def import_all_cloud(self):
+        # import everything from cloud in one go
+        self.import_collections_cloud()
+        self.import_smart_collections_cloud()
+        self.import_db_backup_cloud()
+        self.import_settings_cloud()
+
     def ask_save_on_exit(self, coll_ch, meta_ch):
         from PyQt6.QtWidgets import QMessageBox
 
