@@ -179,56 +179,73 @@ class SteamStoreScraper:
         return pegi_rating
 
     def _fetch_age_rating_from_api(self, app_id: str) -> str | None:
-        """Fetches age rating using Steam Store API."""
+        # fetch from Steam Store appdetails API
         try:
             self.last_request_time = time.time()
 
-            # Steam Store API endpoint
-            url = f"https://store.steampowered.com/api/appdetails?appids={app_id}"
+            url = "https://store.steampowered.com/api/appdetails?appids=%s" % app_id
+            resp = requests.get(url, timeout=HTTP_TIMEOUT)
+            resp.raise_for_status()
+            data = resp.json()
 
-            response = requests.get(url, timeout=HTTP_TIMEOUT)
-            response.raise_for_status()
-
-            data = response.json()
-
-            # Check if request was successful
             if not data or str(app_id) not in data:
                 return None
 
-            app_data = data[str(app_id)]
-
-            if not app_data.get("success"):
+            ad = data[str(app_id)]
+            if not ad.get("success"):
                 return None
 
-            game_data = app_data.get("data", {})
+            gd = ad.get("data", {})
 
-            # Get required_age from API
-            required_age = game_data.get("required_age", 0)
+            # 1. try official ratings object (has real PEGI/ESRB values)
+            ratings = gd.get("ratings", {})
+            if ratings:
+                # prefer PEGI
+                pegi = ratings.get("pegi", {})
+                if pegi and pegi.get("rating"):
+                    return str(pegi["rating"])
 
-            # Convert to int (API sometimes returns string)
-            if isinstance(required_age, str):
+                # fallback: convert ESRB to PEGI
+                esrb = ratings.get("esrb", {})
+                if esrb and esrb.get("rating"):
+                    from steam_library_manager.utils.age_ratings import convert_to_pegi
+
+                    mapped = convert_to_pegi(esrb["rating"], "esrb")
+                    if mapped:
+                        return mapped
+
+                # fallback: convert USK to PEGI
+                usk = ratings.get("usk", {})
+                if usk and usk.get("rating"):
+                    from steam_library_manager.utils.age_ratings import convert_to_pegi
+
+                    mapped = convert_to_pegi(usk["rating"], "usk")
+                    if mapped:
+                        return mapped
+
+            # 2. fallback: required_age (less reliable)
+            req_age = gd.get("required_age", 0)
+            if isinstance(req_age, str):
                 try:
-                    required_age = int(required_age)
+                    req_age = int(req_age)
                 except ValueError:
-                    required_age = 0
+                    req_age = 0
 
-            # Convert to PEGI rating
-            if required_age >= 18:
+            if req_age >= 18:
                 return "18"
-            elif required_age >= 16:
+            elif req_age >= 16:
                 return "16"
-            elif required_age >= 12:
+            elif req_age >= 12:
                 return "12"
-            elif required_age >= 6:
+            elif req_age >= 6:
                 return "7"
-            elif required_age > 0:
+            elif req_age > 0:
                 return "3"
-            else:
-                # required_age = 0 means API has no reliable info
-                return None
 
-        except (requests.RequestException, ValueError, KeyError) as e:
-            logger.error(t("logs.steam_store.api_fetch_failed", app_id=app_id, error=e))
+            return None
+
+        except (requests.RequestException, ValueError, KeyError) as exc:
+            logger.error(t("logs.steam_store.api_fetch_failed", app_id=app_id, error=exc))
             return None
 
     def _fetch_age_rating_from_html(self, app_id: str) -> str | None:

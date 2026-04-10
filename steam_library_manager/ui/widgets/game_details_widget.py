@@ -388,8 +388,12 @@ class GameDetailsWidget(QWidget):
         if rating:
             pegi_path = config.ICONS_DIR / ("PEGI%s.webp" % rating)
             self.pegi_image.load_image(str(pegi_path) if pegi_path.exists() else None)
+            # yellow border = confirmed rating
+            self.pegi_image.setStyleSheet("border: 2px solid %s;" % Theme.PEGI_HVR)
         else:
             self.pegi_image.load_image(None)
+            # red border = no rating found, user should check manually
+            self.pegi_image.setStyleSheet("border: 2px solid %s;" % Theme.DANGER)
 
     def on_pegi_clicked(self):
         # open PEGI selector
