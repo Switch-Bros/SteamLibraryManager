@@ -54,5 +54,5 @@ modules:
     sources:
       - type: git
         url: https://github.com/Switch-Bros/SteamLibraryManager.git
-        tag: v1.3.8
-        commit: 268b57e4e6d1bf612f60b153534c5a7983812268
+        tag: v1.3.9
+        commit: 04215ab8c07a1a1d57d30f27b508a67fada3ef93
