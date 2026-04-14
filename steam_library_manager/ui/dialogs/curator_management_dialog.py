@@ -67,7 +67,7 @@ class CuratorManagementDialog(BaseDialog):
         self._tbl.setHorizontalHeaderLabels(
             [
                 t("ui.curator.col_active"),
-                t("ui.curator.col_name"),
+                t("common.name"),
                 t("ui.curator.col_count"),
                 t("ui.curator.col_updated"),
             ]
@@ -101,11 +101,11 @@ class CuratorManagementDialog(BaseDialog):
         btn_rm.clicked.connect(self._rm)
         row.addWidget(btn_rm)
 
-        btn_exp = QPushButton(t("ui.curator.export"))
+        btn_exp = QPushButton(t("common.export"))
         btn_exp.clicked.connect(self._exp)
         row.addWidget(btn_exp)
 
-        btn_imp = QPushButton(t("ui.curator.import_btn"))
+        btn_imp = QPushButton(t("common.import"))
         btn_imp.clicked.connect(self._imp)
         row.addWidget(btn_imp)
 

@@ -140,7 +140,7 @@ class QRCodeLoginThread(QThread):
             # Step 2: Emit REAL challenge URL (no qrserver!)
             self.qr_ready.emit(challenge_url)  # THIS IS THE REAL URL!
 
-            self.polling_update.emit(t("steam.login.status_scan_qr"))
+            self.polling_update.emit(t("steam.login.qr_instructions"))
 
             # Step 3: Poll for completion
             result = _poll_auth_session(

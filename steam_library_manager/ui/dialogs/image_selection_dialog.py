@@ -153,7 +153,7 @@ class ImageSelectionDialog(QDialog):
 
         hl = QHBoxLayout()
         self.ki = QLineEdit()
-        self.ki.setPlaceholderText(t("settings.grid_setup.key_placeholder"))
+        self.ki.setPlaceholderText(t("settings.api.placeholder"))
         self.ki.setMinimumHeight(35)
         hl.addWidget(self.ki)
 
@@ -371,7 +371,7 @@ class ImageSelectionDialog(QDialog):
 
             img.mousePressEvent = mk_clk(it["url"], mime, tags)
 
-            auth = it.get("author", {}).get("name") or t("ui.game_details.value_unknown")
+            auth = it.get("author", {}).get("name") or t("common.unknown")
             al = QLabel(box)
             al.setText("👤 %s" % auth)
             al.setGeometry(0, h + 7, w, 30)

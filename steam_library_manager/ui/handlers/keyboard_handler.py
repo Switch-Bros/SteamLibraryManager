@@ -73,7 +73,7 @@ class KeyboardHandler:
                 mw.selected_games = []
                 mw.tree.clearSelection()
                 mw.details_widget.clear()
-                mw.set_status(t("ui.main_window.status_ready"))
+                mw.set_status(t("common.ready"))
             return True
 
         if key == Qt.Key.Key_Delete:

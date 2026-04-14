@@ -3,8 +3,10 @@
     "file": {
       "root": "File",
       "refresh": "Refresh Library",
+      "exit": "Exit",
       "export": {
         "root": "Export",
+        "settings": "Settings",
         "collections_vdf": "Collections as VDF",
         "collections_text": "Categories (Human-Readable)",
         "games_csv_simple": "Game List as CSV (Simple)",
@@ -13,18 +15,17 @@
         "smart_collections": "Smart Collections (JSON)",
         "artwork_package": "Export Artwork Package",
         "db_backup": "Database Backup",
-        "settings": "Settings",
         "to_file": "Save to file...",
         "to_cloud": "Upload to cloud",
         "all_cloud": "All data to cloud"
       },
       "import": {
         "root": "Import",
+        "settings": "Settings",
         "collections": "Collections (VDF)",
         "smart_collections": "Smart Collections (JSON)",
         "db_backup": "Database Backup",
         "artwork_package": "Import Artwork Package",
-        "settings": "Settings",
         "from_file": "From file...",
         "from_cloud": "Download from cloud",
         "all_cloud": "All data from cloud"
@@ -33,8 +34,7 @@
         "root": "Profiles",
         "save_current": "Save Current as Profile...",
         "manage": "Manage Profiles..."
-      },
-      "exit": "Exit"
+      }
     },
     "edit": {
       "root": "Edit",
@@ -43,19 +43,19 @@
         "single": "Single Game",
         "bulk": "Multiple Games (Bulk Edit)"
       },
-      "auto_categorize": "Auto-Categorize",
       "collections": {
         "root": "Collections",
         "rename": "Rename Collection",
-        "merge": "Merge Collections",
         "delete_empty": "Delete Empty Collections",
         "expand_all": "Expand All",
         "collapse_all": "Collapse All",
+        "merge": "Merge Collections",
         "create_smart": "Create Smart Collection...",
         "edit_smart": "Edit Smart Collection Rules...",
         "delete_smart": "Delete Smart Collection",
         "refresh_smart": "Refresh Smart Collections"
       },
+      "auto_categorize": "Auto-Categorize",
       "find_missing_metadata": "Games with Missing Metadata",
       "reset_metadata": "Reset Metadata",
       "remove_duplicates": "Remove Duplicates"
@@ -75,8 +75,8 @@
         "soundtracks": "Soundtracks",
         "software": "Software",
         "videos": "Videos",
-        "dlcs": "DLCs",
-        "tools": "Tools"
+        "tools": "Tools",
+        "dlcs": "DLCs"
       },
       "platform": {
         "root": "Platform",
@@ -89,8 +89,8 @@
         "installed": "Installed",
         "not_installed": "Not Installed",
         "hidden": "Hidden",
-        "with_playtime": "With Playtime",
-        "favorites": "Favorites"
+        "favorites": "Favorites",
+        "with_playtime": "With Playtime"
       },
       "language": {
         "root": "Languages",
@@ -147,7 +147,6 @@
       }
     },
     "tools": {
-      "root": "Tools",
       "artwork": {
         "root": "Artwork",
         "download_missing": "Download Missing Artworks",
@@ -187,9 +186,10 @@
         "import_appinfo": "Fetch Data from appinfo",
         "backup": "Create Backup"
       },
+      "root": "Tools",
+      "settings": "Settings",
       "external_games": "External Games...",
-      "manage_curators": "Manage Curators...",
-      "settings": "Settings"
+      "manage_curators": "Manage Curators..."
     },
     "help": {
       "root": "Help",

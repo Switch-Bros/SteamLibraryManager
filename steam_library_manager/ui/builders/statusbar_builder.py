@@ -70,4 +70,4 @@ class StatusbarBuilder:
         statusbar.addPermanentWidget(self.reload_btn)
 
         # Set initial status message
-        statusbar.showMessage(t("ui.main_window.status_ready"))
+        statusbar.showMessage(t("common.ready"))

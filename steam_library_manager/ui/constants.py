@@ -22,9 +22,9 @@ def get_protected_collection_names() -> set[str]:
     """
     return {
         t("categories.all_games"),
-        t("categories.favorites"),
+        t("common.favorites"),
         t("categories.uncategorized"),
-        t("categories.hidden"),
+        t("common.hidden"),
         # Steam-internal names (lowercase, used by Depressurizer and raw cloud storage)
         "favorite",
         "hidden",

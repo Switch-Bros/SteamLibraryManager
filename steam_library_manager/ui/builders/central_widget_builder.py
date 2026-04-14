@@ -63,12 +63,12 @@ class CentralWidgetBuilder:
 
         # Tree Controls
         blayout = QHBoxLayout()
-        exp_btn = QPushButton("▼ %s" % t("menu.edit.collections.expand_all"))
+        exp_btn = QPushButton("▼ %s" % t("common.expand_all"))
         # noinspection PyUnresolvedReferences
         exp_btn.clicked.connect(self.mw.view_actions.expand_all)
         blayout.addWidget(exp_btn)
 
-        col_btn = QPushButton("▲ %s" % t("menu.edit.collections.collapse_all"))
+        col_btn = QPushButton("▲ %s" % t("common.collapse_all"))
         # noinspection PyUnresolvedReferences
         col_btn.clicked.connect(self.mw.view_actions.collapse_all)
         blayout.addWidget(col_btn)

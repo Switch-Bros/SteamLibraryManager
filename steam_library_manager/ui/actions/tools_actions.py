@@ -11,6 +11,7 @@ from __future__ import annotations
 from PyQt6.QtCore import QThread, pyqtSignal
 import requests
 
+from steam_library_manager.config import USER_AGENT_BROWSER
 from steam_library_manager.utils.i18n import t
 from steam_library_manager.utils.timeouts import HTTP_TIMEOUT
 from steam_library_manager.ui.widgets.ui_helper import UIHelper
@@ -45,8 +46,7 @@ class StoreCheckThread(QThread):
                 timeout=HTTP_TIMEOUT,
                 allow_redirects=True,
                 headers={
-                    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
-                    " (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+                    "User-Agent": USER_AGENT_BROWSER,
                 },
             )
 
@@ -107,7 +107,7 @@ class ToolsActions:
     def show_curator_manager(self):
         from steam_library_manager.ui.dialogs.curator_management_dialog import CuratorManagementDialog
 
-        dbp = self._get_db_path()
+        dbp = self.mw.db_path
         if dbp is None:
             UIHelper.show_warning(self.mw, t("ui.enrichment.no_curators"))
             return
@@ -123,15 +123,8 @@ class ToolsActions:
         dlg.exec()
         self._refresh_curator_cache()
 
-    def _get_db_path(self):
-        if hasattr(self.mw, "game_service") and self.mw.game_service:
-            db = getattr(self.mw.game_service, "database", None)
-            if db and hasattr(db, "db_path"):
-                return db.db_path
-        return None
-
     def _refresh_curator_cache(self):
-        dbp = self._get_db_path()
+        dbp = self.mw.db_path
         if not dbp:
             return
         from steam_library_manager.core.database import Database
@@ -201,7 +194,7 @@ class ToolsActions:
                 continue
 
         key = config.STEAM_API_KEY or ""
-        dbp = self._get_db_path()
+        dbp = self.mw.db_path
         if not dbp:
             UIHelper.show_warning(self.mw, t("health_check.progress.starting"))
             return

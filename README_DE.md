@@ -12,7 +12,7 @@
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-FDE100?style=plastic&logo=python&logoColor=FDE100&labelColor=000000)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Steam%20Deck-FDE100?style=plastic&logo=linux&logoColor=FDE100&labelColor=000000)](https://store.steampowered.com/steamdeck)
 [![Lizenz](https://img.shields.io/badge/Lizenz-MIT-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager/blob/main/LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-1668%20passed-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
+[![Tests](https://img.shields.io/badge/Tests-1738%20passed-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
 [![Steam API](https://img.shields.io/badge/Steam%20API-Optional-FDE100?style=plastic&logo=steam&logoColor=FDE100&labelColor=000000)](https://steamcommunity.com/dev/apikey)
 [![SteamGridDB](https://img.shields.io/badge/SteamGridDB-Required-FDE100?style=plastic&logoColor=FDE100&labelColor=000000)](https://www.steamgriddb.com/api)
 [![i18n](https://img.shields.io/badge/i18n-🇬🇧%20🇩🇪-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
@@ -259,6 +259,30 @@ Entwickelt mit **PyQt6** für nahtlose Desktop-Integration. Das ist keine Window
   </picture>
 </p>
 
+<h3 align="center">☁️ Cloud Sync - <i>Deine Bibliothek, überall</i></h3>
+
+Synchronisiere deine gesamte SLM-Datenbank - Kollektionen, Metadaten, Artwork, Enrichment-Daten - über mehrere Rechner via Cloud-Anbieter deiner Wahl.
+
+- **Drei Anbieter:** rclone (MEGA, Google Drive, Dropbox, OneDrive, 40+ Backends), WebDAV oder keiner
+- **Drei Sync-Modi:** Manuell (nur Datei-Menu), Auto-Upload beim Beenden, oder vollautomatisch (Upload + Download)
+- **Datenbank-Backup in die Cloud** - ein Klick unter Datei > Datenbank-Backup > In die Cloud hochladen
+- **Artwork-Pakete** - exportiere und synchronisiere dein Custom-SteamGridDB-Artwork zwischen Rechnern
+- **Konflikterkennung** - SLM warnt dich bevor neuere Remote-Daten überschrieben werden
+
+*Richte rclone einmal ein, wähle deinen Remote, und deine Bibliothek folgt dir vom Desktop zum Steam Deck zum Laptop.*
+
+<p align="center">
+  <img src="steam_library_manager/resources/screenshots/03_de_CloudSync.webp" alt="Cloud Sync Einstellungen und Datenbank-Backup Menu (Deutsch)" width="800">
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_divider_light.webp">
+    <img src="steam_library_manager/resources/images/readme_divider_light.webp" alt="" width="800">
+  </picture>
+</p>
+
 <h3 align="center">🎮 Externe Spiele - <i>Eine Bibliothek für alles</i></h3>
 
 Spiele verstreut über Epic, GOG, Amazon, Lutris, Bottles, itch.io und Flatpak? **SLM findet sie alle** - und fügt sie in einem Rutsch als Non-Steam-Shortcuts zu Steam hinzu.
@@ -429,6 +453,8 @@ Dieses Projekt nutzt folgende Dienste:
 | **v1.2.7 - Sicherheits-Haertung** | ✅ **Veröffentlicht** |
 | **v1.3.5 - First-Run Crash Fix** | ✅ **Veröffentlicht** |
 | **v1.3.6 - Refactoring-Regressions Fix** | ✅ **Veröffentlicht** |
+| **v1.3.8 - steam.pipe False-Positive Fix** | ✅ **Veröffentlicht** |
+| **v1.3.9 - i18n Cleanup, Sicherheit, DRY** | ✅ **Veröffentlicht** |
 | Packaging (AppImage, AUR, Flatpak) | 🔄 Flatpak-Review ausstehend |
 | Windows-Unterstützung | 📋 Geplant |
 

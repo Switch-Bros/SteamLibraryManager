@@ -1,9 +1,7 @@
 {
   "categories": {
     "all_games": "All Games",
-    "favorites": "Favorites",
     "uncategorized": "WITHOUT CATEGORY",
-    "hidden": "Hidden",
     "rename_title": "Rename Collection",
     "rename_msg": "New name for '{old}':",
     "delete_title": "Delete Collection",
@@ -11,11 +9,9 @@
     "delete_multiple_msg": "Delete these {count} Collections? Games will not be removed.\n\n{category_list}",
     "category_count": "{name} ({count})",
     "game_tooltip": "{name}\nDeveloper: {developer}",
-    "merge_title": "Merge Collections",
     "merge_instruction": "Select the target Collection to merge all {count} Collections into:",
     "merge_success": "{count} Collections successfully merged into '{target}'",
     "soundtracks": "Soundtracks",
-    "tools": "Tools",
     "software": "Software",
     "videos": "Videos",
     "duplicate_indicator": "{name} ({index}/{total})",
@@ -30,10 +26,10 @@
   "auto_categorize": {
     "title": "Auto-Categorize",
     "header": "Auto-Categorize Games",
+    "select_all": "Select All",
+    "deselect_all": "Deselect All",
+    "settings": "Settings",
     "method_tags": "Steam Tags",
-    "method_publisher": "By Publisher",
-    "method_genre": "By Genre",
-    "method_franchise": "By Franchise",
     "scope_all": "Entire Library ({count} games)",
     "scope_uncategorized": "Uncategorized Games ({count})",
     "scope_category": "Collection '{name}' ({count} games)",
@@ -50,7 +46,7 @@
     "by_publisher": "By Publisher",
     "option_franchise": "By Franchise",
     "by_genre": "By Genre",
-    "settings": "Settings",
+
     "tags_per_game": "Tags per game",
     "apply_group": "Apply to",
     "estimate_label": "Estimated Collections",
@@ -96,12 +92,6 @@
     "by_language": "By Language",
     "cat_language": "Language: {name}",
     "by_pegi": "By Age Rating (PEGI)",
-    "pegi_3": "PEGI 03",
-    "pegi_7": "PEGI 07",
-    "pegi_12": "PEGI 12",
-    "pegi_16": "PEGI 16",
-    "pegi_18": "PEGI 18",
-    "pegi_unknown": "Unknown",
     "cat_pegi": "Age Rating: {rating}",
     "by_curator": "By Curator",
     "cat_curator": "Curator: {type}",
@@ -131,8 +121,6 @@
     "error_no_method": "Please select at least one categorization method.",
     "estimate_minutes": "~{count} minutes",
     "estimate_seconds": "~{count} seconds",
-    "estimate_instant": "Instant",
-    "select_all": "Select All",
-    "deselect_all": "Deselect All"
+    "estimate_instant": "Instant"
   }
 }

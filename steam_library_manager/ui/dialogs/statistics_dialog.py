@@ -40,7 +40,7 @@ class StatisticsDialog(QDialog):
         lay = QVBoxLayout(self)
         tabs = QTabWidget()
 
-        tabs.addTab(self._overview(), t("ui.stats.tab_overview"))
+        tabs.addTab(self._overview(), t("common.overview"))
         tabs.addTab(self._genres(), t("ui.stats.tab_genre"))
         tabs.addTab(self._platforms(), t("ui.stats.tab_platform"))
         tabs.addTab(self._top10(), t("ui.stats.tab_top10"))
@@ -64,7 +64,7 @@ class StatisticsDialog(QDialog):
 
         rows = [
             (t("ui.stats.total_games"), str(total)),
-            (t("ui.stats.installed_games"), str(inst)),
+            (t("common.installed"), str(inst)),
             (t("ui.stats.total_categories"), str(len(cats))),
             (t("ui.stats.total_playtime"), t("ui.stats.hours_unit", hours=round(pt_total / 60, 1))),
             (t("ui.stats.avg_playtime"), t("ui.stats.hours_unit", hours=round(pt_avg / 60, 1))),

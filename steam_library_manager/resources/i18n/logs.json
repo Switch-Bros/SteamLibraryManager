@@ -106,7 +106,6 @@
     },
     "backup": {
       "created": "Backup created: {name}",
-      "failed": "Backup failed: {error}",
       "rotated": "Rotated backup: {name}",
       "delete_error": "Error deleting old backup {name}: {error}",
       "restore_success": "Backup restored: {name}",
@@ -126,7 +125,6 @@
       "not_loaded": "Binary appinfo.vdf not loaded",
       "backup_created": "Backup created: {path}",
       "backup_failed": "Backup failed: {error}",
-      "write_error": "Error writing appinfo.vdf: {error}",
       "unknown_type": "Warning: Unknown VDF type {type}",
       "string_index_out_of_range": "Warning: String index out of range at offset {offset}",
       "unknown_vdf_type": "Unknown VDF type {type}, skipping",
@@ -151,7 +149,6 @@
     "local_loader": {
       "scanning": "Scanning {count} manifest files...",
       "scanning_libraries": "Scanning {count} library folders...",
-      "found_manifests": "  -> {path}: Found {count} manifests",
       "found_manifests_in_path": "  -> {path}: Found {count} manifests",
       "library_error": "Error reading library folders: {error}",
       "loaded_total": "Loaded {count} games from local files",

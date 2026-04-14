@@ -1,19 +1,13 @@
 {
   "steam": {
     "login": {
-      "steam_login_title": "Steam Login",
       "sign_in_steam": "Sign in with Steam",
       "choose_method": "Choose login method",
-      "password_method": "Password",
       "qr_method": "QR Code",
-      "username": "Username",
-      "password": "Password",
       "sign_in": "Sign In",
       "logout": "Logout",
       "password_info": "After login, approve the notification on your Steam Mobile App",
       "qr_instructions": "Scan QR code with Steam Mobile App",
-      "qr_hint": "Scan QR code with Steam Mobile App...",
-      "status_scan_qr": "Scan QR code with Steam Mobile App...",
       "button": "Login with Steam",
       "status_success": "Login successful!",
       "status_failed": "Login failed",
@@ -38,8 +32,7 @@
       "session_restored": "Session restored from saved credentials.",
       "qr_missing_package": "QR code generation requires the 'qrcode' package.\nInstall: pip install qrcode[pil]",
       "qr_generation_failed": "Failed to generate QR code.",
-      "title": "Steam Login",
-      "status_ready": "Ready"
+      "title": "Steam Login"
     },
     "profile_setup": {
       "title": "Profile Setup",

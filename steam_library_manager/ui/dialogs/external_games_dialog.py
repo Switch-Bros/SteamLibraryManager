@@ -156,10 +156,10 @@ class ExternalGamesDialog(BaseDialog):
         self._tbl = QTableWidget(0, 4)
         self._tbl.setHorizontalHeaderLabels(
             [
-                t("ui.external.col_platform"),
-                t("ui.external.col_name"),
+                t("common.platform"),
+                t("common.name"),
                 t("ui.external.col_path"),
-                t("ui.external.col_status"),
+                t("common.status"),
             ]
         )
         self._tbl.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)

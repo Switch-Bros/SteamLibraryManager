@@ -31,12 +31,13 @@ from steam_library_manager.utils.i18n import t
 __all__ = ["RcloneSetupDialog"]
 
 # supported providers with their rclone type and required fields
+# labels use i18n keys - resolved via t() at render time
 _PROVIDERS = {
     "MEGA": {
         "type": "mega",
         "fields": [
-            ("user", "E-Mail", ""),
-            ("pass", "Passwort", "password"),
+            ("user", "common.email", ""),
+            ("pass", "common.password", "password"),
         ],
     },
     "Google Drive": {
@@ -47,21 +48,21 @@ _PROVIDERS = {
         "type": "dropbox",
         "fields": [],  # OAuth
     },
-    "Nextcloud (WebDAV)": {
+    "cloud_sync.rclone_provider_nextcloud": {
         "type": "webdav",
         "fields": [
-            ("url", "Server URL", ""),
-            ("user", "Benutzername", ""),
-            ("pass", "Passwort", "password"),
+            ("url", "common.server_url", ""),
+            ("user", "common.username", ""),
+            ("pass", "common.password", "password"),
         ],
         "extra": {"vendor": "nextcloud"},
     },
-    "WebDAV (andere)": {
+    "cloud_sync.rclone_provider_webdav_other": {
         "type": "webdav",
         "fields": [
-            ("url", "Server URL", ""),
-            ("user", "Benutzername", ""),
-            ("pass", "Passwort", "password"),
+            ("url", "common.server_url", ""),
+            ("user", "common.username", ""),
+            ("pass", "common.password", "password"),
         ],
     },
 }
@@ -86,7 +87,7 @@ class RcloneInstallThread(QThread):
             dl_arch = arch_map.get(arch, "amd64")
 
             url = _RCLONE_DL_URL % ("linux", dl_arch)
-            self.progress.emit("Downloading rclone...")
+            self.progress.emit(t("cloud_sync.rclone_downloading"))
             logger.info("Downloading rclone from %s" % url)
 
             import urllib.request
@@ -94,7 +95,7 @@ class RcloneInstallThread(QThread):
             zip_path = dest / "rclone.zip"
             urllib.request.urlretrieve(url, str(zip_path))
 
-            self.progress.emit("Extracting...")
+            self.progress.emit(t("cloud_sync.rclone_extracting"))
             with zipfile.ZipFile(str(zip_path), "r") as zf:
                 # find the rclone binary inside the zip
                 for name in zf.namelist():
@@ -172,9 +173,11 @@ class RcloneSetupDialog(BaseDialog):
         layout.addWidget(QLabel(t("cloud_sync.rclone_provider_label")))
 
         self.combo_provider = QComboBox()
-        for name in _PROVIDERS:
-            self.combo_provider.addItem(name)
-        self.combo_provider.currentTextChanged.connect(self._on_provider_changed)
+        for key in _PROVIDERS:
+            # resolve i18n keys for display, store raw key as item data
+            display = t(key) if "." in key else key
+            self.combo_provider.addItem(display, userData=key)
+        self.combo_provider.currentIndexChanged.connect(self._on_provider_index_changed)
         layout.addWidget(self.combo_provider)
 
         # dynamic credential fields
@@ -198,7 +201,7 @@ class RcloneSetupDialog(BaseDialog):
         layout.addLayout(self._cred_fields_layout)
 
         # trigger initial provider display
-        self._on_provider_changed(self.combo_provider.currentText())
+        self._on_provider_index_changed(self.combo_provider.currentIndex())
 
         # setup button
         self.btn_setup = QPushButton(t("cloud_sync.rclone_setup_btn"))
@@ -210,15 +213,17 @@ class RcloneSetupDialog(BaseDialog):
         self.result_label = QLabel("")
         layout.addWidget(self.result_label)
 
-    def _on_provider_changed(self, name):
+    def _on_provider_index_changed(self, index):
         # clear old fields
         self._field_inputs.clear()
         while self._cred_fields_layout.count():
             item = self._cred_fields_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+            w = item.widget() if item else None
+            if w:
+                w.deleteLater()
 
-        prov = _PROVIDERS.get(name, {})
+        prov_key = self.combo_provider.itemData(index)
+        prov = _PROVIDERS.get(prov_key, {})
         fields = prov.get("fields", [])
 
         if not fields:
@@ -226,11 +231,12 @@ class RcloneSetupDialog(BaseDialog):
             self.oauth_hint.setVisible(True)
         else:
             self.oauth_hint.setVisible(False)
-            for key, label, mode in fields:
+            for key, label_key, mode in fields:
                 inp = QLineEdit()
                 if mode == "password":
                     inp.setEchoMode(QLineEdit.EchoMode.Password)
                 self._field_inputs[key] = inp
+                label = t(label_key) if "." in label_key else label_key
                 self._cred_fields_layout.addRow(label + ":", inp)
 
     def _install_rclone(self):
@@ -254,7 +260,7 @@ class RcloneSetupDialog(BaseDialog):
             self.btn_setup.setEnabled(True)
             self.progress_label.setText(t("cloud_sync.rclone_install_ok"))
         else:
-            self.progress_label.setText(t("cloud_sync.rclone_install_error", error=msg))
+            self.progress_label.setText(t("common.error_detail", error=msg))
             self.btn_install.setEnabled(True)
 
     def _create_remote(self):
@@ -266,8 +272,8 @@ class RcloneSetupDialog(BaseDialog):
         # sanitize name (no spaces, no special chars)
         name = name.replace(" ", "_").replace(":", "")
 
-        prov_name = self.combo_provider.currentText()
-        prov = _PROVIDERS.get(prov_name, {})
+        prov_key = self.combo_provider.currentData()
+        prov = _PROVIDERS.get(prov_key, {})
         rtype = prov.get("type", "")
 
         from steam_library_manager.services.cloud_sync.rclone import _find_rclone
@@ -324,12 +330,12 @@ class RcloneSetupDialog(BaseDialog):
                 self._created_remote = remote_str
             else:
                 err = r.stderr.strip() or r.stdout.strip() or "unknown error"
-                self.result_label.setText(t("cloud_sync.rclone_setup_error", error=err[:200]))
+                self.result_label.setText(t("common.error_detail", error=err[:200]))
                 logger.error("rclone config create failed: %s" % err)
         except subprocess.TimeoutExpired:
             self.result_label.setText(t("cloud_sync.rclone_setup_timeout"))
         except Exception as exc:
-            self.result_label.setText(t("cloud_sync.rclone_setup_error", error=str(exc)))
+            self.result_label.setText(t("common.error_detail", error=str(exc)))
         finally:
             self.btn_setup.setEnabled(True)
 

@@ -72,7 +72,7 @@ class MenuBuilder:
         if len(sel) < 2:
             w.set_status(t("ui.errors.no_selection"))
             return
-        self._not_implemented("menu.edit.collections.merge")
+        self._not_implemented("common.merge_collections")
 
     def _add_filters(self, parent, pfx, keys, fname=None, checked=False):
         # add checkable filter submenu
@@ -107,7 +107,7 @@ class MenuBuilder:
         m.addSeparator()
 
         # export submenu - each item has file + cloud sub-options
-        exp = m.addMenu(t("menu.file.export.root"))
+        exp = m.addMenu(t("common.export"))
 
         for key, fn_file, fn_cloud in (
             ("collections_vdf", w.file_actions.export_collections_text, w.file_actions.export_collections_cloud),
@@ -145,9 +145,9 @@ class MenuBuilder:
         db_exp.addAction(a)
 
         # settings export
-        set_exp = exp.addMenu(t("menu.file.export.settings"))
+        set_exp = exp.addMenu(t("common.settings"))
         a = QAction(t("menu.file.export.to_file"), w)
-        a.triggered.connect(lambda: self._not_implemented("menu.file.export.settings"))
+        a.triggered.connect(lambda: self._not_implemented("common.settings"))
         set_exp.addAction(a)
         a = QAction("%s %s" % (t("emoji.cloud"), t("menu.file.export.to_cloud")), w)
         a.triggered.connect(w.file_actions.export_settings_cloud)
@@ -161,7 +161,7 @@ class MenuBuilder:
         exp.addAction(a)
 
         # import submenu - each item has file + cloud sub-options
-        imp = m.addMenu(t("menu.file.import.root"))
+        imp = m.addMenu(t("common.import"))
 
         for key, fn_file, fn_cloud in (
             ("collections", w.file_actions.import_collections_vdf, w.file_actions.import_collections_cloud),
@@ -185,9 +185,9 @@ class MenuBuilder:
         imp.addAction(a)
 
         # settings import
-        set_imp = imp.addMenu(t("menu.file.import.settings"))
+        set_imp = imp.addMenu(t("common.settings"))
         a = QAction(t("menu.file.import.from_file"), w)
-        a.triggered.connect(lambda: self._not_implemented("menu.file.import.settings"))
+        a.triggered.connect(lambda: self._not_implemented("common.settings"))
         set_imp.addAction(a)
         a = QAction("%s %s" % (t("emoji.cloud"), t("menu.file.import.from_cloud")), w)
         a.triggered.connect(w.file_actions.import_settings_cloud)
@@ -213,7 +213,7 @@ class MenuBuilder:
 
         m.addSeparator()
 
-        a = QAction(t("menu.file.exit"), w)
+        a = QAction(t("common.exit"), w)
         a.setShortcut(QKeySequence("Ctrl+Q"))
         a.triggered.connect(w.file_actions.exit_application)
         m.addAction(a)
@@ -225,7 +225,7 @@ class MenuBuilder:
         m = mb.addMenu(t("menu.edit.root"))
 
         # metadata
-        meta = m.addMenu(t("menu.edit.metadata.root"))
+        meta = m.addMenu(t("common.edit_metadata"))
 
         a = QAction(t("menu.edit.metadata.single"), w)
         a.triggered.connect(self._edit_single)
@@ -235,7 +235,7 @@ class MenuBuilder:
         a.triggered.connect(w.metadata_actions.bulk_edit_metadata)
         meta.addAction(a)
 
-        a = QAction(t("menu.edit.auto_categorize"), w)
+        a = QAction(t("common.auto_categorize"), w)
         a.setShortcut(QKeySequence("Ctrl+Shift+A"))
         a.triggered.connect(w.edit_actions.auto_categorize)
         m.addAction(a)
@@ -243,13 +243,13 @@ class MenuBuilder:
         m.addSeparator()
 
         # collections
-        coll = m.addMenu(t("menu.edit.collections.root"))
+        coll = m.addMenu(t("common.collections"))
 
         a = QAction(t("menu.edit.collections.rename"), w)
         a.triggered.connect(self._rename_coll)
         coll.addAction(a)
 
-        a = QAction(t("menu.edit.collections.merge"), w)
+        a = QAction(t("common.merge_collections"), w)
         a.triggered.connect(self._merge_colls)
         coll.addAction(a)
 
@@ -279,11 +279,11 @@ class MenuBuilder:
 
         coll.addSeparator()
 
-        a = QAction(t("menu.edit.collections.expand_all"), w)
+        a = QAction(t("common.expand_all"), w)
         a.triggered.connect(w.view_actions.expand_all)
         coll.addAction(a)
 
-        a = QAction(t("menu.edit.collections.collapse_all"), w)
+        a = QAction(t("common.collapse_all"), w)
         a.triggered.connect(w.view_actions.collapse_all)
         coll.addAction(a)
 
@@ -353,7 +353,7 @@ class MenuBuilder:
         self._add_filters(m, "menu.view.pegi", ("pegi_3", "pegi_7", "pegi_12", "pegi_16", "pegi_18", "pegi_none"))
 
         # curator filter (dynamic)
-        self._cur_menu = m.addMenu(t("menu.view.curator.root"))
+        self._cur_menu = m.addMenu(t("ui.enrichment.curator_title"))
         self._cur_menu.aboutToShow.connect(self._pop_cur_menu)
 
         m.addSeparator()
@@ -366,7 +366,7 @@ class MenuBuilder:
 
     def _tools(self, mb):
         w = self.mw
-        m = mb.addMenu(t("menu.tools.root"))
+        m = mb.addMenu(t("common.tools"))
 
         # artwork (stubs)
         art = m.addMenu(t("menu.tools.artwork.root"))
@@ -438,7 +438,7 @@ class MenuBuilder:
 
         m.addSeparator()
 
-        a = QAction(t("menu.tools.settings"), w)
+        a = QAction(t("common.settings"), w)
         a.setShortcut(QKeySequence("Ctrl+P"))
         a.triggered.connect(w.settings_actions.show_settings)
         m.addAction(a)

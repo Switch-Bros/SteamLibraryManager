@@ -33,7 +33,7 @@ Smart Collections are live-updating folders that automatically include games mat
 
 ## 🏷️ AutoCat - Automatic Categorization
 
-AutoCat (`Ctrl+Shift+A`) can automatically sort your entire library into categories. With 15+ categorization types, you can organize by:
+AutoCat (`Ctrl+Shift+A`) can automatically sort your entire library into categories. With 17 categorization types, you can organize by:
 
 - **Genre** - RPG, Action, Strategy, etc.
 - **Developer / Publisher** - Group by studio
@@ -124,6 +124,26 @@ All filters stack - enable multiple to narrow your view.
 - **Right-click context menus:** Right-click on games or categories for quick actions
 - **Double-click:** Double-click a game to open its Steam store page
 - **Status bar:** Shows live statistics about your current view (game count, filters active)
+
+## Cloud Sync
+
+Use rclone with MEGA for free 20GB cloud storage. Set sync mode to "Auto-upload on exit" in Settings > Cloud Sync and your library backs up automatically every time you close SLM. For a full sync workflow across multiple machines, use "Fully automatic" mode to also check for updates on launch.
+
+## Metadata Editor
+
+Use Bulk Edit to add a prefix to all games from a specific publisher, or fix sort titles so "The Witcher 3" sorts under W instead of T. Select multiple games, right-click > "Edit Metadata", and change the "Sort As" field. The overlay system means your changes survive Steam updates.
+
+## Artwork Manager
+
+Use the filter badges in the SteamGridDB browser to quickly find animated covers (GIF). Toggle the NSFW filter if you want mature artwork. Click any thumbnail to apply it instantly - no download dialog needed.
+
+## Library Health Check
+
+Run Tools > Check Store Pages periodically to find delisted games, missing metadata, and stale caches. This is especially useful after Steam sales, when games frequently get removed or updated.
+
+## API Key Security
+
+Your API keys (SteamGridDB, etc.) are stored in your system keyring for better security. If you're on a system without a keyring (e.g., a headless server or minimal desktop), SLM falls back to encrypted file storage automatically.
 
 ---
 

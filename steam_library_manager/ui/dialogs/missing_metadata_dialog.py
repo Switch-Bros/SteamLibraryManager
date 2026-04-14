@@ -76,11 +76,11 @@ class MissingMetadataDialog(BaseDialog):
         self.t.setColumnCount(5)
         self.t.setHorizontalHeaderLabels(
             [
-                t("ui.tools.missing_metadata.col_appid"),
-                t("ui.tools.missing_metadata.col_name"),
-                t("ui.tools.missing_metadata.col_developer"),
-                t("ui.tools.missing_metadata.col_publisher"),
-                t("ui.tools.missing_metadata.col_release"),
+                t("common.app_id"),
+                t("common.game_name"),
+                t("common.developer"),
+                t("common.publisher"),
+                t("common.release_year"),
             ]
         )
 
@@ -112,7 +112,7 @@ class MissingMetadataDialog(BaseDialog):
         bt = QHBoxLayout()
         bt.addStretch()
 
-        ex = QPushButton(t("ui.tools.missing_metadata.export_csv"))
+        ex = QPushButton(t("ui.export.csv_save_title"))
         ex.clicked.connect(self._export)
         bt.addWidget(ex)
 
@@ -142,19 +142,19 @@ class MissingMetadataDialog(BaseDialog):
             # dev
             d = g.developer if g.developer else ""
             if self._bad(d):
-                d = "%s %s" % (t("emoji.error"), t("ui.tools.missing_metadata.missing_marked"))
+                d = "%s %s" % (t("emoji.error"), t("ui.tools.missing_metadata.missing"))
             self.t.setItem(r, 2, self._item(d))
 
             # pub
             p = g.publisher if g.publisher else ""
             if self._bad(p):
-                p = "%s %s" % (t("emoji.error"), t("ui.tools.missing_metadata.missing_marked"))
+                p = "%s %s" % (t("emoji.error"), t("ui.tools.missing_metadata.missing"))
             self.t.setItem(r, 3, self._item(p))
 
             # date
             rel = g.release_year if g.release_year else ""
             if self._bad(rel):
-                rel = "%s %s" % (t("emoji.error"), t("ui.tools.missing_metadata.missing_marked"))
+                rel = "%s %s" % (t("emoji.error"), t("ui.tools.missing_metadata.missing"))
             else:
                 rel = format_timestamp_to_date(rel)
             self.t.setItem(r, 4, self._item(rel))
@@ -181,11 +181,11 @@ class MissingMetadataDialog(BaseDialog):
 
                 w.writerow(
                     [
-                        t("ui.tools.missing_metadata.col_appid"),
-                        t("ui.tools.missing_metadata.col_name"),
-                        t("ui.tools.missing_metadata.col_developer"),
-                        t("ui.tools.missing_metadata.col_publisher"),
-                        t("ui.tools.missing_metadata.col_release"),
+                        t("common.app_id"),
+                        t("common.game_name"),
+                        t("common.developer"),
+                        t("common.publisher"),
+                        t("common.release_year"),
                         t("ui.tools.missing_metadata.col_missing_fields"),
                     ]
                 )
@@ -196,17 +196,17 @@ class MissingMetadataDialog(BaseDialog):
                     d = g.developer if g.developer else ""
                     if self._bad(d):
                         d = t("ui.tools.missing_metadata.missing")
-                        miss.append(t("ui.game_details.developer"))
+                        miss.append(t("common.developer"))
 
                     p = g.publisher if g.publisher else ""
                     if self._bad(p):
                         p = t("ui.tools.missing_metadata.missing")
-                        miss.append(t("ui.game_details.publisher"))
+                        miss.append(t("common.publisher"))
 
                     rel = g.release_year if g.release_year else ""
                     if self._bad(rel):
                         rel = t("ui.tools.missing_metadata.missing")
-                        miss.append(t("ui.game_details.release_year"))
+                        miss.append(t("common.release_year"))
                     else:
                         rel = format_timestamp_to_date(rel)
 
@@ -218,4 +218,4 @@ class MissingMetadataDialog(BaseDialog):
             )
 
         except OSError as e:
-            UIHelper.show_error(self, t("ui.tools.missing_metadata.export_error", error=str(e)))
+            UIHelper.show_error(self, t("ui.export.error", error=str(e)))

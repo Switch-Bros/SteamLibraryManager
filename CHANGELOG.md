@@ -5,6 +5,37 @@ All notable changes to Steam Library Manager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.9] - 2026-04-13
+
+### Improved
+- **i18n: Massive cleanup** - eliminated 120+ duplicate translation keys across
+  all JSON files. Common terms (Username, Password, Settings, Name, Platform,
+  etc.) consolidated into `common.json`. Cloud Sync keys moved from `main.json`
+  to `settings.json` where they belong.
+- **i18n: rclone setup dialog** - German labels ("Passwort", "Benutzername")
+  hardcoded in Python source replaced with proper `t()` calls. English users
+  no longer see German UI text.
+
+### Changed
+- **DRY: User-Agent constants** - Chrome and app User-Agent strings centralized
+  in `config.py` (`USER_AGENT_BROWSER`, `USER_AGENT_APP`), replacing 7 scattered
+  hardcoded copies.
+- **DRY: Database path** - duplicated `_get_db_path()` in 4 action files replaced
+  with a single `MainWindow.db_path` property.
+
+### Fixed
+- **Steam Store rate limiting** - increased request interval to 1.5s and added
+  automatic 30s backoff on HTTP 429 responses. Prevents Steam from DNS-blocking
+  the client during bulk PEGI rating fetches.
+- **Network error abort** - all enrichment threads now abort after 3 consecutive
+  DNS resolution or rate-limit errors instead of pointlessly retrying thousands
+  of requests against an unreachable server.
+
+### Security
+- **API keys moved to system keyring** - `STEAM_API_KEY` and `STEAMGRIDDB_API_KEY`
+  are now stored in the OS keyring (or encrypted file fallback) instead of
+  plaintext `settings.json`. Existing keys are auto-migrated on first launch.
+
 ## [1.3.8] - 2026-04-09
 
 ### Fixed

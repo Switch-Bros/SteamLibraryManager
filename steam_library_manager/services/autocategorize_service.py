@@ -217,11 +217,11 @@ class AutoCategorizeService:
         return added
 
     _PEGI_BUCKETS = (
-        ("3", "auto_categorize.pegi_3"),
-        ("7", "auto_categorize.pegi_7"),
-        ("12", "auto_categorize.pegi_12"),
-        ("16", "auto_categorize.pegi_16"),
-        ("18", "auto_categorize.pegi_18"),
+        ("3", "common.pegi_3"),
+        ("7", "common.pegi_7"),
+        ("12", "common.pegi_12"),
+        ("16", "common.pegi_16"),
+        ("18", "common.pegi_18"),
     )
 
     def _migrate_pegi_categories(self, games):
@@ -261,7 +261,7 @@ class AutoCategorizeService:
         all_pegi_cats = set()
         for _, key in self._PEGI_BUCKETS:
             all_pegi_cats.add(t("auto_categorize.cat_pegi", rating=t(key)))
-        all_pegi_cats.add(t("auto_categorize.cat_pegi", rating=t("auto_categorize.pegi_unknown")))
+        all_pegi_cats.add(t("auto_categorize.cat_pegi", rating=t("common.unknown")))
 
         added = 0
         for i, game in enumerate(games):
@@ -274,9 +274,9 @@ class AutoCategorizeService:
                         lbl = t(key)
                         break
                 else:
-                    lbl = t("auto_categorize.pegi_unknown")
+                    lbl = t("common.unknown")
             else:
-                lbl = t("auto_categorize.pegi_unknown")
+                lbl = t("common.unknown")
             cat = t("auto_categorize.cat_pegi", rating=lbl)
 
             # remove from wrong PEGI categories first

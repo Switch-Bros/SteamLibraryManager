@@ -19,6 +19,7 @@ from PyQt6.QtCore import QByteArray, Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import QCursor, QImage, QPixmap
 from PyQt6.QtWidgets import QLabel, QWidget
 
+from steam_library_manager.config import USER_AGENT_APP
 from steam_library_manager.ui.theme import Theme
 from steam_library_manager.ui.widgets.image_badge_overlay import ImageBadgeOverlay
 from steam_library_manager.utils.i18n import t
@@ -67,7 +68,7 @@ class ImageLoader(QThread):
 
     def _fetch(self):
         # try primary url first, then fallbacks
-        hdrs = {"User-Agent": "SteamLibraryManager/1.0"}
+        hdrs = {"User-Agent": USER_AGENT_APP}
         urls = [self.url_or_path] + self.fallbacks
         for url in urls:
             try:

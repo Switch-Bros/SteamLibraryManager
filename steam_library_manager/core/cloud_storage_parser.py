@@ -32,7 +32,7 @@ class CloudStorageParser:
             t("categories.uncategorized"),
             t("categories.all_games"),
             t("categories.soundtracks"),
-            t("categories.tools"),
+            t("common.tools"),
             t("categories.software"),
             t("categories.videos"),
         }
@@ -49,8 +49,8 @@ class CloudStorageParser:
             "Favoriten": "favorite",
             "Versteckt": "hidden",
         }
-        mapping[t("categories.favorites")] = "favorite"
-        mapping[t("categories.hidden")] = "hidden"
+        mapping[t("common.favorites")] = "favorite"
+        mapping[t("common.hidden")] = "hidden"
         return mapping
 
     def __init__(self, steam_path, user_id):

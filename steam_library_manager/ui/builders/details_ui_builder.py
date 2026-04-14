@@ -168,7 +168,7 @@ def build_details_ui(w: GameDetailsWidget):
     root.addWidget(sep2)
 
     # categories
-    cat_hdr = QLabel(t("ui.game_details.categories_label"))
+    cat_hdr = QLabel(t("common.collections"))
     cat_hdr.setFont(FontHelper.get_font(10, FontHelper.BOLD))
     cat_hdr.setStyleSheet("padding-top: 5px; padding-bottom: 5px;")
     root.addWidget(cat_hdr)
@@ -245,7 +245,7 @@ def _build_header(w, layout, scale):
     btn_col.setSpacing(8)
     btn_col.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
-    w.btn_edit = QPushButton(t("ui.game_details.btn_edit"))
+    w.btn_edit = QPushButton(t("common.edit_metadata"))
     w.btn_edit.clicked.connect(w.on_edit)
     w.btn_edit.setMinimumWidth(120)
 
@@ -360,9 +360,9 @@ def _build_metadata_grid(w, layout, scale):
 
     # col 0 - basics
     grid.addWidget(QLabel("<b>%s</b>" % t("ui.game_details.section_basic")), 0, 0)
-    w.lbl_appid = InfoLabel("ui.game_details.app_id")
+    w.lbl_appid = InfoLabel("common.app_id")
     grid.addWidget(w.lbl_appid, 1, 0)
-    w.lbl_playtime = InfoLabel("ui.game_details.playtime")
+    w.lbl_playtime = InfoLabel("common.playtime")
     grid.addWidget(w.lbl_playtime, 2, 0)
     w.lbl_updated = InfoLabel("ui.game_details.last_update", t("emoji.dash"))
     grid.addWidget(w.lbl_updated, 3, 0)
@@ -387,9 +387,9 @@ def _build_metadata_grid(w, layout, scale):
 
     # col 2 - dev/pub/year
     grid.addWidget(QLabel("<b>%s</b>" % t("ui.game_details.section_metadata")), 0, 2)
-    w.edit_dev = _add_meta_field(grid, "ui.game_details.developer", 1)
-    w.edit_pub = _add_meta_field(grid, "ui.game_details.publisher", 2)
-    w.edit_rel = _add_meta_field(grid, "ui.game_details.release_year", 3)
+    w.edit_dev = _add_meta_field(grid, "common.developer", 1)
+    w.edit_pub = _add_meta_field(grid, "common.publisher", 2)
+    w.edit_rel = _add_meta_field(grid, "common.release_year", 3)
 
     layout.addWidget(meta_w)
 
@@ -432,7 +432,7 @@ def _build_hltb_grid(w, layout):
 def _build_achievement_grid(w, layout):
     # achievement stats + perfect game badge
     ach_w, ach_grid, labels = build_detail_grid(
-        title_key="ui.game_details.achievements",
+        title_key="common.achievements",
         label_keys=[
             "ui.game_details.achievement_total_label",
             "ui.game_details.achievement_progress",

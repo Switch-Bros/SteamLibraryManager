@@ -42,10 +42,10 @@ _TRACK_LABELS = [
     (TRK_TAGS, "ui.enrichment.enrich_all_tags"),
     (TRK_STEAM, "ui.enrichment.enrich_all_steam"),
     (TRK_HLTB, "ui.enrichment.enrich_all_hltb"),
-    (TRK_PDB, "ui.enrichment.enrich_all_protondb"),
+    (TRK_PDB, "common.protondb"),
     (TRK_DECK, "ui.enrichment.enrich_all_deck"),
     (TRK_PEGI, "ui.enrichment.enrich_all_pegi"),
-    (TRK_CURATOR, "ui.enrichment.enrich_all_curator"),
+    (TRK_CURATOR, "ui.enrichment.curator_title"),
 ]
 
 

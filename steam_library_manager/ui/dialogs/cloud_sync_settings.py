@@ -76,9 +76,9 @@ class CloudSyncSettingsTab(QWidget):
         self.webdav_user = QLineEdit()
         self.webdav_pass = QLineEdit()
         self.webdav_pass.setEchoMode(QLineEdit.EchoMode.Password)
-        wdav_lyt.addRow(t("cloud_sync.webdav_url_label"), self.webdav_url)
-        wdav_lyt.addRow(t("cloud_sync.webdav_user_label"), self.webdav_user)
-        wdav_lyt.addRow(t("cloud_sync.webdav_pass_label"), self.webdav_pass)
+        wdav_lyt.addRow(t("common.server_url"), self.webdav_url)
+        wdav_lyt.addRow(t("common.username"), self.webdav_user)
+        wdav_lyt.addRow(t("common.password"), self.webdav_pass)
         self.cred_stack.addWidget(webdav_page)
 
         # page 2: rclone remote selection

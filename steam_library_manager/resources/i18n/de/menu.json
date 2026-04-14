@@ -2,9 +2,11 @@
   "menu": {
     "file": {
       "root": "Datei",
+      "exit": "Beenden",
       "refresh": "Bibliothek aktualisieren",
       "export": {
         "root": "Exportieren",
+        "settings": "Einstellungen",
         "collections_vdf": "Kollektionen als VDF",
         "collections_text": "Kategorien (Lesbar)",
         "games_csv_simple": "Spieleliste als CSV (Simple)",
@@ -13,18 +15,17 @@
         "smart_collections": "Smart Collections (JSON)",
         "artwork_package": "Artwork-Pack exportieren",
         "db_backup": "Datenbank-Backup",
-        "settings": "Einstellungen",
         "to_file": "Als Datei speichern...",
         "to_cloud": "In die Cloud hochladen",
         "all_cloud": "Alle Daten in die Cloud"
       },
       "import": {
         "root": "Importieren",
+        "settings": "Einstellungen",
         "collections": "Kollektionen (VDF)",
         "smart_collections": "Smart Collections (JSON)",
         "db_backup": "Datenbank-Backup",
         "artwork_package": "Artwork-Pack importieren",
-        "settings": "Einstellungen",
         "from_file": "Von Datei...",
         "from_cloud": "Aus der Cloud herunterladen",
         "all_cloud": "Alle Daten aus der Cloud"
@@ -33,8 +34,7 @@
         "root": "Profile",
         "save_current": "Aktuell als Profil speichern...",
         "manage": "Profile verwalten..."
-      },
-      "exit": "Beenden"
+      }
     },
     "edit": {
       "root": "Bearbeiten",
@@ -43,19 +43,19 @@
         "single": "Einzelnes Spiel",
         "bulk": "Mehrere Spiele (Bulk Edit)"
       },
-      "auto_categorize": "Auto-Kategorisierung",
       "collections": {
         "root": "Kollektionen",
         "rename": "Kollektion umbenennen",
-        "merge": "Kollektionen zusammenführen",
         "delete_empty": "Leere Kollektionen löschen",
         "expand_all": "Alle aufklappen",
         "collapse_all": "Alle zuklappen",
+        "merge": "Kollektionen zusammenführen",
         "create_smart": "Smart Collection erstellen...",
         "edit_smart": "Smart Collection Regeln bearbeiten...",
         "delete_smart": "Smart Collection löschen",
         "refresh_smart": "Smart Collections aktualisieren"
       },
+      "auto_categorize": "Auto-Kategorisierung",
       "find_missing_metadata": "Spiele mit fehlenden Metadaten",
       "reset_metadata": "Metadaten zurücksetzen",
       "remove_duplicates": "Duplikate entfernen"
@@ -75,8 +75,8 @@
         "soundtracks": "Soundtracks",
         "software": "Software",
         "videos": "Videos",
-        "dlcs": "DLCs",
-        "tools": "Tools"
+        "tools": "Werkzeuge",
+        "dlcs": "DLCs"
       },
       "platform": {
         "root": "Plattform",
@@ -89,8 +89,8 @@
         "installed": "Installiert",
         "not_installed": "Nicht installiert",
         "hidden": "Versteckt",
-        "with_playtime": "Mit Spielzeit",
-        "favorites": "Favoriten"
+        "favorites": "Favoriten",
+        "with_playtime": "Mit Spielzeit"
       },
       "language": {
         "root": "Sprachen",
@@ -132,7 +132,7 @@
         "pegi_12": "PEGI 12",
         "pegi_16": "PEGI 16",
         "pegi_18": "PEGI 18",
-        "pegi_none": "Kein Rating"
+        "pegi_none": "Keine Einstufung"
       },
       "curator": {
         "root": "Kurator-Empfehlungen",
@@ -140,14 +140,15 @@
       },
       "statistics": {
         "root": "Statistiken anzeigen",
-        "overview": "Gesamtübersicht",
+        "overview": "Übersicht",
         "by_genre": "Nach Genre",
         "by_platform": "Nach Plattform",
-        "top10": "Top 10 meist gespielt"
+        "top10": "Top 10 meistgespielt"
       }
     },
     "tools": {
       "root": "Werkzeuge",
+      "settings": "Einstellungen",
       "artwork": {
         "root": "Artwork",
         "download_missing": "Fehlende Artworks laden",
@@ -188,8 +189,7 @@
         "backup": "Backup erstellen"
       },
       "external_games": "Externe Spiele...",
-      "manage_curators": "Kuratoren verwalten...",
-      "settings": "Einstellungen"
+      "manage_curators": "Kuratoren verwalten..."
     },
     "help": {
       "root": "Hilfe",

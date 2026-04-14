@@ -60,16 +60,16 @@ class MetadataEditDialog(BaseDialog):
         self._pub = QLineEdit()
         self._rel = QLineEdit()
 
-        frm.addRow(t("ui.metadata_editor.game_name_label"), self._nm)
+        frm.addRow(t("common.game_name"), self._nm)
         frm.addRow(t("ui.metadata_editor.sort_as_label"), self._sort)
 
         hlp = QLabel(t("ui.metadata_editor.sort_as_help"))
         hlp.setStyleSheet("color: gray; font-size: 9px;")
         frm.addRow("", hlp)
 
-        frm.addRow(t("ui.game_details.developer") + ":", self._dev)
-        frm.addRow(t("ui.game_details.publisher") + ":", self._pub)
-        frm.addRow(t("ui.game_details.release_year") + ":", self._rel)
+        frm.addRow(t("common.developer") + ":", self._dev)
+        frm.addRow(t("common.publisher") + ":", self._pub)
+        frm.addRow(t("common.release_year") + ":", self._rel)
 
         dt_hlp = QLabel(t("ui.metadata_editor.date_help"))
         dt_hlp.setStyleSheet("color: gray; font-size: 9px;")
@@ -135,13 +135,13 @@ class MetadataEditDialog(BaseDialog):
         self._hl()
 
         # show original values
-        na = t("ui.game_details.value_unknown")
+        na = t("common.unknown")
         rel = self._ov["release_date"] or na
         lines = [
-            "%s: %s" % (t("ui.game_details.name"), o.get("name", na)),
-            "%s: %s" % (t("ui.game_details.developer"), o.get("developer", na)),
-            "%s: %s" % (t("ui.game_details.publisher"), o.get("publisher", na)),
-            "%s: %s" % (t("ui.game_details.release_year"), rel),
+            "%s: %s" % (t("common.name"), o.get("name", na)),
+            "%s: %s" % (t("common.developer"), o.get("developer", na)),
+            "%s: %s" % (t("common.publisher"), o.get("publisher", na)),
+            "%s: %s" % (t("common.release_year"), rel),
         ]
 
         self._orig_txt.setPlainText("\n".join(lines))
@@ -149,7 +149,7 @@ class MetadataEditDialog(BaseDialog):
     def _hl(self):
         # highlight modified fields
         mod = Theme.mod_field()
-        na = t("ui.game_details.value_unknown")
+        na = t("common.unknown")
 
         flds = [
             (self._nm, "name"),

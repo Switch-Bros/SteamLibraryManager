@@ -59,6 +59,7 @@ class BaseEnrichmentThread(QThread):
         total = len(items)
         success = 0
         failed = 0
+        consecutive_network_errors = 0
 
         try:
             for i, item in enumerate(items):
@@ -80,6 +81,7 @@ class BaseEnrichmentThread(QThread):
                             else:
                                 failed += 1
                             processed = True
+                            consecutive_network_errors = 0
                             break
                         except Exception as exc:
                             if "locked" in str(exc) and attempt < 2:
@@ -89,6 +91,20 @@ class BaseEnrichmentThread(QThread):
                     if not processed:
                         failed += 1
                 except Exception as exc:
+                    err_str = str(exc).lower()
+                    is_network = (
+                        "resolve" in err_str
+                        or "name resolution" in err_str
+                        or "429" in err_str
+                        or "too many requests" in err_str
+                    )
+                    if is_network:
+                        consecutive_network_errors += 1
+                        if consecutive_network_errors >= 3:
+                            logger.error("Aborting: %d consecutive network errors", consecutive_network_errors)
+                            break
+                    else:
+                        consecutive_network_errors = 0
                     logger.warning("Enrichment failed for item %r: %s", item, exc)
                     failed += 1
 

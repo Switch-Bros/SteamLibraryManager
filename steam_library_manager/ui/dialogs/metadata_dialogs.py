@@ -89,15 +89,11 @@ class BulkMetadataEditDialog(BaseDialog):
         fg = QGroupBox(t("ui.metadata_editor.fields_group"))
         fl = QVBoxLayout()
 
-        self.cb_dev, self.ed_dev = self._add_field(
-            fl, t("ui.metadata_editor.set_field", field=t("ui.game_details.developer"))
-        )
-        self.cb_pub, self.ed_pub = self._add_field(
-            fl, t("ui.metadata_editor.set_field", field=t("ui.game_details.publisher"))
-        )
+        self.cb_dev, self.ed_dev = self._add_field(fl, t("ui.metadata_editor.set_field", field=t("common.developer")))
+        self.cb_pub, self.ed_pub = self._add_field(fl, t("ui.metadata_editor.set_field", field=t("common.publisher")))
         self.cb_date, self.ed_date = self._add_field(
             fl,
-            t("ui.metadata_editor.set_field", field=t("ui.game_details.release_year")),
+            t("ui.metadata_editor.set_field", field=t("common.release_year")),
             t("ui.metadata_editor.date_help"),
         )
         self.cb_pre, self.ed_pre = self._add_field(fl, t("ui.metadata_editor.add_prefix"))

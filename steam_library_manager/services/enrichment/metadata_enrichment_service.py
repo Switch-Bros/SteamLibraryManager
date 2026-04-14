@@ -57,8 +57,8 @@ class MetadataEnrichmentService:
 
         # Get favorites and hidden from collections (Depressurizer way!)
         # Display keys use current locale for game.categories labels
-        fav_key = t("categories.favorites")
-        hid_key = t("categories.hidden")
+        fav_key = t("common.favorites")
+        hid_key = t("common.hidden")
 
         favs = set()
         hid = set()

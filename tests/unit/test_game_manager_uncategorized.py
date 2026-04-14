@@ -92,7 +92,7 @@ def sample_games(game_manager):
 def test_uncategorized_no_categories(mock_t, game_manager, sample_games):
     """Test: Game with NO categories is uncategorized."""
     # Setup i18n mock
-    mock_t.side_effect = lambda key: {"categories.favorites": "Favorites", "categories.hidden": "Hidden"}.get(key, key)
+    mock_t.side_effect = lambda key: {"common.favorites": "Favorites", "common.hidden": "Hidden"}.get(key, key)
 
     # Execute
     uncategorized = game_manager.get_uncategorized_games()
@@ -105,7 +105,7 @@ def test_uncategorized_no_categories(mock_t, game_manager, sample_games):
 def test_uncategorized_only_favorites(mock_t, game_manager, sample_games):
     """Test: Game with ONLY Favorites is still uncategorized (Favorites is a system category)."""
     # Setup i18n mock
-    mock_t.side_effect = lambda key: {"categories.favorites": "Favorites", "categories.hidden": "Hidden"}.get(key, key)
+    mock_t.side_effect = lambda key: {"common.favorites": "Favorites", "common.hidden": "Hidden"}.get(key, key)
 
     # Execute
     uncategorized = game_manager.get_uncategorized_games()
@@ -121,7 +121,7 @@ def test_uncategorized_only_hidden(mock_t, game_manager, sample_games):
     This is the PRIMARY FIX! Before the fix, this test would FAIL.
     """
     # Setup i18n mock
-    mock_t.side_effect = lambda key: {"categories.favorites": "Favorites", "categories.hidden": "Hidden"}.get(key, key)
+    mock_t.side_effect = lambda key: {"common.favorites": "Favorites", "common.hidden": "Hidden"}.get(key, key)
 
     # Execute
     uncategorized = game_manager.get_uncategorized_games()
@@ -139,7 +139,7 @@ def test_uncategorized_favorites_and_hidden(mock_t, game_manager, sample_games):
     This is the SECONDARY FIX! Before the fix, this test would FAIL.
     """
     # Setup i18n mock
-    mock_t.side_effect = lambda key: {"categories.favorites": "Favorites", "categories.hidden": "Hidden"}.get(key, key)
+    mock_t.side_effect = lambda key: {"common.favorites": "Favorites", "common.hidden": "Hidden"}.get(key, key)
 
     # Execute
     uncategorized = game_manager.get_uncategorized_games()
@@ -154,7 +154,7 @@ def test_uncategorized_favorites_and_hidden(mock_t, game_manager, sample_games):
 def test_not_uncategorized_with_user_category(mock_t, game_manager, sample_games):
     """Test: Game with a user category is NOT uncategorized."""
     # Setup i18n mock
-    mock_t.side_effect = lambda key: {"categories.favorites": "Favorites", "categories.hidden": "Hidden"}.get(key, key)
+    mock_t.side_effect = lambda key: {"common.favorites": "Favorites", "common.hidden": "Hidden"}.get(key, key)
 
     # Execute
     uncategorized = game_manager.get_uncategorized_games()
@@ -167,7 +167,7 @@ def test_not_uncategorized_with_user_category(mock_t, game_manager, sample_games
 def test_not_uncategorized_favorites_plus_user_category(mock_t, game_manager, sample_games):
     """Test: Game with Favorites + user category is NOT uncategorized."""
     # Setup i18n mock
-    mock_t.side_effect = lambda key: {"categories.favorites": "Favorites", "categories.hidden": "Hidden"}.get(key, key)
+    mock_t.side_effect = lambda key: {"common.favorites": "Favorites", "common.hidden": "Hidden"}.get(key, key)
 
     # Execute
     uncategorized = game_manager.get_uncategorized_games()
@@ -180,7 +180,7 @@ def test_not_uncategorized_favorites_plus_user_category(mock_t, game_manager, sa
 def test_not_uncategorized_hidden_plus_user_category(mock_t, game_manager, sample_games):
     """Test: Game with Hidden + user category is NOT uncategorized."""
     # Setup i18n mock
-    mock_t.side_effect = lambda key: {"categories.favorites": "Favorites", "categories.hidden": "Hidden"}.get(key, key)
+    mock_t.side_effect = lambda key: {"common.favorites": "Favorites", "common.hidden": "Hidden"}.get(key, key)
 
     # Execute
     uncategorized = game_manager.get_uncategorized_games()
@@ -193,7 +193,7 @@ def test_not_uncategorized_hidden_plus_user_category(mock_t, game_manager, sampl
 def test_not_uncategorized_all_categories(mock_t, game_manager, sample_games):
     """Test: Game with system categories + user category is NOT uncategorized."""
     # Setup i18n mock
-    mock_t.side_effect = lambda key: {"categories.favorites": "Favorites", "categories.hidden": "Hidden"}.get(key, key)
+    mock_t.side_effect = lambda key: {"common.favorites": "Favorites", "common.hidden": "Hidden"}.get(key, key)
 
     # Execute
     uncategorized = game_manager.get_uncategorized_games()
@@ -218,7 +218,7 @@ def test_uncategorized_comprehensive_count(mock_t, game_manager, sample_games):
     4. Favorites + Hidden
     """
     # Setup i18n mock
-    mock_t.side_effect = lambda key: {"categories.favorites": "Favorites", "categories.hidden": "Hidden"}.get(key, key)
+    mock_t.side_effect = lambda key: {"common.favorites": "Favorites", "common.hidden": "Hidden"}.get(key, key)
 
     # Execute
     uncategorized = game_manager.get_uncategorized_games()
@@ -238,7 +238,7 @@ def test_uncategorized_comprehensive_count(mock_t, game_manager, sample_games):
 def test_uncategorized_sorted_by_sort_name(mock_t, game_manager, sample_games):
     """Test: Uncategorized games are sorted by sort_name (lowercase)."""
     # Setup i18n mock
-    mock_t.side_effect = lambda key: {"categories.favorites": "Favorites", "categories.hidden": "Hidden"}.get(key, key)
+    mock_t.side_effect = lambda key: {"common.favorites": "Favorites", "common.hidden": "Hidden"}.get(key, key)
 
     # Execute
     uncategorized = game_manager.get_uncategorized_games()
@@ -257,7 +257,7 @@ def test_uncategorized_sorted_by_sort_name(mock_t, game_manager, sample_games):
 def test_uncategorized_empty_library(mock_t, game_manager):
     """Test: Empty game library returns empty uncategorized list."""
     # Setup i18n mock
-    mock_t.side_effect = lambda key: {"categories.favorites": "Favorites", "categories.hidden": "Hidden"}.get(key, key)
+    mock_t.side_effect = lambda key: {"common.favorites": "Favorites", "common.hidden": "Hidden"}.get(key, key)
 
     # Ensure library is empty
     game_manager.games = {}
@@ -289,7 +289,7 @@ def test_regression_old_logic_would_fail(mock_t, game_manager, sample_games):
     - Games with "Favorites + Hidden"
     """
     # Setup i18n mock
-    mock_t.side_effect = lambda key: {"categories.favorites": "Favorites", "categories.hidden": "Hidden"}.get(key, key)
+    mock_t.side_effect = lambda key: {"common.favorites": "Favorites", "common.hidden": "Hidden"}.get(key, key)
 
     # Execute
     uncategorized = game_manager.get_uncategorized_games()

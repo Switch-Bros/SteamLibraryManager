@@ -57,8 +57,8 @@ class GameQueryService:
             "Favoriten",
             "Hidden",
             "Versteckt",
-            t("categories.favorites"),
-            t("categories.hidden"),
+            t("common.favorites"),
+            t("common.hidden"),
         }
         if smart:
             sk = sk | smart

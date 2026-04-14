@@ -18,7 +18,7 @@ __all__ = ["CategoryPopulator"]
 # app_type -> i18n key
 _TYPE_MAP = {
     "music": "categories.soundtracks",
-    "tool": "categories.tools",
+    "tool": "common.tools",
     "application": "categories.software",
     "video": "categories.videos",
 }
@@ -128,7 +128,7 @@ class CategoryPopulator:
 
         # 2. Favorites
         if favs:
-            cats_data[t("categories.favorites")] = favs
+            cats_data[t("common.favorites")] = favs
 
         # 3. User categories
         cats = mw.game_manager.get_all_categories()
@@ -149,7 +149,7 @@ class CategoryPopulator:
 
         spec = get_protected_collection_names() | {
             t("categories.soundtracks"),
-            t("categories.tools"),
+            t("common.tools"),
             t("categories.software"),
             t("categories.videos"),
         }
@@ -210,7 +210,7 @@ class CategoryPopulator:
 
         # 6. Hidden
         if hid:
-            cats_data[t("categories.hidden")] = hid
+            cats_data[t("common.hidden")] = hid
 
         # dynamic collections
         dyn = set()

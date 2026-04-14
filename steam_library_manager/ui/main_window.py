@@ -133,6 +133,14 @@ class MainWindow(QMainWindow):
         # Non-blocking startup via BootstrapService
         self._init_bootstrap_service()
 
+    @property
+    def db_path(self):
+        if self.game_service:
+            db = getattr(self.game_service, "database", None)
+            if db and hasattr(db, "db_path"):
+                return db.db_path
+        return None
+
     def _create_ui(self):
         # Initialize all UI components, menus, and layouts
 

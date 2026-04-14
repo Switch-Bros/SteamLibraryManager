@@ -45,7 +45,7 @@ class SettingsDialog(BaseDialog):
     def __init__(self, parent=None):
         super().__init__(
             parent,
-            title_key="settings.title",
+            title_key="common.settings",
             min_width=600,
             show_title_label=False,
             buttons="custom",
@@ -71,7 +71,7 @@ class SettingsDialog(BaseDialog):
         # --- TAB 3: CLOUD SYNC ---
         tab_cloud = QWidget()
         self._init_cloud_tab(tab_cloud)
-        self.tabs.addTab(tab_cloud, t("cloud_sync.tab_title"))
+        self.tabs.addTab(tab_cloud, t("settings.tabs.cloud_sync"))
 
         # Buttons (Save / Close)
         btn_layout = QHBoxLayout()
@@ -91,7 +91,7 @@ class SettingsDialog(BaseDialog):
         layout = QVBoxLayout(parent)
 
         # 1. LANGUAGE GROUP
-        grp_lang = QGroupBox(t("settings.general.language"))
+        grp_lang = QGroupBox(t("common.language"))
         flang = QFormLayout(grp_lang)
 
         # UI Language

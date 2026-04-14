@@ -15,6 +15,7 @@ from pathlib import Path
 
 import requests
 
+from steam_library_manager.config import USER_AGENT_APP
 from steam_library_manager.utils.timeouts import HTTP_TIMEOUT_SHORT
 
 logger = logging.getLogger("steamlibmgr.deck_utils")
@@ -30,7 +31,6 @@ DECK_STATUS_MAP: dict[int, str] = {
 }
 
 _API_URL = "https://store.steampowered.com/saleaction/ajaxgetdeckappcompatibilityreport?nAppID={app_id}"
-_USER_AGENT = "SteamLibraryManager/1.0"
 
 
 def fetch_deck_compatibility(app_id: str | int, cache_dir: Path | None = None) -> str | None:
@@ -40,7 +40,7 @@ def fetch_deck_compatibility(app_id: str | int, cache_dir: Path | None = None) -
         resp = requests.get(
             url,
             timeout=HTTP_TIMEOUT_SHORT,
-            headers={"User-Agent": _USER_AGENT},
+            headers={"User-Agent": USER_AGENT_APP},
         )
 
         if resp.status_code != 200:

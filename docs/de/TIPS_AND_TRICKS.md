@@ -33,7 +33,7 @@ Smart Collections sind sich automatisch aktualisierende Ordner, die Spiele anhan
 
 ## 🏷️ AutoCat - Automatische Kategorisierung
 
-AutoCat (`Strg+Umschalt+A`) sortiert deine gesamte Bibliothek automatisch in Kategorien. Mit 15+ Kategorisierungstypen organisierst du nach:
+AutoCat (`Strg+Umschalt+A`) sortiert deine gesamte Bibliothek automatisch in Kategorien. Mit 17 Kategorisierungstypen organisierst du nach:
 
 - **Genre** - RPG, Action, Strategie, etc.
 - **Entwickler / Publisher** - Gruppierung nach Studio
@@ -124,6 +124,26 @@ Alle Filter sind stapelbar - aktiviere mehrere, um die Ansicht einzugrenzen.
 - **Rechtsklick-Kontextmenüs:** Rechtsklick auf Spiele oder Kategorien für schnelle Aktionen
 - **Doppelklick:** Doppelklick auf ein Spiel öffnet seine Steam-Store-Seite
 - **Statusleiste:** Zeigt Live-Statistiken zur aktuellen Ansicht (Spielanzahl, aktive Filter)
+
+## ☁️ Cloud Sync
+
+Nutze rclone mit MEGA für kostenlosen 20GB Cloud-Speicher. Setze den Sync-Modus auf „Auto-Upload beim Beenden" unter Einstellungen > Cloud Sync, und deine Bibliothek wird automatisch gesichert. So hast du auf allen Rechnern den gleichen Stand.
+
+## ✏️ Metadaten-Editor
+
+Nutze Bulk-Edit um allen Spielen eines Publishers ein Präfix hinzuzufügen, oder korrigiere Sortiertitel damit „The Witcher 3" unter W sortiert wird. Wähle mehrere Spiele mit Strg+Klick aus, dann Rechtsklick > „Metadaten bearbeiten". Änderungen werden als Overlay gespeichert und überleben Steam-Updates.
+
+## 🖼️ Artwork Manager
+
+Nutze die Filter-Badges im SteamGridDB-Browser um schnell animierte Cover (GIF) zu finden. Schalte den NSFW-Filter um wenn du Artwork für Erwachsene möchtest. Klicke einfach auf das Spielcover im Detailbereich um den Browser zu öffnen.
+
+## 🩺 Library Health Check
+
+Führe den Library Health Check regelmäßig aus (Werkzeuge > Store-Seiten prüfen) um delistete Spiele, fehlende Metadaten und veraltete Caches zu finden. Die Ergebnisse sind nach Tabs gruppiert (Store, Daten, Cache), sodass du gezielt Probleme beheben kannst.
+
+## 🔑 API Keys & Sicherheit
+
+Deine API-Keys werden jetzt im System-Keyring gespeichert für bessere Sicherheit. Auf Systemen ohne Keyring (z.B. minimale Installationen) nutzt SLM verschlüsselte Datei-Speicherung als Fallback. Alte Keys in der settings.json werden beim Start automatisch migriert.
 
 ---
 

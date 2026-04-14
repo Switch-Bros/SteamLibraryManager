@@ -37,7 +37,7 @@ Alle verfügbaren Tastenkürzel im Steam Library Manager.
 | Tastenkürzel | Aktion | Hinweise |
 |--------------|--------|----------|
 | `Strg+Umschalt+N` | Neue Smart Collection | Erstellt eine neue Smart Collection mit UND/ODER/NICHT-Regeln |
-| `Strg+Umschalt+A` | Auto-Kategorisieren | Öffnet den AutoCat-Dialog mit 15+ Kategorisierungstypen |
+| `Strg+Umschalt+A` | Auto-Kategorisieren | Öffnet den AutoCat-Dialog mit 17 Kategorisierungstypen |
 
 ## Werkzeuge
 
@@ -51,6 +51,7 @@ Alle verfügbaren Tastenkürzel im Steam Library Manager.
 | Tastenkürzel | Aktion | Hinweise |
 |--------------|--------|----------|
 | `F1` | Benutzerhandbuch | Öffnet diese Dokumentation |
+| `F12` | Über SLM | Zeigt die Über-Seite mit Versionsinformationen |
 
 ## Escape-Taste - Gestuftes Verhalten
 
@@ -82,4 +83,5 @@ Entf      Aus Kat. entfernen  Strg+Umschalt+A  Auto-Kategorisieren
 F2        Kat. umbenennen     Strg+Umschalt+E  Externe Spiele
 Strg+I    Bildbrowser         Strg+P           Einstellungen
                               F1               Hilfe
+                              F12              Über SLM
 ```

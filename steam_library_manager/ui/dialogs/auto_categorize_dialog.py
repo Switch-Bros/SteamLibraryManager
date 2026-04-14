@@ -46,7 +46,7 @@ class AutoCategorizeDialog(BaseDialog):
 
         super().__init__(
             parent,
-            title_key="auto_categorize.title",
+            title_key="common.auto_categorize",
             min_width=550,
             show_title_label=False,
             buttons="custom",

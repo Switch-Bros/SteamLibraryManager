@@ -83,19 +83,19 @@ class SmartCollectionDialog(QDialog):
         main_layout = QVBoxLayout(self)
 
         # name & description section
-        info_group = QGroupBox(t("ui.smart_collections.name_label"))
+        info_group = QGroupBox(t("common.name"))
         info_layout = QVBoxLayout(info_group)
         info_layout.setContentsMargins(5, 5, 5, 5)
         info_layout.setSpacing(4)
 
         name_row = QHBoxLayout()
-        name_row.addWidget(QLabel(t("ui.smart_collections.name_label") + ":"))
+        name_row.addWidget(QLabel(t("common.name") + ":"))
         self._name_input = QLineEdit()
         name_row.addWidget(self._name_input)
         info_layout.addLayout(name_row)
 
         desc_row = QHBoxLayout()
-        desc_row.addWidget(QLabel(t("ui.smart_collections.description_label") + ":"))
+        desc_row.addWidget(QLabel(t("common.description") + ":"))
         self._desc_input = QLineEdit()
         desc_row.addWidget(self._desc_input)
         info_layout.addLayout(desc_row)

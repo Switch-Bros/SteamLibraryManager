@@ -102,7 +102,7 @@ class GameManager:
             return False
 
         if progress_callback:
-            progress_callback(t("ui.main_window.status_ready"), 3, 3)
+            progress_callback(t("common.ready"), 3, 3)
 
         return True
 
@@ -376,7 +376,7 @@ class GameManager:
         elif self.load_source == "mixed":
             return t("logs.manager.loaded_mixed", count=len(self.games))
         else:
-            return t("ui.main_window.status_ready")
+            return t("common.ready")
 
     def get_real_games(self):
         return self.query_svc.get_real_games()

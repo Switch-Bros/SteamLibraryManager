@@ -15,6 +15,7 @@ from dataclasses import dataclass
 
 import requests
 
+from steam_library_manager.config import USER_AGENT_BROWSER
 from steam_library_manager.utils.i18n import t
 from steam_library_manager.utils.timeouts import HTTP_TIMEOUT_SCRAPE
 
@@ -43,9 +44,7 @@ class SteamProfileScraper:
     _HEADERS = {
         "Accept": "text/html,application/xhtml+xml",
         "Accept-Language": "en-US,en;q=0.9",
-        "User-Agent": (
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" " (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-        ),
+        "User-Agent": USER_AGENT_BROWSER,
     }
 
     _GAME_RE = re.compile(

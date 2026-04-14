@@ -69,7 +69,7 @@ Tokens are stored using your system keyring (KWallet on KDE, GNOME Keyring, etc.
 
 ### Do I need a Steam API key?
 
-No. The Steam API key is optional. SLM's primary method reads your games directly from local Steam files (licensecache, packageinfo.vdf). The API key only enables some additional metadata lookups and is stored locally in your config - never transmitted to third parties.
+No. The Steam API key is optional. SLM's primary method reads your games directly from local Steam files (licensecache, packageinfo.vdf). The API key only enables some additional metadata lookups and is stored securely in your system keyring (or encrypted file fallback) - never transmitted to third parties.
 
 ### Does SLM collect any data or phone home?
 
@@ -254,5 +254,33 @@ Please report it at Help > Online > Report Issues (or directly on GitHub). Inclu
 
 ---
 
-*Last updated: February 2026*
+## Cloud Sync
+
+### How does Cloud Sync work?
+
+Choose rclone or WebDAV in Settings > Cloud Sync. rclone supports 40+ backends (MEGA, Google Drive, Dropbox, OneDrive, and more). SLM can sync automatically on exit, or you can use the File > Export / Import menus to upload and download manually.
+
+### What happens if I change data on two machines?
+
+SLM detects conflicts when both local and cloud data have changed since the last sync. It asks whether to upload your local version or download the cloud version, so you never lose data silently.
+
+---
+
+## Updates & Metadata
+
+### Does SLM auto-update?
+
+AppImage: yes, SLM checks GitHub Releases automatically and can download updates in the background. AUR and Flatpak: use your package manager (`yay -Syu` or `flatpak update`).
+
+### How do I edit game metadata?
+
+Right-click a game > "Edit Metadata". You can change the name, sort title, developer, publisher, and release date. Changes are stored in a local overlay and survive Steam updates. For bulk edits, select multiple games first.
+
+### Where are my API keys stored now?
+
+Since v1.3.9, API keys are stored in your system keyring (KWallet, GNOME Keyring, etc.). Old keys stored in settings.json are automatically migrated on first launch. If no keyring is available, SLM falls back to AES-GCM encrypted file storage.
+
+---
+
+*Last updated: April 2026*
 *More questions? Visit Help > Online > Discussions*

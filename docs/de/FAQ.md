@@ -69,7 +69,7 @@ Tokens werden über deinen System-Keyring gespeichert (KWallet bei KDE, GNOME Ke
 
 ### Brauche ich einen Steam-API-Key?
 
-Nein. Der Steam-API-Key ist optional. SLMs primäre Methode liest deine Spiele direkt aus lokalen Steam-Dateien (licensecache, packageinfo.vdf). Der API-Key ermöglicht nur einige zusätzliche Metadaten-Abfragen und wird lokal in deiner Konfiguration gespeichert - nie an Dritte übertragen.
+Nein. Der Steam-API-Key ist optional. SLMs primäre Methode liest deine Spiele direkt aus lokalen Steam-Dateien (licensecache, packageinfo.vdf). Der API-Key ermöglicht nur einige zusätzliche Metadaten-Abfragen und wird sicher im System-Keyring (oder verschlüsselter Datei-Fallback) gespeichert - nie an Dritte übertragen.
 
 ### Sammelt SLM irgendwelche Daten oder telefoniert nach Hause?
 
@@ -254,5 +254,33 @@ Bitte melde ihn unter Hilfe > Online > Issues melden (oder direkt auf GitHub). F
 
 ---
 
-*Zuletzt aktualisiert: Februar 2026*
+## Cloud Sync
+
+### Wie funktioniert Cloud Sync?
+
+Wähle rclone oder WebDAV unter Einstellungen > Cloud Sync. rclone unterstützt 40+ Backends (MEGA, Google Drive, Dropbox, OneDrive und mehr). SLM kann beim Beenden automatisch synchronisieren, oder du nutzt Datei > Export/Import manuell für einzelne Datentypen oder alle Daten auf einmal.
+
+### Was passiert wenn ich Daten auf zwei Rechnern ändere?
+
+SLM erkennt Konflikte und fragt ob die lokale Version hochgeladen oder die Cloud-Version heruntergeladen werden soll. Es wird nie automatisch überschrieben.
+
+---
+
+## Updates & Metadaten
+
+### Aktualisiert sich SLM automatisch?
+
+AppImage: ja, SLM prüft die GitHub Releases-Seite und bietet Hintergrund-Downloads mit atomarem Austausch an. AUR- und Flatpak-Installationen werden über ihre jeweiligen Paketmanager aktualisiert (`yay -Syu` bzw. `flatpak update`).
+
+### Wie bearbeite ich Spiel-Metadaten?
+
+Rechtsklick auf ein Spiel > „Metadaten bearbeiten". Bearbeitbare Felder sind Name, Sortiertitel, Entwickler, Herausgeber und Erscheinungsdatum. Änderungen werden lokal als Overlay gespeichert und überleben Steam-Updates. Für mehrere Spiele gleichzeitig: Spiele auswählen > Rechtsklick > „Metadaten bearbeiten" für Bulk-Edit.
+
+### Wo werden meine API-Keys jetzt gespeichert?
+
+Seit v1.3.9 im System-Keyring (KWallet, GNOME Keyring, etc.). Alte Keys in der settings.json werden beim Start automatisch in den Keyring migriert. Falls kein Keyring verfügbar ist, nutzt SLM verschlüsselte Datei-Speicherung als Fallback.
+
+---
+
+*Zuletzt aktualisiert: April 2026*
 *Weitere Fragen? Besuche Hilfe > Online > Discussions*

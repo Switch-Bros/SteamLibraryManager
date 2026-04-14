@@ -95,8 +95,8 @@ def _fmt(val, cols, prefix, title):
 
 
 def format_proton_html(tr):
-    return _fmt(tr, Theme.PDB_COLORS, "ui.game_details.proton_tiers", "ui.game_details.proton_db")
+    return _fmt(tr, Theme.PDB_COLORS, "ui.game_details.proton_tiers", "ui.game_details.protondb")
 
 
 def format_deck_html(st):
-    return _fmt(st, Theme.DECK_COLORS, "ui.game_details.steam_deck_status", "ui.game_details.steam_deck")
+    return _fmt(st, Theme.DECK_COLORS, "ui.game_details.steam_deck_status", "common.steam_deck")

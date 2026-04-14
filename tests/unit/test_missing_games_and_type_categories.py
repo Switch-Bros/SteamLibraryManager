@@ -344,7 +344,7 @@ class TestTypeCategoriesGrouping:
         from steam_library_manager.utils.i18n import t
 
         assert t("categories.soundtracks") in result
-        assert t("categories.tools") in result
+        assert t("common.tools") in result
         assert t("categories.software") in result
         assert t("categories.videos") in result
 
@@ -500,7 +500,7 @@ class TestVirtualCategoriesNotSaved:
         virtual = CloudStorageParser._get_virtual_categories()
 
         assert t("categories.soundtracks") in virtual
-        assert t("categories.tools") in virtual
+        assert t("common.tools") in virtual
         assert t("categories.software") in virtual
         assert t("categories.videos") in virtual
 

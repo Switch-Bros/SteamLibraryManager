@@ -108,4 +108,4 @@ class SettingsActions:
         self.mw.user_label = self.mw.menu_builder.user_label
         self.mw.refresh_toolbar()
         self.mw.setWindowTitle(__app_name__)
-        self.mw.set_status(t("ui.main_window.status_ready"))
+        self.mw.set_status(t("common.ready"))

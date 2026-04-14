@@ -14,6 +14,7 @@ import time
 import requests
 from PyQt6.QtCore import QThread, pyqtSignal
 
+from steam_library_manager.config import USER_AGENT_BROWSER
 from steam_library_manager.services.library_health_service import HealthReport, StoreCheckResult
 from steam_library_manager.utils.timeouts import HTTP_TIMEOUT
 
@@ -32,7 +33,7 @@ _GEO_KW = (
     "error processing your request",
 )
 
-_UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" " (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+_UA = USER_AGENT_BROWSER
 _BATCH = 50
 _BATCH_WAIT = 1.0
 _DETAIL_WAIT = 1.5

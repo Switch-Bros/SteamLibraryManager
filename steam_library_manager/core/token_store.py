@@ -114,6 +114,41 @@ class TokenStore:
         except Exception as e:
             logger.error(t("logs.auth.token_clear_failed", error=str(e)))
 
+    def save_api_key(self, name: str, value: str) -> bool:
+        # persist a single API key securely
+        username = "api_key_%s" % name
+        try:
+            if self._keyring_available:
+                import keyring  # noqa: F811
+
+                keyring.set_password(self._KEYRING_SERVICE, username, value)
+                logger.info(t("logs.auth.token_saved"))
+                return True
+            # fall back to encrypted file
+            key_file = self.token_file.parent / ("api_key_%s.enc" % name)
+            return self._save_to_file_path({"value": value}, key_file)
+        except Exception as e:
+            logger.error(t("logs.auth.token_save_failed", error=str(e)))
+            return False
+
+    def load_api_key(self, name: str) -> "str | None":
+        # load a single API key from secure storage
+        username = "api_key_%s" % name
+        try:
+            if self._keyring_available:
+                import keyring  # noqa: F811
+
+                return keyring.get_password(self._KEYRING_SERVICE, username)
+            # fall back to encrypted file
+            key_file = self.token_file.parent / ("api_key_%s.enc" % name)
+            data = self._load_from_file_path(key_file)
+            if data is None:
+                return None
+            return data.get("value")
+        except Exception as e:
+            logger.error(t("logs.auth.token_load_failed", error=str(e)))
+            return None
+
     def save_cloud_credentials(self, provider: str, credentials: dict) -> bool:
         # persist cloud provider credentials securely
         username = "cloud_%s" % provider

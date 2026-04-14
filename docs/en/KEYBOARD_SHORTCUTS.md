@@ -37,7 +37,7 @@ All keyboard shortcuts available in Steam Library Manager.
 | Shortcut | Action | Notes |
 |----------|--------|-------|
 | `Ctrl+Shift+N` | New Smart Collection | Create a new Smart Collection with AND/OR/NOT rules |
-| `Ctrl+Shift+A` | Auto-Categorize | Opens the AutoCat dialog with 15+ categorization types |
+| `Ctrl+Shift+A` | Auto-Categorize | Opens the AutoCat dialog with 17 categorization types |
 
 ## Tools
 
@@ -51,6 +51,7 @@ All keyboard shortcuts available in Steam Library Manager.
 | Shortcut | Action | Notes |
 |----------|--------|-------|
 | `F1` | User Manual | Opens this documentation |
+| `F12` | About | Shows the About dialog |
 
 ## Escape Key - Layered Behavior
 
@@ -82,4 +83,5 @@ Del       Remove from cat     Ctrl+Shift+A  Auto-Categorize
 F2        Rename category     Ctrl+Shift+E  External Games
 Ctrl+I    Image browser       Ctrl+P        Settings
                               F1            Help
+                              F12           About
 ```

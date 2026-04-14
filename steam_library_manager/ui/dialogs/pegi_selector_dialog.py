@@ -52,7 +52,7 @@ class PEGISelectorDialog(BaseDialog):
     def _build_content(self, layout):
         layout.setSpacing(20)
 
-        ttl = QLabel(t("ui.pegi_selector.instruction"))
+        ttl = QLabel(t("ui.pegi_selector.select"))
         ttl.setStyleSheet("font-size: 14px; font-weight: bold; color: %s;" % Theme.TXT_PRI)
         ttl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(ttl)
@@ -87,7 +87,7 @@ class PEGISelectorDialog(BaseDialog):
         bl = QHBoxLayout()
         bl.addStretch()
 
-        rm = QPushButton(t("ui.pegi_selector.remove"))
+        rm = QPushButton(t("common.remove"))
         # Red remove btn
         rm.setStyleSheet(
             "QPushButton { background-color: #c23030; color: white;"

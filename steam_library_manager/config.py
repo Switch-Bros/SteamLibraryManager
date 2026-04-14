@@ -30,7 +30,13 @@ except ImportError:
 logger = logging.getLogger("steamlibmgr.config")
 
 
-__all__ = ["Config", "config"]
+# Shared User-Agent strings -- one place, used everywhere
+USER_AGENT_BROWSER = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" " (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+)
+USER_AGENT_APP = "SteamLibraryManager/1.0"
+
+__all__ = ["Config", "USER_AGENT_APP", "USER_AGENT_BROWSER", "config"]
 
 
 @dataclass
@@ -176,8 +182,6 @@ class Config:
         if steam_path:
             self.STEAM_PATH = Path(steam_path)
 
-        self.STEAMGRIDDB_API_KEY = data.get("steamgriddb_api_key", self.STEAMGRIDDB_API_KEY)
-        self.STEAM_API_KEY = data.get("steam_api_key", self.STEAM_API_KEY)
         self.TAGS_PER_GAME = data.get("tags_per_game", self.TAGS_PER_GAME)
         self.IGNORE_COMMON_TAGS = data.get("ignore_common_tags", self.IGNORE_COMMON_TAGS)
         self.MAX_BACKUPS = data.get("max_backups", self.MAX_BACKUPS)
@@ -201,14 +205,64 @@ class Config:
         self.CLOUD_WEBDAV_URL = data.get("cloud_webdav_url", self.CLOUD_WEBDAV_URL)
         self.CLOUD_RCLONE_REMOTE = data.get("cloud_rclone_remote", self.CLOUD_RCLONE_REMOTE)
 
+        # Migrate API keys from plaintext JSON to secure keyring storage
+        self._migrate_api_keys(data)
+
+    def _migrate_api_keys(self, data: dict) -> None:
+        # load API keys from keyring; auto-migrate from JSON if needed
+        try:
+            from steam_library_manager.core.token_store import TokenStore
+
+            ts = TokenStore()
+        except Exception:
+            # TokenStore not available yet (e.g. missing crypto deps) -
+            # fall back to reading from JSON so keys are still usable
+            self.STEAM_API_KEY = data.get("steam_api_key", self.STEAM_API_KEY)
+            self.STEAMGRIDDB_API_KEY = data.get("steamgriddb_api_key", self.STEAMGRIDDB_API_KEY)
+            return
+
+        needs_json_resave = False
+
+        for attr, json_key, store_name in (
+            ("STEAM_API_KEY", "steam_api_key", "steam"),
+            ("STEAMGRIDDB_API_KEY", "steamgriddb_api_key", "steamgriddb"),
+        ):
+            keyring_val = ts.load_api_key(store_name)
+            json_val = data.get(json_key)
+
+            if keyring_val:
+                # keyring has the value - use it
+                setattr(self, attr, keyring_val)
+            elif json_val:
+                # JSON has value but keyring doesn't - migrate
+                setattr(self, attr, json_val)
+                ts.save_api_key(store_name, json_val)
+                data.pop(json_key, None)
+                needs_json_resave = True
+                logger.info("Migrated %s from settings.json to keyring" % json_key)
+
+        if needs_json_resave:
+            # re-save JSON without the API keys
+            save_json(self.SETTINGS_FILE, data, restrict_permissions=True)
+
     def save(self) -> None:
-        # persist to json
+        # persist API keys to secure storage
+        try:
+            from steam_library_manager.core.token_store import TokenStore
+
+            ts = TokenStore()
+            if self.STEAM_API_KEY:
+                ts.save_api_key("steam", self.STEAM_API_KEY)
+            if self.STEAMGRIDDB_API_KEY:
+                ts.save_api_key("steamgriddb", self.STEAMGRIDDB_API_KEY)
+        except Exception as e:
+            logger.warning("Could not save API keys to keyring: %s" % e)
+
+        # persist everything else to json (API keys excluded)
         data = {
             "ui_language": self.UI_LANGUAGE,
             "tags_language": self.TAGS_LANGUAGE,
             "steam_path": str(self.STEAM_PATH) if self.STEAM_PATH else "",
-            "steamgriddb_api_key": self.STEAMGRIDDB_API_KEY,
-            "steam_api_key": self.STEAM_API_KEY,
             "tags_per_game": self.TAGS_PER_GAME,
             "ignore_common_tags": self.IGNORE_COMMON_TAGS,
             "max_backups": self.MAX_BACKUPS,

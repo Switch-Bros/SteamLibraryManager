@@ -43,6 +43,19 @@ logger = logging.getLogger("steamlibmgr.rule_row_widget")
 
 # Maps FilterField to i18n key suffix
 _FIELD_I18N = {f: "ui.smart_collections.field.%s" % f.value for f in FilterField}
+_FIELD_I18N_OVERRIDES = {
+    FilterField.NAME: "common.name",
+    FilterField.PLATFORM: "common.platform",
+    FilterField.DEVELOPER: "common.developer",
+    FilterField.PUBLISHER: "common.publisher",
+    FilterField.RELEASE_YEAR: "common.release_year",
+    FilterField.INSTALLED: "common.installed",
+    FilterField.HIDDEN: "common.hidden",
+    FilterField.STEAM_DECK: "common.steam_deck",
+    FilterField.PROTONDB: "common.protondb",
+    FilterField.LANGUAGE: "common.language",
+}
+_FIELD_I18N.update(_FIELD_I18N_OVERRIDES)
 
 # Maps Operator to i18n key suffix
 _OP_I18N = {o: "ui.smart_collections.operator.%s" % o.value for o in Operator}

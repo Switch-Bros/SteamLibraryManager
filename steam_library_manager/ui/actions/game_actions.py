@@ -30,7 +30,7 @@ class GameActions:
         if not self.mw.cloud_storage_parser:
             return
 
-        fav_key = t("categories.favorites")
+        fav_key = t("common.favorites")
 
         if game.is_favorite():
             if fav_key in game.categories:
@@ -51,7 +51,7 @@ class GameActions:
         if not self.mw.cloud_storage_parser:
             return
 
-        hidden_key = t("categories.hidden")
+        hidden_key = t("common.hidden")
 
         if hide:
             if hidden_key not in game.categories:
@@ -68,7 +68,7 @@ class GameActions:
             game.hidden = hide
             self.mw.populate_categories()
 
-            status_word = t("ui.visibility.hidden") if hide else t("ui.visibility.visible")
+            status_word = t("common.hidden") if hide else t("ui.visibility.visible")
             self.mw.set_status("%s: %s" % (status_word, game.name))
 
             msg = t("ui.visibility.message", game=game.name, status=status_word)

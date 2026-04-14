@@ -116,7 +116,7 @@ class AutoCatMethodSelector(QWidget):
 
     def _add_tags(self, parent_lay):
         # create tags-specific settings group
-        self.tags_group = QGroupBox(t("auto_categorize.settings"))
+        self.tags_group = QGroupBox(t("common.settings"))
         tlay = QVBoxLayout()
 
         row = QHBoxLayout()

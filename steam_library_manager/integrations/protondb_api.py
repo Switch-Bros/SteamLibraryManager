@@ -14,6 +14,7 @@ from dataclasses import dataclass
 
 import requests
 
+from steam_library_manager.config import USER_AGENT_APP
 from steam_library_manager.utils.timeouts import HTTP_TIMEOUT
 
 logger = logging.getLogger("steamlibmgr.protondb_api")
@@ -41,7 +42,7 @@ class ProtonDBClient:
 
     def __init__(self):
         self._s = requests.Session()
-        self._s.headers.update({"User-Agent": "SteamLibraryManager/1.0"})
+        self._s.headers.update({"User-Agent": USER_AGENT_APP})
 
     def get_rating(self, aid):
         try:

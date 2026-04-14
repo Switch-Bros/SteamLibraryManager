@@ -139,7 +139,7 @@ class Game:
 
     def is_favorite(self) -> bool:
         """Checks if the game is marked as a favorite."""
-        favorites_key = t("categories.favorites")
+        favorites_key = t("common.favorites")
         return favorites_key in self.categories
 
 

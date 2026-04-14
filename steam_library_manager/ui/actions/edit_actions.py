@@ -90,7 +90,7 @@ class EditActions:
             games_to_use = self.dialog_games
 
         # Check tag coverage from DB (not file cache)
-        db_path = self._get_db_path()
+        db_path = self.mw.db_path
         if db_path:
             from steam_library_manager.core.database import Database
 
@@ -191,7 +191,7 @@ class EditActions:
                 progress.setLabelText(t("ui.enrichment.curator_starting"))
                 progress.setValue(step)
 
-                db_path = self._get_db_path()
+                db_path = self.mw.db_path
                 self.mw.autocategorize_service.categorize_by_curator(
                     games,
                     db_path=db_path,
@@ -209,14 +209,6 @@ class EditActions:
         progress.close()
         self.mw.populate_categories()
         UIHelper.show_success(self.mw, t("common.success"))
-
-    # get db path from game service
-    def _get_db_path(self):
-        if hasattr(self.mw, "game_service") and self.mw.game_service:
-            db = getattr(self.mw.game_service, "database", None)
-            if db and hasattr(db, "db_path"):
-                return db.db_path
-        return None
 
     # smart collections
 

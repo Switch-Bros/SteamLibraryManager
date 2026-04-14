@@ -20,6 +20,7 @@ from bs4 import BeautifulSoup
 
 from steam_library_manager.utils.timeouts import HTTP_TIMEOUT_API, HTTP_TIMEOUT_LONG
 
+from steam_library_manager.config import USER_AGENT_BROWSER
 from steam_library_manager.integrations.hltb_models import (
     HLTBResult,
     find_best_match,
@@ -40,7 +41,7 @@ _UAS = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
     " (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:134.0) Gecko/20100101 Firefox/134.0",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    USER_AGENT_BROWSER,
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15"
     " (KHTML, like Gecko) Version/18.2 Safari/605.1.15",
 )

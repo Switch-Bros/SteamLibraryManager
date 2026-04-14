@@ -80,8 +80,9 @@ class EnrichmentActions:
             pass  # HLTB not installed, whatever
 
         # gather paths and config
-        db_path = self._get_db_path()
+        db_path = self.mw.db_path
         if db_path is None:
+            logger.warning("No database available for enrichment")
             return
 
         steam_path = config.STEAM_PATH
@@ -123,21 +124,12 @@ class EnrichmentActions:
         dlg.settings_saved.connect(self.mw.settings_actions.apply_settings)
         dlg.exec()
 
-    def _get_db_path(self):
-        # get database path from game service
-        if hasattr(self.mw, "game_service") and self.mw.game_service:
-            db = getattr(self.mw.game_service, "database", None)
-            if db and hasattr(db, "db_path"):
-                return db.db_path
-
-        logger.warning("No database available for enrichment")
-        return None
-
     def _open_database(self):
         # open fresh db connection
         from steam_library_manager.core.database import Database
 
-        db_path = self._get_db_path()
+        db_path = self.mw.db_path
         if db_path is None:
+            logger.warning("No database available for enrichment")
             return None
         return Database(db_path)

@@ -49,7 +49,7 @@ class CategoryActionHandler:
             else:
                 menu.addAction(t("ui.context_menu.hide_game"), lambda: mw.game_actions.toggle_hide_game(game, True))
 
-        menu.addAction(t("ui.context_menu.remove_from_local"), lambda: mw.game_actions.remove_from_local_config(game))
+        menu.addAction(t("ui.dialogs.remove_local_title"), lambda: mw.game_actions.remove_from_local_config(game))
         menu.addAction(t("ui.context_menu.remove_from_account"), lambda: mw.game_actions.remove_game_from_account(game))
 
         menu.addSeparator()
@@ -58,7 +58,7 @@ class CategoryActionHandler:
 
         menu.addAction(t("ui.context_menu.open_store"), lambda: GameActions.open_in_store(game))
         menu.addAction(
-            "%s %s" % (t("emoji.search"), t("ui.context_menu.check_store")),
+            "%s %s" % (t("emoji.search"), t("ui.store_check.title")),
             lambda: mw.tools_actions.check_store_availability(game),
         )
 
@@ -66,12 +66,12 @@ class CategoryActionHandler:
 
         # auto-categorize: single or multi-selection
         if len(mw.selected_games) > 1:
-            menu.addAction(t("menu.edit.auto_categorize"), mw.edit_actions.auto_categorize_selected)
+            menu.addAction(t("common.auto_categorize"), mw.edit_actions.auto_categorize_selected)
         else:
-            menu.addAction(t("menu.edit.auto_categorize"), lambda: mw.edit_actions.auto_categorize_single(game))
+            menu.addAction(t("common.auto_categorize"), lambda: mw.edit_actions.auto_categorize_single(game))
 
         menu.addSeparator()
-        menu.addAction(t("ui.context_menu.edit_metadata"), lambda: mw.metadata_actions.edit_game_metadata(game))
+        menu.addAction(t("common.edit_metadata"), lambda: mw.metadata_actions.edit_game_metadata(game))
 
         menu.addSeparator()
         menu.addAction(
@@ -94,7 +94,7 @@ class CategoryActionHandler:
         if category == "__MULTI__":
             sel_cats = mw.tree.get_selected_categories()
             if len(sel_cats) > 1:
-                menu.addAction(t("ui.context_menu.merge_categories"), lambda: self.merge_categories(sel_cats))
+                menu.addAction(t("common.merge_collections"), lambda: self.merge_categories(sel_cats))
                 menu.addSeparator()
                 menu.addAction(t("common.delete"), lambda: self.delete_multiple_categories(sel_cats))
             menu.exec(pos)
@@ -105,7 +105,7 @@ class CategoryActionHandler:
 
         if category in get_protected_collection_names():
             # only auto-categorize allowed, nothing else
-            menu.addAction(t("menu.edit.auto_categorize"), lambda: mw.edit_actions.auto_categorize_category(category))
+            menu.addAction(t("common.auto_categorize"), lambda: mw.edit_actions.auto_categorize_category(category))
             menu.exec(pos)
             return
 
@@ -124,7 +124,7 @@ class CategoryActionHandler:
                 )
 
         menu.addSeparator()
-        menu.addAction(t("menu.edit.auto_categorize"), lambda: mw.edit_actions.auto_categorize_category(category))
+        menu.addAction(t("common.auto_categorize"), lambda: mw.edit_actions.auto_categorize_category(category))
 
         menu.exec(pos)
 
@@ -175,7 +175,7 @@ class CategoryActionHandler:
 
         # build dialog inline - ugh, should be separate class
         dlg = QDialog(mw)
-        dlg.setWindowTitle(t("categories.merge_title"))
+        dlg.setWindowTitle(t("common.merge_collections"))
         dlg.setMinimumWidth(400)
 
         layout = QVBoxLayout()
@@ -218,7 +218,7 @@ class CategoryActionHandler:
                 UIHelper.show_success(
                     mw,
                     t("categories.merge_success", target=target, count=len(src)),
-                    t("categories.merge_title"),
+                    t("common.merge_collections"),
                 )
 
     def show_merge_duplicates_dialog(self, filter_name=None):

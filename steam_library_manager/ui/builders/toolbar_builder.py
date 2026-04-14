@@ -47,8 +47,8 @@ class ToolbarBuilder:
         tb.addSeparator()
 
         # auto categorize
-        a = QAction("%s %s" % (t("emoji.blitz"), t("menu.edit.auto_categorize")), self.mw)
-        a.setToolTip(t("menu.edit.auto_categorize"))
+        a = QAction("%s %s" % (t("emoji.blitz"), t("common.auto_categorize")), self.mw)
+        a.setToolTip(t("common.auto_categorize"))
         a.triggered.connect(self.mw.edit_actions.auto_categorize)
         tb.addAction(a)
 
@@ -74,8 +74,8 @@ class ToolbarBuilder:
         tb.addWidget(sp)
 
         # settings
-        a = QAction("%s %s" % (t("emoji.settings"), t("settings.title")), self.mw)
-        a.setToolTip(t("settings.title"))
+        a = QAction("%s %s" % (t("emoji.settings"), t("common.settings")), self.mw)
+        a.setToolTip(t("common.settings"))
         a.triggered.connect(self.mw.settings_actions.show_settings)
         tb.addAction(a)
 
@@ -104,7 +104,7 @@ class ToolbarBuilder:
         from PyQt6.QtWidgets import QMessageBox
 
         b = QMessageBox(mw)
-        b.setWindowTitle(t("steam.login.steam_login_title"))
+        b.setWindowTitle(t("steam.login.title"))
         b.setText(t("steam.login.logged_in_as", user=mw.steam_username))
         b.setIcon(QMessageBox.Icon.Information)
 

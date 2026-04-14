@@ -52,7 +52,7 @@ class SteamStoreScraper:
         self.language_code = language
         self.steam_language = self.STEAM_LANGUAGES.get(language, "english")
         self.last_request_time = 0.0
-        self.min_request_interval = 1.0  # Reduced from 1.5 - Steam tolerates 1.0
+        self.min_request_interval = 1.5  # Steam rate-limits aggressively on bulk requests
 
         # Tag blacklist (common but unhelpful tags)
         self.tag_blacklist = {
@@ -152,18 +152,27 @@ class SteamStoreScraper:
         if cached is not None:
             return cached.get("pegi_rating")
 
-        # Rate Limiting
-        self._rate_limit()
-
         # Try API first (fast JSON parse, no age-gate issues)
-        pegi_rating = self._fetch_age_rating_from_api(app_id)
+        # _network_ok tracks if Steam is reachable - skip fallbacks on timeout/DNS errors
+        _network_ok = True
+        try:
+            pegi_rating = self._fetch_age_rating_from_api(app_id)
+        except requests.exceptions.ConnectionError:
+            _network_ok = False
+            pegi_rating = None
+        except requests.exceptions.Timeout:
+            _network_ok = False
+            pegi_rating = None
 
-        # Fallback: try US region (game might be delisted/banned locally)
-        if not pegi_rating:
-            pegi_rating = self._fetch_age_rating_from_api(app_id, cc="us")
+        # Fallback: try US region (only if network works but no rating found)
+        if not pegi_rating and _network_ok:
+            try:
+                pegi_rating = self._fetch_age_rating_from_api(app_id, cc="us")
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+                _network_ok = False
 
-        # Fallback: HTML scraping if API has no data
-        if not pegi_rating:
+        # Fallback: HTML scraping (only if network works but API had no data)
+        if not pegi_rating and _network_ok:
             pegi_rating = self._fetch_age_rating_from_html(app_id)
 
         # Cache result
@@ -185,12 +194,21 @@ class SteamStoreScraper:
     def _fetch_age_rating_from_api(self, app_id: str, cc: str = "") -> str | None:
         # fetch from Steam Store appdetails API
         try:
+            self._rate_limit()
             self.last_request_time = time.time()
 
             url = "https://store.steampowered.com/api/appdetails?appids=%s" % app_id
             if cc:
                 url += "&cc=%s" % cc
             resp = requests.get(url, timeout=HTTP_TIMEOUT)
+
+            # back off on rate limit
+            if resp.status_code == 429:
+                logger.warning("Steam rate limit hit, backing off 30s...")
+                time.sleep(30)
+                self.last_request_time = time.time()
+                resp = requests.get(url, timeout=HTTP_TIMEOUT)
+
             resp.raise_for_status()
             data = resp.json()
 
@@ -273,6 +291,8 @@ class SteamStoreScraper:
 
             return None
 
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            raise  # let caller handle network errors
         except (requests.RequestException, ValueError, KeyError) as exc:
             logger.error(t("logs.steam_store.api_fetch_failed", app_id=app_id, error=exc))
             return None

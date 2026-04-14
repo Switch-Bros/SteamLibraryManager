@@ -142,7 +142,7 @@ class EnrichmentStarters:
 
         from steam_library_manager.config import config
 
-        db_path = self._get_db_path()
+        db_path = self.mw.db_path
         hltb_client = HLTBClient()
 
         uid64 = ""
@@ -211,7 +211,7 @@ class EnrichmentStarters:
                 self.start_steam_api_enrichment(force_refresh=True)
             return
 
-        db_path = self._get_db_path()
+        db_path = self.mw.db_path
 
         thread = EnrichmentThread(self.mw)
         thread.configure_steam(games, db_path, api_key, force_refresh=force_refresh)
@@ -290,8 +290,9 @@ class EnrichmentStarters:
             CuratorEnrichmentThread,
         )
 
-        db_path = self._get_db_path()
+        db_path = self.mw.db_path
         if db_path is None:
+            logger.warning("No database available for enrichment")
             return
 
         thread = CuratorEnrichmentThread(self.mw)
@@ -315,8 +316,9 @@ class EnrichmentStarters:
             UIHelper.show_warning(self.mw, t("ui.tag_import.no_steam_path"))
             return
 
-        db_path = self._get_db_path()
+        db_path = self.mw.db_path
         if db_path is None:
+            logger.warning("No database available for enrichment")
             return
 
         db = self._open_database()
@@ -410,7 +412,7 @@ class EnrichmentStarters:
 
         thread = thread_cls(self.mw)
         extra = configure_kwargs or {}
-        thread.configure(games, self._get_db_path(), force_refresh=force_refresh, **extra)
+        thread.configure(games, self.mw.db_path, force_refresh=force_refresh, **extra)
         callback = (
             None
             if force_refresh
@@ -493,16 +495,6 @@ class EnrichmentStarters:
         dialog.settings_saved.connect(self.mw.settings_actions.apply_settings)
         dialog.exec()
 
-    # get db path from game service
-    def _get_db_path(self):
-        if hasattr(self.mw, "game_service") and self.mw.game_service:
-            db = getattr(self.mw.game_service, "database", None)
-            if db and hasattr(db, "db_path"):
-                return db.db_path
-
-        logger.warning("No database available for enrichment")
-        return None
-
     # sync in-memory games from db after enrichment
     def _refresh_games_from_db(self) -> None:
         db = self._open_database()
@@ -526,7 +518,8 @@ class EnrichmentStarters:
     def _open_database(self):
         from steam_library_manager.core.database import Database
 
-        db_path = self._get_db_path()
+        db_path = self.mw.db_path
         if db_path is None:
+            logger.warning("No database available for enrichment")
             return None
         return Database(db_path)

@@ -1,6 +1,6 @@
 # 📖 Steam Library Manager - User Manual
 
-**Version:** 1.0
+**Version:** 1.3.9
 **Platform:** Linux (CachyOS, Ubuntu, Fedora, Arch, SteamOS, etc.)
 
 ---
@@ -11,17 +11,23 @@
 2. [Installation](#installation)
 3. [First Launch](#first-launch)
 4. [Main Interface](#main-interface)
-5. [Managing Collections](#managing-collections)
-6. [Smart Collections](#smart-collections)
-7. [Auto-Categorization](#auto-categorization)
-8. [Data Enrichment](#data-enrichment)
-9. [External Games](#external-games)
-10. [Import & Export](#import--export)
-11. [Profiles & Backup](#profiles--backup)
-12. [View Filters & Sorting](#view-filters--sorting)
-13. [Settings](#settings)
-14. [Keyboard Shortcuts](#keyboard-shortcuts)
-15. [Troubleshooting](#troubleshooting)
+5. [Steam Login](#steam-login)
+6. [Managing Collections](#managing-collections)
+7. [Smart Collections](#smart-collections)
+8. [Auto-Categorization](#auto-categorization)
+9. [Data Enrichment](#data-enrichment)
+10. [Metadata Editor](#metadata-editor)
+11. [Artwork Manager](#artwork-manager)
+12. [External Games](#external-games)
+13. [Import & Export](#import--export)
+14. [Cloud Sync](#cloud-sync)
+15. [Profiles & Backup](#profiles--backup)
+16. [Library Health Check](#library-health-check)
+17. [Auto-Updates (AppImage)](#auto-updates-appimage)
+18. [View Filters & Sorting](#view-filters--sorting)
+19. [Settings](#settings)
+20. [Keyboard Shortcuts](#keyboard-shortcuts)
+21. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -31,7 +37,7 @@ Steam Library Manager (SLM) is a powerful tool for organizing large Steam game l
 
 **Key Features:**
 - Organize 3000+ games into collections that sync with Steam
-- 15+ automatic categorization types (genre, tags, playtime, HLTB, and more)
+- 17 automatic categorization types (genre, tags, playtime, HLTB, and more)
 - Smart Collections with AND/OR/NOT logic (something Steam can't do natively)
 - Data enrichment from HLTB, ProtonDB, and Steam Deck compatibility
 - Manage non-Steam games from Epic, GOG, Lutris, and 5 other platforms
@@ -52,7 +58,13 @@ Steam Library Manager (SLM) is a powerful tool for organizing large Steam game l
 ### Flatpak (Recommended)
 
 ```bash
-flatpak install flathub com.github.steamlibmgr.SteamLibraryManager
+flatpak install flathub io.github.switch_bros.SteamLibraryManager
+```
+
+### AUR (Arch Linux / CachyOS)
+
+```bash
+yay -S steam-library-manager
 ```
 
 ### AppImage
@@ -67,7 +79,7 @@ flatpak install flathub com.github.steamlibmgr.SteamLibraryManager
 git clone https://github.com/HeikesFootSlave/SteamLibraryManager.git
 cd SteamLibraryManager
 pip install -r requirements.txt
-python -m src.main
+python steam_library_manager/main.py
 ```
 
 Requires Python 3.11+ and PyQt6.
@@ -117,6 +129,34 @@ The main window has four areas:
 **Details Panel:** Shows metadata, artwork, playtime, achievements, and more for the selected game. Toggle with `Space`.
 
 **Status Bar:** Live statistics about your current view - how many games are shown, which filters are active.
+
+---
+
+## Steam Login
+
+SLM supports two ways to log into your Steam account for cloud sync and metadata access.
+
+### QR Code Login (Recommended)
+
+1. Open the login dialog (prompted on first launch, or via Settings)
+2. A QR code is displayed on screen
+3. Open the Steam Mobile App on your phone
+4. Tap the shield icon (Steam Guard) > "Confirm Sign In"
+5. Scan the QR code with the app
+6. SLM receives your session automatically
+
+### Password Login
+
+1. Enter your Steam username and password in the login dialog
+2. Your password is RSA-encrypted with Steam's public key before transmission
+3. If Steam Guard is active, approve the login on the Steam Mobile App
+4. SLM receives your session after approval
+
+### Token Storage
+
+Login tokens are stored in your system keyring (KWallet, GNOME Keyring, etc.) - the same secure storage your browser uses for passwords. If no keyring is available, SLM falls back to AES-GCM encrypted files. Tokens are never stored in plain text.
+
+On subsequent launches, SLM automatically restores your session from the stored token. You only need to log in again if the token expires or you explicitly log out.
 
 ---
 
@@ -210,7 +250,7 @@ Smart Collections update automatically when:
 
 ## Auto-Categorization
 
-AutoCat (`Ctrl+Shift+A`) automatically sorts games into categories based on their metadata.
+AutoCat (`Ctrl+Shift+A`) automatically sorts games into categories based on their metadata. SLM includes 17 categorization types.
 
 ### How to Use
 
@@ -280,6 +320,58 @@ Each source has a "Force Refresh" variant that re-fetches ALL data, even cached 
 
 ---
 
+## Metadata Editor
+
+SLM lets you edit game metadata locally. Changes are stored in an overlay system, so they survive Steam updates without modifying Steam's files.
+
+### Editing a Single Game
+
+1. Right-click a game > "Edit Metadata", or select a game and click the Edit button
+2. Editable fields: Name, Sort As, Developer, Publisher, Release Date
+3. Changes are saved to SLM's local overlay and applied instantly
+
+### Bulk Editing
+
+1. Select multiple games (Ctrl+Click or Shift+Click)
+2. Right-click > "Edit Metadata"
+3. Set fields you want to change - they apply to all selected games
+4. Leave fields blank to keep existing values
+
+**Overlay system:** SLM stores your edits separately from Steam's data. When Steam updates a game's metadata, your overlay takes priority. You can clear individual overrides to revert to Steam's data.
+
+**VDF write option:** For changes that should appear in Steam itself (not just SLM), enable "Write to appinfo.vdf" in the editor. This modifies Steam's local data file and requires a Steam restart to take effect.
+
+---
+
+## Artwork Manager
+
+SLM integrates with SteamGridDB to let you browse and apply custom artwork for your games.
+
+### Browsing Artwork
+
+1. Click on a game's cover image in the details panel to open the SteamGridDB browser
+2. Alternatively, select a game and press `Ctrl+I`
+3. Browse available artwork types: grids (covers), heroes (banners), logos, and icons
+
+### Filters
+
+The artwork browser provides filter badges to narrow results:
+
+- **Static / Animated** - filter for still images or animated (GIF) covers
+- **NSFW** - toggle mature artwork visibility
+- **Humor** - filter for humorous/parody artwork
+- **Epilepsy** - filter out artwork with flashing effects
+
+### Applying Artwork
+
+Click any artwork thumbnail to apply it to the selected game. The image is downloaded and cached locally.
+
+### API Key
+
+SteamGridDB requires an API key for access. On first use, SLM prompts you to enter your key (free at steamgriddb.com). The key is stored securely in your system keyring.
+
+---
+
 ## External Games
 
 SLM can detect and manage games from 8 non-Steam platforms (`Ctrl+Shift+E`).
@@ -333,6 +425,55 @@ SLM can detect and manage games from 8 non-Steam platforms (`Ctrl+Shift+E`).
 
 ---
 
+## Cloud Sync
+
+SLM can sync your library data (collections, profiles, settings) to cloud storage using rclone or WebDAV.
+
+### Setting Up Cloud Sync
+
+1. Open Settings (`Ctrl+P`) > Cloud Sync tab
+2. Choose a provider: **rclone**, **WebDAV**, or **None** (disabled)
+
+### rclone Setup
+
+rclone supports 40+ cloud backends including MEGA, Google Drive, Dropbox, OneDrive, and more.
+
+1. Select "rclone" as provider in Settings > Cloud Sync
+2. If rclone is not installed, SLM offers a built-in download wizard
+3. Configure a remote using rclone's interactive setup (SLM guides you through it)
+4. The Cloud Sync tab shows a scrollable list of configured remotes - select one
+
+### WebDAV Setup
+
+1. Select "WebDAV" as provider in Settings > Cloud Sync
+2. Enter your WebDAV server URL
+3. Enter username and password
+4. Test the connection
+
+### Sync Modes
+
+| Mode | Behavior |
+|------|----------|
+| Manual | Upload/download only when you choose to |
+| Auto-upload on exit | SLM uploads your data when you close the application |
+| Fully automatic | SLM uploads on exit and checks for updates on launch |
+
+### Using Cloud Sync
+
+**Upload:** File > Export > "Upload to cloud" (per data type) or "All data to cloud" (bulk)
+
+**Download:** File > Import > "Download from cloud" (per data type) or "All data from cloud" (bulk)
+
+**Conflict detection:** If both local and cloud data have changed since the last sync, SLM asks whether to upload local data or download the cloud version.
+
+### Profile Cloud Sync
+
+The Profile Manager includes dedicated cloud export and import buttons, letting you sync individual profiles to and from your cloud storage.
+
+Cloud data is stored under the path prefix `SteamLibraryManager/` on your cloud storage.
+
+---
+
 ## Profiles & Backup
 
 ### Profiles
@@ -353,6 +494,55 @@ Multiple backup mechanisms:
 | Manual backup | `Ctrl+Shift+S` | Database snapshot |
 | Export | File > Export > DB Backup | Complete database |
 | Profiles | File > Profiles > Save | Category snapshot |
+
+---
+
+## Library Health Check
+
+SLM can audit your library for potential issues.
+
+### Running a Health Check
+
+Go to Tools > Check Store Pages. SLM scans your library and checks each game against the Steam Store.
+
+### Results
+
+Results are grouped into three tabs:
+
+| Tab | What it checks |
+|-----|----------------|
+| Store | Games delisted or removed from the Steam Store |
+| Data | Missing metadata (no genre, no description, no artwork) |
+| Cache | Stale cached data that should be refreshed |
+
+Use the health check periodically to keep your library data accurate, especially after Steam sales when games frequently get delisted or updated.
+
+---
+
+## Auto-Updates (AppImage)
+
+The AppImage version of SLM includes a built-in auto-update system.
+
+### How It Works
+
+1. SLM checks GitHub Releases for new versions automatically
+2. If an update is available, a notification appears
+3. The update downloads in the background
+4. SLM replaces the old AppImage atomically with rollback support
+5. Restart SLM to use the new version
+
+### Configuration
+
+In Settings, you can configure the update check interval:
+
+- **Daily** - check once per day
+- **Weekly** - check once per week (default)
+- **Monthly** - check once per month
+- **Never** - disable auto-update checks
+
+A **Skip Version** button lets you ignore a specific release if you don't want to update right now.
+
+**Note:** AUR and Flatpak users should update through their respective package managers (`yay -Syu` or `flatpak update`).
 
 ---
 
@@ -394,13 +584,21 @@ Open settings with `Ctrl+P` or Tools > Settings.
 ### General Tab
 
 - **Language:** Switch between English and German (more languages planned)
+- **Tag Language:** Choose the language for Steam community tags (independent of UI language)
 - **Steam Path:** Auto-detected, can be overridden
 - **Steam User:** Select which Steam account to manage
 
 ### Other Tab
 
-- Additional configuration options
-- Backup settings
+- **API Keys:** SteamGridDB and other API keys, stored securely in your system keyring (or encrypted file fallback)
+- **Tags per Game:** How many Steam tags to store per game (affects AutoCat and Smart Collections)
+- **Backup Settings:** Auto-backup configuration
+
+### Cloud Sync Tab
+
+- **Provider:** rclone, WebDAV, or None
+- **Remote Configuration:** See the [Cloud Sync](#cloud-sync) section for details
+- **Sync Mode:** Manual, Auto-upload on exit, or Fully automatic
 
 ---
 

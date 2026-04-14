@@ -150,16 +150,16 @@ class GameDetailsWidget(QWidget):
         )
 
         hrs = sum(g.playtime_hours for g in games)
-        pt = t("ui.game_details.hours", hours=hrs)
+        pt = t("time.time_hours_short", hours=hrs)
         self.lbl_playtime.setText(
-            "<span style='color:%s;'>%s:</span> <b>%s</b>" % (Theme.TXT_MUTED, t("ui.game_details.total_playtime"), pt)
+            "<span style='color:%s;'>%s:</span> <b>%s</b>" % (Theme.TXT_MUTED, t("ui.stats.total_playtime"), pt)
         )
 
         self.lbl_updated.setText(
             "<span style='color:%s;'>%s:</span> <b>-</b>" % (Theme.TXT_MUTED, t("ui.game_details.last_update"))
         )
         self.lbl_proton.setText(t("ui.game_details.protondb") + ": -")
-        self.lbl_steam_deck.setText(t("ui.game_details.steam_deck") + ": -")
+        self.lbl_steam_deck.setText(t("common.steam_deck") + ": -")
         self.lbl_reviews.setText(
             "<span style='color:%s;'>%s:</span> <b>-</b>" % (Theme.TXT_MUTED, t("ui.game_details.reviews"))
         )
@@ -193,15 +193,15 @@ class GameDetailsWidget(QWidget):
         self.games = []
         self.name_label.setText(gm.name)
         self.lbl_appid.setText(
-            "<span style='color:%s;'>%s:</span> <b>%s</b>" % (Theme.TXT_MUTED, t("ui.game_details.app_id"), gm.app_id)
+            "<span style='color:%s;'>%s:</span> <b>%s</b>" % (Theme.TXT_MUTED, t("common.app_id"), gm.app_id)
         )
         pt_val = (
-            t("ui.game_details.hours", hours=gm.playtime_hours)
+            t("time.time_hours_short", hours=gm.playtime_hours)
             if gm.playtime_hours > 0
             else t("ui.game_details.never_played")
         )
         self.lbl_playtime.setText(
-            "<span style='color:%s;'>%s:</span> <b>%s</b>" % (Theme.TXT_MUTED, t("ui.game_details.playtime"), pt_val)
+            "<span style='color:%s;'>%s:</span> <b>%s</b>" % (Theme.TXT_MUTED, t("common.playtime"), pt_val)
         )
         upd = format_timestamp_to_date(gm.last_updated) if gm.last_updated else t("emoji.dash")
         self.lbl_updated.setText(
@@ -232,7 +232,7 @@ class GameDetailsWidget(QWidget):
         cur = gm.curator_overlap if gm.curator_overlap else t("emoji.dash")
         set_info_label_value(self.lbl_curator_overlap, cur)
 
-        unknown = t("ui.game_details.value_unknown")
+        unknown = t("common.unknown")
 
         def safe(val, fmt=None):
             if not val:
@@ -311,7 +311,7 @@ class GameDetailsWidget(QWidget):
                 set_info_label_value(self.lbl_achievement_progress, prog)
                 self.lbl_achievement_perfect.setText("")
         else:
-            no_ach = t("ui.game_details.achievement_none")
+            no_ach = t("common.no_achievements")
             set_info_label_value(self.lbl_achievement_total, t("emoji.dash"))
             set_info_label_value(self.lbl_achievement_progress, no_ach)
             self.lbl_achievement_perfect.setText("")
@@ -415,7 +415,7 @@ class GameDetailsWidget(QWidget):
         if not self.game:
             return
         menu = QMenu(self)
-        txt = t("ui.pegi_selector.remove")
+        txt = t("common.remove")
         if txt.startswith("["):
             txt = "Reset Rating"
         reset_act = menu.addAction(txt)

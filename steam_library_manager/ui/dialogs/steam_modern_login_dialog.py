@@ -57,7 +57,7 @@ class ModernSteamLoginDialog(QDialog):
 
     def _setup_ui(self):
         # build the full dialog layout
-        self.setWindowTitle("%s %s" % (t("emoji.lock"), t("steam.login.steam_login_title")))
+        self.setWindowTitle("%s %s" % (t("emoji.lock"), t("steam.login.title")))
         self.setMinimumSize(800, 700)
         self.resize(800, 700)
 
@@ -75,7 +75,7 @@ class ModernSteamLoginDialog(QDialog):
         main_layout.addWidget(content, stretch=1)
 
         # Status bar
-        self.status_bar = QLabel(t("steam.login.status_ready"))
+        self.status_bar = QLabel(t("common.ready"))
         self.status_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.status_bar.setStyleSheet("""
             QLabel {
@@ -198,7 +198,7 @@ class ModernSteamLoginDialog(QDialog):
         layout.setSpacing(20)
 
         # Title
-        title = QLabel(t("steam.login.password_method"))
+        title = QLabel(t("common.password"))
         title.setStyleSheet("color: white; font-size: 18px; font-weight: bold;")
         layout.addWidget(title)
 
@@ -207,11 +207,11 @@ class ModernSteamLoginDialog(QDialog):
         form.setSpacing(15)
 
         self.username_input = QLineEdit()
-        self.username_input.setPlaceholderText(t("steam.login.username"))
+        self.username_input.setPlaceholderText(t("common.username"))
         form.addWidget(self.username_input)
 
         self.password_input = QLineEdit()
-        self.password_input.setPlaceholderText(t("steam.login.password"))
+        self.password_input.setPlaceholderText(t("common.password"))
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.password_input.returnPressed.connect(self.on_password_login)
         form.addWidget(self.password_input)
@@ -267,7 +267,7 @@ class ModernSteamLoginDialog(QDialog):
         layout.addWidget(self.qr_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Hint
-        hint = QLabel(t("steam.login.qr_hint"))
+        hint = QLabel(t("steam.login.qr_instructions"))
         hint.setStyleSheet("color: #8f98a0; font-size: 12px;")
         hint.setWordWrap(True)
         hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
