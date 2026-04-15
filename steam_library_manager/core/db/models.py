@@ -101,6 +101,10 @@ class DatabaseEntry:
     short_description: str = ""
     content_descriptors: str = ""
 
+    # Playtime (persisted so data survives API outages)
+    playtime_minutes: int = 0
+    last_played: str = ""
+
     # Metadata management
     is_modified: bool = False
     last_synced: int | None = None

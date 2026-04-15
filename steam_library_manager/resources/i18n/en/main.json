@@ -187,7 +187,8 @@
       "minutes_unit": "{minutes} min",
       "platform_dist": "Platform Distribution",
       "no_data": "No data available",
-      "playtime_label": "Playtime: {hours} h"
+      "playtime_label": "Playtime: {hours} h",
+      "tab_achievements": "Achievements"
     },
     "export": {
       "csv_save_title": "Export as CSV",
@@ -622,6 +623,27 @@
       "success": "Desktop integration removed. The app no longer appears in your application menu.",
       "error": "Failed to remove desktop integration.",
       "not_found": "No desktop integration found to remove."
+    }
+  },
+  "stats": {
+    "overview": {
+      "never_played": "Never Played",
+      "perfect_games": "Perfect Games",
+      "installed_count": "{installed} installed",
+      "avg_label": "avg: {hours} h"
+    },
+    "genre": {
+      "insight_mismatch": "You own most {owned} games but play {played} the most",
+      "insight_match": "Your library and playtime are dominated by {genre}"
+    },
+    "achievements": {
+      "total_unlocked": "Unlocked",
+      "rare": "Rare (<10%)",
+      "ultra_rare": "Ultra Rare (<1%)",
+      "perfect": "Perfect Games",
+      "almost_done": "Almost Done (>80%)",
+      "trophy_wall": "Trophy Wall",
+      "no_perfect": "No perfect games yet - keep playing!"
     }
   }
 }

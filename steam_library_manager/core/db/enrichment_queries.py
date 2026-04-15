@@ -68,6 +68,8 @@ class EnrichmentQueryMixin:
             "trading_cards",
             "achievements_total",
             "platforms",
+            "playtime_minutes",
+            "last_played",
         }
         ok = {k: v for k, v in flds.items() if k in cols}
         if not ok:

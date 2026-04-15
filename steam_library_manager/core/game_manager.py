@@ -326,6 +326,18 @@ class GameManager:
             if not game.achievement_perfect and entry.achievement_perfect:
                 game.achievement_perfect = entry.achievement_perfect
 
+            # playtime from DB (survives API outages)
+            if game.playtime_minutes == 0 and getattr(entry, "playtime_minutes", 0) > 0:
+                game.playtime_minutes = entry.playtime_minutes
+            lp = getattr(entry, "last_played", "")
+            if lp and not game.last_played:
+                from datetime import datetime
+
+                try:
+                    game.last_played = datetime.fromisoformat(lp)
+                except (ValueError, TypeError):
+                    pass
+
             enriched += 1
 
         # hltb times

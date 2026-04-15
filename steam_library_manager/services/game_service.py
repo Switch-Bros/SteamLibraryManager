@@ -89,6 +89,21 @@ class GameService:
             logger.error(t("logs.db.schema_error", error=str(e)))
             return None
 
+    def _persist_playtime(self, db):
+        # save playtime + last_played from API/local to DB so it survives API outages
+        updates = []
+        for aid_str, game in self.game_manager.games.items():
+            if game.playtime_minutes > 0:
+                lp = game.last_played.isoformat() if game.last_played else ""
+                updates.append((game.playtime_minutes, lp, int(aid_str)))
+        if updates:
+            db.conn.executemany(
+                "UPDATE games SET playtime_minutes = ?, last_played = ? WHERE app_id = ?",
+                updates,
+            )
+            db.conn.commit()
+            logger.info("Persisted playtime for %d games" % len(updates))
+
     def _sync_new_games_to_db(self, db):
         # ensure all games from API/local are in the DB, fetch data for incomplete ones
         cur = db.conn.execute("SELECT app_id FROM games")
@@ -283,6 +298,7 @@ class GameService:
 
         if self.database and self.game_manager.games:
             self._sync_new_games_to_db(self.database)
+            self._persist_playtime(self.database)
             self.game_manager.enrich_from_database(self.database)
 
         return ok and bool(self.game_manager.games)

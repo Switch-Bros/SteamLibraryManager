@@ -93,6 +93,9 @@ class SchemaMixin:
         if frm < 9:
             self._m9()
             self._set_schema_version(9)
+        if frm < 10:
+            self._m10()
+            self._set_schema_version(10)
 
     # migrations
 
@@ -298,3 +301,16 @@ class SchemaMixin:
         """)
         self.conn.commit()
         logger.info("Migrated to v9")
+
+    def _m10(self):
+        # add playtime + last_played to games table so data survives API outages
+        for col, typ in (
+            ("playtime_minutes", "INTEGER DEFAULT 0"),
+            ("last_played", "TEXT DEFAULT ''"),
+        ):
+            try:
+                self.conn.execute("ALTER TABLE games ADD COLUMN %s %s" % (col, typ))
+            except sqlite3.OperationalError:
+                pass  # already exists
+        self.conn.commit()
+        logger.info("Migrated to v10: added playtime_minutes + last_played to games")

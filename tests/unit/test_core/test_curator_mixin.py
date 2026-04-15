@@ -31,7 +31,7 @@ class TestCuratorMixin:
     def test_schema_v9_migration(self, db: Database) -> None:
         """Schema version must be 9 after fresh creation."""
         version = db._get_schema_version()
-        assert version == 9
+        assert version == 10
 
     def test_add_curator(self, db: Database) -> None:
         """Adding a curator should persist it."""

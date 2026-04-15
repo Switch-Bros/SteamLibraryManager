@@ -187,7 +187,8 @@
       "minutes_unit": "{minutes} min",
       "platform_dist": "Plattform-Verteilung",
       "no_data": "Keine Daten verfügbar",
-      "playtime_label": "Spielzeit: {hours} h"
+      "playtime_label": "Spielzeit: {hours} h",
+      "tab_achievements": "Errungenschaften"
     },
     "export": {
       "csv_save_title": "Als CSV exportieren",
@@ -622,6 +623,27 @@
       "success": "Desktop-Integration entfernt. Die App erscheint nicht mehr im Anwendungsmenü.",
       "error": "Desktop-Integration konnte nicht entfernt werden.",
       "not_found": "Keine Desktop-Integration zum Entfernen gefunden."
+    }
+  },
+  "stats": {
+    "overview": {
+      "never_played": "Nie gespielt",
+      "perfect_games": "Perfekte Spiele",
+      "installed_count": "{installed} installiert",
+      "avg_label": "avg: {hours} h"
+    },
+    "genre": {
+      "insight_mismatch": "Du besitzt am meisten {owned} aber spielst am meisten {played}",
+      "insight_match": "Deine Bibliothek und Spielzeit werden von {genre} dominiert"
+    },
+    "achievements": {
+      "total_unlocked": "Freigeschaltet",
+      "rare": "Selten (<10%)",
+      "ultra_rare": "Ultra-Selten (<1%)",
+      "perfect": "Perfekte Spiele",
+      "almost_done": "Fast fertig (>80%)",
+      "trophy_wall": "Trophy Wall",
+      "no_perfect": "Noch keine perfekten Spiele - weiterspielen!"
     }
   }
 }

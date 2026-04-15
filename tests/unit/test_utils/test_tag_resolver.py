@@ -291,4 +291,4 @@ class TestSchemaMigration:
         """Database schema version must be 9."""
         cursor = db.conn.execute("SELECT MAX(version) FROM schema_version")
         version = cursor.fetchone()[0]
-        assert version == 9
+        assert version == 10

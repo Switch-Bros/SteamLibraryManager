@@ -103,7 +103,7 @@ class ViewActions:
             self.mw.set_status(t("ui.search.status_none"))
 
     def show_statistics(self):
-        from steam_library_manager.ui.dialogs.statistics_dialog import StatisticsDialog
+        from steam_library_manager.ui.dialogs.statistics import StatisticsDialog
 
         StatisticsDialog(self.mw).exec()
 

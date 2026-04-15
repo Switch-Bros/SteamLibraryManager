@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from PyQt6.QtCore import Qt, QRectF
 from PyQt6.QtGui import QColor, QFont, QFontMetrics
-from PyQt6.QtWidgets import QToolTip
 
 from steam_library_manager.services.chart_data import CHART_PALETTE, CHART_TEXT, CHART_TEXT_DIM, ChartSlice
 from steam_library_manager.ui.widgets.charts.base_chart import BaseChart
@@ -123,18 +122,15 @@ class BarChart(BaseChart):
         if 0 <= idx < len(self._slices) and in_bar:
             self._hover_idx = idx
             s = self._slices[idx]
-            QToolTip.showText(
-                event.globalPosition().toPoint(),
-                "%s: %s" % (s.label, self._format_value(s.value)),
-            )
+            self.setToolTip("%s: %s" % (s.label, self._format_value(s.value)))
         else:
             self._hover_idx = -1
-            QToolTip.hideText()
+            self.setToolTip("")
 
         if old_hover != self._hover_idx:
             self.update()
 
     def leaveEvent(self, event):
         self._hover_idx = -1
-        QToolTip.hideText()
+        self.setToolTip("")
         self.update()

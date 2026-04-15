@@ -71,6 +71,10 @@ CREATE TABLE IF NOT EXISTS games (
     short_description TEXT DEFAULT '',
     content_descriptors TEXT DEFAULT '',
 
+    -- v10: Playtime persistence (survives API outages)
+    playtime_minutes INTEGER DEFAULT 0,
+    last_played TEXT DEFAULT '',
+
     -- Metadata Management
     is_modified BOOLEAN DEFAULT 0,
     last_synced INTEGER,

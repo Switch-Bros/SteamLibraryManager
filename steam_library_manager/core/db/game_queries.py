@@ -40,9 +40,13 @@ class GameQueryMixin:
                 platforms,
                 pegi_rating, esrb_rating, metacritic_score,
                 steam_deck_status, short_description, content_descriptors,
+                playtime_minutes, last_played,
                 is_modified, last_synced, last_updated,
                 created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+            )
             """,
             (
                 entry.app_id,
@@ -72,6 +76,8 @@ class GameQueryMixin:
                 entry.steam_deck_status,
                 entry.short_description,
                 entry.content_descriptors,
+                getattr(entry, "playtime_minutes", 0),
+                getattr(entry, "last_played", ""),
                 entry.is_modified,
                 entry.last_synced,
                 entry.last_updated,
