@@ -12,7 +12,7 @@
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-FDE100?style=plastic&logo=python&logoColor=FDE100&labelColor=000000)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Steam%20Deck-FDE100?style=plastic&logo=linux&logoColor=FDE100&labelColor=000000)](https://store.steampowered.com/steamdeck)
 [![Lizenz](https://img.shields.io/badge/Lizenz-MIT-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager/blob/main/LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-1771%20passed-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
+[![Tests](https://img.shields.io/badge/Tests-1794%20passed-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
 [![Steam API](https://img.shields.io/badge/Steam%20API-Optional-FDE100?style=plastic&logo=steam&logoColor=FDE100&labelColor=000000)](https://steamcommunity.com/dev/apikey)
 [![SteamGridDB](https://img.shields.io/badge/SteamGridDB-Required-FDE100?style=plastic&logoColor=FDE100&labelColor=000000)](https://www.steamgriddb.com/api)
 [![i18n](https://img.shields.io/badge/i18n-🇬🇧%20🇩🇪-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
@@ -248,32 +248,8 @@ Entwickelt mit **PyQt6** für nahtlose Desktop-Integration. Das ist keine Window
 
 - **Steam Deck kompatibel** - funktioniert im Desktop-Modus
 - **Wayland & X11** unterstützt
-- **AppImage, Flatpak, AUR, .deb, .rpm & tar.gz** Pakete verfügbar
+- **AppImage, AUR, .deb, .rpm & tar.gz** Pakete verfügbar
 - Windows-Unterstützung ist geplant - aber Linux hat immer Vorrang
-
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_divider_light.webp">
-    <img src="steam_library_manager/resources/images/readme_divider_light.webp" alt="" width="800">
-  </picture>
-</p>
-
-<h3 align="center">☁️ Cloud Sync - <i>Deine Bibliothek, überall</i></h3>
-
-Synchronisiere deine gesamte SLM-Datenbank - Kollektionen, Metadaten, Artwork, Enrichment-Daten - über mehrere Rechner via Cloud-Anbieter deiner Wahl.
-
-- **Drei Anbieter:** rclone (MEGA, Google Drive, Dropbox, OneDrive, 40+ Backends), WebDAV oder keiner
-- **Drei Sync-Modi:** Manuell (nur Datei-Menu), Auto-Upload beim Beenden, oder vollautomatisch (Upload + Download)
-- **Datenbank-Backup in die Cloud** - ein Klick unter Datei > Datenbank-Backup > In die Cloud hochladen
-- **Artwork-Pakete** - exportiere und synchronisiere dein Custom-SteamGridDB-Artwork zwischen Rechnern
-- **Konflikterkennung** - SLM warnt dich bevor neuere Remote-Daten überschrieben werden
-
-*Richte rclone einmal ein, wähle deinen Remote, und deine Bibliothek folgt dir vom Desktop zum Steam Deck zum Laptop.*
-
-<p align="center">
-  <img src="steam_library_manager/resources/screenshots/03_de_CloudSync.webp" alt="Cloud Sync Einstellungen und Datenbank-Backup Menu (Deutsch)" width="800">
-</p>
 
 <p align="center">
   <picture>
@@ -333,30 +309,6 @@ AppImage-Nutzer bekommen nahtlose In-App-Updates - kein manuelles Herunterladen,
   <img src="steam_library_manager/resources/screenshots/18_de_appimage_update.webp" alt="Integriertes AppImage Auto-Update mit Versionshinweisen (Deutsch)" width="800">
 </p>
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_divider_light.webp">
-    <img src="steam_library_manager/resources/images/readme_divider_light.webp" alt="" width="800">
-  </picture>
-</p>
-
-<h3 align="center">📊 Statistik-Dashboard - <i>Kenne deine Bibliothek in- und auswendig</i></h3>
-
-7 interaktive Tabs mit eigenen Donut- und Balkendiagrammen - keine externen Abhaengigkeiten. Entdecke Einblicke in deine Spielgewohnheiten:
-
-- **Gesamtuebersicht** - Spiele gesamt, Spielzeit, nie gespielt, perfekte Spiele + Genre-Donut + Top 5 meistgespielt
-- **Nach Genre** - zwei Donuts nebeneinander: was du *besitzt* vs was du *spielst* ("Du besitzt am meisten Action aber spielst am meisten Indie")
-- **Nach Plattform** - echte Spielzeit pro Plattform (Windows/Linux/Steam Deck), Deck-Kompatibilitaet, ProtonDB-Stufen
-- **Errungenschaften** - seltene/ultra-seltene Zaehler, Completion-Buckets, Trophy Wall mit Covern
-- **Spielzeit** - Spielzeit-Verteilung, HLTB-Analyse, Shame Pile (installiert aber nie gespielt)
-- **Bewertungen** - PEGI-Verteilung, Review-Scores, Top-Entwickler
-- **Vergleich** - zwei Spiele suchen und ueber alle Metriken vergleichen
-
-<p align="center">
-  <img src="steam_library_manager/resources/screenshots/20_de_statistics.webp" alt="Statistik-Dashboard - Uebersicht, Genre-Donuts, Plattform-Spielzeit (Deutsch)" width="800">
-</p>
-
 
 <h2 align="center">📸 Weitere Screenshots</h2>
 
@@ -377,7 +329,7 @@ AppImage-Nutzer bekommen nahtlose In-App-Updates - kein manuelles Herunterladen,
 | Format | Download | Hinweise |
 |--------|----------|----------|
 | 🐧 **AppImage** | [Neueste Version](https://github.com/Switch-Bros/SteamLibraryManager/releases) | Funktioniert auf jeder Distro - herunterladen, chmod +x, starten |
-| 📦 **Flatpak** | *Flathub-Review ausstehend* | Sandboxed, Auto-Updates |
+| 📦 **Flatpak** | *Geplant - neuer Flathub-PR ausstehend* | Sandboxed, Auto-Updates |
 | 🏗️ **AUR** | `yay -S steam-library-manager` | Arch / Manjaro / CachyOS / EndeavourOS |
 | 🎩 **.rpm** | [Neueste Version](https://github.com/Switch-Bros/SteamLibraryManager/releases) | Fedora / openSUSE |
 | 🍥 **.deb** | [Neueste Version](https://github.com/Switch-Bros/SteamLibraryManager/releases) | Debian / Ubuntu / Linux Mint |
@@ -477,10 +429,10 @@ Dieses Projekt nutzt folgende Dienste:
 | **v1.2.7 - Sicherheits-Haertung** | ✅ **Veröffentlicht** |
 | **v1.3.5 - First-Run Crash Fix** | ✅ **Veröffentlicht** |
 | **v1.3.6 - Refactoring-Regressions Fix** | ✅ **Veröffentlicht** |
-| **v1.3.8 - steam.pipe False-Positive Fix** | ✅ **Veröffentlicht** |
-| **v1.3.9 - i18n Cleanup, Sicherheit, DRY** | ✅ **Veröffentlicht** |
-| **v1.4.2 - Statistik-Dashboard** | ✅ **Veröffentlicht** |
-| Packaging (AppImage, AUR, Flatpak) | 🔄 Flatpak-Review ausstehend |
+| **v1.3.9 - i18n Cleanup, Security, DRY** | ✅ **Veröffentlicht** |
+| **v1.4.0 - Statistik-Dashboard (7 Tabs)** | ✅ **Veröffentlicht** |
+| **v1.4.2 - Statistik i18n + Screenshots** | ✅ **Veröffentlicht** |
+| Flatpak (Flathub) | 📋 Neuer PR geplant |
 | Windows-Unterstützung | 📋 Geplant |
 
 

@@ -12,7 +12,7 @@
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-FDE100?style=plastic&logo=python&logoColor=FDE100&labelColor=000000)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Steam%20Deck-FDE100?style=plastic&logo=linux&logoColor=FDE100&labelColor=000000)](https://store.steampowered.com/steamdeck)
 [![License](https://img.shields.io/badge/License-MIT-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager/blob/main/LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-1771%20passed-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
+[![Tests](https://img.shields.io/badge/Tests-1794%20passed-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
 [![Steam API](https://img.shields.io/badge/Steam%20API-Optional-FDE100?style=plastic&logo=steam&logoColor=FDE100&labelColor=000000)](https://steamcommunity.com/dev/apikey)
 [![SteamGridDB](https://img.shields.io/badge/SteamGridDB-Required-FDE100?style=plastic&logoColor=FDE100&labelColor=000000)](https://www.steamgriddb.com/api)
 [![i18n](https://img.shields.io/badge/i18n-🇬🇧%20🇩🇪-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
@@ -248,32 +248,8 @@ Developed with **PyQt6** for seamless desktop integration. This is not a Windows
 
 - **Steam Deck compatible** - works in Desktop Mode
 - **Wayland & X11** supported
-- **AppImage, Flatpak, AUR, .deb, .rpm & tar.gz** packaging available
+- **AppImage, AUR, .deb, .rpm & tar.gz** packaging available
 - Windows support is planned - but Linux always comes first
-
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_divider_light.webp">
-    <img src="steam_library_manager/resources/images/readme_divider_light.webp" alt="" width="800">
-  </picture>
-</p>
-
-<h3 align="center">☁️ Cloud Sync - <i>Your Library, Everywhere</i></h3>
-
-Sync your entire SLM database - collections, metadata, artwork, enrichment data - across multiple machines via the cloud provider of your choice.
-
-- **Three providers:** rclone (MEGA, Google Drive, Dropbox, OneDrive, 40+ backends), WebDAV, or none
-- **Three sync modes:** Manual (File menu only), auto-upload on exit, or fully automatic (upload + download)
-- **Database backup to cloud** - one click in File > Database Backup > Upload to cloud
-- **Artwork packages** - export and sync your custom SteamGridDB artwork between machines
-- **Conflict detection** - SLM warns you before overwriting newer remote data
-
-*Set up rclone once, pick your remote, and your library follows you from desktop to Steam Deck to laptop.*
-
-<p align="center">
-  <img src="steam_library_manager/resources/screenshots/03_CloudSync.webp" alt="Cloud Sync Settings and Database Backup Menu" width="800">
-</p>
 
 <p align="center">
   <picture>
@@ -333,30 +309,6 @@ AppImage users get seamless in-app updates - no manual downloads, no terminal co
   <img src="steam_library_manager/resources/screenshots/18_appimage_update.webp" alt="Built-in AppImage Auto-Update with Release Notes" width="800">
 </p>
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_divider_dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_divider_light.webp">
-    <img src="steam_library_manager/resources/images/readme_divider_light.webp" alt="" width="800">
-  </picture>
-</p>
-
-<h3 align="center">📊 Statistics Dashboard - <i>Know Your Library Inside Out</i></h3>
-
-7 interactive tabs with custom-drawn donut and bar charts - no external dependencies. Discover insights about your gaming habits:
-
-- **Overview** - total games, playtime, never-played count, perfect games + genre donut + top 5 most played
-- **Genre** - side-by-side donuts comparing what you *own* vs what you *play* (the killer insight: "You own 50 RPGs but play Shooters the most")
-- **Platform** - real per-platform playtime (Windows/Linux/Steam Deck), Deck compatibility, ProtonDB tiers
-- **Achievements** - rare/ultra-rare counts, completion buckets, Trophy Wall with cover art
-- **Playtime** - playtime distribution, HLTB analysis, shame pile (installed but never played)
-- **Ratings** - PEGI distribution, review scores, top developers
-- **Comparison** - search and compare any 2 games side-by-side across all metrics
-
-<p align="center">
-  <img src="steam_library_manager/resources/screenshots/20_statistics.webp" alt="Statistics Dashboard - Overview, Genre Donuts, Platform Playtime" width="800">
-</p>
-
 
 <h2 align="center">📸 More Screenshots</h2>
 
@@ -377,7 +329,7 @@ AppImage users get seamless in-app updates - no manual downloads, no terminal co
 | Format | Download | Notes |
 |--------|----------|-------|
 | 🐧 **AppImage** | [Download latest](https://github.com/Switch-Bros/SteamLibraryManager/releases) | Works on any distro - download, chmod +x, run |
-| 📦 **Flatpak** | *Pending Flathub review* | Sandboxed, auto-updates |
+| 📦 **Flatpak** | *Planned - new Flathub PR pending* | Sandboxed, auto-updates |
 | 🏗️ **AUR** | `yay -S steam-library-manager` | Arch / Manjaro / CachyOS / EndeavourOS |
 | 🎩 **.rpm** | [Download latest](https://github.com/Switch-Bros/SteamLibraryManager/releases) | Fedora / openSUSE |
 | 🍥 **.deb** | [Download latest](https://github.com/Switch-Bros/SteamLibraryManager/releases) | Debian / Ubuntu / Linux Mint |
@@ -477,10 +429,10 @@ This project uses the following services:
 | **v1.2.7 - Security hardening** | ✅ **Released** |
 | **v1.3.5 - First-run crash fix** | ✅ **Released** |
 | **v1.3.6 - Refactoring regression fix** | ✅ **Released** |
-| **v1.3.8 - steam.pipe false positive fix** | ✅ **Released** |
 | **v1.3.9 - i18n cleanup, security, DRY** | ✅ **Released** |
-| **v1.4.2 - Statistics Dashboard** | ✅ **Released** |
-| Packaging (AppImage, AUR, Flatpak) | 🔄 Flatpak pending review |
+| **v1.4.0 - Statistics Dashboard (7 tabs)** | ✅ **Released** |
+| **v1.4.2 - Statistics i18n + screenshots** | ✅ **Released** |
+| Flatpak (Flathub) | 📋 New PR planned |
 | Windows support | 📋 Planned |
 
 
