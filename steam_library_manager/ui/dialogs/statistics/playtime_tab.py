@@ -20,6 +20,25 @@ from steam_library_manager.utils.i18n import t
 
 __all__ = ["PlaytimeTab"]
 
+_PLAYTIME_LABELS = {
+    "0h": "0 h",
+    "lt_1h": "< 1 h",
+    "1_5h": "1 - 5 h",
+    "5_20h": "5 - 20 h",
+    "20_100h": "20 - 100 h",
+    "100h_plus": "100+ h",
+}
+
+_HLTB_LABELS = {
+    "lt_5h": "< 5 h",
+    "5_10h": "5 - 10 h",
+    "10_20h": "10 - 20 h",
+    "20_40h": "20 - 40 h",
+    "40_100h": "40 - 100 h",
+    "100h_plus": "100+ h",
+    "no_data": "No Data",
+}
+
 
 class PlaytimeTab(QWidget):
     def __init__(self, svc: StatisticsService, parent=None):
@@ -39,7 +58,7 @@ class PlaytimeTab(QWidget):
         cards_row.addWidget(
             MetricCard(
                 "\u23f1",
-                t("stats.total_playtime"),
+                t("ui.stats.total_playtime"),
                 "{} h".format(overview["playtime_hours"]),
                 accent_color=Theme.ACCENT,
             )
@@ -76,6 +95,8 @@ class PlaytimeTab(QWidget):
         row1 = QHBoxLayout()
 
         buckets = svc.playtime_buckets()
+        for s in buckets:
+            s.label = _PLAYTIME_LABELS.get(s.label, s.label)
         donut1 = DonutChart()
         donut1.set_data(buckets)
         donut1.setMinimumSize(280, 250)
@@ -96,6 +117,8 @@ class PlaytimeTab(QWidget):
         row2 = QHBoxLayout()
 
         hltb = svc.hltb_buckets()
+        for s in hltb:
+            s.label = _HLTB_LABELS.get(s.label, s.label)
         donut2 = DonutChart()
         donut2.set_data(hltb)
         donut2.setMinimumSize(280, 250)

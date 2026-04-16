@@ -43,6 +43,15 @@ _COMPLETION_COLORS = {
     "none": Theme.BORDER,
 }
 
+_BUCKET_LABELS = {
+    "perfect": "100%",
+    "almost": "75-99%",
+    "progress": "25-74%",
+    "started": "< 25%",
+    "zero": "0%",
+    "none": "No Achievements",
+}
+
 _COVER_W = 120
 _COVER_H = 180
 _WALL_COLS = 5
@@ -106,6 +115,7 @@ class AchievementsTab(QWidget):
             c = _COMPLETION_COLORS.get(s.label)
             if c:
                 s.color = QColor(c)
+            s.label = _BUCKET_LABELS.get(s.label, s.label)
         donut = DonutChart()
         donut.set_data(buckets)
         donut.setMinimumSize(280, 250)
