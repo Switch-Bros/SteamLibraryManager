@@ -41,13 +41,19 @@ class StatisticsService:
             "avg_playtime_hours": round(pt / 60 / total, 1) if total else 0,
         }
 
+    def _genre_field(self) -> str:
+        # use genres if available, fall back to tags
+        has_genres = any(g.genres for g in self._real)
+        return "genres" if has_genres else "tags"
+
     def genres_by_count(self, top_n: int = 15) -> list[ChartSlice]:
-        return self._counter_to_slices(self._count_list_field("genres"), top_n)
+        return self._counter_to_slices(self._count_list_field(self._genre_field()), top_n)
 
     def genres_by_playtime(self, top_n: int = 15) -> list[ChartSlice]:
+        field = self._genre_field()
         cnt: Counter = Counter()
         for g in self._real:
-            for genre in g.genres:
+            for genre in getattr(g, field, []):
                 cnt[genre] += g.playtime_minutes
         for k in cnt:
             cnt[k] = round(cnt[k] / 60, 1)

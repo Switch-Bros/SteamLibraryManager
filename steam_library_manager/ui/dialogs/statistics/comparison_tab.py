@@ -101,6 +101,7 @@ class ComparisonTab(QWidget):
         left_completer.setFilterMode(Qt.MatchFlag.MatchContains)
         self._left_edit.setCompleter(left_completer)
         self._left_edit.returnPressed.connect(self._update_comparison)
+        left_completer.activated.connect(self._update_comparison)
         search_row.addWidget(self._left_edit)
 
         self._right_edit = QLineEdit()
@@ -110,6 +111,7 @@ class ComparisonTab(QWidget):
         right_completer.setFilterMode(Qt.MatchFlag.MatchContains)
         self._right_edit.setCompleter(right_completer)
         self._right_edit.returnPressed.connect(self._update_comparison)
+        right_completer.activated.connect(self._update_comparison)
         search_row.addWidget(self._right_edit)
 
         content.addLayout(search_row)
