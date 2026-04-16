@@ -30,6 +30,7 @@ data/
 steam_library_manager/resources/icons/Icon_Namen.txt
 cleanup_dependencies_dev.sh
 *.zip
+!steam_library_manager/resources/i18n/lang.zip
 /SLM-Dateien.md
 /SLM-Fortschritt.md
 /steamlibrarymanager/

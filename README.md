@@ -228,7 +228,7 @@ Full **English 🇬🇧** and **German 🇩🇪** interface with **complete i18n
 
 - **Separate settings** for UI language and tag language - use English UI with German Steam categories, or any combination
 - **Localized dates** - "07. Dez 2024" in German, "07 Dec 2024" in English
-- **Community translations welcome** - contributing is easy, no coding required ([see below](#-translations))
+- **Community translations welcome** - [download the template files](steam_library_manager/resources/i18n/lang.zip), translate, and submit a PR ([details below](#-translations))
 
 <p align="center">
   <img src="steam_library_manager/resources/screenshots/13_language_settings.webp" alt="Language Settings - UI and Tag Language" width="600">
@@ -442,7 +442,7 @@ Steam Library Manager ships with **English** and **German**. Want to see it in y
 
 **Contributing a translation is easy - no coding required!**
 
-1. Copy any JSON file from `steam_library_manager/resources/i18n/en/` as your template
+1. [Download the translation template](steam_library_manager/resources/i18n/lang.zip) or copy files from `steam_library_manager/resources/i18n/en/`
 2. Translate the values (never change the keys!)
 3. Keep placeholders like `{count}` and `{name}` untouched
 4. Add your language to `steam_library_manager/resources/i18n/languages.json`:
