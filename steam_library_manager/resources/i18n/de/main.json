@@ -658,6 +658,12 @@
       "title": "Vergleich",
       "search_left": "Spiel 1 suchen...",
       "search_right": "Spiel 2 suchen..."
+    },
+    "chart": {
+      "others": "Sonstige"
+    },
+    "platform": {
+      "untracked": "Nicht erfasst"
     }
   }
 }

@@ -29,14 +29,13 @@ _PLAYTIME_LABELS = {
     "100h_plus": "100+ h",
 }
 
-_HLTB_LABELS = {
+_HLTB_LABELS_STATIC = {
     "lt_5h": "< 5 h",
     "5_10h": "5 - 10 h",
     "10_20h": "10 - 20 h",
     "20_40h": "20 - 40 h",
     "40_100h": "40 - 100 h",
     "100h_plus": "100+ h",
-    "no_data": "No Data",
 }
 
 
@@ -117,8 +116,10 @@ class PlaytimeTab(QWidget):
         row2 = QHBoxLayout()
 
         hltb = svc.hltb_buckets()
+        hltb_labels = dict(_HLTB_LABELS_STATIC)
+        hltb_labels["no_data"] = t("ui.stats.no_data")
         for s in hltb:
-            s.label = _HLTB_LABELS.get(s.label, s.label)
+            s.label = hltb_labels.get(s.label, s.label)
         donut2 = DonutChart()
         donut2.set_data(hltb)
         donut2.setMinimumSize(280, 250)

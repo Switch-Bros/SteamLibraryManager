@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import QHBoxLayout, QScrollArea, QVBoxLayout, QWidget
 from steam_library_manager.services.statistics_service import StatisticsService
 from steam_library_manager.ui.theme import Theme
 from steam_library_manager.ui.widgets.charts.donut_chart import DonutChart
+from steam_library_manager.utils.i18n import t
 
 __all__ = ["PlatformTab"]
 
@@ -41,6 +42,8 @@ class PlatformTab(QWidget):
             c = _PLAYTIME_COLORS.get(s.label)
             if c:
                 s.color = QColor(c)
+            if s.label == "Untracked":
+                s.label = t("stats.platform.untracked")
         d1 = DonutChart()
         d1.set_data(plat)
         d1.setMinimumSize(220, 200)
@@ -48,10 +51,19 @@ class PlatformTab(QWidget):
 
         # deck compatibility donut
         deck = svc.deck_status()
+        _deck_keys = {
+            "unknown": "common.unknown",
+            "verified": "common.verified",
+            "playable": "common.playable",
+            "unsupported": "common.unsupported",
+        }
         for s in deck:
             c = Theme.DECK_COLORS.get(s.label)
             if c:
                 s.color = QColor(c)
+            i18n_key = _deck_keys.get(s.label)
+            if i18n_key:
+                s.label = t(i18n_key)
         d2 = DonutChart()
         d2.set_data(deck)
         d2.setMinimumSize(220, 200)
@@ -63,6 +75,10 @@ class PlatformTab(QWidget):
             c = Theme.PDB_COLORS.get(s.label)
             if c:
                 s.color = QColor(c)
+            tier_key = "ui.game_details.proton_tiers.%s" % s.label
+            translated = t(tier_key)
+            if not translated.startswith("["):
+                s.label = translated
         d3 = DonutChart()
         d3.set_data(pdb)
         d3.setMinimumSize(220, 200)

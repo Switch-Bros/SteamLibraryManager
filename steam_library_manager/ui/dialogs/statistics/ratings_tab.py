@@ -13,28 +13,9 @@ from PyQt6.QtWidgets import QHBoxLayout, QScrollArea, QVBoxLayout, QWidget
 from steam_library_manager.services.statistics_service import StatisticsService
 from steam_library_manager.ui.widgets.charts.bar_chart import BarChart
 from steam_library_manager.ui.widgets.charts.donut_chart import DonutChart
+from steam_library_manager.utils.i18n import t
 
 __all__ = ["RatingsTab"]
-
-# readable labels for review bucket keys
-_REVIEW_LABELS = {
-    "op_95": "95%+ (Overwhelmingly Positive)",
-    "vp_80": "80-94% (Very Positive)",
-    "pos_70": "70-79% (Positive)",
-    "mixed_40": "40-69% (Mixed)",
-    "neg_0": "0-39% (Negative)",
-    "no_reviews": "No Reviews",
-}
-
-# readable PEGI labels
-_PEGI_LABELS = {
-    "3": "PEGI 3",
-    "7": "PEGI 7",
-    "12": "PEGI 12",
-    "16": "PEGI 16",
-    "18": "PEGI 18",
-    "none": "No Rating",
-}
 
 
 class RatingsTab(QWidget):
@@ -52,15 +33,26 @@ class RatingsTab(QWidget):
 
         pegi = svc.pegi_distribution()
         for s in pegi:
-            s.label = _PEGI_LABELS.get(s.label, "PEGI %s" % s.label)
+            if s.label == "none":
+                s.label = t("common.no_rating")
+            elif s.label.isdigit():
+                s.label = "PEGI %s" % s.label
         d1 = DonutChart()
         d1.set_data(pegi)
         d1.setMinimumSize(280, 250)
         row1.addWidget(d1, stretch=1)
 
         reviews = svc.review_buckets()
+        _review_map = {
+            "op_95": "95%%+ (%s)" % t("ui.reviews.overwhelmingly_positive"),
+            "vp_80": "80-94%% (%s)" % t("ui.reviews.very_positive"),
+            "pos_70": "70-79%% (%s)" % t("ui.reviews.positive"),
+            "mixed_40": "40-69%% (%s)" % t("ui.reviews.mixed"),
+            "neg_0": "0-39%% (%s)" % t("ui.reviews.negative"),
+            "no_reviews": t("ui.reviews.no_reviews"),
+        }
         for s in reviews:
-            s.label = _REVIEW_LABELS.get(s.label, s.label)
+            s.label = _review_map.get(s.label, s.label)
         d2 = DonutChart()
         d2.set_data(reviews)
         d2.setMinimumSize(280, 250)

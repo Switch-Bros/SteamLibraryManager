@@ -658,6 +658,12 @@
       "title": "Comparison",
       "search_left": "Search game 1...",
       "search_right": "Search game 2..."
+    },
+    "chart": {
+      "others": "Others"
+    },
+    "platform": {
+      "untracked": "Untracked"
     }
   }
 }

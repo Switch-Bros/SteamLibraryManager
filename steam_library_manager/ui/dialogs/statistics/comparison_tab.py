@@ -34,24 +34,6 @@ if TYPE_CHECKING:
 
 __all__ = ["ComparisonTab"]
 
-_METRICS = [
-    ("Playtime", lambda g: "{} h".format(round(g.playtime_minutes / 60, 1))),
-    (
-        "Achievements",
-        lambda g: (
-            "{}% ({}/{})".format(round(g.achievement_percentage, 1), g.achievement_unlocked, g.achievement_total)
-            if g.achievement_total > 0
-            else "-"
-        ),
-    ),
-    ("Developer", lambda g: g.developer or "-"),
-    ("Platforms", lambda g: ", ".join(g.platforms) if g.platforms else "-"),
-    ("Deck Status", lambda g: g.steam_deck_status or "-"),
-    ("ProtonDB", lambda g: g.proton_db_rating or "-"),
-    ("HLTB (Main)", lambda g: "{} h".format(g.hltb_main_story) if g.hltb_main_story > 0 else "-"),
-    ("PEGI", lambda g: g.pegi_rating or "-"),
-]
-
 
 def _display_name(game: Game, duplicates: set[str]) -> str:
     """Return game name, appending release year if name is duplicate."""
@@ -83,6 +65,28 @@ class ComparisonTab(QWidget):
             self._games_by_name[dn] = g
 
         self._game_names = sorted(self._games_by_name.keys(), key=str.lower)
+
+        self._metrics = [
+            (t("common.playtime"), lambda g: "{} h".format(round(g.playtime_minutes / 60, 1))),
+            (
+                t("common.achievements"),
+                lambda g: (
+                    "{}% ({}/{})".format(
+                        round(g.achievement_percentage, 1),
+                        g.achievement_unlocked,
+                        g.achievement_total,
+                    )
+                    if g.achievement_total > 0
+                    else "-"
+                ),
+            ),
+            (t("common.developer"), lambda g: g.developer or "-"),
+            (t("common.platform"), lambda g: ", ".join(g.platforms) if g.platforms else "-"),
+            (t("common.steam_deck"), lambda g: g.steam_deck_status or "-"),
+            (t("common.protondb"), lambda g: g.proton_db_rating or "-"),
+            ("HLTB", lambda g: "{} h".format(g.hltb_main_story) if g.hltb_main_story > 0 else "-"),
+            (t("common.age_rating"), lambda g: g.pegi_rating or "-"),
+        ]
 
         lay = QVBoxLayout(self)
 
@@ -117,7 +121,7 @@ class ComparisonTab(QWidget):
         content.addLayout(search_row)
 
         # -- comparison table --
-        self._table = QTableWidget(len(_METRICS), 3)
+        self._table = QTableWidget(len(self._metrics), 3)
         self._table.setHorizontalHeaderLabels(["", "", ""])
         self._table.verticalHeader().setVisible(False)
         self._table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -131,7 +135,7 @@ class ComparisonTab(QWidget):
             % (Theme.BG_SEC, Theme.TXT_PRI, Theme.BORDER)
         )
 
-        for row_idx, (label, _) in enumerate(_METRICS):
+        for row_idx, (label, _) in enumerate(self._metrics):
             item = QTableWidgetItem(label)
             item.setForeground(QColor(Theme.TXT_MUTED))
             self._table.setItem(row_idx, 0, item)
@@ -155,7 +159,7 @@ class ComparisonTab(QWidget):
         left_game = self._games_by_name.get(left_name)
         right_game = self._games_by_name.get(right_name)
 
-        for row_idx, (_, fn) in enumerate(_METRICS):
+        for row_idx, (_, fn) in enumerate(self._metrics):
             left_val = fn(left_game) if left_game else "-"
             right_val = fn(right_game) if right_game else "-"
             self._table.setItem(row_idx, 1, QTableWidgetItem(left_val))

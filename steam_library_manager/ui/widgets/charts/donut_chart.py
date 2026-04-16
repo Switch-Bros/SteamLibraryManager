@@ -7,6 +7,7 @@ from PyQt6.QtGui import QColor, QFont, QFontMetrics, QPalette
 
 from steam_library_manager.services.chart_data import ChartSlice, CHART_TEXT, CHART_TEXT_DIM, CHART_OTHERS
 from steam_library_manager.ui.widgets.charts.base_chart import BaseChart
+from steam_library_manager.utils.i18n import t
 
 __all__ = ["DonutChart"]
 
@@ -32,7 +33,7 @@ class DonutChart(BaseChart):
             keep = slices[: self._OTHERS_THRESHOLD]
             others_val = sum(s.value for s in slices[self._OTHERS_THRESHOLD :])
             if others_val > 0:
-                keep.append(ChartSlice("Others", others_val, QColor(CHART_OTHERS)))
+                keep.append(ChartSlice(t("stats.chart.others"), others_val, QColor(CHART_OTHERS)))
             slices = keep
         super().set_data(slices)
         if self._slices:
