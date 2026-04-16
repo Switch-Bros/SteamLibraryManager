@@ -95,10 +95,23 @@ class GameService:
         for aid_str, game in self.game_manager.games.items():
             if game.playtime_minutes > 0:
                 lp = game.last_played.isoformat() if game.last_played else ""
-                updates.append((game.playtime_minutes, lp, int(aid_str)))
+                updates.append(
+                    (
+                        game.playtime_minutes,
+                        lp,
+                        game.playtime_windows,
+                        game.playtime_linux,
+                        game.playtime_mac,
+                        game.playtime_deck,
+                        int(aid_str),
+                    )
+                )
         if updates:
             db.conn.executemany(
-                "UPDATE games SET playtime_minutes = ?, last_played = ? WHERE app_id = ?",
+                "UPDATE games SET playtime_minutes = ?, last_played = ?,"
+                " playtime_windows = ?, playtime_linux = ?,"
+                " playtime_mac = ?, playtime_deck = ?"
+                " WHERE app_id = ?",
                 updates,
             )
             db.conn.commit()

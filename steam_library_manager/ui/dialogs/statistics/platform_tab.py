@@ -17,12 +17,6 @@ from steam_library_manager.ui.widgets.charts.donut_chart import DonutChart
 
 __all__ = ["PlatformTab"]
 
-_PLATFORM_COLORS = {
-    "Windows": "#0078D4",
-    "Linux": "#FDE100",
-    "Mac": "#A2AAAD",
-}
-
 
 class PlatformTab(QWidget):
     def __init__(self, svc: StatisticsService, parent=None):
@@ -34,10 +28,17 @@ class PlatformTab(QWidget):
         inner = QWidget()
         row = QHBoxLayout(inner)
 
-        # platform donut
-        plat = svc.platforms()
+        # platform playtime donut
+        plat = svc.platform_playtime()
+        _PLAYTIME_COLORS = {
+            "Windows": "#0078D4",
+            "Linux": "#FDE100",
+            "Mac": "#A2AAAD",
+            "Steam Deck": "#1a9fff",
+            "Untracked": "#555555",
+        }
         for s in plat:
-            c = _PLATFORM_COLORS.get(s.label)
+            c = _PLAYTIME_COLORS.get(s.label)
             if c:
                 s.color = QColor(c)
         d1 = DonutChart()

@@ -644,6 +644,20 @@
       "almost_done": "Almost Done (>80%)",
       "trophy_wall": "Trophy Wall",
       "no_perfect": "No perfect games yet - keep playing!"
+    },
+    "playtime": {
+      "title": "Playtime",
+      "shame_pile": "Shame Pile",
+      "shame_installed": "installed, never played",
+      "avg_per_game": "Average per Game"
+    },
+    "ratings": {
+      "title": "Ratings"
+    },
+    "comparison": {
+      "title": "Comparison",
+      "search_left": "Search game 1...",
+      "search_right": "Search game 2..."
     }
   }
 }

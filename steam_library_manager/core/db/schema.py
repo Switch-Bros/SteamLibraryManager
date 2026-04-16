@@ -96,6 +96,9 @@ class SchemaMixin:
         if frm < 10:
             self._m10()
             self._set_schema_version(10)
+        if frm < 11:
+            self._m11()
+            self._set_schema_version(11)
 
     # migrations
 
@@ -314,3 +317,12 @@ class SchemaMixin:
                 pass  # already exists
         self.conn.commit()
         logger.info("Migrated to v10: added playtime_minutes + last_played to games")
+
+    def _m11(self):
+        for col in ("playtime_windows", "playtime_linux", "playtime_mac", "playtime_deck"):
+            try:
+                self.conn.execute("ALTER TABLE games ADD COLUMN %s INTEGER DEFAULT 0" % col)
+            except sqlite3.OperationalError:
+                pass
+        self.conn.commit()
+        logger.info("Migrated to v11: added platform playtime columns")

@@ -41,6 +41,8 @@ class StatisticsDialog(BaseDialog):
         from steam_library_manager.ui.dialogs.statistics.genre_tab import GenreTab
         from steam_library_manager.ui.dialogs.statistics.platform_tab import PlatformTab
         from steam_library_manager.ui.dialogs.statistics.achievements_tab import AchievementsTab
+        from steam_library_manager.ui.dialogs.statistics.playtime_tab import PlaytimeTab
+        from steam_library_manager.ui.dialogs.statistics.ratings_tab import RatingsTab
 
         svc = StatisticsService(self._games, database=self._database)
 
@@ -49,4 +51,14 @@ class StatisticsDialog(BaseDialog):
         tabs.addTab(GenreTab(svc, self), t("ui.stats.tab_genre"))
         tabs.addTab(PlatformTab(svc, self), t("ui.stats.tab_platform"))
         tabs.addTab(AchievementsTab(svc, self), t("ui.stats.tab_achievements"))
+        tabs.addTab(PlaytimeTab(svc, self), t("stats.playtime.title"))
+        tabs.addTab(RatingsTab(svc, self), t("stats.ratings.title"))
+
+        try:
+            from steam_library_manager.ui.dialogs.statistics.comparison_tab import ComparisonTab
+
+            tabs.addTab(ComparisonTab(self._games, self), t("stats.comparison.title"))
+        except ImportError:
+            pass
+
         layout.addWidget(tabs)

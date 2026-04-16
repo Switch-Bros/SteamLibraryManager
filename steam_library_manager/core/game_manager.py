@@ -200,7 +200,15 @@ class GameManager:
                 for gd in games_list:
                     aid = str(gd["appid"])
                     name = gd.get("name") or t("ui.game_details.game_fallback", id=aid)
-                    game = Game(app_id=aid, name=name, playtime_minutes=gd.get("playtime_forever", 0))
+                    game = Game(
+                        app_id=aid,
+                        name=name,
+                        playtime_minutes=gd.get("playtime_forever", 0),
+                        playtime_windows=gd.get("playtime_windows_forever", 0),
+                        playtime_linux=gd.get("playtime_linux_forever", 0),
+                        playtime_mac=gd.get("playtime_mac_forever", 0),
+                        playtime_deck=gd.get("playtime_deck_forever", 0),
+                    )
                     self.games[aid] = game
 
                 return True
@@ -329,6 +337,14 @@ class GameManager:
             # playtime from DB (survives API outages)
             if game.playtime_minutes == 0 and getattr(entry, "playtime_minutes", 0) > 0:
                 game.playtime_minutes = entry.playtime_minutes
+            if game.playtime_windows == 0 and getattr(entry, "playtime_windows", 0) > 0:
+                game.playtime_windows = entry.playtime_windows
+            if game.playtime_linux == 0 and getattr(entry, "playtime_linux", 0) > 0:
+                game.playtime_linux = entry.playtime_linux
+            if game.playtime_mac == 0 and getattr(entry, "playtime_mac", 0) > 0:
+                game.playtime_mac = entry.playtime_mac
+            if game.playtime_deck == 0 and getattr(entry, "playtime_deck", 0) > 0:
+                game.playtime_deck = entry.playtime_deck
             lp = getattr(entry, "last_played", "")
             if lp and not game.last_played:
                 from datetime import datetime

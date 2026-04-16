@@ -70,6 +70,10 @@ class EnrichmentQueryMixin:
             "platforms",
             "playtime_minutes",
             "last_played",
+            "playtime_windows",
+            "playtime_linux",
+            "playtime_mac",
+            "playtime_deck",
         }
         ok = {k: v for k, v in flds.items() if k in cols}
         if not ok:

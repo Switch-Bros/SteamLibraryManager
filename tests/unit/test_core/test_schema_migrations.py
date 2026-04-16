@@ -54,7 +54,7 @@ INSERT INTO schema_version (version, applied_at, description)
 VALUES (2, strftime('%s', 'now'), 'v2 base');
 """
 
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 11
 
 
 class _MigrationHost(SchemaMixin):
@@ -334,7 +334,7 @@ class TestFullMigrationChain:
         host._migrate(frm=2, to=9)
 
         row = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()
-        assert row[0] == 10
+        assert row[0] == 11
         conn.close()
 
     def test_all_tables_exist_after_chain(self, tmp_path):
@@ -445,7 +445,7 @@ class TestFullMigrationChain:
         assert _column_exists(conn, "games", "review_percentage")
 
         row = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()
-        assert row[0] == 10
+        assert row[0] == 11
         conn.close()
 
     def test_ensure_schema_triggers_migration(self, tmp_path):
@@ -455,6 +455,6 @@ class TestFullMigrationChain:
         host._ensure_schema()
 
         row = conn.execute("SELECT MAX(version) FROM schema_version").fetchone()
-        assert row[0] == 10
+        assert row[0] == 11
         assert _table_exists(conn, "curators")
         conn.close()

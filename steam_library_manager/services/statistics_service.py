@@ -149,6 +149,32 @@ class StatisticsService:
             "not_installed": sum(1 for g in never if not g.installed),
         }
 
+    def shame_pile_games(self, n: int = 5) -> list[ChartSlice]:
+        """Top installed-but-never-played games sorted by HLTB main story hours."""
+        never_installed = [g for g in self._real if g.playtime_minutes == 0 and g.installed]
+        by_hltb = sorted(never_installed, key=lambda g: g.hltb_main_story, reverse=True)
+        return [ChartSlice(label=g.name, value=g.hltb_main_story) for g in by_hltb[:n] if g.hltb_main_story > 0]
+
+    def platform_playtime(self) -> list[ChartSlice]:
+        """Playtime distribution across platforms (hours)."""
+        totals = {
+            "Windows": 0,
+            "Linux": 0,
+            "Mac": 0,
+            "Steam Deck": 0,
+        }
+        for g in self._real:
+            totals["Windows"] += g.playtime_windows
+            totals["Linux"] += g.playtime_linux
+            totals["Mac"] += g.playtime_mac
+            totals["Steam Deck"] += g.playtime_deck
+        tracked = sum(totals.values())
+        total_all = sum(g.playtime_minutes for g in self._real)
+        untracked = total_all - tracked
+        if untracked > 0:
+            totals["Untracked"] = untracked
+        return [ChartSlice(label=lbl, value=round(mins / 60, 1)) for lbl, mins in totals.items() if mins > 0]
+
     def playtime_buckets(self) -> list[ChartSlice]:
         buckets = {"0h": 0, "lt_1h": 0, "1_5h": 0, "5_20h": 0, "20_100h": 0, "100h_plus": 0}
         for g in self._real:

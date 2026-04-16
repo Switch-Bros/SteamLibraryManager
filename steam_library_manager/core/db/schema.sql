@@ -75,6 +75,12 @@ CREATE TABLE IF NOT EXISTS games (
     playtime_minutes INTEGER DEFAULT 0,
     last_played TEXT DEFAULT '',
 
+    -- v11: Platform-specific playtime
+    playtime_windows INTEGER DEFAULT 0,
+    playtime_linux INTEGER DEFAULT 0,
+    playtime_mac INTEGER DEFAULT 0,
+    playtime_deck INTEGER DEFAULT 0,
+
     -- Metadata Management
     is_modified BOOLEAN DEFAULT 0,
     last_synced INTEGER,
@@ -749,7 +755,7 @@ END;
 -- ============================================================================
 
 INSERT OR IGNORE INTO schema_version (version, applied_at, description)
-VALUES (9, strftime('%s', 'now'), 'v9: curator recommendations');
+VALUES (11, strftime('%s', 'now'), 'v11: platform playtime columns');
 
 -- ============================================================================
 -- END OF SCHEMA

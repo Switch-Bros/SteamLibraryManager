@@ -104,6 +104,10 @@ class DatabaseEntry:
     # Playtime (persisted so data survives API outages)
     playtime_minutes: int = 0
     last_played: str = ""
+    playtime_windows: int = 0
+    playtime_linux: int = 0
+    playtime_mac: int = 0
+    playtime_deck: int = 0
 
     # Metadata management
     is_modified: bool = False
@@ -145,4 +149,9 @@ def database_entry_to_game(entry):
         metacritic_score=entry.metacritic_score or 0,
         steam_deck_status=entry.steam_deck_status or "",
         description=entry.short_description or "",
+        playtime_minutes=entry.playtime_minutes or 0,
+        playtime_windows=entry.playtime_windows or 0,
+        playtime_linux=entry.playtime_linux or 0,
+        playtime_mac=entry.playtime_mac or 0,
+        playtime_deck=entry.playtime_deck or 0,
     )

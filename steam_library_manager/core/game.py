@@ -32,6 +32,10 @@ class Game:
     app_id: str
     name: str
     playtime_minutes: int = 0
+    playtime_windows: int = 0
+    playtime_linux: int = 0
+    playtime_mac: int = 0
+    playtime_deck: int = 0
     last_played: datetime | None = None
     categories: list[str] = None
 
