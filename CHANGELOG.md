@@ -5,6 +5,41 @@ All notable changes to Steam Library Manager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-04-16
+
+### Added
+- **Statistics Dashboard** - complete overhaul with 7 interactive tabs:
+  - Overview: 4 metric cards (total games, playtime, never played, perfect games)
+    + genre donut chart + top 5 most played bar chart
+  - Genre: side-by-side donuts (by count vs by playtime) with insight text
+    showing "You own most RPGs but play Shooters the most"
+  - Platform: 3 donuts showing real per-platform playtime (Windows/Linux/
+    Steam Deck/Mac), Deck compatibility status, and ProtonDB tier distribution
+  - Achievements: metric cards (unlocked, rare, ultra-rare, perfect) +
+    completion buckets donut + almost-done bar + Trophy Wall with cover art
+  - Playtime: playtime buckets + HLTB analysis + shame pile (installed
+    never-played games sorted by HLTB estimate)
+  - Ratings: PEGI distribution + review score buckets + top 10 developers
+  - Comparison: search and compare any 2 games side-by-side across all metrics
+- **Chart Engine** - custom QPainter-based DonutChart and BarChart widgets
+  with hover effects, responsive legends, and "Others" bucketing. No external
+  charting dependencies.
+- **Platform Playtime Tracking** - per-platform playtime (Windows, Linux, Mac,
+  Steam Deck) persisted in database from Steam API. Shows where you actually
+  play instead of just "supported platforms".
+- **Playtime Persistence** - game playtime and last-played timestamps saved to
+  SQLite database, surviving Steam API outages.
+
+### Changed
+- **DB Schema v11** - added playtime_minutes, last_played, playtime_windows,
+  playtime_linux, playtime_mac, playtime_deck columns to games table.
+- Statistics dialog rebuilt as tabbed package (`ui/dialogs/statistics/`)
+  replacing the old 177-line monolithic dialog.
+
+### Fixed
+- **API keys not loading from keyring** - circular import at module init time
+  prevented TokenStore from loading keys. Now deferred to bootstrap phase.
+
 ## [1.3.9] - 2026-04-13
 
 ### Improved

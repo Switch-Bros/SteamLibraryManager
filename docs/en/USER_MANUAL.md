@@ -497,6 +497,26 @@ Multiple backup mechanisms:
 
 ---
 
+## Statistics Dashboard
+
+Open with `Ctrl+D` or Tools > Statistics. The dashboard has 7 interactive tabs:
+
+| Tab | What it shows |
+|-----|---------------|
+| Overview | Total games, playtime, never-played count, perfect games + genre donut + top 5 most played |
+| Genre | Side-by-side donuts (by count vs by playtime) with insight text |
+| Platform | Per-platform playtime (Windows/Linux/Steam Deck/Mac), Deck compatibility, ProtonDB tiers |
+| Achievements | Unlocked, rare, ultra-rare, perfect games + completion buckets + Trophy Wall |
+| Playtime | Playtime buckets + HLTB analysis + shame pile (installed never-played games) |
+| Ratings | PEGI distribution + review score buckets + top 10 developers |
+| Comparison | Search and compare any 2 games side-by-side across all metrics |
+
+All charts are interactive with hover effects and responsive legends. No external charting libraries required - everything is rendered with custom QPainter widgets.
+
+**Platform Playtime:** SLM tracks where you actually play each game (Windows, Linux, Mac, Steam Deck) using data from the Steam API. This is persisted in the local database, so your playtime history survives even if Steam's API is temporarily unavailable.
+
+---
+
 ## Library Health Check
 
 SLM can audit your library for potential issues.

@@ -501,6 +501,26 @@ Alle Filter sind stapelbar - aktiviere mehrere, um die Ansicht einzugrenzen.
 
 ---
 
+## Statistik-Dashboard
+
+Oeffne es mit `Ctrl+D` oder Werkzeuge > Statistiken. Das Dashboard hat 7 interaktive Tabs:
+
+| Tab | Was es zeigt |
+|-----|--------------|
+| Uebersicht | Gesamtspiele, Spielzeit, nie-gespielt-Anzahl, perfekte Spiele + Genre-Donut + Top 5 meistgespielt |
+| Genre | Zwei Donuts nebeneinander (nach Anzahl vs nach Spielzeit) mit Insight-Text |
+| Plattform | Spielzeit pro Plattform (Windows/Linux/Steam Deck/Mac), Deck-Kompatibilitaet, ProtonDB-Stufen |
+| Erfolge | Freigeschaltet, selten, ultra-selten, perfekte Spiele + Abschluss-Buckets + Trophy Wall |
+| Spielzeit | Spielzeit-Buckets + HLTB-Analyse + Shame Pile (installierte nie-gespielte Spiele) |
+| Bewertungen | PEGI-Verteilung + Review-Score-Buckets + Top 10 Entwickler |
+| Vergleich | Zwei beliebige Spiele suchen und nebeneinander vergleichen |
+
+Alle Diagramme sind interaktiv mit Hover-Effekten und responsiven Legenden. Keine externen Charting-Bibliotheken noetig - alles wird mit eigenen QPainter-Widgets gerendert.
+
+**Plattform-Spielzeit:** SLM trackt, wo du jedes Spiel tatsaechlich spielst (Windows, Linux, Mac, Steam Deck) anhand der Steam-API-Daten. Das wird in der lokalen Datenbank gespeichert, sodass deine Spielzeit-Historie auch bei temporaerer Steam-API-Nichtverfuegbarkeit erhalten bleibt.
+
+---
+
 ## Library Health Check
 
 Werkzeuge > Store-Seiten prüfen startet eine umfassende Prüfung deiner Bibliothek.
