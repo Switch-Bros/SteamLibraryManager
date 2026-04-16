@@ -60,6 +60,9 @@ class BootstrapService(QObject):
         # validate steam paths, create game service, init parsers
         from steam_library_manager.ui.widgets.ui_helper import UIHelper
 
+        # load API keys from keyring (deferred to avoid circular import at module init)
+        config.load_api_keys_from_keyring()
+
         if not config.STEAM_PATH:
             UIHelper.show_warning(self.mw, t("logs.main.steam_not_found"))
             self.mw.reload_btn.show()

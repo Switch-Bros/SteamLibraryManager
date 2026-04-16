@@ -208,15 +208,31 @@ class Config:
         # Migrate API keys from plaintext JSON to secure keyring storage
         self._migrate_api_keys(data)
 
+    def load_api_keys_from_keyring(self) -> None:
+        """Load API keys from keyring. Call AFTER module init to avoid circular imports."""
+        try:
+            from steam_library_manager.core.token_store import TokenStore
+
+            ts = TokenStore()
+            for attr, store_name in (
+                ("STEAM_API_KEY", "steam"),
+                ("STEAMGRIDDB_API_KEY", "steamgriddb"),
+            ):
+                val = ts.load_api_key(store_name)
+                if val:
+                    setattr(self, attr, val)
+        except Exception as exc:
+            logger.warning("Keyring API key load failed: %s" % exc)
+
     def _migrate_api_keys(self, data: dict) -> None:
-        # load API keys from keyring; auto-migrate from JSON if needed
+        # try keyring first, fall back to JSON
+        # NOTE: this may fail with circular import at module init time
+        # in that case, load_api_keys_from_keyring() is called later by bootstrap
         try:
             from steam_library_manager.core.token_store import TokenStore
 
             ts = TokenStore()
         except Exception:
-            # TokenStore not available yet (e.g. missing crypto deps) -
-            # fall back to reading from JSON so keys are still usable
             self.STEAM_API_KEY = data.get("steam_api_key", self.STEAM_API_KEY)
             self.STEAMGRIDDB_API_KEY = data.get("steamgriddb_api_key", self.STEAMGRIDDB_API_KEY)
             return
