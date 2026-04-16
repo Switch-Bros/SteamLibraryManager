@@ -84,7 +84,7 @@ class ComparisonTab(QWidget):
             (t("common.platform"), lambda g: ", ".join(g.platforms) if g.platforms else "-"),
             (t("common.steam_deck"), lambda g: g.steam_deck_status or "-"),
             (t("common.protondb"), lambda g: g.proton_db_rating or "-"),
-            ("HLTB", lambda g: "{} h".format(g.hltb_main_story) if g.hltb_main_story > 0 else "-"),
+            ("HLTB", lambda g: "{:.1f} h".format(g.hltb_main_story) if g.hltb_main_story > 0 else "-"),
             (t("common.age_rating"), lambda g: g.pegi_rating or "-"),
         ]
 

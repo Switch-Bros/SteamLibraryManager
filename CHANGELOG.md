@@ -5,6 +5,22 @@ All notable changes to Steam Library Manager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.2] - 2026-04-16
+
+### Fixed
+- **Statistics i18n** - all chart labels fully translated (Deck status, ProtonDB
+  tiers, review scores, PEGI ratings, achievement buckets, playtime ranges).
+  Labels built lazily to avoid circular import issues at module init.
+- **Genre tab** - falls back to Steam tags when game_genres table is empty.
+- **Comparison tab** - triggers on autocomplete selection (not just Enter).
+  HLTB values rounded to 1 decimal place.
+- **Donut "Others"** overflow bucket label translated.
+- **Readable bucket labels** - all internal keys (op_95, lt_1h, etc.) replaced
+  with human-readable text in all chart legends.
+
+### Added
+- Statistics screenshots (EN + DE) in README.
+
 ## [1.4.0] - 2026-04-16
 
 ### Added

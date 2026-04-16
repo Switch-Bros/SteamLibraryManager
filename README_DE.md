@@ -333,6 +333,30 @@ AppImage-Nutzer bekommen nahtlose In-App-Updates - kein manuelles Herunterladen,
   <img src="steam_library_manager/resources/screenshots/18_de_appimage_update.webp" alt="Integriertes AppImage Auto-Update mit Versionshinweisen (Deutsch)" width="800">
 </p>
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_divider_light.webp">
+    <img src="steam_library_manager/resources/images/readme_divider_light.webp" alt="" width="800">
+  </picture>
+</p>
+
+<h3 align="center">📊 Statistik-Dashboard - <i>Kenne deine Bibliothek in- und auswendig</i></h3>
+
+7 interaktive Tabs mit eigenen Donut- und Balkendiagrammen - keine externen Abhaengigkeiten. Entdecke Einblicke in deine Spielgewohnheiten:
+
+- **Gesamtuebersicht** - Spiele gesamt, Spielzeit, nie gespielt, perfekte Spiele + Genre-Donut + Top 5 meistgespielt
+- **Nach Genre** - zwei Donuts nebeneinander: was du *besitzt* vs was du *spielst* ("Du besitzt am meisten Action aber spielst am meisten Indie")
+- **Nach Plattform** - echte Spielzeit pro Plattform (Windows/Linux/Steam Deck), Deck-Kompatibilitaet, ProtonDB-Stufen
+- **Errungenschaften** - seltene/ultra-seltene Zaehler, Completion-Buckets, Trophy Wall mit Covern
+- **Spielzeit** - Spielzeit-Verteilung, HLTB-Analyse, Shame Pile (installiert aber nie gespielt)
+- **Bewertungen** - PEGI-Verteilung, Review-Scores, Top-Entwickler
+- **Vergleich** - zwei Spiele suchen und ueber alle Metriken vergleichen
+
+<p align="center">
+  <img src="steam_library_manager/resources/screenshots/20_de_statistics.webp" alt="Statistik-Dashboard - Uebersicht, Genre-Donuts, Plattform-Spielzeit (Deutsch)" width="800">
+</p>
+
 
 <h2 align="center">📸 Weitere Screenshots</h2>
 
@@ -455,7 +479,7 @@ Dieses Projekt nutzt folgende Dienste:
 | **v1.3.6 - Refactoring-Regressions Fix** | ✅ **Veröffentlicht** |
 | **v1.3.8 - steam.pipe False-Positive Fix** | ✅ **Veröffentlicht** |
 | **v1.3.9 - i18n Cleanup, Sicherheit, DRY** | ✅ **Veröffentlicht** |
-| **v1.4.0 - Statistik-Dashboard** | ✅ **Veröffentlicht** |
+| **v1.4.2 - Statistik-Dashboard** | ✅ **Veröffentlicht** |
 | Packaging (AppImage, AUR, Flatpak) | 🔄 Flatpak-Review ausstehend |
 | Windows-Unterstützung | 📋 Geplant |
 

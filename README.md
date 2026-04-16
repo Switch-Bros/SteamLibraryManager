@@ -333,6 +333,30 @@ AppImage users get seamless in-app updates - no manual downloads, no terminal co
   <img src="steam_library_manager/resources/screenshots/18_appimage_update.webp" alt="Built-in AppImage Auto-Update with Release Notes" width="800">
 </p>
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="steam_library_manager/resources/images/readme_divider_dark.webp">
+    <source media="(prefers-color-scheme: light)" srcset="steam_library_manager/resources/images/readme_divider_light.webp">
+    <img src="steam_library_manager/resources/images/readme_divider_light.webp" alt="" width="800">
+  </picture>
+</p>
+
+<h3 align="center">📊 Statistics Dashboard - <i>Know Your Library Inside Out</i></h3>
+
+7 interactive tabs with custom-drawn donut and bar charts - no external dependencies. Discover insights about your gaming habits:
+
+- **Overview** - total games, playtime, never-played count, perfect games + genre donut + top 5 most played
+- **Genre** - side-by-side donuts comparing what you *own* vs what you *play* (the killer insight: "You own 50 RPGs but play Shooters the most")
+- **Platform** - real per-platform playtime (Windows/Linux/Steam Deck), Deck compatibility, ProtonDB tiers
+- **Achievements** - rare/ultra-rare counts, completion buckets, Trophy Wall with cover art
+- **Playtime** - playtime distribution, HLTB analysis, shame pile (installed but never played)
+- **Ratings** - PEGI distribution, review scores, top developers
+- **Comparison** - search and compare any 2 games side-by-side across all metrics
+
+<p align="center">
+  <img src="steam_library_manager/resources/screenshots/20_statistics.webp" alt="Statistics Dashboard - Overview, Genre Donuts, Platform Playtime" width="800">
+</p>
+
 
 <h2 align="center">📸 More Screenshots</h2>
 
@@ -455,7 +479,7 @@ This project uses the following services:
 | **v1.3.6 - Refactoring regression fix** | ✅ **Released** |
 | **v1.3.8 - steam.pipe false positive fix** | ✅ **Released** |
 | **v1.3.9 - i18n cleanup, security, DRY** | ✅ **Released** |
-| **v1.4.0 - Statistics Dashboard** | ✅ **Released** |
+| **v1.4.2 - Statistics Dashboard** | ✅ **Released** |
 | Packaging (AppImage, AUR, Flatpak) | 🔄 Flatpak pending review |
 | Windows support | 📋 Planned |
 
