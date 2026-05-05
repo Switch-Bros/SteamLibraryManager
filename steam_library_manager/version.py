@@ -11,7 +11,7 @@ from __future__ import annotations
 __all__ = ["__app_name__", "__version__", "__release_date__", "__author__", "__license__"]
 
 __app_name__ = "Steam Library Manager"
-__version__ = "1.4.2"
-__release_date__ = "2026-04-16"
+__version__ = "1.4.3"
+__release_date__ = "2026-05-05"
 __author__ = "SwitchBros"
 __license__ = "MIT"

@@ -5,6 +5,24 @@ All notable changes to Steam Library Manager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.3] - 2026-05-05
+
+### Fixed
+- **AppImage on Mint 21.3 / Ubuntu 22.04** (GH #13) - Qt 6.5+ requires
+  `libxcb-cursor.so.0` for the xcb platform plugin, which older Debian/Ubuntu/
+  Mint releases do not ship by default. The library is now bundled into the
+  AppImage via `linuxdeploy --library`. Build aborts early if the dependency
+  is missing on the build host.
+
+### Changed
+- `build-appimage.sh` and `.github/workflows/build-appimage.yml` resolve
+  `libxcb-cursor.so.0` via `ldconfig -p` and pass the path to linuxdeploy.
+- CI installs `libxcb-cursor0` so the workflow finds the library.
+
+### Added
+- Bug-Report-Template Versions-Dropdown auf v1.4.3, v1.4.2, v1.4.0, v1.3.9
+  erweitert.
+
 ## [1.4.2] - 2026-04-16
 
 ### Fixed

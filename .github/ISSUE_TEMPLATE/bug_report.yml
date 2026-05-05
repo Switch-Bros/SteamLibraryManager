@@ -12,6 +12,10 @@ body:
     attributes:
       label: SLM Version
       options:
+        - v1.4.3
+        - v1.4.2
+        - v1.4.0
+        - v1.3.9
         - v1.3.8
         - v1.3.7
         - v1.3.6

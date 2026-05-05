@@ -46,10 +46,19 @@ if [ ! -f "$LINUXDEPLOY" ]; then
 fi
 
 # 4. Build AppImage
+# Bundle libxcb-cursor.so.0 - Qt 6.5+ needs it for the xcb platform plugin,
+# and older Debian/Ubuntu/Mint don't ship it by default (GH #13).
+XCB_CURSOR=$(ldconfig -p | awk '/libxcb-cursor\.so\.0/ {print $NF; exit}')
+if [ -z "$XCB_CURSOR" ] || [ ! -f "$XCB_CURSOR" ]; then
+    echo "ERROR: libxcb-cursor.so.0 not found on build host - install libxcb-cursor0" >&2
+    exit 1
+fi
+
 ARCH=x86_64 ./"$LINUXDEPLOY" \
     --appdir AppDir \
     --desktop-file AppDir/io.github.switch_bros.SteamLibraryManager.desktop \
     --icon-file AppDir/io.github.switch_bros.SteamLibraryManager.svg \
+    --library "$XCB_CURSOR" \
     --output appimage
 
 RESULT=$(ls SteamLibraryManager-*.AppImage 2>/dev/null)

@@ -27,7 +27,7 @@ jobs:
         sudo apt-get install -y libegl1 libxcb-xinerama0 \
           libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
           libxcb-render-util0 libxcb-shape0 libxcb-sync1 libxcb-xfixes0 \
-          libxcb-xkb1 libxkbcommon-x11-0 libgl1 fuse libfuse2
+          libxcb-xkb1 libxcb-cursor0 libxkbcommon-x11-0 libgl1 fuse libfuse2
 
     - name: Install Python dependencies
       run: |
@@ -65,10 +65,15 @@ jobs:
     - name: Build AppImage
       run: |
         export OUTPUT="SteamLibraryManager-x86_64.AppImage"
+        # Bundle libxcb-cursor.so.0 - Qt 6.5+ needs it for the xcb platform plugin,
+        # and older Debian/Ubuntu/Mint don't ship it by default (GH #13).
+        XCB_CURSOR=$(ldconfig -p | awk '/libxcb-cursor\.so\.0/ {print $NF; exit}')
+        test -f "$XCB_CURSOR" || { echo "libxcb-cursor.so.0 missing"; exit 1; }
         ARCH=x86_64 ./linuxdeploy-x86_64.AppImage \
           --appdir AppDir \
           --desktop-file AppDir/io.github.switch_bros.SteamLibraryManager.desktop \
           --icon-file AppDir/io.github.switch_bros.SteamLibraryManager.svg \
+          --library "$XCB_CURSOR" \
           --output appimage
         # Rename if linuxdeploy used a different name
         if [ ! -f "$OUTPUT" ]; then
