@@ -5,6 +5,53 @@ All notable changes to Steam Library Manager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.4] - 2026-05-06
+
+### Added
+- **Smart Emulator Detection** - SLM detects 9 emulators (Eden, Citron, Ryujinx,
+  Cemu, Dolphin, Azahar, RetroArch, PPSSPP, melonDS, DOSBox) by reading their
+  own config files for game directories. No more hardcoded ROM search paths.
+- **Settings tab "Emulators"** - per-emulator status, custom game directories,
+  default-emulator-per-system picker, executable override.
+- **EmuDeck hint provider** - reads `~/emudeck/settings.sh` as a fallback for
+  emulators that have no library config of their own. Works around EmuDeck's
+  known concatenation bug by parsing `emulationPath` and deriving rom dirs
+  ourselves.
+- **AppImage auto-discovery** in standard Linux user locations (`~/Applications`,
+  `~/AppImages`, `~/Apps`, `~/.local/bin`, `~/bin`) - covers the common case
+  where users park AppImages outside the system PATH.
+- **Shortcuts importer** - `shortcuts.vdf` non-Steam entries now show up in the
+  main library, with their tags surfaced as SLM categories.
+- **Bidirectional category sync for shortcuts** - SLM-side category changes
+  write back to both `shortcuts.vdf` (Steam UI live read) and `cloud-storage`
+  `from-tag-X` collections (Steam library sidebar). Steam shows the collection
+  populated after a restart, no manual tagging needed.
+- **Manual SteamGridDB search** - the cover picker now has a search box that
+  lets you look up a game by name. For non-Steam shortcuts (whose hash appids
+  are unknown to SteamGridDB) it auto-runs the name lookup on open.
+- **External Games dialog**: deselect-all / select-all toggle button and
+  user-resizable column headers.
+- DB Schema **v12** with new tables `emulator_settings` and `emulator_games`.
+
+### Fixed
+- **Crash on click on non-Steam shortcuts** - Steam Store API was being called
+  with negative shortcut appids and crashed on the `None` JSON response. Now
+  guarded: appids outside the positive int32 range skip the remote fetch, and
+  malformed responses no longer index into `None`.
+- **Cover filenames for non-Steam shortcuts** - SLM now writes covers under
+  the unsigned uint32 form of the shortcut appid, which is what Steam expects.
+  Old signed-form covers are still found by the lookup so existing setups
+  keep working.
+
+### Changed
+- `ROM_SEARCH_PATHS`, `APPIMAGE_DIRS`, `EMUDECK_LAUNCHER_DIRS` constants
+  removed in favour of config-driven emulator discovery.
+- `Game.app_id` for shortcuts is now the canonical unsigned uint32 form,
+  matching Steam's own convention for cover paths and cloud-storage collection
+  entries. Conversion to/from the signed form happens at the shortcuts.vdf
+  boundary only.
+- `RomParser` is now a thin facade over `EmulatorService`.
+
 ## [1.4.3] - 2026-05-05
 
 ### Fixed

@@ -26,7 +26,7 @@ class ConnectionBase:
     with this it creates or migrates the schema on first connect.
     """
 
-    SCHEMA_VERSION = 11
+    SCHEMA_VERSION = 12
 
     conn: sqlite3.Connection
     db_path: Path

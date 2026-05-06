@@ -20,6 +20,22 @@ logger = logging.getLogger("steamlibmgr.bootstrap")
 __all__ = ["BootstrapService"]
 
 
+def _build_shortcuts_manager():
+    # build a ShortcutsManager for the active steam user, returns None if
+    # the necessary config is not available (e.g. no detected user yet)
+    from steam_library_manager.core.shortcuts_manager import ShortcutsManager
+
+    if not config.STEAM_PATH:
+        return None
+    acct_id, _ = config.get_detected_user()
+    if not acct_id:
+        return None
+    try:
+        return ShortcutsManager(config.STEAM_PATH / "userdata", str(acct_id))
+    except Exception:
+        return None
+
+
 class BootstrapService(QObject):
     """Handles app startup - detect steam, validate paths, fire workers.
 
@@ -235,6 +251,7 @@ class BootstrapService(QObject):
             localconfig_helper=self.mw.localconfig_helper,
             cloud_parser=self.mw.cloud_storage_parser,
             game_manager=self.mw.game_manager,
+            shortcuts_manager=_build_shortcuts_manager(),
         )
 
         from steam_library_manager.services.metadata_service import MetadataService

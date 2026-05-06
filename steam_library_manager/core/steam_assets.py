@@ -52,6 +52,29 @@ class SteamAssets:
         "capsules": "",
     }
 
+    @staticmethod
+    def _filename_appid(app_id) -> str:
+        # Steam writes non-Steam shortcut covers under the unsigned int32
+        # appid (positive), not the signed-negative form stored in shortcuts.vdf.
+        # For Steam apps (positive ints) and unparseable values, return as-is.
+        try:
+            v = int(app_id)
+        except (TypeError, ValueError):
+            return str(app_id)
+        if v < 0:
+            return str(v & 0xFFFFFFFF)
+        return str(v)
+
+    @staticmethod
+    def _candidate_filename_appids(app_id):
+        # both signed and unsigned forms; lookup tries each so existing covers
+        # under either name still work after the convention change
+        out = [str(app_id)]
+        canon = SteamAssets._filename_appid(app_id)
+        if canon not in out:
+            out.append(canon)
+        return out
+
     # CDN paths per type (first match wins)
     _CDN = {
         "grids": ["library_600x900.jpg", "library_600x900_2x.jpg", "header.jpg"],
@@ -94,11 +117,14 @@ class SteamAssets:
 
             sfx = SteamAssets._SUFFIXES.get(asset_type)
             if sfx is not None:
-                base = "%s%s" % (app_id, sfx)
-                for ext in [".png", ".jpg", ".jpeg", ".webp", ".gif"]:
-                    lp = gdir / (base + ext)
-                    if lp.exists():
-                        return str(lp)
+                # check both signed and unsigned filename forms - Steam writes
+                # non-Steam shortcut covers under the unsigned uint32 appid
+                for fid in SteamAssets._candidate_filename_appids(app_id):
+                    base = "%s%s" % (fid, sfx)
+                    for ext in [".png", ".jpg", ".jpeg", ".webp", ".gif"]:
+                        lp = gdir / (base + ext)
+                        if lp.exists():
+                            return str(lp)
 
         # CDN fallback
         cdn = SteamAssets._CDN.get(asset_type, [])
@@ -122,7 +148,9 @@ class SteamAssets:
             if sfx is None:
                 logger.info(t("logs.assets.unknown_type", type=asset_type))
                 return False
-            fname = "%s%s.png" % (app_id, sfx)
+            # Steam expects non-Steam shortcut covers under their *unsigned* int32
+            # appid form, not the signed-negative one stored in shortcuts.vdf.
+            fname = "%s%s.png" % (SteamAssets._filename_appid(app_id), sfx)
             target = gdir / fname
 
             # download URL
@@ -197,9 +225,21 @@ class SteamAssets:
             sfx = SteamAssets._SUFFIXES.get(asset_type)
             if sfx is None:
                 return False
-            target = gdir / ("%s%s.png" % (app_id, sfx))
+            # remove every candidate filename so old signed/unsigned variants
+            # don't linger after a delete
+            removed_any = False
+            for fid in SteamAssets._candidate_filename_appids(app_id):
+                for ext in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
+                    cand = gdir / ("%s%s%s" % (fid, sfx, ext))
+                    if cand.exists():
+                        os.remove(cand)
+                        logger.info(t("logs.steamgrid.deleted", path=cand.name))
+                        removed_any = True
+            target = gdir / ("%s%s.png" % (SteamAssets._filename_appid(app_id), sfx))
 
-            if target.exists():
+            if removed_any:
+                pass
+            elif target.exists():
                 os.remove(target)
                 logger.info(t("logs.steamgrid.deleted", path=target.name))
 

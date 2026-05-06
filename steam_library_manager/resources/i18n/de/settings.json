@@ -5,7 +5,31 @@
     "tabs": {
       "general": "Allgemein",
       "other": "Weitere",
-      "cloud_sync": "Cloud Sync"
+      "cloud_sync": "Cloud Sync",
+      "emulators": "Emulatoren"
+    },
+    "emulators": {
+      "intro": "SLM erkennt installierte Emulatoren und liest deren Spielverzeichnisse direkt aus deren eigenen Config-Dateien. Fuege unten eigene Verzeichnisse hinzu, falls deine ROMs an einem Ort liegen, den der Emulator noch nicht kennt.",
+      "col_status": "Quelle",
+      "col_name": "Emulator",
+      "col_executable": "Programm",
+      "col_enabled": "Aktiv",
+      "rescan": "Emulatoren neu scannen",
+      "details_title": "Spielverzeichnisse",
+      "select_hint": "Waehle oben einen Emulator aus, um seine Spielverzeichnisse zu sehen.",
+      "unavailable": "Datenbank nicht verfuegbar - Emulator-Einstellungen koennen nicht verwaltet werden.",
+      "add_dir": "Verzeichnis hinzufuegen...",
+      "remove_dir": "Entfernen",
+      "set_default": "Als Standard fuer seine Systeme setzen",
+      "set_executable": "Programm-Pfad setzen...",
+      "dir_auto": "auto",
+      "dir_user": "user",
+      "no_executable": "(kein Programm gefunden - nur Config wird genutzt)",
+      "tip_flatpak": "Als Flatpak installiert.",
+      "tip_system": "Im System-PATH gefunden.",
+      "tip_appimage": "AppImage auf der Festplatte gefunden.",
+      "tip_override": "Vom Nutzer gesetzter Programm-Pfad.",
+      "tip_config_only": "Config-Datei vorhanden, aber kein Programm gefunden - setze unten manuell den Pfad."
     },
     "libraries": {
       "title": "Steam Bibliotheks-Ordner",

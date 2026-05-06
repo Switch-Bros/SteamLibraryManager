@@ -5,7 +5,31 @@
     "tabs": {
       "general": "General",
       "other": "Other",
-      "cloud_sync": "Cloud Sync"
+      "cloud_sync": "Cloud Sync",
+      "emulators": "Emulators"
+    },
+    "emulators": {
+      "intro": "SLM detects emulators installed on your system and reads their game directories from the emulator's own config files. Add custom directories below if your ROMs live somewhere the emulator does not know about yet.",
+      "col_status": "Source",
+      "col_name": "Emulator",
+      "col_executable": "Executable",
+      "col_enabled": "Enabled",
+      "rescan": "Rescan emulators",
+      "details_title": "Game directories",
+      "select_hint": "Select an emulator above to view its game directories.",
+      "unavailable": "Database not available - cannot manage emulator settings.",
+      "add_dir": "Add directory...",
+      "remove_dir": "Remove",
+      "set_default": "Set as default for its system(s)",
+      "set_executable": "Set executable path...",
+      "dir_auto": "auto",
+      "dir_user": "user",
+      "no_executable": "(no binary found - using config only)",
+      "tip_flatpak": "Installed as a Flatpak.",
+      "tip_system": "Found in system PATH.",
+      "tip_appimage": "AppImage found on disk.",
+      "tip_override": "User-set executable path.",
+      "tip_config_only": "Config file exists but no binary found - set executable manually below."
     },
     "libraries": {
       "title": "Steam Library Folders",

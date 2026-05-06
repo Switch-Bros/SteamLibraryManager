@@ -65,6 +65,15 @@ class GameDetailService:
         # Fetch store data, reviews, ProtonDB, Deck status, HLTB, achievements
         if app_id not in self._games:
             return False
+        # Steam Store API only knows positive Steam appids; non-Steam shortcuts
+        # use 32-bit hashes that round-trip as negative ints in shortcuts.vdf.
+        # Skip remote lookups for those - we have nothing to fetch.
+        try:
+            aid_int = int(app_id)
+        except (TypeError, ValueError):
+            return False
+        if aid_int <= 0 or aid_int > 2_147_483_647:
+            return False
         game = self._games[app_id]
         self._get_store(app_id)
         self._get_reviews(app_id)
@@ -98,12 +107,20 @@ class GameDetailService:
             params = {"appids": app_id}
             resp = requests.get(url, params=params, timeout=HTTP_TIMEOUT_SHORT)
             data = resp.json()
-            if app_id in data and data[app_id]["success"]:
-                gd = data[app_id]["data"]
-                cache_file.parent.mkdir(exist_ok=True)
-                with open(cache_file, "w") as f:
-                    json.dump(gd, f)
-                apply_store_data(self._games[app_id], gd)
+            # Steam returns {"<id>": null} for unknown app ids; reject those before
+            # indexing into the entry to avoid TypeError on None
+            if not isinstance(data, dict):
+                return
+            entry = data.get(str(app_id)) or data.get(app_id)
+            if not isinstance(entry, dict) or not entry.get("success"):
+                return
+            gd = entry.get("data")
+            if not isinstance(gd, dict):
+                return
+            cache_file.parent.mkdir(exist_ok=True)
+            with open(cache_file, "w") as f:
+                json.dump(gd, f)
+            apply_store_data(self._games[app_id], gd)
         except (requests.RequestException, ValueError, KeyError, OSError):
             pass
 

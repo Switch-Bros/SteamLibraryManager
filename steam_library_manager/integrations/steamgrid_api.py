@@ -93,12 +93,14 @@ class SteamGridDB:
         logger.info(t("logs.steamgrid.found", count=len(imgs)))
         return imgs
 
-    def get_images_by_type_paged(self, steam_app_id: str | int, img_type, page=0, limit=24):
-        # single page of images - used by grid view
+    def get_images_by_type_paged(self, steam_app_id: str | int, img_type, page=0, limit=24, game_id_override=None):
+        # single page of images - used by grid view. Pass game_id_override to skip
+        # the steam-appid -> sgdb-id lookup (used for non-Steam shortcuts and for
+        # manual name searches in the image picker).
         if not self.api_key:
             return []
 
-        game_id = self._get_game_id(steam_app_id)
+        game_id = game_id_override if game_id_override else self._get_game_id(steam_app_id)
         if not game_id:
             return []
 
@@ -128,8 +130,14 @@ class SteamGridDB:
             return []
 
     def _get_game_id(self, steam_app_id: str | int) -> int | None:
-        # steam app id -> steamgriddb game id
-        # TODO: cache this lookup?
+        # steam app id -> steamgriddb game id. Returns None for non-Steam shortcuts
+        # (their hash-based appids are unknown to SteamGridDB).
+        try:
+            aid_int = int(steam_app_id)
+        except (TypeError, ValueError):
+            return None
+        if aid_int <= 0 or aid_int > 2_147_483_647:
+            return None
         try:
             url = "%s/games/steam/%s" % (self.BASE_URL, steam_app_id)
             response = requests.get(url, headers=self.headers, timeout=HTTP_TIMEOUT_SHORT)
@@ -140,6 +148,36 @@ class SteamGridDB:
         except (requests.RequestException, ValueError, KeyError):
             pass
         return None
+
+    def search_games_by_name(self, term: str) -> list[dict]:
+        """Free-text search: returns up to 20 (id, name, release_date) candidates.
+
+        Used when Steam-AppID lookup fails (non-Steam shortcuts) or when the user
+        wants to override the auto-detected game.
+        """
+        term = (term or "").strip()
+        if not term:
+            return []
+        try:
+            url = "%s/search/autocomplete/%s" % (self.BASE_URL, term)
+            response = requests.get(url, headers=self.headers, timeout=HTTP_TIMEOUT_SHORT)
+            if response.status_code != 200:
+                return []
+            data = response.json()
+            if not data.get("success"):
+                return []
+            results: list[dict] = []
+            for entry in data.get("data", []):
+                if not isinstance(entry, dict):
+                    continue
+                gid = entry.get("id")
+                name = entry.get("name", "")
+                if isinstance(gid, int) and name:
+                    results.append({"id": gid, "name": name, "release_date": entry.get("release_date")})
+            return results
+        except (requests.RequestException, ValueError, KeyError) as e:
+            logger.error(t("logs.steamgrid.exception", error=str(e)))
+            return []
 
     def _fetch_single_url(self, game_id: int, endpoint, params=None):
         # grab first image url for endpoint

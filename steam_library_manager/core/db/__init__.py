@@ -14,6 +14,7 @@ from steam_library_manager.core.db.schema import SchemaMixin
 
 # query mixins
 from steam_library_manager.core.db.curator_mixin import CuratorMixin
+from steam_library_manager.core.db.emulator_queries import EmulatorQueriesMixin
 from steam_library_manager.core.db.enrichment_queries import EnrichmentQueryMixin
 from steam_library_manager.core.db.game_batch_queries import GameBatchQueryMixin
 from steam_library_manager.core.db.game_queries import GameQueryMixin
@@ -47,6 +48,7 @@ class Database(
     TagQueryMixin,
     ModificationMixin,
     CuratorMixin,
+    EmulatorQueriesMixin,
     ConnectionBase,
 ):
     """Composes all query mixins on top of ConnectionBase."""

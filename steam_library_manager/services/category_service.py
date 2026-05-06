@@ -6,7 +6,11 @@
 # Licensed under the MIT License. See LICENSE for details.
 #
 
+import logging
+
 from steam_library_manager.utils.i18n import t
+
+logger = logging.getLogger("steamlibmgr.category_service")
 
 __all__ = ["CategoryService"]
 
@@ -14,16 +18,70 @@ __all__ = ["CategoryService"]
 class CategoryService:
     """Manages category CRUD, merging, and dedup operations.
     Wraps CloudStorageParser and keeps in-memory games in sync.
+
+    Optional shortcuts_manager makes category writes for non-Steam shortcuts
+    flow into shortcuts.vdf instead of cloud-storage, so changes survive
+    across Steam restarts and roundtrip through Steam's own UI.
     """
 
-    def __init__(self, localconfig_helper, cloud_parser, game_manager):
+    def __init__(self, localconfig_helper, cloud_parser, game_manager, shortcuts_manager=None):
         self.localconfig_helper = localconfig_helper
         self.cloud_parser = cloud_parser
         self.game_manager = game_manager
+        self.shortcuts_manager = shortcuts_manager
 
     def get_active_parser(self):
         # Return the currently active parser
         return self.cloud_parser
+
+    # -- shortcut helpers (write categories back into shortcuts.vdf) --
+
+    def _is_shortcut_app(self, app_id) -> bool:
+        game = self.game_manager.games.get(str(app_id)) if self.game_manager else None
+        return bool(game and getattr(game, "is_shortcut", False))
+
+    def _persist_shortcut_tags(self, app_id) -> bool:
+        # Re-serialize a shortcut's categories back into shortcuts.vdf tags.
+        # Called after every add/remove/rename/delete that touches a shortcut.
+        if not self.shortcuts_manager:
+            return False
+        game = self.game_manager.games.get(str(app_id))
+        if not game or not getattr(game, "is_shortcut", False):
+            return False
+        try:
+            shortcuts = self.shortcuts_manager.read_shortcuts()
+        except Exception:
+            return False
+
+        # game.app_id is the *unsigned* uint32 form; shortcuts.vdf stores it
+        # as a signed int32, so convert before matching against sc.appid.
+        signed = self._to_signed_appid(app_id)
+        target = None
+        for sc in shortcuts:
+            if sc.appid == signed:
+                target = sc
+                break
+        if target is None:
+            return False
+
+        target.tags = {str(i): cat for i, cat in enumerate(game.categories)}
+        try:
+            self.shortcuts_manager.update_shortcut(target)
+            return True
+        except Exception:
+            return False
+
+    @staticmethod
+    def _to_signed_appid(app_id) -> int:
+        # convert canonical unsigned uint32 string back to the signed int32
+        # that shortcuts.vdf stores. positive values that fit in int32 stay as-is.
+        try:
+            v = int(app_id)
+        except (TypeError, ValueError):
+            return 0
+        if v > 0x7FFFFFFF:
+            return v - 0x100000000
+        return v
 
     def rename_category(self, old_name, new_name):
         # Rename a category across all parsers
@@ -36,10 +94,16 @@ class CategoryService:
 
         parser.rename_category(old_name, new_name)
 
+        affected_shortcuts: list[str] = []
         for game in self.game_manager.games.values():
             if old_name in game.categories:
                 game.categories.remove(old_name)
                 game.categories.append(new_name)
+                if getattr(game, "is_shortcut", False):
+                    affected_shortcuts.append(game.app_id)
+
+        for aid in affected_shortcuts:
+            self._persist_shortcut_tags(aid)
 
         return True
 
@@ -51,9 +115,15 @@ class CategoryService:
 
         parser.delete_category(category_name)
 
+        affected_shortcuts: list[str] = []
         for game in self.game_manager.games.values():
             if category_name in game.categories:
                 game.categories.remove(category_name)
+                if getattr(game, "is_shortcut", False):
+                    affected_shortcuts.append(game.app_id)
+
+        for aid in affected_shortcuts:
+            self._persist_shortcut_tags(aid)
 
         return True
 
@@ -63,11 +133,17 @@ class CategoryService:
         if not parser or not categories:
             return False
 
+        affected_shortcuts: set[str] = set()
         for cat in categories:
             parser.delete_category(cat)
             for game in self.game_manager.games.values():
                 if cat in game.categories:
                     game.categories.remove(cat)
+                    if getattr(game, "is_shortcut", False):
+                        affected_shortcuts.add(game.app_id)
+
+        for aid in affected_shortcuts:
+            self._persist_shortcut_tags(aid)
 
         return True
 
@@ -199,14 +275,31 @@ class CategoryService:
         return self.game_manager.get_all_categories()
 
     def add_app_to_category(self, app_id, category):
-        # Add an app to a category
+        # Add an app to a category. Persists to:
+        #   - shortcuts.vdf tags (for non-Steam shortcuts) - read live by Steam UI
+        #   - cloud-storage `from-tag-X` collection - so Steam shows the collection
+        #     in the sidebar and SLM keeps cloud_storage as single source for sidebar
+        is_shortcut = self._is_shortcut_app(app_id)
+
+        if is_shortcut:
+            game = self.game_manager.games[str(app_id)]
+            if category not in game.categories:
+                game.categories.append(category)
+            self._persist_shortcut_tags(app_id)
+
         parser = self.get_active_parser()
         if not parser:
-            return False
+            return is_shortcut  # shortcut path already wrote what it could
 
         parser.add_app_category(app_id, category)
+        # cloud-storage write triggers a save if anything changed; flush now
+        if is_shortcut and getattr(parser, "modified", False):
+            try:
+                parser.save()
+            except Exception:
+                logger.exception("cloud_storage save after shortcut tag failed")
 
-        if app_id in self.game_manager.games:
+        if not is_shortcut and app_id in self.game_manager.games:
             game = self.game_manager.games[app_id]
             if category not in game.categories:
                 game.categories.append(category)
@@ -214,14 +307,27 @@ class CategoryService:
         return True
 
     def remove_app_from_category(self, app_id, category):
-        # Remove an app from a category
+        # Mirror of add_app_to_category for removal - same dual-write strategy.
+        is_shortcut = self._is_shortcut_app(app_id)
+
+        if is_shortcut:
+            game = self.game_manager.games[str(app_id)]
+            if category in game.categories:
+                game.categories.remove(category)
+            self._persist_shortcut_tags(app_id)
+
         parser = self.get_active_parser()
         if not parser:
-            return False
+            return is_shortcut
 
         parser.remove_app_category(app_id, category)
+        if is_shortcut and getattr(parser, "modified", False):
+            try:
+                parser.save()
+            except Exception:
+                logger.exception("cloud_storage save after shortcut tag failed")
 
-        if app_id in self.game_manager.games:
+        if not is_shortcut and app_id in self.game_manager.games:
             game = self.game_manager.games[app_id]
             if category in game.categories:
                 game.categories.remove(category)

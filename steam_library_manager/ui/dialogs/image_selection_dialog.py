@@ -13,15 +13,16 @@ import logging
 from PyQt6.QtCore import QPoint, Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
+    QComboBox,
     QDialog,
-    QVBoxLayout,
-    QScrollArea,
-    QWidget,
     QGridLayout,
-    QLabel,
-    QPushButton,
-    QLineEdit,
     QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QScrollArea,
+    QVBoxLayout,
+    QWidget,
 )
 
 from steam_library_manager.config import config
@@ -41,12 +42,13 @@ class PagedSearchThread(QThread):
 
     page_loaded = pyqtSignal(list, bool)
 
-    def __init__(self, aid, itype, page=0, psize=24):
+    def __init__(self, aid, itype, page=0, psize=24, game_id_override=None):
         super().__init__()
         self.aid = aid
         self.itype = itype
         self.page = page
         self.psize = psize
+        self.game_id_override = game_id_override
         self.api = SteamGridDB()
 
     def run(self):
@@ -55,9 +57,24 @@ class PagedSearchThread(QThread):
             self.itype,
             page=self.page,
             limit=self.psize,
+            game_id_override=self.game_id_override,
         )
         more = len(imgs) >= self.psize
         self.page_loaded.emit(imgs, more)
+
+
+class NameLookupThread(QThread):
+    """Free-text search for a SteamGridDB game id by name."""
+
+    finished_lookup = pyqtSignal(list)
+
+    def __init__(self, term):
+        super().__init__()
+        self.term = term
+
+    def run(self):
+        results = SteamGridDB().search_games_by_name(self.term)
+        self.finished_lookup.emit(results)
 
 
 class ImageSelectionDialog(QDialog):
@@ -69,9 +86,13 @@ class ImageSelectionDialog(QDialog):
         self.resize(1100, 800)
 
         self.aid = aid
+        self.game_name = name or ""
         self.itype = itype
         self.sel_url = None
         self.srch = None
+        self.name_lookup = None
+        # SteamGridDB game id chosen via manual search; None means auto-resolve from aid
+        self.manual_game_id = None
 
         # pagination
         self._p = 0
@@ -104,6 +125,31 @@ class ImageSelectionDialog(QDialog):
 
     def _mk_ui(self):
         self.ml = QVBoxLayout(self)
+
+        # manual search row: lets the user override the auto-detected game
+        # (essential for non-Steam shortcuts whose hash appids are unknown to SteamGridDB)
+        srow = QHBoxLayout()
+        srow.addWidget(QLabel(t("ui.image_browser.search_label")))
+
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText(t("ui.image_browser.search_placeholder"))
+        self.search_input.setText(self.game_name)
+        # noinspection PyUnresolvedReferences
+        self.search_input.returnPressed.connect(self._do_name_lookup)
+        srow.addWidget(self.search_input, 1)
+
+        self.search_btn = QPushButton(t("ui.image_browser.search_button"))
+        # noinspection PyUnresolvedReferences
+        self.search_btn.clicked.connect(self._do_name_lookup)
+        srow.addWidget(self.search_btn)
+
+        self.search_results = QComboBox()
+        self.search_results.hide()
+        # noinspection PyUnresolvedReferences
+        self.search_results.activated.connect(self._on_search_result_picked)
+        srow.addWidget(self.search_results, 1)
+
+        self.ml.addLayout(srow)
 
         self.sl = QLabel(t("ui.dialogs.image_picker_loading"))
         self.sl.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -181,9 +227,75 @@ class ImageSelectionDialog(QDialog):
             self.sl.hide()
             self.sc.hide()
             self.sw.show()
-        else:
-            self.sw.hide()
-            self._start()
+            return
+        self.sw.hide()
+        # Non-Steam shortcuts have negative hash appids that SteamGridDB doesn't know.
+        # Skip the doomed appid lookup and trigger a name search right away.
+        if self._is_shortcut_appid(self.aid):
+            self._do_name_lookup()
+            return
+        self._start()
+
+    @staticmethod
+    def _is_shortcut_appid(aid) -> bool:
+        try:
+            v = int(aid)
+        except (TypeError, ValueError):
+            return False
+        return v <= 0 or v > 2_147_483_647
+
+    def _do_name_lookup(self):
+        term = self.search_input.text().strip()
+        if not term:
+            return
+        # cancel any in-flight lookup
+        if self.name_lookup is not None and self.name_lookup.isRunning():
+            self.name_lookup.quit()
+            self.name_lookup.wait(500)
+        self.search_btn.setEnabled(False)
+        self.search_results.hide()
+        self.sl.setText(t("ui.image_browser.searching", term=term))
+        self.sl.show()
+        self.sc.hide()
+        self.name_lookup = NameLookupThread(term)
+        self.name_lookup.finished_lookup.connect(self._on_name_results)
+        self.name_lookup.start()
+
+    def _on_name_results(self, results: list):
+        self.search_btn.setEnabled(True)
+        if not results:
+            self.sl.setText(t("ui.image_browser.no_matches"))
+            self.search_results.hide()
+            return
+
+        self.search_results.blockSignals(True)
+        self.search_results.clear()
+        for r in results:
+            label = r["name"]
+            if r.get("release_date"):
+                # only show year part (release_date is unix timestamp)
+                try:
+                    from datetime import datetime
+
+                    yr = datetime.fromtimestamp(int(r["release_date"])).year
+                    label = "%s (%d)" % (r["name"], yr)
+                except (ValueError, TypeError, OSError):
+                    pass
+            self.search_results.addItem(label, r["id"])
+        self.search_results.blockSignals(False)
+        self.search_results.show()
+
+        # auto-select the first hit and start loading covers
+        self._on_search_result_picked(0)
+
+    def _on_search_result_picked(self, idx: int):
+        if idx < 0 or idx >= self.search_results.count():
+            return
+        gid = self.search_results.itemData(idx)
+        if not isinstance(gid, int):
+            return
+        self.manual_game_id = gid
+        self._start()
 
     def _save(self):
         k = self.ki.text().strip()
@@ -225,6 +337,7 @@ class ImageSelectionDialog(QDialog):
             self.itype,
             page=self._p,
             psize=self._ps,
+            game_id_override=self.manual_game_id,
         )
         self.srch.page_loaded.connect(self._on_load)
         self.srch.start()

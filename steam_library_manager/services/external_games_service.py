@@ -29,8 +29,14 @@ class ExternalGamesService:
     discovered games into Steam as non-Steam shortcuts.
     """
 
-    def __init__(self, shortcuts_manager):
+    def __init__(self, shortcuts_manager, database=None):
         self._shortcuts_mgr = shortcuts_manager
+        self._database = database
+        self._emulator_service = None
+        if database is not None:
+            from steam_library_manager.services.emulator_service import EmulatorService
+
+            self._emulator_service = EmulatorService(database)
         self._parsers = self._init_parsers()
 
     def _init_parsers(self):
@@ -43,9 +49,13 @@ class ExternalGamesService:
             ItchParser(),
             BottlesParser(),
             FlatpakParser(),
-            RomParser(),
+            RomParser(emulator_service=self._emulator_service),
         ]
         return {p.platform_name(): p for p in parsers}
+
+    @property
+    def emulator_service(self):
+        return self._emulator_service
 
     def get_available_platforms(self):
         # Platforms that are actually installed on this system

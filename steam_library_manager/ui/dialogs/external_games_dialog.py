@@ -126,9 +126,23 @@ class ExternalGamesDialog(BaseDialog):
 
         try:
             mgr = ShortcutsManager(userdata, acct_id)
-            self._svc = ExternalGamesService(mgr)
+            db = self._lookup_database()
+            self._svc = ExternalGamesService(mgr, database=db)
         except Exception:
             logger.exception("Failed to initialize ExternalGamesService")
+
+    def _lookup_database(self):
+        # walk up the parent chain to find a main_window with game_service.database
+        widget = self.parent()
+        for _ in range(10):
+            if widget is None:
+                return None
+            gs = getattr(widget, "game_service", None)
+            db = getattr(gs, "database", None) if gs is not None else None
+            if db is not None:
+                return db
+            widget = widget.parent() if hasattr(widget, "parent") else None
+        return None
 
     def _build_content(self, layout):
         # top row: scan button + platform filter
@@ -168,10 +182,18 @@ class ExternalGamesDialog(BaseDialog):
 
         hdr = self._tbl.horizontalHeader()
         if hdr:
-            hdr.setSectionResizeMode(self._COL_PLATFORM, QHeaderView.ResizeMode.ResizeToContents)
-            hdr.setSectionResizeMode(self._COL_NAME, QHeaderView.ResizeMode.Stretch)
-            hdr.setSectionResizeMode(self._COL_PATH, QHeaderView.ResizeMode.Stretch)
-            hdr.setSectionResizeMode(self._COL_STATUS, QHeaderView.ResizeMode.ResizeToContents)
+            # Interactive: user can drag column borders. Last section auto-stretches.
+            for col in (self._COL_PLATFORM, self._COL_NAME, self._COL_PATH, self._COL_STATUS):
+                hdr.setSectionResizeMode(col, QHeaderView.ResizeMode.Interactive)
+            hdr.setStretchLastSection(True)
+            # initial widths so the table looks reasonable on first open
+            self._tbl.setColumnWidth(self._COL_PLATFORM, 180)
+            self._tbl.setColumnWidth(self._COL_NAME, 260)
+            self._tbl.setColumnWidth(self._COL_PATH, 360)
+
+        # keep the deselect/select-all label in sync with manual checkbox clicks
+        # noinspection PyUnresolvedReferences
+        self._tbl.itemChanged.connect(self._on_item_changed)
 
         layout.addWidget(self._tbl)
 
@@ -198,6 +220,12 @@ class ExternalGamesDialog(BaseDialog):
 
         # action buttons
         btns = QHBoxLayout()
+
+        self._btn_toggle = QPushButton(t("ui.external.deselect_all"))
+        self._btn_toggle.clicked.connect(self._on_toggle_select_all)
+        self._btn_toggle.setEnabled(False)
+        btns.addWidget(self._btn_toggle)
+
         btns.addStretch()
 
         self._btn_sel = QPushButton(t("ui.external.add_selected"))
@@ -284,6 +312,7 @@ class ExternalGamesDialog(BaseDialog):
         has_new = exist_ct < len(self._games)
         self._btn_sel.setEnabled(has_new)
         self._btn_all.setEnabled(has_new)
+        self._btn_toggle.setEnabled(has_new)
 
     def _fill(self, games):
         # populate table rows from game list
@@ -315,6 +344,13 @@ class ExternalGamesDialog(BaseDialog):
                 chk.setCheckState(Qt.CheckState.Checked)
                 self._tbl.setItem(r, self._COL_STATUS, chk)
 
+        self._update_toggle_label()
+
+    def _on_item_changed(self, item):
+        # keep the toggle button label in sync when user clicks individual checkboxes
+        if item.column() == self._COL_STATUS:
+            self._update_toggle_label()
+
     def _filtered(self):
         # return games matching current platform filter
         pf = self._combo.currentData()
@@ -342,6 +378,34 @@ class ExternalGamesDialog(BaseDialog):
                 if r < len(visible):
                     picked.append(visible[r])
         return picked
+
+    def _checkable_items(self):
+        # iterate over status-column items that are actually checkable
+        # (skips "already in Steam" rows which carry a label instead of a checkbox)
+        for r in range(self._tbl.rowCount()):
+            item = self._tbl.item(r, self._COL_STATUS)
+            if not item:
+                continue
+            if not (item.flags() & Qt.ItemFlag.ItemIsUserCheckable):
+                continue
+            yield item
+
+    def _on_toggle_select_all(self):
+        items = list(self._checkable_items())
+        if not items:
+            return
+        # if any item is checked, the action is "deselect all"; otherwise "select all"
+        any_checked = any(it.checkState() == Qt.CheckState.Checked for it in items)
+        new_state = Qt.CheckState.Unchecked if any_checked else Qt.CheckState.Checked
+        for it in items:
+            it.setCheckState(new_state)
+        self._update_toggle_label()
+
+    def _update_toggle_label(self):
+        items = list(self._checkable_items())
+        any_checked = any(it.checkState() == Qt.CheckState.Checked for it in items)
+        key = "ui.external.deselect_all" if any_checked else "ui.external.select_all"
+        self._btn_toggle.setText(t(key))
 
     def _new_games(self):
         return [g for g in self._games if g.name.lower() not in self._have_names]
@@ -461,6 +525,7 @@ class ExternalGamesDialog(BaseDialog):
         has_new = exist_ct < len(self._games)
         self._btn_sel.setEnabled(has_new)
         self._btn_all.setEnabled(has_new)
+        self._btn_toggle.setEnabled(has_new)
 
     def _busy(self, flag):
         # toggle UI elements during long operations

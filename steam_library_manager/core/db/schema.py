@@ -99,6 +99,9 @@ class SchemaMixin:
         if frm < 11:
             self._m11()
             self._set_schema_version(11)
+        if frm < 12:
+            self._m12()
+            self._set_schema_version(12)
 
     # migrations
 
@@ -326,3 +329,32 @@ class SchemaMixin:
                 pass
         self.conn.commit()
         logger.info("Migrated to v11: added platform playtime columns")
+
+    def _m12(self):
+        # emulator settings + games cache for smart emulator detection
+        self.conn.executescript("""
+            CREATE TABLE IF NOT EXISTS emulator_settings (
+                emulator_name TEXT PRIMARY KEY,
+                enabled INTEGER DEFAULT 1,
+                default_for_system TEXT DEFAULT '',
+                custom_game_dirs TEXT DEFAULT '[]',
+                appimage_search_dirs TEXT DEFAULT '[]',
+                executable_override TEXT DEFAULT '',
+                updated_at TEXT DEFAULT ''
+            );
+
+            CREATE TABLE IF NOT EXISTS emulator_games (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                emulator_name TEXT NOT NULL,
+                system TEXT NOT NULL,
+                rom_path TEXT NOT NULL UNIQUE,
+                game_name TEXT NOT NULL,
+                last_seen TEXT NOT NULL,
+                added_to_steam INTEGER DEFAULT 0
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_emulator_games_system ON emulator_games(system);
+            CREATE INDEX IF NOT EXISTS idx_emulator_games_emulator ON emulator_games(emulator_name);
+        """)
+        self.conn.commit()
+        logger.info("Migrated to v12: emulator detection tables")

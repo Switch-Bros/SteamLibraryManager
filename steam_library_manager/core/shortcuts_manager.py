@@ -188,6 +188,23 @@ class ShortcutsManager:
                 return True
         return False
 
+    def update_shortcut(self, sh):
+        # replace an existing shortcut (matched by appid) - used when tags or
+        # other metadata change without renaming the entry
+        sc = self.read_shortcuts()
+        new: list[SteamShortcut] = []
+        replaced = False
+        for s in sc:
+            if s.appid == sh.appid:
+                new.append(sh)
+                replaced = True
+            else:
+                new.append(s)
+        if not replaced:
+            return False
+        self.write_shortcuts(new)
+        return True
+
     def get_grid_paths(self, exe, app_name):
         # get image paths for non-steam game
         sid = generate_short_app_id(exe, app_name)

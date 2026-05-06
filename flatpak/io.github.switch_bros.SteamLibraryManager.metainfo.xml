@@ -91,19 +91,126 @@
   <screenshots>
     <screenshot type="default">
       <caption>Game details with ProtonDB, Steam Deck status, HLTB times, and collection overview</caption>
-      <image>https://raw.githubusercontent.com/Switch-Bros/SteamLibraryManager/v1.2.0/steam_library_manager/resources/screenshots/05_autocat_results.webp</image>
+      <image>https://raw.githubusercontent.com/Switch-Bros/SteamLibraryManager/v1.4.3/steam_library_manager/resources/screenshots/05_autocat_results.webp</image>
     </screenshot>
     <screenshot>
       <caption>Smart Collections editor with AND/OR/NOT logic and live preview</caption>
-      <image>https://raw.githubusercontent.com/Switch-Bros/SteamLibraryManager/v1.2.0/steam_library_manager/resources/screenshots/02_smart_collections_editor.webp</image>
+      <image>https://raw.githubusercontent.com/Switch-Bros/SteamLibraryManager/v1.4.3/steam_library_manager/resources/screenshots/02_smart_collections_editor.webp</image>
     </screenshot>
     <screenshot>
       <caption>Auto-Categorize dialog with 17 category types and saveable presets</caption>
-      <image>https://raw.githubusercontent.com/Switch-Bros/SteamLibraryManager/v1.2.0/steam_library_manager/resources/screenshots/04_autocat_dialog.webp</image>
+      <image>https://raw.githubusercontent.com/Switch-Bros/SteamLibraryManager/v1.4.3/steam_library_manager/resources/screenshots/04_autocat_dialog.webp</image>
     </screenshot>
   </screenshots>
 
   <releases>
+    <release version="1.4.3" date="2026-05-05">
+      <description>
+        <p>AppImage now bundles libxcb-cursor.so.0, fixing the Qt 6.5+ xcb plugin
+           crash on Linux Mint 21.3 / Ubuntu 22.04 (GitHub #13).</p>
+      </description>
+    </release>
+    <release version="1.4.2" date="2026-04-16">
+      <description>
+        <p>Statistics Dashboard Phase 3: Playtime, Ratings and Comparison tabs.
+           Schema v11 with platform playtime (windows/linux/mac/deck) from Steam API,
+           HLTB rounding fix, fully translated chart labels.</p>
+      </description>
+    </release>
+    <release version="1.4.0" date="2026-04-16">
+      <description>
+        <p>Statistics Dashboard Phase 1+2: QPainter-based chart engine (donut and bar charts),
+           Overview, Genre, Platform and Achievements tabs, MetricCard widget, Trophy Wall,
+           playtime persistence, Schema v10.</p>
+      </description>
+    </release>
+    <release version="1.3.9" date="2026-04-14">
+      <description>
+        <p>i18n mega-cleanup (120+ duplicate keys removed, common.json grew from 31 to 76 keys),
+           Steam and SteamGridDB API keys migrated to system keyring,
+           Steam Store rate-limiting with 429 backoff, all docs reworked.</p>
+      </description>
+    </release>
+    <release version="1.3.8" date="2026-04-09">
+      <description>
+        <p>Fixed false-positive Steam-running detection: stale steam.pipe FIFOs are now
+           recognized via O_WRONLY|O_NONBLOCK + ENXIO, instead of triggering on a leftover pipe
+           from a previous Steam session (GitHub #12).</p>
+      </description>
+    </release>
+    <release version="1.3.7" date="2026-04-08">
+      <description>
+        <p>Flatpak: Steam-running detection now works inside the sandbox via the steam.pipe
+           named FIFO. Added missing Flatpak filesystem permissions for Steam compatdata.</p>
+      </description>
+    </release>
+    <release version="1.3.6" date="2026-04-05">
+      <description>
+        <p>Fixed four broken cross-references introduced by an earlier refactor (GitHub #11).</p>
+      </description>
+    </release>
+    <release version="1.3.5" date="2026-03-30">
+      <description>
+        <p>Fixed first-run crash on fresh installs (GitHub #10).</p>
+      </description>
+    </release>
+    <release version="1.3.4" date="2026-03-24">
+      <description>
+        <p>PEGI rating fallback chain (Steam local, Steam US, HTML scrape),
+           auto-enrich for newly added games, Flatpak manifest completed for Flathub submission.</p>
+      </description>
+    </release>
+    <release version="1.3.3" date="2026-03-16">
+      <description>
+        <p>Fixed crash on games with numeric developer/publisher fields in appinfo.vdf
+           (e.g. Cherry Tree Comedy Club). Reported by an AUR user.</p>
+      </description>
+    </release>
+    <release version="1.3.2" date="2026-03-16">
+      <description>
+        <p>Documentation and changelog updates.</p>
+      </description>
+    </release>
+    <release version="1.3.1" date="2026-03-15">
+      <description>
+        <p>Packaging fix: the database schema SQL is now included in the wheel build.</p>
+      </description>
+    </release>
+    <release version="1.3.0" date="2026-03-15">
+      <description>
+        <p>Smart Collection resilience improvements, curator integration fixes,
+           and a round of code cleanup.</p>
+      </description>
+    </release>
+    <release version="1.2.8" date="2026-03-14">
+      <description>
+        <p>Date handling now uses UTC consistently (calendar.timegm instead of
+           timezone-dependent datetime.timestamp), fixing CI failures on UTC runners.</p>
+      </description>
+    </release>
+    <release version="1.2.7" date="2026-03-12">
+      <description>
+        <p>Security hardening pass.</p>
+      </description>
+    </release>
+    <release version="1.2.6" date="2026-03-12">
+      <description>
+        <p>Unified StartupWMClass across all .desktop files to match the Wayland app_id,
+           fixing Cairo Dock and other docks not recognizing the app window.</p>
+      </description>
+    </release>
+    <release version="1.2.5" date="2026-03-11">
+      <description>
+        <p>AppImage self-update now refreshes the desktop entry so the launcher points
+           to the correct binary. Simplified AppImage filename to a version-free form.</p>
+      </description>
+    </release>
+    <release version="1.2.4" date="2026-03-11">
+      <description>
+        <p>Steam Deck responsive UI, Library Auto-Sync, and multi-format packaging
+           (.deb, .rpm, tar.gz).</p>
+      </description>
+    </release>
     <release version="1.2.0" date="2026-03-04">
       <description>
         <p>Module rename from src/ to steam_library_manager/ for PEP 423 compliance.

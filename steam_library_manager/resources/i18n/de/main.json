@@ -231,7 +231,12 @@
     "image_browser": {
       "loading_page": "Lade Seite {page}...",
       "loading_more": "Lade weitere...",
-      "all_loaded": "Alle {count} Bilder geladen."
+      "all_loaded": "Alle {count} Bilder geladen.",
+      "search_label": "SteamGridDB durchsuchen:",
+      "search_placeholder": "Spielnamen eingeben um manuell zu suchen",
+      "search_button": "Suchen",
+      "searching": "Suche nach \"{term}\"...",
+      "no_matches": "Keine Treffer - probier einen anderen Namen."
     },
     "detail": {
       "dlc_label": "DLC",
@@ -525,6 +530,8 @@
       "no_games": "Keine externen Spiele gefunden",
       "add_selected": "Ausgewählte zu Steam hinzufügen",
       "add_all": "Alle zu Steam hinzufügen",
+      "select_all": "Alle auswählen",
+      "deselect_all": "Alle abwählen",
       "adding_game": "Hinzufügen: {name} ({current}/{total})",
       "complete": "Import abgeschlossen",
       "complete_message": "Hinzugefügt: {added}, Übersprungen: {skipped}, Fehler: {errors}",

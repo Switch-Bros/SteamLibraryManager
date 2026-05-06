@@ -572,6 +572,30 @@ CREATE TABLE IF NOT EXISTS playtime_snapshots (
 );
 
 -- ============================================================================
+-- v12: EMULATOR DETECTION (emulator settings + ROM library cache)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS emulator_settings (
+    emulator_name TEXT PRIMARY KEY,
+    enabled INTEGER DEFAULT 1,
+    default_for_system TEXT DEFAULT '',
+    custom_game_dirs TEXT DEFAULT '[]',       -- JSON array of user-added paths
+    appimage_search_dirs TEXT DEFAULT '[]',   -- JSON array of AppImage search dirs
+    executable_override TEXT DEFAULT '',      -- user-set executable path
+    updated_at TEXT DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS emulator_games (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    emulator_name TEXT NOT NULL,
+    system TEXT NOT NULL,
+    rom_path TEXT NOT NULL UNIQUE,
+    game_name TEXT NOT NULL,
+    last_seen TEXT NOT NULL,
+    added_to_steam INTEGER DEFAULT 0
+);
+
+-- ============================================================================
 -- METADATA TABLES
 -- ============================================================================
 
@@ -651,6 +675,10 @@ CREATE INDEX IF NOT EXISTS idx_wishlist_priority ON wishlist(priority);
 -- External games (v7)
 CREATE INDEX IF NOT EXISTS idx_external_platform ON external_games(platform);
 CREATE INDEX IF NOT EXISTS idx_external_name ON external_games(name);
+
+-- Emulator detection (v12)
+CREATE INDEX IF NOT EXISTS idx_emulator_games_system ON emulator_games(system);
+CREATE INDEX IF NOT EXISTS idx_emulator_games_emulator ON emulator_games(emulator_name);
 
 -- v8: User game status
 CREATE INDEX IF NOT EXISTS idx_ugs_status ON user_game_status(status);
@@ -755,7 +783,7 @@ END;
 -- ============================================================================
 
 INSERT OR IGNORE INTO schema_version (version, applied_at, description)
-VALUES (11, strftime('%s', 'now'), 'v11: platform playtime columns');
+VALUES (12, strftime('%s', 'now'), 'v12: emulator detection (settings + games cache)');
 
 -- ============================================================================
 -- END OF SCHEMA

@@ -329,7 +329,41 @@ class GameService:
         types = self._discover_missing(pkg_ids, cb)
         self._api_refresh_merge(user_id, cb)
         self._finalize(mods, types, cb)
+        self._merge_shortcuts(user_id, cb)
         return True
+
+    def _merge_shortcuts(self, user_id, cb):
+        # import non-Steam shortcuts so they show up in the main library / collections.
+        # `user_id` here is the 64-bit SteamID; shortcuts.vdf lives under the 32-bit
+        # account id so we have to resolve that separately via config.get_detected_user().
+        from steam_library_manager.config import config
+        from steam_library_manager.core.shortcuts_manager import ShortcutsManager
+        from steam_library_manager.services.shortcuts_importer import ShortcutsImporter
+
+        if cb:
+            cb(t("logs.service.importing_shortcuts"), 0, 0)
+
+        acct_id, _ = config.get_detected_user()
+        if not acct_id:
+            logger.info("no detected steam account, skipping shortcuts import")
+            return
+
+        try:
+            mgr = ShortcutsManager(Path(self.steam_path) / "userdata", str(acct_id))
+            importer = ShortcutsImporter(mgr)
+            if not importer.is_available():
+                logger.info("no shortcuts.vdf at %s, nothing to import" % mgr.get_shortcuts_path())
+                return
+            shortcuts = importer.read_games()
+        except Exception:
+            logger.exception("shortcuts import failed")
+            return
+
+        for game in shortcuts:
+            # signed-int32 form is unique vs Steam's positive appids, no collision risk
+            self.game_manager.games[game.app_id] = game
+
+        logger.info("merged %d shortcuts into library" % len(shortcuts))
 
     # pipeline steps
 

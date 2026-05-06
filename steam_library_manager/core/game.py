@@ -112,6 +112,16 @@ class Game:
     dlc_ids: list[int] = None
     family_sharing_excluded: bool = False
 
+    # Non-Steam shortcut metadata (v1.5.0)
+    # is_shortcut=True means this Game came from shortcuts.vdf, not the Steam API.
+    # AppIDs for shortcuts are 32-bit hashes stored as negative ints in shortcuts.vdf;
+    # categories are persisted as tags inside shortcuts.vdf, not in cloud-storage.
+    is_shortcut: bool = False
+    shortcut_exe: str = ""
+    shortcut_start_dir: str = ""
+    shortcut_launch_options: str = ""
+    shortcut_icon: str = ""
+
     def __post_init__(self):
         """Initializes default lists and sort name if missing."""
         if self.categories is None:

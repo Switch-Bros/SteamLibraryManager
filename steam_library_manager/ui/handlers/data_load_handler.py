@@ -90,10 +90,13 @@ class DataLoadHandler:
         # init svcs
         from steam_library_manager.services.category_service import CategoryService
 
+        from steam_library_manager.services.bootstrap_service import _build_shortcuts_manager
+
         self.mw.category_service = CategoryService(
             localconfig_helper=self.mw.localconfig_helper,
             cloud_parser=self.mw.cloud_storage_parser,
             game_manager=self.mw.game_manager,
+            shortcuts_manager=_build_shortcuts_manager(),
         )
 
         from steam_library_manager.services.metadata_service import MetadataService

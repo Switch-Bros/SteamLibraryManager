@@ -15,7 +15,6 @@ __all__ = [
     "EmulatorDef",
     "EMUDECK_ROM_DIRS",
     "EMULATORS",
-    "ROM_SEARCH_PATHS",
     "SYSTEM_EMULATORS",
     "SystemName",
 ]
@@ -244,16 +243,6 @@ SYSTEM_EMULATORS: dict[str, list[EmulatorDef]] = {}
 for _emu in EMULATORS:
     SYSTEM_EMULATORS.setdefault(_emu.system, []).append(_emu)
 
-
-# Standard ROM directories (in priority order)
-ROM_SEARCH_PATHS: tuple[str, ...] = (
-    "~/Emulation/roms",
-    "/mnt/volume/Emulation/roms",
-    "~/.config/retroarch/roms",
-    "~/Games/roms",
-    "~/ROMs",
-    "~/roms",
-)
 
 # EmuDeck standard subdirectory names per system
 EMUDECK_ROM_DIRS: dict[str, str] = {

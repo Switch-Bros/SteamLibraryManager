@@ -73,6 +73,11 @@ class SettingsDialog(BaseDialog):
         self._init_cloud_tab(tab_cloud)
         self.tabs.addTab(tab_cloud, t("settings.tabs.cloud_sync"))
 
+        # --- TAB 4: EMULATORS ---
+        tab_emu = QWidget()
+        self._init_emulator_tab(tab_emu)
+        self.tabs.addTab(tab_emu, t("settings.tabs.emulators"))
+
         # Buttons (Save / Close)
         btn_layout = QHBoxLayout()
         self.btn_save = QPushButton(t("common.save"))
@@ -240,6 +245,33 @@ class SettingsDialog(BaseDialog):
         self.cloud_tab.load_settings(config)
         lyt = QVBoxLayout(tab)
         lyt.addWidget(self.cloud_tab)
+
+    def _init_emulator_tab(self, tab):
+        from steam_library_manager.ui.dialogs.emulator_settings_tab import EmulatorSettingsTab
+
+        self.emulator_tab = EmulatorSettingsTab(parent=tab)
+        lyt = QVBoxLayout(tab)
+        lyt.addWidget(self.emulator_tab)
+
+        # wire EmulatorService from main window's game_service
+        svc = self._lookup_emulator_service()
+        if svc is not None:
+            self.emulator_tab.set_service(svc)
+
+    def _lookup_emulator_service(self):
+        # main_window -> game_service.database -> wrap in fresh EmulatorService
+        widget = self.parent()
+        for _ in range(5):
+            if widget is None:
+                return None
+            gs = getattr(widget, "game_service", None)
+            db = getattr(gs, "database", None) if gs is not None else None
+            if db is not None:
+                from steam_library_manager.services.emulator_service import EmulatorService
+
+                return EmulatorService(db)
+            widget = widget.parent() if hasattr(widget, "parent") else None
+        return None
 
     def _load_current_settings(self):
         # fill form from config
