@@ -91,19 +91,33 @@
   <screenshots>
     <screenshot type="default">
       <caption>Game details with ProtonDB, Steam Deck status, HLTB times, and collection overview</caption>
-      <image>https://raw.githubusercontent.com/Switch-Bros/SteamLibraryManager/v1.4.3/steam_library_manager/resources/screenshots/05_autocat_results.webp</image>
+      <image>https://raw.githubusercontent.com/Switch-Bros/SteamLibraryManager/v1.4.4/steam_library_manager/resources/screenshots/05_autocat_results.webp</image>
     </screenshot>
     <screenshot>
       <caption>Smart Collections editor with AND/OR/NOT logic and live preview</caption>
-      <image>https://raw.githubusercontent.com/Switch-Bros/SteamLibraryManager/v1.4.3/steam_library_manager/resources/screenshots/02_smart_collections_editor.webp</image>
+      <image>https://raw.githubusercontent.com/Switch-Bros/SteamLibraryManager/v1.4.4/steam_library_manager/resources/screenshots/02_smart_collections_editor.webp</image>
     </screenshot>
     <screenshot>
       <caption>Auto-Categorize dialog with 17 category types and saveable presets</caption>
-      <image>https://raw.githubusercontent.com/Switch-Bros/SteamLibraryManager/v1.4.3/steam_library_manager/resources/screenshots/04_autocat_dialog.webp</image>
+      <image>https://raw.githubusercontent.com/Switch-Bros/SteamLibraryManager/v1.4.4/steam_library_manager/resources/screenshots/04_autocat_dialog.webp</image>
     </screenshot>
   </screenshots>
 
   <releases>
+    <release version="1.4.4" date="2026-05-06">
+      <description>
+        <p>Complete External Games Overhaul. Smart Emulator Detection reads
+           game directories directly from emulator config files (Eden, Citron,
+           Ryujinx, Cemu, Dolphin, Azahar, RetroArch, PPSSPP, melonDS, DOSBox).
+           Hardcoded ROM search paths removed. New Settings tab "Emulators"
+           with custom game dirs and per-system default-emulator picker.
+           Non-Steam shortcuts from shortcuts.vdf now appear in the main
+           library with their tags as categories - bidirectional sync writes
+           changes back to both shortcuts.vdf and cloud-storage so Steam
+           shows the collections after a restart. Manual SteamGridDB search
+           in the cover picker. DB Schema v12.</p>
+      </description>
+    </release>
     <release version="1.4.3" date="2026-05-05">
       <description>
         <p>AppImage now bundles libxcb-cursor.so.0, fixing the Qt 6.5+ xcb plugin
