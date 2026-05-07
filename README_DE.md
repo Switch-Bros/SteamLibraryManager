@@ -12,7 +12,7 @@
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-FDE100?style=plastic&logo=python&logoColor=FDE100&labelColor=000000)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Steam%20Deck-FDE100?style=plastic&logo=linux&logoColor=FDE100&labelColor=000000)](https://store.steampowered.com/steamdeck)
 [![Lizenz](https://img.shields.io/badge/Lizenz-MIT-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager/blob/main/LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-1794%20passed-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
+[![Tests](https://img.shields.io/badge/Tests-1839%20passed-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
 [![Steam API](https://img.shields.io/badge/Steam%20API-Optional-FDE100?style=plastic&logo=steam&logoColor=FDE100&labelColor=000000)](https://steamcommunity.com/dev/apikey)
 [![SteamGridDB](https://img.shields.io/badge/SteamGridDB-Required-FDE100?style=plastic&logoColor=FDE100&labelColor=000000)](https://www.steamgriddb.com/api)
 [![i18n](https://img.shields.io/badge/i18n-🇬🇧%20🇩🇪-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
@@ -261,12 +261,31 @@ Entwickelt mit **PyQt6** für nahtlose Desktop-Integration. Das ist keine Window
 
 <h3 align="center">🎮 Externe Spiele - <i>Eine Bibliothek für alles</i></h3>
 
-Spiele verstreut über Epic, GOG, Amazon, Lutris, Bottles, itch.io und Flatpak? **SLM findet sie alle** - und fügt sie in einem Rutsch als Non-Steam-Shortcuts zu Steam hinzu.
+Spiele verstreut über Epic, GOG, Amazon, Lutris, Bottles, itch.io, Flatpak **und Emulatoren**? **SLM findet sie alle** - und fügt sie in einem Rutsch als Non-Steam-Shortcuts zu Steam hinzu. Importierte Shortcuts erscheinen außerdem in SLMs Hauptbibliothek, sodass du sie wie jedes Steam-Spiel in Smart Collections ziehen kannst.
 
-- **8 Plattform-Parser** - Heroic (Epic/GOG/Amazon), Lutris, Bottles, itch.io, Flatpak und bestehende shortcuts.vdf
-- **Auto-Erkennung** - SLM scannt nach installierten Launchern (nativ und Flatpak) und liest deren Spielebibliotheken direkt aus. Steams "Steam fremdes Spiel hinzufügen"-Dialog sieht nur Programme in deinem PATH - er hat keine Ahnung was Heroic, Lutris oder Bottles installiert haben
-- **Duplikat-Schutz** - bereits in Steam vorhandene Spiele werden erkannt und übersprungen
-- **Plattform-Kollektionen** - importierte Spiele werden automatisch nach Plattform in Steam-Kollektionen einsortiert. In SLMs Seitenleiste bekommt jede Kollektion einen visuellen Emoji-Indikator zur sofortigen Erkennung:
+**Launcher-Parser** (8): Heroic (Epic/GOG/Amazon), Lutris, Bottles, itch.io, Flatpak, plus existierende Einträge aus `shortcuts.vdf`.
+
+**Smart Emulator Detection** (9 Parser, keine hardcoded ROM-Pfade) - SLM liest die Spielverzeichnisse direkt aus den Config-Dateien der Emulatoren, findet deine ROMs also überall wo du sie ablegst:
+
+| Emulator | System(e) | Liest aus |
+|---|---|---|
+| Eden, Citron, Ryujinx | Nintendo Switch | qt-config / Config.json |
+| Cemu | Nintendo Wii U | settings.xml |
+| Dolphin | GameCube / Wii | Dolphin.ini ISOPaths |
+| Azahar | Nintendo 3DS | qt-config |
+| RetroArch | 21 Systeme | Playlist-`.lpl`-Dateien |
+| PPSSPP | PlayStation Portable | ppsspp.ini RecentISOs |
+| melonDS, DOSBox | NDS / DOS | (keine Library-Config - User-Verzeichnisse) |
+
+EmuDeck dient als Fallback-Hint-Provider für Emulatoren ohne eigene Library-Config. AppImages werden in `~/Applications`, `~/AppImages` und anderen Standard-Linux-User-Pfaden automatisch erkannt. **Keine hardcoded `/mnt/volume/Emulation/roms`-artigen Pfade mehr** - alles kommt vom Emulator selbst oder aus deinen Einstellungen.
+
+**Settings-Tab "Emulatoren"** - pro Emulator: Status-Badge (Flatpak / System / AppImage / Nur-Config), eigene Spielverzeichnisse, Programm-Override und ein Default-Emulator-pro-System-Picker für Konflikte (z.B. zwischen Eden/Ryujinx für Switch wählen).
+
+**Bidirektionaler Shortcut-Sync** - Non-Steam-Shortcuts aus `shortcuts.vdf` erscheinen in SLMs Hauptbibliothek mit ihren Tags als Kategorien. Wenn du sie in SLM zwischen Kollektionen ziehst, wird die Änderung sowohl in `shortcuts.vdf` als auch in Steams Cloud-Storage geschrieben - die Kollektion füllt sich nach dem nächsten Steam-Restart in dessen Sidebar.
+
+**Duplikat-Schutz** - bereits in Steam vorhandene Spiele werden erkannt und übersprungen. Nintendo-Title-Updates (z.B. `Game [v0].nsp` + `Game [v327680].nsp`) werden zu einem einzigen Steam-Shortcut zusammengefasst, damit du nicht mit kaputten Update-only-Einträgen endest.
+
+**Plattform-Kollektionen** - importierte Spiele werden automatisch nach Plattform in Steam-Kollektionen einsortiert. In SLMs Seitenleiste bekommt jede Kollektion einen visuellen Emoji-Indikator zur sofortigen Erkennung:
 
 | Kollektion | Indikator |
 |---|---|
@@ -277,9 +296,14 @@ Spiele verstreut über Epic, GOG, Amazon, Lutris, Bottles, itch.io und Flatpak? 
 | Bottles 🍾 | Flasche |
 | itch.io 🎲 | Würfel |
 | Flatpak 📦 | Paket |
+| Emulation (Nintendo Switch) 🔴 | Rot |
+| Emulation (andere Systeme) | system-spezifische Farben |
 
-- **Binärer VDF-Parser** - liest und schreibt Steams `shortcuts.vdf`-Format mit Byte-genauer Präzision
-- **Batch-Import** - alle Plattformen auf einmal scannen, auswählen, alle mit Fortschrittsanzeige hinzufügen
+**Manuelle SteamGridDB-Suche** - der Cover-Picker hat jetzt ein Freitextsuchfeld. Wichtig für Non-Steam-Shortcuts deren Hash-AppIDs SteamGridDB unbekannt sind (die Suche läuft automatisch beim Öffnen für einen Shortcut).
+
+**Externe-Spiele-Dialog QoL** - Spalten resizable, "Alle ab-/auswählen"-Toggle, damit du nicht 200 Spiele einzeln abwählen musst wenn du nur 2 willst.
+
+**Binärer VDF-Parser** - liest und schreibt Steams `shortcuts.vdf`-Format mit Byte-genauer Präzision. **Batch-Import** - alle Plattformen auf einmal scannen, auswählen, alle mit Fortschrittsanzeige hinzufügen.
 
 *Steams eigener "Steam fremdes Spiel hinzufügen"-Dialog kann zwar mehrere Apps markieren - aber er sieht nur was in deinem PATH liegt, nicht deine tatsächlichen Spielebibliotheken. SLM scannt Heroic, Lutris, Bottles und mehr direkt, weiß genau was installiert ist, und organisiert alles automatisch in saubere Kollektionen.*
 
@@ -416,7 +440,7 @@ Dieses Projekt nutzt folgende Dienste:
 | Architektur-Refactoring, Menü-Redesign | ✅ Fertig |
 | Depressurizer Feature-Parität (17 AutoCat-Typen) | ✅ Fertig |
 | Smart Collections, Steam Deck Optimizer, HLTB | ✅ Fertig |
-| Externe Spiele (8 Parser), ProtonDB, Kuratoren | ✅ Fertig |
+| Externe Spiele Launcher-Parser (8 Quellen), ProtonDB, Kuratoren | ✅ Fertig |
 | UI-Polish, Keyboard Shortcuts, Dokumentation | ✅ Fertig |
 | **v1.1.1 - Erste öffentliche Veröffentlichung** | ✅ **Veröffentlicht** |
 | **v1.2.0 - Modul-Umbenennung, AUR-Paket** | ✅ **Veröffentlicht** |
@@ -432,7 +456,13 @@ Dieses Projekt nutzt folgende Dienste:
 | **v1.3.9 - i18n Cleanup, Security, DRY** | ✅ **Veröffentlicht** |
 | **v1.4.0 - Statistik-Dashboard (7 Tabs)** | ✅ **Veröffentlicht** |
 | **v1.4.2 - Statistik i18n + Screenshots** | ✅ **Veröffentlicht** |
-| Flatpak (Flathub) | 📋 Neuer PR geplant |
+| **v1.4.3 - AppImage libxcb-cursor0 Fix (Mint 21.3 / Ubuntu 22.04)** | ✅ **Veröffentlicht** |
+| Smart Emulator Detection (9 Parser, keine hardcoded Pfade) | ✅ Fertig |
+| Settings-Tab "Emulatoren" (eigene Verzeichnisse, Default-Emulator-Picker) | ✅ Fertig |
+| Bidirektionaler Shortcut-Sync (shortcuts.vdf <-> SLM <-> Cloud-Storage) | ✅ Fertig |
+| Manuelle SteamGridDB-Suche im Cover-Picker | ✅ Fertig |
+| **v1.4.4 - Complete External Games Overhaul** | ✅ **Veröffentlicht** |
+| Flatpak (Flathub-Einreichung) | 📋 PR ausstehend |
 | Windows-Unterstützung | 📋 Geplant |
 
 
