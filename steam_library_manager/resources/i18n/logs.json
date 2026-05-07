@@ -129,7 +129,13 @@
       "string_index_out_of_range": "Warning: String index out of range at offset {offset}",
       "unknown_vdf_type": "Unknown VDF type {type}, skipping",
       "string_index_warning": "String index {index} out of range (table size: {size})",
-      "write_error_detail": "Error writing appinfo.vdf: {error}"
+      "write_error_detail": "Error writing appinfo.vdf: {error}",
+      "drift_detected": "Detected drift in {count} app(s) - re-applying modifications to appinfo.vdf",
+      "reapplied": "Re-applied {count} modification(s) after Steam overwrote appinfo.vdf",
+      "external_change": "appinfo.vdf changed externally - reloading and re-applying modifications",
+      "watcher_started": "Watching appinfo.vdf for external changes",
+      "watcher_failed": "Could not start appinfo.vdf watcher: {error}",
+      "write_error": "Error writing appinfo.vdf: {error}"
     },
     "parser": {
       "apps_not_found": "Apps section not found in localconfig.vdf",

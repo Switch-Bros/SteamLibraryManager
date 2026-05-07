@@ -48,6 +48,12 @@ class AppInfoManager:
         # dirty flag for VDF write
         self.vdf_dirty = False
 
+        # Bool is set during the synchronous write call. Async inotify events
+        # arrive AFTER the bool is reset, so the watcher also checks the
+        # timestamp below within a window.
+        self._writing_to_vdf = False
+        self._last_self_write_ts = 0.0
+
         # appinfo.vdf object
         self.appinfo = None
         self.appinfo_path = None
@@ -73,6 +79,10 @@ class AppInfoManager:
 
                 count = len(self.appinfo.apps)
                 logger.info(t("logs.appinfo.loaded_binary", count=count))
+
+                # Steam regularly overwrites appinfo.vdf with fresh server data,
+                # wiping out custom edits. Detect drift and re-apply now.
+                self.verify_and_reapply()
 
             except IncompatibleVersionError as e:
                 logger.info(t("logs.appinfo.incompatible_version", version=hex(e.version)))
@@ -116,20 +126,23 @@ class AppInfoManager:
 
     @staticmethod
     def _find_common_section(data):
-        # recursively search for 'common' section in VDF data
+        # Steam reads metadata from data["appinfo"]["common"] for library
+        # display. An older version of update_app_metadata wrote into a
+        # top-level data["common"] block that Steam ignored - prefer the
+        # canonical Steam path so reads see what Steam actually displays.
+        if isinstance(data.get("appinfo"), dict) and "common" in data["appinfo"]:
+            return data["appinfo"]["common"]
+
         if "common" in data:
             return data["common"]
 
-        if "appinfo" in data and "common" in data["appinfo"]:
-            return data["appinfo"]["common"]
-
-        # recursive search (limited depth)
-        for key, value in data.items():
+        # recursive search (limited depth) for atypical structures
+        for value in data.values():
             if isinstance(value, dict):
+                if isinstance(value.get("appinfo"), dict) and "common" in value["appinfo"]:
+                    return value["appinfo"]["common"]
                 if "common" in value:
                     return value["common"]
-                if "appinfo" in value and "common" in value["appinfo"]:
-                    return value["appinfo"]["common"]
 
         return {}
 
@@ -214,10 +227,16 @@ class AppInfoManager:
             return False
 
     def save_appinfo(self):
-        # save modifications to JSON file
+        # save modifications to JSON file and (if dirty) re-write the binary VDF
         result = save_json(self.metadata_file, self.modifications)
         if result:
             logger.info(t("logs.appinfo.saved_mods", count=len(self.modifications)))
+
+        # Persist to binary VDF immediately so the change survives a crash
+        # and is visible to Steam without waiting for an SLM exit.
+        if self.vdf_dirty and self.appinfo:
+            self.write_to_vdf(backup=True)
+
         return result
 
     def write_to_vdf(self, backup=True):
@@ -238,17 +257,100 @@ class AppInfoManager:
                 else:
                     logger.error(t("logs.appinfo.backup_failed", error=t("common.unknown")))
 
-            # write using appinfo_v2's method
-            success = self.appinfo.write()
+            # write using appinfo_v2's method, guarded so the file watcher
+            # ignores the resulting mtime change as our own action
+            import time
+
+            self._writing_to_vdf = True
+            try:
+                success = self.appinfo.write()
+            finally:
+                # The inotify event arrives async, after this returns. Record
+                # the timestamp so the watcher can suppress events that fire
+                # within a short window after our own write.
+                self._last_self_write_ts = time.time()
+                self._writing_to_vdf = False
+
             if success:
                 self.vdf_dirty = False
                 logger.info(t("logs.appinfo.saved_vdf"))
             return success
 
         except Exception as e:
+            self._writing_to_vdf = False
             logger.error(t("logs.appinfo.write_error", error=str(e)))
             logger.error(t("logs.appinfo.write_error_detail", error=e), exc_info=True)
             return False
+
+    @staticmethod
+    def _has_drifted(common: dict, modified: dict) -> bool:
+        """Return True if any modified field differs from the binary common section."""
+        # JSON key -> primary VDF key; release_date has a fallback
+        field_map = {
+            "name": "name",
+            "developer": "developer",
+            "publisher": "publisher",
+            "release_date": "steam_release_date",
+        }
+
+        for json_key, vdf_key in field_map.items():
+            if json_key not in modified:
+                continue
+
+            wanted_raw = modified[json_key]
+            wanted = "" if wanted_raw is None else str(wanted_raw)
+
+            current = str(common.get(vdf_key, "") or "")
+            if json_key == "release_date" and not current:
+                current = str(common.get("release_date", "") or "")
+
+            if wanted != current:
+                return True
+
+        return False
+
+    def verify_and_reapply(self) -> int:
+        """Detect drift between custom_metadata.json and binary appinfo.vdf.
+
+        Steam overwrites appinfo.vdf on login, app updates, and server-driven
+        change-number bumps. This wipes out the user's metadata edits. We
+        compare each saved modification against the freshly loaded binary and
+        re-apply any that have drifted, then persist the result.
+
+        Returns the number of apps that needed re-applying.
+        """
+        if not self.appinfo or not self.modifications:
+            return 0
+
+        drift_count = 0
+
+        for app_id_str, mod_data in self.modifications.items():
+            modified = mod_data.get("modified", {}) if isinstance(mod_data, dict) else {}
+            if not modified:
+                continue
+
+            try:
+                app_id = int(app_id_str)
+            except (TypeError, ValueError):
+                continue
+
+            if app_id not in self.appinfo.apps:
+                continue
+
+            app_data = self.appinfo.apps[app_id].get("data", {})
+            common = self._find_common_section(app_data)
+
+            if self._has_drifted(common, modified):
+                self.appinfo.update_app_metadata(app_id, modified)
+                drift_count += 1
+
+        if drift_count > 0:
+            self.vdf_dirty = True
+            logger.info(t("logs.appinfo.drift_detected", count=drift_count))
+            self.write_to_vdf(backup=True)
+            logger.info(t("logs.appinfo.reapplied", count=drift_count))
+
+        return drift_count
 
     def restore_modifications(self, app_ids=None):
         # restore saved modifications to VDF

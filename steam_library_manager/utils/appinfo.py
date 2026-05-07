@@ -382,9 +382,13 @@ class AppInfo:
         if self.version >= 38:
             output.extend(struct.pack("<Q", edata.get("access_token", 0)))
 
-        # Version 38+ has SHA-1 hash
+        # Version 38+ has SHA-1 hash. Steam validates this on read:
+        # if hash != content, the entry is logged as
+        # "Corrupt data in binary buffer" and the cache is wiped. So we
+        # always recompute the hash over the current (possibly modified)
+        # content. Steam does not compare against a server-side hash here -
+        # the diff protocol uses change_number (preserved untouched).
         if self.version >= 38:
-            # Calculate text VDF SHA-1
             tvdf = self._dict_to_text_vdf(edata.get("data", {}))
             sha1 = hashlib.sha1(tvdf).digest()
             output.extend(sha1)
@@ -393,7 +397,7 @@ class AppInfo:
         if self.version >= 36:
             output.extend(struct.pack("<I", edata.get("change_number", 0)))
 
-        # Version 40+ has binary SHA-1 hash
+        # Version 40+ has binary SHA-1 hash - same reasoning as above.
         if self.version >= 40:
             bsha1 = hashlib.sha1(vd).digest()
             output.extend(bsha1)
@@ -525,10 +529,30 @@ class AppInfo:
 
         adata = self.apps[update_app_id].get("data", {})
 
-        if "common" not in adata:
-            adata["common"] = {}
+        # Steam reads from data["appinfo"]["common"] for library display.
+        # Earlier versions of this code wrote to data["common"] (top-level),
+        # which Steam ignored - meaning every metadata edit since then
+        # silently went into a parallel section that Steam never read.
+        if "appinfo" in adata and isinstance(adata["appinfo"], dict):
+            if "common" not in adata["appinfo"]:
+                adata["appinfo"]["common"] = {}
+            common = adata["appinfo"]["common"]
+        else:
+            # Fallback for atypical apps that have only a top-level common
+            if "common" not in adata:
+                adata["common"] = {}
+            common = adata["common"]
 
-        common = adata["common"]
+        # Drop any stale top-level 'common' that older SLM versions wrote
+        # there - we don't want it shadowing the real values on next read.
+        if (
+            "appinfo" in adata
+            and isinstance(adata["appinfo"], dict)
+            and "common" in adata["appinfo"]
+            and "common" in adata
+            and adata["common"] is not adata["appinfo"]["common"]
+        ):
+            del adata["common"]
 
         # Update fields
         if "name" in metadata:

@@ -5,6 +5,42 @@ All notable changes to Steam Library Manager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.5] - 2026-05-07
+
+### Fixed
+- **Critical: Metadata edits now actually visible to Steam.** A latent bug
+  caused `update_app_metadata` to write into `data["common"]` (top-level)
+  while Steam reads from `data["appinfo"]["common"]`. As a result, every
+  metadata edit since the feature was introduced silently went into a
+  parallel section that Steam ignored - users saw the change in SLM but
+  never in the Steam Library. The writer now targets the correct path,
+  cleans up stale `data["common"]` entries from older SLM versions, and
+  the drift detector compares against the path Steam actually reads.
+- The `_find_common_section` lookup order is reversed to match Steam's
+  reading order (`appinfo.common` first, top-level `common` as fallback).
+
+### Added
+- **Auto-Reapply on startup**: `AppInfoManager.verify_and_reapply()` runs
+  after every `load_appinfo`. If Steam overwrote the file with fresh CDN
+  data and wiped out the user's edits, SLM detects the drift and re-applies
+  the saved modifications immediately - no manual restore button needed.
+- **Live file watcher** on `appinfo.vdf` via `QFileSystemWatcher`. While
+  SLM is running, any external rewrite of the file (Steam refresh, manual
+  edit, etc.) is detected and re-applied. Debounced 800 ms to coalesce
+  Steam's burst writes; self-write suppression via timestamp window so the
+  watcher does not loop on our own writes.
+- **Immediate VDF write after every save**. Previously the binary VDF was
+  only flushed on SLM exit, so a crash between save and exit would lose
+  the edit. `save_appinfo()` now writes the VDF as soon as the in-memory
+  state is dirty.
+- **16 new unit tests** covering drift detection, partial drift across
+  multiple apps, fallback paths, and the new save-triggers-write behavior.
+
+### Changed
+- `update_app_metadata` no longer creates a top-level `common` block;
+  always targets `appinfo.common`. Stale top-level blocks are removed on
+  the next write so the file converges back to Steam's expected layout.
+
 ## [1.4.4] - 2026-05-06
 
 ### Added

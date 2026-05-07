@@ -12,7 +12,7 @@
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-FDE100?style=plastic&logo=python&logoColor=FDE100&labelColor=000000)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Steam%20Deck-FDE100?style=plastic&logo=linux&logoColor=FDE100&labelColor=000000)](https://store.steampowered.com/steamdeck)
 [![License](https://img.shields.io/badge/License-MIT-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager/blob/main/LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-1839%20passed-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
+[![Tests](https://img.shields.io/badge/Tests-1855%20passed-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
 [![Steam API](https://img.shields.io/badge/Steam%20API-Optional-FDE100?style=plastic&logo=steam&logoColor=FDE100&labelColor=000000)](https://steamcommunity.com/dev/apikey)
 [![SteamGridDB](https://img.shields.io/badge/SteamGridDB-Required-FDE100?style=plastic&logoColor=FDE100&labelColor=000000)](https://www.steamgriddb.com/api)
 [![i18n](https://img.shields.io/badge/i18n-🇬🇧%20🇩🇪-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
@@ -127,9 +127,9 @@ Each rule type has its own configuration - set thresholds, define ignore lists, 
 
 Edit game names, sort titles, developers, publishers, and release dates - all stored locally. What makes this special:
 
-- **Overlay System:** Your modifications are stored separately from Steam's data. When Steam overwrites `appinfo.vdf` (which it does regularly), your changes are **automatically re-applied** on top. Like Git rebasing for metadata - Steam provides "upstream", your edits are "patches".
+- **Overlay System:** Your modifications are stored separately from Steam's data in `custom_metadata.json`. When Steam overwrites `appinfo.vdf` (which it does on login when the server change-number bumps), your edits are **automatically re-applied** on the next SLM start - and live, while SLM is running, via a file watcher. Like Git rebasing for metadata: Steam provides "upstream", your edits are "patches".
 - **Bulk Edit:** Select hundreds of games, change a field, apply. Done.
-- **Custom Sort Titles:** Make "The Witcher 3" sort under "W", not "T".
+- **Custom Sort Titles:** Make "The Witcher 3" sort under "W", not "T". Edits land in the path Steam actually reads (`appinfo.common`), with internally-consistent SHA-1 hashes so Steam accepts the file instead of wiping the cache.
 
 *No other Steam library tool does this. Depressurizer loses your changes when Steam updates. We don't.*
 
@@ -462,6 +462,9 @@ This project uses the following services:
 | Bidirectional shortcut sync (shortcuts.vdf <-> SLM <-> cloud-storage) | ✅ Complete |
 | Manual SteamGridDB search in cover picker | ✅ Complete |
 | **v1.4.4 - Complete External Games Overhaul** | ✅ **Released** |
+| Critical fix: metadata edits now actually visible to Steam | ✅ Complete |
+| Auto-Reapply on startup + live file watcher for `appinfo.vdf` | ✅ Complete |
+| **v1.4.5 - Critical appinfo.vdf metadata fix** | ✅ **Released** |
 | Flatpak (Flathub submission) | 📋 PR pending |
 | Windows support | 📋 Planned |
 
