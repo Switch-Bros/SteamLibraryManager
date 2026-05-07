@@ -104,6 +104,21 @@
   </screenshots>
 
   <releases>
+    <release version="1.4.5" date="2026-05-07">
+      <description>
+        <p>Critical fix: metadata edits now actually visible to Steam.
+           A latent bug caused metadata edits to be written into a
+           parallel section of appinfo.vdf that Steam ignored - users saw
+           changes in SLM but never in the Steam Library. Edits now land
+           in the path Steam actually reads, with internally consistent
+           SHA-1 hashes so Steam accepts the file.</p>
+        <p>New robustness layers against Steam's CDN-driven appinfo.vdf
+           rewrites: auto-reapply on every SLM start, immediate VDF
+           flush on save (no more lost edits on crash), and a live file
+           watcher that re-applies modifications when Steam overwrites
+           the file while SLM is running.</p>
+      </description>
+    </release>
     <release version="1.4.4" date="2026-05-06">
       <description>
         <p>Complete External Games Overhaul. Smart Emulator Detection reads
