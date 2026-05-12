@@ -104,6 +104,23 @@
   </screenshots>
 
   <releases>
+    <release version="1.5.1" date="2026-05-12">
+      <description>
+        <p>Hotfix: external-game shortcuts (Heroic, Lutris, Flatpak,
+           itch.io) added to Steam since v1.4.4 silently failed to
+           launch. Steam treated the URI or 'flatpak run ...' command
+           as a file path; clicking Play did nothing or crashed Steam
+           when its overlay tried to attach to Electron-based
+           launchers.</p>
+        <p>The launch is now split into exe + launch options, routed
+           through the launcher's native binary, detached via setsid
+           so Steam stops tracking it immediately, and stripped of
+           Steam-injected environment variables (LD_PRELOAD,
+           SteamAppId, ...) so the launched game starts in a clean
+           environment. Existing broken shortcuts need to be removed
+           and re-added once for the fix to take effect.</p>
+      </description>
+    </release>
     <release version="1.5.0" date="2026-05-12">
       <description>
         <p>Heroic Sideload Parser: manually added apps in Heroic Games
