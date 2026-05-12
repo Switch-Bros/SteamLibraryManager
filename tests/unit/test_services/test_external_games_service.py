@@ -259,38 +259,41 @@ class TestLaunchCommandSplit:
             launch_command=launch_command,
         )
 
-    def test_heroic_uri_uses_heroic_binary(self) -> None:
-        """heroic:// URIs go to /usr/bin/heroic directly (bypass xdg-open)."""
+    def test_heroic_uri_uses_setsid_detached_heroic_binary(self) -> None:
+        """heroic:// URIs spawn /usr/bin/heroic via setsid -f so Steam doesn't hang on it."""
         game = self._make_game(launch_command="heroic://launch/abc123?runner=sideload")
         exe = ExternalGamesService._build_exe(game)
         opts = ExternalGamesService._build_launch_options(game)
-        assert exe == '"/usr/bin/heroic"'
-        assert opts == "heroic://launch/abc123?runner=sideload"
+        assert exe == '"/usr/bin/setsid"'
+        assert opts == "-f /usr/bin/heroic heroic://launch/abc123?runner=sideload"
 
-    def test_unknown_uri_scheme_falls_back_to_xdg_open(self) -> None:
-        """Schemes without a known binary (e.g. steam://) fall back to xdg-open."""
+    def test_unknown_uri_scheme_wraps_xdg_open_in_setsid(self) -> None:
+        """Schemes without a known binary (e.g. steam://) wrap xdg-open via setsid -f."""
         game = self._make_game(launch_command="steam://run/12345")
         exe = ExternalGamesService._build_exe(game)
         opts = ExternalGamesService._build_launch_options(game)
-        assert exe == '"/usr/bin/xdg-open"'
-        assert opts == "steam://run/12345"
+        assert exe == '"/usr/bin/setsid"'
+        assert opts == "-f /usr/bin/xdg-open steam://run/12345"
 
-    def test_flatpak_run_splits_into_flatpak_binary_and_args(self) -> None:
-        """'flatpak run com.X.Y' becomes exe=/usr/bin/flatpak + options='run com.X.Y'."""
+    def test_flatpak_run_wraps_in_setsid(self) -> None:
+        """'flatpak run com.X.Y' is detached via setsid -f so Steam returns quickly."""
         game = self._make_game(launch_command="flatpak run com.usebottles.bottles")
         exe = ExternalGamesService._build_exe(game)
         opts = ExternalGamesService._build_launch_options(game)
-        assert exe == '"/usr/bin/flatpak"'
-        assert opts == "run com.usebottles.bottles"
+        assert exe == '"/usr/bin/setsid"'
+        assert opts == "-f /usr/bin/flatpak run com.usebottles.bottles"
 
     def test_flatpak_run_with_heroic_uri_keeps_inner_quotes(self) -> None:
-        """flatpak wrapper around heroic URI: exe=flatpak, options keep the inner URI quoted."""
+        """flatpak wrapper around heroic URI: setsid -f flatpak run ... 'URI' (quotes kept)."""
         cmd = "flatpak run com.heroicgameslauncher.hgl --no-gui --no-sandbox" ' "heroic://launch/abc?runner=sideload"'
         game = self._make_game(launch_command=cmd)
         exe = ExternalGamesService._build_exe(game)
         opts = ExternalGamesService._build_launch_options(game)
-        assert exe == '"/usr/bin/flatpak"'
-        expected_opts = "run com.heroicgameslauncher.hgl --no-gui --no-sandbox" ' "heroic://launch/abc?runner=sideload"'
+        assert exe == '"/usr/bin/setsid"'
+        expected_opts = (
+            "-f /usr/bin/flatpak run com.heroicgameslauncher.hgl --no-gui --no-sandbox"
+            ' "heroic://launch/abc?runner=sideload"'
+        )
         assert opts == expected_opts
 
     def test_plain_executable_path_unchanged(self) -> None:
@@ -309,18 +312,18 @@ class TestLaunchCommandSplit:
         assert exe == '"/opt/weird/path://thing"'
         assert opts == ""
 
-    def test_lutris_uri_uses_lutris_binary(self) -> None:
-        """lutris:rungame/slug -> /usr/bin/lutris directly."""
+    def test_lutris_uri_wraps_lutris_in_setsid(self) -> None:
+        """lutris:rungame/slug -> setsid -f /usr/bin/lutris ..."""
         game = self._make_game(launch_command="lutris:rungame/blair-witch")
         exe = ExternalGamesService._build_exe(game)
         opts = ExternalGamesService._build_launch_options(game)
-        assert exe == '"/usr/bin/lutris"'
-        assert opts == "lutris:rungame/blair-witch"
+        assert exe == '"/usr/bin/setsid"'
+        assert opts == "-f /usr/bin/lutris lutris:rungame/blair-witch"
 
-    def test_itch_uri_falls_back_to_xdg_open(self) -> None:
-        """itch:// has no shipped binary in known paths - falls back to xdg-open."""
+    def test_itch_uri_wraps_xdg_open_in_setsid(self) -> None:
+        """itch:// has no shipped binary - falls back to xdg-open, also wrapped in setsid."""
         game = self._make_game(launch_command="itch://caves/abc-def/launch")
         exe = ExternalGamesService._build_exe(game)
         opts = ExternalGamesService._build_launch_options(game)
-        assert exe == '"/usr/bin/xdg-open"'
-        assert opts == "itch://caves/abc-def/launch"
+        assert exe == '"/usr/bin/setsid"'
+        assert opts == "-f /usr/bin/xdg-open itch://caves/abc-def/launch"

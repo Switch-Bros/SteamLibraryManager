@@ -155,19 +155,22 @@ class ExternalGamesService:
     @staticmethod
     def _split_launch_command(cmd: str) -> tuple[str, str]:
         # Steam's shortcuts.vdf 'exe' field must be a file path, not a command line.
-        # Steam launches non-Steam shortcuts inside the Steam Linux Runtime container,
-        # where xdg-open often can't reach the host dbus session and silently fails.
-        # For schemes whose URL handler ships an executable binary, we call that
-        # binary directly with the URI as its only argument - no xdg-open hop needed.
+        # Launchers like Heroic are long-running Electron apps - if Steam calls them
+        # directly, Steam waits forever for them to exit ("Anhalten" hangs) and the
+        # Steam Overlay tries to inject itself into Electron, which often crashes
+        # Steam outright. We sidestep both by spawning the launcher via setsid -f:
+        # the wrapper detaches into a new session and exits immediately, so Steam
+        # sees the "game" as finished while the launcher quietly hands the URI
+        # off to its own running instance (or starts a fresh one).
         if cmd.startswith("flatpak run"):
-            return ("/usr/bin/flatpak", cmd[len("flatpak ") :])
+            inner = "/usr/bin/flatpak " + cmd[len("flatpak ") :]
+            return ("/usr/bin/setsid", "-f " + inner)
         if cmd.startswith("heroic://"):
-            return ("/usr/bin/heroic", cmd)
+            return ("/usr/bin/setsid", "-f /usr/bin/heroic " + cmd)
         if cmd.startswith("lutris:"):
-            return ("/usr/bin/lutris", cmd)
+            return ("/usr/bin/setsid", "-f /usr/bin/lutris " + cmd)
         if _URI_SCHEME_RE.match(cmd):
-            # Unknown URI scheme - best-effort fallback. May fail in Steam runtime.
-            return ("/usr/bin/xdg-open", cmd)
+            return ("/usr/bin/setsid", "-f /usr/bin/xdg-open " + cmd)
         return (cmd, "")
 
     @staticmethod
