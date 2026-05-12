@@ -152,25 +152,51 @@ class ExternalGamesService:
     def remove_from_steam(self, app_name):
         return self._shortcuts_mgr.remove_shortcut(app_name)
 
+    # Env vars Steam injects into every child process. We strip them before
+    # spawning external launchers so Steam's 32-bit overlay shim doesn't end
+    # up inside Wine/Proton (which silently crashes the game) and so Proton's
+    # own runtime detection isn't confused by Steam's bookkeeping vars.
+    _STEAM_INJECTED_ENV_VARS = (
+        "LD_PRELOAD",
+        "LD_LIBRARY_PATH",
+        "STEAM_RUNTIME",
+        "STEAM_RUNTIME_LIBRARY_PATH",
+        "STEAM_CLIENT_CONFIG_FILE",
+        "SteamAppId",
+        "SteamGameId",
+        "SteamOverlayGameId",
+        "SteamAppUser",
+        "SteamUser",
+    )
+
+    @staticmethod
+    def _env_unset_prefix() -> str:
+        # Build the '-u VAR1 -u VAR2 ...' argument list for env(1).
+        return " ".join("-u " + v for v in ExternalGamesService._STEAM_INJECTED_ENV_VARS)
+
     @staticmethod
     def _split_launch_command(cmd: str) -> tuple[str, str]:
         # Steam's shortcuts.vdf 'exe' field must be a file path, not a command line.
-        # Launchers like Heroic are long-running Electron apps - if Steam calls them
-        # directly, Steam waits forever for them to exit ("Anhalten" hangs) and the
-        # Steam Overlay tries to inject itself into Electron, which often crashes
-        # Steam outright. We sidestep both by spawning the launcher via setsid -f:
-        # the wrapper detaches into a new session and exits immediately, so Steam
-        # sees the "game" as finished while the launcher quietly hands the URI
-        # off to its own running instance (or starts a fresh one).
+        # Launchers like Heroic are long-running Electron apps and Steam pollutes the
+        # environment of any process it spawns (LD_PRELOAD for the overlay, SteamAppId,
+        # etc). Both cause trouble: Steam waits forever for the launcher to exit
+        # ("Anhalten" hangs), Steam Overlay tries to inject itself into Electron and
+        # often crashes Steam, and the inherited Steam vars confuse Proton/Wine inside
+        # the launcher so the actual game silently fails to start.
+        #
+        # The fix wraps every external launch in 'env -u ... setsid -f <launcher> ...':
+        # env(1) strips Steam's bookkeeping vars, setsid -f detaches into a new
+        # session and exits immediately so Steam stops tracking the process.
+        env_prefix = ExternalGamesService._env_unset_prefix()
         if cmd.startswith("flatpak run"):
             inner = "/usr/bin/flatpak " + cmd[len("flatpak ") :]
-            return ("/usr/bin/setsid", "-f " + inner)
+            return ("/usr/bin/env", f"{env_prefix} /usr/bin/setsid -f {inner}")
         if cmd.startswith("heroic://"):
-            return ("/usr/bin/setsid", "-f /usr/bin/heroic " + cmd)
+            return ("/usr/bin/env", f"{env_prefix} /usr/bin/setsid -f /usr/bin/heroic {cmd}")
         if cmd.startswith("lutris:"):
-            return ("/usr/bin/setsid", "-f /usr/bin/lutris " + cmd)
+            return ("/usr/bin/env", f"{env_prefix} /usr/bin/setsid -f /usr/bin/lutris {cmd}")
         if _URI_SCHEME_RE.match(cmd):
-            return ("/usr/bin/setsid", "-f /usr/bin/xdg-open " + cmd)
+            return ("/usr/bin/env", f"{env_prefix} /usr/bin/setsid -f /usr/bin/xdg-open {cmd}")
         return (cmd, "")
 
     @staticmethod

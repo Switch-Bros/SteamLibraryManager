@@ -259,39 +259,54 @@ class TestLaunchCommandSplit:
             launch_command=launch_command,
         )
 
-    def test_heroic_uri_uses_setsid_detached_heroic_binary(self) -> None:
-        """heroic:// URIs spawn /usr/bin/heroic via setsid -f so Steam doesn't hang on it."""
+    def test_heroic_uri_wraps_in_env_unset_plus_setsid(self) -> None:
+        """heroic:// goes through 'env -u <steam-vars> setsid -f /usr/bin/heroic <uri>'."""
         game = self._make_game(launch_command="heroic://launch/abc123?runner=sideload")
         exe = ExternalGamesService._build_exe(game)
         opts = ExternalGamesService._build_launch_options(game)
-        assert exe == '"/usr/bin/setsid"'
-        assert opts == "-f /usr/bin/heroic heroic://launch/abc123?runner=sideload"
+        env_prefix = ExternalGamesService._env_unset_prefix()
+        assert exe == '"/usr/bin/env"'
+        expected = f"{env_prefix} /usr/bin/setsid -f /usr/bin/heroic heroic://launch/abc123?runner=sideload"
+        assert opts == expected
 
-    def test_unknown_uri_scheme_wraps_xdg_open_in_setsid(self) -> None:
-        """Schemes without a known binary (e.g. steam://) wrap xdg-open via setsid -f."""
+    def test_env_unset_prefix_strips_overlay_and_steam_vars(self) -> None:
+        """The env stripper must drop LD_PRELOAD (Steam overlay) and key Steam vars."""
+        prefix = ExternalGamesService._env_unset_prefix()
+        assert "-u LD_PRELOAD" in prefix
+        assert "-u LD_LIBRARY_PATH" in prefix
+        assert "-u SteamAppId" in prefix
+        assert "-u SteamGameId" in prefix
+        assert "-u SteamOverlayGameId" in prefix
+
+    def test_unknown_uri_scheme_falls_back_to_xdg_open_with_env(self) -> None:
+        """Schemes without a known binary (e.g. steam://) still get env+setsid wrap."""
         game = self._make_game(launch_command="steam://run/12345")
         exe = ExternalGamesService._build_exe(game)
         opts = ExternalGamesService._build_launch_options(game)
-        assert exe == '"/usr/bin/setsid"'
-        assert opts == "-f /usr/bin/xdg-open steam://run/12345"
+        env_prefix = ExternalGamesService._env_unset_prefix()
+        assert exe == '"/usr/bin/env"'
+        assert opts == f"{env_prefix} /usr/bin/setsid -f /usr/bin/xdg-open steam://run/12345"
 
-    def test_flatpak_run_wraps_in_setsid(self) -> None:
-        """'flatpak run com.X.Y' is detached via setsid -f so Steam returns quickly."""
+    def test_flatpak_run_wraps_in_env_plus_setsid(self) -> None:
+        """'flatpak run com.X.Y' is wrapped in env -u ... setsid -f /usr/bin/flatpak run ..."""
         game = self._make_game(launch_command="flatpak run com.usebottles.bottles")
         exe = ExternalGamesService._build_exe(game)
         opts = ExternalGamesService._build_launch_options(game)
-        assert exe == '"/usr/bin/setsid"'
-        assert opts == "-f /usr/bin/flatpak run com.usebottles.bottles"
+        env_prefix = ExternalGamesService._env_unset_prefix()
+        assert exe == '"/usr/bin/env"'
+        assert opts == f"{env_prefix} /usr/bin/setsid -f /usr/bin/flatpak run com.usebottles.bottles"
 
     def test_flatpak_run_with_heroic_uri_keeps_inner_quotes(self) -> None:
-        """flatpak wrapper around heroic URI: setsid -f flatpak run ... 'URI' (quotes kept)."""
+        """flatpak-wrapped heroic URI keeps the URI quoted in the wrapped invocation."""
         cmd = "flatpak run com.heroicgameslauncher.hgl --no-gui --no-sandbox" ' "heroic://launch/abc?runner=sideload"'
         game = self._make_game(launch_command=cmd)
         exe = ExternalGamesService._build_exe(game)
         opts = ExternalGamesService._build_launch_options(game)
-        assert exe == '"/usr/bin/setsid"'
+        env_prefix = ExternalGamesService._env_unset_prefix()
+        assert exe == '"/usr/bin/env"'
         expected_opts = (
-            "-f /usr/bin/flatpak run com.heroicgameslauncher.hgl --no-gui --no-sandbox"
+            f"{env_prefix} /usr/bin/setsid -f "
+            "/usr/bin/flatpak run com.heroicgameslauncher.hgl --no-gui --no-sandbox"
             ' "heroic://launch/abc?runner=sideload"'
         )
         assert opts == expected_opts
@@ -312,18 +327,20 @@ class TestLaunchCommandSplit:
         assert exe == '"/opt/weird/path://thing"'
         assert opts == ""
 
-    def test_lutris_uri_wraps_lutris_in_setsid(self) -> None:
-        """lutris:rungame/slug -> setsid -f /usr/bin/lutris ..."""
+    def test_lutris_uri_wraps_lutris_with_env(self) -> None:
+        """lutris:rungame/slug -> env -u ... setsid -f /usr/bin/lutris ..."""
         game = self._make_game(launch_command="lutris:rungame/blair-witch")
         exe = ExternalGamesService._build_exe(game)
         opts = ExternalGamesService._build_launch_options(game)
-        assert exe == '"/usr/bin/setsid"'
-        assert opts == "-f /usr/bin/lutris lutris:rungame/blair-witch"
+        env_prefix = ExternalGamesService._env_unset_prefix()
+        assert exe == '"/usr/bin/env"'
+        assert opts == f"{env_prefix} /usr/bin/setsid -f /usr/bin/lutris lutris:rungame/blair-witch"
 
-    def test_itch_uri_wraps_xdg_open_in_setsid(self) -> None:
-        """itch:// has no shipped binary - falls back to xdg-open, also wrapped in setsid."""
+    def test_itch_uri_wraps_xdg_open_with_env(self) -> None:
+        """itch:// has no shipped binary - falls back to xdg-open, still wrapped in env+setsid."""
         game = self._make_game(launch_command="itch://caves/abc-def/launch")
         exe = ExternalGamesService._build_exe(game)
         opts = ExternalGamesService._build_launch_options(game)
-        assert exe == '"/usr/bin/setsid"'
-        assert opts == "-f /usr/bin/xdg-open itch://caves/abc-def/launch"
+        env_prefix = ExternalGamesService._env_unset_prefix()
+        assert exe == '"/usr/bin/env"'
+        assert opts == f"{env_prefix} /usr/bin/setsid -f /usr/bin/xdg-open itch://caves/abc-def/launch"
