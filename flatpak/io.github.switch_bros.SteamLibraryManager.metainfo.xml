@@ -104,6 +104,18 @@
   </screenshots>
 
   <releases>
+    <release version="1.5.0" date="2026-05-12">
+      <description>
+        <p>Heroic Sideload Parser: manually added apps in Heroic Games
+           Launcher (e.g. WarCraft 2 remastered, Adobe Photoshop) are now
+           discovered by SLM and shown in the External Games dialog under
+           platform "Heroic (Sideload)". Launch goes through Heroic so
+           the existing Wine prefix and save states stay in use.</p>
+        <p>Automatic cover fallback in batch-add: SteamGridDB name
+           search is tried first, with the source platform's own cover
+           URL as a fallback. Failures never break the add flow.</p>
+      </description>
+    </release>
     <release version="1.4.5" date="2026-05-07">
       <description>
         <p>Critical fix: metadata edits now actually visible to Steam.
