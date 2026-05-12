@@ -155,12 +155,18 @@ class ExternalGamesService:
     @staticmethod
     def _split_launch_command(cmd: str) -> tuple[str, str]:
         # Steam's shortcuts.vdf 'exe' field must be a file path, not a command line.
-        # URI schemes (heroic://, steam://, lutris:..., itch://) -> delegate to xdg-open.
-        # 'flatpak run X' wrapper -> split off /usr/bin/flatpak.
-        # Plain commands stay as-is in exe.
+        # Steam launches non-Steam shortcuts inside the Steam Linux Runtime container,
+        # where xdg-open often can't reach the host dbus session and silently fails.
+        # For schemes whose URL handler ships an executable binary, we call that
+        # binary directly with the URI as its only argument - no xdg-open hop needed.
         if cmd.startswith("flatpak run"):
             return ("/usr/bin/flatpak", cmd[len("flatpak ") :])
+        if cmd.startswith("heroic://"):
+            return ("/usr/bin/heroic", cmd)
+        if cmd.startswith("lutris:"):
+            return ("/usr/bin/lutris", cmd)
         if _URI_SCHEME_RE.match(cmd):
+            # Unknown URI scheme - best-effort fallback. May fail in Steam runtime.
             return ("/usr/bin/xdg-open", cmd)
         return (cmd, "")
 

@@ -259,16 +259,16 @@ class TestLaunchCommandSplit:
             launch_command=launch_command,
         )
 
-    def test_heroic_uri_exe_is_xdg_open(self) -> None:
-        """heroic:// URIs go to xdg-open with the URI as launch_options."""
+    def test_heroic_uri_uses_heroic_binary(self) -> None:
+        """heroic:// URIs go to /usr/bin/heroic directly (bypass xdg-open)."""
         game = self._make_game(launch_command="heroic://launch/abc123?runner=sideload")
         exe = ExternalGamesService._build_exe(game)
         opts = ExternalGamesService._build_launch_options(game)
-        assert exe == '"/usr/bin/xdg-open"'
+        assert exe == '"/usr/bin/heroic"'
         assert opts == "heroic://launch/abc123?runner=sideload"
 
-    def test_steam_uri_exe_is_xdg_open(self) -> None:
-        """Any URI scheme is delegated to xdg-open (system URL handler)."""
+    def test_unknown_uri_scheme_falls_back_to_xdg_open(self) -> None:
+        """Schemes without a known binary (e.g. steam://) fall back to xdg-open."""
         game = self._make_game(launch_command="steam://run/12345")
         exe = ExternalGamesService._build_exe(game)
         opts = ExternalGamesService._build_launch_options(game)
@@ -309,16 +309,16 @@ class TestLaunchCommandSplit:
         assert exe == '"/opt/weird/path://thing"'
         assert opts == ""
 
-    def test_lutris_single_colon_scheme(self) -> None:
-        """Lutris uses 'lutris:rungame/slug' (no //) - still a URI scheme."""
+    def test_lutris_uri_uses_lutris_binary(self) -> None:
+        """lutris:rungame/slug -> /usr/bin/lutris directly."""
         game = self._make_game(launch_command="lutris:rungame/blair-witch")
         exe = ExternalGamesService._build_exe(game)
         opts = ExternalGamesService._build_launch_options(game)
-        assert exe == '"/usr/bin/xdg-open"'
+        assert exe == '"/usr/bin/lutris"'
         assert opts == "lutris:rungame/blair-witch"
 
-    def test_itch_single_colon_scheme(self) -> None:
-        """itch:// URIs (double slash) also via xdg-open."""
+    def test_itch_uri_falls_back_to_xdg_open(self) -> None:
+        """itch:// has no shipped binary in known paths - falls back to xdg-open."""
         game = self._make_game(launch_command="itch://caves/abc-def/launch")
         exe = ExternalGamesService._build_exe(game)
         opts = ExternalGamesService._build_launch_options(game)
