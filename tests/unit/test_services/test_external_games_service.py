@@ -186,7 +186,7 @@ class TestCoverFallback:
             grid_inst = MockGrid.return_value
             grid_inst.api_key = "fake-key"
             grid_inst.search_games_by_name.return_value = fake_results
-            grid_inst.get_images_by_type.return_value = fake_grid
+            grid_inst.get_images_by_type_paged.return_value = fake_grid
 
             with patch(
                 "steam_library_manager.services.external_games_service.SteamAssets.save_custom_image"

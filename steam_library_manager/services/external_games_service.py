@@ -194,7 +194,10 @@ class ExternalGamesService:
                 if results:
                     top_id = results[0].get("id")
                     if top_id:
-                        images = grid.get_images_by_type(top_id, "grids")
+                        # Use game_id_override to pass the SGDB game id directly,
+                        # skipping the steam-appid -> sgdb-id conversion that
+                        # get_images_by_type() does internally.
+                        images = grid.get_images_by_type_paged(0, "grids", game_id_override=top_id)
                         if images:
                             chosen_url = images[0].get("url")
         except Exception:
