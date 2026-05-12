@@ -40,6 +40,9 @@ class ExternalGame:
         is_installed: Whether the game is currently installed.
         platform_metadata: Additional platform-specific key-value pairs.
             Uses tuple of tuples for frozen dataclass compatibility.
+        cover_url_hint: Optional cover image URL provided by the source
+            (e.g. Heroic art_cover). Used as fallback when SteamGridDB
+            search returns no results.
     """
 
     platform: PlatformName
@@ -52,6 +55,7 @@ class ExternalGame:
     install_size: int = 0
     is_installed: bool = True
     platform_metadata: tuple[tuple[str, str], ...] = field(default_factory=tuple)
+    cover_url_hint: str | None = None
 
 
 SUPPORTED_PLATFORMS: tuple[str, ...] = (

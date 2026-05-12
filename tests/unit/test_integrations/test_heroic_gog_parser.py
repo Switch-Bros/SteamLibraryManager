@@ -141,3 +141,26 @@ class TestHeroicGOGParser:
 
         with patch.object(parser, "get_config_paths", return_value=[config]):
             assert parser.read_games() == []
+
+
+class TestExternalGameModel:
+    """Tests for ExternalGame model fields."""
+
+    def test_cover_url_hint_default_none(self) -> None:
+        """cover_url_hint defaults to None for backwards compatibility."""
+        from steam_library_manager.integrations.external_games.models import ExternalGame
+
+        game = ExternalGame(platform="Test", platform_app_id="1", name="X")
+        assert game.cover_url_hint is None
+
+    def test_cover_url_hint_accepts_url(self) -> None:
+        """cover_url_hint can be set to a URL string."""
+        from steam_library_manager.integrations.external_games.models import ExternalGame
+
+        game = ExternalGame(
+            platform="Test",
+            platform_app_id="1",
+            name="X",
+            cover_url_hint="https://example.com/cover.png",
+        )
+        assert game.cover_url_hint == "https://example.com/cover.png"
