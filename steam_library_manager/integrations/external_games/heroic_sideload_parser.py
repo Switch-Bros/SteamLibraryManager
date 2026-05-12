@@ -99,7 +99,7 @@ class HeroicSideloadParser(BaseHeroicParser):
                     install_path=Path(folder_name) if folder_name else None,
                     executable=executable,
                     launch_command=self._build_heroic_launch_command(app_name, is_flatpak),
-                    cover_url_hint=art_cover if art_cover else None,
+                    cover_url_hint=art_cover,
                     platform_metadata=tuple(meta),
                 )
             )

@@ -27,7 +27,7 @@ class BaseHeroicParser(BaseExternalParser):
     get_config_paths(), and read_games().
     """
 
-    _RUNNER: str  # Subclass must set: "legendary", "gog", or "nile"
+    _RUNNER: str  # Subclass must set: "legendary", "gog", "nile", or "sideload"
 
     @staticmethod
     def _is_flatpak(config_path: Path) -> bool:
