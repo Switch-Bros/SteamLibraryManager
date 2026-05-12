@@ -5,6 +5,35 @@ All notable changes to Steam Library Manager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-05-12
+
+### Fixed
+- **External-game shortcuts now actually launch from Steam.** Since v1.4.4
+  every Heroic / Lutris / Flatpak / itch shortcut SLM added to Steam was
+  broken: the URI or `flatpak run ...` command was written into Steam's
+  `exe` field, which Steam treats as a file path. Clicking Play silently
+  did nothing or, with Heroic in particular, crashed Steam outright when
+  the overlay tried to attach to Electron.
+
+  The launch command is now split into `exe` + `launch_options`, with
+  three additional protections applied to every external launch:
+  1. URIs are routed through their native launcher binary
+     (`/usr/bin/heroic`, `/usr/bin/lutris`) so the dbus-bound `xdg-open`
+     hop isn't needed - `xdg-open` is unreliable inside Steam's runtime.
+  2. The whole invocation is wrapped in `setsid -f` so the launcher
+     detaches into its own session and Steam stops tracking it
+     immediately - no more "Anhalten" hangs, no more crashes when Steam
+     waits forever for an Electron app to exit.
+  3. `env -u LD_PRELOAD -u LD_LIBRARY_PATH -u SteamAppId ...` strips
+     Steam's overlay shim and bookkeeping vars from the environment so
+     Heroic / Proton / Wine start clean. Without this the Steam
+     overlay's 32-bit shim leaks into 64-bit Wine processes and the
+     game silently fails to launch.
+
+  After updating, existing broken shortcuts in `shortcuts.vdf` need to
+  be removed and re-added via the External Games dialog for the fix
+  to take effect.
+
 ## [1.5.0] - 2026-05-12
 
 ### Added
