@@ -62,6 +62,7 @@ SUPPORTED_PLATFORMS: tuple[str, ...] = (
     "Heroic (Epic)",
     "Heroic (GOG)",
     "Heroic (Amazon)",
+    "Heroic (Sideload)",
     "Lutris",
     "itch.io",
     "Bottles",

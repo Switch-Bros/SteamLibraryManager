@@ -146,3 +146,8 @@ class TestExternalGamesService:
 
         service._parsers = {"Yes": available, "No": unavailable}
         assert service.get_available_platforms() == ["Yes"]
+
+    def test_heroic_sideload_parser_registered(self, tmp_path: Path) -> None:
+        """Heroic (Sideload) parser is registered in ExternalGamesService."""
+        service = self._make_service(tmp_path)
+        assert "Heroic (Sideload)" in service._parsers

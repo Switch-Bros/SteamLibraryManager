@@ -14,6 +14,7 @@ from steam_library_manager.integrations.external_games.flatpak_parser import Fla
 from steam_library_manager.integrations.external_games.heroic_amazon_parser import HeroicAmazonParser
 from steam_library_manager.integrations.external_games.heroic_epic_parser import HeroicEpicParser
 from steam_library_manager.integrations.external_games.heroic_gog_parser import HeroicGOGParser
+from steam_library_manager.integrations.external_games.heroic_sideload_parser import HeroicSideloadParser
 from steam_library_manager.integrations.external_games.itch_parser import ItchParser
 from steam_library_manager.integrations.external_games.lutris_parser import LutrisParser
 from steam_library_manager.integrations.external_games.rom_parser import RomParser
@@ -45,6 +46,7 @@ class ExternalGamesService:
             HeroicEpicParser(),
             HeroicGOGParser(),
             HeroicAmazonParser(),
+            HeroicSideloadParser(),
             LutrisParser(),
             ItchParser(),
             BottlesParser(),
