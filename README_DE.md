@@ -263,7 +263,7 @@ Entwickelt mit **PyQt6** für nahtlose Desktop-Integration. Das ist keine Window
 
 Spiele verstreut über Epic, GOG, Amazon, Lutris, Bottles, itch.io, Flatpak **und Emulatoren**? **SLM findet sie alle** - und fügt sie in einem Rutsch als Non-Steam-Shortcuts zu Steam hinzu. Importierte Shortcuts erscheinen außerdem in SLMs Hauptbibliothek, sodass du sie wie jedes Steam-Spiel in Smart Collections ziehen kannst.
 
-**Launcher-Parser** (8): Heroic (Epic/GOG/Amazon), Lutris, Bottles, itch.io, Flatpak, plus existierende Einträge aus `shortcuts.vdf`.
+**Launcher-Parser** (9): Heroic (Epic/GOG/Amazon/**Sideload**), Lutris, Bottles, itch.io, Flatpak, plus existierende Einträge aus `shortcuts.vdf`. Heroic **Sideload** erfasst manuell hinzugefügte Apps in Heroic (z.B. WarCraft 2 remastered, Adobe Photoshop) und startet sie via Heroic, sodass dein bestehender Wine-Prefix und deine Spielstände erhalten bleiben.
 
 **Smart Emulator Detection** (9 Parser, keine hardcoded ROM-Pfade) - SLM liest die Spielverzeichnisse direkt aus den Config-Dateien der Emulatoren, findet deine ROMs also überall wo du sie ablegst:
 
@@ -465,6 +465,8 @@ Dieses Projekt nutzt folgende Dienste:
 | Critical Fix: Metadaten-Edits sind jetzt wirklich in Steam sichtbar | ✅ Fertig |
 | Auto-Reapply beim Start + Live-File-Watcher für `appinfo.vdf` | ✅ Fertig |
 | **v1.4.5 - Critical appinfo.vdf metadata fix** | ✅ **Veröffentlicht** |
+| Heroic Sideload Parser (manuell hinzugefügte Apps) + Cover-Fallback via `cover_url_hint` | ✅ Fertig |
+| **v1.5.0 - Heroic Sideload Parser** | ✅ **Veröffentlicht** |
 | Flatpak (Flathub-Einreichung) | 📋 PR ausstehend |
 | Windows-Unterstützung | 📋 Geplant |
 

@@ -5,6 +5,32 @@ All notable changes to Steam Library Manager will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-05-12
+
+### Added
+- **Heroic Sideload Parser**: Manually added (sideloaded) apps in Heroic
+  Games Launcher are now visible in the "Externe Spiele verwalten"
+  dialog under platform "Heroic (Sideload)". Previously SLM only saw
+  GOG/Epic/Amazon games in Heroic - sideloads like Adobe Photoshop or
+  WarCraft 2 remastered were invisible.
+- **Cover fallback in batch_add_to_steam**: After a shortcut is added,
+  SLM now automatically tries to fetch a cover via SteamGridDB name
+  search. If SteamGridDB returns nothing, it falls back to the
+  `art_cover` URL the source platform already chose (e.g. Heroic's
+  pre-selected SteamGridDB image). Failures never break the add flow.
+- New optional `cover_url_hint` field on `ExternalGame` model for
+  source-provided cover URLs. Other parsers can populate it later.
+
+### Changed
+- `BaseHeroicParser._RUNNER` docstring now lists all four valid runner
+  values (`legendary`, `gog`, `nile`, `sideload`).
+
+### Fixed
+- `_try_fetch_cover` used `get_images_by_type(sgdb_game_id, ...)` which
+  internally tried to convert the input as a Steam app id. Switched to
+  `get_images_by_type_paged(0, "grids", game_id_override=top_id)` so
+  the SGDB game id is used directly.
+
 ## [1.4.5] - 2026-05-07
 
 ### Fixed
