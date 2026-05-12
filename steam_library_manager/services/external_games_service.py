@@ -7,6 +7,7 @@
 #
 
 import logging
+import re
 
 from steam_library_manager.core.shortcuts_manager import SteamShortcut, generate_shortcut_id
 from steam_library_manager.core.steam_assets import SteamAssets
@@ -23,6 +24,10 @@ from steam_library_manager.integrations.external_games.shortcuts_vdf_parser impo
 from steam_library_manager.integrations.steamgrid_api import SteamGridDB
 
 __all__ = ["ExternalGamesService"]
+
+# URI scheme detection per RFC 3986: starts with a letter, then [a-z0-9+.-]*, then ':'.
+# Used to split launch_commands like heroic://, lutris:rungame/X, itch:// for xdg-open.
+_URI_SCHEME_RE = re.compile(r"^[a-z][a-z0-9+.\-]*:")
 
 logger = logging.getLogger("steamlibmgr.external_games_service")
 
@@ -148,13 +153,23 @@ class ExternalGamesService:
         return self._shortcuts_mgr.remove_shortcut(app_name)
 
     @staticmethod
+    def _split_launch_command(cmd: str) -> tuple[str, str]:
+        # Steam's shortcuts.vdf 'exe' field must be a file path, not a command line.
+        # URI schemes (heroic://, steam://, lutris:..., itch://) -> delegate to xdg-open.
+        # 'flatpak run X' wrapper -> split off /usr/bin/flatpak.
+        # Plain commands stay as-is in exe.
+        if cmd.startswith("flatpak run"):
+            return ("/usr/bin/flatpak", cmd[len("flatpak ") :])
+        if _URI_SCHEME_RE.match(cmd):
+            return ("/usr/bin/xdg-open", cmd)
+        return (cmd, "")
+
+    @staticmethod
     def _build_exe(game):
         # Build quoted exe string for shortcuts.vdf
         if game.launch_command:
-            cmd = game.launch_command
-            if "://" in cmd or cmd.startswith("flatpak run"):
-                return '"%s"' % cmd
-            return cmd
+            exe, _ = ExternalGamesService._split_launch_command(game.launch_command)
+            return '"%s"' % exe
         if game.executable:
             return '"%s"' % game.executable
         return '""'
@@ -167,9 +182,10 @@ class ExternalGamesService:
 
     @staticmethod
     def _build_launch_options(game):
-        # Flatpak games get their options via the launch command
-        if game.platform == "Flatpak" and game.launch_command.startswith("flatpak run"):
-            return ""
+        # Args portion of a split launch_command (URI body, flatpak args, etc.)
+        if game.launch_command:
+            _, args = ExternalGamesService._split_launch_command(game.launch_command)
+            return args
         return ""
 
     def _try_fetch_cover(self, appid: int, game) -> None:

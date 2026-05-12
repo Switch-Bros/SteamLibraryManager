@@ -238,3 +238,89 @@ class TestCoverFallback:
                 svc._try_fetch_cover(appid=12345, game=game)
 
             save_img.assert_not_called()
+
+
+class TestLaunchCommandSplit:
+    """Tests for splitting launch_command into Steam-compatible exe + launch_options.
+
+    Steam's shortcuts.vdf expects 'exe' to be an absolute file path. URI schemes
+    like heroic:// or 'flatpak run X' command strings must be split: the
+    real executable goes into 'exe', the rest into 'launch_options'.
+    """
+
+    def _make_game(
+        self, launch_command: str = "", executable: str | None = None, platform: str = "Test"
+    ) -> ExternalGame:
+        return ExternalGame(
+            platform=platform,
+            platform_app_id="abc",
+            name="X",
+            executable=executable,
+            launch_command=launch_command,
+        )
+
+    def test_heroic_uri_exe_is_xdg_open(self) -> None:
+        """heroic:// URIs go to xdg-open with the URI as launch_options."""
+        game = self._make_game(launch_command="heroic://launch/abc123?runner=sideload")
+        exe = ExternalGamesService._build_exe(game)
+        opts = ExternalGamesService._build_launch_options(game)
+        assert exe == '"/usr/bin/xdg-open"'
+        assert opts == "heroic://launch/abc123?runner=sideload"
+
+    def test_steam_uri_exe_is_xdg_open(self) -> None:
+        """Any URI scheme is delegated to xdg-open (system URL handler)."""
+        game = self._make_game(launch_command="steam://run/12345")
+        exe = ExternalGamesService._build_exe(game)
+        opts = ExternalGamesService._build_launch_options(game)
+        assert exe == '"/usr/bin/xdg-open"'
+        assert opts == "steam://run/12345"
+
+    def test_flatpak_run_splits_into_flatpak_binary_and_args(self) -> None:
+        """'flatpak run com.X.Y' becomes exe=/usr/bin/flatpak + options='run com.X.Y'."""
+        game = self._make_game(launch_command="flatpak run com.usebottles.bottles")
+        exe = ExternalGamesService._build_exe(game)
+        opts = ExternalGamesService._build_launch_options(game)
+        assert exe == '"/usr/bin/flatpak"'
+        assert opts == "run com.usebottles.bottles"
+
+    def test_flatpak_run_with_heroic_uri_keeps_inner_quotes(self) -> None:
+        """flatpak wrapper around heroic URI: exe=flatpak, options keep the inner URI quoted."""
+        cmd = "flatpak run com.heroicgameslauncher.hgl --no-gui --no-sandbox" ' "heroic://launch/abc?runner=sideload"'
+        game = self._make_game(launch_command=cmd)
+        exe = ExternalGamesService._build_exe(game)
+        opts = ExternalGamesService._build_launch_options(game)
+        assert exe == '"/usr/bin/flatpak"'
+        expected_opts = "run com.heroicgameslauncher.hgl --no-gui --no-sandbox" ' "heroic://launch/abc?runner=sideload"'
+        assert opts == expected_opts
+
+    def test_plain_executable_path_unchanged(self) -> None:
+        """A plain absolute path stays in exe, options stays empty."""
+        game = self._make_game(executable="/mnt/games/Warcraft/WC2/Warcraft II.exe")
+        exe = ExternalGamesService._build_exe(game)
+        opts = ExternalGamesService._build_launch_options(game)
+        assert exe == '"/mnt/games/Warcraft/WC2/Warcraft II.exe"'
+        assert opts == ""
+
+    def test_absolute_path_with_colon_is_not_misread_as_uri(self) -> None:
+        """An absolute path that happens to contain '://' (very rare) starts with /, so not a URI."""
+        game = self._make_game(launch_command="/opt/weird/path://thing")
+        exe = ExternalGamesService._build_exe(game)
+        opts = ExternalGamesService._build_launch_options(game)
+        assert exe == '"/opt/weird/path://thing"'
+        assert opts == ""
+
+    def test_lutris_single_colon_scheme(self) -> None:
+        """Lutris uses 'lutris:rungame/slug' (no //) - still a URI scheme."""
+        game = self._make_game(launch_command="lutris:rungame/blair-witch")
+        exe = ExternalGamesService._build_exe(game)
+        opts = ExternalGamesService._build_launch_options(game)
+        assert exe == '"/usr/bin/xdg-open"'
+        assert opts == "lutris:rungame/blair-witch"
+
+    def test_itch_single_colon_scheme(self) -> None:
+        """itch:// URIs (double slash) also via xdg-open."""
+        game = self._make_game(launch_command="itch://caves/abc-def/launch")
+        exe = ExternalGamesService._build_exe(game)
+        opts = ExternalGamesService._build_launch_options(game)
+        assert exe == '"/usr/bin/xdg-open"'
+        assert opts == "itch://caves/abc-def/launch"
