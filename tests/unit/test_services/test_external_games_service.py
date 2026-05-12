@@ -151,3 +151,90 @@ class TestExternalGamesService:
         """Heroic (Sideload) parser is registered in ExternalGamesService."""
         service = self._make_service(tmp_path)
         assert "Heroic (Sideload)" in service._parsers
+
+
+class TestCoverFallback:
+    """Tests for SteamGridDB -> cover_url_hint fallback chain."""
+
+    def _make_service(self, tmp_path: Path) -> ExternalGamesService:
+        userdata = tmp_path / "userdata"
+        (userdata / "99" / "config").mkdir(parents=True)
+        mgr = ShortcutsManager(userdata, "99")
+        return ExternalGamesService(mgr)
+
+    def _make_game(self, name: str = "X", cover_hint: str | None = None) -> ExternalGame:
+        return ExternalGame(
+            platform="Heroic (Sideload)",
+            platform_app_id="abc",
+            name=name,
+            executable="/p/x.exe",
+            launch_command="heroic://launch/abc?runner=sideload",
+            cover_url_hint=cover_hint,
+        )
+
+    def test_uses_steamgriddb_when_search_succeeds(self, tmp_path: Path) -> None:
+        """When SteamGridDB returns a result, that cover URL is used."""
+        from unittest.mock import patch
+
+        svc = self._make_service(tmp_path)
+        game = self._make_game(name="WarCraft 2", cover_hint="https://heroic.example/c.png")
+
+        fake_results = [{"id": 99, "name": "WarCraft 2"}]
+        fake_grid = [{"url": "https://gridurl/x.png"}]
+
+        with patch("steam_library_manager.services.external_games_service.SteamGridDB") as MockGrid:
+            grid_inst = MockGrid.return_value
+            grid_inst.api_key = "fake-key"
+            grid_inst.search_games_by_name.return_value = fake_results
+            grid_inst.get_images_by_type.return_value = fake_grid
+
+            with patch(
+                "steam_library_manager.services.external_games_service.SteamAssets.save_custom_image"
+            ) as save_img:
+                save_img.return_value = True
+                svc._try_fetch_cover(appid=12345, game=game)
+
+            save_img.assert_called_once()
+            args, _ = save_img.call_args
+            assert args[2] == "https://gridurl/x.png"
+
+    def test_falls_back_to_hint_when_steamgriddb_empty(self, tmp_path: Path) -> None:
+        """When SteamGridDB returns no results, cover_url_hint is used."""
+        from unittest.mock import patch
+
+        svc = self._make_service(tmp_path)
+        game = self._make_game(name="Obscure App", cover_hint="https://heroic.example/c.png")
+
+        with patch("steam_library_manager.services.external_games_service.SteamGridDB") as MockGrid:
+            grid_inst = MockGrid.return_value
+            grid_inst.api_key = "fake-key"
+            grid_inst.search_games_by_name.return_value = []
+
+            with patch(
+                "steam_library_manager.services.external_games_service.SteamAssets.save_custom_image"
+            ) as save_img:
+                save_img.return_value = True
+                svc._try_fetch_cover(appid=12345, game=game)
+
+            save_img.assert_called_once()
+            args, _ = save_img.call_args
+            assert args[2] == "https://heroic.example/c.png"
+
+    def test_no_cover_when_both_fail(self, tmp_path: Path) -> None:
+        """SteamGridDB empty + no cover_url_hint -> save_custom_image NOT called."""
+        from unittest.mock import patch
+
+        svc = self._make_service(tmp_path)
+        game = self._make_game(name="X", cover_hint=None)
+
+        with patch("steam_library_manager.services.external_games_service.SteamGridDB") as MockGrid:
+            grid_inst = MockGrid.return_value
+            grid_inst.api_key = "fake-key"
+            grid_inst.search_games_by_name.return_value = []
+
+            with patch(
+                "steam_library_manager.services.external_games_service.SteamAssets.save_custom_image"
+            ) as save_img:
+                svc._try_fetch_cover(appid=12345, game=game)
+
+            save_img.assert_not_called()
