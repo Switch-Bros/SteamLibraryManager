@@ -11,7 +11,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-FDE100?style=plastic&logo=python&logoColor=FDE100&labelColor=000000)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20Steam%20Deck-FDE100?style=plastic&logo=linux&logoColor=FDE100&labelColor=000000)](https://store.steampowered.com/steamdeck)
-[![Lizenz](https://img.shields.io/badge/Lizenz-MIT-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager/blob/main/LICENSE)
+[![Lizenz](https://img.shields.io/badge/Lizenz-GPL--3.0-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager/blob/main/LICENSE)
 [![Tests](https://img.shields.io/badge/Tests-1855%20passed-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
 [![Steam API](https://img.shields.io/badge/Steam%20API-Optional-FDE100?style=plastic&logo=steam&logoColor=FDE100&labelColor=000000)](https://steamcommunity.com/dev/apikey)
 [![SteamGridDB](https://img.shields.io/badge/SteamGridDB-Required-FDE100?style=plastic&logoColor=FDE100&labelColor=000000)](https://www.steamgriddb.com/api)
@@ -530,7 +530,7 @@ In keinem Fall haften die Autoren oder Urheberrechtsinhaber für Ansprüche, Sch
 
 <h2 align="center">📜 Lizenz</h2>
 
-[MIT License](LICENSE) - Copyright © 2026 Switch Bros.
+[GPL-3.0 Lizenz](LICENSE) - Copyright © 2026 Switch Bros.
 
 <p align="center">
   <picture>
