@@ -530,7 +530,7 @@ In no event shall the authors or copyright holders be liable for any claim, dama
 
 <h2 align="center">📜 License</h2>
 
-[GPL-3.0 License](LICENSE) - Copyright © 2026 Switch Bros.
+<p align="center"><a href="LICENSE">GPL-3.0 License</a> - Copyright © 2026 Switch Bros.</p>
 
 <p align="center">
   <picture>

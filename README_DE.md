@@ -530,7 +530,7 @@ In keinem Fall haften die Autoren oder Urheberrechtsinhaber für Ansprüche, Sch
 
 <h2 align="center">📜 Lizenz</h2>
 
-[GPL-3.0 Lizenz](LICENSE) - Copyright © 2026 Switch Bros.
+<p align="center"><a href="LICENSE">GPL-3.0 Lizenz</a> - Copyright © 2026 Switch Bros.</p>
 
 <p align="center">
   <picture>
