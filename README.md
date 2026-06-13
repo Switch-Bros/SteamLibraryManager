@@ -16,7 +16,6 @@
 [![Steam API](https://img.shields.io/badge/Steam%20API-Optional-FDE100?style=plastic&logo=steam&logoColor=FDE100&labelColor=000000)](https://steamcommunity.com/dev/apikey)
 [![SteamGridDB](https://img.shields.io/badge/SteamGridDB-Required-FDE100?style=plastic&logoColor=FDE100&labelColor=000000)](https://www.steamgriddb.com/api)
 [![i18n](https://img.shields.io/badge/i18n-🇬🇧%20🇩🇪-FDE100?style=plastic&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager)
-[![Docs](https://img.shields.io/badge/Docs-DeepWiki-FDE100?style=plastic&labelColor=000000)](https://deepwiki.com/Switch-Bros/SteamLibraryManager)
 [![Downloads](https://img.shields.io/github/downloads/Switch-Bros/SteamLibraryManager/total?style=plastic&color=FDE100&labelColor=000000)](https://github.com/Switch-Bros/SteamLibraryManager/releases)
 
 > **The Depressurizer alternative for Linux.**
@@ -542,4 +541,7 @@ In no event shall the authors or copyright holders be liable for any claim, dama
 
 <p align="center">
   Made with ❤️ on Linux by <a href="https://github.com/Switch-Bros">Switch Bros</a>
+</p>
+<p align="center">
+  <a href="https://deepwiki.com/Switch-Bros/SteamLibraryManager"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
 </p>
