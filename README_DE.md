@@ -543,3 +543,6 @@ In keinem Fall haften die Autoren oder Urheberrechtsinhaber für Ansprüche, Sch
 <p align="center">
   Mit ❤️ auf Linux gebaut von <a href="https://github.com/Switch-Bros">Switch Bros</a>
 </p>
+<p align="center">
+  <a href="https://deepwiki.com/Switch-Bros/SteamLibraryManager"><img src="https://deepwiki.com/badge.svg" alt="Frage DeepWiki"></a>
+</p>
